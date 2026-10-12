@@ -214,6 +214,8 @@ Workspace dùng metric `global_step`, lọc group `uav-network-2d`, ghim run và
 Lỗi masked entropy khi alpha > 1 được kiểm tra bằng regression CPU/CUDA;
 zero-probability terms được xóa trước nhân alpha, gradient luôn kiểm tra finite.
 Lịch sử job, URL W&B và số liệu CUDA thực tế:
+[verification-online-training.md](docs/verification-online-training.md).
+Snapshot trước khi sửa lỗi masked entropy:
 [verification-kaggle-wandb.md](docs/verification-kaggle-wandb.md).
 
 ## Thuật toán và tài liệu

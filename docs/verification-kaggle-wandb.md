@@ -3,7 +3,7 @@
 **Status update, 2026-10-12 15:30 UTC:** the full-profile job below failed.
 MASAC encountered non-finite masked entropy; the old fail-fast runner then
 terminated MATD3. The laptop shutdown did not cause the error. The startup
-snapshot below is historical; see [online-training-fix-plan.md](online-training-fix-plan.md)
+snapshot below is historical; see [verification-online-training.md](verification-online-training.md)
 for diagnosis, regression coverage and the replacement run verification.
 
 Verified at **2026-10-12 12:42 UTC**. Both full-profile learners are running
