@@ -196,6 +196,8 @@ Chạy local với `--set tracking.enabled=true` cũng dùng key này.
 
 Profile Kaggle dùng **2 env CPU cho mỗi learner, batch512 và replay CUDA**.
 Với T4 ×2: MASAC ở GPU0, MATD3 ở GPU1, train độc lập; một GPU thì chạy lần lượt.
+Job dài chạy CUDA regression và benchmark config thật trước khi mở learner;
+Kaggle output giữ `cuda-tests.log`, hardware và benchmark JSON của hai thuật toán.
 Đây là hai thí nghiệm, không phải chia một learner lên hai GPU.
 Kernel private lấy W&B key từ dataset credential riêng tư đã có; toàn bộ
 `key.txt` chỉ giữ ở local. Chưa hỗ trợ resume optimizer/replay khi hết thời gian

@@ -29,8 +29,9 @@ W&B credential source is mounted, and unrelated fields are not propagated.
 
 A generated private script clones an exact published project commit, runs
 setup with system packages, confirms CUDA, then runs CUDA regressions and
-short online smoke checks for both algorithms. After validation, launch default
-1000-episode training for each algorithm. On two available GPUs, one independent
+short online smoke checks for both algorithms. The full job also gates learner
+startup on all CUDA regressions and a warmed full-size benchmark of each
+algorithm, then runs default1000-episode training for each. On two available GPUs, one independent
 learner per GPU; each has2 spawned CPU envs, batch512/replay100000/1 update per
 collection (256 sample usages per new transition). On one GPU run sequentially.
 Keep real UavNetSim,6 UAVs,10 targets,8 obstacles and800 steps.
@@ -86,3 +87,6 @@ tests now require title/slug agreement and parsing the canonical push URL. The
 launcher also rejects API errors/invalid data sources even if the CLI exits0.
 Parent W&B system monitoring is enabled by default, configurable through
 `tracking.system_metrics`, to expose CPU/GPU/VRAM usage during real training.
+Kaggle capacity is queued, so the full job may be submitted while the validation
+job waits. Its own CUDA checks and full-config benchmarks must pass before any
+long learner starts; a queue delay does not bypass runtime verification.

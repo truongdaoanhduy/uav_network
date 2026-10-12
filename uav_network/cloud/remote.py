@@ -11,6 +11,7 @@ import time
 import torch
 
 from ..experiments.hardware import hardware_info
+from ..configuration import load_config
 
 
 def wait_all(processes):
@@ -57,10 +58,20 @@ def run_job(spec):
         raise RuntimeError("Kaggle job requires usable CUDA; refusing a CPU fallback")
     output = Path("/kaggle/working")
     (output / "hardware.json").write_text(json.dumps(hardware_info(), indent=2))
-    if spec["stage"] == "validate":
-        with (output / "cuda-tests.log").open("w") as log:
-            subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests",
-                            "-p", "test_cuda.py", "-v"], stdout=log, stderr=subprocess.STDOUT, check=True)
+    with (output / "cuda-tests.log").open("w") as log:
+        subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests",
+                        "-p", "test_cuda.py", "-v"], stdout=log, stderr=subprocess.STDOUT, check=True)
+    if spec["stage"] == "train":
+        config = load_config(spec["config"], spec["overrides"])
+        for algorithm in spec["runs"]:
+            args = [sys.executable, "-m", "uav_network", "benchmark", "--config", spec["config"],
+                    "--env-counts", str(config.runtime.num_envs), "--steps", "32",
+                    "--learner-updates", "20", "--output", str(output / f"{algorithm}-benchmark.json")]
+            for override in [*spec["overrides"], f"runtime.algorithm={algorithm}",
+                             "runtime.device=cuda", "runtime.replay_device=cuda"]:
+                args += ["--set", override]
+            with (output / f"{algorithm}-benchmark.log").open("w") as log:
+                subprocess.run(args, stdout=log, stderr=subprocess.STDOUT, check=True)
     count = torch.cuda.device_count()
     processes = []
     logs = []
