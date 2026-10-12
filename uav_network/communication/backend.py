@@ -139,6 +139,10 @@ class UavNetSimNetwork:
         if len(transfer.arrived) == fragments:
             if self.reports.transfer(transfer.source, receiver, transfer.report, now):
                 self._discard_report_sessions(transfer.source, transfer.report)
+            else:
+                # The receiver may have filled after admission. Drop this
+                # reassembly; source custody stays valid for later retransmission.
+                del self.sessions[key]
 
     def _discard_report_sessions(self, source, report):
         for key in list(self.sessions):
@@ -169,8 +173,9 @@ class UavNetSimNetwork:
             buffer = self.reports.buffers[source]
             if destination is None or not buffer:
                 continue
-            report = next(iter(buffer.values()))
-            if self._eligible(source, destination, positions, report):
+            report = next((r for r in buffer.values()
+                           if self._eligible(source, destination, positions, r)), None)
+            if report is not None:
                 normalized = (float(action.continuous[source, 2]) + 1) / 2
                 n = self.config.network
                 power = n.tx_power_min_w + normalized * (n.tx_power_max_w - n.tx_power_min_w)

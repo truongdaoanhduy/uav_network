@@ -131,6 +131,55 @@ class CommunicationTests(unittest.TestCase):
         self.assertTrue(self.env.reports.delivered[0])
         self.assertEqual(len(self.env.network.simulator.drones), 7)
 
+    def test_receiver_contention_keeps_source_report_retransmittable(self):
+        c = Config()
+        c.world.num_uavs = 3
+        c.world.num_targets = 3
+        c.world.num_obstacles = 0
+        c.sensor.altitude_m = 20
+        c.network.buffer_bytes = 1024
+        self.env = SwarmSearchEnv(c)
+        self.env.reset(seed=44, options=dict(positions=[[500, 300], [600, 300], [550, 150]],
+                         targets=[[500, 300], [600, 300], [900, 900]], obstacles=[]))
+        self.env.step(Action(np.zeros((3, 3)), np.array([2, 2, 0])))
+        self.assertEqual(len(self.env.reports.buffers[2]), 1)
+        self.assertEqual(sum(len(b) for b in self.env.reports.buffers[:2]), 1)
+        self.env.step(Action(np.zeros((3, 3)), np.array([0, 0, 3])))
+        self.assertFalse(self.env.reports.buffers[2])
+        self.env.step(Action(np.zeros((3, 3)), np.array([2, 2, 0])))
+        self.assertEqual(len(self.env.reports.buffers[2]), 1)
+        self.env.step(Action(np.zeros((3, 3)), np.array([0, 0, 3])))
+        self.assertEqual(int(self.env.reports.delivered.sum()), 2)
+
+    def test_known_oldest_report_does_not_starve_eligible_report(self):
+        c = Config()
+        c.world.num_uavs = 2
+        c.world.num_targets = 2
+        c.world.num_obstacles = 0
+        c.network.peer_range_m = c.network.gcs_range_m = 160
+        c.network.report_ttl_s = 3
+        self.env = SwarmSearchEnv(c)
+        self.env.reset(seed=44, options=dict(positions=[[500, 300], [500, 150]],
+                       targets=[[500, 225], [500, 390]], obstacles=[]))
+        self.assertEqual(list(self.env.reports.buffers[0]), [0, 1])
+        self.assertEqual(list(self.env.reports.buffers[1]), [0])
+        self.env.step(actions(1, 2))
+        self.assertIn(1, self.env.reports.buffers[1])
+        self.env.step(actions(1, 2))
+        self.assertTrue(self.env.reports.delivered.all())
+
+    def test_obstacle_changes_real_channel_to_nlos(self):
+        c = network_config()
+        c.world.num_obstacles = 1
+        self.env = SwarmSearchEnv(c)
+        self.env.reset(seed=44, options=dict(positions=[[500, 100], [600, 100]],
+                       targets=[[500, 100]], obstacles=[[500, 50, 15]]))
+        self.env.step(actions(2))
+        stats = self.env.network.metrics()
+        self.assertGreater(stats["phy_failures"], 0)
+        self.assertFalse(self.env.reports.delivered[0])
+        self.assertIn(0, self.env.reports.buffers[0])
+
 
 if __name__ == "__main__":
     unittest.main()

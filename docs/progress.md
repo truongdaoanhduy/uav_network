@@ -18,3 +18,25 @@ Task 2 complete: backend tests ran RED (missing backend) then GREEN.
 All 19 environment/network tests passed using the real pinned UavNetSim.
 Evidence includes direct GCS delivery, two-hop custody, four-fragment
 reassembly, original TTL, failed-PHY energy and same-seed network metrics.
+
+Task 3 complete: learner/experiment tests ran RED (missing modules) then GREEN.
+26/26 checks passed. Real-network smoke completed 2 episodes / 80 steps /
+73 updates, then CPU evaluation saved metrics and a 1200×1200 PNG.
+
+Independent whole-project review: no Critical findings; two Important defects
+reproduced with real UavNetSim. Added failing checks for receiver-buffer
+contention and oldest-report eligibility. Fixed the oldest-report case by
+selecting the first eligible report for the policy's chosen destination.
+Fixed contention by discarding rejected reassembly while retaining sender
+custody, so a later action can retransmit. Both require a green full suite.
+
+Final fix verification: both regression checks GREEN; full suite 30/30 GREEN.
+The repeated real-network smoke ran 2 episodes / 80 steps / 73 Adam updates.
+Both runs' episode logs and all 206 checkpoint tensors match exactly at seed 44.
+CPU evaluation wrote metrics and PNG; setup.sh was rerun successfully.
+Git exclusions verified for the external runtime, venv and output checkpoints.
+
+Minor finding deferred: custom source-directory upstream_path is trusted;
+directory-based loading does not independently check HEAD against the pin.
+The default downloaded checkout and installed fallback were verified at
+04daafb815eb377409b40b285574eeb62b9a8d58. Installed fallback checks the pin.

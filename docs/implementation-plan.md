@@ -42,13 +42,13 @@ Produces `load_config(path=None, overrides=()) -> Config`,
 `Action(continuous, destination)`, `SwarmSearchEnv.reset(seed, options)`,
 `step(action)`, `state()`, `ReportStore.add/expire/transfer`.
 
-- [ ] Write checks for dimensions, seed replay, FOV hiding, acceleration and
+- [x] Write checks for dimensions, seed replay, FOV hiding, acceleration and
   continuous obstacle/peer collisions; invalid CLI fields and impossible worlds.
-- [ ] Run `python -m unittest discover -s tests -p test_environment.py -v`;
+- [x] Run `python -m unittest discover -s tests -p test_environment.py -v`;
   observe missing-feature failures.
-- [ ] Implement validated config, world, sensing and network-disabled steps.
-- [ ] Rerun the same command; expect all checks to pass.
-- [ ] Commit this independently usable search-only stage.
+- [x] Implement validated config, world, sensing and network-disabled steps.
+- [x] Rerun the same command; expect all checks to pass.
+- [x] Commit this independently usable search-only stage.
 
 ## Task 2: Real packet communication
 
@@ -59,13 +59,13 @@ Files: `communication/{upstream,routing,backend}.py`,
 Consumes `ReportStore` and mission positions/obstacles. Produces
 `UavNetSimNetwork.step(action, positions, time_s)`, `metrics()`, `close()`.
 
-- [ ] Write real direct/relay/fragment tests, failed-TX energy, TTL, duplicate
+- [x] Write real direct/relay/fragment tests, failed-TX energy, TTL, duplicate
   suppression, single-live-instance and same-seed reset tests.
-- [ ] Run the communication checks and observe the missing backend failures.
-- [ ] Implement pinned sparse setup, upstream lifetime, selected routing,
+- [x] Run the communication checks and observe the missing backend failures.
+- [x] Implement pinned sparse setup, upstream lifetime, selected routing,
   per-fragment power, reassembly and custody transfer.
-- [ ] Run communication and environment checks; expect no skipped tests.
-- [ ] Commit the real packet-network stage.
+- [x] Run communication and environment checks; expect no skipped tests.
+- [x] Commit the real packet-network stage.
 
 ## Task 3: Hybrid MASAC and experiments
 
@@ -76,12 +76,12 @@ Files: `algorithms/{models,replay,masac}.py`,
 Consumes `env.state()`, local observations and hybrid actions. Produces
 `MASAC.act/update/save/load`, bounded replay, CLI train/evaluate commands.
 
-- [ ] Write finite-update, actor-independence, categorical-gradient,
+- [x] Write finite-update, actor-independence, categorical-gradient,
   timeout-bootstrap and checkpoint-roundtrip checks.
-- [ ] Run these checks; observe missing learner failures.
-- [ ] Implement independent actors/twin centralized critics and exact own
+- [x] Run these checks; observe missing learner failures.
+- [x] Implement independent actors/twin centralized critics and exact own
   categorical expectations; add streaming metrics, resolved config and PNG.
-- [ ] Run the entire unittest suite and a 2-episode real-network training run.
-- [ ] Evaluate its saved checkpoint; expect metrics and final PNG to exist.
-- [ ] Check shell syntax, repeat setup, all file lengths and Git exclusions.
-- [ ] Commit and perform an independent whole-project code review.
+- [x] Run the entire unittest suite and a 2-episode real-network training run.
+- [x] Evaluate its saved checkpoint; expect metrics and final PNG to exist.
+- [x] Check shell syntax, repeat setup, all file lengths and Git exclusions.
+- [x] Commit and perform an independent whole-project code review.
