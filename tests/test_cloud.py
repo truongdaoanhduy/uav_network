@@ -14,6 +14,46 @@ from uav_network.cloud.remote import learner_command, wait_all
 
 
 class CloudTests(unittest.TestCase):
+    def test_credential_check_downloads_only_the_selected_wandb_file(self):
+        from uav_network.cloud.client import verify_credential_dataset
+        credentials = self.credentials()
+        account = credentials.accounts[0]
+        dataset = SimpleNamespace(ref="owner/private-wandb", is_private=True)
+        api = SimpleNamespace(authenticate=lambda: None, dataset_list=lambda **kwargs: [dataset])
+        calls = []
+
+        def kaggle(args, selected, **kwargs):
+            calls.append(args)
+            if args[:2] == ["datasets", "files"]:
+                if "--page-token" in args:
+                    self.assertEqual(args[args.index("--page-token") + 1], "next-page")
+                    return json.dumps([{"name": "hf_repo_id.txt"}])
+                return "Next Page Token = next-page\n" + json.dumps([
+                    {"name": "hf_token.txt"}, {"name": "wandb_api_key.txt"}])
+            self.assertIn("-f", args)
+            self.assertEqual(args[args.index("-f") + 1], "wandb_api_key.txt")
+            folder = Path(args[args.index("-p") + 1])
+            (folder / "wandb_api_key.txt").write_text(credentials.wandb_key)
+            return ""
+
+        with patch.dict(sys.modules, {"kaggle.api.kaggle_api_extended": SimpleNamespace(KaggleApi=lambda: api)}):
+            with patch("uav_network.cloud.client.run_kaggle", side_effect=kaggle):
+                verify_credential_dataset(account, credentials, dataset.ref, "owner")
+        self.assertEqual(len(calls), 3)
+
+    def test_duplicate_wandb_files_on_separate_pages_are_rejected_before_download(self):
+        from uav_network.cloud.client import verify_credential_dataset
+        credentials = self.credentials()
+        dataset = SimpleNamespace(ref="owner/private-wandb", is_private=True)
+        api = SimpleNamespace(authenticate=lambda: None, dataset_list=lambda **kwargs: [dataset])
+        pages = ["Next Page Token = next-page\n" + json.dumps([{"name": "wandb_api_key.txt"}]),
+                 json.dumps([{"name": "nested/wandb_secret.json"}])]
+        with patch.dict(sys.modules, {"kaggle.api.kaggle_api_extended": SimpleNamespace(KaggleApi=lambda: api)}):
+            with patch("uav_network.cloud.client.run_kaggle", side_effect=pages) as call:
+                with self.assertRaisesRegex(RuntimeError, "exactly one"):
+                    verify_credential_dataset(credentials.accounts[0], credentials, dataset.ref, "owner")
+        self.assertEqual(call.call_count, 2)
+
     def test_evaluation_failure_preserves_training_results_and_later_evaluations(self):
         from uav_network.cloud.remote import finalize_runs
         with TemporaryDirectory() as directory:

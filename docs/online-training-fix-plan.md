@@ -39,7 +39,7 @@ Limits: previous failed runs did not reach the 100-episode checkpoint interval.
 Existing checkpoints are policy/evaluation checkpoints; optimizer/replay resume
 is not implemented. Keep original logs/history, and restart transparently.
 
-Local verification after the fix: 74 tests, 70 passed and four explicit CUDA
+Local verification after the fix: 75 tests, 71 passed and four explicit CUDA
 skips. Regression checks were observed failing before the fix and passing after.
 Independent review found an evaluation failure could prevent preserving the
 training results; manifests are now written first and remaining evaluations run.
@@ -48,3 +48,9 @@ Saved W&B view: https://wandb.ai/truongdaoanhduy-uit/uav_search_target?nw=gmcixx
 API read-back verified six sections, 26 panels, the `uav-network-2d` group filter,
 both old runs pinned/enabled and both IDs returned by the actual project query.
 New run IDs will replace the pinned pair after CUDA validation and restart.
+
+Submission encountered repeated credential ZIP download timeouts at 45 seconds.
+Only the W&B file is now downloaded, after an all-pages file-name listing confirms
+exactly one candidate. Owner/privacy/key-match checks remain. Download deadline
+is configurable with `--credential-timeout-seconds` (default 120 seconds).
+Pagination-prefix and cross-page duplicate regressions cover the CLI's output.

@@ -45,7 +45,7 @@ def resolve_username(account):
     raise RuntimeError("Cannot resolve the selected account username from owned Kaggle resources")
 
 
-def verify_credential_dataset(account, credentials, ref, username):
+def verify_credential_dataset(account, credentials, ref, username, timeout=120):
     if ref.split("/", 1)[0] != username:
         raise ValueError("Credential dataset must belong to the authenticated account")
     saved = os.environ.get("KAGGLE_API_TOKEN")
@@ -63,9 +63,20 @@ def verify_credential_dataset(account, credentials, ref, username):
             os.environ.pop("KAGGLE_API_TOKEN", None)
         else:
             os.environ["KAGGLE_API_TOKEN"] = saved
+    files, page = [], []
+    while True:
+        lines = run_kaggle(["datasets", "files", ref, "--format", "json", *page], account).splitlines()
+        token = lines.pop(0).removeprefix("Next Page Token = ").strip() if lines and lines[0].startswith("Next Page Token = ") else None
+        files.extend(json.loads("\n".join(lines)))
+        if not token:
+            break
+        page = ["--page-token", token]
+    selected = [f["name"] for f in files if Path(f["name"]).name in {"wandb_api_key.txt", "wandb_secret.json"}]
+    if len(selected) != 1:
+        raise RuntimeError("Credential dataset needs exactly one W&B key file")
     with TemporaryDirectory(prefix="uav-wandb-check-") as temp:
         Path(temp).chmod(0o700)
-        run_kaggle(["datasets", "download", "-d", ref, "-p", temp, "--unzip", "-q"], account)
+        run_kaggle(["datasets", "download", "-d", ref, "-f", selected[0], "-p", temp, "-q"], account, timeout=timeout)
         candidates = list(Path(temp).rglob("wandb_api_key.txt")) + list(Path(temp).rglob("wandb_secret.json"))
         if len(candidates) != 1:
             raise RuntimeError("Credential dataset needs exactly one W&B key file")

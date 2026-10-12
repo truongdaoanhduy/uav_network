@@ -19,7 +19,7 @@ def launch(args, credentials):
         raise RuntimeError("Commit and publish the project changes before launching a pinned cloud job")
     account = select_account(credentials, account_quotas(credentials), args.required_gpu_hours, args.account)
     username = resolve_username(account)
-    verify_credential_dataset(account, credentials, args.credential_dataset, username)
+    verify_credential_dataset(account, credentials, args.credential_dataset, username, args.credential_timeout_seconds)
     config_file = args.config or ("configs/kaggle-smoke.yaml" if args.stage == "validate" else "configs/kaggle.yaml")
     config = load_config(ROOT / config_file, args.overrides)
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
@@ -62,6 +62,7 @@ def main(argv=None):
     submit.add_argument("--account")
     submit.add_argument("--required-gpu-hours", type=float)
     submit.add_argument("--credential-dataset", required=True)
+    submit.add_argument("--credential-timeout-seconds", type=int, default=120)
     submit.add_argument("--algorithm", choices=["both", "masac", "matd3"], default="both")
     submit.add_argument("--config")
     submit.add_argument("--set", dest="overrides", action="append", default=[])
@@ -74,8 +75,8 @@ def main(argv=None):
     if args.action == "accounts":
         return {"accounts": account_quotas(credentials)}
     if args.action == "launch":
-        if args.timeout_seconds < 1:
-            raise ValueError("Kernel timeout must be positive")
+        if args.timeout_seconds < 1 or args.credential_timeout_seconds < 1:
+            raise ValueError("Kernel and credential download timeouts must be positive")
         return launch(args, credentials)
     manifest = json.loads(Path(args.manifest).read_text())
     account = next((a for a in credentials.accounts if a.name == manifest["account"]), None)
