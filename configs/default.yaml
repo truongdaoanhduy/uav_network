@@ -1,0 +1,33 @@
+# All unspecified fields use the validated defaults in configuration.py.
+world:
+  map_size_m: 1000.0
+  num_uavs: 6
+  num_targets: 10
+  num_obstacles: 8
+  dt_s: 1.0
+  max_steps: 800
+  max_speed_mps: 20.0
+  max_accel_mps2: 2.0
+sensor:
+  altitude_m: 100.0
+  full_fov_deg: 90.0
+network:
+  enabled: true
+  peer_range_m: 500.0
+  gcs_range_m: 500.0
+  tx_power_min_w: 0.1
+  tx_power_max_w: 0.4
+  report_bytes: 1024
+  buffer_bytes: 3072
+  report_ttl_s: 300.0
+masac:
+  hidden_sizes: [256, 256]
+  replay_capacity: 50000
+  batch_size: 256
+  learning_starts: 2000
+  updates_per_step: 1
+runtime:
+  seed: 44
+  eval_seed: 10044
+  episodes: 1000
+  output_dir: outputs/run

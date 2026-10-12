@@ -1,0 +1,13 @@
+.venv/
+third_party/
+outputs/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+running_log.log
+.env
+key*.txt

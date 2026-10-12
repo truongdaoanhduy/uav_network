@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uav-network"
+version = "0.1.0"
+description = "Homogeneous 2D UAV swarm search with UavNetSim and Hybrid MASAC"
+requires-python = ">=3.11"
+dependencies = ["numpy>=2.2,<3", "torch>=2.5,<3", "PyYAML>=6,<7", "matplotlib>=3.10,<4"]
+
+[project.scripts]
+uav-network = "uav_network.experiments.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["uav_network*"]
