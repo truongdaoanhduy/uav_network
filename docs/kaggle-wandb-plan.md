@@ -90,3 +90,9 @@ Parent W&B system monitoring is enabled by default, configurable through
 Kaggle capacity is queued, so the full job may be submitted while the validation
 job waits. Its own CUDA checks and full-config benchmarks must pass before any
 long learner starts; a queue delay does not bypass runtime verification.
+
+First training bootstrap stopped before importing CUDA or initializing W&B:
+Kaggle Python3.13 failed at venv ensurepip. System-package setup now creates the
+isolated venv without ensurepip and inherits the image's existing pip. A clean
+temporary Python3.13 venv verified pip works this way on the local host. This
+fix is being revalidated in an actual Kaggle job before reporting GPU training.

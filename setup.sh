@@ -8,7 +8,8 @@ venv_flags=()
 package_spec='.'
 for option in "$@"; do
   case "$option" in
-    --system-site-packages) venv_flags+=(--system-site-packages) ;;
+    # Kaggle's Python image lacks a working ensurepip; inherit its existing pip.
+    --system-site-packages) venv_flags+=(--system-site-packages --without-pip) ;;
     --cloud) package_spec='.[cloud]' ;;
     *) echo 'Usage: bash setup.sh [--system-site-packages] [--cloud]' >&2; exit 2 ;;
   esac
@@ -17,6 +18,7 @@ done
 if [[ ! -x .venv/bin/python ]]; then
   "$python_bin" -m venv "${venv_flags[@]}" .venv
 fi
+.venv/bin/python -m pip --version
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install -e "$package_spec" -r scripts/requirements-network.txt
 upstream_dir="$project_root/third_party/UavNetSim"
