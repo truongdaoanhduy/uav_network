@@ -9,12 +9,41 @@ import torch
 from uav_network.algorithms.optimization import tensor_batch
 from uav_network.algorithms.replay import TensorReplayBuffer
 from uav_network.configuration import Config
-from uav_network.environment.env import Action
+from uav_network.environment.env import Action, SwarmSearchEnv
+from uav_network.algorithms.masac import MASAC
 from uav_network.experiments.training import train
 
 
 @unittest.skipUnless(torch.cuda.is_available(), "CUDA is unavailable on this host")
 class CUDATests(unittest.TestCase):
+    def test_masked_entropy_stays_finite_with_alpha_above_one_without_metrics(self):
+        c = Config()
+        c.world.num_targets, c.world.num_obstacles = 2, 1
+        c.masac.hidden_sizes = [32, 32]
+        env = SwarmSearchEnv(c)
+        try:
+            observations, _ = env.reset(seed=44)
+            obs = np.repeat(observations[None], 8, axis=0)
+            obs[:, :, -7:] = 0
+            obs[:, :, -7] = 1
+            obs[::2, :, -1] = 1
+            state = np.repeat(env.state()[None], 8, axis=0)
+            action = Action(np.zeros((8, 6, 3)), np.zeros((8, 6), dtype=np.int64))
+            replay = TensorReplayBuffer(8, observations.shape, env.state_dim, device="cuda")
+            replay.add_batch(obs, state, action, np.ones(8), obs, state, np.zeros(8))
+            for alpha in (1.01, 2., float(np.exp(5))):
+                learner = MASAC(c, env.observation_dim, env.state_dim, "cuda")
+                with torch.no_grad():
+                    learner.log_alpha_discrete.fill_(np.log(alpha))
+                for _ in range(2):
+                    learner.update(replay.sample(8), collect_metrics=False)
+                self.assertTrue(all(torch.isfinite(p).all() for p in learner.parameters()))
+                actions = learner.act_batch(obs)
+                self.assertTrue(np.isfinite(actions.continuous).all())
+                self.assertTrue(np.isin(actions.destination, [0, 6]).all())
+        finally:
+            env.close()
+
     def test_gpu_replay_to_cpu_is_ready_for_immediate_cpu_consumption(self):
         # A blocking D2H copy is required even if the CPU learner runs quickly.
         source = torch.arange(1024 * 1024, dtype=torch.float32).reshape(1024, 1024).cuda()

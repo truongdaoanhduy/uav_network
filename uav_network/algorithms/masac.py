@@ -46,6 +46,9 @@ class MASAC(nn.Module):
     def _sample(self, actor, observation, deterministic=False):
         mask = valid_destinations(observation, self.destinations)
         continuous, parts, probs, logs = actor.sample(observation, deterministic, mask, return_parts=True)
+        # 0*log(0) contributes zero. Clear it before alpha multiplication:
+        # float32.min * alpha>1 overflows, even though the destination has p=0.
+        logs = logs.masked_fill(probs == 0, 0)
         active = (observation[:, 9] > .5).to(continuous.dtype)
         continuous = continuous * active[:, None]
         # Power is a control only when the categorical destination is non-silent.

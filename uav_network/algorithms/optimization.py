@@ -1,4 +1,4 @@
-"""Tensor updates with optional periodic scalar checks for CUDA throughput."""
+"""Tensor updates: periodic scalar checks, gradient safety before every step."""
 import torch
 from torch import nn
 
@@ -20,7 +20,7 @@ def step_optimizer(loss, optimizer, parameters, grad_clip, check_finite=True):
         raise FloatingPointError("Non-finite learner loss")
     optimizer.zero_grad(set_to_none=True)
     loss.backward()
-    torch.nn.utils.clip_grad_norm_(list(parameters), grad_clip, error_if_nonfinite=check_finite)
+    torch.nn.utils.clip_grad_norm_(list(parameters), grad_clip, error_if_nonfinite=True)
     optimizer.step()
 
 

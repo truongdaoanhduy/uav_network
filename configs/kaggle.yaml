@@ -20,7 +20,7 @@ runtime:
   replay_device: cuda
   torch_threads: 1
   log_interval_steps: 200
-  checkpoint_interval: 100
+  checkpoint_interval: 10
   output_dir: outputs/kaggle
 tracking:
   enabled: true

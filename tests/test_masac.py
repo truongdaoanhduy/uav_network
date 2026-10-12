@@ -86,6 +86,22 @@ class MASACTests(unittest.TestCase):
         stats = self.learner.update(batch)
         self.assertEqual(stats["discrete_entropy"], 0)
 
+    def test_masked_destinations_remain_finite_above_unit_entropy_temperature(self):
+        batch = self.batch()
+        for key in ("observation", "next_observation"):
+            batch[key][:, :, -7:] = 0
+            batch[key][:, :, -7] = 1
+            batch[key][::2, :, -1] = 1
+        for alpha in (1.01, 2., float(np.exp(5))):
+            with self.subTest(alpha=alpha):
+                learner = MASAC(self.config, self.env.observation_dim, self.env.state_dim)
+                with torch.no_grad():
+                    learner.log_alpha_discrete.fill_(np.log(alpha))
+                learner.update(batch, collect_metrics=False)
+                self.assertTrue(all(torch.isfinite(p).all() for p in learner.parameters()))
+                action = learner.act_batch(batch["observation"])
+                self.assertTrue(np.isin(action.destination, [0, 6]).all())
+
     def test_zero_entropy_targets_still_update_temperatures_for_available_controls(self):
         a = self.learner.config.masac
         a.target_continuous_entropy = 0

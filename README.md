@@ -146,8 +146,8 @@ pinned samples; CUDA replay→CPU dùng copy blocking để CPU đọc dữ li�
 Số episode hoàn tất có thể vượt ngân sách tối đa E−1 do nhiều worker kết thúc
 cùng lượt; summary ghi cả số yêu cầu lẫn số thực tế.
 
-Finite/gradient checks và chuyển metrics thành số CPU chạy theo log interval,
-kèm kiểm tra tham số khi lưu. Distribution của policy dùng các tham số đã
+Gradient không hữu hạn bị chặn trước mọi bước Adam. Scalar loss/metrics chạy
+theo log interval, kèm kiểm tra tham số khi lưu. Distribution của policy dùng các tham số đã
 clamp/mask để giảm validation sync trên GPU. Optional `runtime.compile_models=true`
 compile phần MLP, default tắt; benchmark sau warmup và so với eager.
 `runtime.deterministic=false` là lựa chọn tốc độ cần so sánh riêng với baseline.
@@ -172,16 +172,21 @@ bash setup.sh --system-site-packages --cloud
 
 # Kiểm tra CUDA và smoke hai thuật toán trước khi train dài.
 .venv/bin/python -m uav_network kaggle launch --stage validate \
-  --account account_02 \
-  --credential-dataset haibro1234/uav-wandb-credential-arch-ablation
+  --account account_07 \
+  --credential-dataset bduy2378/uav-wandb-credential-arch-ablation
 
 # Train 1000 episode mỗi thuật toán; chỉnh bằng --set nếu cần.
 .venv/bin/python -m uav_network kaggle launch --stage train \
-  --account account_02 --required-gpu-hours 4 \
-  --credential-dataset haibro1234/uav-wandb-credential-arch-ablation
+  --account account_07 --required-gpu-hours 22 --timeout-seconds 39600 \
+  --credential-dataset bduy2378/uav-wandb-credential-arch-ablation
 
 .venv/bin/python -m uav_network kaggle status \
   --manifest outputs/kaggle/<job-folder>/launch.json
+
+# Tạo view của project với đúng metric và ghim các run đã tồn tại.
+.venv/bin/python -m uav_network dashboard --config configs/kaggle.yaml \
+  --run-ids <masac-run-id> <matd3-run-id>
+# Thêm --workspace-url <saved-url> để cập nhật view này khi có run mới.
 ```
 
 Launcher kiểm tra quota và dataset credential riêng tư thuộc đúng account;
@@ -201,7 +206,14 @@ Kaggle output giữ `cuda-tests.log`, hardware và benchmark JSON của hai thu�
 Kernel private lấy W&B key từ dataset credential riêng tư đã có; toàn bộ
 `key.txt` chỉ giữ ở local. Chưa hỗ trợ resume optimizer/replay khi hết thời gian
 Kaggle. Xem [kaggle-wandb-plan.md](docs/kaggle-wandb-plan.md) cho kiểm chứng.
-Job đang chạy, URL W&B và số liệu CUDA thực tế:
+Sau khi submit thành công, Kaggle và W&B chạy trên máy chủ; có thể tắt laptop.
+Mỗi learner lưu policy mỗi 10 episode theo profile Kaggle. Một learner lỗi không
+dừng learner còn lại; kết quả train được lưu trước evaluate, kể cả khi evaluate lỗi.
+Workspace dùng metric `global_step`, lọc group `uav-network-2d`, ghim run và bật
+26 biểu đồ. Chọn saved view từ URL in ra để xem đúng project 2D.
+Lỗi masked entropy khi alpha > 1 được kiểm tra bằng regression CPU/CUDA;
+zero-probability terms được xóa trước nhân alpha, gradient luôn kiểm tra finite.
+Lịch sử job, URL W&B và số liệu CUDA thực tế:
 [verification-kaggle-wandb.md](docs/verification-kaggle-wandb.md).
 
 ## Thuật toán và tài liệu

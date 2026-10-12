@@ -2,14 +2,59 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import json
+import subprocess
+import sys
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from uav_network.cloud.credentials import load_credentials, parse_quota, select_account
 from uav_network.cloud.kernel import kernel_metadata, kernel_script
-from uav_network.cloud.remote import learner_command
+from uav_network.cloud.remote import learner_command, wait_all
 
 
 class CloudTests(unittest.TestCase):
+    def test_evaluation_failure_preserves_training_results_and_later_evaluations(self):
+        from uav_network.cloud.remote import finalize_runs
+        with TemporaryDirectory() as directory:
+            output = Path(directory)
+            spec = {"stage": "train", "runs": {"masac": {}, "matd3": {}}}
+            summaries = {a: {"episodes": 2, "global_step": 10, "updates": 3,
+                              "wandb_url": f"https://wandb.ai/test/{a}"} for a in spec["runs"]}
+            for algorithm, summary in summaries.items():
+                folder = output / "train" / algorithm
+                folder.mkdir(parents=True)
+                (folder / "summary.json").write_text(json.dumps(summary))
+            calls = []
+
+            def evaluate(args, **kwargs):
+                self.assertEqual(json.loads((output / "job-result.json").read_text()), summaries)
+                calls.append(args)
+                if len(calls) == 1:
+                    raise subprocess.CalledProcessError(2, args)
+
+            with patch("uav_network.cloud.remote.subprocess.run", side_effect=evaluate):
+                with self.assertRaisesRegex(RuntimeError, "evaluation"):
+                    finalize_runs(spec, [SimpleNamespace(returncode=0)] * 2, output)
+            self.assertEqual(len(calls), 2)
+            self.assertEqual(json.loads((output / "evaluation-failures.json").read_text())["masac"]["exit_code"], 2)
+
+    def test_failed_learner_does_not_interrupt_an_independent_sibling(self):
+        with TemporaryDirectory() as directory:
+            marker = Path(directory) / "completed"
+            failed = subprocess.Popen([sys.executable, "-c", "raise SystemExit(3)"])
+            failed.wait()
+            sibling = subprocess.Popen([sys.executable, "-c",
+                "import time,sys; from pathlib import Path; time.sleep(.2); Path(sys.argv[1]).touch()", str(marker)])
+            try:
+                codes = wait_all([failed, sibling])
+                self.assertEqual(codes, [3, 0])
+                self.assertTrue(marker.is_file())
+            finally:
+                if sibling.poll() is None:
+                    sibling.terminate()
+                sibling.wait()
+
     def credentials(self):
         data = {"kaggle": {"accounts": [{"name": "a", "token": "secret-a", "enabled": True},
                                           {"name": "b", "token": "secret-b", "enabled": True}]},

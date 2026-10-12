@@ -25,6 +25,12 @@ def main():
     commands.add_parser("hardware", help="Show CPU affinity and CUDA devices usable by PyTorch")
     cloud = commands.add_parser("kaggle", help="Quota, private CUDA jobs and online W&B")
     cloud.add_argument("cloud_args", nargs=argparse.REMAINDER)
+    dashboard = commands.add_parser("dashboard", help="Create or update a saved online W&B project view")
+    dashboard.add_argument("--config")
+    dashboard.add_argument("--set", dest="overrides", action="append", default=[])
+    dashboard.add_argument("--run-ids", nargs="*", default=[])
+    dashboard.add_argument("--name", default="UAV Network 2D - MASAC and MATD3")
+    dashboard.add_argument("--workspace-url")
     speed = commands.add_parser("benchmark", help="Measure env and learner throughput separately")
     speed.add_argument("--config")
     speed.add_argument("--set", dest="overrides", action="append", default=[])
@@ -39,6 +45,10 @@ def main():
     elif args.command == "hardware":
         from .hardware import hardware_info
         result = hardware_info()
+    elif args.command == "dashboard":
+        from .dashboard import create_dashboard
+        result = create_dashboard(load_config(args.config, args.overrides), args.run_ids,
+                                  args.name, args.workspace_url)
     elif args.command == "evaluate":
         from .evaluation import evaluate
         result = evaluate(args.checkpoint, args.episodes, args.output_dir, args.seed)

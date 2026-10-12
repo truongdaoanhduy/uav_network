@@ -17,10 +17,8 @@ from ..configuration import load_config
 def wait_all(processes):
     while True:
         codes = [p.poll() for p in processes]
-        if any(code is not None and code != 0 for code in codes):
-            raise RuntimeError("A Kaggle learner failed; inspect its output log")
         if all(code is not None for code in codes):
-            return
+            return codes
         time.sleep(2)
 
 
@@ -81,8 +79,7 @@ def run_job(spec):
         for index, (algorithm, run) in enumerate(spec["runs"].items()):
             # A single GPU runs algorithms sequentially; multiple GPUs run them independently.
             if index and index % count == 0:
-                wait_all(processes)
-                processes.clear()
+                wait_all(processes[-count:])
             destination = output / spec["stage"] / algorithm
             args, env = learner_command(spec, algorithm, run, index % count, destination)
             log = (output / f"{algorithm}-{spec['stage']}.log").open("w")
@@ -95,18 +92,39 @@ def run_job(spec):
             stop_process_tree(process)
         for log in logs:
             log.close()
-    results = {}
-    for algorithm in spec["runs"]:
+    return finalize_runs(spec, processes, output)
+
+
+def finalize_runs(spec, processes, output):
+    results, failures, evaluation_failures = {}, {}, {}
+    for algorithm, process in zip(spec["runs"], processes):
+        if process.returncode != 0:
+            failures[algorithm] = {"exit_code": process.returncode,
+                                   "log": str(output / f"{algorithm}-{spec['stage']}.log")}
+            continue
         folder = output / spec["stage"] / algorithm
-        summary = json.loads((folder / "summary.json").read_text())
-        with (output / f"{algorithm}-evaluation.log").open("w") as log:
-            subprocess.run([sys.executable, "-m", "uav_network", "evaluate",
-                            "--checkpoint", str(folder / "final.pt"), "--episodes", "1"],
-                           stdout=log, stderr=subprocess.STDOUT, check=True)
-        results[algorithm] = summary
+        results[algorithm] = json.loads((folder / "summary.json").read_text())
+    # Preserve completed training before any optional evaluation can fail.
     (output / "job-result.json").write_text(json.dumps(results, indent=2))
+    if failures:
+        (output / "job-failures.json").write_text(json.dumps(failures, indent=2))
+    for algorithm in results:
+        folder = output / spec["stage"] / algorithm
+        with (output / f"{algorithm}-evaluation.log").open("w") as log:
+            try:
+                subprocess.run([sys.executable, "-m", "uav_network", "evaluate",
+                                "--checkpoint", str(folder / "final.pt"), "--episodes", "1"],
+                               stdout=log, stderr=subprocess.STDOUT, check=True)
+            except subprocess.CalledProcessError as error:
+                evaluation_failures[algorithm] = {"exit_code": error.returncode,
+                                                 "log": str(output / f"{algorithm}-evaluation.log")}
+    if evaluation_failures:
+        (output / "evaluation-failures.json").write_text(json.dumps(evaluation_failures, indent=2))
     print(json.dumps({a: {k: v[k] for k in ("episodes", "global_step", "updates", "wandb_url")}
                       for a, v in results.items()}, indent=2), flush=True)
+    if failures or evaluation_failures:
+        raise RuntimeError(f"Learner failures: {list(failures)}; evaluation failures: {list(evaluation_failures)}. Results retained")
+    return results
 
 
 def main():

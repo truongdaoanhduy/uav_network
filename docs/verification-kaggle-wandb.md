@@ -1,10 +1,16 @@
 # Kaggle CUDA and W&B verification
 
+**Status update, 2026-10-12 15:30 UTC:** the full-profile job below failed.
+MASAC encountered non-finite masked entropy; the old fail-fast runner then
+terminated MATD3. The laptop shutdown did not cause the error. The startup
+snapshot below is historical; see [online-training-fix-plan.md](online-training-fix-plan.md)
+for diagnosis, regression coverage and the replacement run verification.
+
 Verified at **2026-10-12 12:42 UTC**. Both full-profile learners are running
 on Kaggle and their transition/update counters are increasing. Training is
 still in progress; final convergence and evaluation results are pending.
 
-## Active training
+## Historical training startup
 
 - Kernel: https://www.kaggle.com/code/bduy2378/uavnet-train-20261012-123636-259be1
 - Published source: `99025e71e5cf49831aa2ff62ff0226732c33ea52`.
