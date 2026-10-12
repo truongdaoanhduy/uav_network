@@ -25,7 +25,7 @@ def render_episode(env, paths, output):
         color = colors(i % 10)
         ax.plot(paths[:, i, 0], paths[:, i, 1], color=color, linewidth=1.5)
         ax.scatter(*xy, color=color, marker="^", s=60)
-        ax.text(xy[0] + 8, xy[1] + 8, str(i), fontsize=9)
+        ax.text(xy[0] + 8, xy[1] + 8, f"{i}: {env.battery_fraction[i]:.0%}", fontsize=8)
         ax.add_patch(Circle(xy, env.config.sensor.footprint_radius_m, color=color, alpha=.08))
     ax.scatter(*env.gcs, color="black", marker="s", s=80, label="GCS")
     info = env.info()

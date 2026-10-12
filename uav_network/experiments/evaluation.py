@@ -4,13 +4,13 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from ..algorithms.masac import MASAC
+from ..algorithms.checkpoints import load_policy
 from ..environment.env import SwarmSearchEnv
 from .rendering import render_episode
 
 
 def evaluate(checkpoint, episodes=None, output_dir=None, seed=None):
-    learner = MASAC.load(checkpoint, device="cpu")
+    learner = load_policy(checkpoint, device="cpu")
     config = learner.config
     torch.set_num_threads(config.runtime.torch_threads)
     episodes = config.runtime.eval_episodes if episodes is None else episodes
@@ -37,7 +37,7 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None):
                                     "return": episode_return, "episode_length": env.steps, **info})
                     break
         preview = render_episode(env, paths, output / "final_episode.png")
-        result = {"episodes": episodes, "device": "cpu", "render_path": preview,
+        result = {"algorithm": learner.algorithm, "episodes": episodes, "device": "cpu", "render_path": preview,
                   "mean_return": float(np.mean([r["return"] for r in records])),
                   "success_rate": float(np.mean([r["success"] for r in records])),
                   "mean_search_rate_percent": float(np.mean([r["search_rate_percent"] for r in records])),

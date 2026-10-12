@@ -49,7 +49,11 @@ class MASACTests(unittest.TestCase):
             obs = next_obs
             if terminated or truncated:
                 obs, _ = self.env.reset(seed=45)
-        return replay.sample(8)
+        batch = replay.sample(8)
+        # Explicit candidate beacons isolate gradients in the destination head.
+        batch["observation"][:, :, -7:] = 1
+        batch["next_observation"][:, :, -7:] = 1
+        return batch
 
     def test_six_actors_have_separate_parameters_and_valid_actions(self):
         self.assertEqual(len(self.learner.actors), 6)
@@ -60,6 +64,37 @@ class MASACTests(unittest.TestCase):
         action.validate(6)
         self.assertEqual(action.continuous.shape, (6, 3))
         self.assertEqual(action.destination.shape, (6,))
+
+    def test_batched_masked_actions_zero_silent_power_and_dead_motion(self):
+        obs = np.repeat(self.obs[None], 4, axis=0)
+        obs[:, :, -7:] = 0
+        obs[:, :, -7] = 1
+        obs[:, 0, -1] = 1
+        obs[:, 1, 9] = 0
+        action = self.learner.act_batch(obs)
+        self.assertEqual(action.continuous.shape, (4, 6, 3))
+        self.assertTrue(np.isin(action.destination[:, 0], [0, 6]).all())
+        self.assertTrue((action.destination[:, 1:] == 0).all())
+        self.assertTrue((action.continuous[:, 1] == 0).all())
+        self.assertTrue((action.continuous[:, :, 2][action.destination == 0] == 0).all())
+
+    def test_no_destination_choice_has_zero_categorical_entropy(self):
+        batch = self.batch()
+        for key in ("observation", "next_observation"):
+            batch[key][:, :, -7:] = 0
+            batch[key][:, :, -7] = 1
+        stats = self.learner.update(batch)
+        self.assertEqual(stats["discrete_entropy"], 0)
+
+    def test_zero_entropy_targets_still_update_temperatures_for_available_controls(self):
+        a = self.learner.config.masac
+        a.target_continuous_entropy = 0
+        a.target_discrete_entropy_ratio = 0
+        before_c = self.learner.log_alpha_continuous.detach().clone()
+        before_d = self.learner.log_alpha_discrete.detach().clone()
+        self.learner.update(self.batch())
+        self.assertFalse(torch.equal(before_c, self.learner.log_alpha_continuous))
+        self.assertFalse(torch.equal(before_d, self.learner.log_alpha_discrete))
 
     def test_real_adam_update_changes_both_action_branches_and_critics(self):
         actor = self.learner.actors[0]

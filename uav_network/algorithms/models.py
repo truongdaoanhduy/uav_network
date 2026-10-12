@@ -4,6 +4,7 @@ import torch
 from torch import nn
 from torch.distributions import Normal
 from torch.nn import functional as F
+from .action_utils import masked_log_probabilities
 
 
 def mlp(input_dim, hidden_sizes, output_dim):
@@ -23,18 +24,31 @@ class HybridActor(nn.Module):
         self.log_std = nn.Linear(hidden_sizes[-1], 3)
         self.destination = nn.Linear(hidden_sizes[-1], destinations)
 
-    def sample(self, observations, deterministic=False):
+    def sample(self, observations, deterministic=False, mask=None, return_parts=False):
         hidden = F.relu(self.encoder(observations))
         mean = self.mean(hidden)
         std = self.log_std(hidden).clamp(-5, 2).exp()
-        distribution = Normal(mean, std)
+        distribution = Normal(mean, std, validate_args=False)
         raw = mean if deterministic else distribution.rsample()
         continuous = raw.tanh()
         # Stable tanh Jacobian, even when the resulting action rounds to +/-1.
         log_jacobian = 2 * (math.log(2) - raw - F.softplus(-2 * raw))
-        log_continuous = (distribution.log_prob(raw) - log_jacobian).sum(-1)
-        log_discrete = F.log_softmax(self.destination(hidden), dim=-1)
+        parts = distribution.log_prob(raw) - log_jacobian
+        log_continuous = parts if return_parts else parts.sum(-1)
+        log_discrete = masked_log_probabilities(self.destination(hidden), mask)
         return continuous, log_continuous, log_discrete.exp(), log_discrete
+
+
+class DeterministicActor(nn.Module):
+    def __init__(self, observation_dim, destinations, hidden_sizes):
+        super().__init__()
+        self.encoder = mlp(observation_dim, hidden_sizes[:-1], hidden_sizes[-1])
+        self.continuous = nn.Linear(hidden_sizes[-1], 3)
+        self.destination = nn.Linear(hidden_sizes[-1], destinations)
+
+    def forward(self, observations, mask):
+        hidden = F.relu(self.encoder(observations))
+        return self.continuous(hidden).tanh(), masked_log_probabilities(self.destination(hidden), mask).exp()
 
 
 class TwinCritic(nn.Module):
