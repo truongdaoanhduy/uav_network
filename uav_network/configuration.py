@@ -65,6 +65,17 @@ class NetworkConfig:
     noise_density_dbm_hz: float = -174.0
     noise_figure_db: float = 7.0
     nlos_model: str = "urban"
+    obstacle_extra_loss_db: float = 0.0
+
+
+@dataclass
+class EnergyConfig:
+    enabled: bool = True
+    battery_capacity_j: float = 277_200.0
+    idle_power_w: float = 20.0
+    hover_power_w: float = 120.0
+    speed_squared_coefficient: float = 0.5
+    acceleration_squared_coefficient: float = 2.0
 
 
 @dataclass
@@ -76,10 +87,11 @@ class RewardConfig:
     dropped_report: float = 10.0
     step_cost: float = 0.01
     communication_energy: float = 0.01
+    propulsion_energy_per_kj: float = 0.01
 
 
 @dataclass
-class MASACConfig:
+class OffPolicyConfig:
     hidden_sizes: list = field(default_factory=lambda: [256, 256])
     replay_capacity: int = 50_000
     batch_size: int = 256
@@ -88,14 +100,30 @@ class MASACConfig:
     gamma: float = 0.99
     tau: float = 0.005
     learning_rate: float = 0.0003
-    initial_alpha: float = 0.2
-    target_continuous_entropy: float = -3.0
-    target_discrete_entropy_ratio: float = 0.9
     grad_clip_norm: float = 10.0
 
 
 @dataclass
+class MASACConfig(OffPolicyConfig):
+    initial_alpha: float = 0.2
+    target_continuous_entropy: float = -3.0
+    target_discrete_entropy_ratio: float = 0.9
+
+
+@dataclass
+class MATD3Config(OffPolicyConfig):
+    policy_delay: int = 2
+    target_noise_std: float = 0.2
+    target_noise_clip: float = 0.5
+    exploration_noise_std: float = 0.1
+    initial_epsilon: float = 1.0
+    final_epsilon: float = 0.05
+    epsilon_decay_steps: int = 100_000
+
+
+@dataclass
 class RuntimeConfig:
+    algorithm: str = "masac"
     seed: int = 44
     eval_seed: int = 10044
     episodes: int = 1000
@@ -104,6 +132,13 @@ class RuntimeConfig:
     torch_threads: int = 1
     output_dir: str = "outputs/run"
     checkpoint_interval: int = 100
+    num_envs: int = 1
+    shared_memory: bool = True
+    collector_overlap: bool = True
+    replay_device: str = "auto"
+    deterministic: bool = True
+    compile_models: bool = False
+    log_interval_steps: int = 100
 
 
 @dataclass
@@ -111,9 +146,15 @@ class Config:
     world: WorldConfig = field(default_factory=WorldConfig)
     sensor: SensorConfig = field(default_factory=SensorConfig)
     network: NetworkConfig = field(default_factory=NetworkConfig)
+    energy: EnergyConfig = field(default_factory=EnergyConfig)
     reward: RewardConfig = field(default_factory=RewardConfig)
     masac: MASACConfig = field(default_factory=MASACConfig)
+    matd3: MATD3Config = field(default_factory=MATD3Config)
     runtime: RuntimeConfig = field(default_factory=RuntimeConfig)
+
+    @property
+    def algorithm_config(self):
+        return getattr(self, self.runtime.algorithm)
 
     def validate(self):
         defaults = Config()
@@ -166,8 +207,32 @@ class Config:
             raise ValueError("Invalid MASAC discount, averaging, entropy or replay capacity")
         if not a.hidden_sizes or any(type(x) is not int or x <= 0 for x in a.hidden_sizes):
             raise ValueError("hidden_sizes must contain positive integers")
-        if r.device not in {"auto", "cpu", "cuda"}:
-            raise ValueError("device must be auto, cpu or cuda")
+        if r.device not in {"auto", "cpu", "cuda"} or r.replay_device not in {"auto", "cpu", "cuda"}:
+            raise ValueError("device and replay_device must be auto, cpu or cuda")
+        if r.algorithm not in {"masac", "matd3"}:
+            raise ValueError("algorithm must be masac or matd3")
+        if r.num_envs < 1 or r.log_interval_steps < 1:
+            raise ValueError("num_envs and log_interval_steps must be positive")
+        e = self.energy
+        if e.battery_capacity_j <= 0 or any(v < 0 for v in (
+                e.idle_power_w, e.hover_power_w, e.speed_squared_coefficient,
+                e.acceleration_squared_coefficient, n.obstacle_extra_loss_db,
+                self.reward.propulsion_energy_per_kj)):
+            raise ValueError("Battery capacity must be positive and energy/loss coefficients nonnegative")
+        for learner in (self.masac, self.matd3):
+            if (not 0 <= learner.gamma <= 1 or not 0 < learner.tau <= 1
+                    or any(v <= 0 for v in (learner.replay_capacity, learner.batch_size,
+                                           learner.updates_per_step, learner.learning_rate,
+                                           learner.grad_clip_norm))
+                    or learner.batch_size > learner.replay_capacity
+                    or not learner.hidden_sizes
+                    or any(type(v) is not int or v < 1 for v in learner.hidden_sizes)):
+                raise ValueError("Invalid off-policy learner configuration")
+        t = self.matd3
+        if (t.policy_delay < 1 or t.epsilon_decay_steps < 1
+                or not 0 <= t.final_epsilon <= t.initial_epsilon <= 1
+                or min(t.target_noise_std, t.target_noise_clip, t.exploration_noise_std) < 0):
+            raise ValueError("Invalid MATD3 delay, noise or epsilon schedule")
         if w.gcs_position_m is not None:
             if (len(w.gcs_position_m) != 2 or
                     any(type(x) not in (int, float) or not math.isfinite(x)

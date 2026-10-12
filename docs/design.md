@@ -32,7 +32,8 @@ code during setup and exclude external code and run artifacts from Git.
 - Reward: team discovery +10, GCS delivery +50, rejected motion −0.2,
   expired/dropped reports −10, per-step −0.01, communication energy −0.01 J.
   Success means every target report reached GCS. Discovery alone is separate.
-  Coverage maps, battery exhaustion and APF are outside this first version.
+  Coverage maps and APF are outside this version. The battery/parallel extension
+  is specified in `battery-parallel-plan.md`; `energy.*` controls depletion.
 
 ## Modules and interfaces
 

@@ -17,6 +17,8 @@ class SelectedNextHopRouting:
         from entities.packet import AckPacket, DataPacket
         from utils import config
 
+        if not self.simulator.mission_bridge.node_active(self.my_drone.identifier):
+            return
         if isinstance(packet, DataPacket):
             received = copy.copy(packet)
             if received.packet_id not in self.simulator.metrics.datapacket_arrived:

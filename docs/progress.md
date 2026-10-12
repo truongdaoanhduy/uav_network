@@ -40,3 +40,17 @@ Minor finding deferred: custom source-directory upstream_path is trusted;
 directory-based loading does not independently check HEAD against the pin.
 The default downloaded checkout and installed fallback were verified at
 04daafb815eb377409b40b285574eeb62b9a8d58. Installed fallback checks the pin.
+
+## Extension: battery, MATD3 and processes
+
+Plan: `battery-parallel-plan.md`. Work branch: `feature/battery-matd3-vector`.
+Battery tests first failed because the energy configuration was missing.
+Added propulsion budgets, safe stationary exhaustion, battery observation/state,
+failure termination and native PHY frame affordability. GCS ACK energy is
+separate from UAV batteries. Destination masks expose live in-range candidates.
+Real peer channel tests confirm obstacle LOS→NLOS attenuation and a configurable
+extra 10 dB loss gives exactly 0.1× gain while LOS links remain unchanged.
+
+Stage 1: all 40 tests passed on the user's machine. Integer-valued battery config
+initially produced integer arrays; the regression now confirms floating budgets.
+GPU/parallel library research is captured in `gpu-acceleration-research.md`.

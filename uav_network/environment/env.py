@@ -3,8 +3,8 @@ from dataclasses import dataclass
 import numpy as np
 
 from ..communication.reports import ReportStore
-from .motion import move_uavs
-from .observations import centralized_state, local_observations
+from .energy import funded_motion
+from .observations import centralized_state, local_observations, observation_dim, state_dim
 from .sensing import visible_target_ids
 from .world import generate_scenario
 
@@ -37,11 +37,19 @@ class SwarmSearchEnv:
 
     @property
     def observation_dim(self):
-        return local_observations(self).shape[1]
+        return observation_dim(self.config)
 
     @property
     def state_dim(self):
-        return len(self.state())
+        return state_dim(self.config)
+
+    @property
+    def active(self):
+        return self.battery_j > 0 if self.config.energy.enabled else np.ones(len(self.battery_j), dtype=bool)
+
+    @property
+    def battery_fraction(self):
+        return self.battery_j / self.config.energy.battery_capacity_j
 
     def reset(self, seed=None, options=None):
         self.close()
@@ -50,17 +58,21 @@ class SwarmSearchEnv:
         self.positions, self.targets, self.obstacles, self.gcs = (
             scene.positions, scene.targets, scene.obstacles, scene.gcs)
         self.velocities = np.zeros_like(self.positions)
+        self.battery_j = np.full(self.config.world.num_uavs, self.config.energy.battery_capacity_j, dtype=float)
+        self.propulsion_energy_j = np.zeros_like(self.battery_j)
         self.reports = ReportStore(self.config)
         self.steps = self.blocked_moves = self.boundary_clips = 0
         self._ended = False
         if self.config.network.enabled:
             from ..communication.backend import UavNetSimNetwork
-            self.network = UavNetSimNetwork(self.config, self.reports, scene, self.seed)
+            self.network = UavNetSimNetwork(self.config, self.reports, scene, self.seed, self.battery_j)
         self._sense()
         return local_observations(self), self.info()
 
     def _sense(self):
         for i, position in enumerate(self.positions):
+            if not self.active[i]:
+                continue
             for target_id in visible_target_ids(position, self.targets, self.obstacles, self.config.sensor):
                 self.reports.discover(i, target_id, self.time_s)
 
@@ -71,9 +83,10 @@ class SwarmSearchEnv:
         before_found = self.reports.known.any(axis=0).sum()
         before_delivery = self.reports.delivered.sum()
         before_expired, before_dropped = self.reports.expired, self.reports.dropped
-        self.positions, self.velocities, blocked, clipped = move_uavs(
+        self.positions, self.velocities, blocked, clipped, flight_energy = funded_motion(
             self.positions, self.velocities, np.asarray(action.continuous)[:, :2],
-            self.obstacles, self.config)
+            self.obstacles, self.battery_j, self.config)
+        self.propulsion_energy_j += flight_energy
         self.blocked_moves += blocked
         self.boundary_clips += clipped
         self.reports.expire(self.time_s)
@@ -83,6 +96,7 @@ class SwarmSearchEnv:
             comm_energy = self.network.step(action, self.positions,
                                            self.time_s + self.config.world.dt_s)
         self.steps += 1
+        self.velocities[~self.active] = 0
         self.reports.expire(self.time_s)
         r = self.config.reward
         reward = (r.discovery * (self.reports.known.any(axis=0).sum() - before_found)
@@ -90,8 +104,9 @@ class SwarmSearchEnv:
                   - r.blocked_motion * blocked - r.step_cost
                   - r.expired_report * (self.reports.expired - before_expired)
                   - r.dropped_report * (self.reports.dropped - before_dropped)
-                  - r.communication_energy * comm_energy)
-        terminated = bool(self.reports.delivered.all())
+                  - r.communication_energy * comm_energy
+                  - r.propulsion_energy_per_kj * flight_energy.sum() / 1000)
+        terminated = bool(self.reports.delivered.all() or not self.active.any())
         truncated = self.steps >= self.config.world.max_steps and not terminated
         self._ended = terminated or truncated
         return local_observations(self), float(reward), terminated, truncated, self.info()
@@ -108,6 +123,13 @@ class SwarmSearchEnv:
                 "success": bool(self.reports.delivered.all()), "blocked_moves": self.blocked_moves,
                 "boundary_clips": self.boundary_clips, "expired_reports": self.reports.expired,
                 "dropped_reports": self.reports.dropped,
+                "termination_reason": ("success" if self.reports.delivered.all() else
+                                       "battery_exhausted" if not self.active.any() else
+                                       "time_limit" if self.steps >= self.config.world.max_steps else None),
+                "energy": {"battery_j": self.battery_j.tolist(),
+                           "battery_fraction": self.battery_fraction.tolist(),
+                           "active_uavs": int(self.active.sum()),
+                           "propulsion_energy_j": float(self.propulsion_energy_j.sum())},
                 "network": self.network.metrics() if self.network else {"enabled": False}}
 
     def close(self):

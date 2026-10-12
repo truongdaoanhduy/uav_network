@@ -20,6 +20,14 @@ network:
   report_bytes: 1024
   buffer_bytes: 3072
   report_ttl_s: 300.0
+  obstacle_extra_loss_db: 0.0
+energy:
+  enabled: true
+  battery_capacity_j: 277200.0
+  idle_power_w: 20.0
+  hover_power_w: 120.0
+  speed_squared_coefficient: 0.5
+  acceleration_squared_coefficient: 2.0
 masac:
   hidden_sizes: [256, 256]
   replay_capacity: 50000
@@ -27,6 +35,8 @@ masac:
   learning_starts: 2000
   updates_per_step: 1
 runtime:
+  algorithm: masac
+  num_envs: 1
   seed: 44
   eval_seed: 10044
   episodes: 1000

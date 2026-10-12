@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from .upstream import REVISION, start_simulator
+from .energy import install_obstacle_loss, install_phy_budget
 
 _ACTIVE = None  # Upstream configuration and packet IDs are process globals.
 
@@ -17,20 +18,24 @@ class Transfer:
 
 
 class UavNetSimNetwork:
-    def __init__(self, config, reports, scene, seed):
+    def __init__(self, config, reports, scene, seed, battery_j=None):
         global _ACTIVE
         if _ACTIVE is not None:
             raise RuntimeError("UavNetSim supports only one live network instance per process")
         self.config, self.reports, self.scene = config, reports, scene
         self.sessions = {}
         self.energy_j = np.zeros(config.world.num_uavs + 1)
+        self.battery_j = (battery_j if battery_j is not None else
+                          np.full(config.world.num_uavs, config.energy.battery_capacity_j, dtype=float))
+        self.energy_blocked_transmissions = 0
         self.received_payload_bytes = 0
         self._closed = False
         _ACTIVE = self
         try:
             (self.simulator, self.clock, self.native, self.DataPacket,
              self.directory, self.previous) = start_simulator(self, scene, seed)
-            self._install_packet_power()
+            install_phy_budget(self)
+            install_obstacle_loss(self)
             self.sync_positions(scene.positions)
             self._event_sequence = 0
         except Exception:
@@ -46,26 +51,13 @@ class UavNetSimNetwork:
             # a previous random spawn-to-current path, not this mission movement.
             drone._coords = [float(xy[0]), float(xy[1]), z]
             drone.velocity = [0.0, 0.0, 0.0]
+            drone.sleep = not self.node_active(i)
+            if i < len(positions) and self.config.energy.enabled:
+                drone.residual_energy = float(self.battery_j[i])
 
-    def _install_packet_power(self):
-        channel = self.simulator.channel
-        original = channel.transmit
-
-        def transmit(packet, transmitter, receivers):
-            saved = self.native.TRANSMITTING_POWER
-            self.native.TRANSMITTING_POWER = getattr(packet, "mission_power_w", saved)
-            try:
-                return original(packet, transmitter, receivers)
-            finally:
-                self.native.TRANSMITTING_POWER = saved
-        channel.transmit = transmit
-        for drone in self.simulator.drones:
-            def consume(packet, drone=drone):
-                power = getattr(packet, "mission_power_w", self.config.network.tx_power_min_w)
-                energy = packet.packet_length / self.config.network.bit_rate_bps * power
-                self.energy_j[drone.identifier] += energy
-                drone.residual_energy = max(0, drone.residual_energy - energy)
-            drone.mac_protocol.phy._consume_transmit_energy = consume
+    def node_active(self, node):
+        return (node == self.config.world.num_uavs or not self.config.energy.enabled
+                or self.battery_j[node] > 0)
 
     def _destination(self, source, index):
         n = self.config.world.num_uavs
@@ -81,7 +73,8 @@ class UavNetSimNetwork:
         peer = destination < len(positions)
         xy = positions[destination] if peer else self.scene.gcs
         reach = n.peer_range_m if peer else n.gcs_range_m
-        return (np.linalg.norm(positions[source] - xy) <= reach
+        return (self.node_active(source) and self.node_active(destination)
+                and np.linalg.norm(positions[source] - xy) <= reach
                 and self.reports.can_receive(destination, report))
 
     def _inject(self, source, destination, power, report):
@@ -124,7 +117,7 @@ class UavNetSimNetwork:
     def packet_received(self, packet, receiver):
         key = getattr(packet, "mission_session", None)
         transfer = self.sessions.get(key)
-        if transfer is None or receiver != transfer.destination:
+        if transfer is None or receiver != transfer.destination or not self.node_active(receiver):
             return
         now = self.clock.now / 1e6
         if (not self.reports.contains(transfer.source, transfer.report)
@@ -166,7 +159,7 @@ class UavNetSimNetwork:
         if abs(time_s - self.clock.now / 1e6 - self.config.world.dt_s) > 1e-8:
             raise ValueError("Mission and packet simulator clocks must advance by exactly dt_s")
         self.sync_positions(positions)
-        before = self.energy_j.sum()
+        before = self.energy_j[:-1].sum()
         self._collect_drops()
         for source, index in enumerate(action.destination):
             destination = self._destination(source, int(index))
@@ -182,7 +175,7 @@ class UavNetSimNetwork:
                 self._inject(source, destination, power, report)
         self.clock.run(until=time_s * 1e6)
         self._collect_drops()
-        return float(self.energy_j.sum() - before)
+        return float(self.energy_j[:-1].sum() - before)
 
     def inflight_counts(self):
         counts = np.zeros(self.config.world.num_uavs)
@@ -199,6 +192,10 @@ class UavNetSimNetwork:
                 "phy_successes": m["phy_success"], "phy_failures": m["phy_failure"],
                 "phy_success_percent": m["phy_success_percent"], "collisions": m["collisions"],
                 "communication_energy_j": float(self.energy_j.sum()),
+                "uav_communication_energy_j": float(self.energy_j[:-1].sum()),
+                "gcs_communication_energy_j": float(self.energy_j[-1]),
+                "energy_blocked_transmissions": self.energy_blocked_transmissions,
+                "obstacle_extra_loss_db": self.config.network.obstacle_extra_loss_db,
                 "payload_throughput_kbps": self.received_payload_bytes * 8 / max(elapsed, 1e-12) / 1000,
                 "targets_delivered": int(self.reports.delivered.sum()),
                 "report_e2e_delay_s": float(np.mean(self.reports.delivery_times_s)) if self.reports.delivery_times_s else 0.0,
