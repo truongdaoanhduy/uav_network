@@ -1,5 +1,8 @@
 # Verification — 2026-10-12
 
+Historical v0.1 verification. Battery/MATD3/parallel evidence is recorded in
+`verification-v02.md`; v1 policy checkpoints require retraining for v2 observations.
+
 Repository: `/home/aduy/Documents/NCKH/uav_network`.
 Execution: user's Python 3.13 environment, PyTorch 2.7.1, CPU.
 Pinned UavNetSim HEAD: `04daafb815eb377409b40b285574eeb62b9a8d58`.

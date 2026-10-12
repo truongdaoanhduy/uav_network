@@ -54,3 +54,32 @@ extra 10 dB loss gives exactly 0.1× gain while LOS links remain unchanged.
 Stage 1: all 40 tests passed on the user's machine. Integer-valued battery config
 initially produced integer arrays; the regression now confirms floating budgets.
 GPU/parallel library research is captured in `gpu-acceleration-research.md`.
+
+Stage 2: MATD3 tests first failed for the missing module. Added twin centralized
+critics, continuous target smoothing, delayed policies/targets, masked epsilon
+exploration and categorical straight-through gradients. MASAC gained masked,
+conditional power controls and batched inference. Version2 policy checkpoint
+load/save identifies algorithms and validates dimensions; CPU evaluation supports
+both learners. 47 tests passed before the process implementation.
+
+Stage 3: process tests first failed for the missing adapter. Added Gymnasium
+spawn/shared memory/DISABLED reset, CPU/CUDA tensor replay and batched collection.
+Normalize empty Gym reset options after mask removal; preserve terminal state
+before partial reset. Added CLI hardware/benchmark and configurable workstation
+profile, with explicit replay sample/update accounting.
+
+Independent extension review reproduced the final deferred update omission and
+zero-target-entropy alpha freeze. Both new checks failed RED, then passed GREEN
+after draining final ready updates and using actual control availability.
+Overlap/non-overlap one-batch runs now produce identical model tensors.
+
+The reviewer also identified documented asynchronous CUDA→CPU copy hazards.
+CPU-bound copies now block; CUDA-bound copies may be nonblocking. Benchmark seeds
+advance per reset and inactive observation slots no longer sense obstacles/peers.
+Final static review found no remaining Critical/Important issue. Extra reviewer
+checks covered 1000 randomized funded-motion safety cases, retry budget exhaustion,
+an exactly affordable RF frame and receiver exhaustion during a frame.
+
+Current suite: 59 tests, 56 passed and 3 explicit CUDA skips on the connected host.
+CUDA build exists but no CUDA device is usable; no RTX throughput claim is made.
+Current smoke/benchmark/setup evidence is recorded in `verification-v02.md`.

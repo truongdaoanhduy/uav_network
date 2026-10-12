@@ -1,114 +1,139 @@
-# UAV swarm search and communication
+# Battery-aware 2D search and selected-hop communication
 
-## Requested scope
+## Scope and configuration
 
-New Python project at `/home/aduy/Documents/NCKH/uav_network` for six
-homogeneous UAVs, cooperative target search, circular obstacles and real
-UavNetSim communication. Movement is strictly 2D. Keep the old destination
-and transmit-power action semantics; remove Bayesian beliefs and belief maps.
-Configuration or CLI overrides control experiment parameters. Every tracked
-file stays below 500 lines. Group related files by folder. Fetch external
-code during setup and exclude external code and run artifacts from Git.
+Six homogeneous UAVs search stationary targets through camera FOV, then select
+a peer or GCS as the report next hop. Use real pinned UavNetSim, finite battery,
+MASAC/MATD3, independent CPU scenarios and one optionally CUDA learner.
+Keep XY motion, no beliefs, config/args, grouped folders and <=500 lines/file.
+Fetch upstream during setup; dependencies, generated data and runs stay out of Git.
+Nothing imports the old project. See `battery-parallel-plan.md` for the extension.
 
-## Decisions and configurable defaults
+Default world: 1000 m square, N=6, T=10, K=8 circular obstacles, dt=1 s,
+800-step time limit. Per-axis acceleration bound 2 m/s², speed norm <=20 m/s.
+Segment/circle and continuous pair-relative-path checks reject unsafe motion.
+Camera altitude100 m/full FOV90° gives a 100 m ground-footprint radius;
+exact detection with conservative circular occlusion. GCS is bottom midpoint.
 
-- World: 1000 m square, 6 UAVs, 10 stationary targets, 8 circular obstacles,
-  1 s steps, 800 steps per episode. Obstacle radii: 30–70 m.
-- Motion: acceleration actions `(ax, ay)` in `[-1,1]`, scaled by 2 m/s²;
-  velocity norm at most 20 m/s. Segment tests prevent obstacle tunneling and
-  continuous pairwise collisions. Rejected moves stop that UAV for the step.
-- Camera: nadir camera at fixed altitude 100 m, full FOV 90 degrees;
-  ground footprint radius `altitude * tan(FOV/2)`. No heading/altitude action.
-  Exact detection inside this disk, with conservative 2D obstacle occlusion.
-- Network: peer/GCS eligibility ranges 500 m; GCS at bottom-edge midpoint.
-  Each UAV chooses index 0=silent, indices 1..5=other UAVs in ascending ID,
-  index 6=GCS. The power action maps `[-1,1]` to 0.1–0.4 W.
-- Reports: target ID, original source, original timestamp and hop count.
-  Default size 1024 B, packet payload 1024 B, buffer 3072 B/UAV, TTL 300 s.
-  Larger reports are fragmented. A receiver acquires report custody only
-  after every fragment arrives. Sender retains its report on failed transfer.
-  Already known target IDs suppress relay loops. Report discovery is exact,
-  not a repeated probabilistic confirmation process.
-- Reward: team discovery +10, GCS delivery +50, rejected motion −0.2,
-  expired/dropped reports −10, per-step −0.01, communication energy −0.01 J.
-  Success means every target report reached GCS. Discovery alone is separate.
-  Coverage maps and APF are outside this version. The battery/parallel extension
-  is specified in `battery-parallel-plan.md`; `energy.*` controls depletion.
+## Battery and motion lifecycle
 
-## Modules and interfaces
+`environment/energy.py` computes
+`E_flight = dt * (P_idle + P_hover + c_v ||v_real||² + c_a ||a_real||²)`.
+Here `a_real=(v_real-v_previous)/dt`, including rejected motion and boundary clips.
+Coefficients have units W, W/(m/s)² and W/(m/s²)² respectively.
+Defaults: capacity277200 J (77 Wh), idle20 W, hover120 W, c_v=.5, c_a=2.
+These are explicit baseline simulation parameters, not a paper's rotor model.
 
-`configuration.py` owns validated dataclasses and YAML/CLI loading.
-`environment/` owns scenario generation, geometry, motion, FOV, observation,
-and the `SwarmSearchEnv.reset/step` lifecycle. `communication/` owns report
-custody, upstream setup, forced next-hop routing and fragment bookkeeping.
-`algorithms/` owns independent hybrid actors, centralized twin critics,
-replay and MASAC updates. `experiments/` owns CLI, training, evaluation,
-metrics and PNG rendering. Nothing imports the old project at runtime.
+A UAV unable to fund a full step stops and consumes its remaining charge.
+Re-run collision resolution with the stopped UAV before accepting peer motion.
+This conservative time discretization does not simulate partial-step landing.
+No recharge/return-to-home. Disabled energy accounting keeps battery fraction1
+while still recording modeled consumption. Dynamic receive/amplifier losses
+are not modeled separately; idle power represents baseline electronics.
 
-`reset(seed, options)` returns local observations `[N, O]` and mission info.
-`step(Action(continuous[N,3], destination[N]))` returns observations, scalar
-team reward, `terminated`, `truncated`, info. Time limits only truncate:
-the replay stores true termination separately and bootstraps at time limits.
+Reset initializes charge and independent energy meters. A step validates actions,
+resolves funded motion, debits propulsion, senses with living UAVs, advances
+packet time dt, expires reports, updates reward and returns observation/state.
+All UAVs empty: true failure termination. All reports at GCS: success termination.
+Time limit: truncation; replay retains bootstrap eligibility.
 
-Local actors see own position/velocity, GCS relative position, time, their
-own known-target flags and report ages, visible target slots, visible obstacle
-slots and nearby peer beacons. Hidden target coordinates never appear in
-actor observations. Peer beacons are an explicit idealized control-plane
-assumption; mission reports use the packet simulator. Training critics see
-the true mission geometry, all UAV knowledge/report summaries and delivery
-flags. These summaries abstract the internal SimPy event queue.
+## Action, observations and state
 
-## Communication boundary
+Actions contain continuous `[N,3]` normalized XY acceleration/power and integer
+destination `[N]`. Destination0=silent, 1..N−1=ascending peers excluding self,
+N=GCS. Power maps to .1–.4 W. Silent power and inactive continuous controls are
+canonical zero in policy/replay. Earlier MAC queues retain their selected power.
 
-Pin UavNetSim commit `04daafb815eb377409b40b285574eeb62b9a8d58` (the stable
-revision already used by the old project). Run its analytical A2A channel,
-CSMA/CA, packet queues, ACKs, retry limits, interference and PHY statistics;
-no Sionna GPU/ray-tracing dependency is needed for analytical A2A.
-Disable upstream random traffic and mobility. Mission XY coordinates drive
-network positions. Represent GCS as node N at ground height. Circular mission
-obstacles become polygonal buildings in upstream airspace.
-Routing delivers to the selected next hop only; no automatic greedy route
-overrides the policy. Power is stored on each enqueued fragment and used by
-the real PHY, including energy for unsuccessful attempts and ACKs.
-Packets enqueued on previous steps continue asynchronously even after silent
-is selected. New fragments only enqueue for the destination selected now.
-Report age includes time spent at relays; stale packets cannot resurrect a
-report after TTL. Upstream uses module-level configuration: use one network
-instance per process, and reject simultaneous instances rather than silently
-sharing globals. Network-disabled mode is explicit for isolated sensing tests.
+Own observation features: pos2, velocity2, relative GCS2, time, buffer fraction,
+battery fraction, active. Then known flags T, buffered ages T, FOV target slots
+(relpos2/known/valid), obstacle slots (relpos2/radius/valid), peer slots
+(relpos2/velocity2/battery/active), destination mask N+1.
+Hidden target coordinates never enter actor observations. Inactive sensory slots
+are zero. Peer position/charge beacons are an ideal control-plane assumption.
+The mask uses own buffer, range and liveness, not hidden target geometry;
+obstructed links remain candidates. Custody/buffer admission is enforced by network.
 
-## Hybrid MASAC
+For target slots Vt and obstacle slots Vo:
+`O=10+2T+4(Vt+Vo)+6(N−1)+(N+1)`; default95.
+Privileged critic state includes geometry, knowledge, ages, delivery, inflight,
+charge and active summaries: `S=7N+3T+3K+2NT+1`; default217.
+State abstracts the internal SimPy event queue rather than serializing it.
 
-Six separate actors use local observations. Each has a tanh Gaussian branch
-for three continuous actions and a categorical branch for destination.
-Each UAV has its own pair of centralized Q networks and target Q networks
-using true mission state and joint hybrid actions. Actors have separate Adam
-optimizers; critics and learned entropy temperatures use Adam as well.
-Reparameterize continuous actions. Enumerate the current UAV's seven discrete
-choices exactly; sample other UAVs' actions. Actor i differentiates only
-through its own actions using Q_i. Target Q_i includes that actor's two
-entropy terms. This is a documented hybrid-action adaptation of SAC/CTDE,
-not a claim that upstream SAC itself defines the network destination action.
-Use ReLU MLPs (256,256), gamma .99, tau .005, lr .0003, batch 256, replay
-50,000, warmup 2,000 and one update per environment step by default.
+## Packet and propagation boundary
 
-## Incremental acceptance
+UavNetSim revision `04daafb815eb377409b40b285574eeb62b9a8d58` supplies analytical
+A2A channel, CSMA/CA, queues, backoff, ACK, interference, SINR and retry statistics.
+Random native motion/traffic are disabled. Lift XY to camera altitude, GCS to z0;
+obstacles become polygonal buildings taller than flight altitude. LOS uses
+free_space, NLOS uses urban; `obstacle_extra_loss_db` scales NLOS gain only.
+Default extra loss0 avoids double-counting the native urban attenuation.
 
-1. Configuration, seeded world, continuous collision tests and FOV hiding.
-2. Real direct/relay delivery, fragmentation, TTL, failed-attempt energy and
-   reset determinism. No mocked channel substitutes for network tests.
-3. MASAC finite gradients/updates, independent actors, categorical learning,
-   timeout bootstrapping, checkpoint evaluation and a short real-network run.
-4. CLI config overrides, setup repeatability, PNG preview, clean Git scope
-   and a tracked-file line-limit check.
+Reports preserve target/source/original timestamp/hops. Defaults report1024 B,
+payload1024 B, buffer3072 B and TTL300 s. Larger reports fragment; receiver only
+acquires custody after every fragment. Source retains custody on failure.
+Admission is rechecked at arrival. Duplicate knowledge suppresses relay loops;
+rejecting full reassembly discards its session so retry can make progress.
+Policy selects the next hop, never an automatic greedy network path.
 
-## References
+`communication/energy.py` guards native PHY before channel transmission.
+Each affordable attempt debits UAV charge once using all frame bits; retries,
+failed attempts and ACKs count. GCS is unbudgeted and its RF energy is separate.
+Unaffordable frames do not enter the channel. Sleeping receivers cannot acquire
+custody or send ACK. A last affordable emitted frame may still arrive after
+its transmitter exhausts the battery; that radiation was already funded.
 
-- https://github.com/Zihao-Felix-Zhou/UavNetSim — packet-level simulator.
-- https://github.com/Bussler/DroneWatch — cooperative 2D search, local sensing,
-  circular obstacles and task metrics; no Rust/RLlib code copied.
-- https://github.com/yangmin32/GPMF — partial observability motivation;
-  its battle/gather/pursuit environments and GAT algorithm are not MASAC.
-- https://arxiv.org/abs/1812.05905 — SAC objectives and entropy temperature.
-- https://arxiv.org/abs/1810.02912 — multi-agent SAC with centralized critics;
-  this baseline uses ordinary MLP critics, without its attention mechanism.
+## Hybrid learners
+
+Independent local actors and per-agent centralized twin critics (not parameter
+sharing). ReLU MLP [256,256], Adam, FP32, gamma.99/tau.005, clipping norm10.
+Team reward: discovery10, delivery50, blocked move−.2, expired/dropped−10,
+step−.01, UAV communication−.01 per J, propulsion−.01 per kJ.
+
+MASAC samples tanh Gaussian continuous controls and masked categorical destinations.
+Own discrete Q expectation enumerates all choices; other agent actions are
+sampled/detached. Silent choices use power0. Conditional continuous entropy is
+movement entropy + transmission probability times power entropy. Inactive
+motion contributes zero. Temperature targets scale by active dimensions and
+log valid destination count; freeze unavailable controls using masks, not zero
+configured entropy targets.
+
+MATD3 uses min twin target Q, clipped Gaussian target noise on continuous only,
+actor/target updates every2 critic updates, and a hard categorical forward with
+straight-through softmax gradient. Explore with Gaussian continuous noise and
+valid-destination epsilon greedy (1→.05 over100000 joint transitions). This is
+a hybrid adaptation of MATD3, not an exact Gumbel-Softmax reproduction.
+
+Version2 checkpoints tag algorithm/config/dimensions and save model parameters
+atomically after finite checks. Evaluation runs CPU. Version1 policies require
+retraining because the observation schema changed. Replay/RNG/optimizers are
+not saved, so these policy checkpoints do not promise exact training resume.
+
+## Parallelism and device ownership
+
+One live UavNetSim per process because upstream uses module globals. E=1 uses
+Gymnasium SyncVectorEnv; E>1 uses AsyncVectorEnv with spawn and shared-memory
+Dict/Box local observation and critic state. Workers own only CPU simulators.
+Six actor forwards each process E observations in the parent; one batched
+CPU readback assembles all actions. Parent owns CUDA model/optimizer/replay.
+
+Autoreset is DISABLED: store terminal local observation and next state, then
+reset only done slots. (The actual API spelling is `AutoresetMode.DISABLED`.)
+Assign unique, advancing episode seeds in worker-index order. Fixed worker
+count/schedule is required when comparing deterministic runs.
+Overlap `step_async` with updates from previous replay, then `step_wait` and add
+the collection batch. Drain the final ready update group before logging/saving.
+E joint transitions per vector step; updates_per_step is per vector collection.
+Report actual sample/update ratio and actual episode count (possible E−1 overshoot).
+
+Tensor ring replay supports CPU/CUDA. Uniform sampling is with replacement;
+CPU→CUDA sampled batches may use pinned memory. CPU-bound copies are blocking.
+Periodic loss/gradient/scalar checks reduce synchronization; final save checks
+all floating parameters. Optional compile covers actor encoders/critics only.
+No automatic GPU conversion of SimPy. Benchmark startup, collection and warmed
+learner separately with CUDA synchronization. See `gpu-acceleration-research.md`.
+
+## Evidence
+
+Historical v0.1 plan/evidence: `implementation-plan.md`, `verification.md`.
+Current verification and hardware limits: `verification-v02.md`.
+CUDA tests run only on CUDA hosts and explicitly skip elsewhere.

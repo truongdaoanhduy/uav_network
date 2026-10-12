@@ -1,5 +1,8 @@
 # UAV swarm implementation plan
 
+Historical v0.1 plan. Current extension: `battery-parallel-plan.md`; current
+behavior/evidence: `design.md`, `verification-v02.md`.
+
 > For agentic workers: use superpowers:executing-plans to implement this plan
 > sequentially. Follow a failing-check → implementation → passing-check loop.
 

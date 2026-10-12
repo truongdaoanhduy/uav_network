@@ -1,127 +1,179 @@
-# UAV network: swarm tìm target trong 2D
+# UAV network: tìm kiếm target, pin và truyền report
 
-Project mới, không import notebook hay module của `uav_search_target`.
-Mặc định **6 UAV đồng nhất**, 10 target, 8 vật cản tròn, map 1000 × 1000 m.
-UAV tìm target bằng camera FOV, tạo report và truyền về GCS qua UavNetSim thật.
-MASAC dùng 6 actor riêng, observation cục bộ và critic tập trung.
+Mặc định **6 UAV đồng nhất**, map 1000 × 1000 m, 10 target và 8 vật cản tròn.
+Chuyển động XY, camera FOV, pin hữu hạn, lựa chọn relay/GCS và công suất phát.
+Report đi qua **UavNetSim thật**: CSMA/CA, packet, ACK, retry và SINR.
+Train bằng **Hybrid MASAC hoặc Hybrid MATD3**, với 6 actor riêng và critic tập trung.
 
-## Cấu trúc và thứ tự đọc
-
-| Folder/file | Trách nhiệm |
-| --- | --- |
-| `configs/` | Cấu hình experiment; `default.yaml` và lượt kiểm tra `smoke.yaml` |
-| `uav_network/configuration.py` | Dataclass, giá trị mặc định, kiểm tra config/CLI |
-| `uav_network/environment/world.py` | Sinh vị trí UAV, target, vật cản theo seed |
-| `uav_network/environment/geometry.py`, `motion.py` | Chuyển động XY, giới hạn tốc độ, chặn va chạm trên cả đoạn đường |
-| `uav_network/environment/sensing.py` | FOV camera và che khuất |
-| `uav_network/environment/observations.py` | Observation từng UAV và state cho critic |
-| `uav_network/environment/env.py` | Luồng `reset → motion → sensing → network → reward` |
-| `uav_network/communication/reports.py` | Report, buffer, TTL, quyền giữ report |
-| `uav_network/communication/upstream.py`, `routing.py` | Tích hợp upstream, CSMA/CA, ACK và next hop do policy chọn |
-| `uav_network/communication/backend.py` | Fragment, công suất phát, relay, GCS và metrics |
-| `uav_network/algorithms/` | Actor/critic, replay và cập nhật Hybrid MASAC |
-| `uav_network/experiments/` | CLI, train, evaluate CPU và ảnh quỹ đạo |
-| `tests/` | Kiểm thử môi trường, mạng thật và thuật toán |
-| `scripts/` | Dependency mạng và commit upstream đã ghim |
-| `docs/` | Thiết kế, kế hoạch và bằng chứng kiểm tra |
-| `third_party/`, `outputs/`, `.venv/` | Dữ liệu tải về/kết quả cục bộ; được Git bỏ qua |
-
-Đọc lần lượt `configuration → world → motion → sensing → reports → network
-→ observations → env → models → replay → masac → training` để hiểu từng khối.
-Mỗi file do project quản lý dưới 500 dòng.
-
-## Action mỗi UAV
-
-| Thành phần | Kiểu | Ý nghĩa |
-| --- | --- | --- |
-| `continuous[:,0]` | `[-1,1]` | Gia tốc X, nhân `world.max_accel_mps2` |
-| `continuous[:,1]` | `[-1,1]` | Gia tốc Y |
-| `destination` | Integer `0..6` | `0`: silent; `1..5`: các UAV khác theo ID tăng dần; `6`: GCS |
-| `continuous[:,2]` | `[-1,1]` | Công suất phát, ánh xạ sang `0.1..0.4 W` |
-
-Ví dụ UAV 2 có các đích `[silent, UAV0, UAV1, UAV3, UAV4, UAV5, GCS]`.
-Tự động điều chỉnh số đích khi đổi `world.num_uavs`.
-Chuyển động chỉ XY. Độ cao camera cố định 100 m, FOV đầy đủ 90°,
-footprint tròn có bán kính `altitude * tan(FOV/2)` = 100 m.
-Không có belief map. Actor không nhận tọa độ target nằm ngoài FOV.
-
-Observation gồm vị trí/vận tốc bản thân, hướng tương đối tới GCS, thời gian,
-target đã biết, tuổi report đang giữ, target/vật cản trong FOV và beacon UAV
-lân cận. Beacon là giả định control plane lý tưởng; report target đi qua mạng
-packet. Critic được dùng trạng thái mission thật trong lúc train.
-
-## Cài đặt
+## Cài đặt và kiểm tra
 
 ```bash
 cd /home/aduy/Documents/NCKH/uav_network
 bash setup.sh
+# Nếu máy đã có PyTorch và dependency lớn:
+# bash setup.sh --system-site-packages
+.venv/bin/python -m uav_network hardware
+.venv/bin/python -m unittest discover -s tests -v
 ```
 
-Máy đã có PyTorch và các dependency lớn có thể dùng:
+`setup.sh` tạo venv, cài dependency và tải sparse checkout UavNetSim đã ghim
+commit. Scenario được sinh theo seed; không cần tải dataset target.
+`third_party/`, `.venv/`, `outputs/` và cache được Git bỏ qua.
+
+## Cấu trúc và thứ tự đọc
+
+| Folder | Chức năng |
+| --- | --- |
+| `configs/` | Default, smoke, smoke song song và workstation |
+| `uav_network/configuration.py` | Dataclass, validate và YAML/CLI overrides |
+| `uav_network/environment/` | World, XY/safety, pin, FOV, observation và Gym adapter |
+| `uav_network/communication/` | Report/buffer/TTL, native PHY budget, NLOS và selected routing |
+| `uav_network/algorithms/` | Actor/critic, MASAC, MATD3, tensor replay, checkpoint |
+| `uav_network/experiments/` | Train, evaluate, hardware, benchmark và ảnh quỹ đạo |
+| `tests/` | Môi trường, packet thật, learner, worker/reset và CUDA |
+| `scripts/` | Dependency mạng và revision upstream |
+| `docs/` | Thiết kế, quá trình thực hiện, bằng chứng và nghiên cứu GPU |
+
+Đọc theo thứ tự: `configuration → world → motion/energy → sensing → reports
+→ communication/backend → observations/env → models → masac/matd3 → vector
+→ replay → training`. Mỗi file project không quá 500 dòng.
+
+## Action và observation
+
+| Thành phần action mỗi UAV | Ý nghĩa |
+| --- | --- |
+| `continuous[:,0:2]`, trong `[-1,1]` | Gia tốc X/Y, nhân `world.max_accel_mps2` |
+| `destination`, integer `0..N` | 0: silent; 1..N−1: peer theo ID tăng dần; N: GCS |
+| `continuous[:,2]`, trong `[-1,1]` | Công suất phát, ánh xạ sang min/max watt trong config |
+
+Với 6 UAV, UAV2 có danh sách `[silent, UAV0, UAV1, UAV3, UAV4, UAV5, GCS]`.
+Policy chọn một next hop; không có greedy route thay quyết định của policy.
+Mask cho phép silent, peer còn pin trong range và GCS trong range khi có report.
+Sau khi phát hiện target, observation bước tiếp theo cho phép policy chọn đích.
+Peer đang đầy buffer/đã biết report có thể từ chối; sender giữ custody để thử lại.
+
+Actor nhận vị trí/vận tốc bản thân, GCS tương đối, thời gian, buffer, **pin và
+active**, target đã biết/tuổi report, target/vật cản trong FOV, beacon peer và mask.
+Target ngoài FOV không lộ tọa độ cho actor. Không có belief map.
+Beacon vị trí/pin là control plane lý tưởng; report dùng mạng packet.
+Critic train được thấy mission state đầy đủ. Default observation/state là 95/217.
+
+## Pin và vật cản
+
+Mỗi UAV có 277200 J = 77 Wh, chỉnh bằng `energy.battery_capacity_j`.
+Năng lượng bay một bước:
+
+`(idle_power + hover_power + c_v * ||v_real||² + c_a * ||a_real||²) * dt`.
+
+Vận tốc/gia tốc dùng chuyển động thực tế sau xử lý safety. Nếu không đủ pin
+cho trọn bước, UAV đứng tại chỗ, dùng hết phần pin còn lại và ngừng hoạt động.
+Safety được kiểm tra lại với UAV vừa dừng. Đây là mô hình năng lượng theo bước;
+không mô phỏng động lực học hạ cánh hoặc sạc pin.
+
+Mỗi lần native PHY phát trừ `power_w * frame_bits / bit_rate_bps`, gồm retry,
+frame lỗi và ACK. Frame không đủ pin không được phát. UAV hết pin không bay,
+quan sát, gửi/nhận hoặc giữ vai trò relay mới. GCS dùng nguồn điện riêng.
+Metrics tách năng lượng bay, RF của UAV, RF của GCS và số lần phát bị chặn do pin.
+Hết pin cả swarm kết thúc thất bại; mọi target về GCS kết thúc thành công.
+
+Vật cản được chuyển thành building của airspace UavNetSim. Link rõ dùng LOS
+free-space, link bị che dùng NLOS urban nên suy hao và có thể lỗi SINR.
+`network.obstacle_extra_loss_db` thêm loss cho NLOS, default 0 để tránh cộng
+trùng với urban loss. Vật cản áp dụng cho UAV→UAV và UAV→GCS.
+Link NLOS vẫn được policy thử: kết quả phụ thuộc công suất, nhiễu và SINR.
+
+## Chạy từng phần
 
 ```bash
-bash setup.sh --system-site-packages
-```
-
-Script tạo venv riêng, tải những folder runtime cần thiết của UavNetSim,
-ghim commit trong `scripts/upstream-revision.txt`. Không tải frontend hay ảnh,
-không cần dataset target: môi trường sinh scenario trực tiếp theo seed.
-Kênh analytical A2A chạy trên CPU; không cần Sionna ray tracing.
-Một process chỉ giữ một simulator mạng đang sống vì upstream dùng config global.
-`setup.sh` tải đúng commit đã ghim. Nếu tự đổi `network.upstream_path` sang một
-checkout khác, cần tự bảo đảm checkout đó cùng commit; loader hiện tin đường
-dẫn source đã cung cấp.
-
-## Chạy theo từng phần
-
-```bash
-# In config đã resolve, chưa train.
+# Xem config, chưa train.
 .venv/bin/python -m uav_network config --config configs/default.yaml
 
-# Các kiểm thử, bao gồm truyền mạng thật và Adam cập nhật hai nhánh action.
-.venv/bin/python -m unittest discover -s tests -v
+# Smoke một env; chỉ kiểm tra luồng/gradient.
+.venv/bin/python -m uav_network train --config configs/smoke.yaml \
+  --algorithm masac --set runtime.output_dir=outputs/masac-smoke
+.venv/bin/python -m uav_network train --config configs/smoke.yaml \
+  --algorithm matd3 --set runtime.output_dir=outputs/matd3-smoke
 
-# Lượt nhỏ: 6 UAV, 2 episode, 40 step/episode; kiểm tra toàn bộ luồng.
-.venv/bin/python -m uav_network train --config configs/smoke.yaml
+# 2 env × 6 UAV, có reset từng worker.
+.venv/bin/python -m uav_network train --config configs/smoke-parallel.yaml \
+  --algorithm matd3 --set runtime.output_dir=outputs/matd3-parallel-smoke
 
-# Evaluate checkpoint trên CPU, dùng đúng scenario config trong checkpoint.
 .venv/bin/python -m uav_network evaluate \
-  --checkpoint outputs/smoke/final.pt --episodes 1
+  --checkpoint outputs/matd3-parallel-smoke/final.pt --episodes 3
 ```
 
-Train đầy đủ hoặc đổi scenario chỉ bằng config/args:
+Output folder phải trống. Kết quả gồm resolved config, JSONL từng episode,
+summary, policy checkpoint; evaluate thêm metrics và PNG có pin từng UAV.
+Checkpoint v2 ghi algorithm/config/dimensions, dùng để evaluate. Thêm pin/mask
+đã thay observation: checkpoint v1 cần train lại. Chưa có resume optimizer/replay.
+
+## Chạy trên CPU mạnh + GPU
+
+`runtime.num_envs=1` dùng một env. Khi >1, Gymnasium **AsyncVectorEnv + spawn**
+chạy một swarm hoàn chỉnh trong mỗi tiến trình CPU; mỗi process có UavNetSim riêng.
+Một learner ở parent dùng CUDA cho actor/critic/target/Adam và có thể giữ replay
+trên GPU. Sáu actor suy luận từng batch `[num_envs, observation_dim]`; action chỉ
+chuyển về CPU một lần mỗi batch. `step_async` cho CPU mô phỏng trong lúc learner
+cập nhật từ replay trước đó. Batch cuối được cập nhật trước khi lưu checkpoint.
+SimPy/packet simulation vẫn chạy trên CPU; không chuyển thành CUDA env.
+
+Chọn số env theo benchmark trên **đúng máy train**:
 
 ```bash
-.venv/bin/python -m uav_network train --config configs/default.yaml \
-  --set world.map_size_m=3000 \
-  --set world.num_targets=50 \
-  --set world.num_obstacles=30 \
-  --set world.max_steps=3000 \
-  --set runtime.episodes=20000 \
-  --set runtime.output_dir=outputs/paper-run
+.venv/bin/python -m uav_network benchmark --config configs/workstation.yaml \
+  --env-counts 1 2 4 8 16 --steps 128 --learner-updates 20 \
+  --output outputs/workstation-benchmark.json
+
+.venv/bin/python -m uav_network train --config configs/workstation.yaml \
+  --algorithm masac --num-envs 16 --device cuda \
+  --set runtime.output_dir=outputs/workstation-masac
+.venv/bin/python -m uav_network train --config configs/workstation.yaml \
+  --algorithm matd3 --num-envs 16 --device cuda \
+  --set runtime.output_dir=outputs/workstation-matd3
 ```
 
-Kết quả gồm `resolved_config.yaml`, `episodes.jsonl`, `summary.json`,
-`final.pt`; evaluation thêm `metrics.json` và `final_episode.png`.
-Output folder phải trống để tránh ghi đè experiment cũ. Checkpoint hiện dùng
-để evaluate; không chứa replay/RNG/optimizer để resume chính xác.
+16 env nghĩa là **16 scenario độc lập, mỗi scenario có 6 UAV**, không phải chia
+6 UAV của một scenario thành 16 process. Workstation profile là điểm bắt đầu:
+batch1024, replay200000, warmup8192, 4 update/lần collect. Giảm env nếu quá tải CPU;
+đổi `runtime.replay_device=cpu`/giảm replay khi VRAM không đủ. CPU replay→CUDA dùng
+pinned samples; CUDA replay→CPU dùng copy blocking để CPU đọc dữ liệu đã hoàn tất.
 
-## Những quy ước cần biết
+`updates_per_step` là số update cho mỗi **vector collection**, còn `global_step`
+đếm joint transitions: E env đóng góp E transition/lần. Ratio danh nghĩa là
+`updates_per_step * batch_size / num_envs`. Default 1×256/1 và workstation
+4×1024/16 đều là 256; summary ghi ratio thực tế sau warmup.
+Số episode hoàn tất có thể vượt ngân sách tối đa E−1 do nhiều worker kết thúc
+cùng lượt; summary ghi cả số yêu cầu lẫn số thực tế.
 
-- Discovery và delivery là hai metrics riêng; thành công khi mọi target đến GCS.
-- Report chỉ đổi quyền giữ sau khi đủ fragment. TTL giữ timestamp nguồn gốc
-  qua các relay; phát thất bại vẫn tiêu hao năng lượng.
-- Action chọn next hop tại lúc enqueue. Packet đang ở MAC queue vẫn tiếp tục
-  chạy nếu bước sau chọn silent. Không dùng greedy routing thay action.
-- Queue poll 1000 µs được cấu hình bằng `network.queue_poll_us`; MAC backoff,
-  retry, SINR, interference và ACK vẫn do UavNetSim xử lý.
-- Reset tạo observation/detection ban đầu. Trong mỗi step: di chuyển và sensing
-  ở đầu khoảng mạng, chạy network `dt_s`, rồi tăng clock và kiểm tra TTL.
-- MASAC là bản thích nghi cho action lai Gaussian + categorical, dùng kỳ vọng
-  chính xác trên các đích của actor đang cập nhật và sample action UAV khác.
-  Sáu actor và sáu cặp critic riêng; ReLU MLP `(256,256)`, Adam và soft update.
-- Lượt smoke xác nhận code chạy và có gradient; không đánh giá hội tụ policy.
+Finite/gradient checks và chuyển metrics thành số CPU chạy theo log interval,
+kèm kiểm tra tham số khi lưu. Distribution của policy dùng các tham số đã
+clamp/mask để giảm validation sync trên GPU. Optional `runtime.compile_models=true`
+compile phần MLP, default tắt; benchmark sau warmup và so với eager.
+`runtime.deterministic=false` là lựa chọn tốc độ cần so sánh riêng với baseline.
+
+Trên máy CUDA, chạy thêm:
+
+```bash
+.venv/bin/python -m unittest discover -s tests -p test_cuda.py -v
+```
+
+Các test CUDA báo skip rõ ràng nếu host không có CUDA. Xem kết quả CPU thực tế
+và phạm vi đã kiểm tra trong [verification-v02.md](docs/verification-v02.md).
+
+## Thuật toán và tài liệu
+
+MASAC dùng Gaussian/tanh cho XY/power và categorical có mask cho next hop.
+Power chỉ tính entropy khi truyền; dùng kỳ vọng chính xác trên đích của actor
+đang cập nhật, sample UAV khác. MATD3 dùng clipped double Q, continuous target
+smoothing, actor/target update trễ và categorical straight-through softmax.
+Gaussian exploration cho continuous, epsilon greedy trên đích hợp lệ.
+Đây là các bản thích nghi cho action lai của mission này.
+
+GPU research so sánh PyTorch, Gymnasium, TorchRL, EnvPool, Sample Factory,
+Isaac Lab và Warp: [gpu-acceleration-research.md](docs/gpu-acceleration-research.md).
+Thiết kế: [design.md](docs/design.md); quá trình: [progress.md](docs/progress.md).
+Lượt smoke chứng minh wiring/gradient, không chứng minh policy đã hội tụ.
 
 Tham khảo [UavNetSim](https://github.com/Zihao-Felix-Zhou/UavNetSim),
-[DroneWatch](https://github.com/Bussler/DroneWatch) và
-[GPMF](https://github.com/yangmin32/GPMF). Chi tiết trong `docs/design.md`.
+[DroneWatch](https://github.com/Bussler/DroneWatch), [GPMF](https://github.com/yangmin32/GPMF)
+và [MATD3](https://arxiv.org/abs/1910.01465).

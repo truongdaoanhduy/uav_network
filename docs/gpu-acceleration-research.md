@@ -105,8 +105,10 @@ The [source][gym-source] implements the waits and shared-buffer writes explicitl
 
 ## CUDA learner, replay and compilation
 
-Batch the homogeneous shared actor over `[E * 6, O]`, then reshape actions by
-scenario; do not issue one GPU forward pass per UAV. Keep critics, target
+For this project's six independent actors, batch each actor over `[E, O]`,
+then assemble actions by scenario: six forward calls per collection batch,
+rather than six calls per environment. A shared actor could use `[E * 6, O]`,
+but parameter sharing changes the learner and is not used here. Keep critics, target
 networks and optimizer state on CUDA. Start with contiguous CPU replay and
 transfer sampled batches together. Consider pinned staging/prefetching or GPU
 replay only after measuring memory and transfer costs. [PyTorch's transfer
