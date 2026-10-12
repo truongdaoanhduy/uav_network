@@ -1,5 +1,4 @@
 """Battery budgets affect real movement, sensing and packet transmission."""
-from dataclasses import replace
 import unittest
 
 import numpy as np

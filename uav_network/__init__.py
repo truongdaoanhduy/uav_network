@@ -1,1 +1,1 @@
-"""Six-UAV search, packet communication and Hybrid MASAC."""
+"""Battery-aware UAV search, packet communication and hybrid MASAC/MATD3."""

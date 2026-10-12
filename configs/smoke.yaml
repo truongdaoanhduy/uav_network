@@ -11,7 +11,14 @@ masac:
   replay_capacity: 256
   batch_size: 8
   learning_starts: 8
+matd3:
+  hidden_sizes: [32, 32]
+  replay_capacity: 256
+  batch_size: 8
+  learning_starts: 8
 runtime:
+  algorithm: masac
+  num_envs: 1
   seed: 44
   episodes: 2
   eval_episodes: 1

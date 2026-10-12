@@ -50,13 +50,13 @@ def local_observations(env):
         order = sorted(range(len(env.obstacles)),
                        key=lambda j: np.linalg.norm(env.obstacles[j, :2] - position))
         visible = [j for j in order if np.linalg.norm(env.obstacles[j, :2] - position)
-                   <= s.footprint_radius_m + env.obstacles[j, 2]]
+                   <= s.footprint_radius_m + env.obstacles[j, 2] and env.active[i]]
         for slot, j in enumerate(visible[:s.visible_obstacle_slots]):
             o = env.obstacles[j]
             obstacles[slot] = [*((o[:2] - position) / w.map_size_m), o[2] / w.map_size_m, 1]
         peers = np.zeros((w.num_uavs - 1, 6))
         for slot, j in enumerate(k for k in range(w.num_uavs) if k != i):
-            if np.linalg.norm(env.positions[j] - position) <= n.peer_range_m:
+            if env.active[i] and np.linalg.norm(env.positions[j] - position) <= n.peer_range_m:
                 peers[slot] = [*((env.positions[j] - position) / w.map_size_m),
                                *(env.velocities[j] / w.max_speed_mps), env.battery_fraction[j], env.active[j]]
         rows.append(np.r_[own, env.reports.known[i], age, targets.ravel(),

@@ -213,6 +213,8 @@ class Config:
             raise ValueError("algorithm must be masac or matd3")
         if r.num_envs < 1 or r.log_interval_steps < 1:
             raise ValueError("num_envs and log_interval_steps must be positive")
+        if self.algorithm_config.replay_capacity < r.num_envs:
+            raise ValueError("Replay capacity must accommodate num_envs transitions")
         e = self.energy
         if e.battery_capacity_j <= 0 or any(v < 0 for v in (
                 e.idle_power_w, e.hover_power_w, e.speed_squared_coefficient,

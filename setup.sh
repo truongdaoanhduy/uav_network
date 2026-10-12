@@ -30,5 +30,5 @@ if ! git -C "$upstream_dir" cat-file -e "$revision^{commit}" 2>/dev/null; then
   git -C "$upstream_dir" fetch --depth=1 --filter=blob:none origin "$revision"
 fi
 git -C "$upstream_dir" checkout --detach "$revision"
-.venv/bin/python -c 'from uav_network.configuration import load_config; from uav_network.communication.upstream import load_upstream; load_upstream(load_config()); print("UavNetSim analytical runtime ready")'
+.venv/bin/python -c 'from uav_network.configuration import load_config; from uav_network.communication.upstream import load_upstream; from gymnasium.vector import AutoresetMode; load_upstream(load_config()); assert AutoresetMode.DISABLED; print("UavNetSim and Gymnasium process runtime ready")'
 echo 'Ready. Run: .venv/bin/python -m uav_network --help'

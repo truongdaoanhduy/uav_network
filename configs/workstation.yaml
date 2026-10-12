@@ -1,0 +1,33 @@
+# Starting profile for a strong CPU + CUDA workstation. Benchmark env counts first.
+# 4 updates * 1024 samples / 16 envs = 256 sampled transitions per new transition.
+world:
+  num_uavs: 6
+  num_targets: 10
+  num_obstacles: 8
+  max_steps: 800
+network:
+  enabled: true
+masac:
+  hidden_sizes: [256, 256]
+  replay_capacity: 200000
+  batch_size: 1024
+  learning_starts: 8192
+  updates_per_step: 4
+matd3:
+  hidden_sizes: [256, 256]
+  replay_capacity: 200000
+  batch_size: 1024
+  learning_starts: 8192
+  updates_per_step: 4
+runtime:
+  algorithm: masac
+  num_envs: 16
+  episodes: 1000
+  device: cuda
+  replay_device: cuda
+  torch_threads: 1
+  collector_overlap: true
+  deterministic: true
+  compile_models: false
+  log_interval_steps: 1600
+  output_dir: outputs/workstation-masac
