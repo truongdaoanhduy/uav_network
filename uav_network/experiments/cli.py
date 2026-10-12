@@ -23,6 +23,8 @@ def main():
     evaluation.add_argument("--seed", type=int)
     evaluation.add_argument("--output-dir")
     commands.add_parser("hardware", help="Show CPU affinity and CUDA devices usable by PyTorch")
+    cloud = commands.add_parser("kaggle", help="Quota, private CUDA jobs and online W&B")
+    cloud.add_argument("cloud_args", nargs=argparse.REMAINDER)
     speed = commands.add_parser("benchmark", help="Measure env and learner throughput separately")
     speed.add_argument("--config")
     speed.add_argument("--set", dest="overrides", action="append", default=[])
@@ -31,7 +33,10 @@ def main():
     speed.add_argument("--learner-updates", type=int, default=10)
     speed.add_argument("--output", help="Optional JSON report path; must not exist")
     args = parser.parse_args()
-    if args.command == "hardware":
+    if args.command == "kaggle":
+        from ..cloud.cli import main as cloud_main
+        result = cloud_main(args.cloud_args)
+    elif args.command == "hardware":
         from .hardware import hardware_info
         result = hardware_info()
     elif args.command == "evaluate":

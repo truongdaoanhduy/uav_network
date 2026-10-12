@@ -142,6 +142,18 @@ class RuntimeConfig:
 
 
 @dataclass
+class TrackingConfig:
+    enabled: bool = False
+    credentials_file: str = "key.txt"
+    entity: str = "auto"
+    project: str = "auto"
+    run_name: str = "auto"
+    group: str = "uav-network-2d"
+    tags: list = field(default_factory=lambda: ["uav-network", "2d", "fov", "uavnetsim"])
+    log_checkpoint: bool = True
+
+
+@dataclass
 class Config:
     world: WorldConfig = field(default_factory=WorldConfig)
     sensor: SensorConfig = field(default_factory=SensorConfig)
@@ -151,6 +163,7 @@ class Config:
     masac: MASACConfig = field(default_factory=MASACConfig)
     matd3: MATD3Config = field(default_factory=MATD3Config)
     runtime: RuntimeConfig = field(default_factory=RuntimeConfig)
+    tracking: TrackingConfig = field(default_factory=TrackingConfig)
 
     @property
     def algorithm_config(self):
@@ -240,6 +253,8 @@ class Config:
                     any(type(x) not in (int, float) or not math.isfinite(x)
                         or x < 0 or x > w.map_size_m for x in w.gcs_position_m)):
                 raise ValueError("GCS must be a finite XY point inside the map")
+        if not isinstance(self.tracking.tags, (list, tuple)) or any(not isinstance(t, str) or not t for t in self.tracking.tags):
+            raise ValueError("tracking.tags must be a list of nonempty strings")
         return self
 
     def to_dict(self):

@@ -1,0 +1,30 @@
+# One independent learner per GPU, 2 CPU scenarios per learner.
+# Ratio: 1 * 512 / 2 = 256 sampled transitions per new joint transition.
+masac:
+  hidden_sizes: [256, 256]
+  replay_capacity: 100000
+  batch_size: 512
+  learning_starts: 4000
+  updates_per_step: 1
+matd3:
+  hidden_sizes: [256, 256]
+  replay_capacity: 100000
+  batch_size: 512
+  learning_starts: 4000
+  updates_per_step: 1
+runtime:
+  seed: 44
+  num_envs: 2
+  episodes: 1000
+  device: cuda
+  replay_device: cuda
+  torch_threads: 1
+  log_interval_steps: 200
+  checkpoint_interval: 100
+  output_dir: outputs/kaggle
+tracking:
+  enabled: true
+  entity: auto
+  project: auto
+  group: uav-network-2d
+  tags: [uav-network, 2d, fov, uavnetsim, kaggle]

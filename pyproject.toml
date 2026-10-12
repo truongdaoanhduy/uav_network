@@ -9,6 +9,9 @@ description = "Battery-aware 2D UAV search with UavNetSim, MASAC, MATD3 and proc
 requires-python = ">=3.11"
 dependencies = ["numpy>=2.2,<3", "torch>=2.5,<3", "PyYAML>=6,<7", "matplotlib>=3.10,<4", "gymnasium>=1.2,<2"]
 
+[project.optional-dependencies]
+cloud = ["kaggle>=2.2,<3", "wandb>=0.25,<1"]
+
 [project.scripts]
 uav-network = "uav_network.experiments.cli:main"
 

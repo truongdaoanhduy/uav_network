@@ -1,0 +1,27 @@
+# CUDA + real packets + online W&B validation, not convergence.
+world:
+  num_targets: 3
+  num_obstacles: 2
+  max_steps: 40
+masac:
+  hidden_sizes: [32, 32]
+  replay_capacity: 512
+  batch_size: 8
+  learning_starts: 8
+matd3:
+  hidden_sizes: [32, 32]
+  replay_capacity: 512
+  batch_size: 8
+  learning_starts: 8
+runtime:
+  num_envs: 2
+  episodes: 4
+  eval_episodes: 1
+  device: cuda
+  replay_device: cuda
+  log_interval_steps: 20
+  output_dir: outputs/kaggle-smoke
+tracking:
+  enabled: true
+  group: uav-network-2d-validation
+  tags: [uav-network, 2d, kaggle, validation]

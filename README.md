@@ -30,6 +30,7 @@ commit. Scenario được sinh theo seed; không cần tải dataset target.
 | `uav_network/communication/` | Report/buffer/TTL, native PHY budget, NLOS và selected routing |
 | `uav_network/algorithms/` | Actor/critic, MASAC, MATD3, tensor replay, checkpoint |
 | `uav_network/experiments/` | Train, evaluate, hardware, benchmark và ảnh quỹ đạo |
+| `uav_network/cloud/` | Đọc key, kiểm tra quota, tạo và theo dõi job Kaggle |
 | `tests/` | Môi trường, packet thật, learner, worker/reset và CUDA |
 | `scripts/` | Dependency mạng và revision upstream |
 | `docs/` | Thiết kế, quá trình thực hiện, bằng chứng và nghiên cứu GPU |
@@ -159,6 +160,45 @@ Trên máy CUDA, chạy thêm:
 
 Các test CUDA báo skip rõ ràng nếu host không có CUDA. Xem kết quả CPU thực tế
 và phạm vi đã kiểm tra trong [verification-v02.md](docs/verification-v02.md).
+
+## Kaggle CUDA và W&B online
+
+`key.txt` giữ nguyên schema project cũ, đã được chép vào root project mới.
+File này được Git bỏ qua. Cài thêm CLI/SDK bằng:
+
+```bash
+bash setup.sh --system-site-packages --cloud
+.venv/bin/python -m uav_network kaggle accounts
+
+# Kiểm tra CUDA và smoke hai thuật toán trước khi train dài.
+.venv/bin/python -m uav_network kaggle launch --stage validate \
+  --account account_02 \
+  --credential-dataset haibro1234/uav-wandb-credential-arch-ablation \
+  --timeout-seconds 1800
+
+# Train 1000 episode mỗi thuật toán; chỉnh bằng --set nếu cần.
+.venv/bin/python -m uav_network kaggle launch --stage train \
+  --account account_02 --required-gpu-hours 4 \
+  --credential-dataset haibro1234/uav-wandb-credential-arch-ablation
+
+.venv/bin/python -m uav_network kaggle status \
+  --manifest outputs/kaggle/<job-folder>/launch.json
+```
+
+Launcher kiểm tra quota và dataset credential riêng tư thuộc đúng account;
+source tree phải được commit/push trước vì job ghim chính xác SHA của code.
+Mặc định tự chọn account còn nhiều giờ nhất nếu bỏ `--account`; dataset phải
+thuộc account được chọn. Output ghi URL Kaggle và hai URL W&B riêng.
+W&B dùng entity/project trong `key.txt`, ghi progress, reward, tìm kiếm, delivery,
+pin, safety, packet/delay/throughput, loss và artifact checkpoint cuối.
+Chạy local với `--set tracking.enabled=true` cũng dùng key này.
+
+Profile Kaggle dùng **2 env CPU cho mỗi learner, batch512 và replay CUDA**.
+Với T4 ×2: MASAC ở GPU0, MATD3 ở GPU1, train độc lập; một GPU thì chạy lần lượt.
+Đây là hai thí nghiệm, không phải chia một learner lên hai GPU.
+Kernel private lấy W&B key từ dataset credential riêng tư đã có; toàn bộ
+`key.txt` chỉ giữ ở local. Chưa hỗ trợ resume optimizer/replay khi hết thời gian
+Kaggle. Xem [kaggle-wandb-plan.md](docs/kaggle-wandb-plan.md) cho kiểm chứng.
 
 ## Thuật toán và tài liệu
 

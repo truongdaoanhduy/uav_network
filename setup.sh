@@ -5,17 +5,20 @@ project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$project_root"
 python_bin="${PYTHON:-python3}"
 venv_flags=()
-case "${1:-}" in
-  --system-site-packages) venv_flags+=(--system-site-packages) ;;
-  "") ;;
-  *) echo 'Usage: bash setup.sh [--system-site-packages]' >&2; exit 2 ;;
-esac
+package_spec='.'
+for option in "$@"; do
+  case "$option" in
+    --system-site-packages) venv_flags+=(--system-site-packages) ;;
+    --cloud) package_spec='.[cloud]' ;;
+    *) echo 'Usage: bash setup.sh [--system-site-packages] [--cloud]' >&2; exit 2 ;;
+  esac
+done
 "$python_bin" -c 'import sys; assert sys.version_info >= (3,11), "Python >=3.11 required"'
 if [[ ! -x .venv/bin/python ]]; then
   "$python_bin" -m venv "${venv_flags[@]}" .venv
 fi
 .venv/bin/python -m pip install --upgrade pip
-.venv/bin/python -m pip install -e . -r scripts/requirements-network.txt
+.venv/bin/python -m pip install -e "$package_spec" -r scripts/requirements-network.txt
 upstream_dir="$project_root/third_party/UavNetSim"
 revision="$(tr -d '\r\n' < scripts/upstream-revision.txt)"
 mkdir -p third_party outputs

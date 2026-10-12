@@ -14,6 +14,8 @@ from ..algorithms.optimization import compile_models
 from ..algorithms.replay import TensorReplayBuffer
 from ..environment.observations import observation_dim, state_dim
 from ..environment.vector import make_vector, random_actions, unpack_info
+from .tracking import start_tracking
+from .lifecycle import graceful_termination
 
 
 def seed_runtime(config):
@@ -36,6 +38,11 @@ def choose_device(value):
 
 
 def train(config):
+    with graceful_termination():
+        return _train(config)
+
+
+def _train(config):
     config.validate()
     seed_runtime(config)
     device = choose_device(config.runtime.device)
@@ -56,7 +63,10 @@ def train(config):
     episode_seeds = np.arange(count) + config.runtime.seed
     next_seed = config.runtime.seed + count
     episode_returns, episode_lengths = np.zeros(count), np.zeros(count, dtype=int)
+    tracker = None
+    completed_ok = False
     try:
+        tracker = start_tracking(config, output)
         obs, _ = vector.reset(seed=episode_seeds.tolist())
         learner = make_learner(config, observation_dim(config), state_dim(config), device)
         if config.runtime.compile_models:
@@ -117,6 +127,8 @@ def train(config):
                               "truncated": bool(truncated[i]), **info, "learner": latest}
                     stream.write(json.dumps(record, allow_nan=False) + "\n")
                     stream.flush()
+                    if tracker:
+                        tracker.episode(record)
                     print(json.dumps({"algorithm": learner.algorithm, "episode": completed,
                                       "global_step": global_step, "return": round(record["return"], 3),
                                       "search_rate_percent": info["search_rate_percent"],
@@ -125,6 +137,8 @@ def train(config):
                     if completed % config.runtime.checkpoint_interval == 0:
                         learner.save(output / f"episode_{completed:06d}.pt")
                 obs = next_obs
+                if tracker:
+                    tracker.progress(obs, global_step, completed, learner, len(replay), force=final_batch)
                 if done.any() and completed < config.runtime.episodes:
                     seeds = [None] * count
                     for i in np.flatnonzero(done):
@@ -146,7 +160,15 @@ def train(config):
                   "startup_s": startup_s, "collection_wait_s": collection_wait_s, "learner_s": update_s,
                   "elapsed_s": elapsed, "joint_transitions_per_s": global_step / elapsed,
                   "final_episode": record}
+        if tracker:
+            result.update(tracker.complete(result))
+            tracker.close()
         (output / "summary.json").write_text(json.dumps(result, indent=2, allow_nan=False))
+        completed_ok = True
         return result
     finally:
-        vector.close()
+        try:
+            vector.close()
+        finally:
+            if tracker:
+                tracker.close(failed=not completed_ok)
