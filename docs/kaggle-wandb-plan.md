@@ -95,4 +95,11 @@ First training bootstrap stopped before importing CUDA or initializing W&B:
 Kaggle Python3.13 failed at venv ensurepip. System-package setup now creates the
 isolated venv without ensurepip and inherits the image's existing pip. A clean
 temporary Python3.13 venv verified pip works this way on the local host. This
-fix is being revalidated in an actual Kaggle job before reporting GPU training.
+fix passed a real Kaggle job:all3 CUDA tests,77 updates/160 joint transitions
+per algorithm,finished online runs and1 checkpoint artifact per algorithm.
+The allocation has4 CPU cores and2 Tesla T4 GPUs. Full training will record its
+warmed benchmark and explicit GPU visibility in W&B config,allowing CPU/GPU
+throughput comparisons without waiting for the complete Kaggle output download.
+One local rerun exposed a test readiness-file race:the parent read while the
+fake tracker repeatedly truncated its PID JSON. The test now writes once and
+publishes its marker by atomic rename; process shutdown behavior is unchanged.

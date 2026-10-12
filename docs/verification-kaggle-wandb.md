@@ -30,10 +30,30 @@ This short run verifies execution/tracking, not convergence.
 
 ## Submitted CUDA jobs
 
-Validation source:8e3953116942d627ed3d3ef0a67f312ec90948f1.
-https://www.kaggle.com/code/haibro1234/uav-network-validate-20261012-115047-be8d12 .
-Metadata read back from Kaggle verifiesprivate=true,gpu=true,internet=true and
-the expected credential dataset. At submission the job queued for capacity.
+The first queued validation notebook had obsolete ensurepip setup and was
+removed before execution. Only this session's temporary notebook was removed.
+
+Successful validation source:907ecd0c9c110e141b788360429284ec2bf3810e.
+https://www.kaggle.com/code/haibro1234/uavnet-validate-20261012-121025-5b8179 .
+Version2 uses the same source/config with43200s maximum runtime. Actual notebook
+completion took minutes; the timeout is a ceiling. Metadata is private,GPU and
+Internet enabled,with the expected owned credential dataset.
+
+Read-back hardware:4 available CPU cores,2 Tesla T4 GPUs with14.56 GiB each,
+Python3.13.15,PyTorch2.11.0+cu128,CUDA12.8. All3 CUDA regressions passed in11.741s.
+Both algorithms trained4 episodes,160 joint transitions and77 updates from2
+spawned real-network envs,with CUDA learner and CUDA replay. MASAC elapsed20.97s,
+MATD3 elapsed15.86s; these small smoke timings include startup/online tracking.
+
+Independent W&B API verification for both:finished,13 history rows,progress
+before episode completion,monotone global_step and1 model artifact per run.
+Both learners see one CUDA device through their explicit visibility mask. MASAC
+system history also contains GPU/VRAM/power/temperature metrics; MATD3's short
+run ended before its first system sample. Policy checkpoints contain no copied
+credential values. Both final checkpoints also completed CPU evaluation.
+
+- MASAC:https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/66f7ec82 .
+- MATD3:https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/480bb79c .
 
 Training source:79b72c1a433cdb259c48796950367538f5e3a58d.
 https://www.kaggle.com/code/haibro1234/uavnet-train-20261012-120134-18ad3b .
@@ -56,8 +76,9 @@ W&B run URLs:
 This first training job transitioned running→error before learner startup:
 Kaggle Python3.13 could not bootstrap venv ensurepip. No W&B runs were created.
 System-package setup now uses `venv --without-pip --system-site-packages`, with
-the image's installed pip. Local fresh-venv verification passed. The corrected
-bootstrap is being checked remotely; no GPU-training success is claimed yet.
+the image's installed pip. Local fresh-venv verification and the real CUDA
+validation above both passed. The corrected full job is being launched; full
+training is not complete and no convergence claim is made.
 
 ## Local full-config benchmark
 

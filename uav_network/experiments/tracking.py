@@ -93,7 +93,11 @@ class OnlineTracker:
         metadata = {"source_git_commit": os.environ.get("UAV_GIT_COMMIT", "local"),
                     "kaggle_account": os.environ.get("UAV_KAGGLE_ACCOUNT", "local"),
                     "kaggle_kernel": os.environ.get("UAV_KAGGLE_KERNEL", "local"),
+                    "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES", "all"),
                     "hardware": hardware_info()}
+        benchmark_file = os.environ.get("UAV_BENCHMARK_FILE")
+        if benchmark_file:
+            metadata["benchmark"] = json.loads(Path(benchmark_file).read_text())["results"]
         self.run = wandb.init(entity=entity, project=project, id=run_id, name=name,
                               group=config.tracking.group, tags=list(config.tracking.tags),
                               config={**config.to_dict(), **metadata}, dir=str(output), mode="online",

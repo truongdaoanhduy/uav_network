@@ -34,7 +34,10 @@ import uav_network.experiments.training as training
 root=Path(sys.argv[1])
 class Tracker:
     def progress(self, *args, **kwargs):
-        (root/'workers.json').write_text(json.dumps([p.pid for p in multiprocessing.active_children()]))
+        if not (root/'workers.json').exists():
+            pending=root/'workers.tmp'
+            pending.write_text(json.dumps([p.pid for p in multiprocessing.active_children()]))
+            pending.replace(root/'workers.json')
     def episode(self, record): pass
     def complete(self, result): return {}
     def close(self, failed=False): (root/'closed.json').write_text(json.dumps({'failed':failed}))

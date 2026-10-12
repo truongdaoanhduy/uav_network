@@ -44,6 +44,8 @@ def stop_process_tree(process, grace_seconds=20):
 def learner_command(spec, algorithm, run, gpu_index, destination):
     env = dict(os.environ, CUDA_VISIBLE_DEVICES=str(gpu_index),
                WANDB_RUN_ID=run["id"], WANDB_NAME=run["name"])
+    if spec.get("stage") == "train":
+        env["UAV_BENCHMARK_FILE"] = str(Path(destination).parents[1] / f"{algorithm}-benchmark.json")
     args = [sys.executable, "-m", "uav_network", "train", "--config", spec["config"],
             "--algorithm", algorithm]
     overrides = [*spec["overrides"], "tracking.enabled=true", "runtime.device=cuda",

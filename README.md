@@ -173,8 +173,7 @@ bash setup.sh --system-site-packages --cloud
 # Kiểm tra CUDA và smoke hai thuật toán trước khi train dài.
 .venv/bin/python -m uav_network kaggle launch --stage validate \
   --account account_02 \
-  --credential-dataset haibro1234/uav-wandb-credential-arch-ablation \
-  --timeout-seconds 1800
+  --credential-dataset haibro1234/uav-wandb-credential-arch-ablation
 
 # Train 1000 episode mỗi thuật toán; chỉnh bằng --set nếu cần.
 .venv/bin/python -m uav_network kaggle launch --stage train \
