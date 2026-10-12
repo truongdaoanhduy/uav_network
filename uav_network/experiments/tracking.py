@@ -98,7 +98,8 @@ class OnlineTracker:
                               group=config.tracking.group, tags=list(config.tracking.tags),
                               config={**config.to_dict(), **metadata}, dir=str(output), mode="online",
                               resume="never", reinit="finish_previous", save_code=False,
-                              settings=wandb.Settings(x_disable_stats=True, disable_code=True, console="off"))
+                              settings=wandb.Settings(x_disable_stats=not config.tracking.system_metrics,
+                                                     disable_code=True, console="off"))
         try:
             if self.run.offline:
                 raise RuntimeError("W&B did not start online")

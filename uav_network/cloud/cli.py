@@ -7,7 +7,7 @@ import subprocess
 from uuid import uuid4
 
 from ..configuration import load_config
-from .client import account_quotas, kernel_status, resolve_username, run_kaggle, verify_credential_dataset
+from .client import account_quotas, kernel_status, pushed_kernel_ref, resolve_username, run_kaggle, verify_credential_dataset
 from .credentials import load_credentials, select_account
 from .kernel import kernel_metadata, kernel_script
 
@@ -42,9 +42,10 @@ def launch(args, credentials):
     (folder / "kernel.py").write_text(kernel_script(spec))
     (folder / "kernel-metadata.json").write_text(json.dumps(kernel_metadata(spec), indent=2))
     # The timeout and accelerator are explicit CLI inputs, not assumptions about RTX naming.
-    run_kaggle(["kernels", "push", "-p", str(folder), "--accelerator", args.accelerator,
-                "--timeout", str(args.timeout_seconds)], account, timeout=50)
-    manifest = {**spec, "kernel_url": f"https://www.kaggle.com/code/{username}/{slug}",
+    response = run_kaggle(["kernels", "push", "-p", str(folder), "--accelerator", args.accelerator,
+                           "--timeout", str(args.timeout_seconds)], account, timeout=50)
+    actual_ref = pushed_kernel_ref(response)
+    manifest = {**spec, "kernel_ref": actual_ref, "kernel_url": f"https://www.kaggle.com/code/{actual_ref}",
                 "wandb_urls": {a: f"https://wandb.ai/{spec['entity']}/{spec['project']}/runs/{r['id']}" for a, r in runs.items()},
                 "manifest": str(folder / "launch.json")}
     (folder / "launch.json").write_text(json.dumps(manifest, indent=2))

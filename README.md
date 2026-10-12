@@ -191,6 +191,7 @@ Mặc định tự chọn account còn nhiều giờ nhất nếu bỏ `--accoun
 thuộc account được chọn. Output ghi URL Kaggle và hai URL W&B riêng.
 W&B dùng entity/project trong `key.txt`, ghi progress, reward, tìm kiếm, delivery,
 pin, safety, packet/delay/throughput, loss và artifact checkpoint cuối.
+W&B cũng theo dõi CPU/GPU/VRAM; tắt bằng `tracking.system_metrics=false` khi cần.
 Chạy local với `--set tracking.enabled=true` cũng dùng key này.
 
 Profile Kaggle dùng **2 env CPU cho mỗi learner, batch512 và replay CUDA**.

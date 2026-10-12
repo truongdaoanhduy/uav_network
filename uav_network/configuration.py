@@ -151,6 +151,7 @@ class TrackingConfig:
     group: str = "uav-network-2d"
     tags: list = field(default_factory=lambda: ["uav-network", "2d", "fov", "uavnetsim"])
     log_checkpoint: bool = True
+    system_metrics: bool = True
 
 
 @dataclass

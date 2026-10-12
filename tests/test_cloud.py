@@ -46,6 +46,17 @@ class CloudTests(unittest.TestCase):
         self.assertTrue(metadata["is_private"])
         self.assertTrue(metadata["enable_gpu"])
         self.assertEqual(metadata["dataset_sources"], ["owner/private-wandb"])
+        self.assertEqual(metadata["title"].lower().replace(" ", "-"), "uav-network-test")
+
+    def test_push_uses_actual_api_url_and_rejects_cli_success_with_server_error(self):
+        from uav_network.cloud.client import pushed_kernel_ref
+        response = ("Kernel version 1 successfully pushed.  Please check progress at "
+                    "https://www.kaggle.com/code/owner/actual-title-slug")
+        self.assertEqual(pushed_kernel_ref(response), "owner/actual-title-slug")
+        for failure in ("Kernel push error: quota exhausted",
+                        "The following are not valid dataset sources and could not be added to the kernel: owner/key\n" + response):
+            with self.assertRaisesRegex(RuntimeError, "push"):
+                pushed_kernel_ref(failure)
 
     def test_independent_learner_uses_requested_gpu_and_public_run_id(self):
         spec = {"config": "configs/kaggle.yaml", "overrides": ["runtime.episodes=10"]}

@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 from tempfile import TemporaryDirectory
 
@@ -75,9 +76,16 @@ def verify_credential_dataset(account, credentials, ref, username):
 
 
 def kernel_status(ref, account):
-    import re
     text = run_kaggle(["kernels", "status", ref], account)
     match = re.search(r"has status [\"'](?:KernelWorkerStatus\.)?([a-z_]+)[\"']", text, re.I)
     state = match.group(1).lower() if match else "unknown"
     return {"cancel_acknowledged": "cancelled", "cancel_requested": "running",
             "new_script": "pending"}.get(state, state)
+
+
+def pushed_kernel_ref(response):
+    # Kaggle derives new slugs from titles and its CLI may return exit 0 on errors.
+    match = re.search(r"https://(?:www\.)?kaggle\.com/code/([\w-]+/[\w-]+)", response)
+    if "Kernel push error" in response or re.search(r"not valid .* sources", response) or not match:
+        raise RuntimeError(f"Kaggle push was not confirmed: {response[-1000:]}")
+    return match.group(1)

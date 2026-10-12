@@ -3,7 +3,7 @@ import json
 
 
 def kernel_metadata(spec):
-    return {"id": spec["kernel_ref"], "title": f"UAV Network {spec['stage']} {spec['kernel_ref'].split('/')[-1][-22:]}",
+    return {"id": spec["kernel_ref"], "title": spec["kernel_ref"].split("/")[-1].replace("-", " "),
             "code_file": "kernel.py", "language": "python", "kernel_type": "script",
             "is_private": True, "enable_gpu": True, "enable_tpu": False,
             "enable_internet": True, "dataset_sources": [spec["credential_dataset"]],

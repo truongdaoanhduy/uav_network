@@ -64,7 +64,8 @@ Verified `haibro1234/uav-wandb-credential-arch-ablation` is owned by the selecte
 account and private, and its W&B credential matches the copied local file.
 The temporary download was removed. Unrelated HF credentials are not used.
 
-Local tests:68 discovered,65 passed and3 CUDA tests skipped on this CPU host.
+Local tests after launcher regression:69 discovered,66 passed and3 CUDA tests
+skipped on this CPU host.
 Independent review found two Important cleanup issues, both reproduced before
 fixing: tracker setup failure left a W&B run open, and learner termination did
 not guarantee simulator worker shutdown. Tracker now finishes failed runs on
@@ -77,3 +78,11 @@ https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/e5c4d730 .
 Independent API verification:finished,4 history rows,early progress and1 artifact.
 This verifies online tracking, not CUDA or policy convergence. Remote validation
 and the default Kaggle training are the remaining execution checks.
+
+First real API push revealed Kaggle generates the new kernel slug from its title,
+even when metadata requests an ID. Status on the requested ID was denied; listing
+owned kernels located the queued job at its actual title-derived URL. Regression
+tests now require title/slug agreement and parsing the canonical push URL. The
+launcher also rejects API errors/invalid data sources even if the CLI exits0.
+Parent W&B system monitoring is enabled by default, configurable through
+`tracking.system_metrics`, to expose CPU/GPU/VRAM usage during real training.
