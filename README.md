@@ -201,6 +201,8 @@ Kaggle output giữ `cuda-tests.log`, hardware và benchmark JSON của hai thu�
 Kernel private lấy W&B key từ dataset credential riêng tư đã có; toàn bộ
 `key.txt` chỉ giữ ở local. Chưa hỗ trợ resume optimizer/replay khi hết thời gian
 Kaggle. Xem [kaggle-wandb-plan.md](docs/kaggle-wandb-plan.md) cho kiểm chứng.
+Job đang chạy, URL W&B và số liệu CUDA thực tế:
+[verification-kaggle-wandb.md](docs/verification-kaggle-wandb.md).
 
 ## Thuật toán và tài liệu
 

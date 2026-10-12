@@ -103,3 +103,13 @@ throughput comparisons without waiting for the complete Kaggle output download.
 One local rerun exposed a test readiness-file race:the parent read while the
 fake tracker repeatedly truncated its PID JSON. The test now writes once and
 publishes its marker by atomic rename; process shutdown behavior is unchanged.
+
+Completed execution verification at2026-10-12 12:42 UTC:both full-config online
+learners are running onaccount_07,with GPU masks0/1,two CPU envs each and1,000
+requested episodes. MASAC had5,202 transitions/601 updates; MATD3 had6,202/1,101.
+W&B contains actor/critic losses and real GPU/VRAM system metrics. Warmed T4
+benchmarks measured9.19 and19.60 updates/s. Private kernel metadata was read
+back and verified. Only this session's obsolete queued notebooks were removed
+to release batch reservations; validation outputs/artifacts were preserved.
+Seeverification-kaggle-wandb.md for active URLs and dated evidence. Full training
+continues after this implementation session; convergence remains unverified.
