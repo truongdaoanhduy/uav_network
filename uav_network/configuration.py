@@ -54,6 +54,7 @@ class NetworkConfig:
     payload_bytes: int = 1024
     packet_lifetime_s: float = 10.0
     max_queue_packets: int = 64
+    queue_poll_us: float = 1000.0
     max_retries: int = 5
     obstacle_polygon_sides: int = 16
     bit_rate_bps: float = 2_000_000.0
@@ -141,7 +142,7 @@ class Config:
                     s.altitude_m, s.visible_target_slots, s.visible_obstacle_slots,
                     n.peer_range_m, n.gcs_range_m, n.tx_power_min_w, n.tx_power_max_w,
                     n.report_bytes, n.buffer_bytes, n.report_ttl_s, n.payload_bytes,
-                    n.packet_lifetime_s, n.max_queue_packets, n.max_retries,
+                    n.packet_lifetime_s, n.max_queue_packets, n.queue_poll_us, n.max_retries,
                     n.bit_rate_bps, n.carrier_frequency_hz, n.bandwidth_hz,
                     a.replay_capacity, a.batch_size, a.updates_per_step,
                     a.learning_rate, a.initial_alpha, a.grad_clip_norm,

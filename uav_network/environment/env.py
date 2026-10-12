@@ -74,14 +74,16 @@ class SwarmSearchEnv:
         self.positions, self.velocities, blocked, clipped = move_uavs(
             self.positions, self.velocities, np.asarray(action.continuous)[:, :2],
             self.obstacles, self.config)
-        self.steps += 1
         self.blocked_moves += blocked
         self.boundary_clips += clipped
         self.reports.expire(self.time_s)
         self._sense()
         comm_energy = 0.0
         if self.network:
-            comm_energy = self.network.step(action, self.positions, self.time_s)
+            comm_energy = self.network.step(action, self.positions,
+                                           self.time_s + self.config.world.dt_s)
+        self.steps += 1
+        self.reports.expire(self.time_s)
         r = self.config.reward
         reward = (r.discovery * (self.reports.known.any(axis=0).sum() - before_found)
                   + r.delivery * (self.reports.delivered.sum() - before_delivery)

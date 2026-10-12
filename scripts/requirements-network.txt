@@ -1,0 +1,7 @@
+# Analytical A2A runtime only; optional Sionna RT/frontend are not downloaded.
+simpy>=4.1,<5
+shapely>=2.0,<3
+pydantic>=2.6,<3
+scikit-opt>=0.6.6,<1
+trimesh>=4.12,<5
+mapbox-earcut>=2.0,<3
