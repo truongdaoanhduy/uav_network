@@ -40,17 +40,28 @@ def destination_mask(env):
     return masks
 
 
+def report_status(env):
+    """Remaining TTL, zero for no custody, -1 for local loss needing a fresh view."""
+    n = env.config.network
+    status = np.zeros_like(env.reports.known, dtype=float)
+    if n.rediscovery_recovery:
+        status[env.reports.recovery_pending] = -1
+    for i, buffer in enumerate(env.reports.buffers):
+        for target_id, report in buffer.items():
+            status[i, target_id] = max(0, 1 - (env.time_s - report.created_s) / n.report_ttl_s)
+    return status
+
+
 def local_observations(env):
     c, w, n, s = env.config, env.config.world, env.config.network, env.config.sensor
     rows = []
     masks = destination_mask(env)
+    reports = report_status(env)
     for i, position in enumerate(env.positions):
         own = [*(position / w.map_size_m), *(env.velocities[i] / w.max_speed_mps),
                *((env.gcs - position) / w.map_size_m), env.steps / w.max_steps,
                env.reports.bytes_used(i) / n.buffer_bytes, env.battery_fraction[i], env.active[i]]
-        age = np.zeros(w.num_targets)
-        for target_id, report in env.reports.buffers[i].items():
-            age[target_id] = max(0, 1 - (env.time_s - report.created_s) / n.report_ttl_s)
+        age = reports[i]
         targets = np.zeros((s.visible_target_slots, 4))
         ids = visible_target_ids(position, env.targets, env.obstacles, s) if env.active[i] else []
         for slot, target_id in enumerate(ids[:s.visible_target_slots]):
@@ -76,10 +87,7 @@ def local_observations(env):
 
 def centralized_state(env):
     w, n = env.config.world, env.config.network
-    ages = np.zeros((w.num_uavs, w.num_targets))
-    for i, buffer in enumerate(env.reports.buffers):
-        for target_id, report in buffer.items():
-            ages[i, target_id] = max(0, 1 - (env.time_s - report.created_s) / n.report_ttl_s)
+    ages = report_status(env)
     inflight = env.network.inflight_counts() if env.network else np.zeros(w.num_uavs)
     return np.r_[env.positions.ravel() / w.map_size_m,
                  env.velocities.ravel() / w.max_speed_mps,

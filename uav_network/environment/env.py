@@ -129,8 +129,11 @@ class SwarmSearchEnv:
         self.action_counts["gcs"] += int((dest == self.config.world.num_uavs).sum())
         self.action_counts["peer"] += int(((dest > 0) & (dest < self.config.world.num_uavs)).sum())
         self.action_counts["saturated"] += int((np.abs(np.asarray(action.continuous)[:, :2]) >= .99).sum())
-        terminated = bool(self.reports.delivered.all() or not self.active.any())
-        truncated = self.steps >= self.config.world.max_steps and not terminated
+        # max_steps is the mission deadline, observed by the actor and critic.
+        # It is a finite-horizon terminal state, not an external collection cutoff.
+        terminated = bool(self.reports.delivered.all() or not self.active.any()
+                          or self.steps >= self.config.world.max_steps)
+        truncated = False
         self._ended = terminated or truncated
         return local_observations(self), float(reward), terminated, truncated, self.info()
 
@@ -149,7 +152,7 @@ class SwarmSearchEnv:
                 "delivery_rate_percent": 100 * delivered / count,
                 "success": bool(self.reports.delivered.all()), "blocked_moves": self.blocked_moves,
                 "boundary_clips": self.boundary_clips, "expired_reports": self.reports.expired,
-                "dropped_reports": self.reports.dropped,
+                "dropped_reports": self.reports.dropped, "regenerated_reports": self.reports.regenerated,
                 "termination_reason": ("success" if self.reports.delivered.all() else
                                        "battery_exhausted" if not self.active.any() else
                                        "time_limit" if self.steps >= self.config.world.max_steps else None),

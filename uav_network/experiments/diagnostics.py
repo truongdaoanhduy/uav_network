@@ -42,7 +42,16 @@ class TrainingDiagnostics:
                   "rolling/delivery_rate_percent": float(np.mean([r["delivery_rate_percent"] for r in recent])),
                   "rolling/success_rate": float(np.mean([r["success"] for r in recent])),
                   "diagnostics/window_ready": int(len(recent) >= n)}
+        for name, group, count, components in (
+                ("shield_intervention", "motion_counts", "shield_interventions", 1),
+                ("commanded_stall", "motion_counts", "commanded_stalls", 1),
+                ("movement_saturation", "action_counts", "saturated", 2)):
+            values[f"rolling/{name}_rate"] = float(np.mean([
+                r.get(group, {}).get(count, 0) / max(1, components * r.get("episode_length", 1)
+                                                  * r.get("num_uavs", 6)) for r in recent]))
         checks = {
+            **{name: values[f"rolling/{name}_rate"] >= self.settings.blocked_rate_threshold
+               for name in ("shield_intervention", "commanded_stall", "movement_saturation")},
             "delivery_gap": values["rolling/search_rate_percent"] - values["rolling/delivery_rate_percent"]
                             >= self.settings.delivery_gap_threshold_percent,
             "blocked_motion": float(np.mean([r.get("blocked_moves", 0) /

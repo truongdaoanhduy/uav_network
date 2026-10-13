@@ -31,6 +31,32 @@ class DiagnosticsTests(unittest.TestCase):
             self.assertEqual(values['diagnostics/delivery_gap_warning'],1)
             self.assertTrue((Path(folder)/'diagnostics.jsonl').is_file())
 
+    def test_real_boundary_stall_warns_even_without_hard_blocks(self):
+        from uav_network.experiments.diagnostics import TrainingDiagnostics
+        with TemporaryDirectory() as folder:
+            c = Config()
+            c.network.enabled = False
+            c.world.num_uavs, c.world.num_targets, c.world.num_obstacles = 1, 1, 0
+            c.world.max_steps = 4
+            c.tracking.diagnostic_window = 2
+            env = SwarmSearchEnv(c)
+            diagnostics = TrainingDiagnostics(c, Path(folder))
+            try:
+                for episode in range(2):
+                    env.reset(seed=44, options={"positions": [[0, 0]],
+                                              "targets": [[900, 900]], "obstacles": []})
+                    total = 0
+                    for _ in range(4):
+                        _, reward, _, _, info = env.step(Action(np.array([[-1., -1., 0.]]), np.array([0])))
+                        total += reward
+                    self.assertEqual(info["blocked_moves"], 0)
+                    values = diagnostics.episode({"episode": episode + 1, "global_step": 4 * (episode + 1),
+                                                  "episode_length": 4, "num_uavs": 1, "return": total, **info})
+                for code in ("shield_intervention", "movement_saturation", "commanded_stall"):
+                    self.assertEqual(values.get(f"diagnostics/{code}_warning"), 1)
+            finally:
+                env.close()
+
     def test_real_training_logs_q_gradients_and_last_actual_td3_actor_update(self):
         from test_continuation import small_config
         from uav_network.experiments.training import train

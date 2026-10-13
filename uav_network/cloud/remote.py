@@ -92,9 +92,11 @@ def run_job(spec):
     spec["warm_start_paths"] = prepare_checkpoints(spec, output)
     config = load_config(spec["config"], spec["overrides"])
     (output / "hardware.json").write_text(json.dumps(hardware_info(), indent=2))
-    with (output / "cuda-tests.log").open("w") as log:
-        subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests",
-                        "-p", "test_cuda.py", "-v"], stdout=log, stderr=subprocess.STDOUT, check=True)
+    for pattern, log_name in (("test_cuda.py", "cuda-tests.log"),
+                              ("test_training_audit_regressions.py", "mission-regressions.log")):
+        with (output / log_name).open("w") as log:
+            subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests",
+                            "-p", pattern, "-v"], stdout=log, stderr=subprocess.STDOUT, check=True)
     if spec["stage"] == "train":
         for algorithm in spec["runs"]:
             args = [sys.executable, "-m", "uav_network", "benchmark", "--config", spec["config"],

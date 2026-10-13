@@ -45,6 +45,8 @@ class SensorConfig:
 class NetworkConfig:
     enabled: bool = True
     receiver_admission_mask: bool = True
+    rediscovery_recovery: bool = True
+    ack_uses_data_power: bool = True
     upstream_path: str = "third_party/UavNetSim"
     peer_range_m: float = 500.0
     gcs_range_m: float = 500.0

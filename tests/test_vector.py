@@ -47,8 +47,8 @@ class VectorTests(unittest.TestCase):
             for _ in range(4):
                 final, reward, terminated, truncated, infos = vector.step({
                     "continuous": action.continuous, "destination": action.destination})
-            self.assertTrue(truncated.all())
-            self.assertFalse(terminated.any())
+            self.assertTrue(terminated.all())
+            self.assertFalse(truncated.any())
             self.assertEqual(unpack_info(infos, 0)["network"]["backend"], "uavnetsim")
             terminal_obs = final["observation"].copy()
             terminal_state = final["state"].copy()
@@ -59,7 +59,7 @@ class VectorTests(unittest.TestCase):
             np.testing.assert_array_equal(reset["state"][1], terminal_state[1])
             self.assertFalse(np.array_equal(reset["state"][0], terminal_state[0]))
             np.testing.assert_array_equal(replay.data["next_state"][:2].numpy(), terminal_state)
-            self.assertEqual(float(replay.data["terminated"][:2].sum()), 0)
+            self.assertEqual(float(replay.data["terminated"][:2].sum()), 2)
         finally:
             vector.close()
         self.assertTrue(all(not p.is_alive() for p in vector.processes))

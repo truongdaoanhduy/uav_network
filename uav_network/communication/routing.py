@@ -31,7 +31,9 @@ class SelectedNextHopRouting:
                             ack_packet_length=config.ACK_PACKET_LENGTH,
                             ack_packet=received, simulator=self.simulator,
                             channel_id=received.channel_id)
-            ack.mission_power_w = self.simulator.mission_bridge.config.network.tx_power_min_w
+            settings = self.simulator.mission_bridge.config.network
+            ack.mission_power_w = (getattr(received, "mission_power_w", settings.tx_power_min_w)
+                                   if settings.ack_uses_data_power else settings.tx_power_min_w)
             yield self.simulator.env.timeout(config.SIFS_DURATION)
             ack.increase_ttl()
             self.my_drone.mac_protocol.phy.unicast(ack, src_drone_id)

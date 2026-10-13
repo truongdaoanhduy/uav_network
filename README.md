@@ -283,3 +283,25 @@ Biểu đồ, cảnh báo từ dữ liệu thực, đánh giá cùng seed và c�
 [training-diagnostics.md](docs/training-diagnostics.md). Cấu hình ở tracking.
 Console được capture online; failure.json và failed_batch.pt giúp tái hiện lỗi.
 Các run đang chạy ghim SHA cũ; metric mới áp dụng khi launch source mới.
+
+## Completed single-seed training audit
+
+The completed motion-study runs and executable failure reproductions are in
+[the training audit](docs/completed-training-audit-20261013.md).
+The mission's observed max_steps deadline is terminal for Bellman updates.
+An external max_train_seconds cutoff remains a separate runner limit.
+
+Fresh configs enable network.rediscovery_recovery and network.ack_uses_data_power.
+After local TTL/buffer loss, a fresh visible target observation can regenerate
+an undelivered report when space becomes available; relaying preserves TTL,
+custody transfer does not generate another copy, and discovery is not rewarded
+twice. The existing report-status feature is remaining TTL (>0), no custody (0),
+or local loss needing a fresh camera observation (-1). Dimensions are unchanged.
+ACK uses the received data frame's selected power, with real PHY battery/RF costs.
+Legacy checkpoints missing these fields retain both original network behaviors.
+Console also warns about intervention, saturation and stalls even with zero hard
+blocks. Kaggle startup gates both CUDA tests and native mission regressions.
+
+Existing policies still need fresh training and same-seed evaluation after these
+fixes. Successful packet tests and finite CUDA updates do not prove convergence
+or energy optimality.

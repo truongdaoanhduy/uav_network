@@ -44,6 +44,10 @@ def load_policy(path, device="cpu", expected_algorithm=None):
         config.network.receiver_admission_mask = False
     if "motion_safety" not in saved["config"].get("world", {}):
         config.world.motion_safety = "reject"
+    if "rediscovery_recovery" not in saved["config"].get("network", {}):
+        config.network.rediscovery_recovery = False
+    if "ack_uses_data_power" not in saved["config"].get("network", {}):
+        config.network.ack_uses_data_power = False
     config.runtime.algorithm = algorithm
     config.validate()
     if saved["observation_dim"] != observation_dim(config) or saved["state_dim"] != state_dim(config):

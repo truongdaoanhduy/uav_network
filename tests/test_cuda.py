@@ -101,6 +101,24 @@ class CUDATests(unittest.TestCase):
         self.assertTrue(all(value.is_cuda for value in batch.values()))
         torch.testing.assert_close(batch["reward"], torch.ones(4, device="cuda"))
 
+    def test_cuda_mission_deadline_stops_bootstrapping_for_both_learners(self):
+        for algorithm in ("masac", "matd3"):
+            with self.subTest(algorithm=algorithm), TemporaryDirectory() as folder:
+                c = Config()
+                c.world.num_targets, c.world.num_obstacles, c.world.max_steps = 1, 0, 1
+                c.runtime.algorithm = algorithm
+                c.runtime.device = c.runtime.replay_device = "cuda"
+                c.runtime.num_envs, c.runtime.episodes = 1, 1
+                c.runtime.output_dir = str(Path(folder) / "train")
+                a = c.algorithm_config
+                a.hidden_sizes, a.replay_capacity = [16, 16], 2
+                a.batch_size = a.learning_starts = 1
+                record = train(c)["final_episode"]
+                self.assertTrue(record["terminated"])
+                self.assertFalse(record["truncated"])
+                self.assertEqual(record["learner"]["batch_terminated_fraction"], 1)
+                self.assertAlmostEqual(record["learner"]["target_mean"], record["return"], places=6)
+
     def test_both_cuda_learners_train_from_spawned_real_network_environments(self):
         for algorithm in ("masac", "matd3"):
             with self.subTest(algorithm=algorithm), TemporaryDirectory() as directory:

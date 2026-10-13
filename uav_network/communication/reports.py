@@ -21,9 +21,11 @@ class ReportStore:
         self.config = config.network
         self.buffers = [dict() for _ in range(config.world.num_uavs)]
         self.known = np.zeros((config.world.num_uavs, config.world.num_targets), dtype=bool)
+        self.recovery_pending = np.zeros_like(self.known)
         self.delivered = np.zeros(config.world.num_targets, dtype=bool)
         self.expired = 0
         self.dropped = 0
+        self.regenerated = 0
         self.delivery_times_s = []
         self.delivery_hops = []
 
@@ -31,16 +33,24 @@ class ReportStore:
         return sum(r.size_bytes for r in self.buffers[uav_id].values())
 
     def discover(self, uav_id, target_id, time_s):
-        if self.known[uav_id, target_id]:
+        newly_known = not self.known[uav_id, target_id]
+        recover = self.config.rediscovery_recovery and self.recovery_pending[uav_id, target_id]
+        if not newly_known and not recover:
             return False
         self.known[uav_id, target_id] = True
-        if not self.delivered[target_id]:
-            if self.bytes_used(uav_id) + self.config.report_bytes <= self.config.buffer_bytes:
-                self.buffers[uav_id][target_id] = Report(target_id, uav_id, time_s,
-                                                      self.config.report_bytes)
-            else:
-                self.dropped += 1
-        return True
+        if self.delivered[target_id]:
+            self.recovery_pending[uav_id, target_id] = False
+        elif self.bytes_used(uav_id) + self.config.report_bytes <= self.config.buffer_bytes:
+            # Called only after a fresh camera observation. Relay never refreshes TTL.
+            self.buffers[uav_id][target_id] = Report(target_id, uav_id, time_s,
+                                                  self.config.report_bytes)
+            self.recovery_pending[uav_id, target_id] = False
+            self.regenerated += int(not newly_known)
+        else:
+            self.recovery_pending[uav_id, target_id] = True
+            # Continuing to observe a full buffer is not another dropped report.
+            self.dropped += int(newly_known)
+        return bool(newly_known)
 
     def contains(self, uav_id, report):
         return self.buffers[uav_id].get(report.target_id) == report
@@ -73,8 +83,9 @@ class ReportStore:
         return True
 
     def expire(self, time_s):
-        for buffer in self.buffers:
+        for uav_id, buffer in enumerate(self.buffers):
             for target_id, report in list(buffer.items()):
                 if time_s - report.created_s >= self.config.report_ttl_s:
                     del buffer[target_id]
+                    self.recovery_pending[uav_id, target_id] = True
                     self.expired += 1

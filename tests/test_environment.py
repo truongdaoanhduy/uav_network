@@ -83,13 +83,13 @@ class EnvironmentTests(unittest.TestCase):
         env.step(Action(np.zeros((2, 3)), np.array([0, 0])))
         np.testing.assert_allclose(env.positions, [[100, 500], [200, 500]])
 
-    def test_timeout_is_truncation_not_terminal(self):
+    def test_mission_deadline_is_terminal_not_external_truncation(self):
         c = search_config(num_uavs=1, num_targets=1, num_obstacles=0, max_steps=1)
         env = SwarmSearchEnv(c)
         env.reset(options=dict(positions=[[100, 100]], targets=[[900, 900]], obstacles=[]))
         _, _, terminated, truncated, _ = env.step(Action(np.zeros((1, 3)), np.array([0])))
-        self.assertFalse(terminated)
-        self.assertTrue(truncated)
+        self.assertTrue(terminated)
+        self.assertFalse(truncated)
 
     def test_invalid_actions_fail_without_changing_world(self):
         env = SwarmSearchEnv(search_config())

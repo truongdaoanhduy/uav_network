@@ -34,6 +34,7 @@ def episode_metrics(record, num_uavs):
               "safety/blocked_motion_rate": record["blocked_moves"] / opportunities,
               "safety/boundary_clip_rate": record["boundary_clips"] / opportunities,
               "reports/expired": record["expired_reports"], "reports/dropped": record["dropped_reports"],
+              "reports/regenerated": record.get("regenerated_reports", 0),
               "energy/propulsion_energy_j": energy["propulsion_energy_j"],
               "energy/uav_rf_energy_j": network.get("uav_communication_energy_j", 0),
               "energy/gcs_rf_energy_j": network.get("gcs_communication_energy_j", 0),

@@ -183,6 +183,9 @@ def _train(config):
                                       "termination_reason": info["termination_reason"],
                                       "minimum_battery_fraction": min(info["energy"]["battery_fraction"]),
                                       "active_uavs": info["energy"]["active_uavs"],
+                                      "expired_reports": info["expired_reports"],
+                                      "dropped_reports": info["dropped_reports"],
+                                      "regenerated_reports": info["regenerated_reports"],
                                       "motion": info["motion_counts"],
                                       "routing": info["network"].get("selection_counts", {})}), flush=True)
                     if completed % config.runtime.checkpoint_interval == 0:
