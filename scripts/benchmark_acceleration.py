@@ -61,6 +61,7 @@ def main():
     parser.add_argument("--output", required=True)
     parser.add_argument("--coalesce", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--fused", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--vectorize-critics", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--collector-only", action="store_true")
     parser.add_argument("--repetitions", type=int, default=3)
     args = parser.parse_args()
@@ -77,9 +78,11 @@ def main():
     # setattr also lets this driver run against the historical source revision.
     config.runtime.coalesce_idle_polls = args.coalesce
     config.runtime.fused_optimizers = args.fused
+    config.runtime.vectorize_critics = args.vectorize_critics
     config.tracking.enabled = False
     result = {"label": args.label, "hardware": hardware_info(), "root_seed": config.runtime.seed,
               "coalesce_idle_polls": args.coalesce, "fused_optimizers_requested": args.fused,
+              "vectorize_critics": args.vectorize_critics,
               "config": config.to_dict(), "collector": collector_probe(config, 160, args.repetitions)}
     if not args.collector_only:
         result["learners"] = {}

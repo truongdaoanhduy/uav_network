@@ -12,6 +12,7 @@ from ..environment.env import Action
 from .action_utils import canonical_continuous, joint_action, valid_destinations
 from .checkpoints import load_policy, save_policy
 from .models import HybridActor, TwinCritic
+from .parallel_critics import critic_values
 from .optimization import scalar_metrics, step_optimizer, step_actor_optimizers, tensor_batch, critic_metrics
 
 
@@ -96,21 +97,36 @@ class MASAC(nn.Module):
         q1, q2 = critic(repeated_state, alternatives.reshape(b * k, self.num_uavs, -1))
         return torch.minimum(q1, q2).reshape(b, k)
 
+    def _expected_q_all(self, critics, state, joint, continuous):
+        """Enumerate each critic's own destination, keeping peer actions detached."""
+        b, n, k = len(state), self.num_uavs, self.destinations
+        alternatives = joint.detach()[None, :, None].expand(n, -1, k, -1, -1).clone()
+        choices = continuous.transpose(0, 1)[:, :, None].expand(-1, -1, k, -1).clone()
+        choices[:, :, 0, 2] = 0
+        indices = torch.arange(n, device=self.device)
+        alternatives[indices, :, :, indices, :3] = choices
+        alternatives[indices, :, :, indices, 3:] = torch.eye(k, device=self.device)
+        repeated_state = state[:, None].expand(-1, k, -1).reshape(b * k, -1)
+        q1, q2 = critic_values(critics, repeated_state, alternatives.reshape(n, b * k, n, -1), True, True)
+        return torch.minimum(q1, q2).reshape(b, k, n).transpose(1, 2)
+
     def update(self, batch, collect_metrics=True):
         data = tensor_batch(batch, self.device)
         a = self.config.masac
+        vectorized = self.config.runtime.vectorize_critics
         alpha_c, alpha_d = self.log_alpha_continuous.exp().detach(), self.log_alpha_discrete.exp().detach()
         with torch.no_grad():
             joint, logs, probs, log_probs, continuous = self._joint_sample(data["next_observation"])
             targets = []
+            qs = (self._expected_q_all(self.target_critics, data["next_state"], joint, continuous)
+                  if vectorized else None)
             for i, critic in enumerate(self.target_critics):
-                q = self._expected_q(critic, data["next_state"], joint, continuous[:, i], i)
+                q = qs[:, i] if vectorized else self._expected_q(critic, data["next_state"], joint, continuous[:, i], i)
                 soft = (probs[:, i] * (q - alpha_d[i] * log_probs[:, i])).sum(-1) - alpha_c[i] * logs[:, i]
                 targets.append(soft_bellman_target(data["reward"], data["terminated"], soft, a.gamma))
             target = torch.stack(targets, 1)
         replay_joint = joint_action(data["continuous"], data["destination"], self.destinations)
-        values = [critic(data["state"], replay_joint) for critic in self.critics]
-        q1, q2 = (torch.stack([q[k] for q in values], 1) for k in (0, 1))
+        q1, q2 = critic_values(self.critics, data["state"], replay_joint, vectorized)
         critic_loss = F.mse_loss(q1, target) + F.mse_loss(q2, target)
         critic_grad = step_optimizer(critic_loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
         with torch.no_grad():
@@ -119,10 +135,14 @@ class MASAC(nn.Module):
         actor_grads = []
         actor_losses, entropies_c, entropies_d, targets_c, targets_d = [], [], [], [], []
         try:
+            samples = ([self._sample(actor, data["observation"][:, i]) for i, actor in enumerate(self.actors)]
+                       if vectorized else None)
+            qs = (self._expected_q_all(self.critics, data["state"], base_joint,
+                                      torch.stack([s[0] for s in samples], 1)) if vectorized else None)
             for i, actor in enumerate(self.actors):
                 obs = data["observation"][:, i]
-                continuous, logp, probs, log_probs = self._sample(actor, obs)
-                q = self._expected_q(self.critics[i], data["state"], base_joint, continuous, i)
+                continuous, logp, probs, log_probs = samples[i] if vectorized else self._sample(actor, obs)
+                q = qs[:, i] if vectorized else self._expected_q(self.critics[i], data["state"], base_joint, continuous, i)
                 loss = (alpha_c[i] * logp + (probs * (alpha_d[i] * log_probs - q)).sum(-1)).mean()
                 actor_losses.append(loss)
                 entropies_c.append(-logp.detach().mean())

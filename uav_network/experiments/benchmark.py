@@ -80,7 +80,8 @@ def benchmark(config, env_counts=(1, 2, 4), steps=32, learner_updates=10):
                             "replay_bytes": replay.allocated_bytes,
                             "compile_models": c.runtime.compile_models,
                             "coalesce_idle_polls": c.runtime.coalesce_idle_polls,
-                            "fused_optimizers": c.runtime.fused_optimizers and device == "cuda"})
+                            "fused_optimizers": c.runtime.fused_optimizers and device == "cuda",
+                            "vectorize_critics": c.runtime.vectorize_critics})
         finally:
             vector.close()
     return {"hardware": hardware_info(), "network_enabled": config.network.enabled,

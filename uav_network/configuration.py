@@ -144,6 +144,7 @@ class RuntimeConfig:
     compile_models: bool = False
     coalesce_idle_polls: bool = True
     fused_optimizers: bool = False
+    vectorize_critics: bool = False
     log_interval_steps: int = 100
     warm_start_checkpoint: str = "none"
     max_train_seconds: float = 0.0
@@ -244,6 +245,8 @@ class Config:
             raise ValueError("algorithm must be masac or matd3")
         if r.num_envs < 1 or r.log_interval_steps < 1:
             raise ValueError("num_envs and log_interval_steps must be positive")
+        if r.vectorize_critics and r.compile_models:
+            raise ValueError("vectorize_critics requires compile_models=false: eager vmap cannot wrap a compiled critic")
         if r.max_train_seconds < 0:
             raise ValueError("max_train_seconds must be nonnegative; zero disables the soft deadline")
         if self.tracking.evaluation_interval < 0 or self.tracking.evaluation_timeout_seconds < 1:

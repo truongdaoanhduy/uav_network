@@ -10,6 +10,7 @@ from ..environment.env import Action
 from .action_utils import canonical_continuous, joint_action, valid_destinations
 from .checkpoints import load_policy, save_policy
 from .models import DeterministicActor, TwinCritic
+from .parallel_critics import critic_values
 from .optimization import scalar_metrics, step_optimizer, step_actor_optimizers, tensor_batch, critic_metrics
 
 
@@ -92,14 +93,18 @@ class MATD3(nn.Module):
 
     def update(self, batch, collect_metrics=True):
         data, a = tensor_batch(batch, self.device), self.config.matd3
+        vectorized = self.config.runtime.vectorize_critics
         with torch.no_grad():
             next_actions = self.target_actions(data["next_observation"])
-            target = torch.stack([td3_target(data["reward"], data["terminated"],
-                                            *critic(data["next_state"], next_actions), a.gamma)
-                                  for critic in self.target_critics], 1)
+            if vectorized:
+                target = td3_target(data["reward"][:, None], data["terminated"][:, None],
+                                    *critic_values(self.target_critics, data["next_state"], next_actions, True), a.gamma)
+            else:
+                target = torch.stack([td3_target(data["reward"], data["terminated"],
+                                                *critic(data["next_state"], next_actions), a.gamma)
+                                      for critic in self.target_critics], 1)
         replay_actions = joint_action(data["continuous"], data["destination"], self.destinations)
-        values = [critic(data["state"], replay_actions) for critic in self.critics]
-        q1, q2 = (torch.stack([q[k] for q in values], 1) for k in (0, 1))
+        q1, q2 = critic_values(self.critics, data["state"], replay_actions, vectorized)
         loss = F.mse_loss(q1, target) + F.mse_loss(q2, target)
         critic_grad = step_optimizer(loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
         batch_metrics = critic_metrics(q1, q2, target, data) if collect_metrics else {}
@@ -112,10 +117,21 @@ class MATD3(nn.Module):
                                     for i, actor in enumerate(self.actors)], 1)
             self.critics.requires_grad_(False)
             try:
+                batched_q = None
+                if vectorized:
+                    joints = base[None].expand(self.num_uavs, -1, -1, -1).clone()
+                    indices = torch.arange(self.num_uavs, device=self.device)
+                    joints[indices, :, indices] = torch.stack([
+                        self._actor_action(actor, data["observation"][:, i], straight_through=True)
+                        for i, actor in enumerate(self.actors)])
+                    batched_q, _ = critic_values(self.critics, data["state"], joints, True, True)
                 for i, actor in enumerate(self.actors):
-                    joint = base.clone()
-                    joint[:, i] = self._actor_action(actor, data["observation"][:, i], straight_through=True)
-                    q1, _ = self.critics[i](data["state"], joint)
+                    if vectorized:
+                        q1 = batched_q[:, i]
+                    else:
+                        joint = base.clone()
+                        joint[:, i] = self._actor_action(actor, data["observation"][:, i], straight_through=True)
+                        q1, _ = self.critics[i](data["state"], joint)
                     actor_loss = -q1.mean()
                     actor_losses.append(actor_loss)
                 actor_grads = step_actor_optimizers(actor_losses, self.actor_optimizers,

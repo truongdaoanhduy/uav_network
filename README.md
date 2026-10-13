@@ -140,6 +140,11 @@ Sáu actor vẫn có weights, gradient clipping và Adam riêng; kiểm tra fini
 nhóm gradient một lần trước khi cập nhật bất kỳ actor nào.
 `runtime.fused_optimizers=true` tùy chọn dùng fused Adam trên CUDA, CPU dùng Adam
 thường. Có thể khác rounding với Adam cũ; đo trên đúng GPU trước khi chọn.
+`runtime.vectorize_critics=true` gom sáu critic bằng `torch.func.vmap`; mỗi
+critic vẫn có weights/gradient riêng. Lấy weights hiện tại mỗi forward và truyền
+gradient về leaf gốc, giữ checkpoint/Adam cũ. Chế độ này thay thứ tự phép tính
+ma trận FP32 nên so sánh theo tolerance; repeated-seed được kiểm tra riêng.
+Chọn `compile_models=false` khi bật `vectorize_critics`.
 Không đổi reward, mô phỏng native, batch, replay hay số update để tăng utilization.
 
 ```bash

@@ -16,6 +16,25 @@ from uav_network.experiments.training import train
 
 @unittest.skipUnless(torch.cuda.is_available(), "CUDA is unavailable on this host")
 class CUDATests(unittest.TestCase):
+    def test_vectorized_cuda_critics_match_legacy_and_repeat_native_training(self):
+        from test_vectorized_critics import check_vectorized_learners
+        from test_vector import small_parallel_config
+        torch.set_num_threads(1)
+        check_vectorized_learners("cuda")
+        for algorithm in ("masac", "matd3"):
+            with self.subTest(algorithm=algorithm), TemporaryDirectory() as directory:
+                c = small_parallel_config(algorithm)
+                c.runtime.device = c.runtime.replay_device = "cuda"
+                c.runtime.vectorize_critics = True
+                hashes = []
+                for name in ("first", "repeat"):
+                    c.runtime.output_dir = str(Path(directory) / name)
+                    result = train(c)
+                    self.assertGreater(result["updates"], 0)
+                    hashes.append(result["reproducibility"])
+                self.assertEqual(hashes[0]["episode_hash"], hashes[1]["episode_hash"])
+                self.assertEqual(hashes[0]["model_hash"], hashes[1]["model_hash"])
+
     def test_grouped_cuda_actor_updates_match_separate_backward_and_adam(self):
         from test_performance import check_learner_equivalence
         torch.set_num_threads(1)
