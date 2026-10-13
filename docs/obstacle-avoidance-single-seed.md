@@ -183,3 +183,24 @@ time-cutoff không được gọi là complete hoặc một exact repeat thành 
   https://arxiv.org/abs/2104.14895
 - PyTorch: cùng seed chưa đủ để bảo đảm giống kết quả trên khác version/platform:
   https://docs.pytorch.org/docs/stable/notes/randomness.html
+
+
+## Lượt train follow-up đã submit
+
+Source code ghim tại commit `2e8ea83`; job private dùng account
+`saoling1234` (account_04), đã kiểm tra quota và credential dataset trước
+submit. Thời điểm ghi nhận này, Kaggle báo running; learner phải qua CUDA
+tests và benchmark trước khi mở run W&B. Không coi trạng thái kernel running
+là bằng chứng đã đủ 100 episode hoặc learner đã hội tụ.
+
+- [Kaggle job](https://www.kaggle.com/code/saoling1234/uavnet-train-20261013-113147-daa8a2)
+- [MASAC W&B](https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/119fc307)
+- [MATD3 W&B](https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/35837919)
+
+Mỗi learner fresh seed 44, target 100 episode, evaluate seed 10044, console
+wrap. Không thay đổi hay dừng ba job receiver-study đang có.
+
+Ba MATD3 của receiver-study cũ hiện đã xong 100 episode. Hai run fixed/repeat
+khớp hoàn toàn model/episode/settings hashes; delivery trung bình 21,7%,
+success 2%, vẫn bị chặn 76,83%. Baseline delivery 27,7%, success 1%.
+Xem [kết quả và log đã đọc](receiver-admission-single-seed-study.md).

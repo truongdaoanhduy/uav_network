@@ -73,3 +73,41 @@ on the completed CUDA smoke runs.
 | Baseline | riujick | [Job](https://www.kaggle.com/code/riujick/uavnet-train-20261013-101522-0176c3) | [Run](https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/5630eb8f) | [Run](https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/463fe9f0) |
 | Fixed | vuliu123456 | [Job](https://www.kaggle.com/code/vuliu123456/uavnet-train-20261013-101524-45a5e6) | [Run](https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/2fdea1f8) | [Run](https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/cb9cd52b) |
 | Fixed repeat | haibro1234 | [Job](https://www.kaggle.com/code/haibro1234/uavnet-train-20261013-101703-e62802) | [Run](https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/ffb90702) | [Run](https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/f2706cb2) |
+
+
+## Completed MATD3 study: verified metrics, console and exact repetition
+
+All three MATD3 learners completed 100 episodes. These are means across the
+episodes of one training root seed (44), not means across independent seeds.
+
+| Condition/account | Return | Search | Delivery | Success | Mean blocked rate |
+|---|---:|---:|---:|---:|---:|
+| Baseline / riujick | -503.113 | 39.2% | 27.7% | 1% | 67.82% |
+| Admission fix / vuliu123456 | -624.613 | 26.4% | 21.7% | 2% | 76.83% |
+| Exact repeat / haibro1234 | -624.613 | 26.4% | 21.7% | 2% | 76.83% |
+
+No episode in these runs exhausted a UAV. Mean remaining battery was 55.92%
+for baseline and 57.44% for the fixed runs; minimum UAV fraction in the whole
+history was 22.08% / 35.92%, respectively. Low battery is not the failure
+mechanism observed here.
+
+Both fixed runs have identical model, episode and settings hashes after the
+full episode budget. Hardware/software also match: Tesla T4, Python 3.13.15,
+NumPy 2.5.4, PyTorch 2.11.0+cu128. This verifies this repeated 100-episode
+experiment; it does not promise identity after changing source/platform/config.
+
+Model hash: 7655288669a6f69095769a222c458ba96877ed9af26277ba88c09873167edfee
+
+Episode hash: 5b0c5407f058e91db9d384007d13b472b50453edad47e62b050f11bd16f646ab
+
+Downloaded W&B output.log and episodes.jsonl for all three runs. Console is
+nonempty (fixed runs each 37,558 bytes), no traceback was found in these
+captured console files. Logs contain blocked-motion and report-loss warnings;
+absence of a traceback in captured console is not a claim to have read every
+Kaggle stderr file. Fixed episode 100 has 3,146 blocked opportunities,
+blocked-motion reward -629.2, three report expirations and zero delivery.
+
+Admission masking by itself did not improve aggregate search/delivery on
+this short single-seed experiment. See
+[the motion safety study](obstacle-avoidance-single-seed.md) for the separate
+frozen-policy intervention and new training job.
