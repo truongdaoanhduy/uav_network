@@ -194,7 +194,7 @@ source tree phải được commit/push trước vì job ghim chính xác SHA c�
 Mặc định tự chọn account còn nhiều giờ nhất nếu bỏ `--account`; dataset phải
 thuộc account được chọn. Output ghi URL Kaggle và hai URL W&B riêng.
 W&B dùng entity/project trong `key.txt`, ghi progress, reward, tìm kiếm, delivery,
-pin, safety, packet/delay/throughput, loss và artifact checkpoint cuối.
+pin, safety, packet/delay/throughput, loss và artifact checkpoint định kỳ/cuối.
 W&B cũng theo dõi CPU/GPU/VRAM; tắt bằng `tracking.system_metrics=false` khi cần.
 Chạy local với `--set tracking.enabled=true` cũng dùng key này.
 
@@ -204,8 +204,8 @@ Job dài chạy CUDA regression và benchmark config thật trước khi mở le
 Kaggle output giữ `cuda-tests.log`, hardware và benchmark JSON của hai thuật toán.
 Đây là hai thí nghiệm, không phải chia một learner lên hai GPU.
 Kernel private lấy W&B key từ dataset credential riêng tư đã có; toàn bộ
-`key.txt` chỉ giữ ở local. Chưa hỗ trợ resume optimizer/replay khi hết thời gian
-Kaggle. Xem [kaggle-wandb-plan.md](docs/kaggle-wandb-plan.md) cho kiểm chứng.
+`key.txt` chỉ giữ ở local. Hỗ trợ policy warm-start với model/target/update counter và lịch sử episode;
+Adam, replay và simulator được khởi tạo lại. Không phải full-state resume. Xem [kaggle-wandb-plan.md](docs/kaggle-wandb-plan.md) cho kiểm chứng.
 Sau khi submit thành công, Kaggle và W&B chạy trên máy chủ; có thể tắt laptop.
 Mỗi learner lưu policy mỗi 10 episode theo profile Kaggle. Một learner lỗi không
 dừng learner còn lại; kết quả train được lưu trước evaluate, kể cả khi evaluate lỗi.
@@ -235,3 +235,20 @@ Lượt smoke chứng minh wiring/gradient, không chứng minh policy đã hộ
 Tham khảo [UavNetSim](https://github.com/Zihao-Felix-Zhou/UavNetSim),
 [DroneWatch](https://github.com/Bussler/DroneWatch), [GPMF](https://github.com/yangmin32/GPMF)
 và [MATD3](https://arxiv.org/abs/1910.01465).
+
+## Tiếp tục sau giới hạn Kaggle
+
+Job mặc định tối đa 39.600 giây; profile train chủ động dừng sau 36.000 giây
+để còn thời gian lưu/upload/evaluate. Với một GPU, ngân sách chia cho các lượt.
+Mục tiêu episode là tổng tích lũy, không phải số episode thêm.
+Policy upload mỗi 10 episode và chờ artifact commit trước khi tiếp tục.
+Summary local được ghi trước upload cuối; upload lỗi được báo riêng và kết quả giữ lại.
+
+```bash
+python -m uav_network train --config configs/kaggle.yaml   --warm-start outputs/checkpoint-recovery/masac/checkpoint.pt   --set runtime.algorithm=masac --set runtime.episodes=1000   --set runtime.output_dir=outputs/masac-continuation
+python -m uav_network kaggle launch --stage train --account account_07   --required-gpu-hours 10.75 --timeout-seconds 39600   --credential-dataset bduy2378/uav-wandb-credential-arch-ablation   --warm-start-artifact masac=truongdaoanhduy-uit/uav_search_target/uav-network-masac-f8524504-recovered:v0   --warm-start-artifact matd3=truongdaoanhduy-uit/uav_search_target/uav-network-matd3-971920c8-recovered:v0
+```
+
+Phải refill replay bằng 4.000 transition mới trước khi update; checkpoint cũ
+không chứa Adam/replay nên không thể tái tạo chính xác trajectory trước đó.
+Chi tiết phục hồi: [verification-continuation.md](docs/verification-continuation.md).

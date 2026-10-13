@@ -41,7 +41,7 @@ class Tracker:
     def episode(self, record): pass
     def complete(self, result): return {}
     def close(self, failed=False): (root/'closed.json').write_text(json.dumps({'failed':failed}))
-training.start_tracking=lambda config, output: Tracker()
+training.start_tracking=lambda config, output, initial_progress=None: Tracker()
 c=Config(); c.runtime.device='cpu'; c.runtime.num_envs=2; c.runtime.episodes=100000
 c.runtime.output_dir=str(root/'train'); c.world.num_targets=1; c.world.num_obstacles=0
 c.masac.hidden_sizes=[8,8]; c.masac.batch_size=8; c.masac.replay_capacity=32

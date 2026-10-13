@@ -76,3 +76,8 @@ Ruling: use an isolated branch in the user-requested folder, preserving its
 installed runtime and downloaded checkpoints; no duplicate project/worktree.
 Ruling: policy warm-start is required by the available v2 data; claiming full
 Adam/replay or trajectory resume would be false. New runs are labeled accordingly.
+
+2026-10-13: implementation and CPU RED/GREEN complete; original checkpoint recovery,
+input publication and three-seed CPU evaluation complete. Fresh review found two
+Important issues (summary durability and 11-hour ceiling); regression reproduced
+both and fixes pass. Full suite/CUDA/restart/publication verification remains active.

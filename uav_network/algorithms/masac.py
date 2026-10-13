@@ -152,8 +152,8 @@ class MASAC(nn.Module):
                                "alpha_continuous": self.log_alpha_continuous.exp().mean(),
                                "alpha_discrete": self.log_alpha_discrete.exp().mean()})
 
-    def save(self, path):
-        save_policy(self, path)
+    def save(self, path, progress=None):
+        save_policy(self, path, progress)
 
     @classmethod
     def load(cls, path, device="cpu"):

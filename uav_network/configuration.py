@@ -139,6 +139,8 @@ class RuntimeConfig:
     deterministic: bool = True
     compile_models: bool = False
     log_interval_steps: int = 100
+    warm_start_checkpoint: str = "none"
+    max_train_seconds: float = 0.0
 
 
 @dataclass
@@ -152,6 +154,7 @@ class TrackingConfig:
     tags: list = field(default_factory=lambda: ["uav-network", "2d", "fov", "uavnetsim"])
     log_checkpoint: bool = True
     system_metrics: bool = True
+    artifact_timeout_seconds: int = 120
 
 
 @dataclass
@@ -227,6 +230,10 @@ class Config:
             raise ValueError("algorithm must be masac or matd3")
         if r.num_envs < 1 or r.log_interval_steps < 1:
             raise ValueError("num_envs and log_interval_steps must be positive")
+        if r.max_train_seconds < 0:
+            raise ValueError("max_train_seconds must be nonnegative; zero disables the soft deadline")
+        if self.tracking.artifact_timeout_seconds < 1:
+            raise ValueError("artifact_timeout_seconds must be positive")
         if self.algorithm_config.replay_capacity < r.num_envs:
             raise ValueError("Replay capacity must accommodate num_envs transitions")
         e = self.energy

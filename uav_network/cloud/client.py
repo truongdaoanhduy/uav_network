@@ -24,7 +24,7 @@ def run_kaggle(args, account, timeout=45):
     return stdout
 
 
-def account_quotas(credentials):
+def account_quotas(credentials, requested=None):
     def quota(account):
         if not account.enabled:
             return {"name": account.name, "ok": False, "error": "disabled"}
@@ -34,7 +34,7 @@ def account_quotas(credentials):
         except (RuntimeError, ValueError, subprocess.TimeoutExpired):
             return {"name": account.name, "ok": False, "error": "quota unavailable"}
     with ThreadPoolExecutor(max_workers=4) as pool:
-        return list(pool.map(quota, credentials.accounts))
+        return list(pool.map(quota, [a for a in credentials.accounts if not requested or a.name == requested]))
 
 
 def resolve_username(account):

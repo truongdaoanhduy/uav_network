@@ -14,6 +14,76 @@ from uav_network.cloud.remote import learner_command, wait_all
 
 
 class CloudTests(unittest.TestCase):
+    def test_artifact_mapping_rejects_duplicate_or_unselected_algorithms(self):
+        from uav_network.cloud.cli import parse_warm_start_artifacts
+        self.assertEqual(parse_warm_start_artifacts(["masac=owner/project/model:v0"], ["masac"]),
+                         {"masac": "owner/project/model:v0"})
+        for values in (["matd3=owner/project/model:v0"], ["masac="],
+                       ["masac=first:v0", "masac=second:v0"]):
+            with self.assertRaises(ValueError):
+                parse_warm_start_artifacts(values, ["masac"])
+
+    def test_soft_deadline_shares_a_single_gpu_budget_and_caps_two_gpu_learners(self):
+        from uav_network.cloud.remote import learner_time_limit
+        from uav_network.configuration import Config
+        c = Config()
+        c.runtime.max_train_seconds = 36000
+        spec = {"timeout_seconds": 39600, "runs": {"masac": {}, "matd3": {}}}
+        self.assertEqual(learner_time_limit(spec, c, 2, 0, 0), 36000)
+        self.assertEqual(learner_time_limit(spec, c, 1, 0, 0), 19500)
+        self.assertEqual(learner_time_limit(spec, c, 1, 1, 19500), 19500)
+        with self.assertRaisesRegex(RuntimeError, "time"):
+            learner_time_limit(spec, c, 2, 0, 40000)
+
+    def test_missing_timeout_uses_the_safe_eleven_hour_ceiling(self):
+        from uav_network.cloud.remote import learner_time_limit
+        from uav_network.configuration import Config
+        self.assertEqual(learner_time_limit({"runs": {"masac": {}, "matd3": {}}}, Config(), 1, 0, 0), 19500)
+
+    def test_failed_upload_keeps_the_saved_summary_and_explicit_failure(self):
+        from uav_network.cloud.remote import finalize_runs
+        with TemporaryDirectory() as directory:
+            output = Path(directory)
+            folder = output / "train" / "masac"
+            folder.mkdir(parents=True)
+            summary = {"episodes": 2, "global_step": 10, "updates": 3, "wandb_url": "test",
+                       "tracking_status": "failed"}
+            (folder / "summary.json").write_text(json.dumps(summary))
+            with patch("uav_network.cloud.remote.subprocess.run"):
+                with self.assertRaisesRegex(RuntimeError, "Learner failures"):
+                    finalize_runs({"stage": "train", "runs": {"masac": {}}},
+                                  [SimpleNamespace(returncode=1)], output)
+            self.assertEqual(json.loads((output / "job-result.json").read_text())["masac"], summary)
+            self.assertEqual(json.loads((output / "job-failures.json").read_text())["masac"]["exit_code"], 1)
+
+    def test_requested_quota_does_not_query_unrelated_accounts(self):
+        from uav_network.cloud.client import account_quotas
+        c = self.credentials()
+        def quota(args, account, **kwargs):
+            self.assertEqual(account.name, "a")
+            return json.dumps({"resources": [{"resource": "GPU", "used": "1h", "remaining": "29h", "total": "30h"}]})
+        with patch("uav_network.cloud.client.run_kaggle", side_effect=quota):
+            result = account_quotas(c, requested="a")
+        self.assertEqual([row["name"] for row in result], ["a"])
+
+    def test_artifact_inputs_are_downloaded_and_passed_to_the_corresponding_learner(self):
+        from uav_network.cloud.remote import prepare_checkpoints
+        with TemporaryDirectory() as directory:
+            output = Path(directory)
+            def download(root):
+                import torch
+                path = Path(root) / "checkpoint.pt"
+                path.parent.mkdir(parents=True)
+                torch.save({"algorithm": "matd3", "progress": {"episodes": 940}}, path)
+                return str(path)
+            api = SimpleNamespace(artifact=lambda *args, **kwargs: SimpleNamespace(
+                get_entry=lambda name: SimpleNamespace(download=download)))
+            with patch.dict(sys.modules, {"wandb": SimpleNamespace(Api=lambda: api)}):
+                paths = prepare_checkpoints({"warm_start_artifacts": {"matd3": "owner/project/model:v0"}}, output)
+            spec = {"config": "configs/kaggle.yaml", "overrides": [], "warm_start_paths": paths}
+            args, _ = learner_command(spec, "matd3", {"id": "test123", "name": "MATD3"}, 1, output / "train")
+            self.assertIn(f"runtime.warm_start_checkpoint={paths['matd3']}", args)
+
     def test_credential_check_downloads_only_the_selected_wandb_file(self):
         from uav_network.cloud.client import verify_credential_dataset
         credentials = self.credentials()

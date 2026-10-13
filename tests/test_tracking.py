@@ -17,7 +17,93 @@ from uav_network.experiments.tracking import OnlineTracker
 from uav_network.cloud.credentials import load_credentials
 
 
+class StoredArtifact:
+    def __init__(self, name, type, metadata):
+        self.name, self.metadata, self.committed = name, metadata, False
+
+    def add_file(self, path, name):
+        self.data = Path(path).read_bytes()
+
+    def wait(self, timeout):
+        self.committed = True
+
+    @property
+    def qualified_name(self):
+        if not self.committed:
+            raise RuntimeError("Artifact is not committed yet")
+        return f"owner/project/{self.name}:v0"
+
+
+class OnlineRun:
+    offline = False
+    id, entity, project, url = "run123", "owner", "project", "https://wandb.ai/owner/project/runs/run123"
+
+    def __init__(self):
+        self.summary, self.logged, self.finished = {}, [], False
+
+    def define_metric(self, *args, **kwargs):
+        pass
+
+    def log_artifact(self, artifact, aliases):
+        return artifact
+
+    def log(self, values):
+        self.logged.append(values)
+
+    def finish(self, exit_code=0):
+        self.finished = True
+
+
 class TrackingTests(unittest.TestCase):
+    def test_continuation_throughput_counts_only_new_transitions(self):
+        run = OnlineRun()
+        sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs)
+        with TemporaryDirectory() as directory:
+            c = Config()
+            c.tracking.credentials_file = str(Path(directory) / "absent.txt")
+            with patch.dict(sys.modules, {"wandb": sdk}), patch.dict(os.environ, {
+                    "WANDB_API_KEY": "test-key", "WANDB_ENTITY": "owner", "WANDB_PROJECT": "project"}):
+                tracker = OnlineTracker(c, directory, initial_progress={"global_step": 1000})
+                tracker.started = 8
+                obs = {"observation": np.zeros((1, 6, 95)), "state": np.zeros((1, 217))}
+                with patch("uav_network.experiments.tracking.time.perf_counter", return_value=10):
+                    tracker.progress(obs, 1010, 0, SimpleNamespace(updates=0), 10, force=True)
+                self.assertEqual(run.logged[-1]["train/joint_transitions_per_s"], 5)
+                tracker.close()
+
+    def test_periodic_upload_is_committed_while_the_run_is_still_active(self):
+        run = OnlineRun()
+        sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs, Artifact=StoredArtifact)
+        with TemporaryDirectory() as directory:
+            c = Config()
+            c.tracking.credentials_file = str(Path(directory) / "absent.txt")
+            path = Path(directory) / "episode_000010.pt"
+            path.write_bytes(b"finite-policy")
+            with patch.dict(sys.modules, {"wandb": sdk}), patch.dict(os.environ, {
+                    "WANDB_API_KEY": "test-key", "WANDB_ENTITY": "owner", "WANDB_PROJECT": "project"}):
+                tracker = OnlineTracker(c, directory)
+                ref = tracker.checkpoint(path, {"episodes": 10, "global_step": 8000})
+                self.assertTrue(ref.endswith(":v0"))
+                self.assertFalse(run.finished)
+                tracker.close()
+
+    def test_empty_soft_deadline_does_not_claim_final_episode_aggregates(self):
+        run = OnlineRun()
+        sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs, Artifact=StoredArtifact)
+        with TemporaryDirectory() as directory:
+            c = Config()
+            c.tracking.credentials_file = str(Path(directory) / "absent.txt")
+            path = Path(directory) / "final.pt"
+            path.write_bytes(b"finite-policy")
+            with patch.dict(sys.modules, {"wandb": sdk}), patch.dict(os.environ, {
+                    "WANDB_API_KEY": "test-key", "WANDB_ENTITY": "owner", "WANDB_PROJECT": "project"}):
+                tracker = OnlineTracker(c, directory)
+                result = tracker.complete({"episodes": 0, "global_step": 2, "updates": 0,
+                                           "checkpoint": str(path), "episode_budget_complete": False})
+                self.assertFalse(any(key.startswith("final_") for key in result))
+                self.assertFalse(run.summary["episode_budget_complete"])
+                tracker.close()
+
     def test_tracker_setup_failure_finishes_the_started_online_run(self):
         class Run:
             offline = False

@@ -1,4 +1,4 @@
-"""Versioned policy checkpoints; intentionally exclude replay and resume state."""
+"""Versioned policies and optional progress; Adam/replay are not serialized."""
 from pathlib import Path
 import torch
 
@@ -13,17 +13,20 @@ def make_learner(config, obs_dim, critic_dim, device="cpu"):
     return cls(config, obs_dim, critic_dim, device)
 
 
-def save_policy(learner, path):
+def save_policy(learner, path, progress=None):
     checks = [torch.isfinite(value).all() for value in learner.state_dict().values() if value.is_floating_point()]
     if not torch.stack(checks).all():
         raise FloatingPointError("Cannot save a policy with non-finite parameters")
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
-    torch.save({"version": 2, "algorithm": learner.algorithm,
+    saved = {"version": 2, "algorithm": learner.algorithm,
                 "config": learner.config.to_dict(), "observation_dim": learner.observation_dim,
                 "state_dim": learner.state_dim, "model": learner.state_dict(),
-                "updates": learner.updates}, temporary)
+                "updates": learner.updates}
+    if progress is not None:
+        saved["progress"] = progress
+    torch.save(saved, temporary)
     temporary.replace(path)
 
 

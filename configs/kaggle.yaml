@@ -21,6 +21,7 @@ runtime:
   torch_threads: 1
   log_interval_steps: 200
   checkpoint_interval: 10
+  max_train_seconds: 36000
   output_dir: outputs/kaggle
 tracking:
   enabled: true

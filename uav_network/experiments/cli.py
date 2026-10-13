@@ -14,6 +14,7 @@ def main():
     training.add_argument("--algorithm", choices=["masac", "matd3"])
     training.add_argument("--num-envs", type=int)
     training.add_argument("--device", choices=["auto", "cpu", "cuda"])
+    training.add_argument("--warm-start", help="Policy checkpoint with verified progress; Adam/replay rebuild")
     inspection = commands.add_parser("config", help="Print resolved configuration without training")
     inspection.add_argument("--config")
     inspection.add_argument("--set", dest="overrides", action="append", default=[])
@@ -59,6 +60,8 @@ def main():
                 value = getattr(args, name)
                 if value is not None:
                     overrides.append(f"runtime.{name}={value}")
+            if args.warm_start:
+                overrides.append(f"runtime.warm_start_checkpoint={args.warm_start}")
         config = load_config(args.config, overrides)
         if args.command == "config":
             result = config.to_dict()

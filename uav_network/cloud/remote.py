@@ -1,6 +1,7 @@
 """Kaggle-side validation/training; one independent learner per available GPU."""
 import argparse
 import json
+import math
 import os
 import signal
 from pathlib import Path
@@ -39,30 +40,62 @@ def stop_process_tree(process, grace_seconds=20):
     process.wait()
 
 
-def learner_command(spec, algorithm, run, gpu_index, destination):
+def learner_command(spec, algorithm, run, gpu_index, destination, max_seconds=None):
     env = dict(os.environ, CUDA_VISIBLE_DEVICES=str(gpu_index),
                WANDB_RUN_ID=run["id"], WANDB_NAME=run["name"])
     if spec.get("stage") == "train":
         env["UAV_BENCHMARK_FILE"] = str(Path(destination).parents[1] / f"{algorithm}-benchmark.json")
+    if algorithm in spec.get("warm_start_artifacts", {}):
+        env["UAV_INPUT_ARTIFACT"] = spec["warm_start_artifacts"][algorithm]
     args = [sys.executable, "-m", "uav_network", "train", "--config", spec["config"],
             "--algorithm", algorithm]
     overrides = [*spec["overrides"], "tracking.enabled=true", "runtime.device=cuda",
                  "runtime.replay_device=cuda", f"runtime.output_dir={destination}"]
+    if algorithm in spec.get("warm_start_paths", {}):
+        overrides.append(f"runtime.warm_start_checkpoint={spec['warm_start_paths'][algorithm]}")
+    if max_seconds is not None:
+        overrides.append(f"runtime.max_train_seconds={max_seconds}")
     for override in overrides:
         args += ["--set", override]
     return args, env
+
+
+def prepare_checkpoints(spec, output):
+    if not spec.get("warm_start_artifacts"):
+        return {}
+    import wandb
+    api = wandb.Api()
+    paths = {}
+    for algorithm, ref in spec["warm_start_artifacts"].items():
+        artifact = api.artifact(ref, type="model")
+        path = artifact.get_entry("checkpoint.pt").download(root=str(output / "inputs" / algorithm))
+        saved = torch.load(path, map_location="cpu", weights_only=True)
+        if saved.get("algorithm") != algorithm or "progress" not in saved:
+            raise ValueError("Input artifact must match the algorithm and contain verified progress")
+        paths[algorithm] = path
+    return paths
+
+
+def learner_time_limit(spec, config, gpu_count, index, elapsed):
+    waves = math.ceil((len(spec["runs"]) - index) / gpu_count)
+    available = (min(spec.get("timeout_seconds", 39600), 39600) - elapsed - 600) / waves
+    if available <= 0:
+        raise RuntimeError("No safe training time remains before the kernel ceiling")
+    return min(config.runtime.max_train_seconds or available, available)
 
 
 def run_job(spec):
     if not torch.cuda.is_available():
         raise RuntimeError("Kaggle job requires usable CUDA; refusing a CPU fallback")
     output = Path("/kaggle/working")
+    started = float(os.environ.get("UAV_JOB_STARTED_AT", time.monotonic()))
+    spec["warm_start_paths"] = prepare_checkpoints(spec, output)
+    config = load_config(spec["config"], spec["overrides"])
     (output / "hardware.json").write_text(json.dumps(hardware_info(), indent=2))
     with (output / "cuda-tests.log").open("w") as log:
         subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests",
                         "-p", "test_cuda.py", "-v"], stdout=log, stderr=subprocess.STDOUT, check=True)
     if spec["stage"] == "train":
-        config = load_config(spec["config"], spec["overrides"])
         for algorithm in spec["runs"]:
             args = [sys.executable, "-m", "uav_network", "benchmark", "--config", spec["config"],
                     "--env-counts", str(config.runtime.num_envs), "--steps", "32",
@@ -81,7 +114,8 @@ def run_job(spec):
             if index and index % count == 0:
                 wait_all(processes[-count:])
             destination = output / spec["stage"] / algorithm
-            args, env = learner_command(spec, algorithm, run, index % count, destination)
+            limit = learner_time_limit(spec, config, count, index, time.monotonic() - started)
+            args, env = learner_command(spec, algorithm, run, index % count, destination, limit)
             log = (output / f"{algorithm}-{spec['stage']}.log").open("w")
             logs.append(log)
             processes.append(subprocess.Popen(args, env=env, stdout=log, stderr=subprocess.STDOUT,
@@ -101,9 +135,12 @@ def finalize_runs(spec, processes, output):
         if process.returncode != 0:
             failures[algorithm] = {"exit_code": process.returncode,
                                    "log": str(output / f"{algorithm}-{spec['stage']}.log")}
-            continue
         folder = output / spec["stage"] / algorithm
-        results[algorithm] = json.loads((folder / "summary.json").read_text())
+        summary = folder / "summary.json"
+        if summary.is_file():
+            results[algorithm] = json.loads(summary.read_text())
+        elif process.returncode == 0:
+            failures[algorithm] = {"exit_code": 0, "reason": "missing_summary"}
     # Preserve completed training before any optional evaluation can fail.
     (output / "job-result.json").write_text(json.dumps(results, indent=2))
     if failures:
@@ -120,7 +157,7 @@ def finalize_runs(spec, processes, output):
                                                  "log": str(output / f"{algorithm}-evaluation.log")}
     if evaluation_failures:
         (output / "evaluation-failures.json").write_text(json.dumps(evaluation_failures, indent=2))
-    print(json.dumps({a: {k: v[k] for k in ("episodes", "global_step", "updates", "wandb_url")}
+    print(json.dumps({a: {k: v.get(k) for k in ("episodes", "global_step", "updates", "wandb_url")}
                       for a, v in results.items()}, indent=2), flush=True)
     if failures or evaluation_failures:
         raise RuntimeError(f"Learner failures: {list(failures)}; evaluation failures: {list(evaluation_failures)}. Results retained")

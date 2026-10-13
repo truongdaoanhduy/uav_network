@@ -14,10 +14,20 @@ from .kernel import kernel_metadata, kernel_script
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def parse_warm_start_artifacts(values, algorithms):
+    result = {}
+    for value in values:
+        algorithm, separator, ref = value.partition("=")
+        if not separator or algorithm not in algorithms or not ref or algorithm in result:
+            raise ValueError("warm-start-artifact needs one ALGORITHM=ENTITY/PROJECT/ARTIFACT:VERSION per selected algorithm")
+        result[algorithm] = ref
+    return result
+
+
 def launch(args, credentials):
     if subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True).strip():
         raise RuntimeError("Commit and publish the project changes before launching a pinned cloud job")
-    account = select_account(credentials, account_quotas(credentials), args.required_gpu_hours, args.account)
+    account = select_account(credentials, account_quotas(credentials, requested=args.account), args.required_gpu_hours, args.account)
     username = resolve_username(account)
     verify_credential_dataset(account, credentials, args.credential_dataset, username, args.credential_timeout_seconds)
     config_file = args.config or ("configs/kaggle-smoke.yaml" if args.stage == "validate" else "configs/kaggle.yaml")
@@ -27,9 +37,11 @@ def launch(args, credentials):
     token = uuid4().hex[:6]
     slug = f"uavnet-{args.stage}-{stamp}-{token}"
     algorithms = ("masac", "matd3") if args.algorithm == "both" else (args.algorithm,)
+    inputs = parse_warm_start_artifacts(args.warm_start_artifact, algorithms)
     runs = {a: {"id": uuid4().hex[:8], "name": f"{a.upper()}-uav-network-2d-seed{config.runtime.seed}-{stamp}-{token}"}
             for a in algorithms}
     spec = {"commit": commit, "kernel_ref": f"{username}/{slug}", "account": account.name,
+            "timeout_seconds": args.timeout_seconds, "warm_start_artifacts": inputs,
             "credential_dataset": args.credential_dataset,
             "entity": credentials.entity if config.tracking.entity == "auto" else config.tracking.entity,
             "project": credentials.project if config.tracking.project == "auto" else config.tracking.project,
@@ -64,10 +76,11 @@ def main(argv=None):
     submit.add_argument("--credential-dataset", required=True)
     submit.add_argument("--credential-timeout-seconds", type=int, default=120)
     submit.add_argument("--algorithm", choices=["both", "masac", "matd3"], default="both")
+    submit.add_argument("--warm-start-artifact", action="append", default=[], metavar="ALGORITHM=ARTIFACT_REF")
     submit.add_argument("--config")
     submit.add_argument("--set", dest="overrides", action="append", default=[])
     submit.add_argument("--accelerator", default="NvidiaTeslaT4")
-    submit.add_argument("--timeout-seconds", type=int, default=43200)
+    submit.add_argument("--timeout-seconds", type=int, default=39600)
     status = commands.add_parser("status")
     status.add_argument("--manifest", required=True)
     args = parser.parse_args(argv)
@@ -75,8 +88,8 @@ def main(argv=None):
     if args.action == "accounts":
         return {"accounts": account_quotas(credentials)}
     if args.action == "launch":
-        if args.timeout_seconds < 1 or args.credential_timeout_seconds < 1:
-            raise ValueError("Kernel and credential download timeouts must be positive")
+        if not 1 <= args.timeout_seconds <= 39600 or args.credential_timeout_seconds < 1:
+            raise ValueError("Kernel timeout must be 1..39600 seconds; credential timeout must be positive")
         return launch(args, credentials)
     manifest = json.loads(Path(args.manifest).read_text())
     account = next((a for a in credentials.accounts if a.name == manifest["account"]), None)

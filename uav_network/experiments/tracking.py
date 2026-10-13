@@ -78,13 +78,15 @@ def _authentication(config):
 
 
 class OnlineTracker:
-    def __init__(self, config, output):
+    def __init__(self, config, output, initial_progress=None):
         import wandb
         entity, project = _authentication(config)
         self.config, self.output, self.wandb = config, Path(output), wandb
         self.started = time.perf_counter()
+        initial = initial_progress or {}
+        self.initial_step = initial.get("global_step", 0)
         self.next_progress = 0
-        self.records = []
+        self.records = list(initial.get("records", []))
         self.closed = False
         run_id = os.environ.get("WANDB_RUN_ID") or uuid4().hex[:8]
         name = config.tracking.run_name
@@ -95,6 +97,12 @@ class OnlineTracker:
                     "kaggle_kernel": os.environ.get("UAV_KAGGLE_KERNEL", "local"),
                     "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES", "all"),
                     "hardware": hardware_info()}
+        metadata["continuation"] = {
+            "kind": "policy_warm_start" if config.runtime.warm_start_checkpoint != "none" else "fresh",
+            "initial_episodes": initial.get("episodes", 0), "initial_global_step": self.initial_step,
+            "source_run_id": initial.get("source_run_id"), "optimizer_replay_restored": False,
+            "input_artifact": os.environ.get("UAV_INPUT_ARTIFACT"),
+        }
         benchmark_file = os.environ.get("UAV_BENCHMARK_FILE")
         if benchmark_file:
             metadata["benchmark"] = json.loads(Path(benchmark_file).read_text())["results"]
@@ -107,6 +115,8 @@ class OnlineTracker:
         try:
             if self.run.offline:
                 raise RuntimeError("W&B did not start online")
+            if os.environ.get("UAV_INPUT_ARTIFACT"):
+                self.run.use_artifact(os.environ["UAV_INPUT_ARTIFACT"], type="model")
             self.run.define_metric("global_step")
             self.run.define_metric("*", step_metric="global_step", step_sync=True)
             (self.output / "wandb_run.json").write_text(json.dumps(self.identity(), indent=2))
@@ -123,7 +133,7 @@ class OnlineTracker:
             return
         values = {"global_step": step, "train/episodes_completed": completed,
                   "train/updates": learner.updates, "train/replay_size": replay_size,
-                  "train/joint_transitions_per_s": step / max(time.perf_counter() - self.started, 1e-9),
+                  "train/joint_transitions_per_s": (step - self.initial_step) / max(time.perf_counter() - self.started, 1e-9),
                   **progress_metrics(observations, self.config)}
         self.run.log(values)
         self.next_progress = step + self.config.runtime.log_interval_steps
@@ -132,15 +142,26 @@ class OnlineTracker:
         self.records.append(record)
         self.run.log(episode_metrics(record, self.config.world.num_uavs))
 
+    def checkpoint(self, path, progress, final=False):
+        if not self.config.tracking.log_checkpoint:
+            return None
+        artifact = self.wandb.Artifact(f"uav-network-{self.config.runtime.algorithm}-{self.run.id}", type="model",
+                                      metadata={"completed_episodes": progress["episodes"],
+                                                "global_step": progress["global_step"],
+                                                "episode_budget_complete": progress.get("episode_budget_complete", False)})
+        artifact.add_file(str(path), name="checkpoint.pt")
+        logged = self.run.log_artifact(artifact, aliases=["latest", "final"] if final else ["latest"])
+        logged.wait(timeout=self.config.tracking.artifact_timeout_seconds)
+        return logged.qualified_name
+
     def complete(self, result):
-        metrics = final_metrics(self.records)
+        metrics = final_metrics(self.records) if self.records else {}
         self.run.summary.update({**metrics, "global_step": result["global_step"],
-                                 "episodes_completed": result["episodes"], "learner_updates": result["updates"]})
-        if self.config.tracking.log_checkpoint:
-            artifact = self.wandb.Artifact(f"uav-network-{self.config.runtime.algorithm}-{self.run.id}", type="model")
-            artifact.add_file(result["checkpoint"], name="final.pt")
-            self.run.log_artifact(artifact)
-        return {**metrics, **self.identity()}
+                                 "episodes_completed": result["episodes"], "learner_updates": result["updates"],
+                                 "episode_budget_complete": result.get("episode_budget_complete", True),
+                                 "stop_reason": result.get("stop_reason", "episode_budget")})
+        artifact = self.checkpoint(result["checkpoint"], result, final=True)
+        return {**metrics, **self.identity(), "checkpoint_artifact": artifact}
 
     def close(self, failed=False):
         if not self.closed:
@@ -148,5 +169,5 @@ class OnlineTracker:
             self.run.finish(exit_code=1 if failed else 0)
 
 
-def start_tracking(config, output):
-    return OnlineTracker(config, output) if config.tracking.enabled else None
+def start_tracking(config, output, initial_progress=None):
+    return OnlineTracker(config, output, initial_progress) if config.tracking.enabled else None

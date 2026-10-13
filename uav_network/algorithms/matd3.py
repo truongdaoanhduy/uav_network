@@ -127,8 +127,8 @@ class MATD3(nn.Module):
         return scalar_metrics({"critic_loss": loss, "actor_loss": actor_mean,
                                "policy_updated": torch.tensor(float(policy_updated), device=self.device)})
 
-    def save(self, path):
-        save_policy(self, path)
+    def save(self, path, progress=None):
+        save_policy(self, path, progress)
 
     @classmethod
     def load(cls, path, device="cpu"):

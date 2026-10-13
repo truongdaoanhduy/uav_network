@@ -17,8 +17,10 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import time
 
 SPEC = __SPEC__
+os.environ["UAV_JOB_STARTED_AT"] = str(time.monotonic())
 os.environ.setdefault("MPLBACKEND", "Agg")
 os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
 os.environ["WANDB_ENTITY"] = SPEC["entity"]

@@ -16,6 +16,30 @@ from uav_network.experiments.training import train
 
 @unittest.skipUnless(torch.cuda.is_available(), "CUDA is unavailable on this host")
 class CUDATests(unittest.TestCase):
+    def test_cuda_warm_restart_preserves_targets_counters_and_real_episode_prefix(self):
+        for algorithm in ("masac", "matd3"):
+            with self.subTest(algorithm=algorithm), TemporaryDirectory() as directory:
+                c = Config()
+                c.world.num_targets, c.world.num_obstacles, c.world.max_steps = 2, 1, 4
+                c.runtime.algorithm = algorithm
+                c.runtime.device = c.runtime.replay_device = "cuda"
+                c.runtime.num_envs, c.runtime.episodes = 2, 2
+                c.runtime.output_dir = str(Path(directory) / "first")
+                a = c.algorithm_config
+                a.hidden_sizes, a.replay_capacity = [32, 32], 32
+                a.batch_size = a.learning_starts = 4
+                first = train(c)
+                c.runtime.episodes = 4
+                c.runtime.output_dir = str(Path(directory) / "continued")
+                c.runtime.warm_start_checkpoint = first["checkpoint"]
+                second = train(c)
+                self.assertEqual(second["initial_global_step"], first["global_step"])
+                self.assertEqual(second["episodes"], 4)
+                self.assertEqual(second["updates"], first["updates"] * 2)
+                saved = torch.load(second["checkpoint"], map_location="cuda", weights_only=True)
+                self.assertEqual(len(saved["progress"]["records"]), 4)
+                self.assertTrue(all(torch.isfinite(v).all() for v in saved["model"].values()))
+
     def test_masked_entropy_stays_finite_with_alpha_above_one_without_metrics(self):
         c = Config()
         c.world.num_targets, c.world.num_obstacles = 2, 1

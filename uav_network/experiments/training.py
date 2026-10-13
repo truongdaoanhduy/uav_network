@@ -9,13 +9,13 @@ import numpy as np
 import torch
 import yaml
 
-from ..algorithms.checkpoints import make_learner
 from ..algorithms.optimization import compile_models
 from ..algorithms.replay import TensorReplayBuffer
-from ..environment.observations import observation_dim, state_dim
+from ..environment.observations import state_dim
 from ..environment.vector import make_vector, random_actions, unpack_info
-from .tracking import start_tracking
+from .tracking import start_tracking, final_metrics
 from .lifecycle import graceful_termination
+from .continuation import restore_learner
 
 
 def seed_runtime(config):
@@ -54,21 +54,23 @@ def _train(config):
     output.mkdir(parents=True, exist_ok=True)
     (output / "resolved_config.yaml").write_text(yaml.safe_dump(config.to_dict(), sort_keys=False))
     start = time.perf_counter()
+    learner, initial = restore_learner(config, device)
     vector = make_vector(config)
     count = config.runtime.num_envs
-    global_step = collection_steps = completed = 0
+    completed, global_step, collection_steps = (initial[k] for k in ("episodes", "global_step", "collection_steps"))
+    initial_updates = learner.updates
+    history = list(initial["records"])
     latest = {}
     update_s = collection_wait_s = 0.0
     next_metrics_at = 0
-    episode_seeds = np.arange(count) + config.runtime.seed
-    next_seed = config.runtime.seed + count
+    episode_seeds = np.arange(count) + initial["next_seed"]
+    next_seed = initial["next_seed"] + count
     episode_returns, episode_lengths = np.zeros(count), np.zeros(count, dtype=int)
     tracker = None
     completed_ok = False
     try:
-        tracker = start_tracking(config, output)
+        tracker = start_tracking(config, output, initial_progress=initial)
         obs, _ = vector.reset(seed=episode_seeds.tolist())
-        learner = make_learner(config, observation_dim(config), state_dim(config), device)
         if config.runtime.compile_models:
             compile_models(learner)
         replay = TensorReplayBuffer(settings.replay_capacity, obs["observation"].shape[1:],
@@ -79,7 +81,7 @@ def _train(config):
 
         def learn(force_metrics=False):
             nonlocal latest, update_s, next_metrics_at
-            if global_step < settings.learning_starts or len(replay) < settings.batch_size:
+            if global_step - initial["global_step"] < settings.learning_starts or len(replay) < settings.batch_size:
                 return
             checked = force_metrics or global_step >= next_metrics_at
             begin = time.perf_counter()
@@ -92,10 +94,25 @@ def _train(config):
             if checked:
                 next_metrics_at = global_step + config.runtime.log_interval_steps
 
+        def save(path, final=False):
+            progress = {"episodes": completed, "global_step": global_step,
+                        "collection_steps": collection_steps, "next_seed": next_seed,
+                        "records": history}
+            if final:
+                progress["episode_budget_complete"] = completed >= config.runtime.episodes
+                progress["stop_reason"] = "episode_budget" if completed >= config.runtime.episodes else "time_budget"
+            if tracker:
+                progress["source_run_id"] = tracker.identity()["wandb_run_id"]
+            learner.save(path, progress=progress)
+            return progress
+
+        time_limit = False
         with (output / "episodes.jsonl").open("w") as stream:
+            for old_record in history:
+                stream.write(json.dumps(old_record, allow_nan=False) + "\n")
             while completed < config.runtime.episodes:
                 action = (random_actions(obs["observation"], rng, config.world.num_uavs + 1)
-                          if global_step < settings.learning_starts else
+                          if global_step < settings.learning_starts and config.runtime.warm_start_checkpoint == "none" else
                           learner.act_batch(obs["observation"], step=global_step))
                 actions = {"continuous": action.continuous, "destination": action.destination}
                 overlap = count > 1 and config.runtime.collector_overlap
@@ -113,7 +130,9 @@ def _train(config):
                 episode_returns += reward
                 episode_lengths += 1
                 done = terminated | truncated
-                final_batch = completed + int(done.sum()) >= config.runtime.episodes
+                time_limit = (config.runtime.max_train_seconds > 0
+                              and time.perf_counter() - start >= config.runtime.max_train_seconds)
+                final_batch = completed + int(done.sum()) >= config.runtime.episodes or time_limit
                 if not overlap or final_batch:
                     # The last collected batch has no following CPU step in
                     # which to execute its deferred updates; drain them here.
@@ -125,8 +144,10 @@ def _train(config):
                               "global_step": global_step, "return": float(episode_returns[i]),
                               "episode_length": int(episode_lengths[i]), "terminated": bool(terminated[i]),
                               "truncated": bool(truncated[i]), **info, "learner": latest}
-                    stream.write(json.dumps(record, allow_nan=False) + "\n")
+                    encoded = json.dumps(record, allow_nan=False)
+                    stream.write(encoded + "\n")
                     stream.flush()
+                    history.append(json.loads(encoded))
                     if tracker:
                         tracker.episode(record)
                     print(json.dumps({"algorithm": learner.algorithm, "episode": completed,
@@ -135,11 +156,16 @@ def _train(config):
                                       "delivery_rate_percent": info["delivery_rate_percent"],
                                       "updates": learner.updates}), flush=True)
                     if completed % config.runtime.checkpoint_interval == 0:
-                        learner.save(output / f"episode_{completed:06d}.pt")
+                        path = output / f"episode_{completed:06d}.pt"
+                        progress = save(path)
+                        if tracker:
+                            tracker.checkpoint(path, progress)
                 obs = next_obs
                 if tracker:
                     tracker.progress(obs, global_step, completed, learner, len(replay), force=final_batch)
-                if done.any() and completed < config.runtime.episodes:
+                if final_batch:
+                    break
+                if done.any():
                     seeds = [None] * count
                     for i in np.flatnonzero(done):
                         seeds[i] = next_seed
@@ -148,22 +174,41 @@ def _train(config):
                         episode_returns[i] = episode_lengths[i] = 0
                     obs, _ = vector.reset(seed=seeds, options={"reset_mask": done})
         checkpoint = output / "final.pt"
-        learner.save(checkpoint)
+        save(checkpoint, final=True)
         elapsed = time.perf_counter() - start
         result = {"checkpoint": str(checkpoint), "algorithm": learner.algorithm,
                   "requested_episodes": config.runtime.episodes, "episodes": completed,
+                  "initial_episodes": initial["episodes"], "segment_episodes": completed - initial["episodes"],
+                  "initial_global_step": initial["global_step"], "new_updates": learner.updates - initial_updates,
+                  "episode_budget_complete": completed >= config.runtime.episodes,
+                  "stop_reason": "episode_budget" if completed >= config.runtime.episodes else "time_budget",
+                  "state_restore": "policy_warm_start" if config.runtime.warm_start_checkpoint != "none" else "fresh",
                   "global_step": global_step, "collection_steps": collection_steps,
                   "num_envs": count, "updates": learner.updates, "device": device,
                   "replay_device": replay_device, "replay_bytes": replay.allocated_bytes,
                   "sample_updates_per_transition": learner.updates * settings.batch_size / global_step,
                   "collector_overlap": count > 1 and config.runtime.collector_overlap,
                   "startup_s": startup_s, "collection_wait_s": collection_wait_s, "learner_s": update_s,
-                  "elapsed_s": elapsed, "joint_transitions_per_s": global_step / elapsed,
-                  "final_episode": record}
+                  "elapsed_s": elapsed, "joint_transitions_per_s": (global_step - initial["global_step"]) / elapsed,
+                  "final_episode": history[-1] if history else None}
+        if history:
+            result.update(final_metrics(history))
         if tracker:
-            result.update(tracker.complete(result))
-            tracker.close()
-        (output / "summary.json").write_text(json.dumps(result, indent=2, allow_nan=False))
+            result.update(tracker.identity())
+            result["tracking_status"] = "pending"
+        summary = output / "summary.json"
+        summary.write_text(json.dumps(result, indent=2, allow_nan=False))
+        if tracker:
+            try:
+                result.update(tracker.complete(result))
+                tracker.close()
+                result["tracking_status"] = "finished"
+            except Exception as error:
+                result["tracking_status"] = "failed"
+                result["tracking_error_type"] = type(error).__name__
+                summary.write_text(json.dumps(result, indent=2, allow_nan=False))
+                raise
+        summary.write_text(json.dumps(result, indent=2, allow_nan=False))
         completed_ok = True
         return result
     finally:
