@@ -77,6 +77,21 @@ quan sát, gửi/nhận hoặc giữ vai trò relay mới. GCS dùng nguồn đi
 Metrics tách năng lượng bay, RF của UAV, RF của GCS và số lần phát bị chặn do pin.
 Hết pin cả swarm kết thúc thất bại; mọi target về GCS kết thúc thành công.
 
+Safety mặc định dùng `world.motion_safety=dynamic_window`: giữ lệnh an toàn,
+kiểm tra cả đường phanh tới khi dừng, giảm tốc/đi vòng tiếp tuyến khi cần.
+Không dùng lực đẩy APF đẩy UAV xa target. Bộ lọc không nhận tọa độ target;
+actor vẫn có FOV/occlusion và action/observation cũ. Exact swept guard được
+giữ cho trạng thái bất khả thi hoặc peer bị pin buộc dừng.
+Chọn `world.motion_safety=reject` để so với cơ chế hủy bước cũ; checkpoint
+thiếu field này tự giữ reject khi evaluate lịch sử.
+
+Console từng episode ghi pin, termination, motion và receiver counts.
+Xem [nghiên cứu và kiểm chứng avoidance](docs/obstacle-avoidance-single-seed.md)
+cho target sát obstacle, giới hạn phương pháp và so sánh checkpoint cùng seed.
+Script `scripts/compare_motion_safety.py` so sánh policy đóng băng;
+`scripts/check_motion_repeatability.py` lặp native smoke hai thuật toán.
+Profile `configs/motion-study.yaml` dùng fresh seed44/100 episode cho follow-up.
+
 Vật cản được chuyển thành building của airspace UavNetSim. Link rõ dùng LOS
 free-space, link bị che dùng NLOS urban nên suy hao và có thể lỗi SINR.
 `network.obstacle_extra_loss_db` thêm loss cho NLOS, default 0 để tránh cộng

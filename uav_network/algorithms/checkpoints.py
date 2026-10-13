@@ -42,6 +42,8 @@ def load_policy(path, device="cpu", expected_algorithm=None):
     # Legacy v2 policies must keep their original range-only mask when evaluated.
     if "receiver_admission_mask" not in saved["config"].get("network", {}):
         config.network.receiver_admission_mask = False
+    if "motion_safety" not in saved["config"].get("world", {}):
+        config.world.motion_safety = "reject"
     config.runtime.algorithm = algorithm
     config.validate()
     if saved["observation_dim"] != observation_dim(config) or saved["state_dim"] != state_dim(config):

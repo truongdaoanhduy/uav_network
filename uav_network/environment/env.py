@@ -67,6 +67,9 @@ class SwarmSearchEnv:
             from ..communication.backend import UavNetSimNetwork
             self.network = UavNetSimNetwork(self.config, self.reports, scene, self.seed, self.battery_j)
         self.motion_counts = {"obstacle_blocks": 0, "peer_blocks": 0, "commanded_stalls": 0}
+        self.motion_counts.update({f"shield_{name}": 0 for name in (
+            "interventions", "obstacle_interventions", "peer_interventions",
+            "boundary_interventions", "infeasible")})
         self.reward_components = {}
         self.action_counts = {"silent": 0, "peer": 0, "gcs": 0, "saturated": 0}
         self._sense()

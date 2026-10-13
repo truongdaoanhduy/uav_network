@@ -18,6 +18,7 @@ class WorldConfig:
     max_accel_mps2: float = 2.0
     safety_distance_m: float = 15.0
     obstacle_clearance_m: float = 10.0
+    motion_safety: str = "dynamic_window"
     obstacle_radius_min_m: float = 30.0
     obstacle_radius_max_m: float = 70.0
     launch_radius_m: float = 150.0
@@ -217,6 +218,8 @@ class Config:
         if (w.obstacle_clearance_m < 0 or w.target_exclusion_radius_m < 0
                 or w.obstacle_radius_min_m > w.obstacle_radius_max_m):
             raise ValueError("Invalid world clearances or obstacle radius range")
+        if w.motion_safety not in {"dynamic_window", "reject"}:
+            raise ValueError("motion_safety must be dynamic_window or reject")
         if w.launch_min_spacing_m < w.safety_distance_m:
             raise ValueError("Launch spacing must be at least the safety distance")
         if not 0 < s.full_fov_deg < 180:

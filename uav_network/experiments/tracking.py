@@ -46,7 +46,11 @@ def episode_metrics(record, num_uavs):
                "report_average_hops": "report_average_hops", "energy_blocked_transmissions": "energy_blocked"}
     result.update({f"network/{target}": network[source] for source, target in mapping.items() if source in network})
     result.update({f"learner/{key}": value for key, value in record.get("learner", {}).items()})
-    result.update({f"motion/{k}": v for k, v in record.get("motion_counts", {}).items()})
+    motion = record.get("motion_counts", {})
+    result.update({f"motion/{k}": v for k, v in motion.items()})
+    result.update({f"safety/{name}_rate": motion.get(key, 0) / opportunities for name, key in (
+        ("shield_intervention", "shield_interventions"),
+        ("shield_infeasible", "shield_infeasible"), ("commanded_stall", "commanded_stalls"))})
     result.update({f"routing/{k}": v for k, v in network.get("selection_counts", {}).items()})
     result.update({f"reward/{k}": v for k, v in record.get("reward_components", {}).items()})
     counts = record.get("action_counts", {})

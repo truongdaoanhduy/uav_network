@@ -179,7 +179,12 @@ def _train(config):
                                       "global_step": global_step, "return": round(record["return"], 3),
                                       "search_rate_percent": info["search_rate_percent"],
                                       "delivery_rate_percent": info["delivery_rate_percent"],
-                                      "updates": learner.updates}), flush=True)
+                                      "updates": learner.updates,
+                                      "termination_reason": info["termination_reason"],
+                                      "minimum_battery_fraction": min(info["energy"]["battery_fraction"]),
+                                      "active_uavs": info["energy"]["active_uavs"],
+                                      "motion": info["motion_counts"],
+                                      "routing": info["network"].get("selection_counts", {})}), flush=True)
                     if completed % config.runtime.checkpoint_interval == 0:
                         path = output / f"episode_{completed:06d}.pt"
                         progress = save(path)
