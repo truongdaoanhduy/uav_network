@@ -79,4 +79,3 @@ on each card. CPU-based UavNetSim collection remains part of the workload.
 These are dated startup snapshots, not a claim that 1000 episodes are complete.
 Kaggle automatically saves/uploads/evaluates at normal segment completion;
 it continues when the local laptop is off.
-
