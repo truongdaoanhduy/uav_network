@@ -142,6 +142,8 @@ class RuntimeConfig:
     replay_device: str = "auto"
     deterministic: bool = True
     compile_models: bool = False
+    coalesce_idle_polls: bool = True
+    fused_optimizers: bool = False
     log_interval_steps: int = 100
     warm_start_checkpoint: str = "none"
     max_train_seconds: float = 0.0

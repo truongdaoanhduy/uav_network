@@ -10,7 +10,7 @@ from ..environment.env import Action
 from .action_utils import canonical_continuous, joint_action, valid_destinations
 from .checkpoints import load_policy, save_policy
 from .models import DeterministicActor, TwinCritic
-from .optimization import scalar_metrics, step_optimizer, tensor_batch, critic_metrics
+from .optimization import scalar_metrics, step_optimizer, step_actor_optimizers, tensor_batch, critic_metrics
 
 
 def td3_target(reward, terminated, q1, q2, gamma):
@@ -35,8 +35,9 @@ class MATD3(nn.Module):
         self.target_actors.requires_grad_(False)
         self.target_critics.requires_grad_(False)
         self.to(self.device)
-        self.actor_optimizers = [torch.optim.Adam(actor.parameters(), lr=a.learning_rate) for actor in self.actors]
-        self.critic_optimizer = torch.optim.Adam(self.critics.parameters(), lr=a.learning_rate)
+        adam = dict(lr=a.learning_rate, fused=config.runtime.fused_optimizers and self.device.type == "cuda")
+        self.actor_optimizers = [torch.optim.Adam(actor.parameters(), **adam) for actor in self.actors]
+        self.critic_optimizer = torch.optim.Adam(self.critics.parameters(), **adam)
         self.updates = 0
         self._last_actor_metrics = {}
 
@@ -109,13 +110,16 @@ class MATD3(nn.Module):
                                     for i, actor in enumerate(self.actors)], 1)
             self.critics.requires_grad_(False)
             try:
-                for i, (actor, optimizer) in enumerate(zip(self.actors, self.actor_optimizers)):
+                for i, actor in enumerate(self.actors):
                     joint = base.clone()
                     joint[:, i] = self._actor_action(actor, data["observation"][:, i], straight_through=True)
                     q1, _ = self.critics[i](data["state"], joint)
                     actor_loss = -q1.mean()
-                    actor_grads.append(step_optimizer(actor_loss, optimizer, actor.parameters(), a.grad_clip_norm, collect_metrics))
-                    actor_losses.append(actor_loss.detach())
+                    actor_losses.append(actor_loss)
+                actor_grads = step_actor_optimizers(actor_losses, self.actor_optimizers,
+                                                   [actor.parameters() for actor in self.actors],
+                                                   a.grad_clip_norm, collect_metrics)
+                actor_losses = [loss.detach() for loss in actor_losses]
             finally:
                 self.critics.requires_grad_(True)
             self._last_actor_metrics = {"actor_loss": torch.stack(actor_losses).mean(),

@@ -12,7 +12,7 @@ from ..environment.env import Action
 from .action_utils import canonical_continuous, joint_action, valid_destinations
 from .checkpoints import load_policy, save_policy
 from .models import HybridActor, TwinCritic
-from .optimization import scalar_metrics, step_optimizer, tensor_batch, critic_metrics
+from .optimization import scalar_metrics, step_optimizer, step_actor_optimizers, tensor_batch, critic_metrics
 
 
 def soft_bellman_target(reward, terminated, soft_value, gamma):
@@ -38,9 +38,10 @@ class MASAC(nn.Module):
         self.log_alpha_continuous = nn.Parameter(torch.full((n,), math.log(a.initial_alpha)))
         self.log_alpha_discrete = nn.Parameter(torch.full((n,), math.log(a.initial_alpha)))
         self.to(self.device)
-        self.actor_optimizers = [torch.optim.Adam(actor.parameters(), lr=a.learning_rate) for actor in self.actors]
-        self.critic_optimizer = torch.optim.Adam(self.critics.parameters(), lr=a.learning_rate)
-        self.alpha_optimizer = torch.optim.Adam([self.log_alpha_continuous, self.log_alpha_discrete], lr=a.learning_rate)
+        adam = dict(lr=a.learning_rate, fused=config.runtime.fused_optimizers and self.device.type == "cuda")
+        self.actor_optimizers = [torch.optim.Adam(actor.parameters(), **adam) for actor in self.actors]
+        self.critic_optimizer = torch.optim.Adam(self.critics.parameters(), **adam)
+        self.alpha_optimizer = torch.optim.Adam([self.log_alpha_continuous, self.log_alpha_discrete], **adam)
         self.updates = 0
 
     def _sample(self, actor, observation, deterministic=False):
@@ -116,19 +117,22 @@ class MASAC(nn.Module):
         actor_grads = []
         actor_losses, entropies_c, entropies_d, targets_c, targets_d = [], [], [], [], []
         try:
-            for i, (actor, optimizer) in enumerate(zip(self.actors, self.actor_optimizers)):
+            for i, actor in enumerate(self.actors):
                 obs = data["observation"][:, i]
                 continuous, logp, probs, log_probs = self._sample(actor, obs)
                 q = self._expected_q(self.critics[i], data["state"], base_joint, continuous, i)
                 loss = (alpha_c[i] * logp + (probs * (alpha_d[i] * log_probs - q)).sum(-1)).mean()
-                actor_grads.append(step_optimizer(loss, optimizer, actor.parameters(), a.grad_clip_norm, collect_metrics))
-                actor_losses.append(loss.detach())
+                actor_losses.append(loss)
                 entropies_c.append(-logp.detach().mean())
                 entropies_d.append(-(probs.detach() * log_probs.detach()).sum(-1).mean())
                 active = (obs[:, 9] > .5).float()
                 targets_c.append((a.target_continuous_entropy / 3 * (3 - probs[:, 0].detach()) * active).mean())
                 choices = valid_destinations(obs, self.destinations).sum(-1).float()
                 targets_d.append((a.target_discrete_entropy_ratio * choices.log()).mean())
+            actor_grads = step_actor_optimizers(actor_losses, self.actor_optimizers,
+                                               [actor.parameters() for actor in self.actors],
+                                               a.grad_clip_norm, collect_metrics)
+            actor_losses = [loss.detach() for loss in actor_losses]
         finally:
             self.critics.requires_grad_(True)
         hc, hd, tc, td = (torch.stack(v) for v in (entropies_c, entropies_d, targets_c, targets_d))

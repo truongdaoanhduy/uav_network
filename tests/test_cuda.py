@@ -16,6 +16,24 @@ from uav_network.experiments.training import train
 
 @unittest.skipUnless(torch.cuda.is_available(), "CUDA is unavailable on this host")
 class CUDATests(unittest.TestCase):
+    def test_grouped_cuda_actor_updates_match_separate_backward_and_adam(self):
+        from test_performance import check_learner_equivalence
+        torch.set_num_threads(1)
+        check_learner_equivalence("cuda")
+
+    def test_fused_cuda_adam_retains_finite_real_learner_updates(self):
+        from test_vector import small_parallel_config
+        for algorithm in ("masac", "matd3"):
+            with self.subTest(algorithm=algorithm), TemporaryDirectory() as directory:
+                c = small_parallel_config(algorithm)
+                c.runtime.device = c.runtime.replay_device = "cuda"
+                c.runtime.fused_optimizers = True
+                c.runtime.output_dir = str(Path(directory) / "fused")
+                result = train(c)
+                self.assertGreater(result["updates"], 0)
+                saved = torch.load(result["checkpoint"], weights_only=True)
+                self.assertTrue(all(torch.isfinite(v).all() for v in saved["model"].values()))
+
     def test_repeated_cuda_training_same_seed_has_identical_scientific_hashes(self):
         from test_vector import small_parallel_config
         for algorithm in ("masac", "matd3"):

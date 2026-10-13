@@ -32,6 +32,8 @@ class UavNetSimNetwork:
         self.energy_blocked_transmissions = 0
         self.received_payload_bytes = 0
         self._closed = False
+        self.step_end_us = 0.0
+        self.coalesce_empty_step = False
         _ACTIVE = self
         try:
             (self.simulator, self.clock, self.native, self.DataPacket,
@@ -185,7 +187,16 @@ class UavNetSimNetwork:
                 self.selection_counts["receiver_rejected"] += 1
             else:
                 self.selection_counts["out_of_range_or_inactive"] += 1
-        self.clock.run(until=time_s * 1e6)
+        self.step_end_us = time_s * 1e6
+        # Only skip polls in a wholly idle radio interval. Alongside any live
+        # frame/ACK/retry, preserve even empty-node polls and their event order.
+        self.coalesce_empty_step = (self.config.runtime.coalesce_idle_polls
+            and not any(t.end_time >= self.clock.now for t in self.simulator.channel.transmissions)
+            and all(drone.transmitting_queue.empty() and not drone.inbox.items
+                    and not any(p.is_alive for p in drone.mac_process_dict.values())
+                    and not any(p.is_alive for p in drone.mac_protocol.wait_ack_process_dict.values())
+                    for drone in self.simulator.drones))
+        self.clock.run(until=self.step_end_us)
         self._collect_drops()
         return float(self.energy_j[:-1].sum() - before)
 

@@ -3,6 +3,7 @@ from importlib import import_module
 from importlib.metadata import PackageNotFoundError, distribution
 import json
 import logging
+import math
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -103,7 +104,18 @@ def mission_drone_class(original, native, config):
 
         def feed_packet(self):
             while not self.sleep:
-                yield self.env.timeout(config.network.queue_poll_us)
+                interval = config.network.queue_poll_us
+                delay = interval
+                # Mission traffic enters only before each clock.run; native ACK
+                # retries call packet_coming directly, never enqueue new data.
+                # Skip empty ticks, keeping the final pre-boundary tick so the
+                # next poll retains its phase and normal boundary scheduling.
+                # Integral clocks avoid changing repeated-addition rounding.
+                if (self.simulator.mission_bridge.coalesce_empty_step and self.transmitting_queue.empty()
+                        and float(interval).is_integer() and float(self.env.now).is_integer()):
+                    remaining = self.simulator.mission_bridge.step_end_us - self.env.now
+                    delay *= max(1, math.ceil(remaining / interval) - 1)
+                yield self.env.timeout(delay)
                 if self.blocking() or self.transmitting_queue.empty():
                     continue
                 packet = self.transmitting_queue.get()

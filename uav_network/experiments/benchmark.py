@@ -78,7 +78,9 @@ def benchmark(config, env_counts=(1, 2, 4), steps=32, learner_updates=10):
                             "learner_warmup_s": warmup_s, "learner_updates": learner_updates,
                             "learner_s": learner_s, "learner_updates_per_s": learner_updates / learner_s,
                             "replay_bytes": replay.allocated_bytes,
-                            "compile_models": c.runtime.compile_models})
+                            "compile_models": c.runtime.compile_models,
+                            "coalesce_idle_polls": c.runtime.coalesce_idle_polls,
+                            "fused_optimizers": c.runtime.fused_optimizers and device == "cuda"})
         finally:
             vector.close()
     return {"hardware": hardware_info(), "network_enabled": config.network.enabled,

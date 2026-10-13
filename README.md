@@ -133,6 +133,25 @@ chuyển về CPU một lần mỗi batch. `step_async` cho CPU mô phỏng tron
 cập nhật từ replay trước đó. Batch cuối được cập nhật trước khi lưu checkpoint.
 SimPy/packet simulation vẫn chạy trên CPU; không chuyển thành CUDA env.
 
+`runtime.coalesce_idle_polls=true` mặc định gộp tick kiểm tra queue rỗng trong
+bước hoàn toàn không có traffic/MAC/ACK/PHY đang chờ. Giữ chu kỳ polling và tick
+cuối trước ranh giới bước; khi radio bận hoặc clock/poll có phần lẻ, chạy lịch cũ.
+Sáu actor vẫn có weights, gradient clipping và Adam riêng; kiểm tra finite của
+nhóm gradient một lần trước khi cập nhật bất kỳ actor nào.
+`runtime.fused_optimizers=true` tùy chọn dùng fused Adam trên CUDA, CPU dùng Adam
+thường. Có thể khác rounding với Adam cũ; đo trên đúng GPU trước khi chọn.
+Không đổi reward, mô phỏng native, batch, replay hay số update để tăng utilization.
+
+```bash
+# Đo cùng cấu hình, đủ warmup, không train dài.
+PYTHONPATH=. .venv/bin/python scripts/benchmark_acceleration.py \
+  --label optimized --device cuda --output outputs/speed/optimized.json
+```
+
+Driver lặp cùng root seed44 để lấy median, không phải nhiều research seeds;
+pipeline probe dùng deadline384/warmup512 được ghi riêng trong report.
+Nguồn phương pháp: [nghiên cứu CPU/GPU](docs/gpu-throughput-options-20261013.md).
+
 Chọn số env theo benchmark trên **đúng máy train**:
 
 ```bash

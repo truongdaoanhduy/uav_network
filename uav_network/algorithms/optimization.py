@@ -31,6 +31,26 @@ def scalar_metrics(values):
     return dict(zip(keys, torch.stack(tensors).cpu().tolist()))
 
 
+def step_actor_optimizers(losses, optimizers, parameter_groups, grad_clip, check_finite=True):
+    """Independent actor gradients/clipping, one host safety check per group.
+
+    Peers in each loss must be detached. No actor Adam step occurs until every
+    actor gradient is finite, including when scalar metrics are disabled.
+    """
+    if check_finite and not torch.isfinite(torch.stack(losses)).all():
+        raise FloatingPointError("Non-finite actor loss")
+    for optimizer in optimizers:
+        optimizer.zero_grad(set_to_none=True)
+    torch.autograd.backward(losses)
+    norms = [torch.nn.utils.clip_grad_norm_(list(parameters), grad_clip, error_if_nonfinite=False).detach()
+             for parameters in parameter_groups]
+    if not torch.isfinite(torch.stack(norms)).all():
+        raise RuntimeError("Non-finite actor gradient norm; refusing all actor Adam steps")
+    for optimizer in optimizers:
+        optimizer.step()
+    return norms
+
+
 def compile_models(learner):
     if not hasattr(nn.Module, "compile"):
         raise RuntimeError("torch.compile requires a supported PyTorch build")
