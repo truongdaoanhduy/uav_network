@@ -1,0 +1,42 @@
+# Longer fresh-learner trial: 500 episodes total per algorithm, at most 1000 steps.
+# Use the Kaggle --cpu-visualize handoff to release GPUs before visualization.
+world:
+  max_steps: 1000
+  motion_safety: dynamic_window
+network:
+  receiver_admission_mask: true
+masac:
+  hidden_sizes: [256, 256]
+  replay_capacity: 100000
+  batch_size: 512
+  learning_starts: 4000
+  updates_per_step: 1
+matd3:
+  hidden_sizes: [256, 256]
+  replay_capacity: 100000
+  batch_size: 512
+  learning_starts: 4000
+  updates_per_step: 1
+runtime:
+  seed: 44
+  eval_seed: 10044
+  eval_episodes: 1
+  num_envs: 2
+  coalesce_idle_polls: true
+  vectorize_critics: true
+  compile_models: false
+  fused_optimizers: false
+  episodes: 500
+  device: cuda
+  replay_device: cuda
+  torch_threads: 1
+  log_interval_steps: 200
+  checkpoint_interval: 10
+  max_train_seconds: 36000
+  output_dir: outputs/motion-long
+tracking:
+  enabled: true
+  entity: auto
+  project: auto
+  group: uav-network-2d
+  tags: [uav-network, 2d, fov, uavnetsim, kaggle, motion-safety-study, vectorized-critics, long-500x1000]

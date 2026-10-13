@@ -23,6 +23,10 @@ def main():
     evaluation.add_argument("--episodes", type=int)
     evaluation.add_argument("--seed", type=int)
     evaluation.add_argument("--output-dir")
+    evaluation.add_argument("--animate", action="store_true")
+    evaluation.add_argument("--frame-stride", type=int, default=5)
+    evaluation.add_argument("--fps", type=int, default=10)
+    evaluation.add_argument("--video-format", choices=["auto", "mp4", "gif"], default="auto")
     commands.add_parser("hardware", help="Show CPU affinity and CUDA devices usable by PyTorch")
     cloud = commands.add_parser("kaggle", help="Quota, private CUDA jobs and online W&B")
     cloud.add_argument("cloud_args", nargs=argparse.REMAINDER)
@@ -53,7 +57,8 @@ def main():
                                   args.name, args.workspace_url, args.profile)
     elif args.command == "evaluate":
         from .evaluation import evaluate
-        result = evaluate(args.checkpoint, args.episodes, args.output_dir, args.seed)
+        result = evaluate(args.checkpoint, args.episodes, args.output_dir, args.seed,
+                          args.animate, args.frame_stride, args.fps, args.video_format)
     else:
         overrides = list(args.overrides)
         if args.command == "train":
