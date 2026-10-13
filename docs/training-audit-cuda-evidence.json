@@ -1,0 +1,84 @@
+{
+  "source_commit": "43411966942d1067d6098cf1a4218959d66e81f1",
+  "kernel": "https://www.kaggle.com/code/saoling1234/uavnet-validate-20261013-152836-e37191",
+  "hardware": {
+    "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+    "python": "3.13.15",
+    "logical_cpus": 4,
+    "available_cpus": 4,
+    "torch": "2.11.0+cu128",
+    "torch_cuda_build": "12.8",
+    "cuda_available": true,
+    "cuda_devices": [
+      {
+        "index": 0,
+        "name": "Tesla T4",
+        "memory_gib": 14.56219482421875,
+        "compute_capability": [
+          7,
+          5
+        ]
+      },
+      {
+        "index": 1,
+        "name": "Tesla T4",
+        "memory_gib": 14.56219482421875,
+        "compute_capability": [
+          7,
+          5
+        ]
+      }
+    ]
+  },
+  "tests": {
+    "local_cpu": {
+      "total": 126,
+      "passed": 119,
+      "cuda_skipped": 7
+    },
+    "cuda": {
+      "total": 7,
+      "passed": 7,
+      "seconds": 33.326
+    },
+    "mission_regressions": {
+      "total": 8,
+      "passed": 8,
+      "seconds": 2.727
+    }
+  },
+  "runs": {
+    "masac": {
+      "id": "db4394d5",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/db4394d5",
+      "state": "finished",
+      "group": "uav-network-2d-validation",
+      "episodes": 4,
+      "updates": 77,
+      "global_step": 160,
+      "console_bytes": 2809,
+      "history_rows": 35,
+      "monotone_global_step": true,
+      "checkpoint_finite": true,
+      "evaluation_episodes": 1,
+      "evaluation_device": "cpu",
+      "source_commit": "43411966942d1067d6098cf1a4218959d66e81f1"
+    },
+    "matd3": {
+      "id": "f8c44aac",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/f8c44aac",
+      "state": "finished",
+      "group": "uav-network-2d-validation",
+      "episodes": 4,
+      "updates": 77,
+      "global_step": 160,
+      "console_bytes": 2779,
+      "history_rows": 35,
+      "monotone_global_step": true,
+      "checkpoint_finite": true,
+      "evaluation_episodes": 1,
+      "evaluation_device": "cpu",
+      "source_commit": "43411966942d1067d6098cf1a4218959d66e81f1"
+    }
+  }
+}

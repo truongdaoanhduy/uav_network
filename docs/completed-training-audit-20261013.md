@@ -78,6 +78,12 @@ interventions,4632 liên quan biên,4491 commanded stalls. Không thấy target,
 không có report để truyền. Không có hard collision block không đồng nghĩa
 policy điều hướng tốt: safety layer đang sửa/giảm lệnh của policy.
 
+Learner log cũng có dấu hiệu cần theo dõi: MASAC alpha_discrete cuối là 148,413
+đã chạm clamp exp(5); critic_grad_norm trước clip là 7691,05, còn MATD3 actor_grad_norm
+là 0,03282 và critic_grad_norm là 173,55. Khoảng99% snapshot critic-gradient đã clip.
+Đó là bằng chứng training còn khó; không chứng minh riêng sign của alpha loss
+sai hoặc ReLU phải được thay. Checkpoints hữu hạn, chưa thấy numerical crash.
+
 ## Có đúng tìm-target → direct/relay → GCS không?
 
 Có ở wiring và nhiều episode: camera phát hiện target trong footprint100 m
@@ -195,9 +201,28 @@ Tất cả8 audit regressions pass; diagnostics6 pass; independent reviewer khô
 còn material findings. Các lỗi được thấy fail trước khi sửa (deadline,report,
 ACK và aliased recovery state); source-size contract500 lines/file vẫn pass.
 
-GPU validation của source mới đang được chuẩn bị. Sau khi chạy, mục này sẽ
-ghi kernel/source/hardware,7 CUDA test results,8 native mission regressions,
-hai online smoke learners và W&B API verification. Chưa coi CPU skip là CUDA pass.
+GPU validation của source `4341196` đã COMPLETE trên account `saoling1234`:
+
+- [Kaggle](https://www.kaggle.com/code/saoling1234/uavnet-validate-20261013-152836-e37191).
+- Hai Tesla T4,14,56 GiB/card, Python3.13.15, NumPy2.5.4,
+  PyTorch2.11.0+cu128, CUDA12.8.
+- **7/7 CUDA tests pass**,33,326 s. Có finite/replay transfer, native spawned
+  learners, warm restart, repeated seed44 model/episode hashes, và Bellman
+  target ở mission deadline bằng reward cho cả MASAC/MATD3.
+- **8/8 native mission regressions pass** trên host Kaggle,2,727 s;
+  gồm recovery/ACK/legacy config và recovery-status observability.
+- [MASAC smoke](https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/db4394d5)
+  và [MATD3 smoke](https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/f8c44aac):
+  mỗi run 4 episode,160 transitions,77 optimizer updates, CUDA learner/replay,
+  W&B finished và episode budget complete. Cả checkpoint hữu hạn; CPU evaluate
+  đều hoàn tất1 episode. Smoke này không chứng minh convergence.
+- W&B API xác minh source SHA,35 history rows mỗi run, global_step tăng đơn điệu,
+  console nonempty 2809/2779 B. Group `uav-network-2d-validation` giữ smoke riêng
+  với các run training trong Personal Workspace mặc định.
+- [Bằng chứng máy đọc được](training-audit-cuda-evidence.json).
+
+Source code kiểm thử là43411966942d1067d6098cf1a4218959d66e81f1;
+commit bổ sung bằng chứng chỉ thay documentation, không đổi code đã kiểm thử.
 
 Các log gốc đã đọc: MASAC train78629 B, MATD3 train80044 B,
 W&B captured console73044/74659 B. Không có traceback trong log train/console,
