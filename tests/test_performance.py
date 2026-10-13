@@ -51,6 +51,19 @@ def check_learner_equivalence(device="cpu"):
 
 
 class PerformanceTests(unittest.TestCase):
+    def test_unrequested_fusion_keeps_pytorch_adam_defaults(self):
+        c = Config()
+        c.masac.hidden_sizes = c.matd3.hidden_sizes = [16, 16]
+        for algorithm in ("masac", "matd3"):
+            c.runtime.algorithm = algorithm
+            for requested in (False, True):
+                c.runtime.fused_optimizers = requested
+                learner = make_learner(c, observation_dim(c), state_dim(c), "cpu")
+                expected = torch.optim.Adam(learner.actors[0].parameters(),
+                                            lr=c.algorithm_config.learning_rate).defaults
+                for optimizer in [*learner.actor_optimizers, learner.critic_optimizer]:
+                    self.assertEqual(optimizer.defaults, expected)
+
     def test_both_complete_learners_match_separate_actor_updates(self):
         torch.set_num_threads(1)
         check_learner_equivalence()

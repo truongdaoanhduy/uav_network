@@ -38,7 +38,9 @@ class MASAC(nn.Module):
         self.log_alpha_continuous = nn.Parameter(torch.full((n,), math.log(a.initial_alpha)))
         self.log_alpha_discrete = nn.Parameter(torch.full((n,), math.log(a.initial_alpha)))
         self.to(self.device)
-        adam = dict(lr=a.learning_rate, fused=config.runtime.fused_optimizers and self.device.type == "cuda")
+        adam = dict(lr=a.learning_rate)
+        if config.runtime.fused_optimizers and self.device.type == "cuda":
+            adam["fused"] = True
         self.actor_optimizers = [torch.optim.Adam(actor.parameters(), **adam) for actor in self.actors]
         self.critic_optimizer = torch.optim.Adam(self.critics.parameters(), **adam)
         self.alpha_optimizer = torch.optim.Adam([self.log_alpha_continuous, self.log_alpha_discrete], **adam)

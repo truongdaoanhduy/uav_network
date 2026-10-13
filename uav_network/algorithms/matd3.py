@@ -35,7 +35,9 @@ class MATD3(nn.Module):
         self.target_actors.requires_grad_(False)
         self.target_critics.requires_grad_(False)
         self.to(self.device)
-        adam = dict(lr=a.learning_rate, fused=config.runtime.fused_optimizers and self.device.type == "cuda")
+        adam = dict(lr=a.learning_rate)
+        if config.runtime.fused_optimizers and self.device.type == "cuda":
+            adam["fused"] = True
         self.actor_optimizers = [torch.optim.Adam(actor.parameters(), **adam) for actor in self.actors]
         self.critic_optimizer = torch.optim.Adam(self.critics.parameters(), **adam)
         self.updates = 0
