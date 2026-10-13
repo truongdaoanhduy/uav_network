@@ -1,0 +1,41 @@
+# Same motion-study science settings; measured CPU/GPU execution acceleration.
+# Live independent critics use vmap; FP32 rounding differs from legacy mode.
+world:
+  motion_safety: dynamic_window
+network:
+  receiver_admission_mask: true
+masac:
+  hidden_sizes: [256, 256]
+  replay_capacity: 100000
+  batch_size: 512
+  learning_starts: 4000
+  updates_per_step: 1
+matd3:
+  hidden_sizes: [256, 256]
+  replay_capacity: 100000
+  batch_size: 512
+  learning_starts: 4000
+  updates_per_step: 1
+runtime:
+  seed: 44
+  eval_seed: 10044
+  eval_episodes: 1
+  num_envs: 2
+  coalesce_idle_polls: true
+  vectorize_critics: true
+  compile_models: false
+  fused_optimizers: false
+  episodes: 100
+  device: cuda
+  replay_device: cuda
+  torch_threads: 1
+  log_interval_steps: 200
+  checkpoint_interval: 10
+  max_train_seconds: 10800
+  output_dir: outputs/motion-study-fast
+tracking:
+  enabled: true
+  entity: auto
+  project: auto
+  group: uav-network-2d
+  tags: [uav-network, 2d, fov, uavnetsim, kaggle, motion-safety-study, vectorized-critics]

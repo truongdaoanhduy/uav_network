@@ -157,6 +157,20 @@ Driver lặp cùng root seed44 để lấy median, không phải nhiều researc
 pipeline probe dùng deadline384/warmup512 được ghi riêng trong report.
 Nguồn phương pháp: [nghiên cứu CPU/GPU](docs/gpu-throughput-options-20261013.md).
 
+Profile `configs/motion-study-fast.yaml` bật critic vmap, giữ nguyên các tham số
+khoa học của `motion-study.yaml`; chỉ đổi execution mode, output và tracking tag.
+Trên T4, vmap tăng thêm throughput pipeline ngắn 15,3%/26,0% (MASAC/MATD3) so
+với bản đã tối ưu collector. Bản mặc định tăng 18,8%/37,2% so với snapshot bàn
+giao; đây là hai phép đo riêng. CUDA source kiểm thử có 139/139 tests pass.
+Chi tiết cấu hình, hashes, giới hạn và job:
+[training-acceleration-20261013.md](docs/training-acceleration-20261013.md).
+
+```bash
+# Máy có CUDA; với Kaggle dùng profile này trong lệnh launch hiện có.
+.venv/bin/python -m uav_network train --config configs/motion-study-fast.yaml \
+  --algorithm masac --set runtime.output_dir=outputs/motion-study-fast-masac
+```
+
 Chọn số env theo benchmark trên **đúng máy train**:
 
 ```bash

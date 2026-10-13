@@ -1,0 +1,2388 @@
+{
+  "measured_date": "2026-10-13",
+  "initial_source": "fb5c3f53c44b1acdcd32b9d62e204e0f75ef9d8c",
+  "native_upstream": "04daafb815eb377409b40b285574eeb62b9a8d58",
+  "cpu": {
+    "original": {
+      "hardware": {
+        "platform": "Linux-7.0.0-34-generic-x86_64-with-glibc2.39",
+        "python": "3.13.2",
+        "logical_cpus": 8,
+        "available_cpus": 8,
+        "torch": "2.7.1+cu126",
+        "torch_cuda_build": "12.6",
+        "cuda_available": false,
+        "cuda_devices": []
+      },
+      "collector": {
+        "repeats": [
+          {
+            "steps": 160,
+            "seconds": 6.126362881000205,
+            "steps_per_s": 26.11663773561484,
+            "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+            "network": {
+              "selection_counts": {
+                "selected": 5,
+                "accepted": 5,
+                "receiver_rejected": 0,
+                "out_of_range_or_inactive": 0,
+                "no_buffer": 0
+              },
+              "enabled": true,
+              "backend": "uavnetsim",
+              "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+              "generated_packets": 5,
+              "received_packets": 5,
+              "packet_pdr_percent": 100.0,
+              "packet_e2e_delay_ms": 4.8972,
+              "phy_successes": 10,
+              "phy_failures": 0,
+              "phy_success_percent": 100.0,
+              "collisions": 0,
+              "communication_energy_j": 0.005465616654205323,
+              "uav_communication_energy_j": 0.005383575934755803,
+              "gcs_communication_energy_j": 8.204071944952012e-05,
+              "energy_blocked_transmissions": 0,
+              "obstacle_extra_loss_db": 0.0,
+              "payload_throughput_kbps": 0.256,
+              "targets_delivered": 2,
+              "report_e2e_delay_s": 3.5048320000000013,
+              "report_average_hops": 2.5
+            }
+          },
+          {
+            "steps": 160,
+            "seconds": 6.178246789000696,
+            "steps_per_s": 25.89731447517643,
+            "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+            "network": {
+              "selection_counts": {
+                "selected": 5,
+                "accepted": 5,
+                "receiver_rejected": 0,
+                "out_of_range_or_inactive": 0,
+                "no_buffer": 0
+              },
+              "enabled": true,
+              "backend": "uavnetsim",
+              "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+              "generated_packets": 5,
+              "received_packets": 5,
+              "packet_pdr_percent": 100.0,
+              "packet_e2e_delay_ms": 4.8972,
+              "phy_successes": 10,
+              "phy_failures": 0,
+              "phy_success_percent": 100.0,
+              "collisions": 0,
+              "communication_energy_j": 0.005465616654205323,
+              "uav_communication_energy_j": 0.005383575934755803,
+              "gcs_communication_energy_j": 8.204071944952012e-05,
+              "energy_blocked_transmissions": 0,
+              "obstacle_extra_loss_db": 0.0,
+              "payload_throughput_kbps": 0.256,
+              "targets_delivered": 2,
+              "report_e2e_delay_s": 3.5048320000000013,
+              "report_average_hops": 2.5
+            }
+          },
+          {
+            "steps": 160,
+            "seconds": 6.410715770000024,
+            "steps_per_s": 24.958211491569433,
+            "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+            "network": {
+              "selection_counts": {
+                "selected": 5,
+                "accepted": 5,
+                "receiver_rejected": 0,
+                "out_of_range_or_inactive": 0,
+                "no_buffer": 0
+              },
+              "enabled": true,
+              "backend": "uavnetsim",
+              "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+              "generated_packets": 5,
+              "received_packets": 5,
+              "packet_pdr_percent": 100.0,
+              "packet_e2e_delay_ms": 4.8972,
+              "phy_successes": 10,
+              "phy_failures": 0,
+              "phy_success_percent": 100.0,
+              "collisions": 0,
+              "communication_energy_j": 0.005465616654205323,
+              "uav_communication_energy_j": 0.005383575934755803,
+              "gcs_communication_energy_j": 8.204071944952012e-05,
+              "energy_blocked_transmissions": 0,
+              "obstacle_extra_loss_db": 0.0,
+              "payload_throughput_kbps": 0.256,
+              "targets_delivered": 2,
+              "report_e2e_delay_s": 3.5048320000000013,
+              "report_average_hops": 2.5
+            }
+          }
+        ],
+        "median_seconds": 6.178246789000696,
+        "same_seed_repeats_match": true
+      }
+    },
+    "optimized": {
+      "hardware": {
+        "platform": "Linux-7.0.0-34-generic-x86_64-with-glibc2.39",
+        "python": "3.13.2",
+        "logical_cpus": 8,
+        "available_cpus": 8,
+        "torch": "2.7.1+cu126",
+        "torch_cuda_build": "12.6",
+        "cuda_available": false,
+        "cuda_devices": []
+      },
+      "collector": {
+        "repeats": [
+          {
+            "steps": 160,
+            "seconds": 2.201235149999775,
+            "steps_per_s": 72.68646423350835,
+            "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+            "network": {
+              "selection_counts": {
+                "selected": 5,
+                "accepted": 5,
+                "receiver_rejected": 0,
+                "out_of_range_or_inactive": 0,
+                "no_buffer": 0
+              },
+              "enabled": true,
+              "backend": "uavnetsim",
+              "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+              "generated_packets": 5,
+              "received_packets": 5,
+              "packet_pdr_percent": 100.0,
+              "packet_e2e_delay_ms": 4.8972,
+              "phy_successes": 10,
+              "phy_failures": 0,
+              "phy_success_percent": 100.0,
+              "collisions": 0,
+              "communication_energy_j": 0.005465616654205323,
+              "uav_communication_energy_j": 0.005383575934755803,
+              "gcs_communication_energy_j": 8.204071944952012e-05,
+              "energy_blocked_transmissions": 0,
+              "obstacle_extra_loss_db": 0.0,
+              "payload_throughput_kbps": 0.256,
+              "targets_delivered": 2,
+              "report_e2e_delay_s": 3.5048320000000013,
+              "report_average_hops": 2.5
+            }
+          },
+          {
+            "steps": 160,
+            "seconds": 2.180043812999429,
+            "steps_per_s": 73.39302038148621,
+            "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+            "network": {
+              "selection_counts": {
+                "selected": 5,
+                "accepted": 5,
+                "receiver_rejected": 0,
+                "out_of_range_or_inactive": 0,
+                "no_buffer": 0
+              },
+              "enabled": true,
+              "backend": "uavnetsim",
+              "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+              "generated_packets": 5,
+              "received_packets": 5,
+              "packet_pdr_percent": 100.0,
+              "packet_e2e_delay_ms": 4.8972,
+              "phy_successes": 10,
+              "phy_failures": 0,
+              "phy_success_percent": 100.0,
+              "collisions": 0,
+              "communication_energy_j": 0.005465616654205323,
+              "uav_communication_energy_j": 0.005383575934755803,
+              "gcs_communication_energy_j": 8.204071944952012e-05,
+              "energy_blocked_transmissions": 0,
+              "obstacle_extra_loss_db": 0.0,
+              "payload_throughput_kbps": 0.256,
+              "targets_delivered": 2,
+              "report_e2e_delay_s": 3.5048320000000013,
+              "report_average_hops": 2.5
+            }
+          },
+          {
+            "steps": 160,
+            "seconds": 2.355605478999678,
+            "steps_per_s": 67.92308874572026,
+            "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+            "network": {
+              "selection_counts": {
+                "selected": 5,
+                "accepted": 5,
+                "receiver_rejected": 0,
+                "out_of_range_or_inactive": 0,
+                "no_buffer": 0
+              },
+              "enabled": true,
+              "backend": "uavnetsim",
+              "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+              "generated_packets": 5,
+              "received_packets": 5,
+              "packet_pdr_percent": 100.0,
+              "packet_e2e_delay_ms": 4.8972,
+              "phy_successes": 10,
+              "phy_failures": 0,
+              "phy_success_percent": 100.0,
+              "collisions": 0,
+              "communication_energy_j": 0.005465616654205323,
+              "uav_communication_energy_j": 0.005383575934755803,
+              "gcs_communication_energy_j": 8.204071944952012e-05,
+              "energy_blocked_transmissions": 0,
+              "obstacle_extra_loss_db": 0.0,
+              "payload_throughput_kbps": 0.256,
+              "targets_delivered": 2,
+              "report_e2e_delay_s": 3.5048320000000013,
+              "report_average_hops": 2.5
+            }
+          }
+        ],
+        "median_seconds": 2.201235149999775,
+        "same_seed_repeats_match": true
+      }
+    }
+  },
+  "default_cuda": {
+    "job": {
+      "account": "account_02",
+      "quota_before": [
+        {
+          "name": "account_02",
+          "ok": true,
+          "used_hours": 1.93,
+          "remaining_hours": 28.07,
+          "total_hours": 30.0
+        }
+      ],
+      "kernel_ref": "haibro1234/uavnet-speed-paired-20261013-7000362",
+      "kernel_url": "https://www.kaggle.com/code/haibro1234/uavnet-speed-paired-20261013-7000362",
+      "baseline_source": "fb5c3f53c44b1acdcd32b9d62e204e0f75ef9d8c",
+      "candidate_source": "70003629039e1ea265520f27c7d033c972e9b7f9",
+      "timeout_seconds": 3600,
+      "training_kind": "paired short benchmark; tracking disabled"
+    },
+    "hardware": {
+      "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+      "python": "3.13.15",
+      "logical_cpus": 4,
+      "available_cpus": 4,
+      "torch": "2.11.0+cu128",
+      "torch_cuda_build": "12.8",
+      "cuda_available": true,
+      "cuda_devices": [
+        {
+          "index": 0,
+          "name": "Tesla T4",
+          "memory_gib": 14.56219482421875,
+          "compute_capability": [
+            7,
+            5
+          ]
+        },
+        {
+          "index": 1,
+          "name": "Tesla T4",
+          "memory_gib": 14.56219482421875,
+          "compute_capability": [
+            7,
+            5
+          ]
+        }
+      ]
+    },
+    "summary": {
+      "baseline_source": "fb5c3f53c44b1acdcd32b9d62e204e0f75ef9d8c",
+      "candidate_source": "70003629039e1ea265520f27c7d033c972e9b7f9",
+      "checks": {
+        "optimized_collector_trace_equal": true,
+        "fused_collector_trace_equal": true,
+        "masac_default_episode_hash_equal": true,
+        "masac_default_model_hash_equal": true,
+        "matd3_default_episode_hash_equal": true,
+        "matd3_default_model_hash_equal": true
+      },
+      "results": {
+        "baseline": {
+          "collector_s": 3.5923244859999954,
+          "learners": {
+            "masac": {
+              "update_ms": 109.54982537999967,
+              "collection_ms": 26.20476273828021,
+              "pipeline_transitions_per_s": 30.075330242395754,
+              "model_hash": "f0cab3bf61ecab7b2a9b8739f4f36ca512ddb7d576307508888ad84ae8f3b4b9",
+              "episode_hash": "001469cc0d12ee9fdd2b083e2bd9a26baee6deccc53d8b5ae0d89663779849ad"
+            },
+            "matd3": {
+              "update_ms": 53.29751504000001,
+              "collection_ms": 27.12355348046969,
+              "pipeline_transitions_per_s": 39.90046485938392,
+              "model_hash": "dd698715b3f6c23c9346107d7636bee8d51f22b2c155a9058db95b967edbe850",
+              "episode_hash": "63e77b59bdd1d432c533c9ecfe58b806ec934dfd5c67c2e7166fe94da31e5d1c"
+            }
+          }
+        },
+        "optimized": {
+          "collector_s": 1.3056287880000355,
+          "learners": {
+            "masac": {
+              "update_ms": 105.58990296000047,
+              "collection_ms": 14.954439746092119,
+              "pipeline_transitions_per_s": 35.728414423058915,
+              "model_hash": "f0cab3bf61ecab7b2a9b8739f4f36ca512ddb7d576307508888ad84ae8f3b4b9",
+              "episode_hash": "001469cc0d12ee9fdd2b083e2bd9a26baee6deccc53d8b5ae0d89663779849ad"
+            },
+            "matd3": {
+              "update_ms": 51.889879459999975,
+              "collection_ms": 15.231139187499743,
+              "pipeline_transitions_per_s": 54.75598717444079,
+              "model_hash": "dd698715b3f6c23c9346107d7636bee8d51f22b2c155a9058db95b967edbe850",
+              "episode_hash": "63e77b59bdd1d432c533c9ecfe58b806ec934dfd5c67c2e7166fe94da31e5d1c"
+            }
+          }
+        },
+        "fused": {
+          "collector_s": 1.2996471420000262,
+          "learners": {
+            "masac": {
+              "update_ms": 104.6966204599994,
+              "collection_ms": 15.16101852734364,
+              "pipeline_transitions_per_s": 36.17686483368315,
+              "model_hash": "18e5d09b64db6aa768584279ee2256bc128f948b893edcba4fcfb05268eed6c4",
+              "episode_hash": "d2a22eb1b584c9119690e18d1bd9ee8af505b5bd87441c67f7c82e0b615866fe"
+            },
+            "matd3": {
+              "update_ms": 51.63783975999877,
+              "collection_ms": 14.955390859373807,
+              "pipeline_transitions_per_s": 56.280693046943995,
+              "model_hash": "2a5faec9f89f1f1cbd7627566bfcbe38d0bd97508b205d391725490816e8d041",
+              "episode_hash": "3506517c3595a79a984a824f913fdf4888505422bc9494d22dfff8280e4adf2e"
+            }
+          }
+        }
+      }
+    },
+    "suite": [
+      "Ran 135 tests in 81.674s",
+      "OK"
+    ],
+    "reports": {
+      "baseline": {
+        "label": "baseline",
+        "root_seed": 44,
+        "coalesce_idle_polls": false,
+        "fused_optimizers_requested": false,
+        "collector": {
+          "repeats": [
+            {
+              "steps": 160,
+              "seconds": 3.62817395899998,
+              "steps_per_s": 44.099318778005944,
+              "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+              "network": {
+                "selection_counts": {
+                  "selected": 5,
+                  "accepted": 5,
+                  "receiver_rejected": 0,
+                  "out_of_range_or_inactive": 0,
+                  "no_buffer": 0
+                },
+                "enabled": true,
+                "backend": "uavnetsim",
+                "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+                "generated_packets": 5,
+                "received_packets": 5,
+                "packet_pdr_percent": 100.0,
+                "packet_e2e_delay_ms": 4.8972,
+                "phy_successes": 10,
+                "phy_failures": 0,
+                "phy_success_percent": 100.0,
+                "collisions": 0,
+                "communication_energy_j": 0.005465616654205323,
+                "uav_communication_energy_j": 0.005383575934755803,
+                "gcs_communication_energy_j": 8.204071944952012e-05,
+                "energy_blocked_transmissions": 0,
+                "obstacle_extra_loss_db": 0.0,
+                "payload_throughput_kbps": 0.256,
+                "targets_delivered": 2,
+                "report_e2e_delay_s": 3.5048320000000013,
+                "report_average_hops": 2.5
+              }
+            },
+            {
+              "steps": 160,
+              "seconds": 3.5923244859999954,
+              "steps_per_s": 44.53940634359504,
+              "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+              "network": {
+                "selection_counts": {
+                  "selected": 5,
+                  "accepted": 5,
+                  "receiver_rejected": 0,
+                  "out_of_range_or_inactive": 0,
+                  "no_buffer": 0
+                },
+                "enabled": true,
+                "backend": "uavnetsim",
+                "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+                "generated_packets": 5,
+                "received_packets": 5,
+                "packet_pdr_percent": 100.0,
+                "packet_e2e_delay_ms": 4.8972,
+                "phy_successes": 10,
+                "phy_failures": 0,
+                "phy_success_percent": 100.0,
+                "collisions": 0,
+                "communication_energy_j": 0.005465616654205323,
+                "uav_communication_energy_j": 0.005383575934755803,
+                "gcs_communication_energy_j": 8.204071944952012e-05,
+                "energy_blocked_transmissions": 0,
+                "obstacle_extra_loss_db": 0.0,
+                "payload_throughput_kbps": 0.256,
+                "targets_delivered": 2,
+                "report_e2e_delay_s": 3.5048320000000013,
+                "report_average_hops": 2.5
+              }
+            },
+            {
+              "steps": 160,
+              "seconds": 3.5674636109999938,
+              "steps_per_s": 44.849791741856194,
+              "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+              "network": {
+                "selection_counts": {
+                  "selected": 5,
+                  "accepted": 5,
+                  "receiver_rejected": 0,
+                  "out_of_range_or_inactive": 0,
+                  "no_buffer": 0
+                },
+                "enabled": true,
+                "backend": "uavnetsim",
+                "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+                "generated_packets": 5,
+                "received_packets": 5,
+                "packet_pdr_percent": 100.0,
+                "packet_e2e_delay_ms": 4.8972,
+                "phy_successes": 10,
+                "phy_failures": 0,
+                "phy_success_percent": 100.0,
+                "collisions": 0,
+                "communication_energy_j": 0.005465616654205323,
+                "uav_communication_energy_j": 0.005383575934755803,
+                "gcs_communication_energy_j": 8.204071944952012e-05,
+                "energy_blocked_transmissions": 0,
+                "obstacle_extra_loss_db": 0.0,
+                "payload_throughput_kbps": 0.256,
+                "targets_delivered": 2,
+                "report_e2e_delay_s": 3.5048320000000013,
+                "report_average_hops": 2.5
+              }
+            }
+          ],
+          "median_seconds": 3.5923244859999954,
+          "same_seed_repeats_match": true
+        },
+        "learners": {
+          "masac": {
+            "trials": [
+              {
+                "num_envs": 2,
+                "algorithm": "masac",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.881858170999976,
+                "collector_s": 6.708419260999733,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 76.32200375080588,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.7903428829999939,
+                "learner_updates": 50,
+                "learner_s": 5.362243647000014,
+                "learner_updates_per_s": 9.32445507730206,
+                "replay_bytes": 642400000,
+                "compile_models": false
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "masac",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.941409695999994,
+                "collector_s": 6.618516870999599,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 77.35872099131966,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.26722381500002257,
+                "learner_updates": 50,
+                "learner_s": 5.477491268999984,
+                "learner_updates_per_s": 9.128266489985371,
+                "replay_bytes": 642400000,
+                "compile_models": false
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "masac",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.957315775999973,
+                "collector_s": 6.897914018999813,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 74.22533806448332,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.23341903699997602,
+                "learner_updates": 50,
+                "learner_s": 5.5477545229999805,
+                "learner_updates_per_s": 9.012655443334614,
+                "replay_bytes": 642400000,
+                "compile_models": false
+              }
+            ],
+            "median_update_ms": 109.54982537999967,
+            "median_collection_ms": 26.20476273828021,
+            "pipeline_config": {
+              "masac": {
+                "hidden_sizes": [
+                  256,
+                  256
+                ],
+                "batch_size": 512,
+                "learning_starts": 512,
+                "updates_per_step": 1
+              },
+              "matd3": {
+                "hidden_sizes": [
+                  256,
+                  256
+                ],
+                "batch_size": 512,
+                "learning_starts": 4000,
+                "updates_per_step": 1
+              },
+              "runtime": {
+                "seed": 44,
+                "eval_seed": 10044,
+                "episodes": 2,
+                "device": "cuda",
+                "num_envs": 2,
+                "replay_device": "cuda",
+                "compile_models": false
+              }
+            },
+            "pipeline": {
+              "algorithm": "masac",
+              "episode_budget_complete": true,
+              "global_step": 768,
+              "collection_steps": 384,
+              "num_envs": 2,
+              "updates": 129,
+              "replay_bytes": 642400000,
+              "collector_overlap": true,
+              "startup_s": 3.070961017000002,
+              "collection_wait_s": 6.778073187000871,
+              "learner_s": 15.94493196100035,
+              "elapsed_s": 28.606840218000002,
+              "reproducibility": {
+                "training_seed": 44,
+                "episode_hash": "001469cc0d12ee9fdd2b083e2bd9a26baee6deccc53d8b5ae0d89663779849ad",
+                "model_hash": "f0cab3bf61ecab7b2a9b8739f4f36ca512ddb7d576307508888ad84ae8f3b4b9",
+                "settings_hash": "3ab54b9658509c9fdf399107ad86eb3d1f036186ae734935f01a70290de11bf9",
+                "hardware": {
+                  "python": "3.13.15",
+                  "numpy": "2.5.4",
+                  "torch": "2.11.0+cu128",
+                  "cuda_build": "12.8",
+                  "device": "cuda",
+                  "gpu": "Tesla T4"
+                },
+                "scope": "Exact repetition requires identical source/settings/platform and completed episode budget"
+              },
+              "active_joint_transitions_per_s": 30.075330242395754
+            }
+          },
+          "matd3": {
+            "trials": [
+              {
+                "num_envs": 2,
+                "algorithm": "matd3",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.8827809769999817,
+                "collector_s": 7.0123533279996195,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 73.0140048641924,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.11760279800000717,
+                "learner_updates": 50,
+                "learner_s": 2.6648757520000004,
+                "learner_updates_per_s": 18.762600831380148,
+                "replay_bytes": 642400000,
+                "compile_models": false
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "matd3",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.9350775569999996,
+                "collector_s": 6.679806655000107,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 76.64892510275686,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.11938649400002532,
+                "learner_updates": 50,
+                "learner_s": 2.647943968999982,
+                "learner_updates_per_s": 18.882574777019514,
+                "replay_bytes": 642400000,
+                "compile_models": false
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "matd3",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.9320178099999907,
+                "collector_s": 6.94362969100024,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 73.7366511154263,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.1222259710000344,
+                "learner_updates": 50,
+                "learner_s": 2.6839615249999724,
+                "learner_updates_per_s": 18.62917911984618,
+                "replay_bytes": 642400000,
+                "compile_models": false
+              }
+            ],
+            "median_update_ms": 53.29751504000001,
+            "median_collection_ms": 27.12355348046969,
+            "pipeline_config": {
+              "masac": {
+                "hidden_sizes": [
+                  256,
+                  256
+                ],
+                "batch_size": 512,
+                "learning_starts": 4000,
+                "updates_per_step": 1
+              },
+              "matd3": {
+                "hidden_sizes": [
+                  256,
+                  256
+                ],
+                "batch_size": 512,
+                "learning_starts": 512,
+                "updates_per_step": 1
+              },
+              "runtime": {
+                "seed": 44,
+                "eval_seed": 10044,
+                "episodes": 2,
+                "device": "cuda",
+                "num_envs": 2,
+                "replay_device": "cuda",
+                "compile_models": false
+              }
+            },
+            "pipeline": {
+              "algorithm": "matd3",
+              "episode_budget_complete": true,
+              "global_step": 768,
+              "collection_steps": 384,
+              "num_envs": 2,
+              "updates": 129,
+              "replay_bytes": 642400000,
+              "collector_overlap": true,
+              "startup_s": 2.935118884000019,
+              "collection_wait_s": 7.008219078000479,
+              "learner_s": 9.975390972000127,
+              "elapsed_s": 22.183014935000017,
+              "reproducibility": {
+                "training_seed": 44,
+                "episode_hash": "63e77b59bdd1d432c533c9ecfe58b806ec934dfd5c67c2e7166fe94da31e5d1c",
+                "model_hash": "dd698715b3f6c23c9346107d7636bee8d51f22b2c155a9058db95b967edbe850",
+                "settings_hash": "512ff9ab6564695608a885526374cc9fe775c90aa85c8c3ce3d7618ff16bce71",
+                "hardware": {
+                  "python": "3.13.15",
+                  "numpy": "2.5.4",
+                  "torch": "2.11.0+cu128",
+                  "cuda_build": "12.8",
+                  "device": "cuda",
+                  "gpu": "Tesla T4"
+                },
+                "scope": "Exact repetition requires identical source/settings/platform and completed episode budget"
+              },
+              "active_joint_transitions_per_s": 39.90046485938392
+            }
+          }
+        }
+      },
+      "optimized": {
+        "label": "optimized",
+        "root_seed": 44,
+        "coalesce_idle_polls": true,
+        "fused_optimizers_requested": false,
+        "collector": {
+          "repeats": [
+            {
+              "steps": 160,
+              "seconds": 1.2921601300000134,
+              "steps_per_s": 123.82366262918075,
+              "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+              "network": {
+                "selection_counts": {
+                  "selected": 5,
+                  "accepted": 5,
+                  "receiver_rejected": 0,
+                  "out_of_range_or_inactive": 0,
+                  "no_buffer": 0
+                },
+                "enabled": true,
+                "backend": "uavnetsim",
+                "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+                "generated_packets": 5,
+                "received_packets": 5,
+                "packet_pdr_percent": 100.0,
+                "packet_e2e_delay_ms": 4.8972,
+                "phy_successes": 10,
+                "phy_failures": 0,
+                "phy_success_percent": 100.0,
+                "collisions": 0,
+                "communication_energy_j": 0.005465616654205323,
+                "uav_communication_energy_j": 0.005383575934755803,
+                "gcs_communication_energy_j": 8.204071944952012e-05,
+                "energy_blocked_transmissions": 0,
+                "obstacle_extra_loss_db": 0.0,
+                "payload_throughput_kbps": 0.256,
+                "targets_delivered": 2,
+                "report_e2e_delay_s": 3.5048320000000013,
+                "report_average_hops": 2.5
+              }
+            },
+            {
+              "steps": 160,
+              "seconds": 1.3056287880000355,
+              "steps_per_s": 122.54631750659259,
+              "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+              "network": {
+                "selection_counts": {
+                  "selected": 5,
+                  "accepted": 5,
+                  "receiver_rejected": 0,
+                  "out_of_range_or_inactive": 0,
+                  "no_buffer": 0
+                },
+                "enabled": true,
+                "backend": "uavnetsim",
+                "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+                "generated_packets": 5,
+                "received_packets": 5,
+                "packet_pdr_percent": 100.0,
+                "packet_e2e_delay_ms": 4.8972,
+                "phy_successes": 10,
+                "phy_failures": 0,
+                "phy_success_percent": 100.0,
+                "collisions": 0,
+                "communication_energy_j": 0.005465616654205323,
+                "uav_communication_energy_j": 0.005383575934755803,
+                "gcs_communication_energy_j": 8.204071944952012e-05,
+                "energy_blocked_transmissions": 0,
+                "obstacle_extra_loss_db": 0.0,
+                "payload_throughput_kbps": 0.256,
+                "targets_delivered": 2,
+                "report_e2e_delay_s": 3.5048320000000013,
+                "report_average_hops": 2.5
+              }
+            },
+            {
+              "steps": 160,
+              "seconds": 1.3316637980000223,
+              "steps_per_s": 120.15044656188613,
+              "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+              "network": {
+                "selection_counts": {
+                  "selected": 5,
+                  "accepted": 5,
+                  "receiver_rejected": 0,
+                  "out_of_range_or_inactive": 0,
+                  "no_buffer": 0
+                },
+                "enabled": true,
+                "backend": "uavnetsim",
+                "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+                "generated_packets": 5,
+                "received_packets": 5,
+                "packet_pdr_percent": 100.0,
+                "packet_e2e_delay_ms": 4.8972,
+                "phy_successes": 10,
+                "phy_failures": 0,
+                "phy_success_percent": 100.0,
+                "collisions": 0,
+                "communication_energy_j": 0.005465616654205323,
+                "uav_communication_energy_j": 0.005383575934755803,
+                "gcs_communication_energy_j": 8.204071944952012e-05,
+                "energy_blocked_transmissions": 0,
+                "obstacle_extra_loss_db": 0.0,
+                "payload_throughput_kbps": 0.256,
+                "targets_delivered": 2,
+                "report_e2e_delay_s": 3.5048320000000013,
+                "report_average_hops": 2.5
+              }
+            }
+          ],
+          "median_seconds": 1.3056287880000355,
+          "same_seed_repeats_match": true
+        },
+        "learners": {
+          "masac": {
+            "trials": [
+              {
+                "num_envs": 2,
+                "algorithm": "masac",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.9767224119999582,
+                "collector_s": 3.8283365749995824,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 133.73954718180855,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.7832186699999966,
+                "learner_updates": 50,
+                "learner_s": 5.279495148000024,
+                "learner_updates_per_s": 9.470602509965556,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "masac",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.894831576999991,
+                "collector_s": 3.803052927999886,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 134.628681139411,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.2396987100000274,
+                "learner_updates": 50,
+                "learner_s": 5.440744793000022,
+                "learner_updates_per_s": 9.189918274484999,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "masac",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 3.005977868000002,
+                "collector_s": 3.9442374539999037,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 129.8096288500009,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.2203447989999745,
+                "learner_updates": 50,
+                "learner_s": 5.228786910999986,
+                "learner_updates_per_s": 9.562447437820273,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false
+              }
+            ],
+            "median_update_ms": 105.58990296000047,
+            "median_collection_ms": 14.954439746092119,
+            "pipeline_config": {
+              "masac": {
+                "hidden_sizes": [
+                  256,
+                  256
+                ],
+                "batch_size": 512,
+                "learning_starts": 512,
+                "updates_per_step": 1
+              },
+              "matd3": {
+                "hidden_sizes": [
+                  256,
+                  256
+                ],
+                "batch_size": 512,
+                "learning_starts": 4000,
+                "updates_per_step": 1
+              },
+              "runtime": {
+                "seed": 44,
+                "eval_seed": 10044,
+                "episodes": 2,
+                "device": "cuda",
+                "num_envs": 2,
+                "replay_device": "cuda",
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false
+              }
+            },
+            "pipeline": {
+              "algorithm": "masac",
+              "episode_budget_complete": true,
+              "global_step": 768,
+              "collection_steps": 384,
+              "num_envs": 2,
+              "updates": 129,
+              "replay_bytes": 642400000,
+              "collector_overlap": true,
+              "startup_s": 2.991948051999998,
+              "collection_wait_s": 3.783334504999573,
+              "learner_s": 14.868925606000118,
+              "elapsed_s": 24.487444350999965,
+              "reproducibility": {
+                "training_seed": 44,
+                "episode_hash": "001469cc0d12ee9fdd2b083e2bd9a26baee6deccc53d8b5ae0d89663779849ad",
+                "model_hash": "f0cab3bf61ecab7b2a9b8739f4f36ca512ddb7d576307508888ad84ae8f3b4b9",
+                "settings_hash": "0ecce330e1d7e8aaddcd05b4f0225e3a1372125907704325cddf846580cf3d0e",
+                "hardware": {
+                  "python": "3.13.15",
+                  "numpy": "2.5.4",
+                  "torch": "2.11.0+cu128",
+                  "cuda_build": "12.8",
+                  "device": "cuda",
+                  "gpu": "Tesla T4"
+                },
+                "scope": "Exact repetition requires identical source/settings/platform and completed episode budget"
+              },
+              "active_joint_transitions_per_s": 35.728414423058915
+            }
+          },
+          "matd3": {
+            "trials": [
+              {
+                "num_envs": 2,
+                "algorithm": "matd3",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.9329290709999896,
+                "collector_s": 3.899171631999934,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 131.30994178304195,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.11228474000000688,
+                "learner_updates": 50,
+                "learner_s": 2.574830467999959,
+                "learner_updates_per_s": 19.418754213685496,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "matd3",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.952708950999977,
+                "collector_s": 3.8705792640002983,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 132.27994185832557,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.11351823099994363,
+                "learner_updates": 50,
+                "learner_s": 2.5944939729999987,
+                "learner_updates_per_s": 19.271580709121974,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "matd3",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.900367415000005,
+                "collector_s": 3.9219074260000752,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 130.548721422062,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.11495024699991063,
+                "learner_updates": 50,
+                "learner_s": 2.610204012000054,
+                "learner_updates_per_s": 19.155590815940776,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false
+              }
+            ],
+            "median_update_ms": 51.889879459999975,
+            "median_collection_ms": 15.231139187499743,
+            "pipeline_config": {
+              "masac": {
+                "hidden_sizes": [
+                  256,
+                  256
+                ],
+                "batch_size": 512,
+                "learning_starts": 4000,
+                "updates_per_step": 1
+              },
+              "matd3": {
+                "hidden_sizes": [
+                  256,
+                  256
+                ],
+                "batch_size": 512,
+                "learning_starts": 512,
+                "updates_per_step": 1
+              },
+              "runtime": {
+                "seed": 44,
+                "eval_seed": 10044,
+                "episodes": 2,
+                "device": "cuda",
+                "num_envs": 2,
+                "replay_device": "cuda",
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false
+              }
+            },
+            "pipeline": {
+              "algorithm": "matd3",
+              "episode_budget_complete": true,
+              "global_step": 768,
+              "collection_steps": 384,
+              "num_envs": 2,
+              "updates": 129,
+              "replay_bytes": 642400000,
+              "collector_overlap": true,
+              "startup_s": 3.007279488999984,
+              "collection_wait_s": 4.059694201999946,
+              "learner_s": 7.669530279000469,
+              "elapsed_s": 17.033142954000027,
+              "reproducibility": {
+                "training_seed": 44,
+                "episode_hash": "63e77b59bdd1d432c533c9ecfe58b806ec934dfd5c67c2e7166fe94da31e5d1c",
+                "model_hash": "dd698715b3f6c23c9346107d7636bee8d51f22b2c155a9058db95b967edbe850",
+                "settings_hash": "da44518f0150fabced85ca738308f2b854056ad96307600ea9b2c426cb1ad6cb",
+                "hardware": {
+                  "python": "3.13.15",
+                  "numpy": "2.5.4",
+                  "torch": "2.11.0+cu128",
+                  "cuda_build": "12.8",
+                  "device": "cuda",
+                  "gpu": "Tesla T4"
+                },
+                "scope": "Exact repetition requires identical source/settings/platform and completed episode budget"
+              },
+              "active_joint_transitions_per_s": 54.75598717444079
+            }
+          }
+        }
+      },
+      "fused": {
+        "label": "fused",
+        "root_seed": 44,
+        "coalesce_idle_polls": true,
+        "fused_optimizers_requested": true,
+        "collector": {
+          "repeats": [
+            {
+              "steps": 160,
+              "seconds": 1.3459253739999895,
+              "steps_per_s": 118.87731897385363,
+              "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+              "network": {
+                "selection_counts": {
+                  "selected": 5,
+                  "accepted": 5,
+                  "receiver_rejected": 0,
+                  "out_of_range_or_inactive": 0,
+                  "no_buffer": 0
+                },
+                "enabled": true,
+                "backend": "uavnetsim",
+                "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+                "generated_packets": 5,
+                "received_packets": 5,
+                "packet_pdr_percent": 100.0,
+                "packet_e2e_delay_ms": 4.8972,
+                "phy_successes": 10,
+                "phy_failures": 0,
+                "phy_success_percent": 100.0,
+                "collisions": 0,
+                "communication_energy_j": 0.005465616654205323,
+                "uav_communication_energy_j": 0.005383575934755803,
+                "gcs_communication_energy_j": 8.204071944952012e-05,
+                "energy_blocked_transmissions": 0,
+                "obstacle_extra_loss_db": 0.0,
+                "payload_throughput_kbps": 0.256,
+                "targets_delivered": 2,
+                "report_e2e_delay_s": 3.5048320000000013,
+                "report_average_hops": 2.5
+              }
+            },
+            {
+              "steps": 160,
+              "seconds": 1.2720090560000017,
+              "steps_per_s": 125.78526799419248,
+              "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+              "network": {
+                "selection_counts": {
+                  "selected": 5,
+                  "accepted": 5,
+                  "receiver_rejected": 0,
+                  "out_of_range_or_inactive": 0,
+                  "no_buffer": 0
+                },
+                "enabled": true,
+                "backend": "uavnetsim",
+                "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+                "generated_packets": 5,
+                "received_packets": 5,
+                "packet_pdr_percent": 100.0,
+                "packet_e2e_delay_ms": 4.8972,
+                "phy_successes": 10,
+                "phy_failures": 0,
+                "phy_success_percent": 100.0,
+                "collisions": 0,
+                "communication_energy_j": 0.005465616654205323,
+                "uav_communication_energy_j": 0.005383575934755803,
+                "gcs_communication_energy_j": 8.204071944952012e-05,
+                "energy_blocked_transmissions": 0,
+                "obstacle_extra_loss_db": 0.0,
+                "payload_throughput_kbps": 0.256,
+                "targets_delivered": 2,
+                "report_e2e_delay_s": 3.5048320000000013,
+                "report_average_hops": 2.5
+              }
+            },
+            {
+              "steps": 160,
+              "seconds": 1.2996471420000262,
+              "steps_per_s": 123.11033882148665,
+              "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+              "network": {
+                "selection_counts": {
+                  "selected": 5,
+                  "accepted": 5,
+                  "receiver_rejected": 0,
+                  "out_of_range_or_inactive": 0,
+                  "no_buffer": 0
+                },
+                "enabled": true,
+                "backend": "uavnetsim",
+                "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+                "generated_packets": 5,
+                "received_packets": 5,
+                "packet_pdr_percent": 100.0,
+                "packet_e2e_delay_ms": 4.8972,
+                "phy_successes": 10,
+                "phy_failures": 0,
+                "phy_success_percent": 100.0,
+                "collisions": 0,
+                "communication_energy_j": 0.005465616654205323,
+                "uav_communication_energy_j": 0.005383575934755803,
+                "gcs_communication_energy_j": 8.204071944952012e-05,
+                "energy_blocked_transmissions": 0,
+                "obstacle_extra_loss_db": 0.0,
+                "payload_throughput_kbps": 0.256,
+                "targets_delivered": 2,
+                "report_e2e_delay_s": 3.5048320000000013,
+                "report_average_hops": 2.5
+              }
+            }
+          ],
+          "median_seconds": 1.2996471420000262,
+          "same_seed_repeats_match": true
+        },
+        "learners": {
+          "masac": {
+            "trials": [
+              {
+                "num_envs": 2,
+                "algorithm": "masac",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.9372911519999434,
+                "collector_s": 3.8812207429999717,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 131.91725848714597,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.7364993789999517,
+                "learner_updates": 50,
+                "learner_s": 5.2159371459999875,
+                "learner_updates_per_s": 9.586005084118803,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": true
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "masac",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 3.132573561000072,
+                "collector_s": 3.870562106999955,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 132.28052821424626,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.22052687099994728,
+                "learner_updates": 50,
+                "learner_s": 5.23483102299997,
+                "learner_updates_per_s": 9.5514066796651,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": true
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "masac",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.886775316000012,
+                "collector_s": 3.8893386249997093,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 131.64191893937706,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.22324654999999893,
+                "learner_updates": 50,
+                "learner_s": 5.248553865999952,
+                "learner_updates_per_s": 9.526433618962969,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": true
+              }
+            ],
+            "median_update_ms": 104.6966204599994,
+            "median_collection_ms": 15.16101852734364,
+            "pipeline_config": {
+              "masac": {
+                "hidden_sizes": [
+                  256,
+                  256
+                ],
+                "batch_size": 512,
+                "learning_starts": 512,
+                "updates_per_step": 1
+              },
+              "matd3": {
+                "hidden_sizes": [
+                  256,
+                  256
+                ],
+                "batch_size": 512,
+                "learning_starts": 4000,
+                "updates_per_step": 1
+              },
+              "runtime": {
+                "seed": 44,
+                "eval_seed": 10044,
+                "episodes": 2,
+                "device": "cuda",
+                "num_envs": 2,
+                "replay_device": "cuda",
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": true
+              }
+            },
+            "pipeline": {
+              "algorithm": "masac",
+              "episode_budget_complete": true,
+              "global_step": 768,
+              "collection_steps": 384,
+              "num_envs": 2,
+              "updates": 129,
+              "replay_bytes": 642400000,
+              "collector_overlap": true,
+              "startup_s": 3.0658298320000767,
+              "collection_wait_s": 3.9697083980001935,
+              "learner_s": 14.38673620500083,
+              "elapsed_s": 24.29486677400007,
+              "reproducibility": {
+                "training_seed": 44,
+                "episode_hash": "d2a22eb1b584c9119690e18d1bd9ee8af505b5bd87441c67f7c82e0b615866fe",
+                "model_hash": "18e5d09b64db6aa768584279ee2256bc128f948b893edcba4fcfb05268eed6c4",
+                "settings_hash": "31dad7446475d3edd07cd5d203866619a03827099d6efcbdf55b45bd472c276a",
+                "hardware": {
+                  "python": "3.13.15",
+                  "numpy": "2.5.4",
+                  "torch": "2.11.0+cu128",
+                  "cuda_build": "12.8",
+                  "device": "cuda",
+                  "gpu": "Tesla T4"
+                },
+                "scope": "Exact repetition requires identical source/settings/platform and completed episode budget"
+              },
+              "active_joint_transitions_per_s": 36.17686483368315
+            }
+          },
+          "matd3": {
+            "trials": [
+              {
+                "num_envs": 2,
+                "algorithm": "matd3",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.8999682490000396,
+                "collector_s": 3.8285800599996946,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 133.73104178995303,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.12032804399996166,
+                "learner_updates": 50,
+                "learner_s": 2.600180198000089,
+                "learner_updates_per_s": 19.229436497692415,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": true
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "matd3",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.9237458339999876,
+                "collector_s": 3.8820188139985703,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 131.89013874784084,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.11313793299996178,
+                "learner_updates": 50,
+                "learner_s": 2.5758842480000794,
+                "learner_updates_per_s": 19.410810108730654,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": true
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "matd3",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.9364892030000647,
+                "collector_s": 3.816772609000509,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 134.1447480503892,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.11514502700003959,
+                "learner_updates": 50,
+                "learner_s": 2.5818919879999385,
+                "learner_updates_per_s": 19.36564357935534,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": true
+              }
+            ],
+            "median_update_ms": 51.63783975999877,
+            "median_collection_ms": 14.955390859373807,
+            "pipeline_config": {
+              "masac": {
+                "hidden_sizes": [
+                  256,
+                  256
+                ],
+                "batch_size": 512,
+                "learning_starts": 4000,
+                "updates_per_step": 1
+              },
+              "matd3": {
+                "hidden_sizes": [
+                  256,
+                  256
+                ],
+                "batch_size": 512,
+                "learning_starts": 512,
+                "updates_per_step": 1
+              },
+              "runtime": {
+                "seed": 44,
+                "eval_seed": 10044,
+                "episodes": 2,
+                "device": "cuda",
+                "num_envs": 2,
+                "replay_device": "cuda",
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": true
+              }
+            },
+            "pipeline": {
+              "algorithm": "matd3",
+              "episode_budget_complete": true,
+              "global_step": 768,
+              "collection_steps": 384,
+              "num_envs": 2,
+              "updates": 129,
+              "replay_bytes": 642400000,
+              "collector_overlap": true,
+              "startup_s": 2.974035538999942,
+              "collection_wait_s": 3.9156879639992894,
+              "learner_s": 7.4374849789996915,
+              "elapsed_s": 16.619922936999956,
+              "reproducibility": {
+                "training_seed": 44,
+                "episode_hash": "3506517c3595a79a984a824f913fdf4888505422bc9494d22dfff8280e4adf2e",
+                "model_hash": "2a5faec9f89f1f1cbd7627566bfcbe38d0bd97508b205d391725490816e8d041",
+                "settings_hash": "17d305e923f9f8e58e03da1f8179b3367e8f856ca5b515159d47edb622ad97b5",
+                "hardware": {
+                  "python": "3.13.15",
+                  "numpy": "2.5.4",
+                  "torch": "2.11.0+cu128",
+                  "cuda_build": "12.8",
+                  "device": "cuda",
+                  "gpu": "Tesla T4"
+                },
+                "scope": "Exact repetition requires identical source/settings/platform and completed episode budget"
+              },
+              "active_joint_transitions_per_s": 56.280693046943995
+            }
+          }
+        }
+      }
+    },
+    "status": {
+      "state": "complete",
+      "checked_at": 1791910153.984889
+    }
+  },
+  "cpu_suite_at_candidate": {
+    "source": "90791735fa1cfc42e845a2fb0417fa32e8a6fed3",
+    "log_path": "outputs/speed-20261013/cpu-final-vectorized-tests.log",
+    "summary": [
+      "Ran 139 tests in 63.276s",
+      "OK (skipped=10)"
+    ],
+    "exit_code": 0
+  },
+  "fixed_training_config": {
+    "world": {
+      "map_size_m": 1000.0,
+      "num_uavs": 6,
+      "num_targets": 10,
+      "num_obstacles": 8,
+      "dt_s": 1.0,
+      "max_steps": 800,
+      "max_speed_mps": 20.0,
+      "max_accel_mps2": 2.0,
+      "safety_distance_m": 15.0,
+      "obstacle_clearance_m": 10.0,
+      "motion_safety": "dynamic_window",
+      "obstacle_radius_min_m": 30.0,
+      "obstacle_radius_max_m": 70.0,
+      "launch_radius_m": 150.0,
+      "launch_min_spacing_m": 30.0,
+      "target_exclusion_radius_m": 200.0,
+      "gcs_position_m": null,
+      "placement_attempts": 5000
+    },
+    "network": {
+      "enabled": true,
+      "receiver_admission_mask": true,
+      "rediscovery_recovery": true,
+      "ack_uses_data_power": true,
+      "upstream_path": "third_party/UavNetSim",
+      "peer_range_m": 500.0,
+      "gcs_range_m": 500.0,
+      "tx_power_min_w": 0.1,
+      "tx_power_max_w": 0.4,
+      "report_bytes": 1024,
+      "buffer_bytes": 3072,
+      "report_ttl_s": 300.0,
+      "payload_bytes": 1024,
+      "packet_lifetime_s": 10.0,
+      "max_queue_packets": 64,
+      "queue_poll_us": 1000.0,
+      "max_retries": 5,
+      "obstacle_polygon_sides": 16,
+      "bit_rate_bps": 2000000.0,
+      "carrier_frequency_hz": 2400000000.0,
+      "bandwidth_hz": 22000000.0,
+      "sinr_threshold_db": 6.0,
+      "cca_threshold_dbm": -82.0,
+      "noise_density_dbm_hz": -174.0,
+      "noise_figure_db": 7.0,
+      "nlos_model": "urban",
+      "obstacle_extra_loss_db": 0.0
+    },
+    "energy": {
+      "enabled": true,
+      "battery_capacity_j": 277200.0,
+      "idle_power_w": 20.0,
+      "hover_power_w": 120.0,
+      "speed_squared_coefficient": 0.5,
+      "acceleration_squared_coefficient": 2.0
+    },
+    "masac": {
+      "hidden_sizes": [
+        256,
+        256
+      ],
+      "replay_capacity": 100000,
+      "batch_size": 512,
+      "learning_starts": 4000,
+      "updates_per_step": 1,
+      "gamma": 0.99,
+      "tau": 0.005,
+      "learning_rate": 0.0003,
+      "grad_clip_norm": 10.0,
+      "initial_alpha": 0.2,
+      "target_continuous_entropy": -3.0,
+      "target_discrete_entropy_ratio": 0.9
+    },
+    "matd3": {
+      "hidden_sizes": [
+        256,
+        256
+      ],
+      "replay_capacity": 100000,
+      "batch_size": 512,
+      "learning_starts": 4000,
+      "updates_per_step": 1,
+      "gamma": 0.99,
+      "tau": 0.005,
+      "learning_rate": 0.0003,
+      "grad_clip_norm": 10.0,
+      "policy_delay": 2,
+      "target_noise_std": 0.2,
+      "target_noise_clip": 0.5,
+      "exploration_noise_std": 0.1,
+      "initial_epsilon": 1.0,
+      "final_epsilon": 0.05,
+      "epsilon_decay_steps": 100000
+    }
+  },
+  "benchmark_protocol": {
+    "collector_steps_per_repeat": 160,
+    "same_root_seed_timing_repeats": 3,
+    "learner_warmup_updates": 2,
+    "learner_timed_updates_per_repeat": 50,
+    "vector_collection_steps_per_trial": 256,
+    "pipeline_requested_episodes": 2,
+    "pipeline_deadline_steps": 384,
+    "pipeline_learning_starts": 512,
+    "pipeline_total_joint_transitions": 768,
+    "pipeline_optimizer_updates": 129,
+    "normal_profile_deadline_steps": 800,
+    "normal_profile_learning_starts": 4000,
+    "tracking_enabled": false,
+    "convergence_evidence": false
+  },
+  "vectorized_cuda": {
+    "job": {
+      "account": "account_02",
+      "quota_before": [
+        {
+          "name": "account_02",
+          "ok": true,
+          "used_hours": 2.08,
+          "remaining_hours": 27.92,
+          "total_hours": 30.0
+        }
+      ],
+      "kernel_ref": "haibro1234/uavnet-speed-vmap-20261013-9079173",
+      "kernel_url": "https://www.kaggle.com/code/haibro1234/uavnet-speed-vmap-20261013-9079173",
+      "reference_source": "70003629039e1ea265520f27c7d033c972e9b7f9",
+      "candidate_source": "90791735fa1cfc42e845a2fb0417fa32e8a6fed3",
+      "timeout_seconds": 3600,
+      "training_kind": "paired short vmap benchmark; tracking disabled"
+    },
+    "status": {
+      "state": "complete",
+      "checked_at_unix": 1791911757.244691
+    },
+    "hardware": {
+      "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+      "python": "3.13.15",
+      "logical_cpus": 4,
+      "available_cpus": 4,
+      "torch": "2.11.0+cu128",
+      "torch_cuda_build": "12.8",
+      "cuda_available": true,
+      "cuda_devices": [
+        {
+          "index": 0,
+          "name": "Tesla T4",
+          "memory_gib": 14.56219482421875,
+          "compute_capability": [
+            7,
+            5
+          ]
+        },
+        {
+          "index": 1,
+          "name": "Tesla T4",
+          "memory_gib": 14.56219482421875,
+          "compute_capability": [
+            7,
+            5
+          ]
+        }
+      ]
+    },
+    "summary": {
+      "reference_source": "70003629039e1ea265520f27c7d033c972e9b7f9",
+      "candidate_source": "90791735fa1cfc42e845a2fb0417fa32e8a6fed3",
+      "checks": {
+        "collector_trace_equal": true,
+        "reference_same_seed_collector_repeatable": true,
+        "vectorized_same_seed_collector_repeatable": true
+      },
+      "numerical_contract": "FP32 tolerance 2e-5 and same-mode CUDA repeatability covered by full-suite.log; vmap is not bit-identical to loop mode",
+      "results": {
+        "reference": {
+          "collector_s": 1.210920759999965,
+          "learners": {
+            "masac": {
+              "update_ms": 100.47181654000042,
+              "collection_ms": 13.79237916406173,
+              "pipeline_transitions_per_s": 37.932922933608964,
+              "model_hash": "f0cab3bf61ecab7b2a9b8739f4f36ca512ddb7d576307508888ad84ae8f3b4b9",
+              "episode_hash": "001469cc0d12ee9fdd2b083e2bd9a26baee6deccc53d8b5ae0d89663779849ad"
+            },
+            "matd3": {
+              "update_ms": 49.525687039999866,
+              "collection_ms": 13.729876984374556,
+              "pipeline_transitions_per_s": 54.888367610567514,
+              "model_hash": "dd698715b3f6c23c9346107d7636bee8d51f22b2c155a9058db95b967edbe850",
+              "episode_hash": "63e77b59bdd1d432c533c9ecfe58b806ec934dfd5c67c2e7166fe94da31e5d1c"
+            }
+          }
+        },
+        "vectorized": {
+          "collector_s": 1.1632380950000538,
+          "learners": {
+            "masac": {
+              "update_ms": 77.91675692000013,
+              "collection_ms": 13.756819140624321,
+              "pipeline_transitions_per_s": 43.749925088222355,
+              "model_hash": "f39604713d64037f6eb53394f19d6318edef81740d284ad57ec7a6459bd0d6f6",
+              "episode_hash": "1969020ec66a604653412becc5cac6d55ed87a0205a7ff02008f9ed690456135"
+            },
+            "matd3": {
+              "update_ms": 34.626868219999096,
+              "collection_ms": 13.802627789062827,
+              "pipeline_transitions_per_s": 69.15030698079433,
+              "model_hash": "99b3e8734c5e77048d12f287a5049acbdc40d2f4be5bbe2869b292d01588893c",
+              "episode_hash": "749fb55c083f8cd6f8c06232abb0252c233504944603724e63b8d17f9fbddc8e"
+            }
+          }
+        }
+      }
+    },
+    "suite": [
+      "Ran 139 tests in 81.359s",
+      "OK"
+    ],
+    "reports": {
+      "reference": {
+        "label": "reference",
+        "root_seed": 44,
+        "coalesce_idle_polls": true,
+        "fused_optimizers_requested": false,
+        "vectorize_critics": false,
+        "collector": {
+          "repeats": [
+            {
+              "steps": 160,
+              "seconds": 1.1858052860000043,
+              "steps_per_s": 134.9294035783202,
+              "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+              "network": {
+                "selection_counts": {
+                  "selected": 5,
+                  "accepted": 5,
+                  "receiver_rejected": 0,
+                  "out_of_range_or_inactive": 0,
+                  "no_buffer": 0
+                },
+                "enabled": true,
+                "backend": "uavnetsim",
+                "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+                "generated_packets": 5,
+                "received_packets": 5,
+                "packet_pdr_percent": 100.0,
+                "packet_e2e_delay_ms": 4.8972,
+                "phy_successes": 10,
+                "phy_failures": 0,
+                "phy_success_percent": 100.0,
+                "collisions": 0,
+                "communication_energy_j": 0.005465616654205323,
+                "uav_communication_energy_j": 0.005383575934755803,
+                "gcs_communication_energy_j": 8.204071944952012e-05,
+                "energy_blocked_transmissions": 0,
+                "obstacle_extra_loss_db": 0.0,
+                "payload_throughput_kbps": 0.256,
+                "targets_delivered": 2,
+                "report_e2e_delay_s": 3.5048320000000013,
+                "report_average_hops": 2.5
+              }
+            },
+            {
+              "steps": 160,
+              "seconds": 1.210920759999965,
+              "steps_per_s": 132.13085883506088,
+              "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+              "network": {
+                "selection_counts": {
+                  "selected": 5,
+                  "accepted": 5,
+                  "receiver_rejected": 0,
+                  "out_of_range_or_inactive": 0,
+                  "no_buffer": 0
+                },
+                "enabled": true,
+                "backend": "uavnetsim",
+                "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+                "generated_packets": 5,
+                "received_packets": 5,
+                "packet_pdr_percent": 100.0,
+                "packet_e2e_delay_ms": 4.8972,
+                "phy_successes": 10,
+                "phy_failures": 0,
+                "phy_success_percent": 100.0,
+                "collisions": 0,
+                "communication_energy_j": 0.005465616654205323,
+                "uav_communication_energy_j": 0.005383575934755803,
+                "gcs_communication_energy_j": 8.204071944952012e-05,
+                "energy_blocked_transmissions": 0,
+                "obstacle_extra_loss_db": 0.0,
+                "payload_throughput_kbps": 0.256,
+                "targets_delivered": 2,
+                "report_e2e_delay_s": 3.5048320000000013,
+                "report_average_hops": 2.5
+              }
+            },
+            {
+              "steps": 160,
+              "seconds": 1.2293935769999962,
+              "steps_per_s": 130.14546601946375,
+              "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+              "network": {
+                "selection_counts": {
+                  "selected": 5,
+                  "accepted": 5,
+                  "receiver_rejected": 0,
+                  "out_of_range_or_inactive": 0,
+                  "no_buffer": 0
+                },
+                "enabled": true,
+                "backend": "uavnetsim",
+                "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+                "generated_packets": 5,
+                "received_packets": 5,
+                "packet_pdr_percent": 100.0,
+                "packet_e2e_delay_ms": 4.8972,
+                "phy_successes": 10,
+                "phy_failures": 0,
+                "phy_success_percent": 100.0,
+                "collisions": 0,
+                "communication_energy_j": 0.005465616654205323,
+                "uav_communication_energy_j": 0.005383575934755803,
+                "gcs_communication_energy_j": 8.204071944952012e-05,
+                "energy_blocked_transmissions": 0,
+                "obstacle_extra_loss_db": 0.0,
+                "payload_throughput_kbps": 0.256,
+                "targets_delivered": 2,
+                "report_e2e_delay_s": 3.5048320000000013,
+                "report_average_hops": 2.5
+              }
+            }
+          ],
+          "median_seconds": 1.210920759999965,
+          "same_seed_repeats_match": true
+        },
+        "learners": {
+          "masac": {
+            "trials": [
+              {
+                "num_envs": 2,
+                "algorithm": "masac",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.827641891999974,
+                "collector_s": 3.490599078999878,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 146.67969262935162,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.7690928739999663,
+                "learner_updates": 50,
+                "learner_s": 5.023590827000021,
+                "learner_updates_per_s": 9.953039911464867,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "masac",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.768894381999985,
+                "collector_s": 3.530849065999803,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 145.0076144376398,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.2062676289999672,
+                "learner_updates": 50,
+                "learner_s": 5.090968529000008,
+                "learner_updates_per_s": 9.821313904256492,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "masac",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.705214194000007,
+                "collector_s": 3.587055114000009,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 142.73547066553346,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.21459866899999724,
+                "learner_updates": 50,
+                "learner_s": 5.019011167999963,
+                "learner_updates_per_s": 9.962121686197525,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false
+              }
+            ],
+            "median_update_ms": 100.47181654000042,
+            "median_collection_ms": 13.79237916406173,
+            "pipeline": {
+              "algorithm": "masac",
+              "episode_budget_complete": true,
+              "global_step": 768,
+              "collection_steps": 384,
+              "num_envs": 2,
+              "updates": 129,
+              "replay_bytes": 642400000,
+              "collector_overlap": true,
+              "startup_s": 2.761826844999973,
+              "collection_wait_s": 3.563343873000292,
+              "learner_s": 14.052046006000126,
+              "elapsed_s": 23.00809158300001,
+              "reproducibility": {
+                "training_seed": 44,
+                "episode_hash": "001469cc0d12ee9fdd2b083e2bd9a26baee6deccc53d8b5ae0d89663779849ad",
+                "model_hash": "f0cab3bf61ecab7b2a9b8739f4f36ca512ddb7d576307508888ad84ae8f3b4b9",
+                "settings_hash": "0ecce330e1d7e8aaddcd05b4f0225e3a1372125907704325cddf846580cf3d0e",
+                "hardware": {
+                  "python": "3.13.15",
+                  "numpy": "2.5.4",
+                  "torch": "2.11.0+cu128",
+                  "cuda_build": "12.8",
+                  "device": "cuda",
+                  "gpu": "Tesla T4"
+                },
+                "scope": "Exact repetition requires identical source/settings/platform and completed episode budget"
+              },
+              "active_joint_transitions_per_s": 37.932922933608964
+            }
+          },
+          "matd3": {
+            "trials": [
+              {
+                "num_envs": 2,
+                "algorithm": "matd3",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.836848897999971,
+                "collector_s": 3.535606570000027,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 144.81249252797832,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.10649011900000005,
+                "learner_updates": 50,
+                "learner_s": 2.4762843519999933,
+                "learner_updates_per_s": 20.19154220298531,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "matd3",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.7435623019999866,
+                "collector_s": 3.5148485079998864,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 145.66772901724633,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.10736322200000359,
+                "learner_updates": 50,
+                "learner_s": 2.482739408000043,
+                "learner_updates_per_s": 20.139044733767374,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "matd3",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.8122134960000267,
+                "collector_s": 3.451502849999713,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 148.34117839422981,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.10599863699997059,
+                "learner_updates": 50,
+                "learner_s": 2.468349007000029,
+                "learner_updates_per_s": 20.25645476316527,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false
+              }
+            ],
+            "median_update_ms": 49.525687039999866,
+            "median_collection_ms": 13.729876984374556,
+            "pipeline": {
+              "algorithm": "matd3",
+              "episode_budget_complete": true,
+              "global_step": 768,
+              "collection_steps": 384,
+              "num_envs": 2,
+              "updates": 129,
+              "replay_bytes": 642400000,
+              "collector_overlap": true,
+              "startup_s": 2.818588543999965,
+              "collection_wait_s": 3.680040358000099,
+              "learner_s": 8.166399928000033,
+              "elapsed_s": 16.810624259999997,
+              "reproducibility": {
+                "training_seed": 44,
+                "episode_hash": "63e77b59bdd1d432c533c9ecfe58b806ec934dfd5c67c2e7166fe94da31e5d1c",
+                "model_hash": "dd698715b3f6c23c9346107d7636bee8d51f22b2c155a9058db95b967edbe850",
+                "settings_hash": "da44518f0150fabced85ca738308f2b854056ad96307600ea9b2c426cb1ad6cb",
+                "hardware": {
+                  "python": "3.13.15",
+                  "numpy": "2.5.4",
+                  "torch": "2.11.0+cu128",
+                  "cuda_build": "12.8",
+                  "device": "cuda",
+                  "gpu": "Tesla T4"
+                },
+                "scope": "Exact repetition requires identical source/settings/platform and completed episode budget"
+              },
+              "active_joint_transitions_per_s": 54.888367610567514
+            }
+          }
+        }
+      },
+      "vectorized": {
+        "label": "vectorized",
+        "root_seed": 44,
+        "coalesce_idle_polls": true,
+        "fused_optimizers_requested": false,
+        "vectorize_critics": true,
+        "collector": {
+          "repeats": [
+            {
+              "steps": 160,
+              "seconds": 1.1742376830000012,
+              "steps_per_s": 136.25861468797697,
+              "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+              "network": {
+                "selection_counts": {
+                  "selected": 5,
+                  "accepted": 5,
+                  "receiver_rejected": 0,
+                  "out_of_range_or_inactive": 0,
+                  "no_buffer": 0
+                },
+                "enabled": true,
+                "backend": "uavnetsim",
+                "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+                "generated_packets": 5,
+                "received_packets": 5,
+                "packet_pdr_percent": 100.0,
+                "packet_e2e_delay_ms": 4.8972,
+                "phy_successes": 10,
+                "phy_failures": 0,
+                "phy_success_percent": 100.0,
+                "collisions": 0,
+                "communication_energy_j": 0.005465616654205323,
+                "uav_communication_energy_j": 0.005383575934755803,
+                "gcs_communication_energy_j": 8.204071944952012e-05,
+                "energy_blocked_transmissions": 0,
+                "obstacle_extra_loss_db": 0.0,
+                "payload_throughput_kbps": 0.256,
+                "targets_delivered": 2,
+                "report_e2e_delay_s": 3.5048320000000013,
+                "report_average_hops": 2.5
+              }
+            },
+            {
+              "steps": 160,
+              "seconds": 1.1632380950000538,
+              "steps_per_s": 137.5470771527583,
+              "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+              "network": {
+                "selection_counts": {
+                  "selected": 5,
+                  "accepted": 5,
+                  "receiver_rejected": 0,
+                  "out_of_range_or_inactive": 0,
+                  "no_buffer": 0
+                },
+                "enabled": true,
+                "backend": "uavnetsim",
+                "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+                "generated_packets": 5,
+                "received_packets": 5,
+                "packet_pdr_percent": 100.0,
+                "packet_e2e_delay_ms": 4.8972,
+                "phy_successes": 10,
+                "phy_failures": 0,
+                "phy_success_percent": 100.0,
+                "collisions": 0,
+                "communication_energy_j": 0.005465616654205323,
+                "uav_communication_energy_j": 0.005383575934755803,
+                "gcs_communication_energy_j": 8.204071944952012e-05,
+                "energy_blocked_transmissions": 0,
+                "obstacle_extra_loss_db": 0.0,
+                "payload_throughput_kbps": 0.256,
+                "targets_delivered": 2,
+                "report_e2e_delay_s": 3.5048320000000013,
+                "report_average_hops": 2.5
+              }
+            },
+            {
+              "steps": 160,
+              "seconds": 1.1596531490000075,
+              "steps_per_s": 137.97228950567785,
+              "trajectory_hash": "340b5ab2fabb7e81a04581094582258116e4dcbe8375c5867776402826b15c67",
+              "network": {
+                "selection_counts": {
+                  "selected": 5,
+                  "accepted": 5,
+                  "receiver_rejected": 0,
+                  "out_of_range_or_inactive": 0,
+                  "no_buffer": 0
+                },
+                "enabled": true,
+                "backend": "uavnetsim",
+                "upstream_revision": "04daafb815eb377409b40b285574eeb62b9a8d58",
+                "generated_packets": 5,
+                "received_packets": 5,
+                "packet_pdr_percent": 100.0,
+                "packet_e2e_delay_ms": 4.8972,
+                "phy_successes": 10,
+                "phy_failures": 0,
+                "phy_success_percent": 100.0,
+                "collisions": 0,
+                "communication_energy_j": 0.005465616654205323,
+                "uav_communication_energy_j": 0.005383575934755803,
+                "gcs_communication_energy_j": 8.204071944952012e-05,
+                "energy_blocked_transmissions": 0,
+                "obstacle_extra_loss_db": 0.0,
+                "payload_throughput_kbps": 0.256,
+                "targets_delivered": 2,
+                "report_e2e_delay_s": 3.5048320000000013,
+                "report_average_hops": 2.5
+              }
+            }
+          ],
+          "median_seconds": 1.1632380950000538,
+          "same_seed_repeats_match": true
+        },
+        "learners": {
+          "masac": {
+            "trials": [
+              {
+                "num_envs": 2,
+                "algorithm": "masac",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.8338891719999992,
+                "collector_s": 3.5406415750002225,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 144.6065604649541,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.7149314860000118,
+                "learner_updates": 50,
+                "learner_s": 3.867190923999999,
+                "learner_updates_per_s": 12.929281481733229,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false,
+                "vectorize_critics": true
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "masac",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.9078446999999983,
+                "collector_s": 3.5217456999998262,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 145.38244484831068,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.17868545199996788,
+                "learner_updates": 50,
+                "learner_s": 3.8958378460000063,
+                "learner_updates_per_s": 12.834209732660398,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false,
+                "vectorize_critics": true
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "masac",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.7726157060000105,
+                "collector_s": 3.49428858700054,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 146.52481821471287,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.17719792500002995,
+                "learner_updates": 50,
+                "learner_s": 3.8977171660000067,
+                "learner_updates_per_s": 12.828021600990613,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false,
+                "vectorize_critics": true
+              }
+            ],
+            "median_update_ms": 77.91675692000013,
+            "median_collection_ms": 13.756819140624321,
+            "pipeline": {
+              "algorithm": "masac",
+              "episode_budget_complete": true,
+              "global_step": 768,
+              "collection_steps": 384,
+              "num_envs": 2,
+              "updates": 129,
+              "replay_bytes": 642400000,
+              "collector_overlap": true,
+              "startup_s": 2.7927044340000293,
+              "collection_wait_s": 3.4919175030000247,
+              "learner_s": 11.449938493999696,
+              "elapsed_s": 20.347020206000025,
+              "reproducibility": {
+                "training_seed": 44,
+                "episode_hash": "1969020ec66a604653412becc5cac6d55ed87a0205a7ff02008f9ed690456135",
+                "model_hash": "f39604713d64037f6eb53394f19d6318edef81740d284ad57ec7a6459bd0d6f6",
+                "settings_hash": "bdd95d877c47c1516da818cdf8ffd60b90721c08f28edd45867491286567ddd2",
+                "hardware": {
+                  "python": "3.13.15",
+                  "numpy": "2.5.4",
+                  "torch": "2.11.0+cu128",
+                  "cuda_build": "12.8",
+                  "device": "cuda",
+                  "gpu": "Tesla T4"
+                },
+                "scope": "Exact repetition requires identical source/settings/platform and completed episode budget"
+              },
+              "active_joint_transitions_per_s": 43.749925088222355
+            }
+          },
+          "matd3": {
+            "trials": [
+              {
+                "num_envs": 2,
+                "algorithm": "matd3",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.7670772370000236,
+                "collector_s": 3.621932283000433,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 141.36100843272965,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.07674550000001545,
+                "learner_updates": 50,
+                "learner_s": 1.6868517910000378,
+                "learner_updates_per_s": 29.64101545065667,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false,
+                "vectorize_critics": true
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "matd3",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.723208872999976,
+                "collector_s": 3.444481877000385,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 148.64354590417338,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.0765817239999933,
+                "learner_updates": 50,
+                "learner_s": 1.7331959890000235,
+                "learner_updates_per_s": 28.848439713299683,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false,
+                "vectorize_critics": true
+              },
+              {
+                "num_envs": 2,
+                "algorithm": "matd3",
+                "device": "cuda",
+                "replay_device": "cuda",
+                "vector_steps": 256,
+                "joint_transitions": 512,
+                "startup_s": 2.764954254000031,
+                "collector_s": 3.5334727140000837,
+                "reset_s": 0.0,
+                "joint_transitions_per_s": 144.8999444573008,
+                "learner_batch_size": 512,
+                "learner_warmup_s": 0.07720214600004738,
+                "learner_updates": 50,
+                "learner_s": 1.7313434109999548,
+                "learner_updates_per_s": 28.87930821946063,
+                "replay_bytes": 642400000,
+                "compile_models": false,
+                "coalesce_idle_polls": true,
+                "fused_optimizers": false,
+                "vectorize_critics": true
+              }
+            ],
+            "median_update_ms": 34.626868219999096,
+            "median_collection_ms": 13.802627789062827,
+            "pipeline": {
+              "algorithm": "matd3",
+              "episode_budget_complete": true,
+              "global_step": 768,
+              "collection_steps": 384,
+              "num_envs": 2,
+              "updates": 129,
+              "replay_bytes": 642400000,
+              "collector_overlap": true,
+              "startup_s": 2.821428315999981,
+              "collection_wait_s": 3.769036312000594,
+              "learner_s": 5.251843375000135,
+              "elapsed_s": 13.927669684000023,
+              "reproducibility": {
+                "training_seed": 44,
+                "episode_hash": "749fb55c083f8cd6f8c06232abb0252c233504944603724e63b8d17f9fbddc8e",
+                "model_hash": "99b3e8734c5e77048d12f287a5049acbdc40d2f4be5bbe2869b292d01588893c",
+                "settings_hash": "8da9a3bbc53fbe65b4f96dcf29a7f219fee8f4de8ff67701115ef59794472bae",
+                "hardware": {
+                  "python": "3.13.15",
+                  "numpy": "2.5.4",
+                  "torch": "2.11.0+cu128",
+                  "cuda_build": "12.8",
+                  "device": "cuda",
+                  "gpu": "Tesla T4"
+                },
+                "scope": "Exact repetition requires identical source/settings/platform and completed episode budget"
+              },
+              "active_joint_transitions_per_s": 69.15030698079433
+            }
+          }
+        }
+      }
+    }
+  },
+  "fast_profile": {
+    "path": "configs/motion-study-fast.yaml",
+    "resolved_scientific_config_equal_to": "configs/motion-study.yaml",
+    "runtime_differences": [
+      "vectorize_critics=true",
+      "output_dir=outputs/motion-study-fast"
+    ],
+    "tracking_difference": "extra vectorized-critics tag",
+    "compile_models": false,
+    "fused_optimizers": false
+  }
+}
