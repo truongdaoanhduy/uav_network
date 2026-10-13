@@ -51,8 +51,25 @@ Repeatability requires identical source, settings, software versions, GPU/CPU
 platform, environment count and a completed episode budget. Time-cutoff runs or
 policy-only warm starts are not exact repeats. Model/episode/settings SHA256
 fingerprints in summary.json and W&B expose differences instead of promising a
-particular percentage. Native CPU repeat tests pass for both algorithms; CUDA
-and longer repeats must be verified with the actual cloud jobs.
+particular percentage. Native CPU repeat tests pass for both algorithms. Actual Tesla T4 CUDA
+validation ran all six CUDA tests successfully (32.447s), including exact model
+and episode hashes for both algorithms in short repeated training. The online
+smoke learners finished four episodes, 160 joint transitions, 77 updates each.
+Longer cross-job repetition remains pending.
 
 PyTorch does not guarantee identical outputs across releases or platforms:
 https://docs.pytorch.org/docs/stable/notes/randomness.html
+
+## Submitted online jobs (13 October 2026)
+
+All study jobs use source commit `56fd8e3`, fresh initialization, seed 44 and
+100 episodes per algorithm. Training soft limit is three hours per learner;
+Kaggle kernel hard limit is eleven hours. A timeout is reported as incomplete,
+not an exact-repeat result. Runs are unpinned and console logging was verified
+on the completed CUDA smoke runs.
+
+| Condition | Account | Kaggle | MASAC W&B | MATD3 W&B |
+|---|---|---|---|---|
+| Baseline | riujick | [Job](https://www.kaggle.com/code/riujick/uavnet-train-20261013-101522-0176c3) | [Run](https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/5630eb8f) | [Run](https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/463fe9f0) |
+| Fixed | vuliu123456 | [Job](https://www.kaggle.com/code/vuliu123456/uavnet-train-20261013-101524-45a5e6) | [Run](https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/2fdea1f8) | [Run](https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/cb9cd52b) |
+| Fixed repeat | haibro1234 | [Job](https://www.kaggle.com/code/haibro1234/uavnet-train-20261013-101703-e62802) | [Run](https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/ffb90702) | [Run](https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/f2706cb2) |
