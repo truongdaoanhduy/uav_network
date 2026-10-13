@@ -82,8 +82,8 @@ not standardized guarantees of convergence.
 
 The main saved view now has18 panels and an exact filter for the two selected
 long-training run IDs. Other experiments, validation/recovery and superseded runs
-remain stored but do not clutter this view. The Runs table keeps state, algorithm,
-Kaggle account, start UTC, runtime, completed episodes, search and delivery.
+remain stored but do not clutter this view. The Runs table keeps run name (including algorithm), state, Kaggle account,
+start UTC, runtime, completed episodes, return, search and delivery.
 
 Deep diagnostics use a separate20-panel profile. Logging and failure files remain
 available for investigation; changing display profiles does not modify learners.
@@ -97,3 +97,19 @@ Removed from the main display: duplicate rolling/live outcome charts, optimizer
 counts/replay/timing charts, separate propulsion/RF charts, extra packet/PHY charts,
 individual warning flags, Q/gradient/entropy/alpha and detailed action/reward plots.
 These remain logged or are available in the diagnostic view and run Files.
+
+
+## Explicit Runs-column visibility
+
+Pinning columns alone did not hide unset columns in the W&B frontend.
+dashboard_columns.py now enumerates existing project config/summary keys and
+saves explicit false visibility for everything outside the nine-column allowlist.
+Run metadata/config/history remain intact; only table presentation changes.
+
+Verified by reading the saved backend view on2026-10-13:
+9 visible columns,933 explicitly hidden, including244 legacy
+training_handoff.resolved_config.* columns. Keep: Name, State, Created,
+Runtime, Kaggle account, completed episodes, episode return, search %, delivery %.
+Hide: old experiment/postprocess/Hugging Face/secret-name/visualization/W&B
+configuration, repeated hyperparameters, internal counters and extra diagnostics.
+Those details remain accessible in individual runs, config files and logs.

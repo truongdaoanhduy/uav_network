@@ -3,6 +3,7 @@ from pathlib import Path
 import json
 
 from .tracking import _authentication
+from .dashboard_columns import VISIBLE_COLUMNS, save_with_visible_columns
 
 
 PANELS = {
@@ -89,15 +90,13 @@ def create_dashboard(config, run_ids=(), name="UAV Network 2D - MASAC and MATD3"
         filters=run_filter(config.tracking.group, run_ids),
         pinned_runs=list(run_ids),
         run_settings={ident: ws.RunSettings(disabled=False) for ident in run_ids},
-        pinned_columns=["run:state", "run:createdAt", "run:duration",
-                        "config:runtime.algorithm", "config:kaggle_account",
-                        "summary:train/episodes_completed",
-                        "summary:outcome/search_rate_percent", "summary:outcome/delivery_rate_percent"],
+        pinned_columns=list(VISIBLE_COLUMNS),
     )
     workspace.save()
+    column_result = save_with_visible_columns(workspace, api)
     result = {"workspace_url": workspace.url, "workspace_name": name,
               "entity": entity, "project": project, "pinned_runs": list(run_ids), "profile": profile,
-              "panel_count": sum(len(v) for v in panels.values())}
+              "panel_count": sum(len(v) for v in panels.values()), **column_result}
     folder = Path("outputs/wandb")
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "workspace.json").write_text(json.dumps(result, indent=2))
