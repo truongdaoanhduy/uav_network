@@ -93,6 +93,10 @@ def _authentication(config):
     return entity, project
 
 
+def default_workspace_url(entity, project):
+    return f"https://wandb.ai/{entity}/{project}/workspace"
+
+
 class OnlineTracker:
     def __init__(self, config, output, initial_progress=None):
         import wandb
@@ -142,17 +146,20 @@ class OnlineTracker:
             self.run.save(str(self.output / "resolved_config.yaml"), base_path=str(self.output), policy="now")
             self.run.summary.update({"run_started_at_utc": metadata["run_started_at_utc"],
                                      "kaggle_account": metadata["kaggle_account"],
-                                     "kaggle_url": metadata["kaggle_url"]})
+                                     "kaggle_url": metadata["kaggle_url"],
+                                     "workspace_url": default_workspace_url(entity, project)})
             self.run.define_metric("global_step")
             self.run.define_metric("*", step_metric="global_step", step_sync=True)
             (self.output / "wandb_run.json").write_text(json.dumps(self.identity(), indent=2))
+            print(f"W&B Personal Workspace: {self.identity()['wandb_workspace_url']}", flush=True)
         except BaseException:
             self.close(failed=True)
             raise
 
     def identity(self):
         return {"wandb_run_id": self.run.id, "wandb_url": self.run.url,
-                "wandb_entity": self.run.entity, "wandb_project": self.run.project}
+                "wandb_entity": self.run.entity, "wandb_project": self.run.project,
+                "wandb_workspace_url": default_workspace_url(self.run.entity, self.run.project)}
 
     def progress(self, observations, step, completed, learner, replay_size, force=False):
         if not force and step < self.next_progress:

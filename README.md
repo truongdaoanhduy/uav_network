@@ -198,10 +198,12 @@ bash setup.sh --system-site-packages --cloud
 .venv/bin/python -m uav_network kaggle status \
   --manifest outputs/kaggle/<job-folder>/launch.json
 
-# Tạo view của project với đúng metric và ghim các run đã tồn tại.
+# Thiết lập/cập nhật Personal Workspace mặc định với đúng metric.
 .venv/bin/python -m uav_network dashboard --config configs/kaggle.yaml \
   --run-ids <masac-run-id> <matd3-run-id>
-# Thêm --workspace-url <saved-url> để cập nhật view này khi có run mới.
+# Không cần chạy lại khi có run mới: workspace tự lấy các run mới nhất.
+# --run-ids chỉ kiểm tra run và đặt số đường hiển thị; không ghim run.
+# Chỉ thêm --workspace-url <saved-url> khi chủ động muốn sửa một Saved view.
 ```
 
 Launcher kiểm tra quota và dataset credential riêng tư thuộc đúng account;
@@ -224,8 +226,15 @@ Adam, replay và simulator được khởi tạo lại. Không phải full-state
 Sau khi submit thành công, Kaggle và W&B chạy trên máy chủ; có thể tắt laptop.
 Mỗi learner lưu policy mỗi 10 episode theo profile Kaggle. Một learner lỗi không
 dừng learner còn lại; kết quả train được lưu trước evaluate, kể cả khi evaluate lỗi.
-Workspace dùng metric `global_step`, lọc group `uav-network-2d`, ghim run và bật
-26 biểu đồ. Chọn saved view từ URL in ra để xem đúng project 2D.
+Personal Workspace mặc định dùng `global_step`, lọc group `uav-network-2d`,
+không ghim run và có 18 biểu đồ. Mặc định hiển thị hai run mới nhất; run train mới
+tự xuất hiện trong bố cục đã lưu, không cần chọn/copy Saved view sau mỗi lần chạy.
+Mỗi lần train online in link Personal Workspace trong console và lưu
+`wandb_workspace_url` trong `wandb_run.json`/kết quả train; summary W&B cũng có
+`workspace_url`. Các lần train dùng cùng W&B entity/project/group trong config.
+Lệnh `dashboard` mặc định cập nhật workspace của người sở hữu API key; chỉ sửa
+Saved view khi truyền `--workspace-url`. Các bố cục được lưu ở W&B nên không cần
+ghi lại chúng ở mỗi lần train.
 Lỗi masked entropy khi alpha > 1 được kiểm tra bằng regression CPU/CUDA;
 zero-probability terms được xóa trước nhân alpha, gradient luôn kiểm tra finite.
 Lịch sử job, URL W&B và số liệu CUDA thực tế:

@@ -1,8 +1,13 @@
-"""A saved online W&B project view using this environment's metric names."""
+"""Personal Workspace by default, with an explicit saved-view URL override."""
 from pathlib import Path
+import base64
 import json
+import os
+from urllib.error import HTTPError
+from urllib.parse import parse_qs, urlparse
+from urllib.request import Request, urlopen
 
-from .tracking import _authentication
+from .tracking import _authentication, default_workspace_url
 from .dashboard_columns import VISIBLE_COLUMNS, save_with_visible_columns
 
 
@@ -66,20 +71,98 @@ def run_filter(group, run_ids=()):
     return expression
 
 
+def _graphql(query, variables=None):
+    # Workspace CRUD does not need a learner/SDK service process.
+    base = os.environ.get("WANDB_BASE_URL", "https://api.wandb.ai").rstrip("/")
+    authorization = base64.b64encode(f"api:{os.environ['WANDB_API_KEY']}".encode()).decode()
+    request = Request(base + "/graphql", method="POST",
+                      data=json.dumps({"query": query, "variables": variables or {}}).encode(),
+                      headers={"Content-Type": "application/json", "Authorization": "Basic " + authorization})
+    try:
+        with urlopen(request, timeout=30) as response:
+            result = json.load(response)
+    except HTTPError as error:
+        raise RuntimeError(f"W&B workspace API returned HTTP {error.code}") from None
+    if result.get("errors"):
+        raise RuntimeError("W&B workspace API: " + "; ".join(e["message"] for e in result["errors"]))
+    return result["data"]
+
+
+def _project_runs(entity, project):
+    runs, cursor = [], None
+    while True:
+        response = _graphql("""
+            query WorkspaceRunColumns($entityName: String, $projectName: String, $after: String) {
+                project(entityName: $entityName, name: $projectName) {
+                    runs(first: 100, after: $after) {
+                        edges { node { name config summaryMetrics } }
+                        pageInfo { hasNextPage endCursor }
+                    }
+                }
+            }
+        """, {"entityName": entity, "projectName": project, "after": cursor})
+        if response.get("project") is None:
+            raise ValueError("Configured W&B project not found")
+        page = response["project"]["runs"]
+        for edge in page["edges"]:
+            node = edge["node"]
+            raw_config = json.loads(node["config"] or "{}")
+            config = {k: v["value"] if isinstance(v, dict) and "value" in v else v
+                      for k, v in raw_config.items()}
+            runs.append((node["name"], config, json.loads(node["summaryMetrics"] or "{}")))
+        if not page["pageInfo"]["hasNextPage"]:
+            return runs
+        cursor = page["pageInfo"]["endCursor"]
+
+
 def create_dashboard(config, run_ids=(), name="UAV Network 2D - MASAC and MATD3", workspace_url=None, profile="core"):
-    import wandb
     import wandb_workspaces.workspaces as ws
     import wandb_workspaces.reports.v2 as wr
 
-    entity, project = _authentication(config)
-    api = wandb.Api()
-    for ident in run_ids:
-        api.run(f"{entity}/{project}/{ident}")  # Verify requested run links without pinning the view.
-    workspace = ws.Workspace.from_url(workspace_url) if workspace_url else ws.Workspace(entity=entity, project=project, name=name)
-    if workspace.entity != entity or workspace.project != project:
-        raise ValueError("Workspace must belong to the configured W&B entity/project")
     if profile not in ("core", "diagnostics"):
         raise ValueError("Dashboard profile must be core or diagnostics")
+    entity, project = _authentication(config)
+    username = _graphql("query WorkspaceOwner { viewer { username } }")["viewer"]["username"]
+    selected = ""
+    if workspace_url:
+        parsed = urlparse(workspace_url)
+        parts = parsed.path.strip("/").split("/")
+        if parts[0] == "wandb":
+            parts = parts[1:]
+        if parts[:2] != [entity, project]:
+            raise ValueError("Workspace must belong to the configured W&B entity/project")
+        if parts[2:] not in ([], ["workspace"]):
+            raise ValueError("Workspace URL must point to the project or its Workspace page")
+        selected = parse_qs(parsed.query).get("nw", [""])[0]
+        if selected.startswith("nwuser") and selected != f"nwuser{username}":
+            raise ValueError("Personal Workspace must belong to the authenticated W&B user")
+    saved_view = bool(selected and not selected.startswith("nwuser"))
+    view_name = f"nw-{selected}-v" if saved_view else f"nw-nwuser{username}-w"
+    response = _graphql("""
+        query WorkspaceTarget($entityName: String, $projectName: String, $viewName: String) {
+            project(entityName: $entityName, name: $projectName) {
+                allViews(viewType: "project-view", viewName: $viewName) {
+                    edges { node { id displayName } }
+                }
+            }
+        }
+    """, {"entityName": entity, "projectName": project, "viewName": view_name})
+    if response.get("project") is None:
+        raise ValueError("Configured W&B project not found")
+    edges = response["project"]["allViews"]["edges"]
+    if saved_view and not edges:
+        raise ValueError("Requested saved view not found")
+    existing = edges[0]["node"] if edges else {}
+    workspace = ws.Workspace(entity=entity, project=project,
+                             name=existing.get("displayName") or (name if saved_view else f"{username}'s workspace"))
+    # ponytail: the SDK's default save creates a random saved-view identity.
+    # Reuse the app's personal identity and the existing model/upsert boundary.
+    workspace._internal_name = view_name
+    workspace._internal_id = existing.get("id", "")
+    runs = _project_runs(entity, project)
+    missing = set(run_ids) - {ident for ident, _, _ in runs}
+    if missing:
+        raise ValueError(f"Requested W&B runs not found: {sorted(missing)}")
     panels = PANELS if profile == "core" else DIAGNOSTIC_PANELS
     workspace.sections = [ws.Section(name=title, is_open=title not in
                                      ("Fixed-seed evaluation", "Diagnostic alerts"), panels=[
@@ -92,9 +175,12 @@ def create_dashboard(config, run_ids=(), name="UAV Network 2D - MASAC and MATD3"
         run_settings={},
         pinned_columns=list(VISIBLE_COLUMNS),
     )
-    workspace.save()
-    column_result = save_with_visible_columns(workspace, api)
-    result = {"workspace_url": workspace.url, "workspace_name": name,
+    column_result = save_with_visible_columns(workspace, runs, _graphql)
+    url = default_workspace_url(entity, project)
+    if saved_view:
+        url += f"?nw={selected}"
+    result = {"workspace_url": url, "workspace_name": workspace.name,
+              "workspace_type": "saved" if saved_view else "personal",
               "entity": entity, "project": project, "pinned_runs": [], "verified_run_ids": list(run_ids), "profile": profile,
               "panel_count": sum(len(v) for v in panels.values()), **column_result}
     folder = Path("outputs/wandb")
