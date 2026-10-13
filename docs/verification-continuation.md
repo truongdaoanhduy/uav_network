@@ -43,4 +43,11 @@ remain explicit, and cloud aggregation preserves valid summaries from failed upl
 The safe default/cap is 39,600 seconds, with smaller explicit budgets supported.
 Zero-episode deadlines save finite models without fabricated episode metrics.
 Online periodic checkpoints wait for artifact commitment before training continues.
-Real CUDA validation and continuation job evidence will be appended after execution.
+Native suite: 91 tests, 86 CPU passed and 5 CUDA skipped, 31.270 seconds.
+Kaggle validation bduy2378/uavnet-validate-20261013-061540-d44fc1 is complete.
+All 5 real CUDA tests passed in 26.435 seconds on two Tesla T4 cards.
+Both online smoke runs finished: MASAC 9f591334, MATD3 154e2ae9, 4 episodes,
+160 transitions, 77 updates each, CUDA learner and replay.
+Each run committed four periodic artifacts plus the final v4 model, confirmed by
+the W&B API. This validates wiring and restoration, not convergence.
+Continuation job evidence will be appended after startup verification.

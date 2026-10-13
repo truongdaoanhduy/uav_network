@@ -32,36 +32,36 @@ the pending training, local fixes, GPU jobs and GitHub synchronization.
 Files: experiments/continuation.py; algorithms/checkpoints.py; configuration.py;
 experiments/training.py and cli.py; tests/test_continuation.py.
 
-- [ ] RED: restore a real small checkpoint and compare all weights/counters;
+- [x] RED: restore a real small checkpoint and compare all weights/counters;
       reject missing progress and changed world, using actual model files.
-- [ ] RED: real short training continues cumulative episodes/seeds and keeps
+- [x] RED: real short training continues cumulative episodes/seeds and keeps
       prior records; Adam/replay are explicitly new, target/update state retained.
-- [ ] RED: a tiny soft deadline saves a finite checkpoint with truthful incomplete
+- [x] RED: a tiny soft deadline saves a finite checkpoint with truthful incomplete
       budget and zero completed episodes, instead of raising on final metrics.
-- [ ] Implement warm_start_checkpoint and max_train_seconds config/CLI, validate
+- [x] Implement warm_start_checkpoint and max_train_seconds config/CLI, validate
       progress and write it atomically with policies; drain final collection updates.
-- [ ] GREEN: targeted tests and full native suite; commit.
+- [x] GREEN: targeted tests and full native suite; commit.
 
 ## Task 2: Durable online checkpoints and cloud inputs
 
 Files: experiments/tracking.py; cloud/cli.py, remote.py and kernel.py;
 configs/kaggle.yaml; tests/test_tracking.py, test_cloud.py, test_cuda.py.
 
-- [ ] RED: periodic checkpoint upload yields a committed artifact while the run
+- [x] RED: periodic checkpoint upload yields a committed artifact while the run
       stays active; empty segment metrics remain absent.
-- [ ] RED: per-algorithm artifact inputs become learner checkpoint paths and
+- [x] RED: per-algorithm artifact inputs become learner checkpoint paths and
       requested account quota checks avoid unrelated accounts.
-- [ ] Implement log_artifact + bounded upload wait, checkpoint input downloads,
+- [x] Implement log_artifact + bounded upload wait, checkpoint input downloads,
       parent metadata and --warm-start-artifact mapping; use a 10-hour soft budget.
-- [ ] GREEN: CPU suite and real CUDA continuation + online artifact smoke; commit.
+- [x] GREEN: CPU suite and real CUDA continuation + online artifact smoke; commit.
 
 ## Task 3: Recovery, evaluation and restart
 
-- [ ] Retrieve only checkpoint 500/940 and original episode JSONL; keep originals.
-- [ ] Annotate copied policies with verified matching episode/counter/history
+- [x] Retrieve only checkpoint 500/940 and original episode JSONL; keep originals.
+- [x] Annotate copied policies with verified matching episode/counter/history
       provenance; publish them as inputs through a separate checkpoint-recovery run.
-- [ ] Evaluate both recovered policies on matching CPU seeds and save previews.
-- [ ] Fresh review; fix Important/Critical findings with RED/GREEN evidence.
+- [x] Evaluate both recovered policies on matching CPU seeds and save previews.
+- [x] Fresh review; fix Important/Critical findings with RED/GREEN evidence.
 - [ ] Publish exact source and launch continuation to 1,000 total episodes,
       pin its two real online runs; verify weights/update/refill/artifact behavior.
 - [ ] Sync main and report actual status and warm-start limits.
@@ -81,3 +81,7 @@ Adam/replay or trajectory resume would be false. New runs are labeled accordingl
 input publication and three-seed CPU evaluation complete. Fresh review found two
 Important issues (summary durability and 11-hour ceiling); regression reproduced
 both and fixes pass. Full suite/CUDA/restart/publication verification remains active.
+
+2026-10-13: final suite 91 tests (86 CPU passed, 5 CUDA skipped); all five
+CUDA tests passed on actual T4 x2. Validation job complete; online periodic
+and final artifact versions committed. Review fix pass complete.
