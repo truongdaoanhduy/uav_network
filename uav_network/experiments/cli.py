@@ -32,6 +32,7 @@ def main():
     dashboard.add_argument("--run-ids", nargs="*", default=[])
     dashboard.add_argument("--name", default="UAV Network 2D - MASAC and MATD3")
     dashboard.add_argument("--workspace-url")
+    dashboard.add_argument("--profile", choices=["core", "diagnostics"], default="core")
     speed = commands.add_parser("benchmark", help="Measure env and learner throughput separately")
     speed.add_argument("--config")
     speed.add_argument("--set", dest="overrides", action="append", default=[])
@@ -49,7 +50,7 @@ def main():
     elif args.command == "dashboard":
         from .dashboard import create_dashboard
         result = create_dashboard(load_config(args.config, args.overrides), args.run_ids,
-                                  args.name, args.workspace_url)
+                                  args.name, args.workspace_url, args.profile)
     elif args.command == "evaluate":
         from .evaluation import evaluate
         result = evaluate(args.checkpoint, args.episodes, args.output_dir, args.seed)

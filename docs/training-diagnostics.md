@@ -77,3 +77,23 @@ updating; enhanced logging starts in jobs launched from the new source.
 
 Additional reward/action/window checks above are project-specific diagnostics,
 not standardized guarantees of convergence.
+
+## Compact display profiles
+
+The main saved view now has18 panels and an exact filter for the two selected
+long-training run IDs. Other experiments, validation/recovery and superseded runs
+remain stored but do not clutter this view. The Runs table keeps state, algorithm,
+Kaggle account, start UTC, runtime, completed episodes, search and delivery.
+
+Deep diagnostics use a separate20-panel profile. Logging and failure files remain
+available for investigation; changing display profiles does not modify learners.
+
+```bash
+python -m uav_network dashboard --config configs/kaggle.yaml   --profile core --run-ids 9c9309b3 afdad4a9   --workspace-url 'https://wandb.ai/truongdaoanhduy-uit/uav_search_target?nw=gmcixx5iveu'
+# Use --profile diagnostics in a separate workspace when investigating an issue.
+```
+
+Removed from the main display: duplicate rolling/live outcome charts, optimizer
+counts/replay/timing charts, separate propulsion/RF charts, extra packet/PHY charts,
+individual warning flags, Q/gradient/entropy/alpha and detailed action/reward plots.
+These remain logged or are available in the diagnostic view and run Files.
