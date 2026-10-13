@@ -80,9 +80,8 @@ not standardized guarantees of convergence.
 
 ## Compact display profiles
 
-The main saved view now has18 panels and an exact filter for the two selected
-long-training run IDs. Other experiments, validation/recovery and superseded runs
-remain stored but do not clutter this view. The Runs table keeps run name (including algorithm), state, Kaggle account,
+The main saved view now has18 panels and a filter for the uav-network-2d experiment group. Validation/recovery groups remain outside the main view. Runs are no longer
+pinned or restricted to specific IDs; new runs in this group appear normally. The Runs table keeps run name (including algorithm), state, Kaggle account,
 start UTC, runtime, completed episodes, return, search and delivery.
 
 Deep diagnostics use a separate20-panel profile. Logging and failure files remain

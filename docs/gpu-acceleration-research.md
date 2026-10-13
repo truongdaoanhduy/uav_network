@@ -238,3 +238,66 @@ simpler runner demonstrates a measurable limit.
 [a6000]: https://www.nvidia.com/en-us/products/workstations/rtx-a6000/
 [ada6000]: https://www.nvidia.com/en-gb/products/workstations/rtx-6000/
 [blackwell6000]: https://www.nvidia.com/en-us/products/workstations/professional-desktop-gpus/rtx-pro-6000/
+
+## Hardware and bottleneck follow-up — 2026-10-13
+
+Actual current configuration: native Python/NumPy/SimPy UavNetSim envs on CPU;
+Gymnasium AsyncVectorEnv with spawn/shared-memory and two envs per learner.
+PyTorch CUDA handles batched inference, GPU-resident replay, actor/critic updates
+and Adam. step_async overlaps CPU collection with the learner update, but step_wait
+still waits for the vector batch. This is not an independent asynchronous actor farm.
+
+Kaggle startup benchmarks (same source a855862, T4, batch512, six UAVs):
+- MASAC:256 vector steps in5.95737s =>23.27ms/vector step;
+  20 synchronized learner updates in2.06187s =>103.09ms/update.
+- MATD3:256 vector steps in5.58890s =>21.83ms/vector step;
+  20 synchronized learner updates in1.08218s =>54.11ms/update.
+
+These isolated benchmarks exclude replay-write/startup/reset costs and were not
+simultaneous full training measurements. Learner timing includes Python dispatch
+and GPU synchronization. They establish that collection is not necessarily the
+only bottleneck; GPU utilization alone does not identify where time is spent.
+
+The old project contains uav_marl/envs/gpu.py:FullGpuUAVBatchEnv, with fixed-shape
+CUDA tensors and separate simple/packet_approx/uavnetsim_gpu paths. This differs
+from executing the original native Python/SimPy simulator in the new project.
+A backend named uavnetsim_gpu is not evidence that the original native simulator
+was transparently moved to GPU; semantics require separate parity verification.
+
+Uploaded GATAC paper DOI10.1109/TVT.2025.3594534 reports Ubuntu20.04.4,
+PyTorch1.7/Python3.8, Intel Xeon Gold5220R and NVIDIA RTX6000. Its simulation
+setting does not establish GPU-native environments or collector parallelism.
+
+Recommended sequence:
+1. Profile full execution with CPU/CUDA timeline:env wait, inference, replay copies,
+   optimizer, kernel launches and synchronization. Compare time to a fixed held-out
+   delivery score and steps/s; do not maximize GPU utilization for its own sake.
+2. Preserve native network:benchmark actor/critic batching, torch.compile and
+   compatible CUDA graph regions; test semantics and finite-gradient safety.
+   Benchmark env counts and synchronous versus queue-based collection on the
+   target CPU. Increasing worker count alone can cause CPU contention.
+3. If massive GPU rollout is required, build fixed-shape batched world/sensor/
+   energy/report/radio state in PyTorch or Warp. Port packet scheduling/routing
+   intentionally and compare against native simulator microcases. This is a
+   simulator implementation project, not a library switch.
+
+Primary current sources:
+- TorchRL CPU env/GPU policy distinction:
+  https://docs.pytorch.org/rl/stable/reference/generated/torchrl.envs.ParallelEnv.html
+- EnvPool custom C++ integration:
+  https://envpool.readthedocs.io/en/stable/content/new_env.html
+- PyTorch CUDA graphs and compiler:
+  https://docs.pytorch.org/docs/stable/notes/cuda
+  https://docs.pytorch.org/docs/stable/generated/torch.compile
+- NVIDIA Warp:
+  https://nvidia.github.io/warp/index.html
+- JAX batching:
+  https://docs.jax.dev/en/latest/automatic-vectorization.html
+- MuJoCo Warp:
+  https://mujoco.readthedocs.io/en/latest/mjwarp/
+- Current Brax README directs physics users to MJX/MuJoCo Warp:
+  https://github.com/google/brax
+- Isaac Lab:
+  https://isaac-sim.github.io/IsaacLab/main/index.html
+- Sample Factory focuses on PPO and offers asynchronous/double-buffered collection:
+  https://www.samplefactory.dev/

@@ -74,7 +74,7 @@ def create_dashboard(config, run_ids=(), name="UAV Network 2D - MASAC and MATD3"
     entity, project = _authentication(config)
     api = wandb.Api()
     for ident in run_ids:
-        api.run(f"{entity}/{project}/{ident}")  # Only pin verified existing project runs.
+        api.run(f"{entity}/{project}/{ident}")  # Verify requested run links without pinning the view.
     workspace = ws.Workspace.from_url(workspace_url) if workspace_url else ws.Workspace(entity=entity, project=project, name=name)
     if workspace.entity != entity or workspace.project != project:
         raise ValueError("Workspace must belong to the configured W&B entity/project")
@@ -87,15 +87,15 @@ def create_dashboard(config, run_ids=(), name="UAV Network 2D - MASAC and MATD3"
     ]) for title, metrics in panels.items()]
     workspace.settings = ws.WorkspaceSettings(x_axis="global_step", max_runs=len(run_ids) if run_ids else 2)
     workspace.runset_settings = ws.RunsetSettings(
-        filters=run_filter(config.tracking.group, run_ids),
-        pinned_runs=list(run_ids),
-        run_settings={ident: ws.RunSettings(disabled=False) for ident in run_ids},
+        filters=run_filter(config.tracking.group),
+        pinned_runs=[],
+        run_settings={},
         pinned_columns=list(VISIBLE_COLUMNS),
     )
     workspace.save()
     column_result = save_with_visible_columns(workspace, api)
     result = {"workspace_url": workspace.url, "workspace_name": name,
-              "entity": entity, "project": project, "pinned_runs": list(run_ids), "profile": profile,
+              "entity": entity, "project": project, "pinned_runs": [], "verified_run_ids": list(run_ids), "profile": profile,
               "panel_count": sum(len(v) for v in panels.values()), **column_result}
     folder = Path("outputs/wandb")
     folder.mkdir(parents=True, exist_ok=True)
