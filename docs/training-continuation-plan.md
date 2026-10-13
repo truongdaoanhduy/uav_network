@@ -62,9 +62,9 @@ configs/kaggle.yaml; tests/test_tracking.py, test_cloud.py, test_cuda.py.
       provenance; publish them as inputs through a separate checkpoint-recovery run.
 - [x] Evaluate both recovered policies on matching CPU seeds and save previews.
 - [x] Fresh review; fix Important/Critical findings with RED/GREEN evidence.
-- [ ] Publish exact source and launch continuation to 1,000 total episodes,
+- [x] Publish exact source and launch continuation to 1,000 total episodes,
       pin its two real online runs; verify weights/update/refill/artifact behavior.
-- [ ] Sync main and report actual status and warm-start limits.
+- [x] Sync main and report actual status and warm-start limits.
 
 ## Execution ledger
 
@@ -85,3 +85,7 @@ both and fixes pass. Full suite/CUDA/restart/publication verification remains ac
 2026-10-13: final suite 91 tests (86 CPU passed, 5 CUDA skipped); all five
 CUDA tests passed on actual T4 x2. Validation job complete; online periodic
 and final artifact versions committed. Review fix pass complete.
+
+2026-10-13: full continuation started, both real CUDA learners update after
+4000 fresh transitions. Input lineage verified, new runs pinned to saved view.
+Snapshot MASAC 506/MATD3 946; goal 1000 still running. Main synced with GitHub.

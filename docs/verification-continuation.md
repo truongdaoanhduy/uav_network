@@ -50,4 +50,33 @@ Both online smoke runs finished: MASAC 9f591334, MATD3 154e2ae9, 4 episodes,
 160 transitions, 77 updates each, CUDA learner and replay.
 Each run committed four periodic artifacts plus the final v4 model, confirmed by
 the W&B API. This validates wiring and restoration, not convergence.
-Continuation job evidence will be appended after startup verification.
+## Live continuation
+
+Submitted job:
+https://www.kaggle.com/code/bduy2378/uavnet-train-20261013-062015-15b379
+
+Pinned source a85586284c554d1368651af582bd9418938ceaa4, account_07,
+verified remaining GPU quota 11.76 hours before submission.
+Hard timeout 39600 seconds; soft training budget 36000 seconds.
+Goal is 1000 cumulative episodes per algorithm.
+
+| Algorithm | Run | Snapshot episodes | Global step | Updates | Physical GPU |
+|---|---|---:|---:|---:|---:|
+| MASAC | 9c9309b3 | 506 | 404162 | 198081 | 0 |
+| MATD3 | afdad4a9 | 946 | 733628 | 362814 | 1 |
+
+Both are running, with the expected immutable input artifacts linked.
+Update counters increased after collecting 4000 new transitions. Replay sizes
+4802/5602 confirm fresh refill; each learner uses CUDA and two spawned CPU envs.
+W&B system samples show GPU0 at 28–30%, GPU1 at 19–20%, about 1 GB allocated
+on each card. CPU-based UavNetSim collection remains part of the workload.
+
+- https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/9c9309b3
+- https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/afdad4a9
+- Saved project view, 26 panels, both new runs pinned:
+  https://wandb.ai/truongdaoanhduy-uit/uav_search_target?nw=gmcixx5iveu
+
+These are dated startup snapshots, not a claim that 1000 episodes are complete.
+Kaggle automatically saves/uploads/evaluates at normal segment completion;
+it continues when the local laptop is off.
+
