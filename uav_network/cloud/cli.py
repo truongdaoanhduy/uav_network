@@ -40,7 +40,7 @@ def launch(args, credentials):
     inputs = parse_warm_start_artifacts(args.warm_start_artifact, algorithms)
     runs = {a: {"id": uuid4().hex[:8], "name": f"{a.upper()}-uav-network-2d-seed{config.runtime.seed}-{stamp}-{token}"}
             for a in algorithms}
-    spec = {"commit": commit, "kernel_ref": f"{username}/{slug}", "account": account.name,
+    spec = {"submitted_at_utc": datetime.now(timezone.utc).isoformat(), "commit": commit, "kernel_ref": f"{username}/{slug}", "account": account.name,
             "timeout_seconds": args.timeout_seconds, "warm_start_artifacts": inputs,
             "credential_dataset": args.credential_dataset,
             "entity": credentials.entity if config.tracking.entity == "auto" else config.tracking.entity,

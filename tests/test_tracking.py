@@ -41,6 +41,9 @@ class OnlineRun:
     def __init__(self):
         self.summary, self.logged, self.finished = {}, [], False
 
+    def save(self, *args, **kwargs):
+        pass
+
     def define_metric(self, *args, **kwargs):
         pass
 
@@ -108,6 +111,11 @@ class TrackingTests(unittest.TestCase):
         class Run:
             offline = False
             finished_failed = False
+
+            summary = {}
+
+            def save(self, *args, **kwargs):
+                pass
 
             def define_metric(self, *args, **kwargs):
                 raise OSError("metric registration failed")

@@ -252,3 +252,10 @@ python -m uav_network kaggle launch --stage train --account account_07   --requi
 Phải refill replay bằng 4.000 transition mới trước khi update; checkpoint cũ
 không chứa Adam/replay nên không thể tái tạo chính xác trajectory trước đó.
 Chi tiết phục hồi: [verification-continuation.md](docs/verification-continuation.md).
+
+## W&B diagnostics
+
+Biểu đồ, cảnh báo từ dữ liệu thực, đánh giá cùng seed và cách đọc lỗi:
+[training-diagnostics.md](docs/training-diagnostics.md). Cấu hình ở tracking.
+Console được capture online; failure.json và failed_batch.pt giúp tái hiện lỗi.
+Các run đang chạy ghim SHA cũ; metric mới áp dụng khi launch source mới.

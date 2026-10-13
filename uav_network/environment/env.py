@@ -66,6 +66,8 @@ class SwarmSearchEnv:
         if self.config.network.enabled:
             from ..communication.backend import UavNetSimNetwork
             self.network = UavNetSimNetwork(self.config, self.reports, scene, self.seed, self.battery_j)
+        self.reward_components = {}
+        self.action_counts = {"silent": 0, "peer": 0, "gcs": 0, "saturated": 0}
         self._sense()
         return local_observations(self), self.info()
 
@@ -106,6 +108,20 @@ class SwarmSearchEnv:
                   - r.dropped_report * (self.reports.dropped - before_dropped)
                   - r.communication_energy * comm_energy
                   - r.propulsion_energy_per_kj * flight_energy.sum() / 1000)
+        components = {"discovery": r.discovery * (self.reports.known.any(axis=0).sum() - before_found),
+                      "delivery": r.delivery * (self.reports.delivered.sum() - before_delivery),
+                      "blocked_motion": -r.blocked_motion * blocked, "step_cost": -r.step_cost,
+                      "expired_report": -r.expired_report * (self.reports.expired - before_expired),
+                      "dropped_report": -r.dropped_report * (self.reports.dropped - before_dropped),
+                      "communication_energy": -r.communication_energy * comm_energy,
+                      "propulsion_energy": -r.propulsion_energy_per_kj * flight_energy.sum() / 1000}
+        for key, value in components.items():
+            self.reward_components[key] = self.reward_components.get(key, 0.0) + float(value)
+        dest = np.asarray(action.destination)
+        self.action_counts["silent"] += int((dest == 0).sum())
+        self.action_counts["gcs"] += int((dest == self.config.world.num_uavs).sum())
+        self.action_counts["peer"] += int(((dest > 0) & (dest < self.config.world.num_uavs)).sum())
+        self.action_counts["saturated"] += int((np.abs(np.asarray(action.continuous)[:, :2]) >= .99).sum())
         terminated = bool(self.reports.delivered.all() or not self.active.any())
         truncated = self.steps >= self.config.world.max_steps and not terminated
         self._ended = terminated or truncated
@@ -117,7 +133,11 @@ class SwarmSearchEnv:
     def info(self):
         found, delivered = int(self.reports.known.any(axis=0).sum()), int(self.reports.delivered.sum())
         count = self.config.world.num_targets
-        return {"step": self.steps, "targets_found": found, "targets_delivered": delivered,
+        return {"reward_components": dict(self.reward_components), "action_counts": dict(self.action_counts),
+                "buffer_reports": sum(len(b) for b in self.reports.buffers),
+                "buffer_bytes": sum(self.reports.bytes_used(i) for i in range(self.config.world.num_uavs)),
+                "mean_speed_mps": float(np.linalg.norm(self.velocities, axis=1).mean()),
+                "step": self.steps, "targets_found": found, "targets_delivered": delivered,
                 "search_rate_percent": 100 * found / count,
                 "delivery_rate_percent": 100 * delivered / count,
                 "success": bool(self.reports.delivered.all()), "blocked_moves": self.blocked_moves,

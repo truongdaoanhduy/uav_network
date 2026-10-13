@@ -10,7 +10,7 @@ from ..environment.env import Action
 from .action_utils import canonical_continuous, joint_action, valid_destinations
 from .checkpoints import load_policy, save_policy
 from .models import DeterministicActor, TwinCritic
-from .optimization import scalar_metrics, step_optimizer, tensor_batch
+from .optimization import scalar_metrics, step_optimizer, tensor_batch, critic_metrics
 
 
 def td3_target(reward, terminated, q1, q2, gamma):
@@ -38,6 +38,7 @@ class MATD3(nn.Module):
         self.actor_optimizers = [torch.optim.Adam(actor.parameters(), lr=a.learning_rate) for actor in self.actors]
         self.critic_optimizer = torch.optim.Adam(self.critics.parameters(), lr=a.learning_rate)
         self.updates = 0
+        self._last_actor_metrics = {}
 
     def _actor_action(self, actor, observation, straight_through=False):
         continuous, probs = actor(observation, valid_destinations(observation, self.destinations))
@@ -97,10 +98,11 @@ class MATD3(nn.Module):
         values = [critic(data["state"], replay_actions) for critic in self.critics]
         q1, q2 = (torch.stack([q[k] for q in values], 1) for k in (0, 1))
         loss = F.mse_loss(q1, target) + F.mse_loss(q2, target)
-        step_optimizer(loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
+        critic_grad = step_optimizer(loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
+        batch_metrics = critic_metrics(q1, q2, target, data) if collect_metrics else {}
         self.updates += 1
         policy_updated = self.updates % a.policy_delay == 0
-        actor_losses = []
+        actor_losses, actor_grads = [], []
         if policy_updated:
             with torch.no_grad():
                 base = torch.stack([self._actor_action(actor, data["observation"][:, i])
@@ -112,10 +114,13 @@ class MATD3(nn.Module):
                     joint[:, i] = self._actor_action(actor, data["observation"][:, i], straight_through=True)
                     q1, _ = self.critics[i](data["state"], joint)
                     actor_loss = -q1.mean()
-                    step_optimizer(actor_loss, optimizer, actor.parameters(), a.grad_clip_norm, collect_metrics)
+                    actor_grads.append(step_optimizer(actor_loss, optimizer, actor.parameters(), a.grad_clip_norm, collect_metrics))
                     actor_losses.append(actor_loss.detach())
             finally:
                 self.critics.requires_grad_(True)
+            self._last_actor_metrics = {"actor_loss": torch.stack(actor_losses).mean(),
+                                        "actor_grad_norm": torch.stack(actor_grads).mean(),
+                                        "actor_update_step": torch.tensor(float(self.updates), device=self.device)}
             with torch.no_grad():
                 for target_collection, collection in ((self.target_actors, self.actors),
                                                        (self.target_critics, self.critics)):
@@ -123,8 +128,9 @@ class MATD3(nn.Module):
                         target_p.lerp_(p, a.tau)
         if not collect_metrics:
             return {}
-        actor_mean = torch.stack(actor_losses).mean() if actor_losses else torch.zeros((), device=self.device)
-        return scalar_metrics({"critic_loss": loss, "actor_loss": actor_mean,
+        return scalar_metrics({**batch_metrics, **self._last_actor_metrics,
+                               "critic_loss": loss, "critic_grad_norm": critic_grad,
+                               "critic_gradient_clipped": (critic_grad > a.grad_clip_norm).float(),
                                "policy_updated": torch.tensor(float(policy_updated), device=self.device)})
 
     def save(self, path, progress=None):

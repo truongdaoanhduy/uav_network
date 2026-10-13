@@ -87,6 +87,7 @@ class ContinuationTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             folder = Path(directory) / "upload-failed"
             tracker = SimpleNamespace(episode=lambda record: None,
+                learner=lambda *args: None, diagnostic=lambda *args: None, failure=lambda *args: None,
                 progress=lambda *args, **kwargs: None,
                 identity=lambda: {"wandb_run_id": "test", "wandb_url": "https://wandb.ai/test"},
                 complete=lambda result: (_ for _ in ()).throw(TimeoutError("upload timeout")),

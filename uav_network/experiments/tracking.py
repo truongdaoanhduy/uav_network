@@ -1,4 +1,5 @@
 """Online W&B in the learner process; mission metrics and final policy only."""
+from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
@@ -45,6 +46,15 @@ def episode_metrics(record, num_uavs):
                "report_average_hops": "report_average_hops", "energy_blocked_transmissions": "energy_blocked"}
     result.update({f"network/{target}": network[source] for source, target in mapping.items() if source in network})
     result.update({f"learner/{key}": value for key, value in record.get("learner", {}).items()})
+    result.update({f"reward/{k}": v for k, v in record.get("reward_components", {}).items()})
+    counts = record.get("action_counts", {})
+    result.update({f"action/{k}_fraction": counts[k] / opportunities for k in ("silent", "peer", "gcs") if k in counts})
+    if "saturated" in counts:
+        result["action/movement_saturation_fraction"] = counts["saturated"] / (2 * opportunities)
+    result["reports/buffer_bytes"] = record.get("buffer_bytes", 0)
+    result["reports/buffer_count"] = record.get("buffer_reports", 0)
+    result["motion/final_mean_speed_mps"] = record.get("mean_speed_mps", 0)
+    result["episode/termination_reason"] = record.get("termination_reason") or "unknown"
     return result
 
 
@@ -96,7 +106,12 @@ class OnlineTracker:
                     "kaggle_account": os.environ.get("UAV_KAGGLE_ACCOUNT", "local"),
                     "kaggle_kernel": os.environ.get("UAV_KAGGLE_KERNEL", "local"),
                     "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES", "all"),
-                    "hardware": hardware_info()}
+                    "hardware": hardware_info(),
+                    "run_started_at_utc": datetime.now(timezone.utc).isoformat(),
+                    "kaggle_account_alias": os.environ.get("UAV_KAGGLE_ACCOUNT_ALIAS", "local"),
+                    "job_submitted_at_utc": os.environ.get("UAV_JOB_SUBMITTED_AT_UTC", "unknown"),
+                    "job_started_at_utc": os.environ.get("UAV_JOB_STARTED_AT_UTC", "unknown"),
+                    "kaggle_url": "https://www.kaggle.com/code/" + os.environ.get("UAV_KAGGLE_KERNEL", "local")}
         metadata["continuation"] = {
             "kind": "policy_warm_start" if config.runtime.warm_start_checkpoint != "none" else "fresh",
             "initial_episodes": initial.get("episodes", 0), "initial_global_step": self.initial_step,
@@ -111,12 +126,17 @@ class OnlineTracker:
                               config={**config.to_dict(), **metadata}, dir=str(output), mode="online",
                               resume="never", reinit="finish_previous", save_code=False,
                               settings=wandb.Settings(x_disable_stats=not config.tracking.system_metrics,
-                                                     disable_code=True, console="off"))
+                                                     disable_code=True, console="wrap"))
         try:
             if self.run.offline:
                 raise RuntimeError("W&B did not start online")
             if os.environ.get("UAV_INPUT_ARTIFACT"):
                 self.run.use_artifact(os.environ["UAV_INPUT_ARTIFACT"], type="model")
+            self.run.save(str(self.output / "diagnostics.jsonl"), base_path=str(self.output), policy="live")
+            self.run.save(str(self.output / "resolved_config.yaml"), base_path=str(self.output), policy="now")
+            self.run.summary.update({"run_started_at_utc": metadata["run_started_at_utc"],
+                                     "kaggle_account": metadata["kaggle_account"],
+                                     "kaggle_url": metadata["kaggle_url"]})
             self.run.define_metric("global_step")
             self.run.define_metric("*", step_metric="global_step", step_sync=True)
             (self.output / "wandb_run.json").write_text(json.dumps(self.identity(), indent=2))
@@ -134,9 +154,26 @@ class OnlineTracker:
         values = {"global_step": step, "train/episodes_completed": completed,
                   "train/updates": learner.updates, "train/replay_size": replay_size,
                   "train/joint_transitions_per_s": (step - self.initial_step) / max(time.perf_counter() - self.started, 1e-9),
+                  "run/elapsed_seconds": time.perf_counter() - self.started,
+                  "run/elapsed_hours": (time.perf_counter() - self.started) / 3600,
                   **progress_metrics(observations, self.config)}
         self.run.log(values)
         self.next_progress = step + self.config.runtime.log_interval_steps
+
+    def learner(self, metrics, step):
+        self.run.log({"global_step": step, **{f"learner/{k}": v for k, v in metrics.items()}})
+
+    def diagnostic(self, values, step):
+        self.run.log({"global_step": step, **values})
+
+    def failure(self, path, step):
+        self.run.summary.update({"diagnostics/fatal_error": True})
+        self.run.log({"global_step": step, "diagnostics/fatal_error_count": 1})
+        self.run.save(str(path), base_path=str(self.output), policy="now")
+        for name in ("failed_batch.pt", "failure_state.pt"):
+            file = self.output / name
+            if file.is_file():
+                self.run.save(str(file), base_path=str(self.output), policy="now")
 
     def episode(self, record):
         self.records.append(record)
@@ -145,6 +182,7 @@ class OnlineTracker:
     def checkpoint(self, path, progress, final=False):
         if not self.config.tracking.log_checkpoint:
             return None
+        self.run.save(str(self.output / "episodes.jsonl"), base_path=str(self.output), policy="now")
         artifact = self.wandb.Artifact(f"uav-network-{self.config.runtime.algorithm}-{self.run.id}", type="model",
                                       metadata={"completed_episodes": progress["episodes"],
                                                 "global_step": progress["global_step"],
@@ -166,6 +204,8 @@ class OnlineTracker:
     def close(self, failed=False):
         if not self.closed:
             self.closed = True
+            self.run.summary.update({"run_ended_at_utc": datetime.now(timezone.utc).isoformat(),
+                                     "run_elapsed_seconds": time.perf_counter() - self.started})
             self.run.finish(exit_code=1 if failed else 0)
 
 

@@ -20,8 +20,9 @@ def step_optimizer(loss, optimizer, parameters, grad_clip, check_finite=True):
         raise FloatingPointError("Non-finite learner loss")
     optimizer.zero_grad(set_to_none=True)
     loss.backward()
-    torch.nn.utils.clip_grad_norm_(list(parameters), grad_clip, error_if_nonfinite=True)
+    norm = torch.nn.utils.clip_grad_norm_(list(parameters), grad_clip, error_if_nonfinite=True)
     optimizer.step()
+    return norm.detach()
 
 
 def scalar_metrics(values):
@@ -41,3 +42,15 @@ def compile_models(learner):
     if hasattr(learner, "target_actors"):
         for actor in learner.target_actors:
             actor.encoder.compile(dynamic=True)
+
+
+def critic_metrics(q1, q2, target, data):
+    """Detached replay-batch diagnostics; collect only at configured intervals."""
+    q1, q2, target = q1.detach(), q2.detach(), target.detach()
+    td = q1 - target
+    return {"q_mean": q1.mean(), "q_abs_max": q1.abs().max(), "target_mean": target.mean(),
+            "target_abs_max": target.abs().max(), "td_error_abs_mean": td.abs().mean(),
+            "td_error_abs_max": td.abs().max(), "twin_q_gap": (q1 - q2).abs().mean(),
+            "batch_reward_mean": data["reward"].mean(),
+            "batch_terminated_fraction": data["terminated"].float().mean(),
+            "batch_active_uav_fraction": (data["observation"][:, :, 9] > .5).float().mean()}

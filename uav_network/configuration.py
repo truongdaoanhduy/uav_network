@@ -155,6 +155,12 @@ class TrackingConfig:
     log_checkpoint: bool = True
     system_metrics: bool = True
     artifact_timeout_seconds: int = 120
+    evaluation_interval: int = 50
+    evaluation_timeout_seconds: int = 300
+    diagnostic_window: int = 20
+    delivery_gap_threshold_percent: float = 40.0
+    return_drop_threshold: float = 20.0
+    blocked_rate_threshold: float = 0.3
 
 
 @dataclass
@@ -232,6 +238,14 @@ class Config:
             raise ValueError("num_envs and log_interval_steps must be positive")
         if r.max_train_seconds < 0:
             raise ValueError("max_train_seconds must be nonnegative; zero disables the soft deadline")
+        if self.tracking.evaluation_interval < 0 or self.tracking.evaluation_timeout_seconds < 1:
+            raise ValueError("evaluation_interval must be nonnegative and evaluation timeout positive")
+        if self.tracking.diagnostic_window < 2:
+            raise ValueError("diagnostic_window must be at least two episodes")
+        for value in (self.tracking.delivery_gap_threshold_percent, self.tracking.return_drop_threshold,
+                      self.tracking.blocked_rate_threshold):
+            if not math.isfinite(value) or value < 0:
+                raise ValueError("Diagnostic thresholds must be finite and nonnegative")
         if self.tracking.artifact_timeout_seconds < 1:
             raise ValueError("artifact_timeout_seconds must be positive")
         if self.algorithm_config.replay_capacity < r.num_envs:

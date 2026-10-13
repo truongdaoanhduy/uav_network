@@ -21,6 +21,9 @@ import time
 
 SPEC = __SPEC__
 os.environ["UAV_JOB_STARTED_AT"] = str(time.monotonic())
+os.environ["UAV_JOB_STARTED_AT_UTC"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+os.environ["UAV_JOB_SUBMITTED_AT_UTC"] = SPEC.get("submitted_at_utc", "unknown")
+os.environ["UAV_KAGGLE_ACCOUNT_ALIAS"] = SPEC.get("account", "unknown")
 os.environ.setdefault("MPLBACKEND", "Agg")
 os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
 os.environ["WANDB_ENTITY"] = SPEC["entity"]

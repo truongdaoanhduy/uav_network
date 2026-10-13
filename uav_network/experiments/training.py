@@ -16,6 +16,7 @@ from ..environment.vector import make_vector, random_actions, unpack_info
 from .tracking import start_tracking, final_metrics
 from .lifecycle import graceful_termination
 from .continuation import restore_learner
+from .diagnostics import TrainingDiagnostics, failure_report, evaluate_checkpoint
 
 
 def seed_runtime(config):
@@ -54,21 +55,24 @@ def _train(config):
     output.mkdir(parents=True, exist_ok=True)
     (output / "resolved_config.yaml").write_text(yaml.safe_dump(config.to_dict(), sort_keys=False))
     start = time.perf_counter()
-    learner, initial = restore_learner(config, device)
-    vector = make_vector(config)
+    diagnostics = TrainingDiagnostics(config, output)
     count = config.runtime.num_envs
-    completed, global_step, collection_steps = (initial[k] for k in ("episodes", "global_step", "collection_steps"))
-    initial_updates = learner.updates
-    history = list(initial["records"])
+    completed = global_step = collection_steps = 0
     latest = {}
     update_s = collection_wait_s = 0.0
     next_metrics_at = 0
-    episode_seeds = np.arange(count) + initial["next_seed"]
-    next_seed = initial["next_seed"] + count
+    episode_seeds = np.arange(count) + config.runtime.seed
     episode_returns, episode_lengths = np.zeros(count), np.zeros(count, dtype=int)
-    tracker = None
+    tracker = vector = learner = None
     completed_ok = False
     try:
+        learner, initial = restore_learner(config, device)
+        completed, global_step, collection_steps = (initial[k] for k in ("episodes", "global_step", "collection_steps"))
+        initial_updates = learner.updates
+        history = list(initial["records"])
+        episode_seeds = np.arange(count) + initial["next_seed"]
+        next_seed = initial["next_seed"] + count
+        vector = make_vector(config)
         tracker = start_tracking(config, output, initial_progress=initial)
         obs, _ = vector.reset(seed=episode_seeds.tolist())
         if config.runtime.compile_models:
@@ -86,12 +90,25 @@ def _train(config):
             checked = force_metrics or global_step >= next_metrics_at
             begin = time.perf_counter()
             for update in range(settings.updates_per_step):
-                metrics = learner.update(replay.sample(settings.batch_size),
-                                         collect_metrics=checked and update == settings.updates_per_step - 1)
+                batch = replay.sample(settings.batch_size)
+                try:
+                    metrics = learner.update(batch,
+                                             collect_metrics=checked and update == settings.updates_per_step - 1)
+                except (FloatingPointError, RuntimeError):
+                    torch.save({k: v.detach().cpu() for k, v in batch.items()}, output / "failed_batch.pt")
+                    raise
                 if metrics:
                     latest = metrics
+                    if tracker:
+                        tracker.learner(metrics, global_step)
             update_s += time.perf_counter() - begin
             if checked:
+                if tracker:
+                    tracker.diagnostic({"timing/collector_wait_seconds": collection_wait_s,
+                                        "timing/learner_seconds": update_s,
+                                        "train/sample_uses_per_new_transition":
+                                            (learner.updates - initial_updates) * settings.batch_size /
+                                            max(1, global_step - initial["global_step"])}, global_step)
                 next_metrics_at = global_step + config.runtime.log_interval_steps
 
         def save(path, final=False):
@@ -144,12 +161,15 @@ def _train(config):
                               "global_step": global_step, "return": float(episode_returns[i]),
                               "episode_length": int(episode_lengths[i]), "terminated": bool(terminated[i]),
                               "truncated": bool(truncated[i]), **info, "learner": latest}
+                    record["num_uavs"] = config.world.num_uavs
+                    diagnostic_values = diagnostics.episode(record)
                     encoded = json.dumps(record, allow_nan=False)
                     stream.write(encoded + "\n")
                     stream.flush()
                     history.append(json.loads(encoded))
                     if tracker:
                         tracker.episode(record)
+                        tracker.diagnostic(diagnostic_values, global_step)
                     print(json.dumps({"algorithm": learner.algorithm, "episode": completed,
                                       "global_step": global_step, "return": round(record["return"], 3),
                                       "search_rate_percent": info["search_rate_percent"],
@@ -160,6 +180,12 @@ def _train(config):
                         progress = save(path)
                         if tracker:
                             tracker.checkpoint(path, progress)
+                    interval = config.tracking.evaluation_interval
+                    if tracker and interval and completed % interval == 0:
+                        path = output / f"episode_{completed:06d}.pt"
+                        if completed % config.runtime.checkpoint_interval != 0:
+                            save(path)
+                        evaluate_checkpoint(config, path, completed, global_step, tracker, diagnostics)
                 obs = next_obs
                 if tracker:
                     tracker.progress(obs, global_step, completed, learner, len(replay), force=final_batch)
@@ -211,9 +237,30 @@ def _train(config):
         summary.write_text(json.dumps(result, indent=2, allow_nan=False))
         completed_ok = True
         return result
+    except BaseException as error:
+        try:
+            bad_parameters = []
+            if learner is not None:
+                state = {name: tensor.detach().cpu() for name, tensor in learner.state_dict().items()}
+                bad_parameters = [name for name, tensor in state.items() if not torch.isfinite(tensor).all()]
+                torch.save({"model": state, "config": config.to_dict(), "updates": learner.updates,
+                            "snapshot_stage": "after_failure; optimizer may have partially updated"},
+                           output / "failure_state.pt")
+            path = failure_report(config, output, error, {
+                "algorithm": config.runtime.algorithm, "global_step": global_step,
+                "episodes": completed, "updates": learner.updates if learner is not None else None,
+                "episode_seeds": episode_seeds.tolist(),
+                "last_learner_metrics": latest, "device": device,
+                "nonfinite_parameter_names": bad_parameters})
+            if tracker:
+                tracker.failure(path, global_step)
+        except Exception as reporting_error:
+            print(f"Failure reporting also failed: {type(reporting_error).__name__}", flush=True)
+        raise
     finally:
         try:
-            vector.close()
+            if vector is not None:
+                vector.close()
         finally:
             if tracker:
                 tracker.close(failed=not completed_ok)

@@ -12,7 +12,7 @@ from ..environment.env import Action
 from .action_utils import canonical_continuous, joint_action, valid_destinations
 from .checkpoints import load_policy, save_policy
 from .models import HybridActor, TwinCritic
-from .optimization import scalar_metrics, step_optimizer, tensor_batch
+from .optimization import scalar_metrics, step_optimizer, tensor_batch, critic_metrics
 
 
 def soft_bellman_target(reward, terminated, soft_value, gamma):
@@ -109,10 +109,11 @@ class MASAC(nn.Module):
         values = [critic(data["state"], replay_joint) for critic in self.critics]
         q1, q2 = (torch.stack([q[k] for q in values], 1) for k in (0, 1))
         critic_loss = F.mse_loss(q1, target) + F.mse_loss(q2, target)
-        step_optimizer(critic_loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
+        critic_grad = step_optimizer(critic_loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
         with torch.no_grad():
             base_joint, *_ = self._joint_sample(data["observation"])
         self.critics.requires_grad_(False)
+        actor_grads = []
         actor_losses, entropies_c, entropies_d, targets_c, targets_d = [], [], [], [], []
         try:
             for i, (actor, optimizer) in enumerate(zip(self.actors, self.actor_optimizers)):
@@ -120,7 +121,7 @@ class MASAC(nn.Module):
                 continuous, logp, probs, log_probs = self._sample(actor, obs)
                 q = self._expected_q(self.critics[i], data["state"], base_joint, continuous, i)
                 loss = (alpha_c[i] * logp + (probs * (alpha_d[i] * log_probs - q)).sum(-1)).mean()
-                step_optimizer(loss, optimizer, actor.parameters(), a.grad_clip_norm, collect_metrics)
+                actor_grads.append(step_optimizer(loss, optimizer, actor.parameters(), a.grad_clip_norm, collect_metrics))
                 actor_losses.append(loss.detach())
                 entropies_c.append(-logp.detach().mean())
                 entropies_d.append(-(probs.detach() * log_probs.detach()).sum(-1).mean())
@@ -133,7 +134,7 @@ class MASAC(nn.Module):
         hc, hd, tc, td = (torch.stack(v) for v in (entropies_c, entropies_d, targets_c, targets_d))
         before_c, before_d = self.log_alpha_continuous.detach().clone(), self.log_alpha_discrete.detach().clone()
         alpha_loss = (self.log_alpha_continuous * (hc - tc) + self.log_alpha_discrete * (hd - td)).mean()
-        step_optimizer(alpha_loss, self.alpha_optimizer,
+        alpha_grad = step_optimizer(alpha_loss, self.alpha_optimizer,
                        [self.log_alpha_continuous, self.log_alpha_discrete], a.grad_clip_norm, collect_metrics)
         with torch.no_grad():
             available_c = (data["observation"][:, :, 9] > .5).any(0)
@@ -147,7 +148,11 @@ class MASAC(nn.Module):
         self.updates += 1
         if not collect_metrics:
             return {}
-        return scalar_metrics({"critic_loss": critic_loss, "actor_loss": torch.stack(actor_losses).mean(),
+        return scalar_metrics({**critic_metrics(q1, q2, target, data),
+                               "critic_grad_norm": critic_grad, "actor_grad_norm": torch.stack(actor_grads).mean(),
+                               "alpha_grad_norm": alpha_grad,
+                               "critic_gradient_clipped": (critic_grad > a.grad_clip_norm).float(),
+                               "critic_loss": critic_loss, "actor_loss": torch.stack(actor_losses).mean(),
                                "continuous_entropy": hc.mean(), "discrete_entropy": hd.mean(),
                                "alpha_continuous": self.log_alpha_continuous.exp().mean(),
                                "alpha_discrete": self.log_alpha_discrete.exp().mean()})
