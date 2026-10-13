@@ -51,6 +51,11 @@ class ReportStore:
         return (not self.known[destination, report.target_id]
                 and self.bytes_used(destination) + report.size_bytes <= self.config.buffer_bytes)
 
+    def can_forward(self, source, destination, report, time_s):
+        return (self.contains(source, report)
+                and time_s - report.created_s < self.config.report_ttl_s
+                and self.can_receive(destination, report))
+
     def transfer(self, source, destination, report, time_s):
         if (not self.contains(source, report)
                 or time_s - report.created_s >= self.config.report_ttl_s

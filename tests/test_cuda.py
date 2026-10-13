@@ -16,6 +16,20 @@ from uav_network.experiments.training import train
 
 @unittest.skipUnless(torch.cuda.is_available(), "CUDA is unavailable on this host")
 class CUDATests(unittest.TestCase):
+    def test_repeated_cuda_training_same_seed_has_identical_scientific_hashes(self):
+        from test_vector import small_parallel_config
+        for algorithm in ("masac", "matd3"):
+            with self.subTest(algorithm=algorithm), TemporaryDirectory() as folder:
+                c=small_parallel_config(algorithm)
+                c.runtime.device=c.runtime.replay_device="cuda"
+                c.runtime.episodes=4
+                hashes=[]
+                for name in ("first","repeat"):
+                    c.runtime.output_dir=str(Path(folder)/name)
+                    hashes.append(train(c)["reproducibility"])
+                self.assertEqual(hashes[0]["episode_hash"],hashes[1]["episode_hash"])
+                self.assertEqual(hashes[0]["model_hash"],hashes[1]["model_hash"])
+
     def test_cuda_warm_restart_preserves_targets_counters_and_real_episode_prefix(self):
         for algorithm in ("masac", "matd3"):
             with self.subTest(algorithm=algorithm), TemporaryDirectory() as directory:

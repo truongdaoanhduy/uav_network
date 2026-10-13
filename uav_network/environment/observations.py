@@ -16,7 +16,11 @@ def state_dim(config):
 
 
 def destination_mask(env):
-    """Ideal control-plane beacons: range/liveness; no hidden target geometry."""
+    """Ideal beacons/admission handshake; no SINR or hidden target coordinates.
+
+    The receiver advertises whether it can accept any report held by the sender.
+    This metadata handshake is currently reliable and has no separate airtime cost.
+    """
     n, count = env.config.network, env.config.world.num_uavs
     masks = np.zeros((count, count + 1), dtype=bool)
     masks[:, 0] = True
@@ -25,8 +29,14 @@ def destination_mask(env):
             continue
         for slot, j in enumerate(k for k in range(count) if k != i):
             masks[i, slot + 1] = (env.active[j]
-                                  and np.linalg.norm(env.positions[j] - env.positions[i]) <= n.peer_range_m)
-        masks[i, count] = np.linalg.norm(env.gcs - env.positions[i]) <= n.gcs_range_m
+                                  and np.linalg.norm(env.positions[j] - env.positions[i]) <= n.peer_range_m
+                                  and (not n.receiver_admission_mask or any(
+                                      env.reports.can_forward(i, j, report, env.time_s)
+                                      for report in env.reports.buffers[i].values())))
+        masks[i, count] = (np.linalg.norm(env.gcs - env.positions[i]) <= n.gcs_range_m
+                           and (not n.receiver_admission_mask or any(
+                               env.reports.can_forward(i, count, report, env.time_s)
+                               for report in env.reports.buffers[i].values())))
     return masks
 
 

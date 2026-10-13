@@ -39,6 +39,9 @@ def load_policy(path, device="cpu", expected_algorithm=None):
         raise ValueError(f"Checkpoint algorithm {algorithm!r} does not match {expected_algorithm!r}")
     config = Config()
     _apply(config, saved["config"])
+    # Legacy v2 policies must keep their original range-only mask when evaluated.
+    if "receiver_admission_mask" not in saved["config"].get("network", {}):
+        config.network.receiver_admission_mask = False
     config.runtime.algorithm = algorithm
     config.validate()
     if saved["observation_dim"] != observation_dim(config) or saved["state_dim"] != state_dim(config):

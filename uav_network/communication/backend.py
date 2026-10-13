@@ -27,6 +27,8 @@ class UavNetSimNetwork:
         self.energy_j = np.zeros(config.world.num_uavs + 1)
         self.battery_j = (battery_j if battery_j is not None else
                           np.full(config.world.num_uavs, config.energy.battery_capacity_j, dtype=float))
+        self.selection_counts = {"selected": 0, "accepted": 0, "receiver_rejected": 0,
+                                 "out_of_range_or_inactive": 0, "no_buffer": 0}
         self.energy_blocked_transmissions = 0
         self.received_payload_bytes = 0
         self._closed = False
@@ -75,7 +77,7 @@ class UavNetSimNetwork:
         reach = n.peer_range_m if peer else n.gcs_range_m
         return (self.node_active(source) and self.node_active(destination)
                 and np.linalg.norm(positions[source] - xy) <= reach
-                and self.reports.can_receive(destination, report))
+                and self.reports.can_forward(source, destination, report, self.clock.now / 1e6))
 
     def _inject(self, source, destination, power, report):
         n, now = self.config.network, self.clock.now / 1e6
@@ -164,7 +166,11 @@ class UavNetSimNetwork:
         for source, index in enumerate(action.destination):
             destination = self._destination(source, int(index))
             buffer = self.reports.buffers[source]
-            if destination is None or not buffer:
+            if destination is None:
+                continue
+            self.selection_counts["selected"] += 1
+            if not buffer:
+                self.selection_counts["no_buffer"] += 1
                 continue
             report = next((r for r in buffer.values()
                            if self._eligible(source, destination, positions, r)), None)
@@ -172,7 +178,13 @@ class UavNetSimNetwork:
                 normalized = (float(action.continuous[source, 2]) + 1) / 2
                 n = self.config.network
                 power = n.tx_power_min_w + normalized * (n.tx_power_max_w - n.tx_power_min_w)
+                self.selection_counts["accepted"] += 1
                 self._inject(source, destination, power, report)
+            elif all(not self.reports.can_forward(source, destination, r, self.clock.now / 1e6)
+                     for r in buffer.values()):
+                self.selection_counts["receiver_rejected"] += 1
+            else:
+                self.selection_counts["out_of_range_or_inactive"] += 1
         self.clock.run(until=time_s * 1e6)
         self._collect_drops()
         return float(self.energy_j[:-1].sum() - before)
@@ -186,7 +198,7 @@ class UavNetSimNetwork:
     def metrics(self):
         m = self.simulator.metrics.snapshot()
         elapsed = self.clock.now / 1e6
-        return {"enabled": True, "backend": "uavnetsim", "upstream_revision": REVISION,
+        return {"selection_counts": dict(self.selection_counts), "enabled": True, "backend": "uavnetsim", "upstream_revision": REVISION,
                 "generated_packets": m["generated"], "received_packets": m["delivered"],
                 "packet_pdr_percent": m["pdr_percent"], "packet_e2e_delay_ms": m["e2e_delay_ms"],
                 "phy_successes": m["phy_success"], "phy_failures": m["phy_failure"],

@@ -46,6 +46,8 @@ def episode_metrics(record, num_uavs):
                "report_average_hops": "report_average_hops", "energy_blocked_transmissions": "energy_blocked"}
     result.update({f"network/{target}": network[source] for source, target in mapping.items() if source in network})
     result.update({f"learner/{key}": value for key, value in record.get("learner", {}).items()})
+    result.update({f"motion/{k}": v for k, v in record.get("motion_counts", {}).items()})
+    result.update({f"routing/{k}": v for k, v in network.get("selection_counts", {}).items()})
     result.update({f"reward/{k}": v for k, v in record.get("reward_components", {}).items()})
     counts = record.get("action_counts", {})
     result.update({f"action/{k}_fraction": counts[k] / opportunities for k in ("silent", "peer", "gcs") if k in counts})
@@ -198,6 +200,8 @@ class OnlineTracker:
                                  "episodes_completed": result["episodes"], "learner_updates": result["updates"],
                                  "episode_budget_complete": result.get("episode_budget_complete", True),
                                  "stop_reason": result.get("stop_reason", "episode_budget")})
+        if "reproducibility" in result:
+            self.run.summary["reproducibility"] = result["reproducibility"]
         artifact = self.checkpoint(result["checkpoint"], result, final=True)
         return {**metrics, **self.identity(), "checkpoint_artifact": artifact}
 

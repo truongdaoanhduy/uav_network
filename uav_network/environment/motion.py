@@ -4,7 +4,7 @@ import numpy as np
 from .geometry import segment_distance, segment_hits_circle
 
 
-def move_uavs(positions, velocities, acceleration, obstacles, config, disabled=None):
+def move_uavs(positions, velocities, acceleration, obstacles, config, disabled=None, diagnostics=None):
     w = config.world
     disabled = np.zeros(len(positions), dtype=bool) if disabled is None else disabled
     proposed_velocity = velocities + acceleration * w.max_accel_mps2 * w.dt_s
@@ -19,6 +19,7 @@ def move_uavs(positions, velocities, acceleration, obstacles, config, disabled=N
         if any(segment_hits_circle(start, end, o[:2], o[2] + w.obstacle_clearance_m)
                for o in obstacles):
             blocked[i] = True
+    obstacle_blocked = blocked.copy()
     # Re-check after rejection: a moving peer can hit a UAV which just stopped.
     for _ in range(len(positions) + 1):
         resolved = np.where(blocked[:, None], positions, proposed)
@@ -32,4 +33,9 @@ def move_uavs(positions, velocities, acceleration, obstacles, config, disabled=N
             break
     resolved = np.where(blocked[:, None], positions, proposed)
     actual_velocity = (resolved - positions) / w.dt_s
+    if diagnostics is not None:
+        diagnostics.update(obstacle_blocks=int((obstacle_blocked & ~disabled).sum()),
+                           peer_blocks=int((blocked & ~obstacle_blocked & ~disabled).sum()),
+                           commanded_stalls=int(((np.linalg.norm(acceleration, axis=1) > .1)
+                               & (np.linalg.norm(actual_velocity, axis=1) < 1e-8) & ~disabled).sum()))
     return resolved, actual_velocity, int((blocked & ~disabled).sum()), int((clipped & ~disabled).sum())

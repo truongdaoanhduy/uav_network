@@ -43,6 +43,7 @@ class SensorConfig:
 @dataclass
 class NetworkConfig:
     enabled: bool = True
+    receiver_admission_mask: bool = True
     upstream_path: str = "third_party/UavNetSim"
     peer_range_m: float = 500.0
     gcs_range_m: float = 500.0
@@ -127,7 +128,7 @@ class RuntimeConfig:
     seed: int = 44
     eval_seed: int = 10044
     episodes: int = 1000
-    eval_episodes: int = 3
+    eval_episodes: int = 1
     device: str = "auto"
     torch_threads: int = 1
     output_dir: str = "outputs/run"

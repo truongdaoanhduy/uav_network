@@ -13,7 +13,7 @@ def propulsion_cost(previous_velocity, velocity, config):
     return power * dt
 
 
-def funded_motion(positions, velocities, acceleration, obstacles, battery, config):
+def funded_motion(positions, velocities, acceleration, obstacles, battery, config, diagnostics=None):
     """Stop unfunded moves, then recheck safety against every stationary peer.
 
     An unfunded full step consumes the remaining charge without displacement.
@@ -22,7 +22,7 @@ def funded_motion(positions, velocities, acceleration, obstacles, battery, confi
     alive = battery > 0 if config.energy.enabled else np.ones(len(battery), dtype=bool)
     disabled = ~alive
     for _ in range(len(battery) + 1):
-        result = move_uavs(positions, velocities, acceleration, obstacles, config, disabled)
+        result = move_uavs(positions, velocities, acceleration, obstacles, config, disabled, diagnostics)
         cost = propulsion_cost(velocities, result[1], config)
         unaffordable = alive & ~disabled & (cost > battery) if config.energy.enabled else disabled
         if not unaffordable.any():

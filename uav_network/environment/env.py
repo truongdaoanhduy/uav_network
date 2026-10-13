@@ -66,6 +66,7 @@ class SwarmSearchEnv:
         if self.config.network.enabled:
             from ..communication.backend import UavNetSimNetwork
             self.network = UavNetSimNetwork(self.config, self.reports, scene, self.seed, self.battery_j)
+        self.motion_counts = {"obstacle_blocks": 0, "peer_blocks": 0, "commanded_stalls": 0}
         self.reward_components = {}
         self.action_counts = {"silent": 0, "peer": 0, "gcs": 0, "saturated": 0}
         self._sense()
@@ -85,9 +86,12 @@ class SwarmSearchEnv:
         before_found = self.reports.known.any(axis=0).sum()
         before_delivery = self.reports.delivered.sum()
         before_expired, before_dropped = self.reports.expired, self.reports.dropped
+        motion_details = {}
         self.positions, self.velocities, blocked, clipped, flight_energy = funded_motion(
             self.positions, self.velocities, np.asarray(action.continuous)[:, :2],
-            self.obstacles, self.battery_j, self.config)
+            self.obstacles, self.battery_j, self.config, diagnostics=motion_details)
+        for key, value in motion_details.items():
+            self.motion_counts[key] += value
         self.propulsion_energy_j += flight_energy
         self.blocked_moves += blocked
         self.boundary_clips += clipped
@@ -133,7 +137,7 @@ class SwarmSearchEnv:
     def info(self):
         found, delivered = int(self.reports.known.any(axis=0).sum()), int(self.reports.delivered.sum())
         count = self.config.world.num_targets
-        return {"reward_components": dict(self.reward_components), "action_counts": dict(self.action_counts),
+        return {"motion_counts": dict(self.motion_counts), "reward_components": dict(self.reward_components), "action_counts": dict(self.action_counts),
                 "buffer_reports": sum(len(b) for b in self.reports.buffers),
                 "buffer_bytes": sum(self.reports.bytes_used(i) for i in range(self.config.world.num_uavs)),
                 "mean_speed_mps": float(np.linalg.norm(self.velocities, axis=1).mean()),

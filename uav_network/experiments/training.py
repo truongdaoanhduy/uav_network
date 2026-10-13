@@ -16,6 +16,7 @@ from ..environment.vector import make_vector, random_actions, unpack_info
 from .tracking import start_tracking, final_metrics
 from .lifecycle import graceful_termination
 from .continuation import restore_learner
+from .reproducibility import reproducibility_result
 from .diagnostics import TrainingDiagnostics, failure_report, evaluate_checkpoint
 
 
@@ -28,6 +29,10 @@ def seed_runtime(config):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = config.runtime.deterministic
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
     torch.set_num_threads(config.runtime.torch_threads)
     torch.use_deterministic_algorithms(config.runtime.deterministic)
 
@@ -217,6 +222,7 @@ def _train(config):
                   "startup_s": startup_s, "collection_wait_s": collection_wait_s, "learner_s": update_s,
                   "elapsed_s": elapsed, "joint_transitions_per_s": (global_step - initial["global_step"]) / elapsed,
                   "final_episode": history[-1] if history else None}
+        result["reproducibility"] = reproducibility_result(learner, history)
         if history:
             result.update(final_metrics(history))
         if tracker:

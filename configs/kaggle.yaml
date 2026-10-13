@@ -14,6 +14,8 @@ matd3:
   updates_per_step: 1
 runtime:
   seed: 44
+  eval_seed: 10044
+  eval_episodes: 1
   num_envs: 2
   episodes: 1000
   device: cuda
