@@ -1,0 +1,92 @@
+{
+  "checked_at_utc": "2026-10-14T18:22:36.656885+00:00",
+  "source_git_commit": "0ceb7f1779aee618fe8c59a23e7b045b02e9fe42",
+  "gpu_kernel_url": "https://www.kaggle.com/code/haibro1234/uavnet-train-20261014-181508-908e2d",
+  "cpu_handoff_configured": true,
+  "cpu_child_created": false,
+  "cpu_planned_url": "https://www.kaggle.com/code/haibro1234/uavnet-train-20261014-181508-908e2d-cpu",
+  "cpu_planned_enable_gpu": false,
+  "training": {
+    "algorithm": "masac",
+    "state": "running",
+    "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/ea73429e",
+    "summary": {
+      "global_step": 4096,
+      "train/updates": 0,
+      "train/episodes_completed": 0,
+      "run_started_at_utc": "2026-10-14T18:20:13.914176+00:00",
+      "kaggle_url": "https://www.kaggle.com/code/haibro1234/uavnet-train-20261014-181508-908e2d"
+    },
+    "runtime": {
+      "device": "cuda",
+      "replay_device": "cuda",
+      "num_envs": 4096,
+      "seed": 44,
+      "episodes": 4096,
+      "environment_backend": "warp_packet"
+    },
+    "tracking_evaluation_interval": 0,
+    "hardware": {
+      "torch": "2.11.0+cu128",
+      "python": "3.13.15",
+      "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+      "cuda_devices": [
+        {
+          "name": "Tesla T4",
+          "index": 0,
+          "memory_gib": 14.56219482421875,
+          "compute_capability": [
+            7,
+            5
+          ]
+        },
+        {
+          "name": "Tesla T4",
+          "index": 1,
+          "memory_gib": 14.56219482421875,
+          "compute_capability": [
+            7,
+            5
+          ]
+        }
+      ],
+      "logical_cpus": 4,
+      "available_cpus": 4,
+      "cuda_available": true,
+      "torch_cuda_build": "12.8"
+    }
+  },
+  "wandb_urls": {
+    "masac": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/ea73429e",
+    "matd3": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/501d6d1a"
+  },
+  "cpu_eval": {
+    "episodes": 30,
+    "seed": 2000000044,
+    "frame_stride": 5,
+    "fps": 10
+  },
+  "preflight_benchmarks": {
+    "masac": {
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/21985aea",
+      "wandb_state": "finished",
+      "status": "passed",
+      "cuda_pipeline_verified": true,
+      "target_t4_scenario_verified": true,
+      "critic_updates": 72,
+      "actor_updates": 72,
+      "critic_sample_ratio": 8
+    },
+    "matd3": {
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/f875eb85",
+      "wandb_state": "finished",
+      "status": "passed",
+      "cuda_pipeline_verified": true,
+      "target_t4_scenario_verified": true,
+      "critic_updates": 72,
+      "actor_updates": 36,
+      "critic_sample_ratio": 8
+    }
+  },
+  "state_scope": "Snapshot of the running GPU job. CPU child has not been submitted yet; completion is not claimed."
+}
