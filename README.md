@@ -343,3 +343,31 @@ blocks. Kaggle startup gates both CUDA tests and native mission regressions.
 Existing policies still need fresh training and same-seed evaluation after these
 fixes. Successful packet tests and finite CUDA updates do not prove convergence
 or energy optimality.
+
+## Train dài và visualize trong phiên CPU riêng
+
+`configs/motion-long.yaml`: 500 episode tổng mỗi thuật toán, tối đa 1000
+step/episode; giữ 2 env/learner và critic vmap của profile fast. Profile 100
+episode cũ vẫn dùng cho đối chiếu. Giới hạn thời gian train 10 giờ có thể dừng
+trước ngân sách episode; summary ghi rõ trạng thái.
+
+```bash
+.venv/bin/python -m uav_network kaggle launch --stage train \
+  --config configs/motion-long.yaml --account account_02 \
+  --required-gpu-hours 22 --timeout-seconds 39600 \
+  --credential-dataset haibro1234/uav-wandb-credential-masac50k-d59860c \
+  --cpu-visualize
+```
+
+GPU train/upload checkpoint W&B → tự submit kernel CPU riêng → PNG, MP4/GIF,
+metrics. Lấy URL CPU trong `cpu-visualization.json` của output job GPU.
+Chế độ này tắt evaluate giữa buổi và không render trong phiên GPU.
+Xem [luồng, cấu hình và số liệu tài nguyên](docs/gpu-cpu-visualization-20261014.md).
+
+Visualize checkpoint trên CPU local:
+
+```bash
+.venv/bin/python -m uav_network evaluate --checkpoint /path/to/final.pt \
+  --episodes 1 --seed 10044 --animate --frame-stride 5 --fps 10 \
+  --video-format auto --output-dir outputs/cpu-preview
+```

@@ -1,0 +1,101 @@
+{
+  "tested_commit": "60e18c08df88108bbc4cda3a93b52ffe9ca5b065",
+  "cpu_suite": {
+    "tests": 156,
+    "passed": 146,
+    "cuda_skipped": 10,
+    "seconds": 76.918
+  },
+  "kaggle_cuda_gate": {
+    "tests": 10,
+    "passed": 10,
+    "seconds": 53.888
+  },
+  "native_mission_gate": {
+    "tests": 8,
+    "passed": 8,
+    "seconds": 3.006
+  },
+  "handoff": {
+    "gpu_kernel_url": "https://www.kaggle.com/code/haibro1234/uavnet-validate-20261014-005513-3ce5a9",
+    "cpu_kernel_url": "https://www.kaggle.com/code/haibro1234/uavnet-validate-20261014-005513-3ce5a9-cpu",
+    "cpu_cuda_available": false,
+    "algorithms": [
+      "masac",
+      "matd3"
+    ],
+    "checkpoint_versions_match": true,
+    "png_and_video_exist": true
+  },
+  "cpu_hardware": {
+    "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+    "python": "3.13.15",
+    "logical_cpus": 4,
+    "available_cpus": 4,
+    "torch": "2.11.0+cpu",
+    "torch_cuda_build": null,
+    "cuda_available": false,
+    "cuda_devices": []
+  },
+  "cpu_api_metadata": {
+    "enable_gpu": false,
+    "is_private": true,
+    "only_wandb_credential_mounted": true
+  },
+  "algorithms": {
+    "masac": {
+      "episodes": 4,
+      "global_step": 160,
+      "updates": 77,
+      "checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-c303b243:v0",
+      "tracking_status": "finished",
+      "evaluation_device": "cpu",
+      "evaluation_seed": 10044,
+      "sampled_steps": [
+        0,
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40
+      ],
+      "video_bytes": 36862,
+      "video_stream": {
+        "width": 800,
+        "height": 800,
+        "avg_frame_rate": "10/1",
+        "nb_frames": "9"
+      }
+    },
+    "matd3": {
+      "episodes": 4,
+      "global_step": 160,
+      "updates": 77,
+      "checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-matd3-58934c30:v0",
+      "tracking_status": "finished",
+      "evaluation_device": "cpu",
+      "evaluation_seed": 10044,
+      "sampled_steps": [
+        0,
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40
+      ],
+      "video_bytes": 37800,
+      "video_stream": {
+        "width": 800,
+        "height": 800,
+        "avg_frame_rate": "10/1",
+        "nb_frames": "9"
+      }
+    }
+  }
+}
