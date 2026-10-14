@@ -3,10 +3,13 @@ import json
 
 
 def kernel_metadata(spec):
+    datasets = [spec["credential_dataset"]]
+    if spec.get("cpu_visualize"):
+        datasets.append(spec["pipeline_credential_dataset"])
     return {"id": spec["kernel_ref"], "title": spec["kernel_ref"].split("/")[-1].replace("-", " "),
             "code_file": "kernel.py", "language": "python", "kernel_type": "script",
-            "is_private": True, "enable_gpu": True, "enable_tpu": False,
-            "enable_internet": True, "dataset_sources": [spec["credential_dataset"]],
+            "is_private": True, "enable_gpu": spec.get("stage") != "visualize", "enable_tpu": False,
+            "enable_internet": True, "dataset_sources": datasets,
             "competition_sources": [], "kernel_sources": [], "model_sources": []}
 
 
@@ -20,6 +23,8 @@ import sys
 import time
 
 SPEC = __SPEC__
+if SPEC["stage"] == "visualize":
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
 os.environ["UAV_JOB_STARTED_AT"] = str(time.monotonic())
 os.environ["UAV_JOB_STARTED_AT_UTC"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 os.environ["UAV_JOB_SUBMITTED_AT_UTC"] = SPEC.get("submitted_at_utc", "unknown")
@@ -47,10 +52,16 @@ key = credential.read_text().strip() if credential.suffix == ".txt" else json.lo
 if not key:
     raise RuntimeError("Empty private W&B credential")
 os.environ["WANDB_API_KEY"] = key
+if SPEC.get("cpu_visualize"):
+    tokens = list(inputs.rglob("uav_cpu_launch_token.txt"))
+    if len(tokens) != 1 or not tokens[0].read_text().strip():
+        raise RuntimeError("Expected one private CPU launch credential")
+    os.environ["KAGGLE_API_TOKEN"] = tokens[0].read_text().strip()
 spec_file = Path("/kaggle/working/job.json")
 spec_file.write_text(json.dumps(SPEC, indent=2))
 python = root / ".venv/bin/python"
 # The remote runner uses CUDA_VISIBLE_DEVICES per independent learner.
-subprocess.run([str(python), "-m", "uav_network.cloud.remote", "--spec", str(spec_file)], cwd=root, check=True)
+runner = "uav_network.cloud.visualize" if SPEC["stage"] == "visualize" else "uav_network.cloud.remote"
+subprocess.run([str(python), "-m", runner, "--spec", str(spec_file)], cwd=root, check=True)
 '''
     return script.replace("__SPEC__", repr(spec))

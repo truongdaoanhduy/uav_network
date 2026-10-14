@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import time
 from tempfile import TemporaryDirectory
 
 from .credentials import parse_quota
@@ -45,7 +46,7 @@ def resolve_username(account):
     raise RuntimeError("Cannot resolve the selected account username from owned Kaggle resources")
 
 
-def verify_credential_dataset(account, credentials, ref, username, timeout=120):
+def private_dataset_info(account, ref, username):
     if ref.split("/", 1)[0] != username:
         raise ValueError("Credential dataset must belong to the authenticated account")
     saved = os.environ.get("KAGGLE_API_TOKEN")
@@ -56,13 +57,19 @@ def verify_credential_dataset(account, credentials, ref, username, timeout=120):
         api.authenticate()
         rows = api.dataset_list(mine=True, search=ref.split("/", 1)[1])
         dataset = next((r for r in rows if r.ref == ref), None)
-        if dataset is None or dataset.is_private is not True:
-            raise RuntimeError("W&B credential source must be a verified private owned dataset")
+        if dataset is not None and dataset.is_private is not True:
+            raise RuntimeError("Credential source must be a verified private owned dataset")
     finally:
         if saved is None:
             os.environ.pop("KAGGLE_API_TOKEN", None)
         else:
             os.environ["KAGGLE_API_TOKEN"] = saved
+    return dataset
+
+
+def private_dataset_file(account, ref, username, filenames, timeout=120, only_selected=False):
+    if private_dataset_info(account, ref, username) is None:
+        raise RuntimeError("Credential source must be a verified private owned dataset")
     files, page = [], []
     while True:
         lines = run_kaggle(["datasets", "files", ref, "--format", "json", *page], account).splitlines()
@@ -71,19 +78,58 @@ def verify_credential_dataset(account, credentials, ref, username, timeout=120):
         if not token:
             break
         page = ["--page-token", token]
-    selected = [f["name"] for f in files if Path(f["name"]).name in {"wandb_api_key.txt", "wandb_secret.json"}]
+    selected = [f["name"] for f in files if Path(f["name"]).name in filenames]
+    if only_selected and len(files) != 1:
+        raise RuntimeError("CPU-flow credential dataset must contain only its one required credential file")
     if len(selected) != 1:
-        raise RuntimeError("Credential dataset needs exactly one W&B key file")
+        raise RuntimeError("Credential dataset needs exactly one selected credential file")
     with TemporaryDirectory(prefix="uav-wandb-check-") as temp:
         Path(temp).chmod(0o700)
         run_kaggle(["datasets", "download", "-d", ref, "-f", selected[0], "-p", temp, "-q"], account, timeout=timeout)
-        candidates = list(Path(temp).rglob("wandb_api_key.txt")) + list(Path(temp).rglob("wandb_secret.json"))
+        candidates = [p for p in Path(temp).rglob("*") if p.is_file() and p.name in filenames]
         if len(candidates) != 1:
-            raise RuntimeError("Credential dataset needs exactly one W&B key file")
-        path = candidates[0]
-        key = path.read_text().strip() if path.suffix == ".txt" else json.loads(path.read_text())["api_key"]
-        if key != credentials.wandb_key:
-            raise RuntimeError("Private dataset W&B key does not match local key.txt")
+            raise RuntimeError("Credential dataset needs exactly one selected credential file")
+        return candidates[0].name, candidates[0].read_text().strip()
+
+
+def verify_credential_dataset(account, credentials, ref, username, timeout=120, only_selected=False):
+    name, value = private_dataset_file(account, ref, username,
+                                       {"wandb_api_key.txt", "wandb_secret.json"}, timeout, only_selected)
+    key = value if name.endswith(".txt") else json.loads(value)["api_key"]
+    if key != credentials.wandb_key:
+        raise RuntimeError("Private dataset W&B key does not match local key.txt")
+
+
+def _ensure_single_credential(account, username, slug, title, filename, value, timeout):
+    ref = username + "/" + slug
+    if private_dataset_info(account, ref, username) is None:
+        with TemporaryDirectory(prefix="uav-cpu-launch-") as temp:
+            folder = Path(temp)
+            folder.chmod(0o700)
+            (folder / filename).write_text(value)
+            (folder / "dataset-metadata.json").write_text(json.dumps({
+                "id": ref, "title": title, "licenses": [{"name": "CC0-1.0"}]}))
+            run_kaggle(["datasets", "create", "-p", temp, "-q"], account, timeout=timeout)
+        deadline = time.monotonic() + timeout
+        while private_dataset_info(account, ref, username) is None:
+            if time.monotonic() >= deadline:
+                raise TimeoutError("Private CPU credential dataset was not ready")
+            time.sleep(2)
+    _, token = private_dataset_file(account, ref, username, {filename}, timeout, only_selected=True)
+    if token != value:
+        raise RuntimeError("Private CPU-flow credential does not match the selected local credential")
+    return ref
+
+
+def ensure_pipeline_dataset(account, username, timeout=120):
+    """Only this selected account's token; never the full local key.txt."""
+    return _ensure_single_credential(account, username, "uav-cpu-launch-credential",
+                                      "UAV CPU Launch Credential", "uav_cpu_launch_token.txt", account.token, timeout)
+
+
+def ensure_cpu_wandb_dataset(account, credentials, username, timeout=120):
+    return _ensure_single_credential(account, username, "uav-cpu-wandb-credential",
+                                      "UAV CPU W&B Credential", "wandb_api_key.txt", credentials.wandb_key, timeout)
 
 
 def kernel_status(ref, account):

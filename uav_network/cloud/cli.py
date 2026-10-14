@@ -7,7 +7,7 @@ import subprocess
 from uuid import uuid4
 
 from ..configuration import load_config
-from .client import account_quotas, kernel_status, pushed_kernel_ref, resolve_username, run_kaggle, verify_credential_dataset
+from .client import account_quotas, ensure_cpu_wandb_dataset, ensure_pipeline_dataset, kernel_status, pushed_kernel_ref, resolve_username, run_kaggle, verify_credential_dataset
 from .credentials import load_credentials, select_account
 from .kernel import kernel_metadata, kernel_script
 
@@ -32,6 +32,9 @@ def launch(args, credentials):
     verify_credential_dataset(account, credentials, args.credential_dataset, username, args.credential_timeout_seconds)
     config_file = args.config or ("configs/kaggle-smoke.yaml" if args.stage == "validate" else "configs/kaggle.yaml")
     config = load_config(ROOT / config_file, args.overrides)
+    cpu_visualize = getattr(args, "cpu_visualize", False)
+    if cpu_visualize and not config.tracking.log_checkpoint:
+        raise ValueError("CPU visualization requires tracking.log_checkpoint=true for checkpoint transfer")
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     token = uuid4().hex[:6]
@@ -46,6 +49,12 @@ def launch(args, credentials):
             "entity": credentials.entity if config.tracking.entity == "auto" else config.tracking.entity,
             "project": credentials.project if config.tracking.project == "auto" else config.tracking.project,
             "stage": args.stage, "config": config_file, "overrides": args.overrides, "runs": runs}
+    if cpu_visualize:
+        spec.update({"cpu_visualize": True,
+                     "pipeline_credential_dataset": ensure_pipeline_dataset(account, username),
+                     "cpu_credential_dataset": ensure_cpu_wandb_dataset(account, credentials, username),
+                     "cpu_eval": {"episodes": config.runtime.eval_episodes, "seed": config.runtime.eval_seed,
+                                  "frame_stride": 5, "fps": 10}})
     serialized = json.dumps(spec)
     if any(secret in serialized for secret in [credentials.wandb_key, *(a.token for a in credentials.accounts)]):
         raise RuntimeError("Refusing a job manifest containing credentials")
@@ -78,6 +87,8 @@ def main(argv=None):
     submit.add_argument("--algorithm", choices=["both", "masac", "matd3"], default="both")
     submit.add_argument("--warm-start-artifact", action="append", default=[], metavar="ALGORITHM=ARTIFACT_REF")
     submit.add_argument("--config")
+    submit.add_argument("--cpu-visualize", action="store_true",
+                        help="After uploaded training checkpoints, submit a separate CPU-only visualization job")
     submit.add_argument("--set", dest="overrides", action="append", default=[])
     submit.add_argument("--accelerator", default="NvidiaTeslaT4")
     submit.add_argument("--timeout-seconds", type=int, default=39600)

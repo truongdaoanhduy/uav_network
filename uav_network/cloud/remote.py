@@ -43,6 +43,7 @@ def stop_process_tree(process, grace_seconds=20):
 def learner_command(spec, algorithm, run, gpu_index, destination, max_seconds=None):
     env = dict(os.environ, CUDA_VISIBLE_DEVICES=str(gpu_index),
                WANDB_RUN_ID=run["id"], WANDB_NAME=run["name"])
+    env.pop("KAGGLE_API_TOKEN", None)
     if spec.get("stage") == "train":
         env["UAV_BENCHMARK_FILE"] = str(Path(destination).parents[1] / f"{algorithm}-benchmark.json")
     if algorithm in spec.get("warm_start_artifacts", {}):
@@ -51,6 +52,8 @@ def learner_command(spec, algorithm, run, gpu_index, destination, max_seconds=No
             "--algorithm", algorithm]
     overrides = [*spec["overrides"], "tracking.enabled=true", "runtime.device=cuda",
                  "runtime.replay_device=cuda", f"runtime.output_dir={destination}"]
+    if spec.get("cpu_visualize"):
+        overrides.append("tracking.evaluation_interval=0")
     if algorithm in spec.get("warm_start_paths", {}):
         overrides.append(f"runtime.warm_start_checkpoint={spec['warm_start_paths'][algorithm]}")
     if max_seconds is not None:
@@ -147,7 +150,17 @@ def finalize_runs(spec, processes, output):
     (output / "job-result.json").write_text(json.dumps(results, indent=2))
     if failures:
         (output / "job-failures.json").write_text(json.dumps(failures, indent=2))
-    for algorithm in results:
+    cpu_failure = None
+    if spec.get("cpu_visualize"):
+        eligible = {a: result for a, result in results.items() if a not in failures}
+        if eligible:
+            from .visualize import submit_visualization
+            try:
+                submit_visualization(spec, eligible, output)
+            except Exception as error:
+                cpu_failure = {"error_type": type(error).__name__}
+                (output / "cpu-visualization-failure.json").write_text(json.dumps(cpu_failure, indent=2))
+    for algorithm in (() if spec.get("cpu_visualize") else results):
         folder = output / spec["stage"] / algorithm
         with (output / f"{algorithm}-evaluation.log").open("w") as log:
             try:
@@ -161,6 +174,8 @@ def finalize_runs(spec, processes, output):
         (output / "evaluation-failures.json").write_text(json.dumps(evaluation_failures, indent=2))
     print(json.dumps({a: {k: v.get(k) for k in ("episodes", "global_step", "updates", "wandb_url")}
                       for a, v in results.items()}, indent=2), flush=True)
+    if cpu_failure:
+        raise RuntimeError(f"CPU visualization submission failed; learner failures: {list(failures)}. Training results retained")
     if failures or evaluation_failures:
         raise RuntimeError(f"Learner failures: {list(failures)}; evaluation failures: {list(evaluation_failures)}. Results retained")
     return results

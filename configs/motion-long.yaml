@@ -35,6 +35,7 @@ runtime:
   max_train_seconds: 36000
   output_dir: outputs/motion-long
 tracking:
+  evaluation_interval: 0
   enabled: true
   entity: auto
   project: auto
