@@ -72,5 +72,3 @@ def pop(s: WorldState, e: int):
                 break
             swap(s,e,i,child)
             i = child
-
-
