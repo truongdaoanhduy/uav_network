@@ -153,7 +153,7 @@ def poll_delay(s: WorldState, p: WorldParams, e: int, now: wp.float64) -> wp.flo
     delay = p.queue_poll
     if (s.coalesce_step[e] != 0 and wp.floor(p.queue_poll) == p.queue_poll
         and wp.floor(now) == now):
-        end = (wp.float64(s.steps[e])*p.dt+p.dt)*wp.float64(1e6)
+        end = (s.mission_time[e]+p.dt)*wp.float64(1e6)
         delay *= wp.max(wp.float64(1),wp.ceil((end-now)/p.queue_poll)-wp.float64(1))
     return delay
 
@@ -336,6 +336,7 @@ def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32))
         s.packet_sequence[e] = wp.int64(0)
         s.report_sequence[e] = wp.int64(0)
         s.packet_time[e] = wp.float64(0)
+        s.mission_time[e] = wp.float64(0)
         s.packet_delay_sum[e] = wp.float64(0)
         s.report_delay_sum[e] = wp.float64(0)
         s.report_hop_sum[e] = wp.float64(0)
@@ -401,7 +402,7 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
                 destination: wp.array2d(dtype=wp.int64)):
     e = wp.tid()
     now = s.packet_time[e]
-    end = (wp.float64(s.steps[e])*p.dt+p.dt)*wp.float64(1e6)
+    end = (s.mission_time[e]+p.dt)*wp.float64(1e6)
     clear_pending(s,p,e,now/wp.float64(1e6))
     for source in range(p.n):
         index = int(destination[e,source])

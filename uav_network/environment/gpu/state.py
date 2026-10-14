@@ -130,6 +130,7 @@ class WorldState:
     packet_sequence: wp.array(dtype=wp.int64)
     report_sequence: wp.array(dtype=wp.int64)
     packet_time: wp.array(dtype=wp.float64)
+    mission_time: wp.array(dtype=wp.float64)
     packet_delay_sum: wp.array(dtype=wp.float64)
     report_delay_sum: wp.array(dtype=wp.float64)
     report_hop_sum: wp.array(dtype=wp.float64)
@@ -319,7 +320,7 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False):
         shapes[name] = ((e,), wp.int32)
     for name in ("event_sequence","packet_sequence","report_sequence"):
         shapes[name] = ((e,), wp.int64)
-    for name in ("packet_time","packet_delay_sum","report_delay_sum","report_hop_sum"):
+    for name in ("packet_time","mission_time","packet_delay_sum","report_delay_sum","report_hop_sum"):
         shapes[name] = ((e,), wp.float64)
     groups = (
         (p.event_capacity, wp.float64, "event_time"),

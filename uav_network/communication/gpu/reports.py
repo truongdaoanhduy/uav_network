@@ -102,7 +102,10 @@ def begin_step(s: WorldState, p: WorldParams):
     s.before[e,6] = comm
     s.before[e,7] = wp.float64(s.clipped[e])
     s.trace_count[e] = 0
-    expire(s,p,e,wp.float64(s.steps[e])*p.dt)
+    # Materialize native mission time in a prior kernel so CUDA cannot contract
+    # steps*dt + dt into an FMA with different IEEE-754 rounding than Python.
+    s.mission_time[e] = wp.float64(s.steps[e])*p.dt
+    expire(s,p,e,s.mission_time[e])
 
 
 @wp.func
