@@ -143,4 +143,3 @@ def legacy_matd3_update(self, batch, collect_metrics=True):
                            "critic_loss": loss, "critic_grad_norm": critic_grad,
                            "critic_gradient_clipped": (critic_grad > a.grad_clip_norm).float(),
                            "policy_updated": torch.tensor(float(policy_updated), device=self.device)})
-
