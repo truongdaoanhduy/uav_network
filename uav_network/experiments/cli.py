@@ -27,6 +27,14 @@ def main():
     evaluation.add_argument("--frame-stride", type=int, default=5)
     evaluation.add_argument("--fps", type=int, default=10)
     evaluation.add_argument("--video-format", choices=["auto", "mp4", "gif"], default="auto")
+    comparison = commands.add_parser("compare", help="Compare two checkpoints on the same disjoint CPU test scenarios")
+    comparison.add_argument("--left", required=True, help="Left policy checkpoint")
+    comparison.add_argument("--right", required=True, help="Right policy checkpoint")
+    comparison.add_argument("--output-dir", required=True)
+    comparison.add_argument("--episodes", type=int, default=30)
+    comparison.add_argument("--seed", type=int, default=2000000044)
+    comparison.add_argument("--bootstrap-samples", type=int, default=2000)
+    comparison.add_argument("--animate", action="store_true")
     commands.add_parser("hardware", help="Show CPU affinity and CUDA devices usable by PyTorch")
     cloud = commands.add_parser("kaggle", help="Quota, private CUDA jobs and online W&B")
     cloud.add_argument("cloud_args", nargs=argparse.REMAINDER)
@@ -55,6 +63,10 @@ def main():
         from .dashboard import create_dashboard
         result = create_dashboard(load_config(args.config, args.overrides), args.run_ids,
                                   args.name, args.workspace_url, args.profile)
+    elif args.command == "compare":
+        from .comparison import compare_checkpoints
+        result = compare_checkpoints(args.left, args.right, args.output_dir, args.episodes,
+                                     args.seed, args.bootstrap_samples, args.animate)
     elif args.command == "evaluate":
         from .evaluation import evaluate
         result = evaluate(args.checkpoint, args.episodes, args.output_dir, args.seed,

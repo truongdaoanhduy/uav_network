@@ -100,7 +100,13 @@ def private_dataset_file(account, ref, username, filenames, timeout=120, only_se
 def verify_credential_dataset(account, credentials, ref, username, timeout=120, only_selected=False):
     name, value = private_dataset_file(account, ref, username,
                                        {"wandb_api_key.txt", "wandb_secret.json"}, timeout, only_selected)
-    key = value if name.endswith(".txt") else json.loads(value)["api_key"]
+    if name.endswith(".txt"):
+        key = value
+    else:
+        credential = json.loads(value)
+        if only_selected and (not isinstance(credential, dict) or set(credential) != {"api_key"}):
+            raise CredentialFileSetError("CPU W&B credential JSON must contain only api_key")
+        key = credential["api_key"]
     if key != credentials.wandb_key:
         raise RuntimeError("Private dataset W&B key does not match local key.txt")
 

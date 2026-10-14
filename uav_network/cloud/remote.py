@@ -127,6 +127,44 @@ def pql_benchmarks(spec, config, output):
     return results
 
 
+def comparison_benchmarks(spec, config, output):
+    rounds = max(40, config.pql.warmup_collection_steps + 8,
+                 math.ceil(max(getattr(config, a).batch_size for a in spec["runs"]) /
+                           config.runtime.num_envs) + 1)
+    path = output / "comparison-benchmark.json"
+    args = [sys.executable, "scripts/compare_training_gpu.py", "--config", spec["config"],
+            "--algorithms", *spec["runs"], "--steps", str(rounds), "--output", str(path)]
+    for override in [*spec["overrides"], "runtime.device=cuda", "runtime.replay_device=cuda"]:
+        args += ["--set", override]
+    env = dict(os.environ)
+    for key in ("KAGGLE_API_TOKEN", "WANDB_RUN_ID", "WANDB_NAME"):
+        env.pop(key, None)
+    with (output / "comparison-benchmark.log").open("w") as log:
+        completed = subprocess.run(args, env=env, stdout=log, stderr=subprocess.STDOUT)
+    if not path.is_file():
+        raise RuntimeError("GPU comparison produced no report; inspect comparison-benchmark.log")
+    report = json.loads(path.read_text())
+    report["runner_exit_code"] = getattr(completed, "returncode", None)
+    if not report.get("results"):
+        raise RuntimeError("GPU comparison produced no cases")
+    expected = {(algorithm, case) for algorithm in spec["runs"]
+                for case in ("legacy", "pql-single", "pql-dual")}
+    actual = {(row.get("algorithm"), row.get("case")) for row in report["results"]}
+    complete = actual == expected and len(report["results"]) == len(expected)
+    recorded_statuses = {row.get("status") for row in report["results"]}
+    expected_exit = 1 if "oom" in recorded_statuses else 0 if "passed" in recorded_statuses else 2
+    infrastructure_ok = (report["runner_exit_code"] == expected_exit
+                         and recorded_statuses <= {"passed", "oom", "unavailable"})
+    report["comparison_completed"] = complete and infrastructure_ok
+    if not report["comparison_completed"]:
+        report["gpu_comparison_verified"] = False
+    # Keep every requested OOM at the original batch; interrupted runs cannot claim completion.
+    (output / "job-result.json").write_text(json.dumps(report, indent=2))
+    if not report["comparison_completed"]:
+        raise RuntimeError("GPU comparison incomplete or interrupted; partial results retained")
+    return report
+
+
 def run_job(spec):
     if not torch.cuda.is_available():
         raise RuntimeError("Kaggle job requires usable CUDA; refusing a CPU fallback")
@@ -143,6 +181,10 @@ def run_job(spec):
         with (output / log_name).open("w") as log:
             subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests",
                             "-p", pattern, "-v"], stdout=log, stderr=subprocess.STDOUT, check=True)
+    if spec.get("compare_legacy"):
+        if spec["stage"] != "benchmark" or not config.pql.enabled:
+            raise ValueError("Matched comparison only supports the PQL benchmark stage")
+        return comparison_benchmarks(spec, config, output)
     if spec["stage"] == "benchmark" and not config.pql.enabled:
         raise ValueError("benchmark cloud stage requires pql.enabled=true")
     if config.pql.enabled and spec["stage"] in {"train", "benchmark"}:
@@ -165,6 +207,7 @@ def run_job(spec):
     count = torch.cuda.device_count()
     processes = []
     logs = []
+    scheduling_error = None
     try:
         for index, (algorithm, run) in enumerate(spec["runs"].items()):
             slots, visible = gpu_allocation(config, count, index)
@@ -178,12 +221,20 @@ def run_job(spec):
             processes.append(subprocess.Popen(args, env=env, stdout=log, stderr=subprocess.STDOUT,
                                               start_new_session=True))
         wait_all(processes)
+    except Exception as error:
+        scheduling_error = error
+        (output / "job-scheduling-failure.json").write_text(json.dumps(
+            {"algorithm": algorithm, "error_type": type(error).__name__}, indent=2))
     finally:
         for process in processes:
             stop_process_tree(process)
         for log in logs:
             log.close()
-    return finalize_runs(spec, processes, output)
+    try:
+        return finalize_runs(spec, processes, output)
+    finally:
+        if scheduling_error is not None:
+            raise scheduling_error
 
 
 def finalize_runs(spec, processes, output):

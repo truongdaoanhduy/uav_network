@@ -81,6 +81,12 @@ def run_visualization(spec, output=Path("/kaggle/working")):
         except Exception as error:
             failures[algorithm] = {"error_type": type(error).__name__}
         (output / "visualization-result.json").write_text(json.dumps(results, indent=2, allow_nan=False))
+    if "masac" in results and "matd3" in results:
+        from ..experiments.comparison import compare_evaluations, save_comparison
+        try:
+            save_comparison(compare_evaluations(results["masac"], results["matd3"]), output / "visualize")
+        except Exception as error:
+            failures["comparison"] = {"error_type": type(error).__name__}
     if failures:
         (output / "visualization-failures.json").write_text(json.dumps(failures, indent=2))
         raise RuntimeError("CPU visualization failures: " + ", ".join(failures))

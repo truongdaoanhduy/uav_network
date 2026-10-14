@@ -120,6 +120,10 @@ def evaluate_checkpoint(config, checkpoint, episode, step, tracker, diagnostics)
         result = json.loads((folder / "metrics.json").read_text())
         metrics = {f"eval/{key}": result[key] for key in
                    ("mean_return", "success_rate", "mean_search_rate_percent", "mean_delivery_rate_percent")}
+        for name, summary in result.get("metric_summary", {}).items():
+            value = summary.get("mean", summary.get("value"))
+            if value is not None:
+                metrics[f"eval/{name}"] = value
         metrics.update({"eval/episodes": result["episodes"], "eval/seed": config.runtime.eval_seed,
                         "eval/checkpoint_episode": episode})
         tracker.diagnostic(metrics, step)

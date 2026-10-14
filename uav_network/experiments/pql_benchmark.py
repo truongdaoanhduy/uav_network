@@ -10,8 +10,9 @@ import time
 import numpy as np
 import torch
 
-from ..environment.vector import make_vector, random_actions
+from ..environment.vector import make_vector, random_actions, unpack_info
 from .hardware import hardware_info
+from .gpu_resources import GPUResourceSampler
 from .pql_system import PQLSystem
 from .tracking import start_tracking
 from .training import seed_runtime
@@ -50,6 +51,11 @@ def benchmark_pql(config, steps=40):
         for index in range(torch.cuda.device_count()):
             torch.cuda.reset_peak_memory_stats(index)
     engine = vector = tracker = None
+    sampler = GPUResourceSampler()
+    sampler.start()
+    collected_s = measured_end = None
+    completed_episodes = reset_collections = 0
+    episode_records = []
     started = time.perf_counter()
     report = {"status": "failed", "cuda_pipeline_verified": False, "target_t4_scenario_verified": False,
               "source_git_commit": os.environ.get("UAV_GIT_COMMIT", "local"),
@@ -67,6 +73,9 @@ def benchmark_pql(config, steps=40):
         report["startup_s"] = time.perf_counter() - started
         rng = np.random.default_rng(c.runtime.seed + 1)
         next_seed = c.runtime.seed + c.runtime.num_envs
+        if torch.cuda.is_available():
+            for index in range(torch.cuda.device_count()):
+                torch.cuda.synchronize(index)
         collected_s = time.perf_counter()
         for iteration in range(steps):
             begin = time.perf_counter()
@@ -86,16 +95,30 @@ def benchmark_pql(config, steps=40):
             obs = following
             done = terminated | truncated
             indices = list(infos["device_episode_infos"]) if device_env else np.flatnonzero(done).tolist()
-            if indices:
+            for index in indices:
+                completed_episodes += 1
+                episode_records.append({"episode": completed_episodes, "worker": int(index),
+                                        "global_step": (iteration + 1) * c.runtime.num_envs,
+                                        **unpack_info(infos, index)})
+            if indices and iteration < steps - 1:
+                reset_collections += 1
                 seeds = [None] * c.runtime.num_envs
                 for index in indices:
                     seeds[index] = next_seed
                     next_seed += 1
                 obs, _ = vector.reset(seed=seeds, options={"reset_mask": done.cpu().numpy() if device_env else done})
         engine.flush()
-        elapsed = time.perf_counter() - collected_s
+        if torch.cuda.is_available():
+            for index in range(torch.cuda.device_count()):
+                torch.cuda.synchronize(index)
+        measured_end = time.perf_counter()
+        elapsed = measured_end - collected_s
+        with (output / "episodes.jsonl").open("w") as stream:
+            for record in episode_records:
+                stream.write(json.dumps(record, allow_nan=False) + "\n")
         metrics = engine.metrics()
-        report.update(status="passed", elapsed_s=elapsed,
+        report.update(status="passed", elapsed_s=elapsed, completed_episodes=completed_episodes,
+                      reset_collections=reset_collections,
                       collector_iterations_per_s=steps / elapsed,
                       joint_transitions_per_s=steps * c.runtime.num_envs / elapsed,
                       critic_updates=engine.critic.updates, actor_updates=engine.policy.actor_updates,
@@ -131,6 +154,9 @@ def benchmark_pql(config, steps=40):
         report.update(status="oom" if isinstance(cause, torch.OutOfMemoryError) else "failed",
                       error_type=type(cause).__name__, error=str(cause), peak_memory=peak_memory())
     finally:
+        report["gpu_resources"] = sampler.finish(
+            started if collected_s is None else collected_s,
+            time.perf_counter() if measured_end is None else measured_end)
         try:
             if engine:
                 engine.close()

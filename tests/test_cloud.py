@@ -126,6 +126,26 @@ class CloudTests(unittest.TestCase):
                 verify_credential_dataset(account, credentials, dataset.ref, "owner")
         self.assertEqual(len(calls), 3)
 
+    def test_cpu_credential_json_rejects_unrelated_fields(self):
+        from uav_network.cloud.client import CredentialFileSetError, verify_credential_dataset
+        credentials = SimpleNamespace(wandb_key="test-wandb-key")
+        bundled = json.dumps({"api_key": credentials.wandb_key, "hf_token": "test-unrelated-token"})
+        with patch("uav_network.cloud.client.private_dataset_file",
+                   return_value=("wandb_secret.json", bundled)):
+            with self.assertRaises(CredentialFileSetError):
+                verify_credential_dataset(None, credentials, "owner/private", "owner", only_selected=True)
+            # The GPU launcher can still use its existing bundled credential input.
+            verify_credential_dataset(None, credentials, "owner/private", "owner")
+
+    def test_cpu_credential_verification_accepts_canonical_json_or_text(self):
+        from uav_network.cloud.client import verify_credential_dataset
+        credentials = SimpleNamespace(wandb_key="test-wandb-key")
+        for name, content in (("wandb_secret.json", json.dumps({"api_key": credentials.wandb_key})),
+                              ("wandb_api_key.txt", credentials.wandb_key)):
+            with self.subTest(name=name), patch("uav_network.cloud.client.private_dataset_file",
+                                               return_value=(name, content)):
+                verify_credential_dataset(None, credentials, "owner/private", "owner", only_selected=True)
+
     def test_duplicate_wandb_files_on_separate_pages_are_rejected_before_download(self):
         from uav_network.cloud.client import verify_credential_dataset
         credentials = self.credentials()

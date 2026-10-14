@@ -7,6 +7,7 @@ import torch
 from ..algorithms.checkpoints import load_policy
 from ..environment.env import SwarmSearchEnv
 from .rendering import animation_frame, render_animation, render_episode
+from .comparison_metrics import MissionMetrics, evaluation_protocol, summarize_metrics
 
 
 def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=False,
@@ -15,7 +16,10 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=Fals
         raise ValueError("frame_stride and fps must be positive integers")
     if video_format not in {"auto", "mp4", "gif"}:
         raise ValueError("video_format must be auto, mp4 or gif")
-    learner = load_policy(checkpoint, device="cpu")
+    saved = torch.load(checkpoint, map_location="cpu", weights_only=True)
+    progress = dict(saved.get("progress", {}))
+    learner = load_policy(checkpoint, device="cpu", payload=saved)
+    del saved
     config = learner.config
     torch.set_num_threads(config.runtime.torch_threads)
     episodes = config.runtime.eval_episodes if episodes is None else episodes
@@ -36,17 +40,21 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=Fals
         for episode in range(episodes):
             obs, _ = env.reset(seed=seed + episode)
             paths = [env.positions.copy()]
+            mission = MissionMetrics(config, env.positions, env.obstacles,
+                                     env.reports.known.any(axis=0), env.reports.delivered)
             frames = [animation_frame(env)] if animate and episode == episodes - 1 else []
             episode_return = 0.0
             while True:
                 obs, reward, terminated, truncated, info = env.step(learner.act(obs, deterministic=True))
                 episode_return += reward
                 paths.append(env.positions.copy())
+                mission.observe(env.positions, env.reports.known.any(axis=0), env.reports.delivered, env.steps)
                 if animate and episode == episodes - 1 and (env.steps % frame_stride == 0 or terminated or truncated):
                     frames.append(animation_frame(env))
                 if terminated or truncated:
                     records.append({"episode": episode + 1, "seed": seed + episode,
-                                    "return": episode_return, "episode_length": env.steps, **info})
+                                    "return": episode_return, "episode_length": env.steps, **info,
+                                    "comparison_metrics": mission.finish(info, episode_return)})
                     break
         preview = render_episode(env, paths, output / "final_episode.png")
         result = {"algorithm": learner.algorithm, "episodes": episodes, "device": "cpu", "render_path": preview,
@@ -55,6 +63,8 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=Fals
                   "success_rate": float(np.mean([r["success"] for r in records])),
                   "mean_search_rate_percent": float(np.mean([r["search_rate_percent"] for r in records])),
                   "mean_delivery_rate_percent": float(np.mean([r["delivery_rate_percent"] for r in records])),
+                  "protocol": evaluation_protocol(config, [r["seed"] for r in records], progress),
+                  "metric_summary": summarize_metrics(records),
                   "records": records}
         if animate:
             result["animation_path"] = render_animation(env, paths, frames, output / "final_episode", fps, video_format)

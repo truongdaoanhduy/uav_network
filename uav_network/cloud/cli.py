@@ -33,6 +33,11 @@ def launch(args, credentials):
     config_file = args.config or ("configs/kaggle-smoke.yaml" if args.stage == "validate" else "configs/kaggle.yaml")
     config = load_config(ROOT / config_file, args.overrides)
     cpu_visualize = getattr(args, "cpu_visualize", False)
+    compare_legacy = getattr(args, "compare_legacy", False)
+    if compare_legacy and (args.stage != "benchmark" or not config.pql.enabled):
+        raise ValueError("Matched comparison requires --stage benchmark and pql.enabled=true")
+    if cpu_visualize and args.stage == "benchmark":
+        raise ValueError("CPU visualization requires a training/validate stage that creates checkpoints")
     if cpu_visualize and not config.tracking.log_checkpoint:
         raise ValueError("CPU visualization requires tracking.log_checkpoint=true for checkpoint transfer")
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
@@ -49,6 +54,8 @@ def launch(args, credentials):
             "entity": credentials.entity if config.tracking.entity == "auto" else config.tracking.entity,
             "project": credentials.project if config.tracking.project == "auto" else config.tracking.project,
             "stage": args.stage, "config": config_file, "overrides": args.overrides, "runs": runs}
+    if compare_legacy:
+        spec["compare_legacy"] = True
     if cpu_visualize:
         try:
             verify_credential_dataset(account, credentials, args.credential_dataset, username,
@@ -86,6 +93,8 @@ def main(argv=None):
     commands.add_parser("accounts", help="Show verified quota without credentials")
     submit = commands.add_parser("launch")
     submit.add_argument("--stage", choices=["validate", "train", "benchmark"], default="train")
+    submit.add_argument("--compare-legacy", action="store_true",
+                        help="Benchmark matched legacy, single-GPU PQL and dual-GPU PQL; no production training")
     submit.add_argument("--account")
     submit.add_argument("--required-gpu-hours", type=float)
     submit.add_argument("--credential-dataset", required=True)

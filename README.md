@@ -379,3 +379,10 @@ and policy workers with bounded rate feedback. It preserves MASAC/MATD3 objectiv
 The 4096-env/batch8192 profile passed the exact two-T4 short benchmark;
 convergence remains unverified. See [measured validation](docs/pql-validation-20261014.md).
 See [configuration, benchmarking and resume](docs/pql-training.md).
+
+## Mission metrics and matched GPU comparison
+
+CPU `compare` evaluates two saved policies on the same test scenes and exports
+failure-aware delivery/time/energy/safety metrics with paired scenario intervals.
+See [flow, GPU resource measurement and comparison usage](docs/training-flow-comparison-20261014.md)
+and [primary-paper metric rationale](docs/algorithm-comparison-research-20261014.md).
