@@ -126,6 +126,37 @@ class CloudTests(unittest.TestCase):
                 verify_credential_dataset(account, credentials, dataset.ref, "owner")
         self.assertEqual(len(calls), 3)
 
+    def test_verified_single_credential_downloads_one_file_archive(self):
+        from uav_network.cloud.client import private_dataset_file
+        def kaggle(args, account, **kwargs):
+            if args[:2] == ["datasets", "files"]:
+                return json.dumps([{"name": "uav_cpu_launch_token.txt"}])
+            self.assertNotIn("-f", args)
+            self.assertIn("--unzip", args)
+            folder = Path(args[args.index("-p") + 1])
+            (folder / "uav_cpu_launch_token.txt").write_text("test-launch-token")
+            return ""
+        with patch("uav_network.cloud.client.private_dataset_info", return_value=object()), \
+             patch("uav_network.cloud.client.run_kaggle", side_effect=kaggle):
+            name, value = private_dataset_file(None, "owner/private", "owner",
+                                              {"uav_cpu_launch_token.txt"}, only_selected=True)
+        self.assertEqual((name, value), ("uav_cpu_launch_token.txt", "test-launch-token"))
+
+    def test_single_credential_archive_rejects_unexpected_extracted_files(self):
+        from uav_network.cloud.client import private_dataset_file
+        def kaggle(args, account, **kwargs):
+            if args[:2] == ["datasets", "files"]:
+                return json.dumps([{"name": "wandb_api_key.txt"}])
+            folder = Path(args[args.index("-p") + 1])
+            (folder / "wandb_api_key.txt").write_text("test-wandb-key")
+            (folder / "unexpected.txt").write_text("unrelated")
+            return ""
+        with patch("uav_network.cloud.client.private_dataset_info", return_value=object()), \
+             patch("uav_network.cloud.client.run_kaggle", side_effect=kaggle):
+            with self.assertRaisesRegex(RuntimeError, "archive"):
+                private_dataset_file(None, "owner/private", "owner",
+                                     {"wandb_api_key.txt"}, only_selected=True)
+
     def test_cpu_credential_json_rejects_unrelated_fields(self):
         from uav_network.cloud.client import CredentialFileSetError, verify_credential_dataset
         credentials = SimpleNamespace(wandb_key="test-wandb-key")

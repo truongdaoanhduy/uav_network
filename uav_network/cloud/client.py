@@ -90,7 +90,14 @@ def private_dataset_file(account, ref, username, filenames, timeout=120, only_se
         raise RuntimeError("Credential dataset needs exactly one selected credential file")
     with TemporaryDirectory(prefix="uav-wandb-check-") as temp:
         Path(temp).chmod(0o700)
-        run_kaggle(["datasets", "download", "-d", ref, "-f", selected[0], "-p", temp, "-q"], account, timeout=timeout)
+        single_file_archive = len(files) == 1
+        selection = ["--unzip"] if single_file_archive else ["-f", selected[0]]
+        run_kaggle(["datasets", "download", "-d", ref, *selection, "-p", temp, "-q"],
+                   account, timeout=timeout)
+        if single_file_archive:
+            extracted = [p for p in Path(temp).rglob("*") if p.is_file()]
+            if len(extracted) != 1 or extracted[0].name != Path(selected[0]).name:
+                raise RuntimeError("Single credential archive must contain exactly its verified file")
         candidates = [p for p in Path(temp).rglob("*") if p.is_file() and p.name in filenames]
         if len(candidates) != 1:
             raise RuntimeError("Credential dataset needs exactly one selected credential file")
