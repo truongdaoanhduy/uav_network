@@ -15,6 +15,14 @@ def progress_metrics(observations, config):
     local, state = observations["observation"], observations["state"]
     n, t, k = config.world.num_uavs, config.world.num_targets, config.world.num_obstacles
     delivered_start = 4 * n + 2 * t + 3 * k + 2 * n * t
+    if hasattr(local,"detach"):
+        import torch
+        found = (local[:,:,10:10+t] > .5).any(1).double().mean()*100
+        delivered = (state[:,delivered_start:delivered_start+t] > .5).double().mean()*100
+        reduced = torch.stack([found,delivered,local[:,:,8].mean(),local[:,:,9].sum(1).mean()])
+        values = reduced.detach().cpu().tolist()
+        return dict(zip(("progress/search_rate_percent","progress/delivery_rate_percent",
+                         "progress/mean_battery_fraction","progress/mean_active_uavs"),values))
     known = local[:, :, 10:10 + t] > .5
     delivered = state[:, delivered_start:delivered_start + t] > .5
     return {"progress/search_rate_percent": float(known.any(1).mean() * 100),

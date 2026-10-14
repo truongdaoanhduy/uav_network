@@ -45,6 +45,9 @@ class GymMissionEnv(gym.Env):
 
 
 def make_vector(config):
+    if config.runtime.environment_backend == "warp_packet":
+        from .gpu.vector import WarpVectorEnv
+        return WarpVectorEnv(config)
     factories = [partial(GymMissionEnv, config) for _ in range(config.runtime.num_envs)]
     if len(factories) == 1:
         return SyncVectorEnv(factories, autoreset_mode=AutoresetMode.DISABLED)
@@ -68,6 +71,8 @@ def random_actions(observation, rng, destinations):
 
 
 def unpack_info(infos, index):
+    if "device_episode_infos" in infos:
+        return infos["device_episode_infos"][index]
     result = {}
     for name, values in infos.items():
         if name.startswith("_") or (f"_{name}" in infos and not infos[f"_{name}"][index]):

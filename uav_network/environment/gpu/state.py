@@ -1,0 +1,358 @@
+"""Device state shared by motion, sensing, packet and collector kernels."""
+import numpy as np
+import warp as wp
+
+from ..observations import observation_dim, state_dim
+
+
+@wp.struct
+class WorldParams:
+    n: wp.int32
+    targets_count: wp.int32
+    obstacles_count: wp.int32
+    max_steps: wp.int32
+    motion_safety: wp.int32
+    occlusion: wp.int32
+    target_slots: wp.int32
+    obstacle_slots: wp.int32
+    report_bytes: wp.int32
+    buffer_bytes: wp.int32
+    admission_mask: wp.int32
+    recovery_enabled: wp.int32
+    energy_enabled: wp.int32
+    placement_attempts: wp.int32
+    polygon_sides: wp.int32
+    network_enabled: wp.int32
+    max_queue_packets: wp.int32
+    payload_bytes: wp.int32
+    max_retries: wp.int32
+    ack_uses_data_power: wp.int32
+    cw_min: wp.int32
+    event_capacity: wp.int32
+    packet_capacity: wp.int32
+    frame_capacity: wp.int32
+    fragments: wp.int32
+    session_capacity: wp.int32
+    trace_capacity: wp.int32
+    trace_enabled: wp.int32
+    coalesce_idle_polls: wp.int32
+    map_size: wp.float64
+    dt: wp.float64
+    max_speed: wp.float64
+    max_accel: wp.float64
+    safety_distance: wp.float64
+    obstacle_clearance: wp.float64
+    altitude: wp.float64
+    footprint: wp.float64
+    peer_range: wp.float64
+    gcs_range: wp.float64
+    report_ttl: wp.float64
+    capacity: wp.float64
+    idle_power: wp.float64
+    hover_power: wp.float64
+    speed_coefficient: wp.float64
+    accel_coefficient: wp.float64
+    launch_radius: wp.float64
+    launch_spacing: wp.float64
+    target_exclusion: wp.float64
+    obstacle_min_radius: wp.float64
+    obstacle_max_radius: wp.float64
+    gcs_x: wp.float64
+    gcs_y: wp.float64
+    tx_power_min: wp.float64
+    tx_power_max: wp.float64
+    packet_lifetime: wp.float64
+    queue_poll: wp.float64
+    bit_rate: wp.float64
+    frequency: wp.float64
+    noise_power: wp.float64
+    sinr_threshold: wp.float64
+    cca_threshold: wp.float64
+    nlos_scale: wp.float64
+    slot: wp.float64
+    sifs: wp.float64
+    difs: wp.float64
+    ack_bits: wp.float64
+    header_bits: wp.float64
+    ack_timeout: wp.float64
+    retention: wp.float64
+    reward_discovery: wp.float64
+    reward_delivery: wp.float64
+    reward_blocked: wp.float64
+    reward_expired: wp.float64
+    reward_dropped: wp.float64
+    reward_step: wp.float64
+    reward_communication: wp.float64
+    reward_propulsion: wp.float64
+
+
+@wp.struct
+class WorldState:
+    positions: wp.array2d(dtype=wp.vec2d)
+    velocities: wp.array2d(dtype=wp.vec2d)
+    targets: wp.array2d(dtype=wp.vec2d)
+    obstacles: wp.array2d(dtype=wp.vec3d)
+    gcs: wp.array(dtype=wp.vec2d)
+    battery: wp.array2d(dtype=wp.float64)
+    flight_energy: wp.array2d(dtype=wp.float64)
+    inflight: wp.array2d(dtype=wp.float64)
+    communication_energy: wp.array2d(dtype=wp.float64)
+    visible: wp.array3d(dtype=wp.int32)
+    known: wp.array3d(dtype=wp.int32)
+    recovery: wp.array3d(dtype=wp.int32)
+    report_present: wp.array3d(dtype=wp.int32)
+    report_origin: wp.array3d(dtype=wp.int32)
+    report_hops: wp.array3d(dtype=wp.int32)
+    report_created: wp.array3d(dtype=wp.float64)
+    report_order: wp.array3d(dtype=wp.int64)
+    delivered: wp.array2d(dtype=wp.int32)
+    motion_counts: wp.array2d(dtype=wp.int32)
+    report_counts: wp.array2d(dtype=wp.int32)
+    steps: wp.array(dtype=wp.int32)
+    terminated: wp.array(dtype=wp.int32)
+    blocked: wp.array(dtype=wp.int32)
+    clipped: wp.array(dtype=wp.int32)
+    errors: wp.array(dtype=wp.int32)
+    observation: wp.array3d(dtype=wp.float32)
+    state: wp.array2d(dtype=wp.float32)
+    reward: wp.array(dtype=wp.float32)
+    pcg_state: wp.array2d(dtype=wp.uint64)
+    seeds: wp.array(dtype=wp.int64)
+    motion_work: wp.array3d(dtype=wp.vec2d)
+    motion_flags: wp.array3d(dtype=wp.int32)
+    coalesce_step: wp.array(dtype=wp.int32)
+    node_queue_count: wp.array2d(dtype=wp.int32)
+    event_count: wp.array(dtype=wp.int32)
+    frame_count: wp.array(dtype=wp.int32)
+    trace_count: wp.array(dtype=wp.int32)
+    report_delivery_count: wp.array(dtype=wp.int32)
+    event_sequence: wp.array(dtype=wp.int64)
+    packet_sequence: wp.array(dtype=wp.int64)
+    report_sequence: wp.array(dtype=wp.int64)
+    packet_time: wp.array(dtype=wp.float64)
+    packet_delay_sum: wp.array(dtype=wp.float64)
+    report_delay_sum: wp.array(dtype=wp.float64)
+    report_hop_sum: wp.array(dtype=wp.float64)
+    before: wp.array2d(dtype=wp.float64)
+    reward_components: wp.array2d(dtype=wp.float64)
+    event_time: wp.array2d(dtype=wp.float64)
+    pkt_created: wp.array2d(dtype=wp.float64)
+    pkt_deadline: wp.array2d(dtype=wp.float64)
+    pkt_power: wp.array2d(dtype=wp.float64)
+    pkt_report_created: wp.array2d(dtype=wp.float64)
+    pkt_backoff: wp.array2d(dtype=wp.float64)
+    pkt_wait_start: wp.array2d(dtype=wp.float64)
+    pkt_first_attempt: wp.array2d(dtype=wp.float64)
+    tx_start: wp.array2d(dtype=wp.float64)
+    tx_end: wp.array2d(dtype=wp.float64)
+    tx_power: wp.array2d(dtype=wp.float64)
+    tx_created: wp.array2d(dtype=wp.float64)
+    tx_report_created: wp.array2d(dtype=wp.float64)
+    pair_gain: wp.array2d(dtype=wp.float64)
+    pair_time: wp.array2d(dtype=wp.float64)
+    trace_time: wp.array2d(dtype=wp.float64)
+    packet_counts: wp.array2d(dtype=wp.int32)
+    selection_counts: wp.array2d(dtype=wp.int32)
+    event_kind: wp.array2d(dtype=wp.int32)
+    event_arg: wp.array2d(dtype=wp.int32)
+    event_priority: wp.array2d(dtype=wp.int32)
+    event_generation: wp.array2d(dtype=wp.int32)
+    pkt_status: wp.array2d(dtype=wp.int32)
+    pkt_source: wp.array2d(dtype=wp.int32)
+    pkt_destination: wp.array2d(dtype=wp.int32)
+    pkt_target: wp.array2d(dtype=wp.int32)
+    pkt_fragment: wp.array2d(dtype=wp.int32)
+    pkt_attempt: wp.array2d(dtype=wp.int32)
+    pkt_origin: wp.array2d(dtype=wp.int32)
+    pkt_hops: wp.array2d(dtype=wp.int32)
+    pkt_feed: wp.array2d(dtype=wp.int32)
+    pkt_ttl: wp.array2d(dtype=wp.int32)
+    pkt_generation: wp.array2d(dtype=wp.int32)
+    pkt_backoff_version: wp.array2d(dtype=wp.int32)
+    pkt_delivered: wp.array2d(dtype=wp.int32)
+    node_current: wp.array2d(dtype=wp.int32)
+    node_feed_alive: wp.array2d(dtype=wp.int32)
+    node_wait_finish: wp.array2d(dtype=wp.int32)
+    node_wait_packet: wp.array2d(dtype=wp.int32)
+    node_receiving: wp.array2d(dtype=wp.int32)
+    frame_order: wp.array2d(dtype=wp.int32)
+    tx_active: wp.array2d(dtype=wp.int32)
+    tx_kind: wp.array2d(dtype=wp.int32)
+    tx_packet: wp.array2d(dtype=wp.int32)
+    tx_generation: wp.array2d(dtype=wp.int32)
+    tx_source: wp.array2d(dtype=wp.int32)
+    tx_destination: wp.array2d(dtype=wp.int32)
+    tx_target: wp.array2d(dtype=wp.int32)
+    tx_fragment: wp.array2d(dtype=wp.int32)
+    tx_payload: wp.array2d(dtype=wp.int32)
+    tx_ttl: wp.array2d(dtype=wp.int32)
+    tx_origin: wp.array2d(dtype=wp.int32)
+    tx_hops: wp.array2d(dtype=wp.int32)
+    tx_receive: wp.array2d(dtype=wp.int32)
+    session_active: wp.array2d(dtype=wp.int32)
+    session_origin: wp.array2d(dtype=wp.int32)
+    session_hops: wp.array2d(dtype=wp.int32)
+    trace_source: wp.array2d(dtype=wp.int32)
+    trace_destination: wp.array2d(dtype=wp.int32)
+    trace_kind: wp.array2d(dtype=wp.int32)
+    action_counts: wp.array2d(dtype=wp.int64)
+    event_order: wp.array2d(dtype=wp.int64)
+    pkt_id: wp.array2d(dtype=wp.int64)
+    pkt_order: wp.array2d(dtype=wp.int64)
+    pkt_session_id: wp.array2d(dtype=wp.int64)
+    pkt_session: wp.array2d(dtype=wp.int64)
+    tx_id: wp.array2d(dtype=wp.int64)
+    tx_session: wp.array2d(dtype=wp.int64)
+    tx_receive_order: wp.array2d(dtype=wp.int64)
+    session_id: wp.array2d(dtype=wp.int64)
+    fragment_expiry: wp.array3d(dtype=wp.float64)
+    fragment_pending: wp.array3d(dtype=wp.int64)
+    fragment_arrived: wp.array3d(dtype=wp.int32)
+    session_created: wp.array2d(dtype=wp.float64)
+    pair_transmitter: wp.array2d(dtype=wp.vec2d)
+    pair_receiver: wp.array2d(dtype=wp.vec2d)
+    mt: wp.array3d(dtype=wp.uint32)
+    mt_index: wp.array2d(dtype=wp.int32)
+
+
+def params_from_config(config):
+    config.validate()
+    w, c, n, en, r = config.world, config.sensor, config.network, config.energy, config.reward
+    if n.max_retries > 26:
+        raise NotImplementedError("warp_packet supports max_retries<=26; larger retries need multiword getrandbits")
+    if n.nlos_model != "urban":
+        raise NotImplementedError("warp_packet requires native urban NLOS (native free_space NLOS is undefined)")
+    p = WorldParams()
+    values = dict(n=w.num_uavs, targets_count=w.num_targets, obstacles_count=w.num_obstacles,
+                  max_steps=w.max_steps, motion_safety=int(w.motion_safety == "dynamic_window"),
+                  occlusion=int(c.obstacle_occlusion), target_slots=c.visible_target_slots,
+                  obstacle_slots=c.visible_obstacle_slots, report_bytes=n.report_bytes,
+                  buffer_bytes=n.buffer_bytes, admission_mask=int(n.receiver_admission_mask),
+                  recovery_enabled=int(n.rediscovery_recovery), energy_enabled=int(en.enabled),
+                  network_enabled=int(n.enabled), placement_attempts=w.placement_attempts,
+                  polygon_sides=n.obstacle_polygon_sides, max_queue_packets=n.max_queue_packets,
+                  payload_bytes=n.payload_bytes, max_retries=n.max_retries,
+                  ack_uses_data_power=int(n.ack_uses_data_power), cw_min=31,
+                  coalesce_idle_polls=int(config.runtime.coalesce_idle_polls),
+                  map_size=w.map_size_m, dt=w.dt_s, max_speed=w.max_speed_mps,
+                  max_accel=w.max_accel_mps2, safety_distance=w.safety_distance_m,
+                  obstacle_clearance=w.obstacle_clearance_m, altitude=c.altitude_m,
+                  footprint=c.footprint_radius_m, peer_range=n.peer_range_m, gcs_range=n.gcs_range_m,
+                  report_ttl=n.report_ttl_s, capacity=en.battery_capacity_j,
+                  idle_power=en.idle_power_w, hover_power=en.hover_power_w,
+                  speed_coefficient=en.speed_squared_coefficient,
+                  accel_coefficient=en.acceleration_squared_coefficient,
+                  launch_radius=w.launch_radius_m, launch_spacing=w.launch_min_spacing_m,
+                  target_exclusion=w.target_exclusion_radius_m,
+                  obstacle_min_radius=w.obstacle_radius_min_m, obstacle_max_radius=w.obstacle_radius_max_m,
+                  tx_power_min=n.tx_power_min_w, tx_power_max=n.tx_power_max_w,
+                  packet_lifetime=n.packet_lifetime_s, queue_poll=n.queue_poll_us,
+                  bit_rate=n.bit_rate_bps, frequency=n.carrier_frequency_hz,
+                  noise_power=10 ** ((n.noise_density_dbm_hz + 10*np.log10(n.bandwidth_hz)
+                                     + n.noise_figure_db - 30)/10),
+                  sinr_threshold=n.sinr_threshold_db, cca_threshold=n.cca_threshold_dbm,
+                  nlos_scale=10 ** (-(12 + n.obstacle_extra_loss_db)/10),
+                  slot=20., sifs=10., difs=50., ack_bits=240., header_bits=464.,
+                  reward_discovery=r.discovery, reward_delivery=r.delivery,
+                  reward_blocked=r.blocked_motion, reward_expired=r.expired_report,
+                  reward_dropped=r.dropped_report, reward_step=r.step_cost,
+                  reward_communication=r.communication_energy, reward_propulsion=r.propulsion_energy_per_kj)
+    gcs = w.gcs_position_m or [w.map_size_m/2, 0.]
+    values.update(gcs_x=gcs[0], gcs_y=gcs[1], ack_timeout=240/n.bit_rate_bps*1e6+60,
+                  retention=2*(n.payload_bytes*8+192)/n.bit_rate_bps*1e6,
+                  fragments=(n.report_bytes+n.payload_bytes-1)//n.payload_bytes)
+    values.update(packet_capacity=w.num_uavs*(n.max_queue_packets+2),
+                  event_capacity=w.num_uavs*(n.max_queue_packets+8)*8,
+                  frame_capacity=w.num_uavs*(n.max_queue_packets+4)*4,
+                  session_capacity=w.num_uavs*w.num_targets*(w.num_uavs+1),
+                  trace_capacity=w.num_uavs*(n.max_queue_packets+2)*n.max_retries*2,
+                  trace_enabled=1)
+    for name, value in values.items():
+        setattr(p, name, value)
+    return p
+
+
+def seed_rows(seeds):
+    """NumPy PCG64's 128-bit state for the geometry kernel."""
+    rows = []
+    for seed in seeds:
+        d = np.random.PCG64(int(seed)).state["state"]
+        rows.append([d["state"] & ((1<<64)-1), d["state"] >> 64,
+                     d["inc"] & ((1<<64)-1), d["inc"] >> 64])
+    return np.asarray(rows, dtype=np.uint64)
+
+
+def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False):
+    """Allocate one independent world per row; no native simulator or worker."""
+    p = params_from_config(config)
+    if not trace:
+        p.trace_enabled = 0
+        p.trace_capacity = 1
+    e, n, t, o = num_envs, p.n, p.targets_count, max(1, p.obstacles_count)
+    if seeds is None:
+        seeds = np.arange(config.runtime.seed, config.runtime.seed+e, dtype=np.int64)
+    seeds = np.asarray(seeds, dtype=np.int64)
+    if seeds.shape != (e,):
+        raise ValueError("seeds must contain one integer per world")
+    s = WorldState()
+    shapes = {
+        "positions": ((e,n), wp.vec2d), "velocities": ((e,n), wp.vec2d),
+        "targets": ((e,t), wp.vec2d), "obstacles": ((e,o), wp.vec3d),
+        "gcs": ((e,), wp.vec2d), "battery": ((e,n), wp.float64),
+        "flight_energy": ((e,n), wp.float64), "delivered": ((e,t), wp.int32),
+        "motion_counts": ((e,9), wp.int32), "report_counts": ((e,3), wp.int32),
+        "inflight": ((e,n), wp.float64), "communication_energy": ((e,n+1), wp.float64),
+        "observation": ((e,n,observation_dim(config)), wp.float32),
+        "state": ((e,state_dim(config)), wp.float32), "reward": ((e,), wp.float32),
+        "pcg_state": ((e,4), wp.uint64), "seeds": ((e,), wp.int64),
+        "motion_work": ((e,n,3), wp.vec2d), "motion_flags": ((e,n,5), wp.int32),
+        "before": ((e,8), wp.float64), "reward_components": ((e,8), wp.float64),
+        "packet_counts": ((e,8), wp.int32), "selection_counts": ((e,5), wp.int32),
+        "action_counts": ((e,4), wp.int64), "mt": ((e,n+1,624), wp.uint32),
+        "mt_index": ((e,n+1), wp.int32)}
+    for name in ("visible", "known", "recovery", "report_present", "report_origin", "report_hops"):
+        shapes[name] = ((e,n,t), wp.int32)
+    shapes["report_created"] = ((e,n,t), wp.float64)
+    shapes["report_order"] = ((e,n,t), wp.int64)
+    for name in ("steps","terminated","blocked","clipped","errors","event_count","frame_count",
+                 "trace_count","report_delivery_count","coalesce_step"):
+        shapes[name] = ((e,), wp.int32)
+    for name in ("event_sequence","packet_sequence","report_sequence"):
+        shapes[name] = ((e,), wp.int64)
+    for name in ("packet_time","packet_delay_sum","report_delay_sum","report_hop_sum"):
+        shapes[name] = ((e,), wp.float64)
+    groups = (
+        (p.event_capacity, wp.float64, "event_time"),
+        (p.event_capacity, wp.int32, "event_kind event_arg event_priority event_generation"),
+        (p.event_capacity, wp.int64, "event_order"),
+        (p.packet_capacity, wp.float64, "pkt_created pkt_deadline pkt_power pkt_report_created pkt_backoff pkt_wait_start pkt_first_attempt"),
+        (p.packet_capacity, wp.int32, "pkt_status pkt_source pkt_destination pkt_target pkt_fragment pkt_attempt pkt_origin pkt_hops pkt_feed pkt_ttl pkt_generation pkt_backoff_version pkt_delivered"),
+        (p.packet_capacity, wp.int64, "pkt_id pkt_order pkt_session pkt_session_id"),
+        (n+1, wp.int32, "node_queue_count node_current node_feed_alive node_wait_finish node_wait_packet node_receiving"),
+        (p.frame_capacity, wp.int32, "frame_order tx_active tx_kind tx_packet tx_generation tx_source tx_destination tx_target tx_fragment tx_payload tx_ttl tx_origin tx_hops tx_receive"),
+        (p.frame_capacity, wp.float64, "tx_start tx_end tx_power tx_created tx_report_created"),
+        (p.frame_capacity, wp.int64, "tx_id tx_session tx_receive_order"),
+        ((n+1)*(n+1), wp.float64, "pair_gain pair_time"),
+        ((n+1)*(n+1), wp.vec2d, "pair_transmitter pair_receiver"),
+        (p.session_capacity, wp.int32, "session_active session_origin session_hops"),
+        (p.session_capacity, wp.float64, "session_created"),
+        (p.session_capacity, wp.int64, "session_id"),
+        (p.trace_capacity, wp.float64, "trace_time"),
+        (p.trace_capacity, wp.int32, "trace_source trace_destination trace_kind"))
+    for length, dtype, names in groups:
+        for name in names.split():
+            shapes[name] = ((e,length), dtype)
+    for name, dtype in (("fragment_expiry",wp.float64),("fragment_pending",wp.int64),
+                        ("fragment_arrived",wp.int32)):
+        shapes[name] = ((e,p.session_capacity,p.fragments), dtype)
+    for name, (shape, dtype) in shapes.items():
+        setattr(s, name, wp.zeros(shape, dtype=dtype, device=device))
+    s.seeds.assign(seeds)
+    s.pcg_state.assign(seed_rows(seeds))
+    s.gcs.assign(np.tile(gcs := [p.gcs_x,p.gcs_y], (e,1)))
+    s.battery.fill_(p.capacity)
+    return s, p
+
+
+def allocated_bytes(s):
+    return sum(value.capacity for value in vars(s).values() if isinstance(value, wp.array))

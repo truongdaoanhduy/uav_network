@@ -1,4 +1,4 @@
-"""Native CPU-env/CUDA-learner capacity sweep, stopped at its first failure.
+"""Measured native or device-env capacity sweep, stopped at its first failure.
 
 Keep imports light: spawned simulator workers must not initialize CUDA.
 """
@@ -207,6 +207,18 @@ def sweep(counts, algorithms, output, runner):
     return report
 
 
+def failure_status(error, device):
+    """Warp allocator failure lacks a CUDA error code; do not invent an OOM."""
+    import re
+    import torch
+    if device == "cuda" and isinstance(error, torch.cuda.OutOfMemoryError):
+        return "cuda_oom"
+    if (device == "cuda" and isinstance(error, RuntimeError) and
+        re.fullmatch(r"Failed to allocate [0-9]+ bytes on device 'cuda(:[0-9]+)?'", str(error))):
+        return "cuda_allocation_failure"
+    return "cpu_oom" if isinstance(error, MemoryError) else "worker_error"
+
+
 def probe(config, output, steps=16, min_seconds=0):
     import numpy as np
     import torch
@@ -225,6 +237,10 @@ def probe(config, output, steps=16, min_seconds=0):
     result = {"status": "running", "phase": "gpu_allocation", "num_envs": count,
               "algorithm": config.runtime.algorithm, "device": device, "hardware": hardware_info(),
               "network_backend": "uavnetsim", "config": config.to_dict()}
+    device_env = config.runtime.environment_backend == "warp_packet"
+    result["environment_backend"] = config.runtime.environment_backend
+    if device_env:
+        result["network_backend"] = "warp_packet"
     vector = None
     started = time.perf_counter()
 
@@ -237,7 +253,7 @@ def probe(config, output, steps=16, min_seconds=0):
 
     try:
         if not config.network.enabled:
-            raise ValueError("This probe requires the native packet backend")
+            raise ValueError("This probe requires packet communication to be enabled")
         publish("gpu_allocation")
         learner = make_learner(config, observation_dim(config), state_dim(config), device)
         replay = TensorReplayBuffer(settings.replay_capacity, (config.world.num_uavs, observation_dim(config)),
@@ -246,7 +262,11 @@ def probe(config, output, steps=16, min_seconds=0):
         publish("vector_startup")
         vector = make_vector(config)
         obs, infos = vector.reset(seed=config.runtime.seed)
-        result["native_worker_pids"] = [int(x) for x in infos["worker_pid"]]
+        result["native_worker_pids"] = [int(x) for x in infos.get("worker_pid",[])]
+        result["num_cpu_env_workers"] = vector.num_cpu_workers if device_env else len(result["native_worker_pids"])
+        if device_env:
+            result["gpu_environment_bytes"] = vector.allocated_bytes if device == "cuda" else 0
+            result["environment_device"] = str(vector.device)
         result["startup_s"] = time.perf_counter() - started
         rng = np.random.default_rng(config.runtime.seed + 1)
         global_step, next_seed = 0, config.runtime.seed + count
@@ -260,21 +280,24 @@ def probe(config, output, steps=16, min_seconds=0):
             if update:
                 for _ in range(settings.updates_per_step):
                     learner.update(replay.sample(settings.batch_size), collect_metrics=False)
-            final, reward, terminated, truncated, _ = vector.step_wait() if overlap else vector.step(actions)
+            final, reward, terminated, truncated, infos = vector.step_wait() if overlap else vector.step(actions)
             replay.add_batch(obs["observation"], obs["state"], action, reward,
                              final["observation"], final["state"], terminated)
             global_step += count
             obs = final
             done = terminated | truncated
-            if done.any():
+            indices = list(infos["device_episode_infos"]) if device_env else np.flatnonzero(done).tolist()
+            if indices:
                 seeds = [None] * count
-                for i in np.flatnonzero(done):
+                for i in indices:
                     seeds[i], next_seed = next_seed, next_seed + 1
-                obs, _ = vector.reset(seed=seeds, options={"reset_mask": done})
+                mask = done.cpu().numpy() if device_env else done
+                obs, _ = vector.reset(seed=seeds, options={"reset_mask": mask})
 
         publish("replay_warmup")
         while global_step < max(settings.learning_starts, settings.batch_size):
-            collect(random_actions(obs["observation"], rng, config.world.num_uavs + 1))
+            collect(vector.random_actions(obs["observation"]) if device_env else
+                    random_actions(obs["observation"],rng,config.world.num_uavs+1))
         publish("learner_warmup")
         for _ in range(2):
             learner.update(replay.sample(settings.batch_size), collect_metrics=False)
@@ -287,7 +310,7 @@ def probe(config, output, steps=16, min_seconds=0):
         begin, inference_s, initial_updates, measured_steps = time.perf_counter(), 0., learner.updates, 0
         while measured_steps < steps or time.perf_counter() - begin < min_seconds:
             inference_started = time.perf_counter()
-            action = learner.act_batch(obs["observation"], step=global_step)
+            action = learner.act_batch(obs["observation"],step=global_step,return_tensors=device_env)
             inference_s += time.perf_counter() - inference_started
             collect(action, update=True)
             measured_steps += 1
@@ -304,8 +327,7 @@ def probe(config, output, steps=16, min_seconds=0):
         import traceback
         traceback.print_exc()
         result.update(error_type=type(error).__name__, error_message=str(error), failed_phase=result["phase"])
-        result["status"] = ("cuda_oom" if device == "cuda" and isinstance(error, torch.cuda.OutOfMemoryError)
-                            else "cpu_oom" if isinstance(error, MemoryError) else "worker_error")
+        result["status"] = failure_status(error, device)
         publish("failed")
     finally:
         if vector is not None:
@@ -317,7 +339,7 @@ def run_case(count, algorithm, folder, args):
     command = [sys.executable, "-m", "uav_network.experiments.env_scale", "--case", "--config", args.config,
                "--counts", str(count), "--algorithms", algorithm, "--steps", str(args.steps),
                "--min-seconds", str(args.min_seconds),
-               "--device", args.device, "--output", str(folder)]
+               "--device", args.device, "--backend",args.backend,"--output", str(folder)]
     return supervise(command, folder, args.case_timeout, args.memory_fraction)
 
 
@@ -331,6 +353,7 @@ def main(argv=None):
     parser.add_argument("--case-timeout", type=float, default=600)
     parser.add_argument("--memory-fraction", type=float, default=.85)
     parser.add_argument("--device", choices=["cuda", "cpu"], default="cuda")
+    parser.add_argument("--backend",choices=["native","warp_packet"],default="native")
     parser.add_argument("--output", required=True)
     parser.add_argument("--case", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
@@ -340,7 +363,7 @@ def main(argv=None):
         from ..configuration import load_config
         config = load_config(args.config, [f"runtime.num_envs={args.counts[0]}",
             f"runtime.algorithm={args.algorithms[0]}", f"runtime.device={args.device}",
-            f"runtime.replay_device={args.device}", "tracking.enabled=false"])
+            f"runtime.replay_device={args.device}",f"runtime.environment_backend={args.backend}", "tracking.enabled=false"])
         result = probe(config, args.output, args.steps, args.min_seconds)
         raise SystemExit(0 if result["status"] == "ok" else 1)
     sweep(args.counts, args.algorithms, args.output, partial(run_case, args=args))

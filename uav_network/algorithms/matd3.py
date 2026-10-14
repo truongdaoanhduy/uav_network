@@ -66,7 +66,7 @@ class MATD3(nn.Module):
         return torch.stack(actions, 1)
 
     @torch.no_grad()
-    def act_batch(self, observations, deterministic=False, step=0):
+    def act_batch(self, observations, deterministic=False, step=0, *, return_tensors=False):
         obs = torch.as_tensor(observations, dtype=torch.float32, device=self.device)
         a = self.config.matd3
         fraction = min(1, max(0, step) / a.epsilon_decay_steps)
@@ -84,7 +84,10 @@ class MATD3(nn.Module):
                 destination = torch.where(explore, random_destination, destination)
             continuous = canonical_continuous(continuous, local, destination)
             actions.append(joint_action(continuous, destination, self.destinations))
-        values = torch.stack(actions, 1).cpu().numpy()
+        joint = torch.stack(actions, 1)
+        if return_tensors:
+            return Action(joint[..., :3].contiguous(), joint[..., 3:].argmax(-1))
+        values = joint.cpu().numpy()
         return Action(values[..., :3], values[..., 3:].argmax(-1).astype(np.int64))
 
     def act(self, observations, deterministic=False, step=0):

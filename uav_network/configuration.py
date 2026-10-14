@@ -137,6 +137,7 @@ class RuntimeConfig:
     output_dir: str = "outputs/run"
     checkpoint_interval: int = 100
     num_envs: int = 1
+    environment_backend: str = "native"
     shared_memory: bool = True
     collector_overlap: bool = True
     replay_device: str = "auto"
@@ -241,6 +242,8 @@ class Config:
             raise ValueError("hidden_sizes must contain positive integers")
         if r.device not in {"auto", "cpu", "cuda"} or r.replay_device not in {"auto", "cpu", "cuda"}:
             raise ValueError("device and replay_device must be auto, cpu or cuda")
+        if r.environment_backend not in {"native", "warp_packet"}:
+            raise ValueError("environment_backend must be native or warp_packet")
         if r.algorithm not in {"masac", "matd3"}:
             raise ValueError("algorithm must be masac or matd3")
         if r.num_envs < 1 or r.log_interval_steps < 1:

@@ -36,6 +36,8 @@ def restore_learner(config, device):
     for group in ("world", "sensor", "network", "energy", "reward", config.runtime.algorithm):
         if before[group] != current[group]:
             raise ValueError(f"Warm-start {group} differs from the checkpoint")
+    if learner.config.runtime.environment_backend != config.runtime.environment_backend:
+        raise ValueError("Warm-start environment_backend must match the checkpoint")
     if learner.config.runtime.seed != config.runtime.seed:
         raise ValueError("Warm-start runtime.seed must match the checkpoint")
     if type(learner.updates) is not int or learner.updates < 0:

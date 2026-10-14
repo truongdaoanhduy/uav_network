@@ -26,7 +26,11 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=Fals
     if output.exists() and any(output.iterdir()):
         raise FileExistsError(f"Evaluation folder is not empty: {output}")
     output.mkdir(parents=True, exist_ok=True)
-    env = SwarmSearchEnv(config)
+    if config.runtime.environment_backend == "warp_packet":
+        from ..environment.gpu.vector import WarpMissionEnv
+        env = WarpMissionEnv(config)
+    else:
+        env = SwarmSearchEnv(config)
     records = []
     try:
         for episode in range(episodes):
@@ -46,6 +50,7 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=Fals
                     break
         preview = render_episode(env, paths, output / "final_episode.png")
         result = {"algorithm": learner.algorithm, "episodes": episodes, "device": "cpu", "render_path": preview,
+                  "environment_backend": config.runtime.environment_backend,
                   "mean_return": float(np.mean([r["return"] for r in records])),
                   "success_rate": float(np.mean([r["success"] for r in records])),
                   "mean_search_rate_percent": float(np.mean([r["search_rate_percent"] for r in records])),

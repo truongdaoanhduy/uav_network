@@ -80,6 +80,10 @@ def _train(config):
         vector = make_vector(config)
         tracker = start_tracking(config, output, initial_progress=initial)
         obs, _ = vector.reset(seed=episode_seeds.tolist())
+        device_env = config.runtime.environment_backend == "warp_packet"
+        if device_env:
+            episode_returns = torch.zeros(count,device=device,dtype=torch.float64)
+            episode_lengths = torch.zeros(count,device=device,dtype=torch.int64)
         if config.runtime.compile_models:
             compile_models(learner)
         replay = TensorReplayBuffer(settings.replay_capacity, obs["observation"].shape[1:],
@@ -133,9 +137,11 @@ def _train(config):
             for old_record in history:
                 stream.write(json.dumps(old_record, allow_nan=False) + "\n")
             while completed < config.runtime.episodes:
-                action = (random_actions(obs["observation"], rng, config.world.num_uavs + 1)
-                          if global_step < settings.learning_starts and config.runtime.warm_start_checkpoint == "none" else
-                          learner.act_batch(obs["observation"], step=global_step))
+                if global_step < settings.learning_starts and config.runtime.warm_start_checkpoint == "none":
+                    action = (vector.random_actions(obs["observation"]) if device_env else
+                              random_actions(obs["observation"],rng,config.world.num_uavs+1))
+                else:
+                    action = learner.act_batch(obs["observation"],step=global_step,return_tensors=device_env)
                 actions = {"continuous": action.continuous, "destination": action.destination}
                 overlap = count > 1 and config.runtime.collector_overlap
                 if overlap:
@@ -152,14 +158,16 @@ def _train(config):
                 episode_returns += reward
                 episode_lengths += 1
                 done = terminated | truncated
+                done_indices = (list(infos["device_episode_infos"]) if device_env else
+                                np.flatnonzero(done).tolist())
                 time_limit = (config.runtime.max_train_seconds > 0
                               and time.perf_counter() - start >= config.runtime.max_train_seconds)
-                final_batch = completed + int(done.sum()) >= config.runtime.episodes or time_limit
+                final_batch = completed + len(done_indices) >= config.runtime.episodes or time_limit
                 if not overlap or final_batch:
                     # The last collected batch has no following CPU step in
                     # which to execute its deferred updates; drain them here.
                     learn(force_metrics=final_batch)
-                for i in np.flatnonzero(done):
+                for i in done_indices:
                     completed += 1
                     info = unpack_info(infos, i)
                     record = {"episode": completed, "worker": int(i), "seed": int(episode_seeds[i]),
@@ -204,14 +212,15 @@ def _train(config):
                     tracker.progress(obs, global_step, completed, learner, len(replay), force=final_batch)
                 if final_batch:
                     break
-                if done.any():
+                if done_indices:
                     seeds = [None] * count
-                    for i in np.flatnonzero(done):
+                    for i in done_indices:
                         seeds[i] = next_seed
                         episode_seeds[i] = next_seed
                         next_seed += 1
                         episode_returns[i] = episode_lengths[i] = 0
-                    obs, _ = vector.reset(seed=seeds, options={"reset_mask": done})
+                    reset_mask = done.cpu().numpy() if device_env else done
+                    obs, _ = vector.reset(seed=seeds, options={"reset_mask": reset_mask})
         checkpoint = output / "final.pt"
         save(checkpoint, final=True)
         elapsed = time.perf_counter() - start
@@ -224,6 +233,8 @@ def _train(config):
                   "state_restore": "policy_warm_start" if config.runtime.warm_start_checkpoint != "none" else "fresh",
                   "global_step": global_step, "collection_steps": collection_steps,
                   "num_envs": count, "updates": learner.updates, "device": device,
+                  "environment_backend": config.runtime.environment_backend,
+                  "num_cpu_env_workers": vector.num_cpu_workers if device_env else (count if count>1 else 0),
                   "replay_device": replay_device, "replay_bytes": replay.allocated_bytes,
                   "sample_updates_per_transition": learner.updates * settings.batch_size / global_step,
                   "collector_overlap": count > 1 and config.runtime.collector_overlap,

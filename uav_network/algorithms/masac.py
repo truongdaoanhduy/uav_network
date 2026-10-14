@@ -75,9 +75,11 @@ class MASAC(nn.Module):
                      (actions, logs, probabilities, log_probabilities, raw_actions))
 
     @torch.no_grad()
-    def act_batch(self, observations, deterministic=False, step=0):
+    def act_batch(self, observations, deterministic=False, step=0, *, return_tensors=False):
         obs = torch.as_tensor(observations, dtype=torch.float32, device=self.device)
         joint, *_ = self._joint_sample(obs, deterministic)
+        if return_tensors:
+            return Action(joint[..., :3].contiguous(), joint[..., 3:].argmax(-1))
         values = joint.cpu().numpy()
         return Action(values[..., :3], values[..., 3:].argmax(-1).astype(np.int64))
 

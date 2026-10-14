@@ -35,6 +35,16 @@ class EnvironmentScaleTests(unittest.TestCase):
             self.assertFalse(Path(directory, "sweep/256-matd3").exists())
             self.assertFalse(Path(directory, "sweep/512-masac").exists())
 
+    def test_torch_and_warp_allocation_errors_are_distinguished_from_cpu_and_kernel_errors(self):
+        import torch
+        module = self.module()
+        self.assertEqual(module.failure_status(torch.cuda.OutOfMemoryError("CUDA out of memory"), "cuda"), "cuda_oom")
+        allocation = RuntimeError("Failed to allocate 4096 bytes on device 'cuda:0'")
+        self.assertEqual(module.failure_status(allocation, "cuda"), "cuda_allocation_failure")
+        self.assertEqual(module.failure_status(allocation, "cpu"), "worker_error")
+        self.assertEqual(module.failure_status(RuntimeError("CUDA illegal memory access"), "cuda"), "worker_error")
+        self.assertEqual(module.failure_status(MemoryError("host exhausted"), "cuda"), "cpu_oom")
+
     def test_cpu_limit_stops_with_a_cpu_reason_instead_of_cuda_oom(self):
         module = self.module()
         self.assertEqual(module.guard_reason({"memory_used_bytes": 900, "memory_limit_bytes": 1000}, .85),
