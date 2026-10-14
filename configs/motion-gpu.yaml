@@ -1,0 +1,44 @@
+# Fresh Warp packet training; 1024 total episodes and up to 1000 steps per episode.
+# Use --cpu-visualize in the Kaggle launcher for a separate CPU-only session.
+world:
+  max_steps: 1000
+  motion_safety: dynamic_window
+network:
+  receiver_admission_mask: true
+masac:
+  hidden_sizes: [256, 256]
+  replay_capacity: 100000
+  batch_size: 512
+  learning_starts: 4000
+  updates_per_step: 1
+matd3:
+  hidden_sizes: [256, 256]
+  replay_capacity: 100000
+  batch_size: 512
+  learning_starts: 4000
+  updates_per_step: 1
+runtime:
+  environment_backend: warp_packet
+  seed: 44
+  eval_seed: 10044
+  eval_episodes: 1
+  num_envs: 128
+  coalesce_idle_polls: true
+  vectorize_critics: true
+  compile_models: false
+  fused_optimizers: false
+  episodes: 1024
+  device: cuda
+  replay_device: cuda
+  torch_threads: 1
+  log_interval_steps: 12800
+  checkpoint_interval: 128
+  max_train_seconds: 36000
+  output_dir: outputs/motion-gpu
+tracking:
+  evaluation_interval: 0
+  enabled: true
+  entity: auto
+  project: auto
+  group: uav-network-gpu-packet
+  tags: [uav-network, 2d, fov, warp-packet, kaggle, vectorized-critics, gpu-env, long-1024x1000]
