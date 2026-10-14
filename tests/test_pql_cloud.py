@@ -22,10 +22,13 @@ class PQLCloudTests(unittest.TestCase):
     def test_pql_benchmark_gate_uses_exact_scenario_rates_batch_and_all_devices(self):
         self.assertTrue(callable(getattr(remote, "pql_benchmarks", None)), "Missing PQL benchmark gate")
         c = load_config("configs/motion-pql.yaml")
-        spec = {"config": "configs/motion-pql.yaml", "overrides": [], "runs": {"masac": {}, "matd3": {}}}
+        spec = {"stage": "benchmark", "config": "configs/motion-pql.yaml", "overrides": [],
+                "runs": {"masac": {"id": "benchmark-masac"}, "matd3": {"id": "benchmark-matd3"}}}
         seen = []
         def child(args, **kwargs):
             seen.append(args)
+            if spec.get("stage") == "benchmark":
+                self.assertEqual(kwargs["env"]["WANDB_RUN_ID"], spec["runs"][args[args.index("--algorithms")+1]]["id"])
             self.assertIn("scripts/benchmark_pql.py", args)
             self.assertEqual(args[args.index("--envs") + 1], "4096")
             self.assertEqual(args[args.index("--batches") + 1], "8192")

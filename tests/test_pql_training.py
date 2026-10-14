@@ -1,6 +1,9 @@
 """Real CPU Warp collector, deterministic debug, resume and device failures."""
 import importlib.util
 import json
+import subprocess
+import sys
+import yaml
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -82,6 +85,21 @@ class PQLTrainingTests(unittest.TestCase):
             self.assertEqual(report["critic_updates"], 7)
             self.assertGreater(report["joint_transitions_per_s"], 0)
 
+    def test_benchmark_initializes_cuda_before_touching_memory_counters(self):
+        from uav_network.experiments import pql_benchmark
+        initialized = [False]
+        def reset(index):
+            if not initialized[0]:
+                raise RuntimeError("Invalid device argument")
+        with TemporaryDirectory() as folder, patch("torch.cuda.device_count", return_value=2), \
+             patch("torch.cuda.is_available", return_value=False), \
+             patch("torch.cuda.init", side_effect=lambda: initialized.__setitem__(0, True)), \
+             patch("torch.cuda.reset_peak_memory_stats", side_effect=reset), \
+             patch.object(pql_benchmark, "peak_memory", return_value=[]), \
+             patch.object(pql_benchmark, "hardware_info", return_value={"cuda_available": False}):
+            result = pql_benchmark.benchmark_pql(self.config(Path(folder) / "fresh-allocator"), steps=4)
+        self.assertEqual(result["status"], "passed")
+
     def test_benchmark_cannot_pass_without_both_learner_updates(self):
         from uav_network.experiments.pql_benchmark import benchmark_pql
         with TemporaryDirectory() as folder:
@@ -97,6 +115,25 @@ class PQLTrainingTests(unittest.TestCase):
         with patch("torch.cuda.device_count", return_value=0):
             with self.assertRaisesRegex(RuntimeError, "CUDA"):
                 resolve_devices(c)
+
+    @unittest.skipUnless(torch.cuda.is_available(), "CUDA unavailable")
+    def test_fresh_cuda_benchmark_process_initializes_allocator_before_peak_reset(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            c = self.config(root / "case")
+            c.runtime.device = c.runtime.replay_device = "cuda"
+            c.pql.collector_device = c.pql.learner_device = c.pql.policy_device = "auto"
+            profile = root / "profile.yaml"
+            profile.write_text(yaml.safe_dump(c.to_dict()))
+            target = root / "report.json"
+            process = subprocess.run([sys.executable, "scripts/benchmark_pql.py", "--config", str(profile),
+                "--algorithms", "masac", "--envs", "4", "--batches", "4", "--steps", "4",
+                "--output", str(target)], capture_output=True, text=True, timeout=120)
+            self.assertEqual(process.returncode, 0, process.stderr[-3000:])
+            case = json.loads(target.read_text())["results"][0]
+            self.assertEqual(case["status"], "passed")
+            self.assertTrue(case["cuda_pipeline_verified"])
+            self.assertEqual(case["critic_updates"], 7)
 
     @unittest.skipUnless(torch.cuda.is_available(), "CUDA unavailable")
     def test_cuda_worker_snapshots_and_gpu_collector_smoke(self):

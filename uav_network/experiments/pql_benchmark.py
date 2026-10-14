@@ -43,8 +43,12 @@ def benchmark_pql(config, steps=40):
     (output / "resolved_config.yaml").write_text(__import__("yaml").safe_dump(c.to_dict(), sort_keys=False))
     for name in ("diagnostics.jsonl", "episodes.jsonl"):
         (output / name).touch()
-    for index in range(torch.cuda.device_count()):
-        torch.cuda.reset_peak_memory_stats(index)
+    # A fresh child can enumerate GPUs through NVML before the caching allocator exists.
+    # PyTorch memory counter APIs require CUDA runtime/allocator initialization first.
+    if torch.cuda.device_count():
+        torch.cuda.init()
+        for index in range(torch.cuda.device_count()):
+            torch.cuda.reset_peak_memory_stats(index)
     engine = vector = tracker = None
     started = time.perf_counter()
     report = {"status": "failed", "cuda_pipeline_verified": False, "target_t4_scenario_verified": False,

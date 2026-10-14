@@ -48,3 +48,5 @@ Create experiments/pql_training.py, configs/motion-pql.yaml, scripts/benchmark_p
 - Final: fixed inconsistent progress/unearned credit acceptance — test_resume_rejects_unearned_credit_inconsistent_history_and_nonfinite_weights RED→GREEN.
 - Final: fixed zero-update benchmark pass and qualified CUDA/T4 verification — test_benchmark_cannot_pass_without_both_learner_updates RED→GREEN.
 - No Critical findings, no deferred minors or rulings. Full CPU/Warp suite: 276 tests OK, 45 CUDA skips. Exact algorithm oracle and all material review reproductions pass. GPU measurements remain pending.
+
+- T4 smoke job f25892f: CUDA tests10/10 and PQL tests7/7 passed on 2×T4; first large benchmark stopped before allocation at reset_peak_memory_stats. Added explicit cuda.init and a fresh-process CUDA regression. Local suite278 tests OK,46 CUDA skips. Re-measurement pending.

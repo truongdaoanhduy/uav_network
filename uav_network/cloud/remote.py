@@ -112,8 +112,13 @@ def pql_benchmarks(spec, config, output):
         for override in [*spec["overrides"], "tracking.enabled=true",
                          "runtime.device=cuda", "runtime.replay_device=cuda"]:
             args += ["--set", override]
+        benchmark_env = dict(os.environ)
+        for name in ("WANDB_RUN_ID", "WANDB_NAME", "KAGGLE_API_TOKEN"):
+            benchmark_env.pop(name, None)
+        if spec.get("stage") == "benchmark":
+            benchmark_env["WANDB_RUN_ID"] = spec["runs"][algorithm]["id"]
         with (output / f"{algorithm}-benchmark.log").open("w") as log:
-            subprocess.run(args, stdout=log, stderr=subprocess.STDOUT, check=True)
+            subprocess.run(args, env=benchmark_env, stdout=log, stderr=subprocess.STDOUT, check=True)
         report = json.loads(path.read_text())
         if (not report.get("results") or any(row.get("status") != "passed"
                 or not row.get("cuda_pipeline_verified") for row in report["results"])):
