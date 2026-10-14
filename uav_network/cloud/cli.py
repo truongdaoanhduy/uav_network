@@ -7,7 +7,7 @@ import subprocess
 from uuid import uuid4
 
 from ..configuration import load_config
-from .client import account_quotas, ensure_cpu_wandb_dataset, ensure_pipeline_dataset, kernel_status, pushed_kernel_ref, resolve_username, run_kaggle, verify_credential_dataset
+from .client import CredentialFileSetError, account_quotas, ensure_cpu_wandb_dataset, ensure_pipeline_dataset, kernel_status, pushed_kernel_ref, resolve_username, run_kaggle, verify_credential_dataset
 from .credentials import load_credentials, select_account
 from .kernel import kernel_metadata, kernel_script
 
@@ -50,9 +50,15 @@ def launch(args, credentials):
             "project": credentials.project if config.tracking.project == "auto" else config.tracking.project,
             "stage": args.stage, "config": config_file, "overrides": args.overrides, "runs": runs}
     if cpu_visualize:
+        try:
+            verify_credential_dataset(account, credentials, args.credential_dataset, username,
+                                      args.credential_timeout_seconds, only_selected=True)
+            cpu_dataset = args.credential_dataset
+        except CredentialFileSetError:
+            cpu_dataset = ensure_cpu_wandb_dataset(account, credentials, username)
         spec.update({"cpu_visualize": True,
                      "pipeline_credential_dataset": ensure_pipeline_dataset(account, username),
-                     "cpu_credential_dataset": ensure_cpu_wandb_dataset(account, credentials, username),
+                     "cpu_credential_dataset": cpu_dataset,
                      "cpu_eval": {"episodes": config.runtime.eval_episodes, "seed": config.runtime.eval_seed,
                                   "frame_stride": 5, "fps": 10}})
     serialized = json.dumps(spec)

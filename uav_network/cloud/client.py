@@ -11,6 +11,10 @@ from tempfile import TemporaryDirectory
 from .credentials import parse_quota
 
 
+class CredentialFileSetError(RuntimeError):
+    """A private credential dataset contains files the CPU job must not mount."""
+
+
 def run_kaggle(args, account, timeout=45):
     env = os.environ.copy()
     env["KAGGLE_API_TOKEN"] = account.token
@@ -80,7 +84,7 @@ def private_dataset_file(account, ref, username, filenames, timeout=120, only_se
         page = ["--page-token", token]
     selected = [f["name"] for f in files if Path(f["name"]).name in filenames]
     if only_selected and len(files) != 1:
-        raise RuntimeError("CPU-flow credential dataset must contain only its one required credential file")
+        raise CredentialFileSetError("CPU-flow credential dataset must contain only its one required credential file")
     if len(selected) != 1:
         raise RuntimeError("Credential dataset needs exactly one selected credential file")
     with TemporaryDirectory(prefix="uav-wandb-check-") as temp:

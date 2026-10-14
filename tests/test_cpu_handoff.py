@@ -96,7 +96,14 @@ class CPUHandoffTests(unittest.TestCase):
                 module.run_visualization({}, "unused-output")
 
     def test_launch_cli_emits_private_cpu_handoff_and_pins_published_source(self):
+        self.check_launch_dataset(bundled=False)
+
+    def test_launch_cli_isolates_cpu_wandb_from_a_bundled_dataset(self):
+        self.check_launch_dataset(bundled=True)
+
+    def check_launch_dataset(self, bundled):
         from uav_network.cloud import cli
+        from uav_network.cloud.client import CredentialFileSetError
         with TemporaryDirectory() as directory:
             output = Path(directory)
             (output / "configs").mkdir()
@@ -104,6 +111,9 @@ class CPUHandoffTests(unittest.TestCase):
             key = output / "key.txt"
             key.write_text(json.dumps({"kaggle": {"accounts": [{"name": "alias", "token": "secret-k"}]},
                                        "wandb": {"api_key": "secret-w", "entity": "owner", "project": "project"}}))
+            def verify(*args, only_selected=False):
+                if bundled and only_selected:
+                    raise CredentialFileSetError("Contains an unrelated HF credential")
             def transport(args, account, **kwargs):
                 folder = Path(args[args.index("-p") + 1])
                 metadata = json.loads((folder / "kernel-metadata.json").read_text())
@@ -113,9 +123,9 @@ class CPUHandoffTests(unittest.TestCase):
             with patch.object(cli, "ROOT", output), \
                  patch.object(cli, "account_quotas", return_value=[{"name": "alias", "ok": True, "remaining_hours": 30}]), \
                  patch.object(cli, "resolve_username", return_value="owner"), \
-                 patch.object(cli, "verify_credential_dataset"), \
+                 patch.object(cli, "verify_credential_dataset", side_effect=verify), \
                  patch.object(cli, "ensure_pipeline_dataset", create=True, return_value="owner/private-launch"), \
-                 patch.object(cli, "ensure_cpu_wandb_dataset", create=True, return_value="owner/wandb-cpu-only"), \
+                 patch.object(cli, "ensure_cpu_wandb_dataset", create=True, return_value="owner/wandb-cpu-only") as create_cpu, \
                  patch.object(cli, "run_kaggle", side_effect=transport), \
                  patch.object(cli.subprocess, "check_output", side_effect=["", "a" * 40]):
                 try:
@@ -124,7 +134,9 @@ class CPUHandoffTests(unittest.TestCase):
                 except SystemExit as error:
                     self.fail(f"Autonomous CPU visualization CLI is missing: {error}")
             self.assertTrue(result["cpu_visualize"])
-            self.assertEqual(result.get("cpu_credential_dataset"), "owner/wandb-cpu-only")
+            expected = "owner/wandb-cpu-only" if bundled else "owner/wandb-private"
+            self.assertEqual(result.get("cpu_credential_dataset"), expected)
+            self.assertEqual(create_cpu.call_count, int(bundled))
             self.assertEqual(result["commit"], "a" * 40)
             self.assertEqual(result["cpu_eval"], {"episodes": 1, "seed": 10044, "frame_stride": 5, "fps": 10})
 
