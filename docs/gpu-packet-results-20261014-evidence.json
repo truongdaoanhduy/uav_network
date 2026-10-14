@@ -1,0 +1,246 @@
+{
+  "date": "2026-10-14",
+  "branch": "gpu-native-20261014",
+  "commit": "93feee740d20c8c34f93b6e60fba0cb832dbf68a",
+  "kaggle": {
+    "successful_job": "https://www.kaggle.com/code/duytrngoanh/uavnet-gpu-capacity-20261014-085653",
+    "failed_regression_job": "https://www.kaggle.com/code/duytrngoanh/uavnet-gpu-capacity-20261014-084800"
+  },
+  "hardware": {
+    "sha": "93feee740d20c8c34f93b6e60fba0cb832dbf68a",
+    "started_utc": "2026-10-14T08:57:36Z",
+    "git_head": "93feee740d20c8c34f93b6e60fba0cb832dbf68a",
+    "nvidia_smi": [
+      "Tesla T4, 15360 MiB, 580.178.04",
+      "Tesla T4, 15360 MiB, 580.178.04"
+    ],
+    "python": "3.13.15 (main, Aug  6 2026, 11:06:22) [GCC 13.3.0]",
+    "versions": [
+      "2.11.0+cu128",
+      "1.18.0",
+      "True",
+      "2"
+    ],
+    "finished_utc": "2026-10-14T09:04:09Z"
+  },
+  "tests": {
+    "gpu-suite.log": {
+      "tests": 89,
+      "seconds": 103.625,
+      "status": "OK"
+    },
+    "legacy-cuda.log": {
+      "tests": 10,
+      "seconds": 41.095,
+      "status": "OK"
+    },
+    "mission-regressions.log": {
+      "tests": 8,
+      "seconds": 2.742,
+      "status": "OK"
+    }
+  },
+  "sweep": {
+    "stop_reason": null,
+    "skipped_counts": [],
+    "cases": [
+      {
+        "num_envs": 128,
+        "algorithm": "masac",
+        "status": "ok",
+        "num_cpu_env_workers": 0,
+        "gpu_environment_mib": 50.34,
+        "gpu_memory_used_mib_peak": 1201.0,
+        "gpu_util_percent_mean_measure": 77.53125,
+        "gpu_util_percent_peak_measure": 100.0,
+        "cpu_util_percent_mean_measure": 28.008556783652562,
+        "cpu_util_percent_peak_measure": 38.05309734513275,
+        "host_memory_used_gib_peak": 3.8968,
+        "joint_transitions_per_s": 537.8587468467689,
+        "sample_uses_per_new_transition": 4.0,
+        "measurement_status": "complete"
+      },
+      {
+        "num_envs": 128,
+        "algorithm": "matd3",
+        "status": "ok",
+        "num_cpu_env_workers": 0,
+        "gpu_environment_mib": 50.34,
+        "gpu_memory_used_mib_peak": 1019.0,
+        "gpu_util_percent_mean_measure": 88.1875,
+        "gpu_util_percent_peak_measure": 100.0,
+        "cpu_util_percent_mean_measure": 28.1360826918295,
+        "cpu_util_percent_peak_measure": 38.05309734513275,
+        "host_memory_used_gib_peak": 3.8239,
+        "joint_transitions_per_s": 549.7510596206673,
+        "sample_uses_per_new_transition": 4.0,
+        "measurement_status": "complete"
+      },
+      {
+        "num_envs": 256,
+        "algorithm": "masac",
+        "status": "ok",
+        "num_cpu_env_workers": 0,
+        "gpu_environment_mib": 100.68,
+        "gpu_memory_used_mib_peak": 1263.0,
+        "gpu_util_percent_mean_measure": 80.8125,
+        "gpu_util_percent_peak_measure": 100.0,
+        "cpu_util_percent_mean_measure": 28.102245605483354,
+        "cpu_util_percent_peak_measure": 38.59649122807017,
+        "host_memory_used_gib_peak": 3.8807,
+        "joint_transitions_per_s": 832.5838898961842,
+        "sample_uses_per_new_transition": 2.0,
+        "measurement_status": "complete"
+      },
+      {
+        "num_envs": 256,
+        "algorithm": "matd3",
+        "status": "ok",
+        "num_cpu_env_workers": 0,
+        "gpu_environment_mib": 100.68,
+        "gpu_memory_used_mib_peak": 1085.0,
+        "gpu_util_percent_mean_measure": 91.03125,
+        "gpu_util_percent_peak_measure": 100.0,
+        "cpu_util_percent_mean_measure": 28.076305242730037,
+        "cpu_util_percent_peak_measure": 36.60714285714286,
+        "host_memory_used_gib_peak": 3.8256,
+        "joint_transitions_per_s": 881.8378380256479,
+        "sample_uses_per_new_transition": 2.0,
+        "measurement_status": "complete"
+      },
+      {
+        "num_envs": 512,
+        "algorithm": "masac",
+        "status": "ok",
+        "num_cpu_env_workers": 0,
+        "gpu_environment_mib": 201.359,
+        "gpu_memory_used_mib_peak": 1359.0,
+        "gpu_util_percent_mean_measure": 80.15151515151516,
+        "gpu_util_percent_peak_measure": 100.0,
+        "cpu_util_percent_mean_measure": 28.125600433770053,
+        "cpu_util_percent_peak_measure": 38.59649122807017,
+        "host_memory_used_gib_peak": 3.8836,
+        "joint_transitions_per_s": 1695.4380728563153,
+        "sample_uses_per_new_transition": 1.0,
+        "measurement_status": "complete"
+      },
+      {
+        "num_envs": 512,
+        "algorithm": "matd3",
+        "status": "ok",
+        "num_cpu_env_workers": 0,
+        "gpu_environment_mib": 201.359,
+        "gpu_memory_used_mib_peak": 1181.0,
+        "gpu_util_percent_mean_measure": 91.46875,
+        "gpu_util_percent_peak_measure": 100.0,
+        "cpu_util_percent_mean_measure": 28.185914029478038,
+        "cpu_util_percent_peak_measure": 36.8421052631579,
+        "host_memory_used_gib_peak": 3.8396,
+        "joint_transitions_per_s": 1835.5874141522152,
+        "sample_uses_per_new_transition": 1.0,
+        "measurement_status": "complete"
+      },
+      {
+        "num_envs": 1024,
+        "algorithm": "masac",
+        "status": "ok",
+        "num_cpu_env_workers": 0,
+        "gpu_environment_mib": 402.719,
+        "gpu_memory_used_mib_peak": 1551.0,
+        "gpu_util_percent_mean_measure": 81.9375,
+        "gpu_util_percent_peak_measure": 100.0,
+        "cpu_util_percent_mean_measure": 28.121608700293812,
+        "cpu_util_percent_peak_measure": 38.46153846153846,
+        "host_memory_used_gib_peak": 3.9012,
+        "joint_transitions_per_s": 3496.6548029364294,
+        "sample_uses_per_new_transition": 0.5,
+        "measurement_status": "complete"
+      },
+      {
+        "num_envs": 1024,
+        "algorithm": "matd3",
+        "status": "ok",
+        "num_cpu_env_workers": 0,
+        "gpu_environment_mib": 402.719,
+        "gpu_memory_used_mib_peak": 1371.0,
+        "gpu_util_percent_mean_measure": 92.53125,
+        "gpu_util_percent_peak_measure": 100.0,
+        "cpu_util_percent_mean_measure": 28.214311067726204,
+        "cpu_util_percent_peak_measure": 38.793103448275865,
+        "host_memory_used_gib_peak": 3.8318,
+        "joint_transitions_per_s": 3604.621826745481,
+        "sample_uses_per_new_transition": 0.5,
+        "measurement_status": "complete"
+      },
+      {
+        "num_envs": 2048,
+        "algorithm": "masac",
+        "status": "ok",
+        "num_cpu_env_workers": 0,
+        "gpu_environment_mib": 805.438,
+        "gpu_memory_used_mib_peak": 1935.0,
+        "gpu_util_percent_mean_measure": 84.125,
+        "gpu_util_percent_peak_measure": 100.0,
+        "cpu_util_percent_mean_measure": 28.2053252197554,
+        "cpu_util_percent_peak_measure": 37.71929824561403,
+        "host_memory_used_gib_peak": 3.912,
+        "joint_transitions_per_s": 6716.268761395261,
+        "sample_uses_per_new_transition": 0.25,
+        "measurement_status": "complete"
+      },
+      {
+        "num_envs": 2048,
+        "algorithm": "matd3",
+        "status": "ok",
+        "num_cpu_env_workers": 0,
+        "gpu_environment_mib": 805.438,
+        "gpu_memory_used_mib_peak": 1775.0,
+        "gpu_util_percent_mean_measure": 91.90625,
+        "gpu_util_percent_peak_measure": 100.0,
+        "cpu_util_percent_mean_measure": 28.136147630197865,
+        "cpu_util_percent_peak_measure": 38.05309734513275,
+        "host_memory_used_gib_peak": 3.8355,
+        "joint_transitions_per_s": 7158.657950658518,
+        "sample_uses_per_new_transition": 0.25,
+        "measurement_status": "complete"
+      },
+      {
+        "num_envs": 4096,
+        "algorithm": "masac",
+        "status": "ok",
+        "num_cpu_env_workers": 0,
+        "gpu_environment_mib": 1610.875,
+        "gpu_memory_used_mib_peak": 2735.0,
+        "gpu_util_percent_mean_measure": 82.9375,
+        "gpu_util_percent_peak_measure": 100.0,
+        "cpu_util_percent_mean_measure": 28.13422665833614,
+        "cpu_util_percent_peak_measure": 39.31623931623932,
+        "host_memory_used_gib_peak": 3.8962,
+        "joint_transitions_per_s": 13268.478319882206,
+        "sample_uses_per_new_transition": 0.125,
+        "measurement_status": "complete"
+      },
+      {
+        "num_envs": 4096,
+        "algorithm": "matd3",
+        "status": "ok",
+        "num_cpu_env_workers": 0,
+        "gpu_environment_mib": 1610.875,
+        "gpu_memory_used_mib_peak": 2577.0,
+        "gpu_util_percent_mean_measure": 93.75757575757575,
+        "gpu_util_percent_peak_measure": 100.0,
+        "cpu_util_percent_mean_measure": 28.326501986263676,
+        "cpu_util_percent_peak_measure": 38.05309734513275,
+        "host_memory_used_gib_peak": 3.8387,
+        "joint_transitions_per_s": 14184.806956366094,
+        "sample_uses_per_new_transition": 0.125,
+        "measurement_status": "complete"
+      }
+    ]
+  },
+  "notes": {
+    "failed_job_root_cause": "CUDA FMA contraction changed the final bit of non-binary dt packet clock arithmetic; fixed by materializing steps*dt in mission_time before adding dt.",
+    "native_oracle": "Native UavNetSim remains the parity oracle; warp_packet is an independently implemented GPU backend, not the upstream native simulator itself.",
+    "training_intensity": "The capacity sweep kept batch_size=512 and updates_per_step=1 unchanged, so sample usages per new transition fall as env count rises."
+  }
+}
