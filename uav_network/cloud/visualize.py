@@ -31,7 +31,7 @@ def build_visualization_spec(parent, results):
     return {"stage": "visualize", "commit": parent["commit"], "entity": parent["entity"],
             "project": parent["project"],
             "credential_dataset": parent.get("cpu_credential_dataset", parent["credential_dataset"]),
-            "kernel_ref": parent["kernel_ref"] + "-cpu-visualize", "account": parent["account"],
+            "kernel_ref": parent["kernel_ref"] + "-cpu", "account": parent["account"],
             "parent_kernel_ref": parent["kernel_ref"], "artifacts": artifacts,
             "training_status": statuses, "cpu_eval": parent.get("cpu_eval", {
                 "episodes": 1, "seed": 10044, "frame_stride": 5, "fps": 10}),

@@ -26,6 +26,13 @@ def gpu_result():
 
 
 class CPUHandoffTests(unittest.TestCase):
+    def test_generated_validation_child_respects_kaggle_title_limit(self):
+        parent = parent_spec()
+        parent["kernel_ref"] = "owner/uavnet-validate-20261014-004459-5478ff"
+        metadata = kernel_metadata(self.module().build_visualization_spec(parent, gpu_result()))
+        self.assertLessEqual(len(metadata["title"]), 50)
+        self.assertEqual(metadata["title"].replace(" ", "-"), metadata["id"].split("/")[1])
+
     def test_cpu_child_uses_its_clean_wandb_dataset(self):
         parent = parent_spec()
         parent["cpu_credential_dataset"] = "owner/wandb-cpu-only"
