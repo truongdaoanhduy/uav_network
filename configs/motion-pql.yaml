@@ -1,0 +1,60 @@
+# Candidate PQL-inspired architecture; batch8192 is NOT T4-verified by this file.
+# Retain motion-gpu.yaml as the unchanged 512-env fixed-schedule control.
+world:
+  num_targets: 25
+  num_obstacles: 15
+  max_steps: 1000
+  motion_safety: dynamic_window
+network:
+  receiver_admission_mask: true
+masac:
+  hidden_sizes: [256, 256]
+  replay_capacity: 500000
+  batch_size: 8192
+  learning_starts: 131072  # informational equivalent of 32*4096 in PQL mode
+  updates_per_step: 8     # fixed-run fallback only; PQL uses completed-rate credits
+matd3:
+  hidden_sizes: [256, 256]
+  replay_capacity: 500000
+  batch_size: 8192
+  learning_starts: 131072
+  updates_per_step: 8
+runtime:
+  environment_backend: warp_packet
+  seed: 44
+  eval_seed: 10044
+  eval_episodes: 1
+  num_envs: 4096
+  coalesce_idle_polls: true
+  vectorize_critics: true
+  compile_models: false
+  fused_optimizers: false
+  episodes: 4096
+  device: cuda
+  replay_device: cuda
+  deterministic: true  # deterministic operations; async ordering remains nondeterministic
+  torch_threads: 1
+  log_interval_steps: 409600
+  checkpoint_interval: 128
+  max_train_seconds: 36000
+  output_dir: outputs/motion-pql
+pql:
+  enabled: true
+  mode: async
+  critic_sample_ratio: 8  # updates per vector collection, NOT per individual transition
+  warmup_collection_steps: 32
+  max_pending_collections: 2
+  max_pending_policy_updates: 2
+  collector_device: auto  # CUDA0
+  learner_device: auto    # CUDA1 on 2 GPUs, CUDA0 on 1 GPU
+  policy_device: auto     # same as critic
+  worker_timeout_s: 600
+  checkpoint_replay: true
+tracking:
+  enabled: true
+  artifact_timeout_seconds: 900  # final artifact includes resumable replay once
+  evaluation_interval: 0
+  entity: auto
+  project: auto
+  group: uav-network-pql-inspired
+  tags: [uav-network, masac-matd3, pql-inspired, warp-packet, env4096, targets25, obstacles15, candidate-b8192]

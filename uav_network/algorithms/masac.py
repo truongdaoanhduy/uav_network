@@ -45,7 +45,7 @@ class MASAC(nn.Module):
         self.actor_optimizers = [torch.optim.Adam(actor.parameters(), **adam) for actor in self.actors]
         self.critic_optimizer = torch.optim.Adam(self.critics.parameters(), **adam)
         self.alpha_optimizer = torch.optim.Adam([self.log_alpha_continuous, self.log_alpha_discrete], **adam)
-        self.updates = 0
+        self.updates = self.actor_updates = 0
 
     def _sample(self, actor, observation, deterministic=False):
         mask = valid_destinations(observation, self.destinations)
@@ -112,7 +112,7 @@ class MASAC(nn.Module):
         q1, q2 = critic_values(critics, repeated_state, alternatives.reshape(n, b * k, n, -1), True, True)
         return torch.minimum(q1, q2).reshape(b, k, n).transpose(1, 2)
 
-    def update(self, batch, collect_metrics=True):
+    def update_critic(self, batch, collect_metrics=True):
         data = tensor_batch(batch, self.device)
         a = self.config.masac
         vectorized = self.config.runtime.vectorize_critics
@@ -131,6 +131,18 @@ class MASAC(nn.Module):
         q1, q2 = critic_values(self.critics, data["state"], replay_joint, vectorized)
         critic_loss = F.mse_loss(q1, target) + F.mse_loss(q2, target)
         critic_grad = step_optimizer(critic_loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
+        self.updates += 1
+        if not collect_metrics:
+            return {}
+        return scalar_metrics({**critic_metrics(q1, q2, target, data),
+                               "critic_grad_norm": critic_grad,
+                               "critic_gradient_clipped": (critic_grad > a.grad_clip_norm).float(),
+                               "critic_loss": critic_loss})
+
+    def update_actor(self, batch, collect_metrics=True):
+        data, a = tensor_batch(batch, self.device), self.config.masac
+        vectorized = self.config.runtime.vectorize_critics
+        alpha_c, alpha_d = self.log_alpha_continuous.exp().detach(), self.log_alpha_discrete.exp().detach()
         with torch.no_grad():
             base_joint, *_ = self._joint_sample(data["observation"])
         self.critics.requires_grad_(False)
@@ -171,19 +183,26 @@ class MASAC(nn.Module):
             self.log_alpha_discrete.copy_(torch.where(available_d, self.log_alpha_discrete, before_d))
             self.log_alpha_continuous.clamp_(-20, 5)
             self.log_alpha_discrete.clamp_(-20, 5)
-            for target_parameter, parameter in zip(self.target_critics.parameters(), self.critics.parameters()):
-                target_parameter.lerp_(parameter, a.tau)
-        self.updates += 1
+        self.actor_updates += 1
         if not collect_metrics:
             return {}
-        return scalar_metrics({**critic_metrics(q1, q2, target, data),
-                               "critic_grad_norm": critic_grad, "actor_grad_norm": torch.stack(actor_grads).mean(),
+        return scalar_metrics({"actor_grad_norm": torch.stack(actor_grads).mean(),
                                "alpha_grad_norm": alpha_grad,
-                               "critic_gradient_clipped": (critic_grad > a.grad_clip_norm).float(),
-                               "critic_loss": critic_loss, "actor_loss": torch.stack(actor_losses).mean(),
+                               "actor_loss": torch.stack(actor_losses).mean(),
                                "continuous_entropy": hc.mean(), "discrete_entropy": hd.mean(),
                                "alpha_continuous": self.log_alpha_continuous.exp().mean(),
                                "alpha_discrete": self.log_alpha_discrete.exp().mean()})
+
+    @torch.no_grad()
+    def update_targets(self):
+        for target_parameter, parameter in zip(self.target_critics.parameters(), self.critics.parameters()):
+            target_parameter.lerp_(parameter, self.config.masac.tau)
+
+    def update(self, batch, collect_metrics=True):
+        critic = self.update_critic(batch, collect_metrics)
+        actor = self.update_actor(batch, collect_metrics)
+        self.update_targets()
+        return {**critic, **actor}
 
     def save(self, path, progress=None):
         save_policy(self, path, progress)

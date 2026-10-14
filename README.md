@@ -371,3 +371,10 @@ Visualize checkpoint trên CPU local:
   --episodes 1 --seed 10044 --animate --frame-stride 5 --fps 10 \
   --video-format auto --output-dir outputs/cpu-preview
 ```
+
+## PQL-inspired GPU training
+
+Opt-in profile `configs/motion-pql.yaml` separates the Warp collector, critic
+and policy workers with bounded rate feedback. It preserves MASAC/MATD3 objectives.
+The 4096-env/batch8192 profile is a candidate pending the exact T4 benchmark.
+See [configuration, benchmarking and resume](docs/pql-training.md).

@@ -44,10 +44,10 @@ class GymMissionEnv(gym.Env):
         self.mission.close()
 
 
-def make_vector(config):
+def make_vector(config, *, device=None):
     if config.runtime.environment_backend == "warp_packet":
         from .gpu.vector import WarpVectorEnv
-        return WarpVectorEnv(config)
+        return WarpVectorEnv(config, device=device)
     factories = [partial(GymMissionEnv, config) for _ in range(config.runtime.num_envs)]
     if len(factories) == 1:
         return SyncVectorEnv(factories, autoreset_mode=AutoresetMode.DISABLED)

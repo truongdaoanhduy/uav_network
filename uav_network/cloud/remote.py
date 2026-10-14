@@ -63,7 +63,7 @@ def learner_command(spec, algorithm, run, gpu_index, destination, max_seconds=No
     return args, env
 
 
-def prepare_checkpoints(spec, output):
+def prepare_checkpoints(spec, output, config=None):
     if not spec.get("warm_start_artifacts"):
         return {}
     import wandb
@@ -71,20 +71,55 @@ def prepare_checkpoints(spec, output):
     paths = {}
     for algorithm, ref in spec["warm_start_artifacts"].items():
         artifact = api.artifact(ref, type="model")
-        path = artifact.get_entry("checkpoint.pt").download(root=str(output / "inputs" / algorithm))
+        pql = config is not None and config.pql.enabled
+        entry = "resume.pt" if pql else "checkpoint.pt"
+        path = artifact.get_entry(entry).download(root=str(output / "inputs" / algorithm))
         saved = torch.load(path, map_location="cpu", weights_only=True)
         if saved.get("algorithm") != algorithm or "progress" not in saved:
             raise ValueError("Input artifact must match the algorithm and contain verified progress")
+        if pql and (saved.get("version") != 3 or "training" not in saved):
+            raise ValueError("PQL input artifact must contain full version-3 training state in resume.pt")
         paths[algorithm] = path
     return paths
 
 
 def learner_time_limit(spec, config, gpu_count, index, elapsed):
     waves = math.ceil((len(spec["runs"]) - index) / gpu_count)
-    available = (min(spec.get("timeout_seconds", 39600), 39600) - elapsed - 600) / waves
+    reserve = max(600, config.tracking.artifact_timeout_seconds + 120) if config.pql.enabled else 600
+    available = (min(spec.get("timeout_seconds", 39600), 39600) - elapsed - reserve) / waves
     if available <= 0:
         raise RuntimeError("No safe training time remains before the kernel ceiling")
     return min(config.runtime.max_train_seconds or available, available)
+
+
+def gpu_allocation(config, count, index):
+    if count < 1:
+        raise ValueError("At least one CUDA GPU is required")
+    # One PQL experiment owns all GPUs; independent algorithms run in waves.
+    return (1, ",".join(str(i) for i in range(count))) if config.pql.enabled else (count, str(index % count))
+
+
+def pql_benchmarks(spec, config, output):
+    results = {}
+    for algorithm in spec["runs"]:
+        batch = getattr(config, algorithm).batch_size
+        rounds = max(40, config.pql.warmup_collection_steps + 8,
+                     math.ceil(batch / config.runtime.num_envs) + 1)
+        path = output / f"{algorithm}-benchmark.json"
+        args = [sys.executable, "scripts/benchmark_pql.py", "--config", spec["config"],
+                "--algorithms", algorithm, "--envs", str(config.runtime.num_envs),
+                "--batches", str(batch), "--steps", str(rounds), "--output", str(path)]
+        for override in [*spec["overrides"], "tracking.enabled=true",
+                         "runtime.device=cuda", "runtime.replay_device=cuda"]:
+            args += ["--set", override]
+        with (output / f"{algorithm}-benchmark.log").open("w") as log:
+            subprocess.run(args, stdout=log, stderr=subprocess.STDOUT, check=True)
+        report = json.loads(path.read_text())
+        if (not report.get("results") or any(row.get("status") != "passed"
+                or not row.get("cuda_pipeline_verified") for row in report["results"])):
+            raise RuntimeError(f"PQL benchmark failed for {algorithm}; inspect {path}; batch remains {batch}")
+        results[algorithm] = report
+    return results
 
 
 def run_job(spec):
@@ -92,15 +127,27 @@ def run_job(spec):
         raise RuntimeError("Kaggle job requires usable CUDA; refusing a CPU fallback")
     output = Path("/kaggle/working")
     started = float(os.environ.get("UAV_JOB_STARTED_AT", time.monotonic()))
-    spec["warm_start_paths"] = prepare_checkpoints(spec, output)
     config = load_config(spec["config"], spec["overrides"])
+    spec["warm_start_paths"] = prepare_checkpoints(spec, output, config=config)
     (output / "hardware.json").write_text(json.dumps(hardware_info(), indent=2))
-    for pattern, log_name in (("test_cuda.py", "cuda-tests.log"),
-                              ("test_training_audit_regressions.py", "mission-regressions.log")):
+    checks = [("test_cuda.py", "cuda-tests.log"),
+              ("test_training_audit_regressions.py", "mission-regressions.log")]
+    if config.pql.enabled:
+        checks.append(("test_pql_training.py", "pql-smoke-tests.log"))
+    for pattern, log_name in checks:
         with (output / log_name).open("w") as log:
             subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests",
                             "-p", pattern, "-v"], stdout=log, stderr=subprocess.STDOUT, check=True)
-    if spec["stage"] == "train":
+    if spec["stage"] == "benchmark" and not config.pql.enabled:
+        raise ValueError("benchmark cloud stage requires pql.enabled=true")
+    if config.pql.enabled and spec["stage"] in {"train", "benchmark"}:
+        reports = pql_benchmarks(spec, config, output)
+        if spec["stage"] == "benchmark":
+            (output / "job-result.json").write_text(json.dumps(reports, indent=2))
+            print(json.dumps({algorithm: report["results"][0]["status"]
+                              for algorithm, report in reports.items()}), flush=True)
+            return reports
+    elif spec["stage"] == "train":
         for algorithm in spec["runs"]:
             args = [sys.executable, "-m", "uav_network", "benchmark", "--config", spec["config"],
                     "--env-counts", str(config.runtime.num_envs), "--steps", "32",
@@ -115,12 +162,12 @@ def run_job(spec):
     logs = []
     try:
         for index, (algorithm, run) in enumerate(spec["runs"].items()):
-            # A single GPU runs algorithms sequentially; multiple GPUs run them independently.
-            if index and index % count == 0:
-                wait_all(processes[-count:])
+            slots, visible = gpu_allocation(config, count, index)
+            if index and index % slots == 0:
+                wait_all(processes[-slots:])
             destination = output / spec["stage"] / algorithm
-            limit = learner_time_limit(spec, config, count, index, time.monotonic() - started)
-            args, env = learner_command(spec, algorithm, run, index % count, destination, limit)
+            limit = learner_time_limit(spec, config, slots, index, time.monotonic() - started)
+            args, env = learner_command(spec, algorithm, run, visible, destination, limit)
             log = (output / f"{algorithm}-{spec['stage']}.log").open("w")
             logs.append(log)
             processes.append(subprocess.Popen(args, env=env, stdout=log, stderr=subprocess.STDOUT,

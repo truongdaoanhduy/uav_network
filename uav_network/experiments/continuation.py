@@ -6,15 +6,7 @@ from ..algorithms.checkpoints import load_policy, make_learner
 from ..environment.observations import observation_dim, state_dim
 
 
-def restore_learner(config, device):
-    if config.runtime.warm_start_checkpoint == "none":
-        return make_learner(config, observation_dim(config), state_dim(config), device), {
-            "episodes": 0, "global_step": 0, "collection_steps": 0,
-            "next_seed": config.runtime.seed, "records": [],
-        }
-    path = config.runtime.warm_start_checkpoint
-    saved = torch.load(path, map_location="cpu", weights_only=True)
-    progress = saved.get("progress")
+def validate_progress(progress, episode_budget=None):
     required = {"episodes", "global_step", "collection_steps", "next_seed", "records"}
     if not isinstance(progress, dict) or not required <= progress.keys():
         raise ValueError("Checkpoint needs verified progress metadata for warm-start")
@@ -29,9 +21,22 @@ def restore_learner(config, device):
     if records and (progress["global_step"] < max(row["global_step"] for row in records)
                     or progress["next_seed"] <= max(row["seed"] for row in records)):
         raise ValueError("Checkpoint progress counters/seeds precede its history")
-    if progress["episodes"] >= config.runtime.episodes:
+    if episode_budget is not None and progress["episodes"] >= episode_budget:
         raise ValueError("Requested episode budget must exceed the checkpoint's completed episodes")
-    learner = load_policy(path, device, expected_algorithm=config.runtime.algorithm)
+    return progress
+
+
+def restore_learner(config, device):
+    if config.runtime.warm_start_checkpoint == "none":
+        return make_learner(config, observation_dim(config), state_dim(config), device), {
+            "episodes": 0, "global_step": 0, "collection_steps": 0,
+            "next_seed": config.runtime.seed, "records": [],
+        }
+    path = config.runtime.warm_start_checkpoint
+    saved = torch.load(path, map_location="cpu", weights_only=True)
+    progress = saved.get("progress")
+    validate_progress(progress, config.runtime.episodes)
+    learner = load_policy(path, device, expected_algorithm=config.runtime.algorithm, payload=saved)
     before, current = learner.config.to_dict(), config.to_dict()
     for group in ("world", "sensor", "network", "energy", "reward", config.runtime.algorithm):
         if before[group] != current[group]:

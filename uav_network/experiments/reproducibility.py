@@ -1,5 +1,5 @@
 """Hashes of scientific outcomes and weights; runtime/PIDs are excluded."""
-from hashlib import sha256
+from hashlib import sha256, file_digest
 import json
 import platform
 from pathlib import Path
@@ -30,8 +30,12 @@ def reproducibility_result(learner, records):
     settings["runtime"] = {k: v for k, v in config["runtime"].items()
                            if k not in {"output_dir", "warm_start_checkpoint"}}
     checkpoint = config["runtime"]["warm_start_checkpoint"]
-    settings["warm_start_sha256"] = (None if checkpoint == "none" else
-                                      sha256(Path(checkpoint).read_bytes()).hexdigest())
+    if config.get("pql", {}).get("enabled"):
+        settings["pql"] = config["pql"]
+    settings["warm_start_sha256"] = None
+    if checkpoint != "none":
+        with Path(checkpoint).open("rb") as stream:
+            settings["warm_start_sha256"] = file_digest(stream, "sha256").hexdigest()
     hardware = {"python": platform.python_version(), "numpy": np.__version__,
                 "torch": torch.__version__, "cuda_build": torch.version.cuda,
                 "device": str(learner.device),

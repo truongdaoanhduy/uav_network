@@ -29,9 +29,11 @@ class WarpVectorEnv:
         selected = config.runtime.device if device is None else device
         if selected == "auto":
             selected = "cuda" if torch.cuda.is_available() else "cpu"
-        if selected == "cuda" and not torch.cuda.is_available():
+        self.device = torch.device("cuda:0" if selected == "cuda" else selected)
+        if self.device.type not in {"cpu", "cuda"}:
+            raise ValueError("Warp environment requires a cpu or cuda device")
+        if self.device.type == "cuda" and not torch.cuda.is_available():
             raise RuntimeError("CUDA environment requested without a CUDA device")
-        self.device = torch.device("cuda:0" if selected == "cuda" else "cpu")
         self.wp_device = str(self.device)
         wp.init()
         self._torch_stream = torch.cuda.current_stream(self.device) if self.device.type == "cuda" else None

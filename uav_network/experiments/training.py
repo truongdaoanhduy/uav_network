@@ -45,6 +45,9 @@ def choose_device(value):
 
 def train(config):
     with graceful_termination():
+        if config.pql.enabled:
+            from .pql_training import train_pql
+            return train_pql(config)
         return _train(config)
 
 

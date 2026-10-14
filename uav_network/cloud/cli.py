@@ -85,7 +85,7 @@ def main(argv=None):
     commands = parser.add_subparsers(dest="action", required=True)
     commands.add_parser("accounts", help="Show verified quota without credentials")
     submit = commands.add_parser("launch")
-    submit.add_argument("--stage", choices=["validate", "train"], default="train")
+    submit.add_argument("--stage", choices=["validate", "train", "benchmark"], default="train")
     submit.add_argument("--account")
     submit.add_argument("--required-gpu-hours", type=float)
     submit.add_argument("--credential-dataset", required=True)

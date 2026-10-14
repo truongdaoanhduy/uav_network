@@ -2,6 +2,7 @@
 from dataclasses import asdict, dataclass, field, fields, is_dataclass
 from pathlib import Path
 import math
+import re
 
 import yaml
 
@@ -152,6 +153,21 @@ class RuntimeConfig:
 
 
 @dataclass
+class PQLConfig:
+    enabled: bool = False
+    mode: str = "async"
+    critic_sample_ratio: float = 8.0  # minibatch updates per eligible vector collection
+    warmup_collection_steps: int = 32
+    max_pending_collections: int = 2
+    max_pending_policy_updates: int = 2
+    collector_device: str = "auto"
+    learner_device: str = "auto"
+    policy_device: str = "auto"
+    worker_timeout_s: float = 120.0
+    checkpoint_replay: bool = True
+
+
+@dataclass
 class TrackingConfig:
     enabled: bool = False
     credentials_file: str = "key.txt"
@@ -182,6 +198,7 @@ class Config:
     matd3: MATD3Config = field(default_factory=MATD3Config)
     runtime: RuntimeConfig = field(default_factory=RuntimeConfig)
     tracking: TrackingConfig = field(default_factory=TrackingConfig)
+    pql: PQLConfig = field(default_factory=PQLConfig)
 
     @property
     def algorithm_config(self):
@@ -242,6 +259,16 @@ class Config:
             raise ValueError("hidden_sizes must contain positive integers")
         if r.device not in {"auto", "cpu", "cuda"} or r.replay_device not in {"auto", "cpu", "cuda"}:
             raise ValueError("device and replay_device must be auto, cpu or cuda")
+        p = self.pql
+        if (p.mode not in {"async", "synchronous"} or p.critic_sample_ratio <= 0
+                or min(p.max_pending_collections, p.max_pending_policy_updates) < 1
+                or p.worker_timeout_s <= 0):
+            raise ValueError("Invalid PQL mode, ratios, queue bounds or worker timeout")
+        for value in (p.collector_device, p.learner_device, p.policy_device):
+            if value not in {"auto", "cpu", "cuda"} and not re.fullmatch(r"cuda:\d+", value):
+                raise ValueError("PQL devices must be auto, cpu, cuda or cuda:N")
+        if p.enabled and r.compile_models:
+            raise ValueError("PQL snapshot workers currently require compile_models=false")
         if r.environment_backend not in {"native", "warp_packet"}:
             raise ValueError("environment_backend must be native or warp_packet")
         if r.algorithm not in {"masac", "matd3"}:

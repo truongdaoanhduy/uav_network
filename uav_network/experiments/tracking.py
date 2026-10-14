@@ -132,9 +132,10 @@ class OnlineTracker:
                     "job_started_at_utc": os.environ.get("UAV_JOB_STARTED_AT_UTC", "unknown"),
                     "kaggle_url": "https://www.kaggle.com/code/" + os.environ.get("UAV_KAGGLE_KERNEL", "local")}
         metadata["continuation"] = {
-            "kind": "policy_warm_start" if config.runtime.warm_start_checkpoint != "none" else "fresh",
+            "kind": initial.get("state_restore", "policy_warm_start" if config.runtime.warm_start_checkpoint != "none" else "fresh"),
             "initial_episodes": initial.get("episodes", 0), "initial_global_step": self.initial_step,
-            "source_run_id": initial.get("source_run_id"), "optimizer_replay_restored": False,
+            "source_run_id": initial.get("source_run_id"), "optimizer_replay_restored": initial.get("optimizer_replay_restored", False),
+            "state_restore": initial.get("state_restore", "policy_warm_start" if config.runtime.warm_start_checkpoint != "none" else "fresh"),
             "input_artifact": os.environ.get("UAV_INPUT_ARTIFACT"),
         }
         benchmark_file = os.environ.get("UAV_BENCHMARK_FILE")
@@ -210,6 +211,11 @@ class OnlineTracker:
                                                 "global_step": progress["global_step"],
                                                 "episode_budget_complete": progress.get("episode_budget_complete", False)})
         artifact.add_file(str(path), name="checkpoint.pt")
+        if final and self.config.pql.enabled:
+            resume = progress.get("resume_checkpoint")
+            if resume is None or not Path(resume).is_file():
+                raise ValueError("Final PQL artifact requires a complete resume checkpoint")
+            artifact.add_file(str(resume), name="resume.pt")
         logged = self.run.log_artifact(artifact, aliases=["latest", "final"] if final else ["latest"])
         logged.wait(timeout=self.config.tracking.artifact_timeout_seconds)
         return logged.qualified_name

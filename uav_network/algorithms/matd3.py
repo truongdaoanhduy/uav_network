@@ -41,7 +41,7 @@ class MATD3(nn.Module):
             adam["fused"] = True
         self.actor_optimizers = [torch.optim.Adam(actor.parameters(), **adam) for actor in self.actors]
         self.critic_optimizer = torch.optim.Adam(self.critics.parameters(), **adam)
-        self.updates = 0
+        self.updates = self.actor_updates = 0
         self._last_actor_metrics = {}
 
     def _actor_action(self, actor, observation, straight_through=False):
@@ -94,7 +94,7 @@ class MATD3(nn.Module):
         action = self.act_batch(np.asarray(observations)[None], deterministic, step)
         return Action(action.continuous[0], action.destination[0])
 
-    def update(self, batch, collect_metrics=True):
+    def update_critic(self, batch, collect_metrics=True):
         data, a = tensor_batch(batch, self.device), self.config.matd3
         vectorized = self.config.runtime.vectorize_critics
         with torch.no_grad():
@@ -112,51 +112,71 @@ class MATD3(nn.Module):
         critic_grad = step_optimizer(loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
         batch_metrics = critic_metrics(q1, q2, target, data) if collect_metrics else {}
         self.updates += 1
-        policy_updated = self.updates % a.policy_delay == 0
-        actor_losses, actor_grads = [], []
-        if policy_updated:
-            with torch.no_grad():
-                base = torch.stack([self._actor_action(actor, data["observation"][:, i])
-                                    for i, actor in enumerate(self.actors)], 1)
-            self.critics.requires_grad_(False)
-            try:
-                batched_q = None
-                if vectorized:
-                    joints = base[None].expand(self.num_uavs, -1, -1, -1).clone()
-                    indices = torch.arange(self.num_uavs, device=self.device)
-                    joints[indices, :, indices] = torch.stack([
-                        self._actor_action(actor, data["observation"][:, i], straight_through=True)
-                        for i, actor in enumerate(self.actors)])
-                    batched_q, _ = critic_values(self.critics, data["state"], joints, True, True)
-                for i, actor in enumerate(self.actors):
-                    if vectorized:
-                        q1 = batched_q[:, i]
-                    else:
-                        joint = base.clone()
-                        joint[:, i] = self._actor_action(actor, data["observation"][:, i], straight_through=True)
-                        q1, _ = self.critics[i](data["state"], joint)
-                    actor_loss = -q1.mean()
-                    actor_losses.append(actor_loss)
-                actor_grads = step_actor_optimizers(actor_losses, self.actor_optimizers,
-                                                   [actor.parameters() for actor in self.actors],
-                                                   a.grad_clip_norm, collect_metrics)
-                actor_losses = [loss.detach() for loss in actor_losses]
-            finally:
-                self.critics.requires_grad_(True)
-            self._last_actor_metrics = {"actor_loss": torch.stack(actor_losses).mean(),
-                                        "actor_grad_norm": torch.stack(actor_grads).mean(),
-                                        "actor_update_step": torch.tensor(float(self.updates), device=self.device)}
-            with torch.no_grad():
-                for target_collection, collection in ((self.target_actors, self.actors),
-                                                       (self.target_critics, self.critics)):
-                    for target_p, p in zip(target_collection.parameters(), collection.parameters()):
-                        target_p.lerp_(p, a.tau)
         if not collect_metrics:
             return {}
         return scalar_metrics({**batch_metrics, **self._last_actor_metrics,
                                "critic_loss": loss, "critic_grad_norm": critic_grad,
                                "critic_gradient_clipped": (critic_grad > a.grad_clip_norm).float(),
-                               "policy_updated": torch.tensor(float(policy_updated), device=self.device)})
+                               "policy_updated": torch.tensor(0., device=self.device)})
+
+    def update_actor(self, batch, collect_metrics=True):
+        data, a = tensor_batch(batch, self.device), self.config.matd3
+        vectorized = self.config.runtime.vectorize_critics
+        actor_losses, actor_grads = [], []
+        with torch.no_grad():
+            base = torch.stack([self._actor_action(actor, data["observation"][:, i])
+                                for i, actor in enumerate(self.actors)], 1)
+        self.critics.requires_grad_(False)
+        try:
+            batched_q = None
+            if vectorized:
+                joints = base[None].expand(self.num_uavs, -1, -1, -1).clone()
+                indices = torch.arange(self.num_uavs, device=self.device)
+                joints[indices, :, indices] = torch.stack([
+                    self._actor_action(actor, data["observation"][:, i], straight_through=True)
+                    for i, actor in enumerate(self.actors)])
+                batched_q, _ = critic_values(self.critics, data["state"], joints, True, True)
+            for i, actor in enumerate(self.actors):
+                if vectorized:
+                    q1 = batched_q[:, i]
+                else:
+                    joint = base.clone()
+                    joint[:, i] = self._actor_action(actor, data["observation"][:, i], straight_through=True)
+                    q1, _ = self.critics[i](data["state"], joint)
+                actor_loss = -q1.mean()
+                actor_losses.append(actor_loss)
+            actor_grads = step_actor_optimizers(actor_losses, self.actor_optimizers,
+                                               [actor.parameters() for actor in self.actors],
+                                               a.grad_clip_norm, collect_metrics)
+            actor_losses = [loss.detach() for loss in actor_losses]
+        finally:
+            self.critics.requires_grad_(True)
+        self._last_actor_metrics = {"actor_loss": torch.stack(actor_losses).mean(),
+                                    "actor_grad_norm": torch.stack(actor_grads).mean(),
+                                    "actor_update_step": torch.tensor(float(self.updates), device=self.device)}
+        self.actor_updates += 1
+        if not collect_metrics:
+            return {}
+        return scalar_metrics({**self._last_actor_metrics,
+                               "policy_updated": torch.tensor(1., device=self.device)})
+
+    @torch.no_grad()
+    def update_targets(self, *, actor=True, critic=True):
+        collections = []
+        if actor:
+            collections.append((self.target_actors, self.actors))
+        if critic:
+            collections.append((self.target_critics, self.critics))
+        for target_collection, collection in collections:
+            for target_p, p in zip(target_collection.parameters(), collection.parameters()):
+                target_p.lerp_(p, self.config.matd3.tau)
+
+    def update(self, batch, collect_metrics=True):
+        result = self.update_critic(batch, collect_metrics)
+        if self.updates % self.config.matd3.policy_delay == 0:
+            result.update(self.update_actor(batch, collect_metrics))
+            self.update_targets()
+        return result
 
     def save(self, path, progress=None):
         save_policy(self, path, progress)
