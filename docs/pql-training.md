@@ -52,7 +52,7 @@ Replay5M của PQL gốc sẽ khoảng45.8GiB ở scenario này nên không copy
 Replay500k tại4096 worlds giữ khoảng122 vector steps; Bellman1-step không yêu cầu giữ đủ1000 bước của cả episode.
 
 ## Chạy và benchmark
-T4 batch8192 là candidate, chưa được khẳng định chỉ bằng config hoặc CPU tests.
+Batch8192 đã pass benchmark ngắn trên đúng2×T4 cho cả hai thuật toán; xem [số liệu](pql-validation-20261014.md). Profile vẫn cần long-run learning curves để xác nhận hội tụ.
 Benchmark giữ scenario thật, report allocated/reserved peak VRAM, rates, queue wait, snapshot lag, finite learner metrics và lỗi OOM.
 `cuda_pipeline_verified` chỉ xác nhận pipeline CUDA của case đã đo; `target_t4_scenario_verified` đòi hỏi đúng4096/B8192/scenario25/15 trên haiT4 và mapping0→1.
 Benchmark không thể pass nếu chưa hoàn tất cả critic lẫn policy updates.

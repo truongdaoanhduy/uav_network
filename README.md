@@ -376,5 +376,6 @@ Visualize checkpoint trên CPU local:
 
 Opt-in profile `configs/motion-pql.yaml` separates the Warp collector, critic
 and policy workers with bounded rate feedback. It preserves MASAC/MATD3 objectives.
-The 4096-env/batch8192 profile is a candidate pending the exact T4 benchmark.
+The 4096-env/batch8192 profile passed the exact two-T4 short benchmark;
+convergence remains unverified. See [measured validation](docs/pql-validation-20261014.md).
 See [configuration, benchmarking and resume](docs/pql-training.md).

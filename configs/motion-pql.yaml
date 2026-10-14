@@ -1,4 +1,5 @@
-# Candidate PQL-inspired architecture; batch8192 is NOT T4-verified by this file.
+# PQL-inspired candidate: batch8192 passed the 2026-10-14 two-T4 short benchmark.
+# See docs/pql-validation-20261014.md; convergence/long-run stability remain unverified.
 # Retain motion-gpu.yaml as the unchanged 512-env fixed-schedule control.
 world:
   num_targets: 25

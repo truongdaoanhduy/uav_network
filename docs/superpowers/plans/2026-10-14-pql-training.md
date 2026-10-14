@@ -25,7 +25,7 @@ Modify algorithms/masac.py and matd3.py. Produce update_critic(batch, collect_me
 
 ### Task 2: Worker system and persistence
 Create experiments/pql_replay.py, pql_workers.py, pql_system.py; add PQLConfig.
-Interfaces: PQLSystem(config), submit(transition), flush(), metrics(), inference(), save(path, progress), close().
+Interfaces: PQLSystem(config), submit(transition), flush(), metrics(), act_batch(observation, **options), save(path, progress), close().
 - [x] Write tests for ratio/warmup, ring wrap, snapshot isolation, worker errors and resume.
 - [x] Observe missing-feature failures; implement bounded work queues with exact ratio credits, immutable snapshots and owned replay.
 - [x] Preserve target clocks and serialize optimizers/controller/RNG/replay at drained boundaries.
@@ -36,12 +36,12 @@ Create experiments/pql_training.py, configs/motion-pql.yaml, scripts/benchmark_p
 - [x] Write CPU Warp integration tests and missing-CUDA device tests.
 - [x] Run failures; implement terminal-safe collection, logging, progress and checkpoint boundary coalescing.
 - [x] Smoke both algorithms and deterministic debug mode; run complete suite.
-- [ ] Benchmark exact T4 scenario if available; otherwise leave explicit unverified status and a runnable benchmark.
+- [x] Benchmark exact T4 scenario: both algorithms passed E4096/B8192/replay500k on 2×T4; see docs/pql-validation-20261014.md.
 
 ### Task 4: Independent review and delivery
 - [x] Review the complete diff for races, math changes, resume and limits.
 - [x] Reproduce/fix material findings with tests; git diff --check; complete suite.
-- [ ] Commit reviewed code and report branch, verification, measured limitations and production status.
+- [x] Commit reviewed code and publish branch pql-async-20261014; local278 tests and T4 smoke/benchmark results recorded.
 
 ## Review ledger
 - Final: fixed cloud resume artifact mismatch — test_pql_artifacts tests RED→GREEN.
@@ -50,3 +50,5 @@ Create experiments/pql_training.py, configs/motion-pql.yaml, scripts/benchmark_p
 - No Critical findings, no deferred minors or rulings. Full CPU/Warp suite: 276 tests OK, 45 CUDA skips. Exact algorithm oracle and all material review reproductions pass. GPU measurements remain pending.
 
 - T4 smoke job f25892f: CUDA tests10/10 and PQL tests7/7 passed on 2×T4; first large benchmark stopped before allocation at reset_peak_memory_stats. Added explicit cuda.init and a fresh-process CUDA regression. Local suite278 tests OK,46 CUDA skips. Re-measurement pending.
+
+- T4 rerun e680276: both cases PASSED; MASAC41.36s/3961 transitions/s, MATD317.86s/9172 transitions/s; no production convergence claim.
