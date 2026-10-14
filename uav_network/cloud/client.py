@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 import time
 from tempfile import TemporaryDirectory
 
@@ -20,7 +21,7 @@ def run_kaggle(args, account, timeout=45):
     env["KAGGLE_API_TOKEN"] = account.token
     for name in ("KAGGLE_USERNAME", "KAGGLE_KEY"):
         env.pop(name, None)
-    process = subprocess.run(["kaggle", *args], env=env, text=True,
+    process = subprocess.run([sys.executable, "-m", "kaggle", *args], env=env, text=True,
                              capture_output=True, timeout=timeout, check=False)
     stdout = process.stdout.replace(account.token, "[REDACTED]")
     stderr = process.stderr.replace(account.token, "[REDACTED]")

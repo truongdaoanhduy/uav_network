@@ -14,6 +14,21 @@ from uav_network.cloud.remote import learner_command, wait_all
 
 
 class CloudTests(unittest.TestCase):
+    def test_cli_uses_the_active_python_environment_without_a_global_executable(self):
+        from uav_network.cloud.client import run_kaggle
+        import os
+        with TemporaryDirectory() as directory:
+            package = Path(directory) / "kaggle"
+            package.mkdir()
+            (package / "__init__.py").write_text("")
+            (package / "__main__.py").write_text(
+                "import json,os,sys\n"
+                "print(json.dumps({'args':sys.argv[1:],'selected':os.environ.get('KAGGLE_API_TOKEN')=='secret-a'}))\n")
+            with patch.dict(os.environ, {"PATH": directory, "PYTHONPATH": directory}):
+                response = json.loads(run_kaggle(["kernels", "status", "owner/child"], self.credentials().accounts[0]))
+            self.assertEqual(response["args"], ["kernels", "status", "owner/child"])
+            self.assertTrue(response["selected"])
+
     def test_artifact_mapping_rejects_duplicate_or_unselected_algorithms(self):
         from uav_network.cloud.cli import parse_warm_start_artifacts
         self.assertEqual(parse_warm_start_artifacts(["masac=owner/project/model:v0"], ["masac"]),
