@@ -53,6 +53,55 @@ class EnvironmentScaleTests(unittest.TestCase):
                 module.sweep([128], ["masac"], Path(directory), runner)
             self.assertEqual(Path(directory, "results.json").read_text(), "prior evidence")
 
+    def test_nested_cgroup_and_ancestor_limits_are_enforced(self):
+        module = self.module()
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            proc, group = root / "proc", root / "cgroup"
+            (proc / "self").mkdir(parents=True)
+            (group / "team/job").mkdir(parents=True)
+            (proc / "meminfo").write_text("MemTotal: 16000 kB\nMemAvailable: 12000 kB\n")
+            (proc / "stat").write_text("cpu 1 2 3 4 5 6 7 8\n")
+            (proc / "self/cgroup").write_text("0::/team/job\n")
+            (proc / "self/mountinfo").write_text(f"1 0 0:1 / {group} rw - cgroup2 cgroup2 rw\n")
+            for relative, value in {"team/memory.max": 1000000, "team/memory.current": 950000,
+                                    "team/job/memory.max": 500000, "team/job/memory.current": 10000,
+                                    "team/pids.max": 64, "team/pids.current": 60,
+                                    "team/job/pids.max": "max", "team/job/pids.current": 2}.items():
+                (group / relative).write_text(str(value))
+            sample = module.host_resources(proc)
+            self.assertEqual(sample["memory_limit_bytes"], 500000)
+            self.assertEqual(sample["pids_limit"], 64)
+            self.assertEqual(module.guard_reason(sample, .85), "cpu_ram_guard")
+            (group / "team/memory.current").write_text("1000")
+            self.assertEqual(module.guard_reason(module.host_resources(proc), .85), "cpu_pid_guard")
+
+    def test_only_intervals_wholly_inside_measurement_have_utilization_means(self):
+        module = self.module()
+        samples = [dict(phase="measure", sample_end_mono=11., gpu_interval_start_mono=9.,
+                        cpu_interval_start_mono=9., gpu_util_percent=99., cpu_util_percent=99.),
+                   dict(phase="measure", sample_end_mono=12., gpu_interval_start_mono=11.,
+                        cpu_interval_start_mono=11., gpu_util_percent=50., cpu_util_percent=60.),
+                   dict(phase="done", sample_end_mono=21., gpu_interval_start_mono=19.,
+                        cpu_interval_start_mono=19., gpu_util_percent=99., cpu_util_percent=99.)]
+        result = module.summarize(samples, measurement=(10., 20.))
+        self.assertEqual(result["gpu_util_percent_mean_measure"], 50.)
+        self.assertEqual(result["cpu_util_percent_mean_measure"], 60.)
+        self.assertEqual(result["gpu_util_percent_samples_measure"], 1)
+        self.assertEqual(result["measurement_status"], "incomplete")
+        missing = module.summarize([{"phase": "measure"}], measurement=(10., 20.))
+        self.assertEqual(missing["measurement_status"], "unavailable")
+        self.assertNotIn("gpu_util_percent_mean_measure", missing)
+
+    def test_unfinished_child_exit_is_a_worker_error(self):
+        module = self.module()
+        with TemporaryDirectory() as directory:
+            code = ("import json, pathlib; pathlib.Path(" + repr(str(Path(directory, "case.json"))) +
+                    ").write_text(json.dumps({'status':'running','phase':'vector_startup'}))")
+            result = module.supervise([sys.executable, "-c", code], Path(directory),
+                                      timeout=5, memory_fraction=.99)
+            self.assertEqual(result["status"], "worker_error")
+
     def test_timeout_terminates_a_real_child_process(self):
         module = self.module()
         with TemporaryDirectory() as directory:
