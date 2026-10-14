@@ -27,6 +27,18 @@ class RuntimeTests(unittest.TestCase):
                 copy.runtime.algorithm = algorithm
                 copy.validate()
 
+    def test_motion_gpu_profile_uses_parallel_off_policy_training_budget(self):
+        c = load_config("configs/motion-gpu.yaml")
+        self.assertEqual(c.world.num_targets, 25)
+        self.assertEqual(c.world.num_obstacles, 15)
+        self.assertEqual(c.runtime.num_envs, 512)
+        self.assertEqual(c.runtime.log_interval_steps, 51200)
+        for learner in (c.masac, c.matd3):
+            self.assertEqual(learner.replay_capacity, 200000)
+            self.assertEqual(learner.batch_size, 512)
+            self.assertEqual(learner.learning_starts, 16384)
+            self.assertEqual(learner.updates_per_step, 8)
+
     def test_benchmark_reports_separate_collection_and_learning_rates(self):
         c = load_config("configs/smoke.yaml")
         c.world.max_steps = 4
