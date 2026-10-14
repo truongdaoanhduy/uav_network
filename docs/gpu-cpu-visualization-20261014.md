@@ -161,3 +161,20 @@ Final autonomous smoke, source `60e18c08df88108bbc4cda3a93b52ffe9ca5b065`:
   (800×800, 10 fps, nine frames including terminal step 40).
 
 The completed small smoke verifies execution and postprocessing, not convergence.
+
+## Longer trial started
+
+The selected 500-episode/max-1000-step fresh-learner trial was submitted and
+its two online CUDA learners were confirmed updating at 2026-10-14T01:07:31Z.
+
+- Pinned source: `fc3a15476b8723adb356a555cd43401573547a15`
+- Kaggle: https://www.kaggle.com/code/haibro1234/uavnet-train-20261014-010307-f4376f
+- MASAC: https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/da90a417
+- MATD3: https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/a71cc165
+
+The verified runtime uses two environments per learner, CUDA model/replay,
+500 episodes, max_steps 1000, and no inline evaluation. At the startup check
+MASAC had reached 4080 transitions and MATD3 4202; both had passed warmup and updated.
+These are early observations, not completed training or steady-state resource
+averages. GPU checkpoint upload and the autonomous CPU handoff run on Kaggle
+without requiring the laptop to remain on.

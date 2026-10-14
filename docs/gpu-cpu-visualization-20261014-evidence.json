@@ -97,5 +97,114 @@
         "nb_frames": "9"
       }
     }
+  },
+  "long_trial_startup": {
+    "source_commit": "fc3a15476b8723adb356a555cd43401573547a15",
+    "kernel_url": "https://www.kaggle.com/code/haibro1234/uavnet-train-20261014-010307-f4376f",
+    "cpu_visualize": true,
+    "observed_at_utc": "2026-10-14T01:07:31Z",
+    "runs": {
+      "masac": {
+        "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/da90a417",
+        "state": "running",
+        "global_step": 4080,
+        "updates": 1,
+        "episodes_completed": 5,
+        "episodes_target": 500,
+        "max_steps": 1000,
+        "num_envs": 2,
+        "device": "cuda",
+        "replay_device": "cuda",
+        "cuda_visible_devices": "0",
+        "hardware": {
+          "torch": "2.11.0+cu128",
+          "python": "3.13.15",
+          "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+          "cuda_devices": [
+            {
+              "name": "Tesla T4",
+              "index": 0,
+              "memory_gib": 14.56219482421875,
+              "compute_capability": [
+                7,
+                5
+              ]
+            }
+          ],
+          "logical_cpus": 4,
+          "available_cpus": 4,
+          "cuda_available": true,
+          "torch_cuda_build": "12.8"
+        },
+        "initial_system_samples": {
+          "system.cpu": {
+            "samples": 5,
+            "mean": 8.727049878744744,
+            "peak": 15.536699678420387
+          },
+          "system.gpu.0.gpu": {
+            "samples": 4,
+            "mean": 2.75,
+            "peak": 4
+          },
+          "system.gpu.0.memoryAllocatedBytes": {
+            "samples": 4,
+            "mean": 635830272.0,
+            "peak": 799932416
+          }
+        }
+      },
+      "matd3": {
+        "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/a71cc165",
+        "state": "running",
+        "global_step": 4202,
+        "updates": 101,
+        "episodes_completed": 6,
+        "episodes_target": 500,
+        "max_steps": 1000,
+        "num_envs": 2,
+        "device": "cuda",
+        "replay_device": "cuda",
+        "cuda_visible_devices": "1",
+        "hardware": {
+          "torch": "2.11.0+cu128",
+          "python": "3.13.15",
+          "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+          "cuda_devices": [
+            {
+              "name": "Tesla T4",
+              "index": 0,
+              "memory_gib": 14.56219482421875,
+              "compute_capability": [
+                7,
+                5
+              ]
+            }
+          ],
+          "logical_cpus": 4,
+          "available_cpus": 4,
+          "cuda_available": true,
+          "torch_cuda_build": "12.8"
+        },
+        "initial_system_samples": {
+          "system.cpu": {
+            "samples": 6,
+            "mean": 8.99374083927367,
+            "peak": 15.27667451303912
+          },
+          "system.gpu.1.gpu": {
+            "samples": 5,
+            "mean": 6.6,
+            "peak": 22
+          },
+          "system.gpu.1.memoryAllocatedBytes": {
+            "samples": 5,
+            "mean": 710593740.8,
+            "peak": 1001259008
+          }
+        }
+      }
+    },
+    "scope": "Early startup observation, not steady-state averages"
   }
 }
