@@ -34,8 +34,8 @@ Tasks:
 - [x] Complete isolated GPU-case runner and cloud dispatch.
 - [x] Integrate paired metrics into the separate CPU child.
 - [x] Run the full CPU suite, clean diff and independent review.
-- [ ] Pin/publish source; run matched T4 comparisons and an autonomous PQL→CPU smoke.
-- [ ] Persist actual results and explain their limits.
+- [x] Pin/publish source; run matched T4 comparisons and an autonomous PQL→CPU smoke.
+- [x] Persist actual results and explain their limits.
 
 Validation: .venv/bin/python -m unittest discover -s tests -v; git diff --check.
 Cloud benchmarks are short implementation checks, not convergence trials or production training.
@@ -45,3 +45,10 @@ reports, final-reset/episode-logging timing asymmetry, and validation-bank reuse
 Telemetry also rejects integration across long missed polling intervals.
 
 CPU full suite:306 tests,46 CUDA skips,151.605s. Final cloud exit-code edge regression:4/4 passed. A fresh pinned-source full run is also recorded before the cloud result report.
+
+Exact matched six-case T4 comparison passed at fee499b; evidence in
+docs/benchmarks/training-gpu-comparison-20261014.json.
+Autonomous PQL GPU→CPU smoke passed at6215325; CPU API metadata, decoded MP4,
+artifact digest/model hashes and comparison output recorded in
+docs/benchmarks/pql-cpu-handoff-20261014.json.
+Final archive-fix CPU suite309 tests,263 passed,46 CUDA skips.

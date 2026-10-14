@@ -67,3 +67,48 @@ Packet PDR vẫn là per-hop fragments; delay successful-only luôn có denomina
 CLI compare có same-scene seed pairing, nominal95% scenario-bootstrap CI,
 train/validation seed exposure checks và JSON/CSV export. Giữ training seed44;
 không gọi nhiều test episodes là nhiều independent training runs.
+
+## PQL GPU→CPU handoff đã kiểm tra trên Kaggle
+
+Source `62153252fecf0ced3602b60bd78f4073dc824dca`.
+- GPU parent complete: https://www.kaggle.com/code/haibro1234/uavnet-validate-20261014-172327-596fc5
+- CPU child complete: https://www.kaggle.com/code/haibro1234/uavnet-validate-20261014-172327-596fc5-cpu
+- [Evidence machine-readable](benchmarks/pql-cpu-handoff-20261014.json).
+
+Mỗi thuật toán:4 episodes×8 steps,4 env, batch8, replay256, warmup2/rate2,
+hidden32×32. CollectorCUDA0; critic/replay/policyCUDA1;0 CPU env workers.
+Cả hai32 joint transitions,14 critic updates; MASAC14 actor, MATD3 7 actor.
+Đây là **functional smoke**, không phải production/convergence training.
+
+Parent đã upload immutable W&B artifact:v0 và tự submit private CPU child.
+API metadata của child:enable_gpu=false, chỉ một private W&B credential dataset;
+hardware Torch2.11.0+cpu, CUDA unavailable. CPU download v2 checkpoint.pt nhẹ,
+không tải replayv3, và giữ backend warp_packet chạy Warp CPU.
+
+Cả hai có PNG và MP4 thật800×800,10fps,3 frames tại steps0/5/8. ffmpeg decode
+thành công. Artifact MD5 và GPU-training model hash đều khớp checkpoint CPU.
+Hai test scenes2000000044/2000000045, không trùng train/validation. Tạo
+comparison.json/CSV với metrics mới. Với chỉ2 short scenes, không kết luận
+MATD3 tốt hơn MASAC dù delivery/return của smoke khác nhau.
+
+Sau parent submission thành công, train/upload/CPU submission/render chạy trên
+Kaggle; không phụ thuộc laptop poller. Parent submit CPU trước khi parent thoát,
+nên không bảo đảm strict nonoverlap giữa sessions.
+
+Trong verification, selected-file Kaggle download đã timeout120s hai lần.
+Đường archive của **private dataset được xác minh chỉ có đúng một credential
+file** hoạt động; helper dùng đường này và reject archive có extra files.
+Dataset nhiều file vẫn chỉ tải selected credential, không kéo toàn bộ bundle.
+
+Sau fix archive, CPU full suite309 tests:263 pass,46 CUDA skips,146.023s.
+
+## W&B online
+
+Benchmark có tracking tắt chỉ trong timed cases để cùng instrumentation; actual
+results đã upload online sau measurement và xác nhận hai runs finished:
+- MASAC benchmark: https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/51aada9f
+- MATD3 benchmark: https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/6c360084
+
+PQL handoff training cũng online và completed:
+- MASAC smoke: https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/35dc7e61
+- MATD3 smoke: https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/adb9d9ff

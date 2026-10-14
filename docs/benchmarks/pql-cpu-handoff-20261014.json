@@ -1,0 +1,93 @@
+{
+  "source_git_commit": "62153252fecf0ced3602b60bd78f4073dc824dca",
+  "cpu_full_suite": {
+    "tests": 309,
+    "passed": 263,
+    "cuda_skipped": 46,
+    "seconds": 146.023
+  },
+  "gpu_kernel_url": "https://www.kaggle.com/code/haibro1234/uavnet-validate-20261014-172327-596fc5",
+  "cpu_kernel_url": "https://www.kaggle.com/code/haibro1234/uavnet-validate-20261014-172327-596fc5-cpu",
+  "cpu_enable_gpu": false,
+  "cpu_is_private": true,
+  "cpu_dataset_sources": [
+    "haibro1234/uav-wandb-credential-masac50k-d59860c"
+  ],
+  "cpu_hardware": {
+    "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+    "python": "3.13.15",
+    "logical_cpus": 4,
+    "available_cpus": 4,
+    "torch": "2.11.0+cpu",
+    "torch_cuda_build": null,
+    "cuda_available": false,
+    "cuda_devices": []
+  },
+  "algorithms": {
+    "masac": {
+      "training_episodes": 4,
+      "global_step": 32,
+      "critic_updates": 14,
+      "actor_updates": 14,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "num_cpu_env_workers": 0,
+      "artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-35dc7e61:v0",
+      "checkpoint_md5_verified": true,
+      "checkpoint_sha256": "76946361f1e05147848cd822fb34cbc9829a566db8810c293bd7f18285cf8069",
+      "evaluation_device": "cpu",
+      "backend": "warp_packet",
+      "evaluation_seeds": [
+        2000000044,
+        2000000045
+      ],
+      "video": {
+        "width": 800,
+        "height": 800,
+        "avg_frame_rate": "10/1",
+        "nb_frames": "3"
+      },
+      "video_bytes": 23357,
+      "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/35dc7e61",
+      "gpu_training_model_hash_equals_cpu_checkpoint": true,
+      "mp4_decoded_successfully": true
+    },
+    "matd3": {
+      "training_episodes": 4,
+      "global_step": 32,
+      "critic_updates": 14,
+      "actor_updates": 7,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "num_cpu_env_workers": 0,
+      "artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-matd3-adb9d9ff:v0",
+      "checkpoint_md5_verified": true,
+      "checkpoint_sha256": "72cfb6f60b3e3aa696e9502a4018f2859c00bed01f4c4e2f8d1dbbb6861827fc",
+      "evaluation_device": "cpu",
+      "backend": "warp_packet",
+      "evaluation_seeds": [
+        2000000044,
+        2000000045
+      ],
+      "video": {
+        "width": 800,
+        "height": 800,
+        "avg_frame_rate": "10/1",
+        "nb_frames": "3"
+      },
+      "video_bytes": 23080,
+      "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/adb9d9ff",
+      "gpu_training_model_hash_equals_cpu_checkpoint": true,
+      "mp4_decoded_successfully": true
+    }
+  },
+  "comparison_status": "paired_scenario_comparison",
+  "limitation": "Four 8-step training episodes and two test scenes verify handoff, not convergence or superiority",
+  "parent_submission_order": "CPU child submitted before GPU parent exits; strict session nonoverlap not guaranteed"
+}

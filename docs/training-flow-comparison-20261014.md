@@ -180,3 +180,10 @@ Không cần laptop poller để thực hiện handoff.
 Các lỗi submission/upload/render được ghi rõ và giữ lại training results.
 Đã sửa mất summary/handoff của wave trước khi wave sau lỗi deadline/startup;
 CPU credential JSON giờ chỉ nhận api_key, không mang các secret không liên quan.
+
+## Kết quả thực tế đã lưu
+
+[Báo cáo resource cùng config và handoff đã xác minh](mission-comparison-validation-20261014.md).
+Benchmark6/6 T4 cases passed; PQL dual throughput tăng15.27% MASAC và22.40%
+MATD3 trong lượt đo ngắn. Energy cả2 board vẫn cao hơn legacy.
+PQL GPU→CPU smoke cũng completed và tạo decoded MP4/PNG/paired metrics.
