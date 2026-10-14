@@ -1,7 +1,8 @@
 # GPU-resident off-policy training preset for the 25-target/15-obstacle mission.
 # 512 parallel envs keep collection highly parallel without overwhelming the learner.
-# The 8 learner updates per vector step follow the collector:critic ratio used as a
-# strong starting point in massively-parallel off-policy PQL-style training.
+# 16 learner updates per vector step with batch=envs=512 gives 16 replay-sample
+# usages per newly collected transition. This is an aggressive high-reuse setting
+# chosen for the requested long run; it remains MASAC/MATD3, not the PQL algorithm.
 # SAC/TD3 algorithmic internals (gamma/tau/policy_delay/noise) remain unchanged.
 # Use --cpu-visualize in the Kaggle launcher for a separate CPU-only session.
 world:
@@ -13,16 +14,16 @@ network:
   receiver_admission_mask: true
 masac:
   hidden_sizes: [256, 256]
-  replay_capacity: 200000
+  replay_capacity: 500000
   batch_size: 512
   learning_starts: 16384  # 32 vector steps at 512 envs
-  updates_per_step: 8
+  updates_per_step: 16
 matd3:
   hidden_sizes: [256, 256]
-  replay_capacity: 200000
+  replay_capacity: 500000
   batch_size: 512
   learning_starts: 16384  # 32 vector steps at 512 envs
-  updates_per_step: 8
+  updates_per_step: 16
 runtime:
   environment_backend: warp_packet
   seed: 44
@@ -33,7 +34,7 @@ runtime:
   vectorize_critics: true
   compile_models: false
   fused_optimizers: false
-  episodes: 1024
+  episodes: 4096
   device: cuda
   replay_device: cuda
   torch_threads: 1
@@ -47,4 +48,4 @@ tracking:
   entity: auto
   project: auto
   group: uav-network-gpu-packet
-  tags: [uav-network, 2d, fov, warp-packet, kaggle, vectorized-critics, gpu-env, env512, targets25, obstacles15, pql-style-updates]
+  tags: [uav-network, 2d, fov, warp-packet, kaggle, vectorized-critics, gpu-env, env512, targets25, obstacles15, high-reuse-u16]

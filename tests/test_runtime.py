@@ -33,11 +33,12 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(c.world.num_obstacles, 15)
         self.assertEqual(c.runtime.num_envs, 512)
         self.assertEqual(c.runtime.log_interval_steps, 51200)
+        self.assertEqual(c.runtime.episodes, 4096)
         for learner in (c.masac, c.matd3):
-            self.assertEqual(learner.replay_capacity, 200000)
+            self.assertEqual(learner.replay_capacity, 500000)
             self.assertEqual(learner.batch_size, 512)
             self.assertEqual(learner.learning_starts, 16384)
-            self.assertEqual(learner.updates_per_step, 8)
+            self.assertEqual(learner.updates_per_step, 16)
 
     def test_benchmark_reports_separate_collection_and_learning_rates(self):
         c = load_config("configs/smoke.yaml")
