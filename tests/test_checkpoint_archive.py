@@ -6,12 +6,85 @@ import sys
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from uav_network.configuration import Config
 
 
 class CheckpointArchiveTests(unittest.TestCase):
+    def test_bulk_preparation_rejects_unrelated_files_and_never_retries_auth_errors(self):
+        from uav_network.cloud import archive as module
+        ref = 'owner/main/uav-network-matd3-12345678:v0'
+        class Denied(Exception):
+            response = SimpleNamespace(status_code=403, headers={})
+        with TemporaryDirectory() as directory:
+            source = Path(directory)/'checkpoint.pt'; source.write_bytes(b'policy')
+            artifact = SimpleNamespace(manifest=SimpleNamespace(entries={'checkpoint.pt':{}}),
+                                       download=lambda **kwargs:directory)
+            api = SimpleNamespace(artifact=lambda *args, **kwargs:artifact)
+            hub = SimpleNamespace(create_commit=Mock(side_effect=Denied()))
+            sdk = SimpleNamespace(CommitOperationAdd=lambda **kwargs:SimpleNamespace(**kwargs))
+            with patch.dict(sys.modules, {'huggingface_hub':sdk}), \
+                 patch.object(module, 'ensure_private_store', return_value=(hub,'owner/private')), \
+                 patch.object(module.time, 'sleep') as pause:
+                with self.assertRaises(Denied):
+                    module.prepare_archive_batch(api, Config(), [ref], Path(directory))
+                pause.assert_not_called()
+                hub.create_commit.assert_called_once()
+                artifact.manifest.entries = {'other.txt':{}}
+                with self.assertRaisesRegex(ValueError, 'scope'):
+                    module.prepare_archive_batch(api, Config(), [ref], Path(directory))
+                self.assertEqual(hub.create_commit.call_count, 1)
+
+    def test_bulk_preparation_respects_http_date_retry_after(self):
+        from uav_network.cloud import archive as module
+        class Limited(Exception):
+            response = SimpleNamespace(status_code=429, headers={'Retry-After':'Thu, 01 Jan 1970 00:00:02 GMT'})
+        with TemporaryDirectory() as directory:
+            source = Path(directory)/'checkpoint.pt'; source.write_bytes(b'policy')
+            artifact = SimpleNamespace(manifest=SimpleNamespace(entries={'checkpoint.pt':{}}), download=lambda **kwargs:directory)
+            hub = SimpleNamespace(create_commit=Mock(side_effect=[Limited(), SimpleNamespace(oid='a'*40)]))
+            sdk = SimpleNamespace(CommitOperationAdd=lambda **kwargs:SimpleNamespace(**kwargs))
+            with patch.dict(sys.modules, {'huggingface_hub':sdk}), \
+                 patch.object(module, 'ensure_private_store', return_value=(hub,'owner/private')), \
+                 patch.object(module.time, 'time', return_value=0), patch.object(module.time, 'sleep') as pause:
+                module.prepare_archive_batch(SimpleNamespace(artifact=lambda *args, **kwargs:artifact), Config(),
+                    ['owner/main/uav-network-matd3-12345678:v0'], Path(directory), timeout=10)
+                pause.assert_called_once_with(2)
+
+    def test_bulk_preparation_uses_one_commit_and_bounded_rate_limit_retries(self):
+        from uav_network.cloud import archive as module
+        refs = ['owner/main/uav-network-matd3-12345678:v0',
+                'owner/main/uav-network-matd3-12345678:v1']
+        class Limited(Exception):
+            response = SimpleNamespace(status_code=429, headers={'Retry-After':'2'})
+        def artifact(ref, **kwargs):
+            def download(root, **kwargs):
+                path = Path(root); path.mkdir(parents=True)
+                (path/'checkpoint.pt').write_bytes(ref.encode())
+                return str(path)
+            return SimpleNamespace(manifest=SimpleNamespace(entries={'checkpoint.pt':{}}), download=download)
+        api = SimpleNamespace(artifact=artifact)
+        hub = SimpleNamespace(create_commit=Mock(side_effect=[Limited(), SimpleNamespace(oid='a'*40)]))
+        sdk = SimpleNamespace(CommitOperationAdd=lambda **kwargs:SimpleNamespace(**kwargs))
+        with TemporaryDirectory() as directory, patch.dict(sys.modules, {'huggingface_hub':sdk}), \
+             patch.object(module, 'ensure_private_store', return_value=(hub,'owner/private'), create=True), \
+             patch.object(module.time, 'sleep') as pause:
+            module.prepare_archive_batch(api, Config(), refs, Path(directory), timeout=10)
+            pause.assert_called_once_with(2)
+            self.assertEqual(hub.create_commit.call_count, 2)
+            paths = {op.path_in_repo for op in hub.create_commit.call_args.kwargs['operations']}
+            self.assertEqual(paths, {'archive/uav-network-matd3-12345678/v0/checkpoint.pt',
+                                     'archive/uav-network-matd3-12345678/v1/checkpoint.pt'})
+        hub.create_commit.reset_mock(side_effect=True); hub.create_commit.side_effect = Limited()
+        with TemporaryDirectory() as directory, patch.dict(sys.modules, {'huggingface_hub':sdk}), \
+             patch.object(module, 'ensure_private_store', return_value=(hub,'owner/private'), create=True), \
+             patch.object(module.time, 'sleep') as pause, \
+             patch.object(module.time, 'monotonic', side_effect=[0, 11]):
+            with self.assertRaisesRegex(RuntimeError, 'rate limit'):
+                module.prepare_archive_batch(api, Config(), refs, Path(directory), timeout=10)
+            pause.assert_not_called()
+
     def test_mapping_readback_waits_for_propagation_and_still_rejects_active_sources(self):
         from uav_network.cloud.archive import wait_for_archive_mapping
         states = [SimpleNamespace(state='finished', summary={}),

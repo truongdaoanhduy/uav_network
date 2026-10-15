@@ -58,6 +58,39 @@ class OnlineRun:
 
 
 class TrackingTests(unittest.TestCase):
+    def test_periodic_uploads_are_paced_but_final_full_state_always_uploads(self):
+        run = OnlineRun()
+        sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs, Artifact=StoredArtifact)
+        descriptor = {'schema':1,'backend':'huggingface','repo_id':'owner/private','revision':'a'*40,
+                      'files':{'checkpoint.pt':{'path':'run/checkpoint.pt','size':6,'sha256':'b'*64}}}
+        with TemporaryDirectory() as directory:
+            config = Config(); config.tracking.credentials_file = str(Path(directory)/'absent.txt')
+            policy = Path(directory)/'policy.pt'; policy.write_bytes(b'policy')
+            resume = Path(directory)/'resume.pt'; resume.write_bytes(b'full replay and optimizer')
+            clock = [0]
+            with patch.dict(sys.modules, {'wandb':sdk}), patch.dict(os.environ, {
+                    'WANDB_API_KEY':'test-key','WANDB_ENTITY':'owner','WANDB_PROJECT':'project'}), \
+                 patch('uav_network.experiments.tracking.time.monotonic', side_effect=lambda:clock[0]), \
+                 patch('uav_network.experiments.checkpoint_store.upload_checkpoint_files', return_value=descriptor) as upload:
+                tracker = OnlineTracker(config, directory)
+                progress = {'episodes':1,'global_step':10}
+                self.assertIsNotNone(tracker.checkpoint(policy, progress))
+                clock[0] = 5
+                self.assertIsNone(tracker.checkpoint(policy, progress))
+                clock[0] = 300
+                self.assertIsNotNone(tracker.checkpoint(policy, progress))
+                clock[0] = 301
+                self.assertIsNotNone(tracker.checkpoint(policy, {**progress,'resume_checkpoint':str(resume)}, final=True))
+                self.assertEqual(upload.call_count, 3)
+                self.assertIn('resume.pt', upload.call_args.args[1])
+                tracker.close()
+
+    def test_checkpoint_upload_interval_must_be_finite_and_nonnegative(self):
+        for value in (-1, float('nan'), float('inf')):
+            config = Config(); config.tracking.checkpoint_upload_interval_seconds = value
+            with self.assertRaisesRegex(ValueError, 'checkpoint_upload_interval'):
+                config.validate()
+
     def test_public_metadata_identifies_training_mode_and_continuation_segment(self):
         run, captured = OnlineRun(), {}
         def init(**kwargs):

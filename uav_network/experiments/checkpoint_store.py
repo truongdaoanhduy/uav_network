@@ -81,6 +81,12 @@ def upload_checkpoint_files(config, files, prefix):
     validate_manifest({'schema': 1, 'backend': 'huggingface', 'repo_id': 'check/check',
                        'revision': '0' * 40, 'files': items})
     api, repo = ensure_private_store(config)
+    current = api.repo_info(repo, repo_type='model', files_metadata=True)
+    if current.private is not True:
+        raise RuntimeError('Checkpoint repository must be private; refusing upload')
+    if _remote_files_match(current, items):
+        return validate_manifest({'schema': 1, 'backend': 'huggingface', 'repo_id': repo,
+                                  'revision': current.sha, 'files': items})
     commit = api.create_commit(repo_id=repo, repo_type='model',
         operations=[CommitOperationAdd(path_in_repo=items[name]['path'], path_or_fileobj=str(path))
                     for name, path in files.items()], commit_message='Save UAV checkpoint ' + prefix)
@@ -89,14 +95,20 @@ def upload_checkpoint_files(config, files, prefix):
     info = api.repo_info(repo, repo_type='model', revision=commit.oid, files_metadata=True)
     if info.private is not True:
         raise RuntimeError('Uploaded checkpoint repository is not private')
+    if not _remote_files_match(info, items):
+        raise RuntimeError('Remote checkpoint size/checksum verification failed')
+    return manifest
+
+
+def _remote_files_match(info, items):
     remote = {item.rfilename: item for item in info.siblings}
     for item in items.values():
         actual = remote.get(item['path'])
         lfs = getattr(actual, 'lfs', None)
         checksum = lfs.get('sha256') if isinstance(lfs, dict) else getattr(lfs, 'sha256', None)
         if actual is None or actual.size != item['size'] or checksum != item['sha256']:
-            raise RuntimeError('Remote checkpoint size/checksum verification failed')
-    return manifest
+            return False
+    return True
 
 
 def download_checkpoint_file(artifact, entry, destination):

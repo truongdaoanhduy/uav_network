@@ -124,6 +124,7 @@ class OnlineTracker:
         self.next_progress = 0
         self.records = list(initial.get("records", []))
         self.closed = False
+        self.last_checkpoint_upload = None
         run_id = os.environ.get("WANDB_RUN_ID") or uuid4().hex[:8]
         name = config.tracking.run_name
         if name == "auto":
@@ -225,6 +226,12 @@ class OnlineTracker:
     def checkpoint(self, path, progress, final=False):
         if not self.config.tracking.log_checkpoint:
             return None
+        if (not final and self.config.tracking.checkpoint_store == "huggingface"
+                and self.last_checkpoint_upload is not None
+                and time.monotonic() - self.last_checkpoint_upload
+                    < self.config.tracking.checkpoint_upload_interval_seconds):
+            self.run.summary["checkpoint_uploads_skipped"] = self.run.summary.get("checkpoint_uploads_skipped", 0) + 1
+            return None
         self.run.save(str(self.output / "episodes.jsonl"), base_path=str(self.output), policy="now")
         artifact = self.wandb.Artifact(f"uav-network-{self.config.runtime.algorithm}-{self.run.id}", type="model",
                                       metadata={"completed_episodes": progress["episodes"],
@@ -251,6 +258,7 @@ class OnlineTracker:
                 artifact.add_file(str(file), name=name)
         logged = self.run.log_artifact(artifact, aliases=["latest", "final"] if final else ["latest"])
         logged.wait(timeout=self.config.tracking.artifact_timeout_seconds)
+        self.last_checkpoint_upload = time.monotonic()
         return logged.qualified_name
 
     def complete(self, result):

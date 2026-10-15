@@ -1,5 +1,6 @@
 """CPU-only checkpoint migration; delete only after verified private backup."""
 import argparse
+from email.utils import parsedate_to_datetime
 import json
 import os
 from pathlib import Path
@@ -9,11 +10,52 @@ import time
 
 from ..configuration import Config
 from ..experiments.checkpoint_store import (MANIFEST, upload_checkpoint_files,
-    download_manifest_file, file_sha256)
+    download_manifest_file, file_sha256, ensure_private_store)
 from ..experiments.tracking import OnlineTracker
 
 
 _PATTERN = r'([\w.-]+/[\w.-]+)/(?P<collection>uav-network-(?:masac|matd3)-(?P<run>[0-9a-f]{8})):v(?P<version>[0-9]+)'
+
+
+def prepare_archive_batch(api, config, refs, directory, timeout=5400):
+    """Stage a known finite CPU migration in one Hub commit; no W&B deletion."""
+    from huggingface_hub import CommitOperationAdd
+    if not refs or len(set(refs)) != len(refs):
+        raise ValueError('Archive batch must contain unique immutable versions')
+    operations = []
+    for index, ref in enumerate(refs):
+        match = re.fullmatch(_PATTERN, ref)
+        if match is None:
+            raise ValueError('Archive batch needs scoped immutable versions')
+        artifact = api.artifact(ref, type='model')
+        names = set(artifact.manifest.entries)
+        if not names or not names.issubset({'checkpoint.pt', 'resume.pt'}):
+            raise ValueError('Archive batch includes files outside checkpoint scope')
+        folder = Path(artifact.download(root=str(Path(directory) / str(index)), skip_cache=True))
+        prefix = f"archive/{match['collection']}/v{match['version']}/"
+        operations.extend(CommitOperationAdd(path_in_repo=prefix + name,
+                                            path_or_fileobj=str(folder / name)) for name in sorted(names))
+    hub, repo = ensure_private_store(config)
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            return hub.create_commit(repo_id=repo, repo_type='model', operations=operations,
+                                     commit_message='Stage verified UAV checkpoint archive batch')
+        except Exception as error:
+            response = getattr(error, 'response', None)
+            if getattr(response, 'status_code', None) != 429:
+                raise
+            try:
+                delay = max(1.0, float(response.headers.get('Retry-After', '60')))
+            except (TypeError, ValueError):
+                try:
+                    delay = max(1.0, parsedate_to_datetime(response.headers['Retry-After']).timestamp() - time.time())
+                except (KeyError, TypeError, ValueError, OverflowError):
+                    delay = 60.0
+            if time.monotonic() + delay > deadline:
+                raise RuntimeError('Checkpoint storage rate limit exceeded the CPU retry deadline; originals retained') from error
+            print(json.dumps({'archive_storage_rate_limited': True, 'retry_after_seconds': delay}), flush=True)
+            time.sleep(delay)
 
 
 def fresh_finished_source(api, path):
@@ -216,6 +258,9 @@ def run_archive(spec, output=Path('/kaggle/working')):
         safe = {item['ref'] for item in inventory if item['candidate']}
         if any(ref not in safe for ref in requested):
             raise RuntimeError('Requested checkpoint is not safe in the fresh archive inventory')
+        if spec.get('batch_upload', False):
+            with TemporaryDirectory(prefix='uav-archive-batch-') as temporary:
+                prepare_archive_batch(api, config, requested, Path(temporary))
         for index, ref in enumerate(requested):
             tracker.run.log({'global_step': index, 'archive/processed': index,
                             'archive/bytes_verified': sum(r.get('bytes', 0) for r in records)})

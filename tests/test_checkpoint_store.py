@@ -10,12 +10,42 @@ import sys
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from uav_network.configuration import Config
 
 
 class CheckpointStoreTests(unittest.TestCase):
+    def test_identical_private_snapshot_is_reused_without_a_new_commit(self):
+        from uav_network.experiments import checkpoint_store as store
+        with TemporaryDirectory() as directory:
+            source = Path(directory) / 'checkpoint.pt'; source.write_bytes(b'policy')
+            remote = SimpleNamespace(private=True, sha='b'*40, siblings=[SimpleNamespace(
+                rfilename='archive/run/v1/checkpoint.pt', size=source.stat().st_size,
+                lfs=SimpleNamespace(sha256=store.file_sha256(source)))])
+            hub = SimpleNamespace(repo_info=Mock(return_value=remote),
+                                  create_commit=Mock(side_effect=AssertionError('duplicate commit')))
+            with patch.object(store, 'ensure_private_store', return_value=(hub, 'owner/private')):
+                manifest = store.upload_checkpoint_files(Config(), {'checkpoint.pt':source}, 'archive/run/v1')
+            self.assertEqual(manifest['revision'], 'b'*40)
+            hub.create_commit.assert_not_called()
+
+    def test_same_size_changed_content_requires_a_verified_new_commit(self):
+        from uav_network.experiments import checkpoint_store as store
+        with TemporaryDirectory() as directory:
+            source = Path(directory) / 'checkpoint.pt'; source.write_bytes(b'new')
+            def snapshot(digest, revision):
+                return SimpleNamespace(private=True, sha=revision, siblings=[SimpleNamespace(
+                    rfilename='archive/run/v1/checkpoint.pt', size=3,
+                    lfs=SimpleNamespace(sha256=digest))])
+            hub = SimpleNamespace(repo_info=Mock(side_effect=[snapshot('0'*64, 'b'*40),
+                snapshot(store.file_sha256(source), 'c'*40)]),
+                create_commit=Mock(return_value=SimpleNamespace(oid='c'*40)))
+            with patch.object(store, 'ensure_private_store', return_value=(hub, 'owner/private')):
+                manifest = store.upload_checkpoint_files(Config(), {'checkpoint.pt':source}, 'archive/run/v1')
+            self.assertEqual(manifest['revision'], 'c'*40)
+            hub.create_commit.assert_called_once()
+
     def test_private_immutable_roundtrip_and_corruption_rejection(self):
         self.assertIsNotNone(importlib.util.find_spec('uav_network.experiments.checkpoint_store'),
                              'external checkpoint transport is missing')

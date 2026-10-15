@@ -177,6 +177,7 @@ class TrackingConfig:
     group: str = "uav-network-2d"
     tags: list = field(default_factory=lambda: ["uav-network", "2d", "fov", "uavnetsim"])
     log_checkpoint: bool = True
+    checkpoint_upload_interval_seconds: float = 300.0
     checkpoint_store: str = "huggingface"
     checkpoint_repo: str = "auto"
     system_metrics: bool = True
@@ -296,6 +297,9 @@ class Config:
             raise ValueError("checkpoint_repo must be auto or owner/repository")
         if self.tracking.artifact_timeout_seconds < 1:
             raise ValueError("artifact_timeout_seconds must be positive")
+        if (not math.isfinite(self.tracking.checkpoint_upload_interval_seconds)
+                or self.tracking.checkpoint_upload_interval_seconds < 0):
+            raise ValueError("checkpoint_upload_interval_seconds must be finite and nonnegative")
         if self.algorithm_config.replay_capacity < r.num_envs:
             raise ValueError("Replay capacity must accommodate num_envs transitions")
         e = self.energy

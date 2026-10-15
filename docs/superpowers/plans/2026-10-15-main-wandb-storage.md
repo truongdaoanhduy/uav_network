@@ -63,3 +63,13 @@ Files: a small archive script and safe archive-index output, verification report
 - [ ] Upload scoped candidates to the private store, verify remote metadata plus fresh-download checksums, publish tiny replacement manifests and archive mappings.
 - [ ] Remove only verified obsolete original versions; keep running dependencies and all run histories.
 - [ ] Read back W&B storage and workspace, record exact changes and any pinned-job limitation.
+
+### Live follow-up: HF repository commit limit
+
+Actual CPU migration stopped safely with HTTP 429 (128 repository commits/hour). 129 original versions are already verified and removed; 58 remain. Reuse exact existing immutable files, upload the remaining policy files in two owner-specific native commits with bounded CPU-only rate-limit retries, and pace periodic online checkpoint uploads at 300 seconds while always saving the final full state. Keep source/proof/hash/delete gates unchanged.
+
+- [x] Add failing tests for immutable upload reuse, checkpoint upload pacing, one-commit archive preparation and bounded 429 handling.
+- [x] Implement the small storage/maintenance fixes and run focused plus full checks.
+- [ ] Review, pin and launch only the 58 remaining versions, then verify the full 187-version scope.
+
+Review: no blockers. Full host suite: 370 tests in 153.103 seconds, 323 passed and 47 CUDA-only skips. Five-minute pacing is per run, so many concurrent runs or final bursts can still exhaust the shared Hub repository quota.
