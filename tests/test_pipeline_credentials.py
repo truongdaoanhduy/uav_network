@@ -10,6 +10,35 @@ from uav_network.cloud.credentials import Account
 
 
 class PipelineCredentialTests(unittest.TestCase):
+    def test_new_private_dataset_waits_for_download_endpoint_readiness(self):
+        account = Account('one', 'private-token')
+        with patch.object(client, 'private_dataset_info', return_value={}), \
+             patch.object(client, 'private_dataset_file', side_effect=[
+                 RuntimeError('404 Client Error: Not Found for DownloadDataset'),
+                 ('uav_cpu_launch_token.txt', account.token)]) as read, \
+             patch.object(client.time, 'sleep') as pause:
+            self.assertEqual(client.ensure_pipeline_dataset(account, 'owner'),
+                             'owner/uav-cpu-launch-credential')
+            self.assertEqual(read.call_count, 2)
+            pause.assert_called_once()
+            self.assertTrue(read.call_args.kwargs['only_selected'])
+
+    def test_download_readiness_retry_expires_and_never_retries_auth_failures(self):
+        account = Account('one', 'private-token')
+        with patch.object(client, 'private_dataset_info', return_value={}), \
+             patch.object(client, 'private_dataset_file', side_effect=RuntimeError('404 Client Error')), \
+             patch.object(client.time, 'monotonic', side_effect=[0, 0, 121]), \
+             patch.object(client.time, 'sleep'):
+            with self.assertRaises(TimeoutError):
+                client.ensure_pipeline_dataset(account, 'owner')
+        with patch.object(client, 'private_dataset_info', return_value={}), \
+             patch.object(client, 'private_dataset_file', side_effect=RuntimeError('403 Client Error')) as read, \
+             patch.object(client.time, 'sleep') as pause:
+            with self.assertRaisesRegex(RuntimeError, '403'):
+                client.ensure_pipeline_dataset(account, 'owner')
+            self.assertEqual(read.call_count, 1)
+            pause.assert_not_called()
+
     def test_existing_launch_dataset_with_extra_credentials_is_rejected(self):
         account = Account("alias", "selected-token")
         dataset = SimpleNamespace(ref="owner/uav-cpu-launch-credential", is_private=True)

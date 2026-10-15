@@ -15,11 +15,62 @@ from ..experiments.tracking import OnlineTracker
 _PATTERN = r'([\w.-]+/[\w.-]+)/(?P<collection>uav-network-(?:masac|matd3)-(?P<run>[0-9a-f]{8})):v(?P<version>[0-9]+)'
 
 
-def inventory_legacy_artifacts(api, entity, project, protected):
+def fresh_finished_source(api, path):
+    # Public Api.run memoizes Run objects. A second call alone is not a refresh.
+    api.flush()
+    source = api.run(path)
+    if source.state != 'finished':
+        raise RuntimeError('Source run is active or has not finished successfully')
+    return source
+
+
+def verify_completed_source(api, spec, run_id, account, verify_outputs=False):
+    """Bind a completed GPU/CPU pipeline to this exact checkpoint producer."""
+    from .client import kernel_status, run_kaggle
+    from .continuation import kernel_ref_for_segment
+    proof = spec['completed_sources'][run_id]
+    source = fresh_finished_source(api, spec['entity'] + '/' + spec['project'] + '/' + run_id)
+    gpu = source.config.get('kaggle_kernel')
+    root = (source.config.get('pipeline') or {}).get('root_kernel_ref', gpu)
+    owner = spec['kernel_ref'].split('/')[0]
+    if (not gpu or proof.get('gpu_kernel_ref') != gpu or proof.get('root_kernel_ref') != root
+            or gpu.split('/')[0] != owner or root.split('/')[0] != owner
+            or source.summary.get('episode_budget_complete') is not True):
+        raise RuntimeError('Completion proof does not match a completed owned source pipeline')
+    cpu = kernel_ref_for_segment(root, 0, cpu=True)
+    artifact_ref = proof.get('artifact_ref', '')
+    matched = re.fullmatch(_PATTERN, artifact_ref)
+    if (proof.get('cpu_kernel_ref') != cpu or matched is None or matched['run'] != run_id
+            or matched[1] != spec['entity'] + '/' + spec['project']):
+        raise RuntimeError('Completion proof has an unrelated CPU session or artifact')
+    if any(kernel_status(ref, account) != 'complete' for ref in (gpu, cpu)):
+        raise RuntimeError('GPU or CPU follow-up has not completed; keeping its checkpoints')
+    if verify_outputs:
+        with TemporaryDirectory(prefix='uav-cpu-completion-') as temporary:
+            run_kaggle(['kernels', 'output', cpu, '-p', temporary, '-q', '--file-pattern',
+                        r'(?:^|/)(job|hardware|visualization-result)\.json$'], account, timeout=120)
+            folder = Path(temporary)
+            job = json.loads((folder / 'job.json').read_text())
+            hardware = json.loads((folder / 'hardware.json').read_text())
+            results = json.loads((folder / 'visualization-result.json').read_text())
+        algorithm = matched['collection'].split('-')[2]
+        result = results.get(algorithm, {})
+        if (job.get('stage') != 'visualize' or job.get('parent_kernel_ref') != gpu
+                or job.get('root_kernel_ref', gpu) != root
+                or job.get('artifacts', {}).get(algorithm) != artifact_ref
+                or result.get('checkpoint_artifact') != artifact_ref
+                or result.get('device') != 'cpu' or result.get('episodes', 0) < 1
+                or hardware.get('cuda_available') is not False or hardware.get('cuda_devices') != []):
+            raise RuntimeError('Completed CPU outputs do not prove evaluation of this source checkpoint')
+
+
+def inventory_legacy_artifacts(api, entity, project, protected, source_ids=None):
     """Read-only inventory; fail closed unless a legacy version is clearly removable."""
     records = []
     terminal = {'finished', 'failed', 'crashed', 'killed'}
-    for run in api.runs(f'{entity}/{project}'):
+    runs = (api.runs(f'{entity}/{project}') if source_ids is None else
+            [fresh_finished_source(api, f'{entity}/{project}/{ident}') for ident in sorted(source_ids)])
+    for run in runs:
         for artifact in run.logged_artifacts():
             ref = getattr(artifact, 'qualified_name', '')
             match = re.fullmatch(_PATTERN, ref)
@@ -49,16 +100,16 @@ def inventory_legacy_artifacts(api, entity, project, protected):
     return records
 
 
-def archive_artifact(api, tracker, config, ref, directory, protected):
+def archive_artifact(api, tracker, config, ref, directory, protected, check_source):
     match = re.fullmatch(_PATTERN, ref)
     if match is None:
         raise ValueError('Only scoped immutable UAV checkpoint versions may be archived')
     run_id = match['run']
     if run_id in protected:
         raise RuntimeError('Source belongs to a protected production run')
-    source_run = api.run(match[1] + '/' + run_id)
-    if source_run.state != 'finished':
-        raise RuntimeError('Source run is still active or has not finished successfully')
+    source_path = match[1] + '/' + run_id
+    source_run = fresh_finished_source(api, source_path)
+    check_source()
     artifact = api.artifact(ref, type='model')
     if any(run.state not in {'finished', 'failed', 'crashed', 'killed'} for run in artifact.used_by()):
         raise RuntimeError('Source artifact has an active consumer')
@@ -77,6 +128,10 @@ def archive_artifact(api, tracker, config, ref, directory, protected):
         restored = download_manifest_file(descriptor, name, Path(directory) / 'fresh', force_download=True)
         if file_sha256(restored) != descriptor['files'][name]['sha256']:
             raise RuntimeError('Fresh remote backup verification failed; source retained')
+    source_run = fresh_finished_source(api, source_path)
+    check_source()
+    if any(run.state not in {'finished', 'failed', 'crashed', 'killed'} for run in artifact.used_by()):
+        raise RuntimeError('Source acquired an active consumer during backup; source retained')
     import wandb
     manifest_path = Path(directory) / MANIFEST
     manifest_path.write_text(json.dumps(descriptor, indent=2))
@@ -94,8 +149,11 @@ def archive_artifact(api, tracker, config, ref, directory, protected):
         source_run.summary['checkpoint_artifact'] = new_ref
     source_run.update()
     # Recheck after slow transfer: a newly started consumer also protects the source.
-    if api.run(match[1] + '/' + run_id).state != 'finished' or any(run.state not in {'finished', 'failed', 'crashed', 'killed'}
-                                            for run in artifact.used_by()):
+    refreshed = fresh_finished_source(api, source_path)
+    if refreshed.summary.get('checkpoint_archives', {}).get(ref) != new_ref:
+        raise RuntimeError('Archive mapping did not persist; source retained')
+    check_source()
+    if any(run.state not in {'finished', 'failed', 'crashed', 'killed'} for run in artifact.used_by()):
         raise RuntimeError('Source acquired an active consumer during backup; source retained')
     record = {'original_ref': ref, 'replacement_ref': new_ref, 'manifest': descriptor,
               'bytes': sum(x['size'] for x in descriptor['files'].values()), 'status': 'verified'}
@@ -109,8 +167,17 @@ def run_archive(spec, output=Path('/kaggle/working')):
     if torch.cuda.is_available():
         raise RuntimeError('Checkpoint maintenance must use a CPU-only session')
     import wandb
-    from .client import kernel_status
+    from .client import resolve_username
     from .credentials import Account
+    requested = spec.get('archive_candidates', [])
+    matches = [re.fullmatch(_PATTERN, ref) for ref in requested]
+    proofs = spec.get('completed_sources', {})
+    if (not requested or any(m is None or m[1] != spec['entity'] + '/' + spec['project']
+                             or not isinstance(proofs.get(m['run']), dict) for m in matches)):
+        raise RuntimeError('Every requested checkpoint requires a bound completion proof')
+    account = Account(spec['account'], os.environ['KAGGLE_API_TOKEN'])
+    if resolve_username(account) != spec['kernel_ref'].split('/')[0]:
+        raise RuntimeError('Archive must authenticate as its selected kernel owner')
     output = Path(output); output.mkdir(parents=True, exist_ok=True)
     config = Config()
     config.runtime.device = config.runtime.replay_device = 'cpu'
@@ -126,16 +193,14 @@ def run_archive(spec, output=Path('/kaggle/working')):
     api = wandb.Api()
     records = []; failed = True
     try:
-        for run_id, cpu_ref in spec.get('completed_cpu_checks', {}).items():
-            account = Account(spec['account'], os.environ['KAGGLE_API_TOKEN'])
-            if cpu_ref.split('/')[0] != spec['kernel_ref'].split('/')[0] or kernel_status(cpu_ref, account) != 'complete':
-                raise RuntimeError('CPU follow-up has not completed; keeping its checkpoints')
+        for run_id in {m['run'] for m in matches}:
+            verify_completed_source(api, spec, run_id, account, verify_outputs=True)
         protected = set(spec.get('protected_run_ids', []))
-        inventory = inventory_legacy_artifacts(api, spec['entity'], spec['project'], protected)
+        inventory = inventory_legacy_artifacts(api, spec['entity'], spec['project'], protected,
+                                             source_ids={m['run'] for m in matches})
         inventory_path = output / 'checkpoint-archive-inventory.json'
         inventory_path.write_text(json.dumps(inventory, indent=2))
         tracker.run.save(str(inventory_path), base_path=str(output), policy='now')
-        requested = spec.get('archive_candidates', [])
         safe = {item['ref'] for item in inventory if item['candidate']}
         if any(ref not in safe for ref in requested):
             raise RuntimeError('Requested checkpoint is not safe in the fresh archive inventory')
@@ -145,7 +210,9 @@ def run_archive(spec, output=Path('/kaggle/working')):
             print(json.dumps({'archive_source': ref, 'index': index + 1,
                               'total': len(requested)}), flush=True)
             with TemporaryDirectory(prefix='uav-checkpoint-archive-') as temporary:
-                record = archive_artifact(api, tracker, config, ref, Path(temporary), protected)
+                run_id = re.fullmatch(_PATTERN, ref)['run']
+                record = archive_artifact(api, tracker, config, ref, Path(temporary), protected,
+                    lambda: verify_completed_source(api, spec, run_id, account))
             records.append(record)
             (output / 'checkpoint-archive-index.json').write_text(json.dumps(records, indent=2))
             tracker.run.save(str(output / 'checkpoint-archive-index.json'), base_path=str(output), policy='now')

@@ -135,6 +135,7 @@ def verify_credential_dataset(account, credentials, ref, username, timeout=120, 
 
 def _ensure_single_credential(account, username, slug, title, filename, value, timeout):
     ref = username + "/" + slug
+    deadline = time.monotonic() + timeout
     if private_dataset_info(account, ref, username) is None:
         with TemporaryDirectory(prefix="uav-cpu-launch-") as temp:
             folder = Path(temp)
@@ -143,12 +144,23 @@ def _ensure_single_credential(account, username, slug, title, filename, value, t
             (folder / "dataset-metadata.json").write_text(json.dumps({
                 "id": ref, "title": title, "licenses": [{"name": "CC0-1.0"}]}))
             run_kaggle(["datasets", "create", "-p", temp, "-q"], account, timeout=timeout)
-        deadline = time.monotonic() + timeout
         while private_dataset_info(account, ref, username) is None:
             if time.monotonic() >= deadline:
                 raise TimeoutError("Private CPU credential dataset was not ready")
             time.sleep(2)
-    _, token = private_dataset_file(account, ref, username, {filename}, timeout, only_selected=True)
+    # Kaggle can expose owned private metadata before DownloadDataset is ready.
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("Private credential dataset download was not ready")
+        try:
+            _, token = private_dataset_file(account, ref, username, {filename},
+                                            max(1, int(remaining)), only_selected=True)
+            break
+        except RuntimeError as error:
+            if '404 Client Error' not in str(error):
+                raise
+            time.sleep(min(2, remaining))
     if token != value:
         raise RuntimeError("Private CPU-flow credential does not match the selected local credential")
     return ref
