@@ -4,6 +4,8 @@ import json
 import os
 from pathlib import Path
 import re
+from tempfile import TemporaryDirectory
+from urllib.parse import quote
 from uuid import uuid4
 
 import torch
@@ -13,6 +15,100 @@ from .credentials import Account, Credentials
 from .kernel import kernel_metadata, kernel_script
 from ..experiments.evaluation import evaluate
 from ..experiments.hardware import hardware_info
+
+
+def _visualization_asset_files(result):
+    image = Path(result.get("render_path", ""))
+    video = Path(result.get("animation_path", ""))
+    metrics = image.parent / "metrics.json"
+    if (not image.is_file() or image.suffix.lower() != ".png"
+            or not video.is_file() or video.suffix.lower() not in {".mp4", ".gif", ".webm", ".ogg"}
+            or not metrics.is_file()):
+        raise ValueError("Visualization publication requires rendered image, video and metrics files")
+    return {"video": video, "image": image, "metrics": metrics}
+
+
+def publish_visualization_assets(config, spec, algorithm, run_id, result):
+    """Upload public evaluation media to an immutable Hub commit and verify fresh downloads."""
+    if config.tracking.checkpoint_repo_private:
+        raise RuntimeError("Visualization Hub publication requires an explicitly public repository")
+    if algorithm not in {"masac", "matd3"} or not re.fullmatch(r"[\w.-]+", str(run_id)):
+        raise ValueError("Unsafe visualization publication identity")
+    mode = str(spec.get("training_mode", "unknown")).lower()
+    if not re.fullmatch(r"[a-z0-9_-]+", mode):
+        raise ValueError("Unsafe visualization training mode")
+    from huggingface_hub import CommitOperationAdd, HfApi, hf_hub_download
+    from ..experiments.checkpoint_store import file_sha256, storage_credentials
+    token, repo = storage_credentials(config)
+    expected = spec.get("checkpoint_repo")
+    if expected and expected != repo:
+        raise ValueError("Visualization repository differs from the pinned checkpoint repository")
+    api = HfApi(token=token)
+    api.create_repo(repo_id=repo, repo_type="model", private=False, exist_ok=True)
+    if api.repo_info(repo, repo_type="model").private is not False:
+        raise RuntimeError("Visualization repository must be public")
+    prefix = f"visualizations/{mode}/{algorithm}/{run_id}"
+    local = _visualization_asset_files(result)
+    items = {}
+    for role, path in local.items():
+        remote_path = f"{prefix}/{path.name}"
+        items[role] = {"path": remote_path, "size": path.stat().st_size, "sha256": file_sha256(path)}
+    commit = api.create_commit(repo_id=repo, repo_type="model",
+        operations=[CommitOperationAdd(path_in_repo=items[role]["path"], path_or_fileobj=str(local[role]))
+                    for role in ("video", "image", "metrics")],
+        commit_message=f"Publish {mode} {algorithm.upper()} visualization {run_id}")
+    revision = commit.oid
+    if not re.fullmatch(r"[0-9a-f]{40}", str(revision)):
+        raise RuntimeError("Visualization Hub commit is not immutable")
+    with TemporaryDirectory(prefix="uav-visualization-verify-") as directory:
+        for role, item in items.items():
+            downloaded = Path(hf_hub_download(repo_id=repo, repo_type="model", filename=item["path"],
+                revision=revision, token=token, local_dir=directory, force_download=True))
+            if downloaded.stat().st_size != item["size"] or file_sha256(downloaded) != item["sha256"]:
+                raise RuntimeError("Fresh Hub visualization verification failed")
+    for item in items.values():
+        item["url"] = (f"https://huggingface.co/{repo}/resolve/{revision}/"
+                       + quote(item["path"], safe="/"))
+    return {"repo_id": repo, "revision": revision, "files": items}
+
+
+def log_visualization_media(run, result, published=None, fps=10):
+    """Attach the rendered episode directly to the active W&B CPU-visualize run."""
+    import wandb
+    files = _visualization_asset_files(result)
+    video_format = files["video"].suffix.lower().lstrip(".")
+    run.log({"global_step": int(result["episodes"]),
+             "visualization/video": wandb.Video(str(files["video"]), fps=fps, format=video_format),
+             "visualization/final_episode": wandb.Image(str(files["image"]),
+                 caption=f"{str(result.get('algorithm', 'policy')).upper()} final evaluation episode")})
+    summary = {"visualization/wandb_media_uploaded": True}
+    if published:
+        summary.update({"visualization/hf_repo_id": published["repo_id"],
+                        "visualization/hf_revision": published["revision"],
+                        "visualization/hf_video_url": published["files"]["video"]["url"],
+                        "visualization/hf_image_url": published["files"]["image"]["url"],
+                        "visualization/hf_metrics_url": published["files"]["metrics"]["url"]})
+    run.summary.update(summary)
+
+
+def publish_visualization_media(config, spec, algorithm, run_id, result, run, fps=10):
+    """Publish HF and W&B copies independently so one service cannot erase the other."""
+    publication, published = {}, None
+    try:
+        published = publish_visualization_assets(config, spec, algorithm, run_id, result)
+        publication["huggingface"] = {"status": "ok", **published}
+    except Exception as error:
+        publication["huggingface"] = {"status": "failed", "error_type": type(error).__name__}
+    try:
+        log_visualization_media(run, result, published, fps=fps)
+        publication["wandb"] = {"status": "ok"}
+    except Exception as error:
+        publication["wandb"] = {"status": "failed", "error_type": type(error).__name__}
+    try:
+        run.summary["visualization/publication"] = publication
+    except Exception:
+        pass
+    return publication
 
 
 def build_visualization_spec(parent, results):
@@ -133,6 +229,11 @@ def run_visualization(spec, output=Path("/kaggle/working")):
             results[algorithm]["checkpoint_artifact"] = artifact
             results[algorithm]["training_status"] = spec["training_status"][algorithm]
             results[algorithm].update(tracker.identity())
+            publication = publish_visualization_media(config, spec, algorithm, identity["id"],
+                                                      results[algorithm], tracker.run, fps=settings["fps"])
+            results[algorithm]["publication"] = publication
+            metrics_path = output / "visualize" / algorithm / "metrics.json"
+            metrics_path.write_text(json.dumps(results[algorithm], indent=2, allow_nan=False))
             tracker.run.summary.update({"eval/" + k: results[algorithm][k] for k in
                 ("mean_return", "success_rate", "mean_search_rate_percent", "mean_delivery_rate_percent")})
             tracker.run.summary["evaluation/episodes_completed"] = results[algorithm]["episodes"]
