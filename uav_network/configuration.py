@@ -180,6 +180,7 @@ class TrackingConfig:
     checkpoint_upload_interval_seconds: float = 300.0
     checkpoint_store: str = "huggingface"
     checkpoint_repo: str = "auto"
+    checkpoint_repo_private: bool = True
     system_metrics: bool = True
     artifact_timeout_seconds: int = 120
     evaluation_interval: int = 50

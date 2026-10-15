@@ -16,6 +16,23 @@ from uav_network.configuration import Config
 
 
 class CheckpointStoreTests(unittest.TestCase):
+    def test_public_checkpoint_store_is_allowed_when_explicitly_configured(self):
+        from uav_network.experiments import checkpoint_store as store
+        created = []
+        class Hub:
+            def __init__(self, **kwargs): pass
+            def create_repo(self, **kwargs): created.append(kwargs)
+            def repo_info(self, *args, **kwargs): return SimpleNamespace(private=False)
+        sdk = SimpleNamespace(HfApi=Hub)
+        config = Config()
+        config.tracking.checkpoint_repo = 'owner/public-checkpoints'
+        config.tracking.checkpoint_repo_private = False
+        with patch.dict(sys.modules, {'huggingface_hub': sdk}), \
+             patch.dict(os.environ, {'HF_TOKEN': 'secret'}, clear=False):
+            _, repo = store.ensure_private_store(config)
+        self.assertEqual(repo, 'owner/public-checkpoints')
+        self.assertEqual(created[0]['private'], False)
+
     def test_identical_private_snapshot_is_reused_without_a_new_commit(self):
         from uav_network.experiments import checkpoint_store as store
         with TemporaryDirectory() as directory:

@@ -1,4 +1,4 @@
-"""Small W&B manifests point to verified, immutable, private Hub checkpoints."""
+"""Small W&B manifests point to verified, immutable Hub checkpoints."""
 import hashlib
 import json
 import os
@@ -32,19 +32,21 @@ def storage_credentials(config=None):
     if repo == 'auto':
         repo = os.environ.get('HF_REPO_ID') or data.get('repo_id')
     if not token:
-        raise RuntimeError('Private checkpoint storage requires HF_TOKEN or huggingface.token in key.txt')
+        raise RuntimeError('Checkpoint storage requires HF_TOKEN or huggingface.token in key.txt')
     if config is not None and (not isinstance(repo, str) or not re.fullmatch(r'[\w.-]+/[\w.-]+', repo)):
-        raise ValueError('Private checkpoint storage needs a valid HF repository ID')
+        raise ValueError('Checkpoint storage needs a valid HF repository ID')
     return token, repo
 
 
 def ensure_private_store(config):
     from huggingface_hub import HfApi
     token, repo = storage_credentials(config)
+    expected_private = bool(config.tracking.checkpoint_repo_private)
     api = HfApi(token=token)
-    api.create_repo(repo_id=repo, repo_type='model', private=True, exist_ok=True)
-    if api.repo_info(repo, repo_type='model').private is not True:
-        raise RuntimeError('Checkpoint repository must be private; refusing upload')
+    api.create_repo(repo_id=repo, repo_type='model', private=expected_private, exist_ok=True)
+    if api.repo_info(repo, repo_type='model').private is not expected_private:
+        visibility = 'private' if expected_private else 'public'
+        raise RuntimeError(f'Checkpoint repository must be {visibility}; refusing upload')
     return api, repo
 
 
@@ -82,8 +84,10 @@ def upload_checkpoint_files(config, files, prefix):
                        'revision': '0' * 40, 'files': items})
     api, repo = ensure_private_store(config)
     current = api.repo_info(repo, repo_type='model', files_metadata=True)
-    if current.private is not True:
-        raise RuntimeError('Checkpoint repository must be private; refusing upload')
+    expected_private = bool(config.tracking.checkpoint_repo_private)
+    if current.private is not expected_private:
+        visibility = 'private' if expected_private else 'public'
+        raise RuntimeError(f'Checkpoint repository must be {visibility}; refusing upload')
     if _remote_files_match(current, items):
         return validate_manifest({'schema': 1, 'backend': 'huggingface', 'repo_id': repo,
                                   'revision': current.sha, 'files': items})
@@ -93,8 +97,9 @@ def upload_checkpoint_files(config, files, prefix):
     manifest = validate_manifest({'schema': 1, 'backend': 'huggingface', 'repo_id': repo,
                                   'revision': commit.oid, 'files': items})
     info = api.repo_info(repo, repo_type='model', revision=commit.oid, files_metadata=True)
-    if info.private is not True:
-        raise RuntimeError('Uploaded checkpoint repository is not private')
+    if info.private is not expected_private:
+        visibility = 'private' if expected_private else 'public'
+        raise RuntimeError(f'Uploaded checkpoint repository is not {visibility}')
     if not _remote_files_match(info, items):
         raise RuntimeError('Remote checkpoint size/checksum verification failed')
     return manifest

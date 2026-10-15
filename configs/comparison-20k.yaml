@@ -1,0 +1,62 @@
+# Matched BASE/PQL profile: only toggle pql.enabled for the architecture comparison.
+# Both algorithms receive the same episode budget, scenario, batch, replay and seed.
+world:
+  num_targets: 25
+  num_obstacles: 15
+  max_steps: 1500
+  motion_safety: dynamic_window
+network:
+  receiver_admission_mask: true
+masac:
+  hidden_sizes: [256, 256]
+  replay_capacity: 500000
+  batch_size: 8192
+  learning_starts: 131072  # informational equivalent of 32*4096 in PQL mode
+  updates_per_step: 8     # fixed-run fallback only; PQL uses completed-rate credits
+matd3:
+  hidden_sizes: [256, 256]
+  replay_capacity: 500000
+  batch_size: 8192
+  learning_starts: 131072
+  updates_per_step: 8
+runtime:
+  environment_backend: warp_packet
+  seed: 44
+  eval_seed: 2000000044
+  eval_episodes: 30
+  num_envs: 4096
+  coalesce_idle_polls: true
+  vectorize_critics: true
+  compile_models: false
+  fused_optimizers: false
+  episodes: 20000
+  device: cuda
+  replay_device: cuda
+  deterministic: true  # deterministic operations; async ordering remains nondeterministic
+  torch_threads: 1
+  log_interval_steps: 409600
+  checkpoint_interval: 128
+  max_train_seconds: 36000
+  output_dir: outputs/comparison-20k
+pql:
+  enabled: false
+  mode: async
+  critic_sample_ratio: 8  # updates per vector collection, NOT per individual transition
+  warmup_collection_steps: 32
+  max_pending_collections: 2
+  max_pending_policy_updates: 2
+  collector_device: auto  # CUDA0
+  learner_device: auto    # CUDA1 on 2 GPUs, CUDA0 on 1 GPU
+  policy_device: auto     # same as critic
+  worker_timeout_s: 600
+  checkpoint_replay: true
+tracking:
+  enabled: true
+  artifact_timeout_seconds: 900  # final artifact includes resumable replay once
+  evaluation_interval: 0
+  entity: auto
+  project: auto
+  checkpoint_repo: duy95/uav-search-checkpoints-public
+  checkpoint_repo_private: false
+  group: uav-network-base-pql-20k-seed44
+  tags: [uav-network, base-pql-comparison, warp-packet, env4096, targets25, obstacles15, batch8192, episodes20000]

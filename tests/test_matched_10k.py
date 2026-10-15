@@ -9,11 +9,25 @@ from unittest.mock import patch
 
 import torch
 
-from uav_network.configuration import Config
+from uav_network.configuration import Config, load_config
 from uav_network.experiments.training import train
 
 
 class Matched10kTests(unittest.TestCase):
+    def test_20k_profile_changes_only_requested_budget_and_public_checkpoint_visibility(self):
+        base = load_config("configs/comparison-10k.yaml", ["pql.enabled=false"])
+        longer = load_config("configs/comparison-20k.yaml", ["pql.enabled=false"])
+        self.assertEqual(longer.runtime.episodes, 20000)
+        self.assertEqual(longer.world.max_steps, 1500)
+        self.assertFalse(longer.tracking.checkpoint_repo_private)
+        self.assertEqual(longer.tracking.checkpoint_repo, 'duy95/uav-search-checkpoints-public')
+        self.assertEqual(longer.runtime.num_envs, base.runtime.num_envs)
+        self.assertEqual(longer.masac.batch_size, base.masac.batch_size)
+        self.assertEqual(longer.matd3.batch_size, base.matd3.batch_size)
+        self.assertEqual(longer.masac.replay_capacity, base.masac.replay_capacity)
+        self.assertEqual(longer.matd3.replay_capacity, base.matd3.replay_capacity)
+        self.assertEqual(longer.runtime.seed, base.runtime.seed)
+
     def test_common_profile_has_identical_parameters_and_held_out_cpu_bank(self):
         from uav_network.configuration import load_config
         base = load_config("configs/comparison-10k.yaml", ["pql.enabled=false"])
