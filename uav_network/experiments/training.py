@@ -140,7 +140,7 @@ def _train(config):
                                             max(1, global_step - initial["global_step"])}, global_step)
                 next_metrics_at = global_step + config.runtime.log_interval_steps
 
-        def save(path, final=False):
+        def save(path, final=False, full_state=True):
             progress = {"episodes": completed, "global_step": global_step,
                         "collection_steps": collection_steps, "next_seed": next_seed,
                         "records": history}
@@ -150,13 +150,15 @@ def _train(config):
             if tracker:
                 progress["source_run_id"] = tracker.identity()["wandb_run_id"]
             learner.save(path, progress=progress)
-            save_fixed_checkpoint(learner, output / "resume_latest.pt", progress, replay, rng,
-                                  warmup_origin=warmup_origin, random_warmup=random_warmup,
-                                  next_metrics_at=next_metrics_at, latest=latest, pending_learning=pending_learning,
-                                  action_generator=getattr(vector, "action_generator", None))
+            if full_state:
+                save_fixed_checkpoint(learner, output / "resume_latest.pt", progress, replay, rng,
+                                      warmup_origin=warmup_origin, random_warmup=random_warmup,
+                                      next_metrics_at=next_metrics_at, latest=latest, pending_learning=pending_learning,
+                                      action_generator=getattr(vector, "action_generator", None))
             return progress
 
         time_limit = False
+        final_resume_saved = False
         with (output / "episodes.jsonl").open("w") as stream:
             for old_record in history:
                 stream.write(json.dumps(old_record, allow_nan=False) + "\n")
@@ -192,6 +194,7 @@ def _train(config):
                     # The last collected batch has no following CPU step in
                     # which to execute its deferred updates; drain them here.
                     learn(force_metrics=final_batch)
+                checkpoint_events, evaluations = [], []
                 for i in done_indices[:config.runtime.episodes - completed]:
                     completed += 1
                     info = unpack_info(infos, i)
@@ -223,15 +226,23 @@ def _train(config):
                                       "routing": info["network"].get("selection_counts", {})}), flush=True)
                     if completed % config.runtime.checkpoint_interval == 0:
                         path = output / f"episode_{completed:06d}.pt"
-                        progress = save(path)
-                        if tracker:
-                            tracker.checkpoint(path, progress)
+                        progress = save(path, full_state=False)
+                        checkpoint_events.append((path, progress))
                     interval = config.tracking.evaluation_interval
                     if tracker and interval and completed % interval == 0:
                         path = output / f"episode_{completed:06d}.pt"
                         if completed % config.runtime.checkpoint_interval != 0:
-                            save(path)
-                        evaluate_checkpoint(config, path, completed, global_step, tracker, diagnostics)
+                            save(path, full_state=False)
+                        evaluations.append((path, completed))
+                # A vector batch can cross many episode checkpoint boundaries.
+                if checkpoint_events or evaluations:
+                    save(output / "latest.pt", final=final_batch)
+                    final_resume_saved = final_batch
+                for path, progress in checkpoint_events:
+                    if tracker:
+                        tracker.checkpoint(path, progress)
+                for path, episode in evaluations:
+                    evaluate_checkpoint(config, path, episode, global_step, tracker, diagnostics)
                 obs = next_obs
                 if tracker:
                     tracker.progress(obs, global_step, completed, learner, len(replay), force=final_batch)
@@ -247,7 +258,7 @@ def _train(config):
                     reset_mask = done.cpu().numpy() if device_env else done
                     obs, _ = vector.reset(seed=seeds, options={"reset_mask": reset_mask})
         checkpoint = output / "final.pt"
-        save(checkpoint, final=True)
+        save(checkpoint, final=True, full_state=not final_resume_saved)
         elapsed = time.perf_counter() - start
         result = {"checkpoint": str(checkpoint), "resume_checkpoint": str(output / "resume_latest.pt"),
                   "algorithm": learner.algorithm,

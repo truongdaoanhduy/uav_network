@@ -77,3 +77,11 @@ Real Warp CPU regression reproduced TypeError before fix, then passed for both l
 CUDA counterpart is included in Kaggle test_cuda.py. Trainer and config unchanged.
 Full suite after fix: 343 tests, 296 passed and 47 CUDA-only skips (146.980s).
 Matched two-T4 comparison: 6/6 passed; immutable data and CPU video proof saved under docs/benchmarks.
+
+Checkpoint I/O finding: repeated full replay writes within one vector batch.
+Regression showed [1,2,3,4,4] writes before fix and [2,4] after for both algorithms;
+periodic resume-before-tracker contract retained. Model/episode hashes unchanged
+against8de297a in a fresh CPU Warp probe. Final CPU suite344,297 pass47CUDA skips.
+Ruling: retain pinned source of the four already-running production jobs;
+checkpoint coalescing applies to future launches. Report its wall-time confound.
+No production job was cancelled or duplicated to apply this performance patch.

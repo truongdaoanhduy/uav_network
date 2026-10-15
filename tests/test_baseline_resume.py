@@ -47,6 +47,31 @@ def assert_nested_equal(test, actual, expected):
 
 
 class BaselineResumeTests(unittest.TestCase):
+    def test_vector_episode_batch_writes_full_replay_once_per_collection(self):
+        from unittest.mock import patch
+        from uav_network.experiments.fixed_checkpoints import save_fixed_checkpoint
+        for algorithm in ("masac", "matd3"):
+            with self.subTest(algorithm=algorithm), TemporaryDirectory() as directory:
+                config = small_config(Path(directory), algorithm)
+                config.network.enabled = True
+                config.runtime.environment_backend = "warp_packet"
+                config.runtime.num_envs, config.runtime.episodes = 2, 4
+                config.world.max_steps, config.runtime.checkpoint_interval = 1, 1
+                completed = []
+
+                def record_write(*args, **kwargs):
+                    result = save_fixed_checkpoint(*args, **kwargs)
+                    saved = torch.load(args[1], map_location="cpu", weights_only=True)
+                    completed.append(saved["progress"]["episodes"])
+                    return result
+
+                with patch("uav_network.experiments.training.save_fixed_checkpoint", side_effect=record_write):
+                    result = train(config)
+                self.assertEqual(completed, [2, 4])
+                self.assertEqual(result["episodes"], 4)
+                saved = torch.load(result["resume_checkpoint"], map_location="cpu", weights_only=True)
+                self.assertEqual(len(saved["progress"]["records"]), 4)
+
     def test_segment_resume_preserves_weights_adam_replay_and_learning_schedule(self):
         for algorithm in ("masac", "matd3"):
             with self.subTest(algorithm=algorithm), TemporaryDirectory() as directory:

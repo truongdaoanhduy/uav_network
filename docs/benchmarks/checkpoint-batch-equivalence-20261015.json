@@ -1,0 +1,14 @@
+[
+  {
+    "algorithm": "masac",
+    "model_and_episode_hashes_identical": true,
+    "updates": 4,
+    "global_step": 8
+  },
+  {
+    "algorithm": "matd3",
+    "model_and_episode_hashes_identical": true,
+    "updates": 4,
+    "global_step": 8
+  }
+]

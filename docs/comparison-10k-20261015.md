@@ -140,3 +140,30 @@ Sửa preflight dùng WarpVectorEnv.random_actions và reset mask đúng device,
 giống trainer/legacy comparison benchmark. Regression chạy collect, reset
 và update cả MASAC/MATD3 trên Warp CPU, đồng thời chạy lại trên CUDA trong
 preflight Kaggle. Không đổi trainer, simulator, reward hoặc config train.
+
+## Ghi replay khi nhiều env kết thúc cùng batch
+
+Audit sau launch phát hiện BASE v3 ghi full replay cho từng mốc episode
+trong cùng vector batch; PQL đã checkpoint ở ngoài vòng lặp ghi episode.
+Với 4.096 episode kết thúc cùng lúc và interval128, BASE có thể ghi lại
+cùng replay 32 lần. Replay 500.000 rows chiếm khoảng 4,916 GB trước phần
+optimizer/model, nên đây là overhead I/O đáng kể.
+
+Bản repository mới gom full resume ở cuối vector batch, trước các upload
+policy/evaluation, và tránh ghi full state lặp ở final. Các policy checkpoint
+theo mốc episode vẫn được giữ. Regression thực thi cả hai learner với
+hai collections/tổng bốn episode: số lần ghi full state giảm từ 5 còn 2,
+checkpoint cuối vẫn có đủ bốn records. Test periodic resume trước tracker
+vẫn pass. Đối chiếu với source8de297a cho cùng hash model/episode và cùng
+update/global_step trong probe MASAC/MATD3. Full suite: 344 tests,
+297 passed, 47 CUDA-only skips. Dữ liệu đối chiếu:
+[checkpoint-batch-equivalence-20261015.json](benchmarks/checkpoint-batch-equivalence-20261015.json).
+
+Bốn production run đang chạy giữ nguyên source đã ghim khi gửi: BASE
+8de297a, PQL20b40b2. Không thay source vào giữa một run đang thực thi.
+Bản gom replay áp dụng cho các launch mới sau commit tương ứng;
+các run đang chạy chưa dùng tối ưu I/O này. Vì thế tổng wall time production
+có cả khác biệt checkpoint/upload: không quy toàn bộ chênh lệch đó cho PQL.
+Benchmark matched ở trên loại checkpoint/upload khỏi cửa sổ đo và vẫn là
+bằng chứng throughput có cùng số collection/update. Chất lượng policy của
+production được so trên cùng evaluation bank độc lập với overhead này.
