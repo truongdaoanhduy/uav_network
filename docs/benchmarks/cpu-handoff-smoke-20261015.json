@@ -1,0 +1,53 @@
+{
+  "source_git_commit": "20b40b2e5b36337a91ea16e419b71b05b70c6cb3",
+  "checks": [
+    {
+      "case": "base-matd3",
+      "cpu_url": "https://www.kaggle.com/code/nhtbrg/uavnet-validate-20261015-023000-d65a45-cpu",
+      "cuda_available": false,
+      "enable_gpu": false,
+      "torch": "2.11.0+cpu",
+      "checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-matd3-506127e1:v0",
+      "training_status": {
+        "episodes": 7,
+        "global_step": 64,
+        "episode_budget_complete": true,
+        "stop_reason": "episode_budget"
+      },
+      "evaluation_episodes": 2,
+      "video_bytes": 23237,
+      "video_streams": [
+        {
+          "codec_name": "h264",
+          "width": 800,
+          "height": 800,
+          "nb_frames": "3"
+        }
+      ]
+    },
+    {
+      "case": "pql-matd3",
+      "cpu_url": "https://www.kaggle.com/code/ergewh54/uavnet-validate-20261015-023001-13e71-cpu",
+      "cuda_available": false,
+      "enable_gpu": false,
+      "torch": "2.11.0+cpu",
+      "checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-matd3-eb8e5713:v0",
+      "training_status": {
+        "episodes": 7,
+        "global_step": 64,
+        "episode_budget_complete": true,
+        "stop_reason": "episode_budget"
+      },
+      "evaluation_episodes": 2,
+      "video_bytes": 23242,
+      "video_streams": [
+        {
+          "codec_name": "h264",
+          "width": 800,
+          "height": 800,
+          "nb_frames": "3"
+        }
+      ]
+    }
+  ]
+}

@@ -32,7 +32,8 @@ Vì vậy so sánh tốc độ của cấu hình này bao gồm cách phân bổ
 3. Nếu dừng vì time budget, chưa đủ episode và có tiến bộ thật, parent tự gửi
    GPU child cùng account, source, config và tổng budget. Child khôi phục
    full state. W&B segment mới có `root_kernel_ref` và `continuation_index`.
-4. Khi đã ghi đúng 10.000 episode, parent gửi CPU child `<root-ref>-cpu`.
+4. Khi đã ghi đúng 10.000 episode, parent gửi CPU child có URL được ghi trong `cpu-visualization.json`.
+   Slug được rút ngắn khi cần để vừa giới hạn tên; dùng URL trong manifest.
    CPU tải policy nhẹ, sinh PNG/MP4/metrics trong Output.
    Metadata CPU: `enable_gpu=false`, `enable_tpu=false`.
 
@@ -94,3 +95,48 @@ Dùng cùng evaluation bank và paired scenario comparison trong
 pair ở seed44; đánh giá độ ổn định của thuật toán cần thêm training seeds.
 Tốc độ cao hơn và mission quality tốt hơn là hai kết quả cần đo riêng.
 Các lượt smoke kiểm tra flow/checkpoint/device, không kết luận hội tụ.
+
+## Benchmark thực tế ngày 15/10/2026
+
+Kaggle [matched benchmark](https://www.kaggle.com/code/trteht/uavnet-benchmark-20261015-023236-779b9a)
+đã hoàn tất 6/6 trường hợp trên hai Tesla T4. Mỗi case chạy trong process mới,
+40 vector collections, 163.840 joint transitions và 72 critic updates.
+MASAC có 72 actor updates; MATD3 có 36 do policy delay. Không giảm env,
+batch hay replay để tránh OOM. Bảng đo từ khi collect đến lúc drain learner,
+không gồm startup, evaluation, checkpoint hay upload.
+
+| Thuật toán | Mode | Joint transitions/s | So BASE | Tổng điện hai card | So BASE |
+| --- | --- | ---: | ---: | ---: | ---: |
+| MASAC | BASE, GPU0 | 3.427,23 | — | 3.386,8 J | — |
+| MASAC | PQL, GPU0 | 3.282,87 | −4,21% | 4.530,9 J | +33,78% |
+| MASAC | PQL, GPU0+1 | 3.868,83 | +12,88% | 4.253,7 J | +25,59% |
+| MATD3 | BASE, GPU0 | 7.289,89 | — | 1.629,8 J | — |
+| MATD3 | PQL, GPU0 | 7.444,37 | +2,12% | 2.003,6 J | +22,94% |
+| MATD3 | PQL, GPU0+1 | 9.172,56 | +25,83% | 1.741,1 J | +6,83% |
+
+Đây là một lượt đo ngắn mỗi case, chưa có CI hay kết luận hội tụ.
+Physical board energy gồm cả idle power của hai card được cấp; nó không
+phải năng lượng riêng của PyTorch. Mỗi cửa sổ có power coverage 100%.
+PQL một GPU không luôn nhanh hơn BASE; PQL hai GPU cần thêm tài nguyên
+để đạt tốc độ này. Peak memory, utilization, device roles và số đo đầy đủ:
+[comparison-10k-t4-20261015.json](benchmarks/comparison-10k-t4-20261015.json).
+
+## Kiểm chứng flow và lỗi preflight
+
+Hai smoke MATD3 BASE/PQL hoàn thành đúng 7 episode dù num_envs=4,
+tự tạo CPU session, tải đúng immutable policy artifact và sinh MP4 H.264
+800×800 đọc được bằng ffprobe. CPU dùng torch 2.11.0+cpu,
+CUDA unavailable và enable_gpu=false. Bằng chứng:
+[cpu-handoff-smoke-20261015.json](benchmarks/cpu-handoff-smoke-20261015.json).
+
+Smoke MASAC ép dừng theo time budget đã chứng minh GPU child tự khôi phục
+optimizer/replay/RNG/counters: BASE tiến 16→32→48→64 episode;
+PQL tiến 28→56→80. Simulator mở episode mới khi resume như mô tả ở trên.
+Trạng thái cuối của smoke và bốn lượt train chính được ghi riêng trong báo cáo chạy.
+
+Lượt production BASE đầu tiên dừng trong benchmark preflight trước khi
+mở W&B: benchmark dùng NumPy random_actions cho observation tensor trên CUDA.
+Sửa preflight dùng WarpVectorEnv.random_actions và reset mask đúng device,
+giống trainer/legacy comparison benchmark. Regression chạy collect, reset
+và update cả MASAC/MATD3 trên Warp CPU, đồng thời chạy lại trên CUDA trong
+preflight Kaggle. Không đổi trainer, simulator, reward hoặc config train.

@@ -63,11 +63,17 @@ kernel_ref_for_segment(root_ref,index,cpu=False).
 Files: configs/comparison-10k.yaml and docs/experiment results.
 
 - [x] Verify common resolved config differs only by PQL toggle/algorithm selection.
-- [ ] Run full CPU suite and publish source.
-- [ ] Provision only private single-credential datasets on chosen accounts.
+- [x] Run full CPU suite and publish source.
+- [x] Provision only private single-credential datasets on chosen accounts.
 - [ ] Run four-case GPU/CPU smoke and forced GPU->GPU->CPU smoke.
 - [ ] Launch10000 series on four accounts; confirm W&B online and progress.
 - [ ] Publish quota/account/run URLs and current statuses.
 
 Review: first-session quota cap added after Important finding; targeted tests RED→GREEN.
 Host credential download issue diagnosed as IPv6 TCP timeout; scoped IPv4 helper verified both private files on accounts08–11, with no product/network setting change.
+
+Production preflight finding: BASE benchmark mixed NumPy actions with Warp tensors.
+Real Warp CPU regression reproduced TypeError before fix, then passed for both learners;
+CUDA counterpart is included in Kaggle test_cuda.py. Trainer and config unchanged.
+Full suite after fix: 343 tests, 296 passed and 47 CUDA-only skips (146.980s).
+Matched two-T4 comparison: 6/6 passed; immutable data and CPU video proof saved under docs/benchmarks.

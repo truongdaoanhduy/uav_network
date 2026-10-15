@@ -38,23 +38,27 @@ def benchmark(config, env_counts=(1, 2, 4), steps=32, learner_updates=10):
             rng = np.random.default_rng(c.runtime.seed + 1)
             next_seed = c.runtime.seed + count
             collector_s = reset_s = 0.0
+            device_env = c.runtime.environment_backend == "warp_packet"
             for _ in range(rounds):
                 begin = time.perf_counter()
-                action = random_actions(obs["observation"], rng, c.world.num_uavs + 1)
-                final, rewards, terminated, truncated, _ = vector.step({
+                action = (vector.random_actions(obs["observation"]) if device_env else
+                          random_actions(obs["observation"], rng, c.world.num_uavs + 1))
+                final, rewards, terminated, truncated, infos = vector.step({
                     "continuous": action.continuous, "destination": action.destination})
                 collector_s += time.perf_counter() - begin
                 replay.add_batch(obs["observation"], obs["state"], action, rewards,
                                  final["observation"], final["state"], terminated)
                 obs = final
                 done = terminated | truncated
-                if done.any():
+                indices = list(infos["device_episode_infos"]) if device_env else np.flatnonzero(done).tolist()
+                if indices:
                     begin = time.perf_counter()
                     seeds = [None] * count
-                    for i in np.flatnonzero(done):
+                    for i in indices:
                         seeds[i] = next_seed
                         next_seed += 1
-                    obs, _ = vector.reset(seed=seeds, options={"reset_mask": done})
+                    obs, _ = vector.reset(seed=seeds, options={
+                        "reset_mask": done.cpu().numpy() if device_env else done})
                     reset_s += time.perf_counter() - begin
             learner = make_learner(c, observation_dim(c), state_dim(c), device)
             if c.runtime.compile_models:

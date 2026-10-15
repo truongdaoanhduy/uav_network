@@ -16,6 +16,10 @@ from uav_network.experiments.training import train
 
 @unittest.skipUnless(torch.cuda.is_available(), "CUDA is unavailable on this host")
 class CUDATests(unittest.TestCase):
+    def test_warp_cuda_preflight_collects_resets_and_updates_both_learners(self):
+        from test_benchmark_devices import check_warp_benchmark
+        check_warp_benchmark("cuda")
+
     def test_vectorized_cuda_critics_match_legacy_and_repeat_native_training(self):
         from test_vectorized_critics import check_vectorized_learners
         from test_vector import small_parallel_config

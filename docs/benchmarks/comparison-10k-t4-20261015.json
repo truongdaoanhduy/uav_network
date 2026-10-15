@@ -1,0 +1,339 @@
+{
+  "source_git_commit": "20b40b2e5b36337a91ea16e419b71b05b70c6cb3",
+  "kaggle_url": "https://www.kaggle.com/code/trteht/uavnet-benchmark-20261015-023236-779b9a",
+  "status": "passed",
+  "measurement_scope": "Fresh process per case; collection through final learner drain; startup excluded",
+  "note": "One short sample per case, startup excluded, same 40 collections/72 critic updates; physical energy includes both allocated boards and idle power. Does not assess learning quality.",
+  "results": [
+    {
+      "algorithm": "masac",
+      "case": "legacy",
+      "status": "passed",
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 500000,
+      "steps": 40,
+      "critic_updates": 72,
+      "actor_updates": 72,
+      "elapsed_s": 47.805350916000066,
+      "joint_transitions_per_s": 3427.231405285304,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:0",
+        "policy": "cuda:0"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 7952841728,
+          "peak_reserved_bytes": 9808379904
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 0,
+          "peak_reserved_bytes": 0
+        }
+      ],
+      "gpu_energy_joules": 3386.826558507522,
+      "physical_gpu_summary": [
+        {
+          "physical_index": 0,
+          "utilization_gpu_percent_mean": 94.68586387434554,
+          "memory_used_bytes_max": 11854151680.0,
+          "mean_power_w": 60.0792605275756,
+          "energy_joules": 2872.110132294543,
+          "coverage_fraction": 1.0
+        },
+        {
+          "physical_index": 1,
+          "utilization_gpu_percent_mean": 0.0,
+          "memory_used_bytes_max": 3145728.0,
+          "mean_power_w": 10.766920780843128,
+          "energy_joules": 514.7164262129792,
+          "coverage_fraction": 1.0
+        }
+      ],
+      "throughput_change_percent_vs_base": 0.0,
+      "energy_change_percent_vs_base": 0.0
+    },
+    {
+      "algorithm": "masac",
+      "case": "pql-single",
+      "status": "passed",
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 500000,
+      "steps": 40,
+      "critic_updates": 72,
+      "actor_updates": 72,
+      "elapsed_s": 49.90755560399998,
+      "joint_transitions_per_s": 3282.869658053711,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:0",
+        "policy": "cuda:0"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 9204629504,
+          "peak_reserved_bytes": 12427722752
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 0,
+          "peak_reserved_bytes": 0
+        }
+      ],
+      "gpu_energy_joules": 4530.86658362971,
+      "physical_gpu_summary": [
+        {
+          "physical_index": 0,
+          "utilization_gpu_percent_mean": 96.15,
+          "memory_used_bytes_max": 14561574912.0,
+          "mean_power_w": 62.3277123193556,
+          "energy_joules": 3110.6237682483543,
+          "coverage_fraction": 1.0
+        },
+        {
+          "physical_index": 1,
+          "utilization_gpu_percent_mean": 0.015,
+          "memory_used_bytes_max": 110100480.0,
+          "mean_power_w": 28.45747098195941,
+          "energy_joules": 1420.2428153813553,
+          "coverage_fraction": 1.0
+        }
+      ],
+      "throughput_change_percent_vs_base": -4.212197256624261,
+      "energy_change_percent_vs_base": 33.779114618326766
+    },
+    {
+      "algorithm": "masac",
+      "case": "pql-dual",
+      "status": "passed",
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 500000,
+      "steps": 40,
+      "critic_updates": 72,
+      "actor_updates": 72,
+      "elapsed_s": 42.34874019800009,
+      "joint_transitions_per_s": 3868.828192620883,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 218756096,
+          "peak_reserved_bytes": 247463936
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 9407084544,
+          "peak_reserved_bytes": 12211716096
+        }
+      ],
+      "gpu_energy_joules": 4253.655608897181,
+      "physical_gpu_summary": [
+        {
+          "physical_index": 0,
+          "utilization_gpu_percent_mean": 37.905325443786985,
+          "memory_used_bytes_max": 2257584128.0,
+          "mean_power_w": 45.34270444682272,
+          "energy_joules": 1920.2064104931987,
+          "coverage_fraction": 1.0
+        },
+        {
+          "physical_index": 1,
+          "utilization_gpu_percent_mean": 68.25443786982248,
+          "memory_used_bytes_max": 12464422912.0,
+          "mean_power_w": 55.10079373067581,
+          "energy_joules": 2333.449198403982,
+          "coverage_fraction": 1.0
+        }
+      ],
+      "throughput_change_percent_vs_base": 12.88494224972876,
+      "energy_change_percent_vs_base": 25.59413762161018
+    },
+    {
+      "algorithm": "matd3",
+      "case": "legacy",
+      "status": "passed",
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 500000,
+      "steps": 40,
+      "critic_updates": 72,
+      "actor_updates": 36,
+      "elapsed_s": 22.47496504600008,
+      "joint_transitions_per_s": 7289.888979344997,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:0",
+        "policy": "cuda:0"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 5632062976,
+          "peak_reserved_bytes": 5679087616
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 0,
+          "peak_reserved_bytes": 0
+        }
+      ],
+      "gpu_energy_joules": 1629.8216408827052,
+      "physical_gpu_summary": [
+        {
+          "physical_index": 0,
+          "utilization_gpu_percent_mean": 95.03333333333333,
+          "memory_used_bytes_max": 7724859392.0,
+          "mean_power_w": 59.28180539658036,
+          "energy_joules": 1332.3565041519225,
+          "coverage_fraction": 1.0
+        },
+        {
+          "physical_index": 1,
+          "utilization_gpu_percent_mean": 0.0,
+          "memory_used_bytes_max": 3145728.0,
+          "mean_power_w": 13.235399304157012,
+          "energy_joules": 297.4651367307826,
+          "coverage_fraction": 1.0
+        }
+      ],
+      "throughput_change_percent_vs_base": 0.0,
+      "energy_change_percent_vs_base": 0.0
+    },
+    {
+      "algorithm": "matd3",
+      "case": "pql-single",
+      "status": "passed",
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 500000,
+      "steps": 40,
+      "critic_updates": 72,
+      "actor_updates": 36,
+      "elapsed_s": 22.008566086999963,
+      "joint_transitions_per_s": 7444.374129252207,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:0",
+        "policy": "cuda:0"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 6172704256,
+          "peak_reserved_bytes": 6631194624
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 0,
+          "peak_reserved_bytes": 0
+        }
+      ],
+      "gpu_energy_joules": 2003.6336679969877,
+      "physical_gpu_summary": [
+        {
+          "physical_index": 0,
+          "utilization_gpu_percent_mean": 96.875,
+          "memory_used_bytes_max": 8765046784.0,
+          "mean_power_w": 61.194416555565255,
+          "energy_joules": 1346.8013609185625,
+          "coverage_fraction": 1.0
+        },
+        {
+          "physical_index": 1,
+          "utilization_gpu_percent_mean": 0.0,
+          "memory_used_bytes_max": 110100480.0,
+          "mean_power_w": 29.844393518503843,
+          "energy_joules": 656.8323070784252,
+          "coverage_fraction": 1.0
+        }
+      ],
+      "throughput_change_percent_vs_base": 2.119170132013326,
+      "energy_change_percent_vs_base": 22.93576289193382
+    },
+    {
+      "algorithm": "matd3",
+      "case": "pql-dual",
+      "status": "passed",
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 500000,
+      "steps": 40,
+      "critic_updates": 72,
+      "actor_updates": 36,
+      "elapsed_s": 17.861972831999992,
+      "joint_transitions_per_s": 9172.559019151468,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 218734592,
+          "peak_reserved_bytes": 245366784
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 6072814080,
+          "peak_reserved_bytes": 6398410752
+        }
+      ],
+      "gpu_energy_joules": 1741.0761449915856,
+      "physical_gpu_summary": [
+        {
+          "physical_index": 0,
+          "utilization_gpu_percent_mean": 81.75,
+          "memory_used_bytes_max": 2255486976.0,
+          "mean_power_w": 55.60692114460707,
+          "energy_joules": 993.2493147561374,
+          "coverage_fraction": 1.0
+        },
+        {
+          "physical_index": 1,
+          "utilization_gpu_percent_mean": 29.833333333333332,
+          "memory_used_bytes_max": 6651117568.0,
+          "mean_power_w": 41.86697837182381,
+          "energy_joules": 747.8268302354481,
+          "coverage_fraction": 1.0
+        }
+      ],
+      "throughput_change_percent_vs_base": 25.82577108020141,
+      "energy_change_percent_vs_base": 6.826176639096859
+    }
+  ]
+}
