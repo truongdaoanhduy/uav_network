@@ -132,11 +132,17 @@ def resolve_checkpoint_artifact(api, ref):
     try:
         return api.artifact(ref, type='model')
     except Exception as original:
-        match = re.fullmatch(r'([\w.-]+/[\w.-]+)/(?P<c>uav-network-(?:masac|matd3)-(?P<run>[0-9a-f]{8})):v[0-9]+', ref)
+        match = re.fullmatch(r'([\w.-]+/[\w.-]+)/(?P<c>uav-network-(?:masac|matd3)-(?P<run>[0-9a-f]{8})):v(?P<version>[0-9]+)', ref)
         if match is None:
             raise
         try:
-            mapped = api.run(match[1] + '/' + match['run']).summary.get('checkpoint_archives', {}).get(ref)
+            api.flush()
+            summary = api.run(match[1] + '/' + match['run']).summary
+            mapped = summary.get(f"checkpoint_archive_{match['c']}_v{match['version']}")
+            if mapped is None:
+                mapped = summary.get('checkpoint_archives.' + ref)
+            if mapped is None:
+                mapped = summary.get('checkpoint_archives', {}).get(ref)
         except Exception:
             raise original from None
         if mapped is None:

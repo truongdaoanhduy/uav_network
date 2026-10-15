@@ -142,15 +142,15 @@ def archive_artifact(api, tracker, config, ref, directory, protected, check_sour
     saved = tracker.run.log_artifact(replacement, aliases=[*aliases, 'archive-of-v' + match['version']])
     saved.wait(timeout=config.tracking.artifact_timeout_seconds)
     new_ref = saved.qualified_name
-    archives = dict(source_run.summary.get('checkpoint_archives', {}))
-    archives[ref] = new_ref
-    source_run.summary['checkpoint_archives'] = archives
+    # W&B flattens nested summary dictionaries. Persist one scalar per version.
+    mapping_key = f"checkpoint_archive_{match['collection']}_v{match['version']}"
+    summary = {mapping_key: new_ref}
     if {'latest', 'final', 'best'} & set(aliases):
-        source_run.summary['checkpoint_artifact'] = new_ref
-    source_run.update()
+        summary['checkpoint_artifact'] = new_ref
+    source_run.summary.update(summary)
     # Recheck after slow transfer: a newly started consumer also protects the source.
     refreshed = fresh_finished_source(api, source_path)
-    if refreshed.summary.get('checkpoint_archives', {}).get(ref) != new_ref:
+    if refreshed.summary.get(mapping_key) != new_ref:
         raise RuntimeError('Archive mapping did not persist; source retained')
     check_source()
     if any(run.state not in {'finished', 'failed', 'crashed', 'killed'} for run in artifact.used_by()):

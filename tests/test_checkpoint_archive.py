@@ -120,11 +120,23 @@ class CheckpointArchiveTests(unittest.TestCase):
         with TemporaryDirectory() as d:
             root=Path(d); source=root/'checkpoint.pt'; source.write_bytes(b'checkpoint-bytes')
             events=[]
-            source_run=SimpleNamespace(state='finished',summary={},update=lambda:events.append('run-update'))
+            server = {}
+            class RemoteSummary(dict):
+                def update(self, values):
+                    super().update(values)
+                    for key, value in values.items():
+                        if isinstance(value, dict):
+                            server.update({key+'.'+k:v for k,v in value.items()})
+                        else:
+                            server[key] = value
+            def run(path):
+                summary = RemoteSummary(server)
+                return SimpleNamespace(state='finished', summary=summary,
+                    update=lambda:summary.update(dict(summary)))
             artifact=SimpleNamespace(manifest=SimpleNamespace(entries={'checkpoint.pt':{}}),metadata={},
                 aliases=['latest','final'],used_by=lambda:[],download=lambda **kw:d,
                 delete=lambda **kw:events.append('delete'))
-            api=SimpleNamespace(artifact=lambda *a,**kw:artifact,run=lambda *a:source_run,flush=lambda:None)
+            api=SimpleNamespace(artifact=lambda *a,**kw:artifact,run=run,flush=lambda:None)
             descriptor={'schema':1,'backend':'huggingface','repo_id':'owner/private','revision':'a'*40,
                 'files':{'checkpoint.pt':{'path':'archive/checkpoint.pt','size':source.stat().st_size,
                                          'sha256':file_sha256(source)}}}
@@ -138,7 +150,7 @@ class CheckpointArchiveTests(unittest.TestCase):
                  patch('uav_network.cloud.archive.download_manifest_file',side_effect=lambda *a,**kw:(events.append('fresh-download') or str(source))):
                 result=archive_artifact(api,tracker,Config(),'owner/main/uav-network-matd3-12345678:v0',root,set(),lambda:None)
             self.assertEqual(result['status'],'archived')
-            self.assertEqual(source_run.summary['checkpoint_archives']['owner/main/uav-network-matd3-12345678:v0'],saved.qualified_name)
+            self.assertEqual(server['checkpoint_archive_uav-network-matd3-12345678_v0'],saved.qualified_name)
             self.assertLess(events.index('fresh-download'),events.index('published'))
             self.assertLess(events.index('published'),events.index('delete'))
 

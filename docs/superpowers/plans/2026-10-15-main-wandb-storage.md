@@ -30,9 +30,9 @@
 
 Files: `experiments/dashboard.py`, `experiments/tracking.py`, `tests/test_dashboard.py`, `tests/test_tracking.py`.
 
-- [ ] Add failing tests for group-independent visibility and preserved chart content.
-- [ ] Implement `ensure_project_workspace(config)` and make dashboard defaults unfiltered; invoke when online tracking starts and reject destination mismatch.
-- [ ] Run dashboard/tracking tests; reconcile the live Personal Workspace and verify all project runs match.
+- [x] Add failing tests for group-independent visibility and preserved chart content.
+- [x] Implement `ensure_project_workspace(config)` and make dashboard defaults unfiltered; invoke when online tracking starts and reject destination mismatch.
+- [x] Run dashboard/tracking tests; reconcile the live Personal Workspace and verify all project runs match.
 
 ### Task 2: External checkpoint envelope
 
@@ -40,26 +40,26 @@ Files: new `experiments/checkpoint_store.py`, `configuration.py`, tracking, clou
 
 Interfaces: `upload_checkpoint_files(config, files, prefix) -> dict`; `download_checkpoint_file(artifact, entry, destination) -> str`. Manifest schema pins backend, repo, full commit SHA, relative file paths, bytes and SHA256.
 
-- [ ] Test checksum round-trip and refusal of corrupt/mutable/unsafe manifests, using real files and fake external transport.
-- [ ] Implement private HF upload/download and manifest validation; add config/backend validation and declared optional dependency.
-- [ ] Upload only checkpoint manifest to W&B in HF mode; read both old binary and new manifest formats.
-- [ ] Add single-file private HF credential dataset, propagate its reference through GPU continuation and CPU spec/bootstrap, perform preflight before cloud submission.
-- [ ] Run checkpoint/tracking/cloud/continuation checks, including unchanged full-state validation.
+- [x] Test checksum round-trip and refusal of corrupt/mutable/unsafe manifests, using real files and fake external transport.
+- [x] Implement private HF upload/download and manifest validation; add config/backend validation and declared optional dependency.
+- [x] Upload only checkpoint manifest to W&B in HF mode; read both old binary and new manifest formats.
+- [x] Add single-file private HF credential dataset, propagate its reference through GPU continuation and CPU spec/bootstrap, perform preflight before cloud submission.
+- [x] Run checkpoint/tracking/cloud/continuation checks, including unchanged full-state validation.
 
 ### Task 3: CPU visibility and live verification
 
 Files: cloud visualize, evaluation callback, tests, verification documentation.
 
-- [ ] Test real CPU evaluation with logging callback and failed-run cleanup.
-- [ ] Log CPU evaluation online in the same project, retain output links, and keep videos on Kaggle.
-- [ ] Run complete unittest discovery and a small real online CPU/external-storage smoke; verify both run links, immutable restore and artifact size.
-- [ ] Commit/push the reviewed branch; launch one CPU-only cloud smoke for credential/bootstrap and visualization proof.
+- [x] Test real CPU evaluation with logging callback and failed-run cleanup.
+- [x] Log CPU evaluation online in the same project, retain output links, and keep videos on Kaggle.
+- [x] Run complete unittest discovery and a small real online CPU/external-storage smoke; verify both run links, immutable restore and artifact size.
+- [x] Commit/push the reviewed branch; launch one CPU-only cloud smoke for credential/bootstrap and visualization proof.
 
 ### Task 4: Verified migration and cleanup
 
 Files: a small archive script and safe archive-index output, verification report.
 
-- [ ] Inventory completed project-owned legacy artifacts and active handoff references.
+- [x] Inventory completed project-owned legacy artifacts and active handoff references.
 - [ ] Upload scoped candidates to the private store, verify remote metadata plus fresh-download checksums, publish tiny replacement manifests and archive mappings.
 - [ ] Remove only verified obsolete original versions; keep running dependencies and all run histories.
 - [ ] Read back W&B storage and workspace, record exact changes and any pinned-job limitation.

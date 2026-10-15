@@ -88,5 +88,7 @@ class CheckpointStoreTests(unittest.TestCase):
         def artifact(ref, **kwargs):
             if ref==old:raise ValueError('legacy version archived')
             self.assertEqual(ref,new);return saved
-        api=SimpleNamespace(artifact=artifact,run=lambda ref:SimpleNamespace(summary={'checkpoint_archives':{old:new}}))
-        self.assertIs(store.resolve_checkpoint_artifact(api,old),saved)
+        key = 'checkpoint_archive_uav-network-matd3-12345678_v0'
+        for summary in ({key:new}, {'checkpoint_archives.'+old:new}, {'checkpoint_archives':{old:new}}):
+            api=SimpleNamespace(artifact=artifact,run=lambda ref:SimpleNamespace(summary=summary),flush=lambda:None)
+            self.assertIs(store.resolve_checkpoint_artifact(api,old),saved)
