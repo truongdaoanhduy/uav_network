@@ -19,6 +19,9 @@ matd3:
   batch_size: 8192
   learning_starts: 131072
   updates_per_step: 8
+  # Transition clock: 4096 envs * 3000 vector steps (two mission horizons).
+  # The 100k default otherwise finishes before the 131072-transition warmup.
+  epsilon_decay_steps: 12288000
 runtime:
   environment_backend: warp_packet
   seed: 44

@@ -109,8 +109,10 @@ def download_and_publish_case(manifest_path, destination, key_file="key.txt"):
     if status != "complete":
         return {"status": "pending", "cpu_kernel_ref": cpu_ref, "kernel_status": status}
     destination.mkdir(parents=True, exist_ok=True)
-    run_kaggle(["kernels", "output", cpu_ref, "-p", str(destination), "-q"],
-               account, timeout=300)
+    # CPU output also contains downloaded checkpoint/cache files; media needs none of them.
+    pattern = r"(^|/)(job\.json|hardware\.json|visualization-result\.json|final_episode\.(mp4|gif|png)|metrics\.json)$"
+    run_kaggle(["kernels", "output", cpu_ref, "-p", str(destination),
+                "--file-pattern", pattern, "-q"], account, timeout=300)
     publication = publish_downloaded_visualizations(destination, key_file)
     return {"status": "published", "cpu_kernel_ref": cpu_ref, "publication": publication}
 
