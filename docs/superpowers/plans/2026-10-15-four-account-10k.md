@@ -65,9 +65,9 @@ Files: configs/comparison-10k.yaml and docs/experiment results.
 - [x] Verify common resolved config differs only by PQL toggle/algorithm selection.
 - [x] Run full CPU suite and publish source.
 - [x] Provision only private single-credential datasets on chosen accounts.
-- [ ] Run four-case GPU/CPU smoke and forced GPU->GPU->CPU smoke.
-- [ ] Launch10000 series on four accounts; confirm W&B online and progress.
-- [ ] Publish quota/account/run URLs and current statuses.
+- [x] Run four-case GPU/CPU smoke and forced GPU->GPU->CPU smoke.
+- [x] Launch10000 series on four accounts; confirm W&B online and progress.
+- [x] Publish quota/account/run URLs and current statuses.
 
 Review: first-session quota cap added after Important finding; targeted tests RED→GREEN.
 Host credential download issue diagnosed as IPv6 TCP timeout; scoped IPv4 helper verified both private files on accounts08–11, with no product/network setting change.
@@ -85,3 +85,8 @@ against8de297a in a fresh CPU Warp probe. Final CPU suite344,297 pass47CUDA skip
 Ruling: retain pinned source of the four already-running production jobs;
 checkpoint coalescing applies to future launches. Report its wall-time confound.
 No production job was cancelled or duplicated to apply this performance patch.
+
+Task3 complete: four W&B/Kaggle production jobs Running with positive critic updates at03:10UTC.
+Four CPU smoke videos verified; two later MASAC submissions were manually recovered from saved artifacts, then final CPU handoff automatic.
+Exact service cause of those two RuntimeError pushes is not retained; do not label the entire128-episode chain fully unattended.
+Quota16/16 verified; private account inventory stays out of git. Final run report docs/runs-10k-20261015.md.

@@ -1,0 +1,179 @@
+{
+  "checked_at_utc": "2026-10-15T03:11:04.205452+00:00",
+  "source_git_commit": "20b40b2e5b36337a91ea16e419b71b05b70c6cb3",
+  "note": "Initial GPU hops were autonomous. Two later smoke submissions failed after production launch; preserved immutable artifacts were manually resubmitted with the same 128-episode target and only the smoke time budget changed from90s to900s. Final GPU-to-CPU handoff was autonomous. The original errors retained only RuntimeError, so their exact service cause is not proven.",
+  "chains": [
+    {
+      "case": "base-masac",
+      "source": "20b40b2e5b36337a91ea16e419b71b05b70c6cb3",
+      "root": "fasfwejlklfv/uavnet-validate-20261015-022956-dba8a4",
+      "segments": [
+        {
+          "id": "ccf696c2",
+          "state": "finished",
+          "index": 0,
+          "initial": 0,
+          "restored": false,
+          "episodes": 16,
+          "global_step": 1188,
+          "updates": 592,
+          "complete": false,
+          "kernel": "fasfwejlklfv/uavnet-validate-20261015-022956-dba8a4"
+        },
+        {
+          "id": "dba7ae91",
+          "state": "finished",
+          "index": 1,
+          "initial": 16,
+          "restored": true,
+          "episodes": 32,
+          "global_step": 2388,
+          "updates": 1192,
+          "complete": false,
+          "kernel": "fasfwejlklfv/uavnet-validate-20261015-0229-c01"
+        },
+        {
+          "id": "36e302b5",
+          "state": "finished",
+          "index": 2,
+          "initial": 32,
+          "restored": true,
+          "episodes": 48,
+          "global_step": 3564,
+          "updates": 1780,
+          "complete": false,
+          "kernel": "fasfwejlklfv/uavnet-validate-20261015-0229-c02"
+        },
+        {
+          "id": "95a603dd",
+          "state": "finished",
+          "index": 3,
+          "initial": 48,
+          "restored": true,
+          "episodes": 64,
+          "global_step": 4704,
+          "updates": 2350,
+          "complete": false,
+          "kernel": "fasfwejlklfv/uavnet-validate-20261015-0229-c03"
+        },
+        {
+          "id": "310b26a2",
+          "state": "finished",
+          "index": 4,
+          "initial": 64,
+          "restored": true,
+          "episodes": 128,
+          "global_step": 8800,
+          "updates": 4398,
+          "complete": true,
+          "kernel": "fasfwejlklfv/uavnet-validate-20261015-0229-c04"
+        }
+      ],
+      "cpu_ref": "fasfwejlklfv/uavnet-validate-20261015-022956-d-cpu",
+      "cpu_status": "complete",
+      "cpu_proof": {
+        "device": "cpu",
+        "cuda_available": false,
+        "torch": "2.11.0+cpu",
+        "training_status": {
+          "episodes": 128,
+          "global_step": 8800,
+          "episode_budget_complete": true,
+          "stop_reason": "episode_budget"
+        },
+        "checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-310b26a2:v0",
+        "video_bytes": 78417,
+        "video_streams": [
+          {
+            "codec_name": "h264",
+            "width": 800,
+            "height": 800,
+            "nb_frames": "14"
+          }
+        ],
+        "enable_gpu": false,
+        "enable_tpu": false
+      }
+    },
+    {
+      "case": "pql-masac",
+      "source": "20b40b2e5b36337a91ea16e419b71b05b70c6cb3",
+      "root": "nyegerge/uavnet-validate-20261015-023000-0a494b",
+      "segments": [
+        {
+          "id": "1ce55082",
+          "state": "finished",
+          "index": 0,
+          "initial": 0,
+          "restored": false,
+          "episodes": 28,
+          "global_step": 1984,
+          "updates": 990,
+          "complete": false,
+          "kernel": "nyegerge/uavnet-validate-20261015-023000-0a494b"
+        },
+        {
+          "id": "12e6f041",
+          "state": "finished",
+          "index": 1,
+          "initial": 28,
+          "restored": true,
+          "episodes": 56,
+          "global_step": 3944,
+          "updates": 1970,
+          "complete": false,
+          "kernel": "nyegerge/uavnet-validate-20261015-023000-0-c01"
+        },
+        {
+          "id": "e7c777eb",
+          "state": "finished",
+          "index": 2,
+          "initial": 56,
+          "restored": true,
+          "episodes": 80,
+          "global_step": 5576,
+          "updates": 2786,
+          "complete": false,
+          "kernel": "nyegerge/uavnet-validate-20261015-023000-0-c02"
+        },
+        {
+          "id": "810696da",
+          "state": "finished",
+          "index": 3,
+          "initial": 80,
+          "restored": true,
+          "episodes": 128,
+          "global_step": 8648,
+          "updates": 4322,
+          "complete": true,
+          "kernel": "nyegerge/uavnet-validate-20261015-023000-0-c03"
+        }
+      ],
+      "cpu_ref": "nyegerge/uavnet-validate-20261015-023000-0a494-cpu",
+      "cpu_status": "complete",
+      "cpu_proof": {
+        "device": "cpu",
+        "cuda_available": false,
+        "torch": "2.11.0+cpu",
+        "training_status": {
+          "episodes": 128,
+          "global_step": 8648,
+          "episode_budget_complete": true,
+          "stop_reason": "episode_budget"
+        },
+        "checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-810696da:v0",
+        "video_bytes": 79772,
+        "video_streams": [
+          {
+            "codec_name": "h264",
+            "width": 800,
+            "height": 800,
+            "nb_frames": "14"
+          }
+        ],
+        "enable_gpu": false,
+        "enable_tpu": false
+      }
+    }
+  ]
+}
