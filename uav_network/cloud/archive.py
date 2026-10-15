@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import re
 from tempfile import TemporaryDirectory
+import time
 
 from ..configuration import Config
 from ..experiments.checkpoint_store import (MANIFEST, upload_checkpoint_files,
@@ -22,6 +23,18 @@ def fresh_finished_source(api, path):
     if source.state != 'finished':
         raise RuntimeError('Source run is active or has not finished successfully')
     return source
+
+
+def wait_for_archive_mapping(api, source_path, key, replacement, timeout):
+    """The summary write can succeed before it appears on a fresh API read."""
+    deadline = time.monotonic() + timeout
+    while True:
+        refreshed = fresh_finished_source(api, source_path)
+        if refreshed.summary.get(key) == replacement:
+            return
+        if time.monotonic() >= deadline:
+            raise RuntimeError('Archive mapping did not persist; source retained')
+        time.sleep(2)
 
 
 def verify_completed_source(api, spec, run_id, account, verify_outputs=False):
@@ -149,9 +162,8 @@ def archive_artifact(api, tracker, config, ref, directory, protected, check_sour
         summary['checkpoint_artifact'] = new_ref
     source_run.summary.update(summary)
     # Recheck after slow transfer: a newly started consumer also protects the source.
-    refreshed = fresh_finished_source(api, source_path)
-    if refreshed.summary.get(mapping_key) != new_ref:
-        raise RuntimeError('Archive mapping did not persist; source retained')
+    wait_for_archive_mapping(api, source_path, mapping_key, new_ref,
+                             min(60, config.tracking.artifact_timeout_seconds))
     check_source()
     if any(run.state not in {'finished', 'failed', 'crashed', 'killed'} for run in artifact.used_by()):
         raise RuntimeError('Source acquired an active consumer during backup; source retained')

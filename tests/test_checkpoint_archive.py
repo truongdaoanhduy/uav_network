@@ -12,6 +12,23 @@ from uav_network.configuration import Config
 
 
 class CheckpointArchiveTests(unittest.TestCase):
+    def test_mapping_readback_waits_for_propagation_and_still_rejects_active_sources(self):
+        from uav_network.cloud.archive import wait_for_archive_mapping
+        states = [SimpleNamespace(state='finished', summary={}),
+                  SimpleNamespace(state='finished', summary={'mapping':'new-ref'})]
+        api = SimpleNamespace(flush=lambda:None, run=lambda path:states.pop(0))
+        with patch('uav_network.cloud.archive.time.sleep') as pause:
+            wait_for_archive_mapping(api, 'owner/main/source', 'mapping', 'new-ref', 30)
+            pause.assert_called_once()
+        api.run = lambda path:SimpleNamespace(state='finished', summary={})
+        with patch('uav_network.cloud.archive.time.monotonic', side_effect=[0,0,31]), \
+             patch('uav_network.cloud.archive.time.sleep'):
+            with self.assertRaisesRegex(RuntimeError, 'persist'):
+                wait_for_archive_mapping(api, 'owner/main/source', 'mapping', 'new-ref', 30)
+        api.run = lambda path:SimpleNamespace(state='running', summary={'mapping':'new-ref'})
+        with self.assertRaisesRegex(RuntimeError, 'active'):
+            wait_for_archive_mapping(api, 'owner/main/source', 'mapping', 'new-ref', 30)
+
     def test_completion_proof_is_bound_to_owned_pipeline_and_actual_cpu_output(self):
         from uav_network.cloud.archive import verify_completed_source
         gpu = 'owner/training'; cpu = 'owner/training-cpu'
