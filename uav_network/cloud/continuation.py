@@ -78,7 +78,7 @@ def build_continuation_spec(parent, results):
         raise ValueError("Continuation must keep the original selected account")
     fields = ("commit", "account", "entity", "project", "stage", "config", "overrides",
               "credential_dataset", "pipeline_credential_dataset", "cpu_credential_dataset",
-              "cpu_eval", "timeout_seconds", "accelerator", "requested_episodes", "training_mode")
+              "cpu_eval", "storage_credential_dataset", "checkpoint_repo", "timeout_seconds", "accelerator", "requested_episodes", "training_mode")
     child = {key: deepcopy(parent[key]) for key in fields if key in parent}
     if not child.get("pipeline_credential_dataset") or not child.get("cpu_credential_dataset"):
         raise ValueError("Continuation needs its existing private GPU and CPU credential inputs")

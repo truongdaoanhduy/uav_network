@@ -43,11 +43,17 @@ class CPUHandoffComparisonTests(unittest.TestCase):
                     return str(destination)
                 return SimpleNamespace(get_entry=lambda name: SimpleNamespace(download=download))
 
-            spec = {"artifacts": {a: f"owner/project/{a}:v1" for a in trained},
+            spec = {"entity": "owner", "project": "project", "kernel_ref": "owner/cpu",
+                    "artifacts": {a: f"owner/project/{a}:v1" for a in trained},
+                    "runs": {a: {"id": a + "1", "name": a.upper() + "-CPU"} for a in trained},
                     "cpu_eval": {"episodes": 2, "seed": 2000000044, "frame_stride": 5, "fps": 10},
                     "training_status": {a: {"episode_budget_complete": True} for a in trained}}
             api = SimpleNamespace(artifact=artifact)
+            run = SimpleNamespace(summary={}, log=lambda *a,**k:None, save=lambda *a,**k:None,
+                                  use_artifact=lambda *a,**k:None)
+            tracker = SimpleNamespace(run=run, identity=lambda:{}, close=lambda failed=False:None)
             with patch.dict(sys.modules, {"wandb": SimpleNamespace(Api=lambda: api)}), \
+                 patch("uav_network.experiments.tracking.start_tracking", return_value=tracker), \
                  patch("torch.cuda.is_available", return_value=False):
                 results = run_visualization(spec, root / "cpu")
             for algorithm, result in results.items():

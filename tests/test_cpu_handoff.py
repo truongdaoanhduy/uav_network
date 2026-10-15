@@ -84,10 +84,16 @@ class CPUHandoffTests(unittest.TestCase):
                     return str(path)
                 return SimpleNamespace(get_entry=lambda name: SimpleNamespace(download=download))
             api = SimpleNamespace(artifact=artifact)
-            spec = {"artifacts": {"matd3": "owner/project/missing:v1", "masac": "owner/project/model:v1"},
+            spec = {"entity": "owner", "project": "project", "kernel_ref": "owner/cpu",
+                    "artifacts": {"matd3": "owner/project/missing:v1", "masac": "owner/project/model:v1"},
+                    "runs": {a: {"id": a + "1", "name": a.upper() + "-CPU"} for a in ("matd3", "masac")},
                     "cpu_eval": {"episodes": 1, "seed": 10044, "frame_stride": 5, "fps": 10},
                     "training_status": {"matd3": {}, "masac": {}}}
+            run = SimpleNamespace(summary={}, log=lambda *a,**k:None, save=lambda *a,**k:None,
+                                  use_artifact=lambda *a,**k:None)
+            tracker = SimpleNamespace(run=run, identity=lambda:{}, close=lambda failed=False:None)
             with patch.dict("sys.modules", {"wandb": SimpleNamespace(Api=lambda: api)}), \
+                 patch("uav_network.experiments.tracking.start_tracking", return_value=tracker), \
                  patch.object(torch.cuda, "is_available", return_value=False):
                 with self.assertRaisesRegex(RuntimeError, "matd3"):
                     module.run_visualization(spec, output / "cpu")
@@ -137,7 +143,8 @@ class CPUHandoffTests(unittest.TestCase):
                  patch.object(cli.subprocess, "check_output", side_effect=["", "a" * 40]):
                 try:
                     result = cli.main(["--key-file", str(key), "launch", "--cpu-visualize",
-                                       "--config", "configs/profile.yaml", "--credential-dataset", "owner/wandb-private"])
+                                       "--config", "configs/profile.yaml", "--credential-dataset", "owner/wandb-private",
+                                       "--set", "tracking.checkpoint_store=wandb"])
                 except SystemExit as error:
                     self.fail(f"Autonomous CPU visualization CLI is missing: {error}")
             self.assertTrue(result["cpu_visualize"])

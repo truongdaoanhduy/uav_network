@@ -11,7 +11,7 @@ from .comparison_metrics import MissionMetrics, evaluation_protocol, summarize_m
 
 
 def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=False,
-             frame_stride=5, fps=10, video_format="auto"):
+             frame_stride=5, fps=10, video_format="auto", on_episode=None):
     if type(frame_stride) is not int or frame_stride < 1 or type(fps) is not int or fps < 1:
         raise ValueError("frame_stride and fps must be positive integers")
     if video_format not in {"auto", "mp4", "gif"}:
@@ -55,6 +55,8 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=Fals
                     records.append({"episode": episode + 1, "seed": seed + episode,
                                     "return": episode_return, "episode_length": env.steps, **info,
                                     "comparison_metrics": mission.finish(info, episode_return)})
+                    if on_episode is not None:
+                        on_episode(records[-1])
                     break
         preview = render_episode(env, paths, output / "final_episode.png")
         result = {"algorithm": learner.algorithm, "episodes": episodes, "device": "cpu", "render_path": preview,

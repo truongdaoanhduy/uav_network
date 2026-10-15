@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+from uuid import uuid4
 
 import torch
 
@@ -30,7 +31,12 @@ def build_visualization_spec(parent, results):
         raise ValueError("CPU visualization needs at least one completed learner checkpoint")
     from .continuation import kernel_ref_for_segment
     cpu_ref = kernel_ref_for_segment(parent.get("root_kernel_ref", parent["kernel_ref"]), 0, cpu=True)
-    return {"stage": "visualize", "commit": parent["commit"], "entity": parent["entity"],
+    runs = {a: {"id": uuid4().hex[:8],
+                "name": f"{a.upper()}-CPU-visualize-{parent['runs'][a]['id']}-{uuid4().hex[:6]}"}
+            for a in artifacts}
+    return {"stage": "visualize", "runs": runs,
+            "config": parent.get("config"), "overrides": parent.get("overrides", []),
+            **{k: parent[k] for k in ("storage_credential_dataset", "checkpoint_repo") if k in parent}, "commit": parent["commit"], "entity": parent["entity"],
             "project": parent["project"],
             "credential_dataset": parent.get("cpu_credential_dataset", parent["credential_dataset"]),
             "kernel_ref": cpu_ref, "account": parent["account"],
@@ -77,15 +83,67 @@ def run_visualization(spec, output=Path("/kaggle/working")):
     settings = spec["cpu_eval"]
     results, failures = {}, {}
     for algorithm, artifact in spec["artifacts"].items():
+        tracker = None
+        failed = True
         try:
-            checkpoint = prepare_checkpoints({"warm_start_artifacts": {algorithm: artifact}}, output)[algorithm]
+            from ..configuration import load_config
+            from ..experiments.tracking import start_tracking
+            config = load_config(spec.get("config"), spec.get("overrides", []))
+            config.runtime.algorithm = algorithm
+            config.runtime.device = config.runtime.replay_device = "cpu"
+            config.runtime.num_envs = 1
+            config.runtime.episodes = settings["episodes"]
+            config.pql.enabled = False
+            config.tracking.enabled = True
+            config.tracking.entity, config.tracking.project = spec["entity"], spec["project"]
+            identity = spec.get("runs", {}).get(algorithm, {"id": uuid4().hex[:8],
+                "name": algorithm.upper() + "-CPU-visualize"})
+            config.tracking.run_name = identity["name"]
+            tracking_output = output / "tracking" / algorithm
+            tracking_output.mkdir(parents=True, exist_ok=True)
+            previous_id = os.environ.get("WANDB_RUN_ID")
+            os.environ["WANDB_RUN_ID"] = identity["id"]
+            try:
+                tracker = start_tracking(config, tracking_output)
+            finally:
+                if previous_id is None:
+                    os.environ.pop("WANDB_RUN_ID", None)
+                else:
+                    os.environ["WANDB_RUN_ID"] = previous_id
+            tracker.run.summary.update({"stage": "visualize", "execution_device": "cpu",
+                "parent_kernel_ref": spec.get("parent_kernel_ref"),
+                "checkpoint_artifact": artifact,
+                "visualization_output_url": "https://www.kaggle.com/code/" + spec["kernel_ref"] + "/output"})
+            tracker.run.log({"global_step": 0, "evaluation/episodes_completed": 0})
+            def record_episode(record):
+                tracker.run.log({"global_step": record["episode"],
+                    "evaluation/episodes_completed": record["episode"],
+                    "evaluation/return": record["return"],
+                    "evaluation/search_rate_percent": record["search_rate_percent"],
+                    "evaluation/delivery_rate_percent": record["delivery_rate_percent"],
+                    "evaluation/success": int(record["success"])})
+            inputs = {"warm_start_artifacts": {algorithm: artifact}}
+            checkpoint = prepare_checkpoints(inputs, output)[algorithm]
+            resolved = inputs.get("resolved_warm_start_artifacts", {}).get(algorithm, artifact)
+            tracker.run.use_artifact(resolved, type="model")
             results[algorithm] = evaluate(checkpoint, episodes=settings["episodes"], seed=settings["seed"],
                                           output_dir=output / "visualize" / algorithm, animate=True,
-                                          frame_stride=settings["frame_stride"], fps=settings["fps"])
-            results[algorithm]["checkpoint_artifact"] = spec["artifacts"][algorithm]
+                                          frame_stride=settings["frame_stride"], fps=settings["fps"],
+                                          on_episode=record_episode)
+            results[algorithm]["checkpoint_artifact"] = artifact
             results[algorithm]["training_status"] = spec["training_status"][algorithm]
+            results[algorithm].update(tracker.identity())
+            tracker.run.summary.update({"eval/" + k: results[algorithm][k] for k in
+                ("mean_return", "success_rate", "mean_search_rate_percent", "mean_delivery_rate_percent")})
+            tracker.run.summary["evaluation/episodes_completed"] = results[algorithm]["episodes"]
+            tracker.run.save(str(output / "visualize" / algorithm / "metrics.json"),
+                             base_path=str(output), policy="now")
+            failed = False
         except Exception as error:
             failures[algorithm] = {"error_type": type(error).__name__}
+        finally:
+            if tracker is not None:
+                tracker.close(failed=failed)
         (output / "visualization-result.json").write_text(json.dumps(results, indent=2, allow_nan=False))
     if "masac" in results and "matd3" in results:
         from ..experiments.comparison import compare_evaluations, save_comparison

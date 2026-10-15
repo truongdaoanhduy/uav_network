@@ -68,6 +68,8 @@ class DashboardTests(unittest.TestCase):
         if exists:
             self.assertTrue(all(w["id"] == "personal-id" for w in writes))
         spec = stored[personal_name]["spec"]["section"]
+        self.assertEqual(spec["runSets"][0]["filters"]["filters"], [])
+        self.assertGreaterEqual(spec["settings"]["maxRuns"], 1000)
         self.assertEqual(spec["settings"]["xAxis"], "global_step")
         self.assertFalse(spec["settings"]["shouldAutoGeneratePanels"])
         self.assertEqual(sum(len(s["panels"]) for s in spec["panelBankConfig"]["sections"]), 18)
@@ -92,3 +94,32 @@ class DashboardTests(unittest.TestCase):
                     patch("uav_network.experiments.dashboard._graphql", side_effect=responses):
                 with self.assertRaisesRegex(ValueError, "Workspace URL"):
                     create_dashboard(config, workspace_url="https://wandb.ai/owner/project/runs/run123")
+
+
+class DefaultVisibilityTests(unittest.TestCase):
+    def test_reconcile_clears_hidden_runs_and_preserves_charts(self):
+        from uav_network.experiments import dashboard
+        self.assertTrue(callable(getattr(dashboard, "ensure_project_workspace", None)),
+                        "default workspace visibility must be reconciled when runs start")
+        old = {"section": {"panelBankConfig": {"custom": [1, 2]}, "settings": {"maxRuns": 2},
+                "runSets": [{"filters": {"filterFormat": "filterV2", "filters": [{"value": "old-group"}]},
+                             "search": {"query": "old-run"}, "selections": {"root": 0}, "enabled": False}]}}
+        stored = {"id": "personal", "name": "nw-nwuserresearcher-w", "displayName": "Mine", "spec": json.dumps(old)}
+        def query(document, variables=None):
+            if "viewer" in document: return {"viewer": {"username": "researcher"}}
+            if "allViews" in document: return {"project": {"allViews": {"edges": [{"node": stored}]}}}
+            if "upsertView" in document:
+                stored["spec"] = variables["input"]["spec"]
+                return {"upsertView": {"view": {"id": stored["id"], "name": stored["name"]}}}
+            raise AssertionError(document)
+        c = Config()
+        with patch.object(dashboard, "_authentication", return_value=("owner", "project")), \
+                patch.object(dashboard, "_graphql", side_effect=query):
+            dashboard.ensure_project_workspace(c)
+        current = json.loads(stored["spec"])["section"]
+        self.assertEqual(current["panelBankConfig"], old["section"]["panelBankConfig"])
+        self.assertEqual(current["runSets"][0]["filters"]["filters"], [])
+        self.assertEqual(current["runSets"][0]["search"]["query"], "")
+        self.assertEqual(current["runSets"][0]["selections"]["root"], 1)
+        self.assertTrue(current["runSets"][0]["enabled"])
+        self.assertGreaterEqual(current["settings"]["maxRuns"], 1000)

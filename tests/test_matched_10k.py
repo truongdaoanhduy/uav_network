@@ -156,7 +156,8 @@ class Matched10kTests(unittest.TestCase):
                 try:
                     result = cli.main(["--key-file", str(key), "launch", "--stage", "validate",
                                        "--algorithm", "masac", "--auto-continue",
-                                       "--config", "configs/profile.yaml", "--credential-dataset", "owner/wandb-private"])
+                                       "--config", "configs/profile.yaml", "--credential-dataset", "owner/wandb-private",
+                                       "--set", "tracking.checkpoint_store=wandb"])
                 except SystemExit:
                     self.fail("Missing --auto-continue CLI")
         return result, push.call_args[0][0]

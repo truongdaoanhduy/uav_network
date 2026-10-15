@@ -98,6 +98,10 @@ def _authentication(config):
         project = data.get("project") or os.environ.get("WANDB_PROJECT")
     if not entity or not project:
         raise RuntimeError("W&B entity/project must be configured in key.txt, env or config")
+    expected = (data.get("entity") or os.environ.get("WANDB_ENTITY"),
+                data.get("project") or os.environ.get("WANDB_PROJECT"))
+    if all(expected) and (entity, project) != expected:
+        raise ValueError("W&B destination differs from the main project in credentials/environment")
     os.environ["WANDB_API_KEY"] = str(key)
     return entity, project
 
@@ -111,6 +115,9 @@ class OnlineTracker:
         import wandb
         entity, project = _authentication(config)
         self.config, self.output, self.wandb = config, Path(output), wandb
+        if config.tracking.enabled:
+            from .dashboard import ensure_project_workspace
+            ensure_project_workspace(config)
         self.started = time.perf_counter()
         initial = initial_progress or {}
         self.initial_step = initial.get("global_step", 0)
@@ -131,6 +138,7 @@ class OnlineTracker:
                     "job_submitted_at_utc": os.environ.get("UAV_JOB_SUBMITTED_AT_UTC", "unknown"),
                     "job_started_at_utc": os.environ.get("UAV_JOB_STARTED_AT_UTC", "unknown"),
                     "kaggle_url": "https://www.kaggle.com/code/" + os.environ.get("UAV_KAGGLE_KERNEL", "local")}
+        metadata["stage"] = os.environ.get("UAV_STAGE", "train")
         metadata["training_mode"] = os.environ.get("UAV_TRAINING_MODE", "PQL" if config.pql.enabled else "BASE")
         metadata["pipeline"] = {
             "auto_continue": os.environ.get("UAV_AUTO_CONTINUE") == "true",
@@ -157,6 +165,8 @@ class OnlineTracker:
         try:
             if self.run.offline:
                 raise RuntimeError("W&B did not start online")
+            if (self.run.entity, self.run.project) != (entity, project):
+                raise RuntimeError("W&B run destination differs from the configured main project")
             if os.environ.get("UAV_INPUT_ARTIFACT"):
                 self.run.use_artifact(os.environ["UAV_INPUT_ARTIFACT"], type="model")
             self.run.save(str(self.output / "diagnostics.jsonl"), base_path=str(self.output), policy="live")
@@ -220,12 +230,25 @@ class OnlineTracker:
                                       metadata={"completed_episodes": progress["episodes"],
                                                 "global_step": progress["global_step"],
                                                 "episode_budget_complete": progress.get("episode_budget_complete", False)})
-        artifact.add_file(str(path), name="checkpoint.pt")
+        files = {"checkpoint.pt": Path(path)}
         if final and (self.config.pql.enabled or progress.get("resume_checkpoint") is not None):
             resume = progress.get("resume_checkpoint")
             if resume is None or not Path(resume).is_file():
                 raise ValueError("Final artifact requires a complete resume checkpoint")
-            artifact.add_file(str(resume), name="resume.pt")
+            files["resume.pt"] = Path(resume)
+        if self.config.tracking.checkpoint_store == "huggingface":
+            from .checkpoint_store import upload_checkpoint_files, MANIFEST
+            descriptor = upload_checkpoint_files(self.config, files,
+                f"uav-network/{self.run.id}/step-{progress['global_step']}-episodes-{progress['episodes']}")
+            manifest = self.output / MANIFEST
+            manifest.write_text(json.dumps(descriptor, indent=2))
+            artifact.add_file(str(manifest), name=MANIFEST)
+            self.run.summary["checkpoint_storage"] = {"backend": "huggingface",
+                "repo_id": descriptor["repo_id"], "revision": descriptor["revision"],
+                "bytes": sum(item["size"] for item in descriptor["files"].values())}
+        else:
+            for name, file in files.items():
+                artifact.add_file(str(file), name=name)
         logged = self.run.log_artifact(artifact, aliases=["latest", "final"] if final else ["latest"])
         logged.wait(timeout=self.config.tracking.artifact_timeout_seconds)
         return logged.qualified_name

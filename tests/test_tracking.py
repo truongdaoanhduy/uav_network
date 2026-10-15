@@ -66,6 +66,7 @@ class TrackingTests(unittest.TestCase):
         sdk = SimpleNamespace(init=init, Settings=lambda **kwargs: kwargs)
         with TemporaryDirectory() as directory:
             c = Config()
+            c.tracking.checkpoint_store = "wandb"
             c.tracking.credentials_file = str(Path(directory) / "absent.txt")
             with patch.dict(sys.modules, {"wandb": sdk}), patch.dict(os.environ, {
                     "WANDB_API_KEY": "test-key", "WANDB_ENTITY": "owner", "WANDB_PROJECT": "project",
@@ -86,6 +87,7 @@ class TrackingTests(unittest.TestCase):
         sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs)
         with TemporaryDirectory() as directory:
             c = Config()
+            c.tracking.checkpoint_store = "wandb"
             c.tracking.credentials_file = str(Path(directory) / "absent.txt")
             with patch.dict(sys.modules, {"wandb": sdk}), patch.dict(os.environ, {
                     "WANDB_API_KEY": "test-key", "WANDB_ENTITY": "owner", "WANDB_PROJECT": "project"}):
@@ -102,6 +104,7 @@ class TrackingTests(unittest.TestCase):
         sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs, Artifact=StoredArtifact)
         with TemporaryDirectory() as directory:
             c = Config()
+            c.tracking.checkpoint_store = "wandb"
             c.tracking.credentials_file = str(Path(directory) / "absent.txt")
             path = Path(directory) / "episode_000010.pt"
             path.write_bytes(b"finite-policy")
@@ -113,11 +116,44 @@ class TrackingTests(unittest.TestCase):
                 self.assertFalse(run.finished)
                 tracker.close()
 
+    def test_hf_checkpoint_artifact_contains_only_tiny_manifest(self):
+        run = OnlineRun()
+        added = []
+        class ManifestArtifact:
+            def __init__(self, name, type, metadata):
+                self.name = name
+            def add_file(self, path, name):
+                added.append((name, Path(path).stat().st_size))
+            def wait(self, timeout):
+                pass
+            @property
+            def qualified_name(self):
+                return f"owner/project/{self.name}:v0"
+        sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs,
+                              Artifact=ManifestArtifact)
+        descriptor = {"schema": 1, "backend": "huggingface", "repo_id": "owner/private",
+                      "revision": "a" * 40, "files": {"checkpoint.pt": {
+                          "path": "run/checkpoint.pt", "size": 5_000_000_000, "sha256": "b" * 64}}}
+        with TemporaryDirectory() as directory:
+            c = Config()
+            c.tracking.credentials_file = str(Path(directory) / "absent.txt")
+            policy = Path(directory) / "policy.pt"
+            policy.write_bytes(b"policy")
+            with patch.dict(sys.modules, {"wandb": sdk}), patch.dict(os.environ, {
+                    "WANDB_API_KEY": "test-key", "WANDB_ENTITY": "owner", "WANDB_PROJECT": "project"}), \
+                    patch("uav_network.experiments.checkpoint_store.upload_checkpoint_files", return_value=descriptor):
+                tracker = OnlineTracker(c, directory)
+                tracker.checkpoint(policy, {"episodes": 1, "global_step": 10})
+                tracker.close()
+        self.assertEqual([name for name, _ in added], ["checkpoint.json"])
+        self.assertLess(added[0][1], 256 * 1024)
+
     def test_empty_soft_deadline_does_not_claim_final_episode_aggregates(self):
         run = OnlineRun()
         sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs, Artifact=StoredArtifact)
         with TemporaryDirectory() as directory:
             c = Config()
+            c.tracking.checkpoint_store = "wandb"
             c.tracking.credentials_file = str(Path(directory) / "absent.txt")
             path = Path(directory) / "final.pt"
             path.write_bytes(b"finite-policy")
@@ -130,9 +166,24 @@ class TrackingTests(unittest.TestCase):
                 self.assertFalse(run.summary["episode_budget_complete"])
                 tracker.close()
 
+    def test_tracker_rejects_wandb_destination_mismatch_and_finishes_run(self):
+        run = OnlineRun()
+        run.project = "wrong-project"
+        sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs)
+        with TemporaryDirectory() as directory:
+            c = Config()
+            c.tracking.checkpoint_store = "wandb"
+            c.tracking.credentials_file = str(Path(directory) / "absent-key.txt")
+            with patch.dict(sys.modules, {"wandb": sdk}), patch.dict(os.environ, {
+                    "WANDB_API_KEY": "test-key", "WANDB_ENTITY": "owner", "WANDB_PROJECT": "project"}):
+                with self.assertRaisesRegex(RuntimeError, "destination"):
+                    OnlineTracker(c, directory)
+        self.assertTrue(run.finished)
+
     def test_tracker_setup_failure_finishes_the_started_online_run(self):
         class Run:
             offline = False
+            id, entity, project, url = "run123", "owner", "project", "https://wandb.ai/owner/project/runs/run123"
             finished_failed = False
 
             summary = {}
@@ -150,6 +201,7 @@ class TrackingTests(unittest.TestCase):
         sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs)
         with TemporaryDirectory() as directory:
             c = Config()
+            c.tracking.checkpoint_store = "wandb"
             c.tracking.credentials_file = str(Path(directory) / "absent-key.txt")
             with patch.dict(sys.modules, {"wandb": sdk}), patch.dict(os.environ, {
                     "WANDB_API_KEY": "test-key", "WANDB_ENTITY": "owner", "WANDB_PROJECT": "project"}):

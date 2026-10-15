@@ -165,6 +165,12 @@ def ensure_cpu_wandb_dataset(account, credentials, username, timeout=120):
                                       "UAV CPU W&B Credential", "wandb_api_key.txt", credentials.wandb_key, timeout)
 
 
+def ensure_storage_dataset(account, username, token, timeout=120):
+    """One HF token in its own owned private dataset, never in a job manifest."""
+    return _ensure_single_credential(account, username, "uav-hf-checkpoint-credential",
+        "UAV Private Checkpoint Credential", "hf_token.txt", token, timeout)
+
+
 def kernel_status(ref, account):
     text = run_kaggle(["kernels", "status", ref], account)
     match = re.search(r"has status [\"'](?:KernelWorkerStatus\.)?([a-z_]+)[\"']", text, re.I)

@@ -30,6 +30,7 @@ def parent_spec():
             "credential_dataset": "owner/private-wandb",
             "cpu_credential_dataset": "owner/private-cpu-wandb",
             "pipeline_credential_dataset": "owner/private-launch",
+            "storage_credential_dataset": "owner/private-hf", "checkpoint_repo": "owner/private-checkpoints",
             "auto_continue": True, "cpu_visualize": True, "continuation_index": 0,
             "timeout_seconds": 39600, "accelerator": "NvidiaTeslaT4",
             "cpu_eval": {"episodes": 2, "seed": 10044, "frame_stride": 5, "fps": 10},
@@ -132,7 +133,7 @@ class CloudContinuationTests(unittest.TestCase):
         self.assertEqual(child["requested_episodes"], 10000)
         for key in ("config", "overrides", "commit", "account", "entity", "project",
                     "credential_dataset", "pipeline_credential_dataset", "cpu_credential_dataset",
-                    "cpu_eval", "accelerator"):
+                    "storage_credential_dataset", "checkpoint_repo", "cpu_eval", "accelerator"):
             self.assertEqual(child[key], parent[key], key)
         self.assertNotEqual(child["runs"]["masac"]["id"], parent["runs"]["masac"]["id"])
         self.assertIn("MASAC-base", child["runs"]["masac"]["name"])
@@ -141,7 +142,7 @@ class CloudContinuationTests(unittest.TestCase):
         metadata, script = kernel_metadata(child), kernel_script(child)
         self.assertTrue(metadata["enable_gpu"])
         self.assertTrue(metadata["is_private"])
-        self.assertEqual(metadata["dataset_sources"], ["owner/private-wandb", "owner/private-launch"])
+        self.assertEqual(metadata["dataset_sources"], ["owner/private-wandb", "owner/private-hf", "owner/private-launch"])
         self.assertIn(parent["commit"], script)
         self.assertIn('SPEC["commit"]', script)
 

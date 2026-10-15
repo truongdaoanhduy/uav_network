@@ -177,6 +177,8 @@ class TrackingConfig:
     group: str = "uav-network-2d"
     tags: list = field(default_factory=lambda: ["uav-network", "2d", "fov", "uavnetsim"])
     log_checkpoint: bool = True
+    checkpoint_store: str = "huggingface"
+    checkpoint_repo: str = "auto"
     system_metrics: bool = True
     artifact_timeout_seconds: int = 120
     evaluation_interval: int = 50
@@ -287,6 +289,11 @@ class Config:
                       self.tracking.blocked_rate_threshold):
             if not math.isfinite(value) or value < 0:
                 raise ValueError("Diagnostic thresholds must be finite and nonnegative")
+        if self.tracking.checkpoint_store not in {"huggingface", "wandb"}:
+            raise ValueError("checkpoint_store must be huggingface or legacy wandb")
+        if (self.tracking.checkpoint_repo != "auto"
+                and not re.fullmatch(r"[\w.-]+/[\w.-]+", self.tracking.checkpoint_repo)):
+            raise ValueError("checkpoint_repo must be auto or owner/repository")
         if self.tracking.artifact_timeout_seconds < 1:
             raise ValueError("artifact_timeout_seconds must be positive")
         if self.algorithm_config.replay_capacity < r.num_envs:

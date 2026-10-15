@@ -224,6 +224,7 @@ class BaselineResumeTests(unittest.TestCase):
                 artifacts.append(instance)
                 return instance
             tracker = OnlineTracker.__new__(OnlineTracker)
+            config.tracking.checkpoint_store = "wandb"
             tracker.config, tracker.output = config, output
             tracker.wandb = SimpleNamespace(Artifact=artifact)
             tracker.run = SimpleNamespace(id="test", save=lambda *args, **kwargs: None,

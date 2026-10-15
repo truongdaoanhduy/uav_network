@@ -48,7 +48,8 @@ def learner_command(spec, algorithm, run, gpu_index, destination, max_seconds=No
     if spec.get("stage") == "train":
         env["UAV_BENCHMARK_FILE"] = str(Path(destination).parents[1] / f"{algorithm}-benchmark.json")
     if algorithm in spec.get("warm_start_artifacts", {}):
-        env["UAV_INPUT_ARTIFACT"] = spec["warm_start_artifacts"][algorithm]
+        env["UAV_INPUT_ARTIFACT"] = spec.get("resolved_warm_start_artifacts", {}).get(
+            algorithm, spec["warm_start_artifacts"][algorithm])
     args = [sys.executable, "-m", "uav_network", "train", "--config", spec["config"],
             "--algorithm", algorithm]
     overrides = [*spec["overrides"], "tracking.enabled=true", "runtime.device=cuda",
@@ -71,11 +72,14 @@ def prepare_checkpoints(spec, output, config=None):
     api = wandb.Api()
     paths = {}
     for algorithm, ref in spec["warm_start_artifacts"].items():
-        artifact = api.artifact(ref, type="model")
+        from ..experiments.checkpoint_store import resolve_checkpoint_artifact
+        artifact = resolve_checkpoint_artifact(api, ref)
+        spec.setdefault("resolved_warm_start_artifacts", {})[algorithm] = getattr(artifact, "qualified_name", ref)
         pql = config is not None and config.pql.enabled
         full_resume = pql or spec.get("auto_continue")
         entry = "resume.pt" if full_resume else "checkpoint.pt"
-        path = artifact.get_entry(entry).download(root=str(output / "inputs" / algorithm))
+        from ..experiments.checkpoint_store import download_checkpoint_file
+        path = download_checkpoint_file(artifact, entry, output / "inputs" / algorithm)
         saved = torch.load(path, map_location="cpu", weights_only=True)
         if saved.get("algorithm") != algorithm or "progress" not in saved:
             raise ValueError("Input artifact must match the algorithm and contain verified progress")

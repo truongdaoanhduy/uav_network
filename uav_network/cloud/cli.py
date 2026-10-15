@@ -91,8 +91,19 @@ def launch(args, credentials):
                      "cpu_credential_dataset": cpu_dataset,
                      "cpu_eval": {"episodes": config.runtime.eval_episodes, "seed": config.runtime.eval_seed,
                                   "frame_stride": 5, "fps": 10}})
+    if (spec["entity"], spec["project"]) != (credentials.entity, credentials.project):
+        raise ValueError("Cloud job must use the main W&B project in key.txt")
+    storage_token = None
+    if config.tracking.checkpoint_store == "huggingface":
+        from ..experiments.checkpoint_store import ensure_private_store, storage_credentials
+        from .client import ensure_storage_dataset
+        config.tracking.credentials_file = args.key_file
+        _, repository = ensure_private_store(config)
+        storage_token, _ = storage_credentials(config)
+        spec["checkpoint_repo"] = repository
+        spec["storage_credential_dataset"] = ensure_storage_dataset(account, username, storage_token)
     serialized = json.dumps(spec)
-    if any(secret in serialized for secret in [credentials.wandb_key, *(a.token for a in credentials.accounts)]):
+    if any(secret in serialized for secret in [credentials.wandb_key, *(a.token for a in credentials.accounts), *([storage_token] if storage_token else [])]):
         raise RuntimeError("Refusing a job manifest containing credentials")
     folder = ROOT / "outputs/kaggle" / slug
     folder.mkdir(parents=True, exist_ok=False)

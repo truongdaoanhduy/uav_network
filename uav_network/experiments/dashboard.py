@@ -168,9 +168,9 @@ def create_dashboard(config, run_ids=(), name="UAV Network 2D - MASAC and MATD3"
                                      ("Fixed-seed evaluation", "Diagnostic alerts"), panels=[
         wr.LinePlot(title=label, x="global_step", y=[metric]) for label, metric in metrics
     ]) for title, metrics in panels.items()]
-    workspace.settings = ws.WorkspaceSettings(x_axis="global_step", max_runs=len(run_ids) if run_ids else 2)
+    workspace.settings = ws.WorkspaceSettings(x_axis="global_step", max_runs=1000)
     workspace.runset_settings = ws.RunsetSettings(
-        filters=run_filter(config.tracking.group),
+        filters="",
         pinned_runs=[],
         run_settings={},
         pinned_columns=list(VISIBLE_COLUMNS),
@@ -187,3 +187,40 @@ def create_dashboard(config, run_ids=(), name="UAV Network 2D - MASAC and MATD3"
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "workspace.json").write_text(json.dumps(result, indent=2))
     return result
+
+
+def ensure_project_workspace(config):
+    """Keep the default Personal Workspace open to present and future runs."""
+    entity, project = _authentication(config)
+    username = _graphql("query WorkspaceOwner { viewer { username } }")["viewer"]["username"]
+    variables = {"entityName": entity, "projectName": project,
+                 "viewName": f"nw-nwuser{username}-w"}
+    response = _graphql("""query MainWorkspace($entityName:String!, $projectName:String!, $viewName:String!) {
+        project(entityName:$entityName, name:$projectName) {
+            allViews(viewType:"project-view", viewName:$viewName) {
+                edges { node { id name displayName spec } }
+            }
+        }
+    }""", variables)
+    if response.get("project") is None:
+        raise ValueError("Configured main W&B project not found")
+    edges = response["project"]["allViews"]["edges"]
+    if not edges:
+        return create_dashboard(config)["workspace_url"]
+    view = edges[0]["node"]
+    spec = json.loads(view["spec"]) if isinstance(view["spec"], str) else view["spec"]
+    original = json.dumps(spec, sort_keys=True)
+    section = spec["section"]
+    section.setdefault("settings", {})["maxRuns"] = 1000
+    for runset in section.get("runSets", []):
+        runset.update(filters={"filterFormat": "filterV2", "filters": []},
+                      search={"query": ""}, selections={"root": 1, "bounds": [], "tree": []}, enabled=True,
+                      sort={"keys": [{"key": {"section": "run", "name": "state"}, "ascending": False},
+                                     {"key": {"section": "run", "name": "createdAt"}, "ascending": False}]})
+    if json.dumps(spec, sort_keys=True) != original:
+        inputs = {"id": view["id"], "entityName": entity, "projectName": project,
+                  "name": view["name"], "displayName": view["displayName"], "type": "project-view",
+                  "spec": json.dumps(spec), "createdUsing": "WANDB_SDK"}
+        _graphql("mutation MainWorkspace($input:UpsertViewInput!) { upsertView(input:$input) { view { id name } } }",
+                 {"input": inputs})
+    return default_workspace_url(entity, project)

@@ -59,6 +59,7 @@ class PQLArtifactTests(unittest.TestCase):
                 return value
             tracker = OnlineTracker.__new__(OnlineTracker)
             tracker.config, tracker.output = Config(), output
+            tracker.config.tracking.checkpoint_store = "wandb"
             tracker.config.pql.enabled = True
             tracker.wandb = SimpleNamespace(Artifact=artifact)
             tracker.run = SimpleNamespace(id="test", save=lambda *args, **kwargs: None,
