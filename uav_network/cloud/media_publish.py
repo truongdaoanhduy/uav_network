@@ -92,10 +92,20 @@ def download_and_publish_case(manifest_path, destination, key_file="key.txt"):
         status = kernel_status(cpu_ref, account)
     except RuntimeError as error:
         text = str(error).lower()
-        if not any(marker in text for marker in ("404", "not found", "does not exist")):
+        missing = any(marker in text for marker in ("404", "not found", "does not exist"))
+        wrong_slug = ("permission 'kernels.get' was denied" in text and "wrong kernel slug" in text)
+        root_status = None
+        if wrong_slug:
+            # Kaggle can report a not-yet-created private child as a permission error.
+            # Confirm the same credential still reaches the known training root before treating it as pending.
+            root_status = kernel_status(manifest.get("kernel_ref", root_ref), account)
+        if not missing and not wrong_slug:
             raise
-        return {"status": "pending", "cpu_kernel_ref": cpu_ref,
-                "kernel_status": "not_created", "error_type": type(error).__name__}
+        result = {"status": "pending", "cpu_kernel_ref": cpu_ref,
+                  "kernel_status": "not_created", "error_type": type(error).__name__}
+        if root_status is not None:
+            result["root_kernel_status"] = root_status
+        return result
     if status != "complete":
         return {"status": "pending", "cpu_kernel_ref": cpu_ref, "kernel_status": status}
     destination.mkdir(parents=True, exist_ok=True)

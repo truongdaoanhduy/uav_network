@@ -247,5 +247,24 @@ class VisualizationPublishTests(unittest.TestCase):
             transport.assert_not_called()
 
 
+    def test_case_publisher_treats_kaggle_wrong_cpu_slug_as_pending_when_root_is_accessible(self):
+        module = importlib.import_module('uav_network.cloud.media_publish')
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = root / 'launch.json'
+            manifest.write_text(json.dumps({'account': 'account_01',
+                'kernel_ref': 'owner/uavnet-train-example', 'root_kernel_ref': 'owner/uavnet-train-example'}))
+            account = SimpleNamespace(name='account_01')
+            credentials = SimpleNamespace(accounts=[account])
+            denied = RuntimeError("Permission 'kernels.get' was denied. most likely cause is a wrong kernel slug")
+            with patch.object(module, 'load_credentials', return_value=credentials), \
+                 patch.object(module, 'kernel_status', side_effect=[denied, 'running']), \
+                 patch.object(module, 'run_kaggle') as transport:
+                result = module.download_and_publish_case(manifest, root / 'downloaded', root / 'key.txt')
+            self.assertEqual(result['status'], 'pending')
+            self.assertEqual(result['kernel_status'], 'not_created')
+            transport.assert_not_called()
+
+
 if __name__ == '__main__':
     unittest.main()
