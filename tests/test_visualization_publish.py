@@ -229,5 +229,23 @@ class VisualizationPublishTests(unittest.TestCase):
             publish.assert_called_once_with(downloaded, root / 'key.txt')
 
 
+    def test_case_publisher_treats_not_yet_created_cpu_kernel_as_pending(self):
+        module = importlib.import_module('uav_network.cloud.media_publish')
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = root / 'launch.json'
+            manifest.write_text(json.dumps({'account': 'account_01',
+                'kernel_ref': 'owner/uavnet-train-example', 'root_kernel_ref': 'owner/uavnet-train-example'}))
+            account = SimpleNamespace(name='account_01')
+            credentials = SimpleNamespace(accounts=[account])
+            with patch.object(module, 'load_credentials', return_value=credentials), \
+                 patch.object(module, 'kernel_status', side_effect=RuntimeError('not found')), \
+                 patch.object(module, 'run_kaggle') as transport:
+                result = module.download_and_publish_case(manifest, root / 'downloaded', root / 'key.txt')
+            self.assertEqual(result['status'], 'pending')
+            self.assertEqual(result['error_type'], 'RuntimeError')
+            transport.assert_not_called()
+
+
 if __name__ == '__main__':
     unittest.main()

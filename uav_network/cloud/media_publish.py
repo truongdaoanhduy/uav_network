@@ -88,7 +88,14 @@ def download_and_publish_case(manifest_path, destination, key_file="key.txt"):
     if marker.is_file():
         return {"status": "published", "cpu_kernel_ref": cpu_ref,
                 "publication": json.loads(marker.read_text()), "cached": True}
-    status = kernel_status(cpu_ref, account)
+    try:
+        status = kernel_status(cpu_ref, account)
+    except RuntimeError as error:
+        text = str(error).lower()
+        if not any(marker in text for marker in ("404", "not found", "does not exist")):
+            raise
+        return {"status": "pending", "cpu_kernel_ref": cpu_ref,
+                "kernel_status": "not_created", "error_type": type(error).__name__}
     if status != "complete":
         return {"status": "pending", "cpu_kernel_ref": cpu_ref, "kernel_status": status}
     destination.mkdir(parents=True, exist_ok=True)
