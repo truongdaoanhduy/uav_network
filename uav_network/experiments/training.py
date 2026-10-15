@@ -16,6 +16,7 @@ from ..environment.vector import make_vector, random_actions, unpack_info
 from .tracking import start_tracking, final_metrics
 from .lifecycle import graceful_termination
 from .continuation import restore_learner
+from .fixed_checkpoints import save_fixed_checkpoint, restore_replay, restore_runtime_rng
 from .reproducibility import reproducibility_result
 from .diagnostics import TrainingDiagnostics, failure_report, evaluate_checkpoint
 
@@ -77,11 +78,17 @@ def _train(config):
         learner, initial = restore_learner(config, device)
         completed, global_step, collection_steps = (initial[k] for k in ("episodes", "global_step", "collection_steps"))
         initial_updates = learner.updates
+        restored_training = initial.pop("_training", None)
+        resumed = restored_training is not None
+        pending_learning = restored_training["pending_learning"] if resumed else False
+        warmup_origin = restored_training["warmup_origin"] if restored_training else initial["global_step"]
+        random_warmup = restored_training["random_warmup"] if restored_training else config.runtime.warm_start_checkpoint == "none"
+        if restored_training:
+            next_metrics_at, latest = restored_training["next_metrics_at"], restored_training["latest"]
         history = list(initial["records"])
         episode_seeds = np.arange(count) + initial["next_seed"]
         next_seed = initial["next_seed"] + count
         vector = make_vector(config)
-        tracker = start_tracking(config, output, initial_progress=initial)
         obs, _ = vector.reset(seed=episode_seeds.tolist())
         device_env = config.runtime.environment_backend == "warp_packet"
         if device_env:
@@ -93,11 +100,21 @@ def _train(config):
                                     state_dim(config), config.runtime.seed, replay_device,
                                     pin_memory=device == "cuda" and replay_device == "cpu")
         rng = np.random.default_rng(config.runtime.seed + 1)
+        if restored_training:
+            restore_replay(replay, restored_training["replay"])
+        initial["optimizer_replay_restored"] = resumed
+        tracker = start_tracking(config, output, initial_progress=initial)
+        if restored_training:
+            restore_runtime_rng(restored_training["rng"], rng, action_generator=getattr(vector, "action_generator", None))
+        restored_training = None  # Release the CPU checkpoint copy after restoring replay.
         startup_s = time.perf_counter() - start
 
         def learn(force_metrics=False):
-            nonlocal latest, update_s, next_metrics_at
-            if global_step - initial["global_step"] < settings.learning_starts or len(replay) < settings.batch_size:
+            nonlocal latest, update_s, next_metrics_at, pending_learning
+            if not pending_learning:
+                return
+            pending_learning = False
+            if global_step - warmup_origin < settings.learning_starts or len(replay) < settings.batch_size:
                 return
             checked = force_metrics or global_step >= next_metrics_at
             begin = time.perf_counter()
@@ -133,6 +150,10 @@ def _train(config):
             if tracker:
                 progress["source_run_id"] = tracker.identity()["wandb_run_id"]
             learner.save(path, progress=progress)
+            save_fixed_checkpoint(learner, output / "resume_latest.pt", progress, replay, rng,
+                                  warmup_origin=warmup_origin, random_warmup=random_warmup,
+                                  next_metrics_at=next_metrics_at, latest=latest, pending_learning=pending_learning,
+                                  action_generator=getattr(vector, "action_generator", None))
             return progress
 
         time_limit = False
@@ -140,7 +161,7 @@ def _train(config):
             for old_record in history:
                 stream.write(json.dumps(old_record, allow_nan=False) + "\n")
             while completed < config.runtime.episodes:
-                if global_step < settings.learning_starts and config.runtime.warm_start_checkpoint == "none":
+                if global_step < settings.learning_starts and random_warmup:
                     action = (vector.random_actions(obs["observation"]) if device_env else
                               random_actions(obs["observation"],rng,config.world.num_uavs+1))
                 else:
@@ -156,6 +177,7 @@ def _train(config):
                 # DISABLED autoreset guarantees these are terminal observations/state.
                 replay.add_batch(obs["observation"], obs["state"], action, reward,
                                  next_obs["observation"], next_obs["state"], terminated)
+                pending_learning = True
                 global_step += count
                 collection_steps += 1
                 episode_returns += reward
@@ -170,7 +192,7 @@ def _train(config):
                     # The last collected batch has no following CPU step in
                     # which to execute its deferred updates; drain them here.
                     learn(force_metrics=final_batch)
-                for i in done_indices:
+                for i in done_indices[:config.runtime.episodes - completed]:
                     completed += 1
                     info = unpack_info(infos, i)
                     record = {"episode": completed, "worker": int(i), "seed": int(episode_seeds[i]),
@@ -227,13 +249,15 @@ def _train(config):
         checkpoint = output / "final.pt"
         save(checkpoint, final=True)
         elapsed = time.perf_counter() - start
-        result = {"checkpoint": str(checkpoint), "algorithm": learner.algorithm,
+        result = {"checkpoint": str(checkpoint), "resume_checkpoint": str(output / "resume_latest.pt"),
+                  "algorithm": learner.algorithm,
                   "requested_episodes": config.runtime.episodes, "episodes": completed,
                   "initial_episodes": initial["episodes"], "segment_episodes": completed - initial["episodes"],
                   "initial_global_step": initial["global_step"], "new_updates": learner.updates - initial_updates,
                   "episode_budget_complete": completed >= config.runtime.episodes,
                   "stop_reason": "episode_budget" if completed >= config.runtime.episodes else "time_budget",
-                  "state_restore": "policy_warm_start" if config.runtime.warm_start_checkpoint != "none" else "fresh",
+                  "state_restore": initial.get("state_restore", "fresh"),
+                  "optimizer_replay_restored": resumed,
                   "global_step": global_step, "collection_steps": collection_steps,
                   "num_envs": count, "updates": learner.updates, "device": device,
                   "environment_backend": config.runtime.environment_backend,

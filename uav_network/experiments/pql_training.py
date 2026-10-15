@@ -54,6 +54,11 @@ def train_pql(config):
         else:
             returns, lengths = np.zeros(count), np.zeros(count, dtype=np.int64)
         rng = np.random.default_rng(config.runtime.seed + 1)
+        if engine.initial_collector_rng is not None:
+            rng.bit_generator.state = engine.initial_collector_rng["numpy"]
+            generator = getattr(vector, "action_generator", None)
+            if generator is not None and engine.initial_collector_rng["torch"] is not None:
+                generator.set_state(engine.initial_collector_rng["torch"].cpu())
         next_log = global_step
         next_checkpoint = (completed // config.runtime.checkpoint_interval + 1) * config.runtime.checkpoint_interval
         latest = {}
@@ -73,7 +78,10 @@ def train_pql(config):
         def save(policy_path, final=False):
             state = progress(final)
             # Resume state stays separate from the small model used for W&B/evaluation.
-            engine.save(output / "resume_latest.pt", state)
+            generator = getattr(vector, "action_generator", None)
+            collector_rng = {"numpy": rng.bit_generator.state,
+                             "torch": generator.get_state().cpu() if generator is not None else None}
+            engine.save(output / "resume_latest.pt", state, collector_rng=collector_rng)
             engine.critic.save(policy_path, progress=state)
             if tracker and not final:
                 tracker.checkpoint(policy_path, state)
@@ -110,6 +118,8 @@ def train_pql(config):
                 with engine.condition:
                     latest = dict(engine.latest)
                 for i in indices:
+                    if completed >= config.runtime.episodes:
+                        break
                     completed += 1
                     info = unpack_info(infos, i)
                     record = {"episode": completed, "worker": int(i), "seed": int(seeds[i]),

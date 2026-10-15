@@ -58,6 +58,29 @@ class OnlineRun:
 
 
 class TrackingTests(unittest.TestCase):
+    def test_public_metadata_identifies_training_mode_and_continuation_segment(self):
+        run, captured = OnlineRun(), {}
+        def init(**kwargs):
+            captured.update(kwargs["config"])
+            return run
+        sdk = SimpleNamespace(init=init, Settings=lambda **kwargs: kwargs)
+        with TemporaryDirectory() as directory:
+            c = Config()
+            c.tracking.credentials_file = str(Path(directory) / "absent.txt")
+            with patch.dict(sys.modules, {"wandb": sdk}), patch.dict(os.environ, {
+                    "WANDB_API_KEY": "test-key", "WANDB_ENTITY": "owner", "WANDB_PROJECT": "project",
+                    "UAV_TRAINING_MODE": "BASE", "UAV_AUTO_CONTINUE": "true",
+                    "UAV_ROOT_KAGGLE_KERNEL": "owner/root", "UAV_KAGGLE_KERNEL": "owner/segment-two",
+                    "UAV_CONTINUATION_INDEX": "2", "UAV_EPISODE_BUDGET": "10000"}):
+                tracker = OnlineTracker(c, directory)
+                self.assertEqual(captured.get("training_mode"), "BASE")
+                self.assertEqual(captured["pipeline"], {"auto_continue": True, "root_kernel_ref": "owner/root",
+                    "continuation_index": 2, "target_episodes": 10000})
+                for name, expected in (("training_mode", "BASE"), ("root_kernel_ref", "owner/root"),
+                                       ("continuation_index", 2)):
+                    self.assertEqual(run.summary[name], expected)
+                tracker.close()
+
     def test_continuation_throughput_counts_only_new_transitions(self):
         run = OnlineRun()
         sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs)

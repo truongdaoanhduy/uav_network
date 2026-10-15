@@ -38,6 +38,14 @@ os.environ["WANDB_SILENT"] = "true"
 os.environ["UAV_GIT_COMMIT"] = SPEC["commit"]
 os.environ["UAV_KAGGLE_ACCOUNT"] = SPEC["kernel_ref"].split("/", 1)[0]
 os.environ["UAV_KAGGLE_KERNEL"] = SPEC["kernel_ref"]
+os.environ["UAV_TRAINING_MODE"] = SPEC.get("training_mode", "unknown")
+os.environ["UAV_AUTO_CONTINUE"] = "true" if SPEC.get("auto_continue") else "false"
+os.environ["UAV_ROOT_KAGGLE_KERNEL"] = SPEC.get("root_kernel_ref", SPEC["kernel_ref"])
+os.environ["UAV_CONTINUATION_INDEX"] = str(SPEC.get("continuation_index", 0))
+if "requested_episodes" in SPEC:
+    os.environ["UAV_EPISODE_BUDGET"] = str(SPEC["requested_episodes"])
+else:
+    os.environ.pop("UAV_EPISODE_BUDGET", None)
 root = Path("/tmp/uav_network")
 subprocess.run(["git", "clone", "--quiet", "https://github.com/truongdaoanhduy/uav_network.git", str(root)], check=True)
 subprocess.run(["git", "checkout", "--quiet", SPEC["commit"]], cwd=root, check=True)

@@ -28,11 +28,17 @@ def build_visualization_spec(parent, results):
                                ("episodes", "global_step", "episode_budget_complete", "stop_reason")}
     if not artifacts:
         raise ValueError("CPU visualization needs at least one completed learner checkpoint")
+    from .continuation import kernel_ref_for_segment
+    cpu_ref = kernel_ref_for_segment(parent.get("root_kernel_ref", parent["kernel_ref"]), 0, cpu=True)
     return {"stage": "visualize", "commit": parent["commit"], "entity": parent["entity"],
             "project": parent["project"],
             "credential_dataset": parent.get("cpu_credential_dataset", parent["credential_dataset"]),
-            "kernel_ref": parent["kernel_ref"] + "-cpu", "account": parent["account"],
-            "parent_kernel_ref": parent["kernel_ref"], "artifacts": artifacts,
+            "kernel_ref": cpu_ref, "account": parent["account"],
+            "parent_kernel_ref": parent["kernel_ref"],
+            "root_kernel_ref": parent.get("root_kernel_ref", parent["kernel_ref"]),
+            "continuation_index": parent.get("continuation_index", 0),
+            "requested_episodes": parent.get("requested_episodes"),
+            "training_mode": parent.get("training_mode", "unknown"), "artifacts": artifacts,
             "training_status": statuses, "cpu_eval": parent.get("cpu_eval", {
                 "episodes": 1, "seed": 10044, "frame_stride": 5, "fps": 10}),
             "timeout_seconds": 3600}

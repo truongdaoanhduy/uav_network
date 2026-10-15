@@ -2,6 +2,7 @@
 import argparse
 from datetime import datetime, timezone
 import json
+import math
 from pathlib import Path
 import subprocess
 from uuid import uuid4
@@ -27,15 +28,31 @@ def parse_warm_start_artifacts(values, algorithms):
 def launch(args, credentials):
     if subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True).strip():
         raise RuntimeError("Commit and publish the project changes before launching a pinned cloud job")
-    account = select_account(credentials, account_quotas(credentials, requested=args.account), args.required_gpu_hours, args.account)
+    quotas = account_quotas(credentials, requested=args.account)
+    account = select_account(credentials, quotas, args.required_gpu_hours, args.account)
     username = resolve_username(account)
     verify_credential_dataset(account, credentials, args.credential_dataset, username, args.credential_timeout_seconds)
     config_file = args.config or ("configs/kaggle-smoke.yaml" if args.stage == "validate" else "configs/kaggle.yaml")
     config = load_config(ROOT / config_file, args.overrides)
-    cpu_visualize = getattr(args, "cpu_visualize", False)
+    auto_continue = getattr(args, "auto_continue", False)
+    cpu_visualize = getattr(args, "cpu_visualize", False) or auto_continue
+    timeout_seconds = args.timeout_seconds
+    if auto_continue:
+        quota = next(row for row in quotas if row.get("name") == account.name and row.get("ok"))
+        remaining = quota.get("remaining_hours")
+        if type(remaining) not in (int, float) or not math.isfinite(remaining):
+            raise RuntimeError("Selected account GPU quota is unavailable")
+        timeout_seconds = min(timeout_seconds, math.floor((remaining - .25) * 3600))
+        reserve = max(600, config.tracking.artifact_timeout_seconds + 120)
+        if timeout_seconds <= reserve:
+            raise RuntimeError("Selected account GPU quota cannot cover a safe training and upload segment")
     compare_legacy = getattr(args, "compare_legacy", False)
     if compare_legacy and (args.stage != "benchmark" or not config.pql.enabled):
         raise ValueError("Matched comparison requires --stage benchmark and pql.enabled=true")
+    if auto_continue and (args.algorithm == "both" or args.stage == "benchmark"):
+        raise ValueError("Automatic continuation requires one algorithm in a training/validate stage")
+    if auto_continue and config.pql.enabled and not config.pql.checkpoint_replay:
+        raise ValueError("Automatic PQL continuation requires pql.checkpoint_replay=true")
     if cpu_visualize and args.stage == "benchmark":
         raise ValueError("CPU visualization requires a training/validate stage that creates checkpoints")
     if cpu_visualize and not config.tracking.log_checkpoint:
@@ -46,14 +63,20 @@ def launch(args, credentials):
     slug = f"uavnet-{args.stage}-{stamp}-{token}"
     algorithms = ("masac", "matd3") if args.algorithm == "both" else (args.algorithm,)
     inputs = parse_warm_start_artifacts(args.warm_start_artifact, algorithms)
-    runs = {a: {"id": uuid4().hex[:8], "name": f"{a.upper()}-uav-network-2d-seed{config.runtime.seed}-{stamp}-{token}"}
+    training_mode = "pql" if config.pql.enabled else "base"
+    runs = {a: {"id": uuid4().hex[:8], "name": f"{a.upper()}-{training_mode.upper()}-uav-network-2d-seed{config.runtime.seed}-{stamp}-{token}"}
             for a in algorithms}
     spec = {"submitted_at_utc": datetime.now(timezone.utc).isoformat(), "commit": commit, "kernel_ref": f"{username}/{slug}", "account": account.name,
-            "timeout_seconds": args.timeout_seconds, "warm_start_artifacts": inputs,
+            "timeout_seconds": timeout_seconds, "warm_start_artifacts": inputs,
             "credential_dataset": args.credential_dataset,
             "entity": credentials.entity if config.tracking.entity == "auto" else config.tracking.entity,
             "project": credentials.project if config.tracking.project == "auto" else config.tracking.project,
             "stage": args.stage, "config": config_file, "overrides": args.overrides, "runs": runs}
+    spec.update({"requested_episodes": config.runtime.episodes, "training_mode": training_mode,
+                 "accelerator": args.accelerator})
+    if auto_continue:
+        spec.update({"auto_continue": True, "root_kernel_ref": spec["kernel_ref"],
+                     "continuation_index": 0})
     if compare_legacy:
         spec["compare_legacy"] = True
     if cpu_visualize:
@@ -77,11 +100,13 @@ def launch(args, credentials):
     (folder / "kernel-metadata.json").write_text(json.dumps(kernel_metadata(spec), indent=2))
     # The timeout and accelerator are explicit CLI inputs, not assumptions about RTX naming.
     response = run_kaggle(["kernels", "push", "-p", str(folder), "--accelerator", args.accelerator,
-                           "--timeout", str(args.timeout_seconds)], account, timeout=50)
+                           "--timeout", str(timeout_seconds)], account, timeout=50)
     actual_ref = pushed_kernel_ref(response)
     manifest = {**spec, "kernel_ref": actual_ref, "kernel_url": f"https://www.kaggle.com/code/{actual_ref}",
                 "wandb_urls": {a: f"https://wandb.ai/{spec['entity']}/{spec['project']}/runs/{r['id']}" for a, r in runs.items()},
                 "manifest": str(folder / "launch.json")}
+    if auto_continue:
+        manifest["root_kernel_ref"] = actual_ref
     (folder / "launch.json").write_text(json.dumps(manifest, indent=2))
     return manifest
 
@@ -104,6 +129,8 @@ def main(argv=None):
     submit.add_argument("--config")
     submit.add_argument("--cpu-visualize", action="store_true",
                         help="After uploaded training checkpoints, submit a separate CPU-only visualization job")
+    submit.add_argument("--auto-continue", action="store_true",
+                        help="Resume full GPU training across sessions to the episode target, then CPU visualization")
     submit.add_argument("--set", dest="overrides", action="append", default=[])
     submit.add_argument("--accelerator", default="NvidiaTeslaT4")
     submit.add_argument("--timeout-seconds", type=int, default=39600)

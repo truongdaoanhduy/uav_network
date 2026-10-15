@@ -41,7 +41,7 @@ class PQLArtifactTests(unittest.TestCase):
             self.assertIn("training", torch.load(full["masac"], weights_only=True))
             self.assertNotIn("training", torch.load(light["masac"], weights_only=True))
 
-    def test_only_final_pql_artifact_includes_resume_and_legacy_artifacts_stay_small(self):
+    def test_final_full_state_artifacts_include_resume_and_legacy_artifacts_stay_small(self):
         with TemporaryDirectory() as directory:
             output = Path(directory)
             policy, resume = output / "final.pt", output / "resume_latest.pt"
@@ -70,6 +70,8 @@ class PQLArtifactTests(unittest.TestCase):
             self.assertEqual(set(artifacts[-1].files), {"checkpoint.pt"})
             tracker.config.pql.enabled = False
             tracker.checkpoint(policy, state, final=True)
+            self.assertEqual(set(artifacts[-1].files), {"checkpoint.pt", "resume.pt"})
+            tracker.checkpoint(policy, {"episodes": 4, "global_step": 16}, final=True)
             self.assertEqual(set(artifacts[-1].files), {"checkpoint.pt"})
 
 

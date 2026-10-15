@@ -1,4 +1,4 @@
-"""Restore policy/targets and real progress; rebuild Adam, replay and simulators."""
+"""Restore verified policies/progress and optional full learner state."""
 from copy import deepcopy
 import torch
 
@@ -35,7 +35,11 @@ def restore_learner(config, device):
     path = config.runtime.warm_start_checkpoint
     saved = torch.load(path, map_location="cpu", weights_only=True)
     progress = saved.get("progress")
-    validate_progress(progress, config.runtime.episodes)
+    if saved.get("version") == 3:
+        from .fixed_checkpoints import validate_fixed_checkpoint
+        validate_fixed_checkpoint(saved, config)
+    else:
+        validate_progress(progress, config.runtime.episodes)
     learner = load_policy(path, device, expected_algorithm=config.runtime.algorithm, payload=saved)
     before, current = learner.config.to_dict(), config.to_dict()
     for group in ("world", "sensor", "network", "energy", "reward", config.runtime.algorithm):
@@ -50,4 +54,12 @@ def restore_learner(config, device):
     if not all(torch.isfinite(p).all() for p in learner.state_dict().values()):
         raise ValueError("Warm-start checkpoint contains non-finite model tensors")
     learner.config = deepcopy(config)
+    progress = dict(progress)
+    if saved.get("version") == 3:
+        from .fixed_checkpoints import restore_fixed_learner
+        restore_fixed_learner(saved, learner)
+        progress["_training"] = saved["training"]
+        progress["state_restore"] = "training_state_environment_reset"
+    else:
+        progress["state_restore"] = "policy_warm_start"
     return learner, progress

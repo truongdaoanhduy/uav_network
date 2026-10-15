@@ -44,11 +44,26 @@ def account_quotas(credentials, requested=None):
 
 
 def resolve_username(account):
-    for kind in ("kernels", "datasets"):
-        rows = json.loads(run_kaggle([kind, "list", "--mine", "--page-size", "1", "--format", "json"], account))
-        if rows and "/" in rows[0].get("ref", ""):
-            return rows[0]["ref"].split("/", 1)[0]
-    raise RuntimeError("Cannot resolve the selected account username from owned Kaggle resources")
+    # Token introspection works for new accounts with no owned kernels/datasets.
+    names = ("KAGGLE_API_TOKEN", "KAGGLE_USERNAME", "KAGGLE_KEY")
+    saved = {name: os.environ.get(name) for name in names}
+    os.environ["KAGGLE_API_TOKEN"] = account.token
+    for name in names[1:]:
+        os.environ.pop(name, None)
+    try:
+        from kaggle.api.kaggle_api_extended import KaggleApi
+        api = KaggleApi()
+        api.authenticate()
+        username = api.get_config_value(api.CONFIG_NAME_USER)
+    finally:
+        for name, value in saved.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
+    if not isinstance(username, str) or not re.fullmatch(r"[\w-]+", username):
+        raise RuntimeError("Cannot resolve the selected account's authenticated username")
+    return username
 
 
 def private_dataset_info(account, ref, username):

@@ -1,5 +1,6 @@
 """Kaggle-side validation/training; one independent learner per available GPU."""
 import argparse
+from copy import deepcopy
 import json
 import math
 import os
@@ -72,20 +73,37 @@ def prepare_checkpoints(spec, output, config=None):
     for algorithm, ref in spec["warm_start_artifacts"].items():
         artifact = api.artifact(ref, type="model")
         pql = config is not None and config.pql.enabled
-        entry = "resume.pt" if pql else "checkpoint.pt"
+        full_resume = pql or spec.get("auto_continue")
+        entry = "resume.pt" if full_resume else "checkpoint.pt"
         path = artifact.get_entry(entry).download(root=str(output / "inputs" / algorithm))
         saved = torch.load(path, map_location="cpu", weights_only=True)
         if saved.get("algorithm") != algorithm or "progress" not in saved:
             raise ValueError("Input artifact must match the algorithm and contain verified progress")
-        if pql and (saved.get("version") != 3 or "training" not in saved):
-            raise ValueError("PQL input artifact must contain full version-3 training state in resume.pt")
+        if full_resume and (saved.get("version") != 3 or not isinstance(saved.get("training"), dict)):
+            raise ValueError("GPU continuation input must contain full version-3 training state in resume.pt")
+        if spec.get("auto_continue"):
+            if config is None:
+                raise ValueError("Automatic GPU continuation requires its verified training configuration")
+            selected = deepcopy(config)
+            selected.runtime.algorithm = algorithm
+            if pql:
+                from ..experiments.pql_checkpoints import validate_pql_checkpoint
+                progress = validate_pql_checkpoint(saved, selected)
+            else:
+                from ..experiments.fixed_checkpoints import validate_fixed_checkpoint
+                progress = validate_fixed_checkpoint(saved, selected)
+            expected = spec.get("continuation_expected_episodes", {}).get(algorithm)
+            if expected is not None and progress["episodes"] != expected:
+                raise ValueError("Downloaded resume checkpoint differs from the expected episode prefix")
+            spec.setdefault("continuation_expected_episodes", {})[algorithm] = progress["episodes"]
         paths[algorithm] = path
     return paths
 
 
 def learner_time_limit(spec, config, gpu_count, index, elapsed):
     waves = math.ceil((len(spec["runs"]) - index) / gpu_count)
-    reserve = max(600, config.tracking.artifact_timeout_seconds + 120) if config.pql.enabled else 600
+    reserve = (max(600, config.tracking.artifact_timeout_seconds + 120)
+               if config.pql.enabled or spec.get("auto_continue") else 600)
     available = (min(spec.get("timeout_seconds", 39600), 39600) - elapsed - reserve) / waves
     if available <= 0:
         raise RuntimeError("No safe training time remains before the kernel ceiling")
@@ -253,8 +271,31 @@ def finalize_runs(spec, processes, output):
     (output / "job-result.json").write_text(json.dumps(results, indent=2))
     if failures:
         (output / "job-failures.json").write_text(json.dumps(failures, indent=2))
-    cpu_failure = None
-    if spec.get("cpu_visualize"):
+    cpu_failure = continuation_failure = None
+    if spec.get("auto_continue"):
+        from .continuation import next_stage, submit_continuation, write_failure
+        action = None
+        try:
+            if failures or (output / "job-scheduling-failure.json").is_file():
+                raise ValueError("Automatic continuation cannot follow a learner or scheduling failure")
+            action = next_stage(spec, results)
+            if action == "gpu":
+                submit_continuation(spec, results, output)
+            else:
+                from .visualize import submit_visualization
+                child = submit_visualization(spec, results, output)
+                (output / "continuation.json").write_text(json.dumps({
+                    "status": "complete", "next_stage": "cpu",
+                    "root_kernel_ref": spec.get("root_kernel_ref", spec["kernel_ref"]),
+                    "parent_kernel_ref": spec["kernel_ref"], "cpu_kernel_ref": child["kernel_ref"],
+                    "requested_episodes": next(iter(results.values()))["requested_episodes"],
+                    "episodes": next(iter(results.values()))["episodes"]}, indent=2))
+        except Exception as error:
+            continuation_failure = {"error_type": type(error).__name__}
+            write_failure(output, error)
+            if action == "cpu":
+                (output / "cpu-visualization-failure.json").write_text(json.dumps(continuation_failure, indent=2))
+    elif spec.get("cpu_visualize"):
         eligible = {a: result for a, result in results.items() if a not in failures}
         if eligible:
             from .visualize import submit_visualization
@@ -263,7 +304,7 @@ def finalize_runs(spec, processes, output):
             except Exception as error:
                 cpu_failure = {"error_type": type(error).__name__}
                 (output / "cpu-visualization-failure.json").write_text(json.dumps(cpu_failure, indent=2))
-    for algorithm in (() if spec.get("cpu_visualize") else results):
+    for algorithm in (() if spec.get("cpu_visualize") or spec.get("auto_continue") else results):
         folder = output / spec["stage"] / algorithm
         with (output / f"{algorithm}-evaluation.log").open("w") as log:
             try:
@@ -277,6 +318,8 @@ def finalize_runs(spec, processes, output):
         (output / "evaluation-failures.json").write_text(json.dumps(evaluation_failures, indent=2))
     print(json.dumps({a: {k: v.get(k) for k in ("episodes", "global_step", "updates", "wandb_url")}
                       for a, v in results.items()}, indent=2), flush=True)
+    if continuation_failure:
+        raise RuntimeError(f"Automatic continuation failed ({continuation_failure['error_type']}); training results retained")
     if cpu_failure:
         raise RuntimeError(f"CPU visualization submission failed; learner failures: {list(failures)}. Training results retained")
     if failures or evaluation_failures:

@@ -1,4 +1,4 @@
-"""Online W&B in the learner process; mission metrics and final policy only."""
+"""Online W&B mission metrics and policy/full-state checkpoint artifacts."""
 from datetime import datetime, timezone
 import json
 import os
@@ -131,6 +131,13 @@ class OnlineTracker:
                     "job_submitted_at_utc": os.environ.get("UAV_JOB_SUBMITTED_AT_UTC", "unknown"),
                     "job_started_at_utc": os.environ.get("UAV_JOB_STARTED_AT_UTC", "unknown"),
                     "kaggle_url": "https://www.kaggle.com/code/" + os.environ.get("UAV_KAGGLE_KERNEL", "local")}
+        metadata["training_mode"] = os.environ.get("UAV_TRAINING_MODE", "PQL" if config.pql.enabled else "BASE")
+        metadata["pipeline"] = {
+            "auto_continue": os.environ.get("UAV_AUTO_CONTINUE") == "true",
+            "root_kernel_ref": os.environ.get("UAV_ROOT_KAGGLE_KERNEL") or metadata["kaggle_kernel"],
+            "continuation_index": int(os.environ.get("UAV_CONTINUATION_INDEX") or 0),
+            "target_episodes": int(os.environ.get("UAV_EPISODE_BUDGET") or config.runtime.episodes),
+        }
         metadata["continuation"] = {
             "kind": initial.get("state_restore", "policy_warm_start" if config.runtime.warm_start_checkpoint != "none" else "fresh"),
             "initial_episodes": initial.get("episodes", 0), "initial_global_step": self.initial_step,
@@ -155,6 +162,9 @@ class OnlineTracker:
             self.run.save(str(self.output / "diagnostics.jsonl"), base_path=str(self.output), policy="live")
             self.run.save(str(self.output / "resolved_config.yaml"), base_path=str(self.output), policy="now")
             self.run.summary.update({"run_started_at_utc": metadata["run_started_at_utc"],
+                                     "training_mode": metadata["training_mode"],
+                                     "root_kernel_ref": metadata["pipeline"]["root_kernel_ref"],
+                                     "continuation_index": metadata["pipeline"]["continuation_index"],
                                      "kaggle_account": metadata["kaggle_account"],
                                      "kaggle_url": metadata["kaggle_url"],
                                      "workspace_url": default_workspace_url(entity, project)})
@@ -211,10 +221,10 @@ class OnlineTracker:
                                                 "global_step": progress["global_step"],
                                                 "episode_budget_complete": progress.get("episode_budget_complete", False)})
         artifact.add_file(str(path), name="checkpoint.pt")
-        if final and self.config.pql.enabled:
+        if final and (self.config.pql.enabled or progress.get("resume_checkpoint") is not None):
             resume = progress.get("resume_checkpoint")
             if resume is None or not Path(resume).is_file():
-                raise ValueError("Final PQL artifact requires a complete resume checkpoint")
+                raise ValueError("Final artifact requires a complete resume checkpoint")
             artifact.add_file(str(resume), name="resume.pt")
         logged = self.run.log_artifact(artifact, aliases=["latest", "final"] if final else ["latest"])
         logged.wait(timeout=self.config.tracking.artifact_timeout_seconds)
