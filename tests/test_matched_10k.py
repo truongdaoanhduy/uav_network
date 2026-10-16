@@ -32,6 +32,26 @@ class Matched10kTests(unittest.TestCase):
         self.assertEqual(longer.matd3.replay_capacity, base.matd3.replay_capacity)
         self.assertEqual(longer.runtime.seed, base.runtime.seed)
 
+    def test_25k_profile_extends_horizon_without_changing_matched_controls(self):
+        old = load_config("configs/comparison-20k.yaml", ["pql.enabled=false"])
+        new = load_config("configs/comparison-25k.yaml", ["pql.enabled=false"])
+        self.assertEqual(new.runtime.episodes, 25000)
+        self.assertEqual(new.world.max_steps, 1800)
+        self.assertEqual((new.world.num_targets, new.world.num_obstacles), (35, 25))
+        self.assertEqual(new.runtime.num_envs, old.runtime.num_envs)
+        self.assertEqual(new.masac.batch_size, old.masac.batch_size)
+        self.assertEqual(new.matd3.batch_size, old.matd3.batch_size)
+        self.assertEqual(new.masac.replay_capacity, old.masac.replay_capacity)
+        self.assertEqual(new.matd3.replay_capacity, old.matd3.replay_capacity)
+        self.assertEqual(new.runtime.seed, old.runtime.seed)
+        self.assertEqual(new.runtime.environment_backend, "warp_packet")
+        self.assertEqual(new.runtime.device, "cuda")
+        self.assertEqual(new.runtime.replay_device, "cuda")
+        self.assertEqual(new.matd3.epsilon_decay_steps, 4096 * 1800 * 2)
+        self.assertIn("episodes25000", new.tracking.tags)
+        self.assertIn("steps1800", new.tracking.tags)
+        self.assertIn("25k", new.tracking.group)
+
     def test_common_profile_has_identical_parameters_and_held_out_cpu_bank(self):
         from uav_network.configuration import load_config
         base = load_config("configs/comparison-10k.yaml", ["pql.enabled=false"])
