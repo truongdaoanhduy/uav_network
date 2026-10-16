@@ -144,7 +144,8 @@ def receive_data(s: WorldState, p: WorldParams, e: int, frame: int, now: wp.floa
                 arrived += s.fragment_arrived[e,session,f]
             if arrived == p.fragments:
                 if not transfer(s,p,e,source,dest,target,s.tx_origin[e,frame],
-                                s.tx_report_created[e,frame],s.tx_hops[e,frame],now/wp.float64(1e6)):
+                                s.tx_report_created[e,frame],s.tx_hops[e,frame],now/wp.float64(1e6),
+                                s.tx_power[e,frame]):
                     s.session_active[e,session] = 0
 
 
@@ -472,7 +473,9 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
 
 
 def transmission_times(s, index=0):
-    return s.trace_time.numpy()[index,:int(s.trace_count.numpy()[index])].tolist()
+    count = int(s.trace_count.numpy()[index])
+    attempts = s.trace_kind.numpy()[index,:count] < 2
+    return s.trace_time.numpy()[index,:count][attempts].tolist()
 
 
 def metrics_at(s, p, index=0):

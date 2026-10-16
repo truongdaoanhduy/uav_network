@@ -28,8 +28,21 @@ class SwarmSearchEnv:
     def __init__(self, config):
         self.config = config.validate()
         self.network = None
+        self._communication_trace = False
         self.steps = 0
         self._ended = True
+
+    def enable_communication_trace(self):
+        """Capture successful whole-report hops until drained or the next reset."""
+        self._communication_trace = True
+        if self.network is not None and self.network.communication_events is None:
+            self.network.communication_events = []
+
+    def drain_communication_events(self):
+        if self.network is None or self.network.communication_events is None:
+            return []
+        events, self.network.communication_events = self.network.communication_events, []
+        return events
 
     @property
     def time_s(self):
@@ -66,6 +79,8 @@ class SwarmSearchEnv:
         if self.config.network.enabled:
             from ..communication.backend import UavNetSimNetwork
             self.network = UavNetSimNetwork(self.config, self.reports, scene, self.seed, self.battery_j)
+            if self._communication_trace:
+                self.network.communication_events = []
         self.motion_counts = {"obstacle_blocks": 0, "peer_blocks": 0, "commanded_stalls": 0}
         self.motion_counts.update({f"shield_{name}": 0 for name in (
             "interventions", "obstacle_interventions", "peer_interventions",

@@ -158,6 +158,7 @@ def emit(s: WorldState, p: WorldParams, e: int, packet: int, source: int, destin
             s.trace_source[e,trace] = source
             s.trace_destination[e,trace] = destination
             s.trace_kind[e,trace] = kind
+            s.trace_report[e,trace,4] = power
             s.trace_count[e] += 1
     return frame
 

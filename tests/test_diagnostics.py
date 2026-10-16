@@ -31,25 +31,30 @@ class DiagnosticsTests(unittest.TestCase):
             self.assertEqual(values['diagnostics/delivery_gap_warning'],1)
             self.assertTrue((Path(folder)/'diagnostics.jsonl').is_file())
 
-    def test_real_boundary_stall_warns_even_without_hard_blocks(self):
+    def test_real_caged_stall_warns_even_without_hard_blocks(self):
         from uav_network.experiments.diagnostics import TrainingDiagnostics
         with TemporaryDirectory() as folder:
             c = Config()
             c.network.enabled = False
-            c.world.num_uavs, c.world.num_targets, c.world.num_obstacles = 1, 1, 0
+            c.world.num_uavs, c.world.num_targets, c.world.num_obstacles = 1, 1, 3
             c.world.max_steps = 4
             c.tracking.diagnostic_window = 2
             env = SwarmSearchEnv(c)
             diagnostics = TrainingDiagnostics(c, Path(folder))
             try:
                 for episode in range(2):
-                    env.reset(seed=44, options={"positions": [[0, 0]],
-                                              "targets": [[900, 900]], "obstacles": []})
+                    # A narrow legal pocket: all nonzero sampled/braking paths
+                    # meet a clearance circle or the wall; staying put is safe.
+                    env.reset(seed=44, options={"positions": [[0, 50]],
+                        "targets": [[900, 900]],
+                        "obstacles": [[5, 35.7, 5], [5, 64.3, 5], [15.15, 50, 5]]})
                     total = 0
                     for _ in range(4):
                         _, reward, _, _, info = env.step(Action(np.array([[-1., -1., 0.]]), np.array([0])))
                         total += reward
                     self.assertEqual(info["blocked_moves"], 0)
+                    self.assertEqual(info["motion_counts"]["commanded_stalls"], 4)
+                    np.testing.assert_array_equal(env.positions, [[0, 50]])
                     values = diagnostics.episode({"episode": episode + 1, "global_step": 4 * (episode + 1),
                                                   "episode_length": 4, "num_uavs": 1, "return": total, **info})
                 for code in ("shield_intervention", "movement_saturation", "commanded_stall"):

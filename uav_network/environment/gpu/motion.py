@@ -105,9 +105,12 @@ def _guidance(s: WorldState, p: WorldParams, e: int, i: int):
         return guide, int(0)
     point, speed = wp.vec2d(position), wp.vec2d(nominal)
     outside_x, outside_y = bool(False), bool(False)
+    below_x, below_y = bool(False), bool(False)
     for k in range(horizon + 1):
-        outside_x = outside_x or point[0] < wp.float64(0.0) or point[0] > p.map_size
-        outside_y = outside_y or point[1] < wp.float64(0.0) or point[1] > p.map_size
+        below_x = below_x or point[0] < wp.float64(0.0)
+        below_y = below_y or point[1] < wp.float64(0.0)
+        outside_x = outside_x or below_x or point[0] > p.map_size
+        outside_y = outside_y or below_y or point[1] > p.map_size
         point, speed = point + speed * p.dt, brake(speed, step)
     if outside_x or outside_y:
         guide = wp.vec2d(nominal)
@@ -115,6 +118,31 @@ def _guidance(s: WorldState, p: WorldParams, e: int, i: int):
             guide[0] = wp.float64(0.0)
         if outside_y:
             guide[1] = wp.float64(0.0)
+        if wp.length(guide) <= wp.float64(1e-8) or wp.dot(guide, previous) < wp.float64(-1e-8):
+            # Match the native certified tangent fallback and established side.
+            stop_guide, has_stop = wp.vec2d(0.0, 0.0), bool(False)
+            for axis in range(2):
+                affected = (axis == 0 and outside_x) or (axis == 1 and outside_y)
+                if affected:
+                    normal = wp.vec2d(0.0, 0.0)
+                    normal[axis] = wp.float64(1.0)
+                    if (axis == 0 and below_x) or (axis == 1 and below_y):
+                        normal[axis] = wp.float64(-1.0)
+                    tangent = _tangent(normal, previous, nominal)
+                    for reverse in range(2):
+                        alternative = wp.vec2d(tangent)
+                        if reverse == 1:
+                            alternative = -tangent
+                        aimed = reachable(previous + _clip_box(alternative - previous,
+                            wp.vec2d(-step, -step), wp.vec2d(step, step)), previous, p)
+                        if (static_path(s, p, e, position, aimed)
+                                and _others_safe(s, p, e, i, aimed)):
+                            if wp.length(aimed) > wp.float64(1e-8):
+                                return alternative, int(2)
+                            if not has_stop:
+                                stop_guide, has_stop = alternative, bool(True)
+            if has_stop:
+                return stop_guide, int(2)
         return guide, int(2)
     for j in range(p.n):
         if j != i and not peer_path(p, position, nominal, s.positions[e, j], s.motion_work[e, j, 1]):

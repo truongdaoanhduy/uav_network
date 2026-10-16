@@ -58,7 +58,8 @@ def insert(s: WorldState, p: WorldParams, e: int, node: int, target: int,
 
 @wp.func
 def transfer(s: WorldState, p: WorldParams, e: int, source: int, destination: int,
-             target: int, origin: int, created: wp.float64, hops: int, now: wp.float64) -> bool:
+             target: int, origin: int, created: wp.float64, hops: int, now: wp.float64,
+             power: wp.float64) -> bool:
     if (s.report_present[e,source,target] == 0 or s.report_origin[e,source,target] != origin
         or s.report_created[e,source,target] != created or s.report_hops[e,source,target] != hops
         or now-created >= p.report_ttl or not can_receive(s,p,e,destination,target)):
@@ -74,6 +75,30 @@ def transfer(s: WorldState, p: WorldParams, e: int, source: int, destination: in
         s.known[e,destination,target] = 1
         insert(s,p,e,destination,target,origin,created,hops+1)
     discard_sessions(s,p,e,source,target)
+    if p.trace_enabled != 0:
+        trace = s.trace_count[e]
+        if trace >= p.trace_capacity:
+            s.errors[e] = 4
+        else:
+            # Kind 2 is complete report custody, distinct from DATA/ACK attempts.
+            s.trace_time[e,trace] = now*wp.float64(1e6)
+            s.trace_source[e,trace] = source
+            s.trace_destination[e,trace] = destination
+            s.trace_kind[e,trace] = 2
+            s.trace_report[e,trace,0] = wp.float64(target)
+            s.trace_report[e,trace,1] = wp.float64(origin)
+            s.trace_report[e,trace,2] = created
+            s.trace_report[e,trace,3] = wp.float64(hops+1)
+            s.trace_report[e,trace,4] = power
+            start = s.positions[e,source]
+            end = s.gcs[e]
+            if destination < p.n:
+                end = s.positions[e,destination]
+            s.trace_report[e,trace,5] = start[0]
+            s.trace_report[e,trace,6] = start[1]
+            s.trace_report[e,trace,7] = end[0]
+            s.trace_report[e,trace,8] = end[1]
+            s.trace_count[e] += 1
     return True
 
 

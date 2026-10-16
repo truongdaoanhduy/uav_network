@@ -7,7 +7,7 @@ import numpy as np
 import torch
 import warp as wp
 
-from .state import allocate_state, seed_rows
+from .state import allocate_state, params_from_config, seed_rows
 from .motion import motion_step
 from .world import reset_geometry
 from .validation import validate_actions
@@ -56,7 +56,7 @@ class WarpVectorEnv:
     @property
     def allocated_bytes(self):
         arrays = [value for value in vars(self.s).values() if isinstance(value,wp.array)]
-        unique = {int(a.ptr):a for a in arrays}
+        unique = {int(a.ptr):a for a in arrays if a.size}
         total = sum(a.size * wp.types.type_size_in_bytes(a.dtype) for a in unique.values())
         # Buffer1 is Torch-owned; buffer0 is already counted through the state.
         return total + sum(t.numel()*t.element_size() for t in self._buffers[1].values())
@@ -204,6 +204,46 @@ class WarpMissionEnv:
         selected.runtime.num_envs = 1
         self.vector = WarpVectorEnv(selected,device="cpu")
         self.reports = SimpleNamespace()
+        self._communication_trace = False
+        self._communication_events = []
+
+    def enable_communication_trace(self):
+        """Opt in on this CPU visualization world, never on the training vector."""
+        if self._communication_trace:
+            return
+        s, p = self.vector.s, self.vector.p
+        capacity = params_from_config(self.config).trace_capacity
+        for name, dtype in (("trace_time", wp.float64), ("trace_source", wp.int32),
+                            ("trace_destination", wp.int32), ("trace_kind", wp.int32)):
+            setattr(s, name, wp.zeros((1,capacity), dtype=dtype, device="cpu"))
+        s.trace_report = wp.zeros((1,capacity,9), dtype=wp.float64, device="cpu")
+        s.trace_count.zero_()
+        p.trace_capacity, p.trace_enabled = capacity, 1
+        self._communication_trace = True
+
+    def drain_communication_events(self):
+        events, self._communication_events = self._communication_events, []
+        return events
+
+    def _collect_communication_events(self):
+        s = self.vector.s
+        count = int(s.trace_count.numpy()[0])
+        kinds = s.trace_kind.numpy()[0,:count]
+        # Read every mission step so the next begin_step cannot discard hops
+        # between rendered frames. Training never enters this host-only path.
+        reports = s.trace_report.numpy()[0,:count]
+        times = s.trace_time.numpy()[0,:count]
+        sources = s.trace_source.numpy()[0,:count]
+        destinations = s.trace_destination.numpy()[0,:count]
+        for i in np.flatnonzero(kinds == 2):
+            report = reports[i]
+            self._communication_events.append({
+                "event": "report_received", "time_s": float(times[i]/1e6),
+                "source": int(sources[i]), "destination": int(destinations[i]),
+                "target": int(report[0]), "origin": int(report[1]),
+                "created_s": float(report[2]), "hops": int(report[3]),
+                "power_w": float(report[4]), "power_scope": "last_fragment",
+                "source_xy": report[5:7].tolist(), "destination_xy": report[7:9].tolist()})
 
     def _refresh(self):
         s = self.vector.s
@@ -221,6 +261,7 @@ class WarpMissionEnv:
     def reset(self, seed=None, options=None):
         if options is not None:
             raise ValueError("CPU Warp visualization resets from an episode seed")
+        self._communication_events = []
         obs,_ = self.vector.reset(seed=seed)
         self._refresh()
         return obs["observation"][0].numpy(),self.info()
@@ -229,6 +270,8 @@ class WarpMissionEnv:
         result = self.vector.step({"continuous":np.asarray(action.continuous)[None],
                                    "destination":np.asarray(action.destination)[None]})
         self._refresh()
+        if self._communication_trace:
+            self._collect_communication_events()
         obs,reward,done,truncated,_ = result
         return obs["observation"][0].numpy(),float(reward[0]),bool(done[0]),bool(truncated[0]),self.info()
 

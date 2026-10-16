@@ -1,5 +1,6 @@
 """Real native checkpoint rollout keeps sampled and terminal animation frames."""
 import hashlib
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -37,6 +38,10 @@ class CPUVisualizationTests(unittest.TestCase):
             with Image.open(report["animation_path"]) as animation:
                 self.assertEqual(animation.n_frames, 4)
                 self.assertGreater(animation.width, 100)
+            ledger = json.loads(Path(report["communication_events_path"]).read_text())
+            self.assertEqual(ledger["schema"], 1)
+            self.assertEqual(ledger["seed"], 10044)
+            self.assertEqual(report["animation"]["completed_report_hops"], len(ledger["events"]))
             self.assertEqual(hashlib.sha256(checkpoint.read_bytes()).hexdigest(), before)
 
     def test_invalid_animation_options_fail_before_reading_checkpoint(self):

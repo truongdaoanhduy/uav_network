@@ -24,6 +24,7 @@ class UavNetSimNetwork:
             raise RuntimeError("UavNetSim supports only one live network instance per process")
         self.config, self.reports, self.scene = config, reports, scene
         self.sessions = {}
+        self.communication_events = None  # Opt-in single-mission visualization only.
         self.energy_j = np.zeros(config.world.num_uavs + 1)
         self.battery_j = (battery_j if battery_j is not None else
                           np.full(config.world.num_uavs, config.energy.battery_capacity_j, dtype=float))
@@ -135,6 +136,15 @@ class UavNetSimNetwork:
         fragments = (transfer.report.size_bytes + self.config.network.payload_bytes - 1) // self.config.network.payload_bytes
         if len(transfer.arrived) == fragments:
             if self.reports.transfer(transfer.source, receiver, transfer.report, now):
+                if self.communication_events is not None:
+                    self.communication_events.append({
+                        "event": "report_received", "time_s": float(now),
+                        "source": int(transfer.source), "destination": int(receiver),
+                        "target": int(transfer.report.target_id), "origin": int(transfer.report.source_id),
+                        "created_s": float(transfer.report.created_s), "hops": int(transfer.report.hops + 1),
+                        "power_w": float(packet.mission_power_w), "power_scope": "last_fragment",
+                        "source_xy": [float(v) for v in self.simulator.drones[transfer.source].coords[:2]],
+                        "destination_xy": [float(v) for v in self.simulator.drones[receiver].coords[:2]]})
                 self._discard_report_sessions(transfer.source, transfer.report)
             else:
                 # The receiver may have filled after admission. Drop this

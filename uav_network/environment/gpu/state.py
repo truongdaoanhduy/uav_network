@@ -152,6 +152,7 @@ class WorldState:
     pair_gain: wp.array2d(dtype=wp.float64)
     pair_time: wp.array2d(dtype=wp.float64)
     trace_time: wp.array2d(dtype=wp.float64)
+    trace_report: wp.array3d(dtype=wp.float64)  # target, origin, created, hops, power, source/dest XY
     packet_counts: wp.array2d(dtype=wp.int32)
     selection_counts: wp.array2d(dtype=wp.int32)
     event_kind: wp.array2d(dtype=wp.int32)
@@ -266,7 +267,7 @@ def params_from_config(config):
                   event_capacity=w.num_uavs*(n.max_queue_packets+8)*8,
                   frame_capacity=w.num_uavs*(n.max_queue_packets+4)*4,
                   session_capacity=w.num_uavs*w.num_targets*(w.num_uavs+1),
-                  trace_capacity=w.num_uavs*(n.max_queue_packets+2)*n.max_retries*2,
+                  trace_capacity=w.num_uavs*(n.max_queue_packets+2)*(n.max_retries*2+1),
                   trace_enabled=1)
     for name, value in values.items():
         setattr(p, name, value)
@@ -314,6 +315,7 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False):
     for name in ("visible", "known", "recovery", "report_present", "report_origin", "report_hops"):
         shapes[name] = ((e,n,t), wp.int32)
     shapes["report_created"] = ((e,n,t), wp.float64)
+    shapes["trace_report"] = ((e,p.trace_capacity if trace else 0,9), wp.float64)
     shapes["report_order"] = ((e,n,t), wp.int64)
     for name in ("steps","terminated","blocked","clipped","errors","event_count","frame_count",
                  "trace_count","report_delivery_count","coalesce_step"):
