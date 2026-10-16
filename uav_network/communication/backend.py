@@ -4,6 +4,8 @@ import numpy as np
 
 from .upstream import REVISION, start_simulator
 from .energy import install_obstacle_loss, install_phy_budget
+from .diagnostics import COUNTERS, STATS, COUNT, network_diagnostics
+from .telemetry import install_telemetry
 
 _ACTIVE = None  # Upstream configuration and packet IDs are process globals.
 
@@ -31,6 +33,9 @@ class UavNetSimNetwork:
         self.selection_counts = {"selected": 0, "accepted": 0, "receiver_rejected": 0,
                                  "out_of_range_or_inactive": 0, "no_buffer": 0}
         self.energy_blocked_transmissions = 0
+        self.diagnostic_counts = np.zeros(len(COUNTERS), dtype=np.int64)
+        self.diagnostic_stats = np.zeros((len(STATS), 4))
+        self.power_histogram = np.zeros((2, 6), dtype=np.int64)
         self.received_payload_bytes = 0
         self._closed = False
         self.step_end_us = 0.0
@@ -41,6 +46,7 @@ class UavNetSimNetwork:
              self.directory, self.previous) = start_simulator(self, scene, seed)
             install_phy_budget(self)
             install_obstacle_loss(self)
+            install_telemetry(self)
             self.sync_positions(scene.positions)
             self._event_sequence = 0
         except Exception:
@@ -94,6 +100,7 @@ class UavNetSimNetwork:
             if pending and pending[1] > now:
                 continue
             if sender.transmitting_queue.qsize() >= n.max_queue_packets:
+                self.diagnostic_counts[COUNT["queue_full"]] += 1
                 break
             remaining = report.created_s + n.report_ttl_s - now
             if remaining <= 0:
@@ -175,6 +182,18 @@ class UavNetSimNetwork:
         self.sync_positions(positions)
         before = self.energy_j[:-1].sum()
         self._collect_drops()
+        # Post-motion/post-sensing at interval start; independent of the selected destination.
+        for source in range(self.config.world.num_uavs):
+            active = self.node_active(source)
+            bearing = active and bool(self.reports.buffers[source])
+            eligible = bearing and any(self._eligible(source, destination, positions, report)
+                for destination in range(self.config.world.num_uavs + 1) if destination != source
+                for report in self.reports.buffers[source].values())
+            for name, value in (("action_slots", 1), ("action_active", active),
+                                ("action_report_bearing", bearing), ("action_receiver_eligible", eligible),
+                                ("action_silent", action.destination[source] == 0),
+                                ("action_no_opportunity", not eligible)):
+                self.diagnostic_counts[COUNT[name]] += int(value)
         for source, index in enumerate(action.destination):
             destination = self._destination(source, int(index))
             buffer = self.reports.buffers[source]
@@ -219,7 +238,12 @@ class UavNetSimNetwork:
     def metrics(self):
         m = self.simulator.metrics.snapshot()
         elapsed = self.clock.now / 1e6
-        return {"selection_counts": dict(self.selection_counts), "enabled": True, "backend": "uavnetsim", "upstream_revision": REVISION,
+        counts = self.diagnostic_counts.copy()
+        for name in ("custody_peer_transfers", "direct_gcs_reports", "relayed_gcs_reports"):
+            counts[COUNT[name]] = getattr(self.reports, name)
+        diagnostics = network_diagnostics(counts, self.diagnostic_stats, self.power_histogram,
+                                          self.reports.delivery_hop_histogram)
+        return {"diagnostics": diagnostics, "selection_counts": dict(self.selection_counts), "enabled": True, "backend": "uavnetsim", "upstream_revision": REVISION,
                 "generated_packets": m["generated"], "received_packets": m["delivered"],
                 "packet_pdr_percent": m["pdr_percent"], "packet_e2e_delay_ms": m["e2e_delay_ms"],
                 "phy_successes": m["phy_success"], "phy_failures": m["phy_failure"],

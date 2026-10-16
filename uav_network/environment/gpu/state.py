@@ -3,6 +3,7 @@ import numpy as np
 import warp as wp
 
 from ..observations import observation_dim, state_dim
+from ...communication.diagnostics import COUNTERS, STATS
 
 
 @wp.struct
@@ -91,6 +92,13 @@ class WorldParams:
 
 @wp.struct
 class WorldState:
+    diagnostic_counts: wp.array2d(dtype=wp.int64)
+    diagnostic_stats: wp.array3d(dtype=wp.float64)
+    power_histogram: wp.array3d(dtype=wp.int64)
+    delivery_hop_histogram: wp.array2d(dtype=wp.int64)
+    first_discovery: wp.array2d(dtype=wp.float64)
+    first_delivery: wp.array2d(dtype=wp.float64)
+    buffer_peak: wp.array2d(dtype=wp.int64)
     positions: wp.array2d(dtype=wp.vec2d)
     velocities: wp.array2d(dtype=wp.vec2d)
     targets: wp.array2d(dtype=wp.vec2d)
@@ -307,6 +315,12 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False):
         raise ValueError("seeds must contain one integer per world")
     s = WorldState()
     shapes = {
+        "diagnostic_counts": ((e,len(COUNTERS)), wp.int64),
+        "diagnostic_stats": ((e,len(STATS),4), wp.float64),
+        "power_histogram": ((e,2,6), wp.int64),
+        "delivery_hop_histogram": ((e,8), wp.int64),
+        "first_discovery": ((e,t), wp.float64), "first_delivery": ((e,t), wp.float64),
+        "buffer_peak": ((e,n), wp.int64),
         "positions": ((e,n), wp.vec2d), "velocities": ((e,n), wp.vec2d),
         "targets": ((e,t), wp.vec2d), "obstacles": ((e,o), wp.vec3d),
         "gcs": ((e,), wp.vec2d), "battery": ((e,n), wp.float64),

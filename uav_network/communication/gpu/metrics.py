@@ -3,6 +3,7 @@ import math
 import numpy as np
 import warp as wp
 from ..upstream import REVISION
+from ..diagnostics import network_diagnostics, report_diagnostics
 
 
 def row(array, index):
@@ -18,6 +19,8 @@ def network_info(s, p, index=0):
     phy = int(counts[2]+counts[3])
     elapsed = float(row(s.packet_time,index))/1e6
     return {
+        "diagnostics": network_diagnostics(row(s.diagnostic_counts,index), row(s.diagnostic_stats,index),
+                                            row(s.power_histogram,index), row(s.delivery_hop_histogram,index)),
         "enabled": bool(p.network_enabled), "backend": "warp_packet", "upstream_revision": REVISION,
         "selection_counts": dict(zip(("selected","accepted","receiver_rejected",
                                       "out_of_range_or_inactive","no_buffer"),map(int,selection))),
@@ -51,6 +54,10 @@ def world_info(s, p, index=0):
     reward = row(s.reward_components,index)
     actions = row(s.action_counts,index)
     return {
+        "report_diagnostics": report_diagnostics(row(s.first_discovery,index),row(s.first_delivery,index),
+                                                  present.astype(bool),row(s.report_created,index),
+                                                  row(s.buffer_peak,index),steps*p.dt,
+                                                  float(row(s.report_delay_sum,index)),float(row(s.report_hop_sum,index))),
         "step": steps, "targets_found": found, "targets_delivered": count,
         "search_rate_percent": 100*found/p.targets_count,
         "delivery_rate_percent": 100*count/p.targets_count, "success": count == p.targets_count,
@@ -70,7 +77,10 @@ def world_info(s, p, index=0):
                                        "dropped_report","step_cost","communication_energy",
                                        "propulsion_energy"),map(float,reward))),
         "action_counts": dict(zip(("silent","peer","gcs","saturated"),map(int,actions))),
-        "energy": {"battery_j": battery.tolist(), "battery_fraction": (battery/p.capacity).tolist(),
+        "energy": {"per_uav_propulsion_energy_j": row(s.flight_energy,index).tolist(),
+                   "per_uav_rf_energy_j": row(s.communication_energy,index)[:-1].tolist(),
+                   "per_uav_total_energy_j": (row(s.flight_energy,index)+row(s.communication_energy,index)[:-1]).tolist(),
+                   "battery_j": battery.tolist(), "battery_fraction": (battery/p.capacity).tolist(),
                    "active_uavs": int(active.sum()),
                    "propulsion_energy_j": float(row(s.flight_energy,index).sum())},
         "network": network_info(s,p,index) if p.network_enabled else {"enabled": False}}

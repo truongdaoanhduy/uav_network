@@ -6,6 +6,7 @@ from .reports import (active, bytes_used, can_receive, discard_sessions, transfe
                       begin_step, sense_reports, masked_sense_reports, end_step)
 from .phy import xy, busy, emit, evaluate, arrival_end, latest_arrival_end
 from .events import push, pop
+from . import diagnostics as diag
 
 # Preserve CPython scalar FP64 operation boundaries on CUDA as well as CPU.
 wp.set_module_options({"enable_fp_fma": False, "enable_backward": False})
@@ -56,6 +57,7 @@ def inject(s: WorldState, p: WorldParams, e: int, source: int, dest: int,
             if s.pkt_status[e,j] == 1 and s.pkt_source[e,j] == source:
                 queued += 1
         if queued >= p.max_queue_packets:
+            s.diagnostic_counts[e,diag.QUEUE_FULL] += wp.int64(1)
             break
         remaining = s.report_created[e,source,target]+p.report_ttl-now/wp.float64(1e6)
         if remaining <= wp.float64(0):
@@ -175,6 +177,10 @@ def event(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
             if packet >= 0:
                 s.node_queue_count[e,node] -= 1
                 if now >= s.pkt_deadline[e,packet] or s.pkt_attempt[e,packet] >= p.max_retries:
+                    reason = diag.RETRY_LIMIT
+                    if now >= s.pkt_deadline[e,packet]:
+                        reason = diag.PACKET_LIFETIME
+                    s.diagnostic_counts[e,reason] += wp.int64(1)
                     s.pkt_status[e,packet] = 4
                     session = int(s.pkt_session[e,packet])
                     f = s.pkt_fragment[e,packet]
@@ -203,6 +209,7 @@ def event(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
         node = s.pkt_source[e,packet]
         attempt = s.pkt_attempt[e,packet]
         window = (p.cw_min+1)*(1 << (attempt-1))-1
+        s.diagnostic_counts[e,diag.BACKOFF_DRAWS] += wp.int64(1)
         s.pkt_backoff[e,packet] = wp.float64(randbelow(s,e,node,window))*p.slot
         s.pkt_backoff_version[e,packet] += 1
         push(s,p,e,now,4,packet,s.pkt_backoff_version[e,packet],0)
@@ -231,6 +238,7 @@ def event(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
     elif kind == 7:
         packet = arg
         if s.pkt_backoff_version[e,packet] == generation:
+            s.diagnostic_counts[e,diag.BACKOFF_FREEZES] += wp.int64(1)
             remaining = p.difs+s.pkt_backoff[e,packet]-(now-s.pkt_wait_start[e,packet])
             if remaining <= s.pkt_backoff[e,packet]:
                 s.pkt_backoff[e,packet] = remaining
@@ -271,10 +279,12 @@ def event(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
         source = s.pkt_source[e,packet]
         if (s.pkt_generation[e,packet] == generation and s.node_wait_packet[e,source] == packet
             and s.node_wait_finish[e,source] == 0):
+            s.diagnostic_counts[e,diag.ACK_TIMEOUTS] += wp.int64(1)
             if s.pkt_attempt[e,packet] < p.max_retries:
                 s.pkt_feed[e,packet] = 0
                 push(s,p,e,now,2,packet,generation,0)
             else:
+                s.diagnostic_counts[e,diag.RETRY_LIMIT] += wp.int64(1)
                 s.node_wait_finish[e,source] = 1
                 s.pkt_status[e,packet] = 4
     elif kind == 13:
@@ -344,6 +354,20 @@ def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32))
         s.report_delivery_count[e] = 0
         s.trace_count[e] = 0
         s.reward[e] = wp.float32(0)
+        for j in range(diag.COUNTER_COUNT):
+            s.diagnostic_counts[e,j] = wp.int64(0)
+        for j in range(8):
+            s.delivery_hop_histogram[e,j] = wp.int64(0)
+            for k in range(4):
+                s.diagnostic_stats[e,j,k] = wp.float64(0)
+        for j in range(2):
+            for k in range(6):
+                s.power_histogram[e,j,k] = wp.int64(0)
+        for i in range(p.n):
+            s.buffer_peak[e,i] = wp.int64(0)
+        for t in range(p.targets_count):
+            s.first_discovery[e,t] = wp.float64(-1)
+            s.first_delivery[e,t] = wp.float64(-1)
         for i in range(p.n+1):
             seed_mt(s,e,i)
             s.node_queue_count[e,i] = 0
@@ -416,6 +440,32 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
         for j in range(2):
             if wp.abs(continuous[e,source,j]) >= wp.float32(0.99):
                 s.action_counts[e,3] += wp.int64(1)
+        if p.network_enabled != 0:
+            s.diagnostic_counts[e,diag.ACTION_SLOTS] += wp.int64(1)
+            if index == 0:
+                s.diagnostic_counts[e,diag.ACTION_SILENT] += wp.int64(1)
+            is_active = active(s,p,e,source)
+            if is_active:
+                s.diagnostic_counts[e,diag.ACTION_ACTIVE] += wp.int64(1)
+            bearing = is_active and bytes_used(s,p,e,source) > 0
+            eligible = bool(False)
+            if bearing:
+                s.diagnostic_counts[e,diag.ACTION_REPORT_BEARING] += wp.int64(1)
+                for receiver in range(p.n+1):
+                    if receiver != source and active(s,p,e,receiver):
+                        reach = p.peer_range
+                        if receiver == p.n:
+                            reach = p.gcs_range
+                        if wp.length(xy(s,p,e,source)-xy(s,p,e,receiver)) <= reach:
+                            for target in range(p.targets_count):
+                                if (s.report_present[e,source,target] != 0
+                                    and now/wp.float64(1e6)-s.report_created[e,source,target] < p.report_ttl
+                                    and can_receive(s,p,e,receiver,target)):
+                                    eligible = True
+            if eligible:
+                s.diagnostic_counts[e,diag.ACTION_RECEIVER_ELIGIBLE] += wp.int64(1)
+            else:
+                s.diagnostic_counts[e,diag.ACTION_NO_OPPORTUNITY] += wp.int64(1)
         if p.network_enabled == 0 or index == 0:
             continue
         dest = p.n

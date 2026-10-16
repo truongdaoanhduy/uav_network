@@ -13,6 +13,7 @@ import sys
 import numpy as np
 
 from .routing import SelectedNextHopRouting
+from .diagnostics import COUNT
 
 REVISION = "04daafb815eb377409b40b285574eeb62b9a8d58"
 ROOT = Path(__file__).resolve().parents[2]
@@ -230,6 +231,9 @@ def mission_drone_class(original, native, config):
                 packet = self.transmitting_queue.get()
                 if (self.env.now >= packet.creation_time + packet.deadline
                         or packet.number_retransmission_attempt[self.identifier] >= native.MAX_RETRANSMISSION_ATTEMPT):
+                    bridge = self.simulator.mission_bridge
+                    reason = "packet_lifetime" if self.env.now >= packet.creation_time + packet.deadline else "retry_limit"
+                    bridge.diagnostic_counts[COUNT[reason]] += 1
                     self.simulator.event_bus.publish("packet_dropped", self.env.now,
                                                      packet_id=packet.packet_id, node=self.identifier,
                                                      reason="deadline_or_retry_limit")

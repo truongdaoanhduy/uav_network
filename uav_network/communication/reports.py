@@ -1,6 +1,7 @@
 """Report custody, finite buffers, target knowledge and original TTL."""
 from dataclasses import dataclass, replace
 import numpy as np
+from .diagnostics import HOP_BINS, report_diagnostics
 
 
 @dataclass(frozen=True)
@@ -28,6 +29,11 @@ class ReportStore:
         self.regenerated = 0
         self.delivery_times_s = []
         self.delivery_hops = []
+        self.first_discovery = np.full(config.world.num_targets, -1.)
+        self.first_delivery = np.full(config.world.num_targets, -1.)
+        self.buffer_peak = np.zeros(config.world.num_uavs, dtype=np.int64)
+        self.delivery_hop_histogram = np.zeros(HOP_BINS, dtype=np.int64)
+        self.custody_peer_transfers = self.direct_gcs_reports = self.relayed_gcs_reports = 0
 
     def bytes_used(self, uav_id):
         return sum(r.size_bytes for r in self.buffers[uav_id].values())
@@ -38,6 +44,8 @@ class ReportStore:
         if not newly_known and not recover:
             return False
         self.known[uav_id, target_id] = True
+        if self.first_discovery[target_id] < 0:
+            self.first_discovery[target_id] = time_s
         if self.delivered[target_id]:
             self.recovery_pending[uav_id, target_id] = False
         elif self.bytes_used(uav_id) + self.config.report_bytes <= self.config.buffer_bytes:
@@ -45,6 +53,7 @@ class ReportStore:
             self.buffers[uav_id][target_id] = Report(target_id, uav_id, time_s,
                                                   self.config.report_bytes)
             self.recovery_pending[uav_id, target_id] = False
+            self.buffer_peak[uav_id] = max(self.buffer_peak[uav_id], self.bytes_used(uav_id))
             self.regenerated += int(not newly_known)
         else:
             self.recovery_pending[uav_id, target_id] = True
@@ -77,10 +86,25 @@ class ReportStore:
                 self.delivery_times_s.append(time_s - report.created_s)
                 self.delivery_hops.append(report.hops + 1)
                 self.delivered[report.target_id] = True
+                self.first_delivery[report.target_id] = time_s
+                self.delivery_hop_histogram[min(report.hops, HOP_BINS - 1)] += 1
+                self.direct_gcs_reports += int(report.hops == 0)
+                self.relayed_gcs_reports += int(report.hops > 0)
         else:
             self.known[destination, report.target_id] = True
             self.buffers[destination][report.target_id] = replace(report, hops=report.hops + 1)
+            self.custody_peer_transfers += 1
+            self.buffer_peak[destination] = max(self.buffer_peak[destination], self.bytes_used(destination))
         return True
+
+    def diagnostics(self, time_s):
+        present = np.zeros_like(self.known)
+        created = np.zeros(self.known.shape)
+        for i, buffer in enumerate(self.buffers):
+            for target, report in buffer.items():
+                present[i, target], created[i, target] = True, report.created_s
+        return report_diagnostics(self.first_discovery, self.first_delivery, present, created,
+                                  self.buffer_peak, time_s, sum(self.delivery_times_s), sum(self.delivery_hops))
 
     def expire(self, time_s):
         for uav_id, buffer in enumerate(self.buffers):

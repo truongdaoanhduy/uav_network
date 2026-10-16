@@ -1,5 +1,6 @@
 """Apply battery budgets and packet-selected power at the real native PHY."""
 from dataclasses import replace
+from .diagnostics import COUNT
 
 
 def install_phy_budget(bridge):
@@ -20,7 +21,10 @@ def install_phy_budget(bridge):
 
         def emit(packet, receivers, drone=drone):
             node = drone.identifier
+            kind = "data" if isinstance(packet, bridge.DataPacket) else "ack"
             if not bridge.node_active(node):
+                bridge.diagnostic_counts[COUNT["energy_denials"]] += 1
+                bridge.diagnostic_counts[COUNT[kind + "_energy_denials"]] += 1
                 bridge.energy_blocked_transmissions += 1
                 return False
             power = getattr(packet, "mission_power_w", bridge.config.network.tx_power_min_w)
@@ -28,6 +32,8 @@ def install_phy_budget(bridge):
             is_uav = node < bridge.config.world.num_uavs
             budgeted = is_uav and bridge.config.energy.enabled
             if budgeted and cost > bridge.battery_j[node]:
+                bridge.diagnostic_counts[COUNT["energy_denials"]] += 1
+                bridge.diagnostic_counts[COUNT[kind + "_energy_denials"]] += 1
                 bridge.energy_blocked_transmissions += 1
                 return False
             bridge.energy_j[node] += cost

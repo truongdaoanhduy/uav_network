@@ -1,6 +1,7 @@
 """Native FIFO report custody and source TTL, serial within each world."""
 import warp as wp
 from ...environment.gpu.state import WorldParams, WorldState
+from . import diagnostics as diag
 
 wp.set_module_options({"enable_backward": False})
 
@@ -54,6 +55,7 @@ def insert(s: WorldState, p: WorldParams, e: int, node: int, target: int,
     s.report_created[e,node,target] = created
     s.report_hops[e,node,target] = hops
     s.report_order[e,node,target] = s.report_sequence[e]
+    s.buffer_peak[e,node] = wp.max(s.buffer_peak[e,node],wp.int64(bytes_used(s,p,e,node)))
 
 
 @wp.func
@@ -68,10 +70,17 @@ def transfer(s: WorldState, p: WorldParams, e: int, source: int, destination: in
     if destination == p.n:
         if s.delivered[e,target] == 0:
             s.delivered[e,target] = 1
+            s.first_delivery[e,target] = now
+            s.delivery_hop_histogram[e,wp.min(hops,7)] += wp.int64(1)
+            delivery = diag.RELAYED_GCS_REPORTS
+            if hops == 0:
+                delivery = diag.DIRECT_GCS_REPORTS
+            s.diagnostic_counts[e,delivery] += wp.int64(1)
             s.report_delivery_count[e] += 1
             s.report_delay_sum[e] += now-created
             s.report_hop_sum[e] += wp.float64(hops+1)
     else:
+        s.diagnostic_counts[e,diag.CUSTODY_PEER_TRANSFERS] += wp.int64(1)
         s.known[e,destination,target] = 1
         insert(s,p,e,destination,target,origin,created,hops+1)
     discard_sessions(s,p,e,source,target)
@@ -142,6 +151,8 @@ def sense_reports_at(s: WorldState, p: WorldParams, e: int):
             recover = p.recovery_enabled != 0 and s.recovery[e,i,t] != 0
             if active(s,p,e,i) and s.visible[e,i,t] != 0 and (fresh or recover):
                 s.known[e,i,t] = 1
+                if s.first_discovery[e,t] < wp.float64(0):
+                    s.first_discovery[e,t] = now
                 if s.delivered[e,t] != 0:
                     s.recovery[e,i,t] = 0
                 elif bytes_used(s,p,e,i)+p.report_bytes <= p.buffer_bytes:

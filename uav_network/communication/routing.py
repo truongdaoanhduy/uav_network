@@ -1,5 +1,6 @@
 """Policy-selected single-hop routing, using upstream CSMA/CA ACK handling."""
 import copy
+from .diagnostics import COUNT
 
 
 class SelectedNextHopRouting:
@@ -51,5 +52,9 @@ class SelectedNextHopRouting:
                 mac.wait_ack_process_finish[key] = 1
                 process.interrupt()
 
-    def penalize(self, *args, **kwargs):
-        """Routing is learned by MASAC, not an upstream routing learner."""
+    def penalize(self, packet, *args, **kwargs):
+        """Observe the actual ACK timeout without changing the retry decision."""
+        bridge = self.simulator.mission_bridge
+        bridge.diagnostic_counts[COUNT["ack_timeouts"]] += 1
+        if packet.number_retransmission_attempt[self.my_drone.identifier] >= bridge.config.network.max_retries:
+            bridge.diagnostic_counts[COUNT["retry_limit"]] += 1

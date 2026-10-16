@@ -2,6 +2,7 @@
 import warp as wp
 from ...environment.gpu.state import WorldParams, WorldState
 from .reports import active
+from . import diagnostics as diag
 
 PI = wp.constant(wp.float64(3.141592653589793))
 C = wp.constant(wp.float64(299792458.0))
@@ -111,6 +112,7 @@ def latest_arrival_end(s: WorldState, p: WorldParams, e: int, frame: int) -> wp.
 
 @wp.func
 def busy(s: WorldState, p: WorldParams, e: int, node: int, now: wp.float64) -> bool:
+    s.diagnostic_counts[e,diag.CCA_CHECKS] += wp.int64(1)
     power = wp.float64(0)
     for k in range(s.frame_count[e]):
         j = s.frame_order[e,k]
@@ -119,7 +121,10 @@ def busy(s: WorldState, p: WorldParams, e: int, node: int, now: wp.float64) -> b
             power += s.tx_power[e,j]*gain(s,p,e,s.tx_source[e,j],node,now)
     if power <= wp.float64(0):
         return False
-    return wp.float64(10)*wp.log10(power*wp.float64(1000)) >= p.cca_threshold
+    result = wp.float64(10)*wp.log10(power*wp.float64(1000)) >= p.cca_threshold
+    if result:
+        s.diagnostic_counts[e,diag.CCA_BUSY] += wp.int64(1)
+    return result
 
 
 @wp.func
@@ -134,6 +139,11 @@ def emit(s: WorldState, p: WorldParams, e: int, packet: int, source: int, destin
     cost = bits/p.bit_rate*power
     if not active(s,p,e,source) or (source < p.n and p.energy_enabled != 0 and cost > s.battery[e,source]):
         s.packet_counts[e,5] += 1
+        s.diagnostic_counts[e,diag.ENERGY_DENIALS] += wp.int64(1)
+        count = diag.DATA_ENERGY_DENIALS
+        if kind == 1:
+            count = diag.ACK_ENERGY_DENIALS
+        s.diagnostic_counts[e,count] += wp.int64(1)
         return -1
     s.communication_energy[e,source] += cost
     if source < p.n and p.energy_enabled != 0:
@@ -159,6 +169,7 @@ def emit(s: WorldState, p: WorldParams, e: int, packet: int, source: int, destin
     if frame < 0:
         s.errors[e] = 3
         return -1
+    diag.emission(s,p,e,packet,destination,kind,power)
     s.frame_order[e,s.frame_count[e]] = frame
     s.frame_count[e] += 1
     s.tx_active[e,frame] = 1
@@ -221,6 +232,16 @@ def evaluate(s: WorldState, p: WorldParams, e: int, frame: int, now: wp.float64)
     if signal > wp.float64(0):
         sinr = wp.float64(10)*wp.log10(signal/(p.noise_power+interference))
     success = sinr >= p.sinr_threshold
+    snr = wp.float64(-200)
+    rssi = wp.float64(-200)
+    if signal > wp.float64(0):
+        snr = wp.float64(10)*wp.log10(signal/p.noise_power)
+        rssi = wp.float64(10)*wp.log10(signal*wp.float64(1000))
+    pair = s.tx_source[e,frame]*(p.n+1)+receiver
+    # Classify the cached gain's geometry, matching native A2A snapshot LOS.
+    line_of_sight = los(s,p,e,s.pair_transmitter[e,pair],s.pair_receiver[e,pair])
+    diag.decode(s,p,e,s.tx_kind[e,frame],receiver,snr,sinr,rssi,
+                link_distance(s,p,e,s.tx_source[e,frame],receiver),line_of_sight,collided,success)
     if success:
         s.packet_counts[e,2] += 1
     else:
