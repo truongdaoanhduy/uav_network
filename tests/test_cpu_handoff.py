@@ -137,13 +137,14 @@ class CPUHandoffTests(unittest.TestCase):
                  patch.object(cli, "account_quotas", return_value=[{"name": "alias", "ok": True, "remaining_hours": 30}]), \
                  patch.object(cli, "resolve_username", return_value="owner"), \
                  patch.object(cli, "verify_credential_dataset", side_effect=verify), \
-                 patch.object(cli, "ensure_pipeline_dataset", create=True, return_value="owner/private-launch"), \
+                 patch.object(cli, "ensure_pipeline_dataset", create=True, return_value="owner/private-launch") as create_pipeline, \
                  patch.object(cli, "ensure_cpu_wandb_dataset", create=True, return_value="owner/wandb-cpu-only") as create_cpu, \
                  patch.object(cli, "run_kaggle", side_effect=transport), \
                  patch.object(cli.subprocess, "check_output", side_effect=["", "a" * 40]):
                 try:
                     result = cli.main(["--key-file", str(key), "launch", "--cpu-visualize",
                                        "--config", "configs/profile.yaml", "--credential-dataset", "owner/wandb-private",
+                                       "--credential-timeout-seconds", "321",
                                        "--set", "tracking.checkpoint_store=wandb"])
                 except SystemExit as error:
                     self.fail(f"Autonomous CPU visualization CLI is missing: {error}")
@@ -151,6 +152,10 @@ class CPUHandoffTests(unittest.TestCase):
             expected = "owner/wandb-cpu-only" if bundled else "owner/wandb-private"
             self.assertEqual(result.get("cpu_credential_dataset"), expected)
             self.assertEqual(create_cpu.call_count, int(bundled))
+            create_pipeline.assert_called_once()
+            self.assertEqual(create_pipeline.call_args.args[-1], 321)
+            if bundled:
+                self.assertEqual(create_cpu.call_args.args[-1], 321)
             self.assertEqual(result["commit"], "a" * 40)
             self.assertEqual(result["cpu_eval"], {"episodes": 1, "seed": 10044, "frame_stride": 5, "fps": 10})
 

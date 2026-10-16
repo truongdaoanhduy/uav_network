@@ -85,9 +85,9 @@ def launch(args, credentials):
                                       args.credential_timeout_seconds, only_selected=True)
             cpu_dataset = args.credential_dataset
         except CredentialFileSetError:
-            cpu_dataset = ensure_cpu_wandb_dataset(account, credentials, username)
+            cpu_dataset = ensure_cpu_wandb_dataset(account, credentials, username, args.credential_timeout_seconds)
         spec.update({"cpu_visualize": True,
-                     "pipeline_credential_dataset": ensure_pipeline_dataset(account, username),
+                     "pipeline_credential_dataset": ensure_pipeline_dataset(account, username, args.credential_timeout_seconds),
                      "cpu_credential_dataset": cpu_dataset,
                      "cpu_eval": {"episodes": config.runtime.eval_episodes, "seed": config.runtime.eval_seed,
                                   "frame_stride": 5, "fps": 10}})
@@ -101,7 +101,7 @@ def launch(args, credentials):
         _, repository = ensure_private_store(config)
         storage_token, _ = storage_credentials(config)
         spec["checkpoint_repo"] = repository
-        spec["storage_credential_dataset"] = ensure_storage_dataset(account, username, storage_token)
+        spec["storage_credential_dataset"] = ensure_storage_dataset(account, username, storage_token, args.credential_timeout_seconds)
     serialized = json.dumps(spec)
     if any(secret in serialized for secret in [credentials.wandb_key, *(a.token for a in credentials.accounts), *([storage_token] if storage_token else [])]):
         raise RuntimeError("Refusing a job manifest containing credentials")
