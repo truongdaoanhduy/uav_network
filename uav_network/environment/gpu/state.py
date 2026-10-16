@@ -27,6 +27,7 @@ class WorldParams:
     payload_bytes: wp.int32
     max_retries: wp.int32
     ack_uses_data_power: wp.int32
+    propagation_delay_enabled: wp.int32
     cw_min: wp.int32
     event_capacity: wp.int32
     packet_capacity: wp.int32
@@ -68,6 +69,8 @@ class WorldParams:
     noise_power: wp.float64
     sinr_threshold: wp.float64
     cca_threshold: wp.float64
+    nlos_exponent: wp.float64
+    nlos_excess_loss_db: wp.float64
     nlos_scale: wp.float64
     slot: wp.float64
     sifs: wp.float64
@@ -149,6 +152,7 @@ class WorldState:
     tx_power: wp.array2d(dtype=wp.float64)
     tx_created: wp.array2d(dtype=wp.float64)
     tx_report_created: wp.array2d(dtype=wp.float64)
+    tx_propagation_delay: wp.array3d(dtype=wp.float64)
     pair_gain: wp.array2d(dtype=wp.float64)
     pair_time: wp.array2d(dtype=wp.float64)
     trace_time: wp.array2d(dtype=wp.float64)
@@ -222,8 +226,7 @@ def params_from_config(config):
     w, c, n, en, r = config.world, config.sensor, config.network, config.energy, config.reward
     if n.max_retries > 26:
         raise NotImplementedError("warp_packet supports max_retries<=26; larger retries need multiword getrandbits")
-    if n.nlos_model != "urban":
-        raise NotImplementedError("warp_packet requires native urban NLOS (native free_space NLOS is undefined)")
+    nlos_exponent, nlos_excess_db = {"urban": (3.0, 12.0), "suburban": (2.6, 8.0)}[n.nlos_model]
     p = WorldParams()
     values = dict(n=w.num_uavs, targets_count=w.num_targets, obstacles_count=w.num_obstacles,
                   max_steps=w.max_steps, motion_safety=int(w.motion_safety == "dynamic_window"),
@@ -234,7 +237,8 @@ def params_from_config(config):
                   network_enabled=int(n.enabled), placement_attempts=w.placement_attempts,
                   polygon_sides=n.obstacle_polygon_sides, max_queue_packets=n.max_queue_packets,
                   payload_bytes=n.payload_bytes, max_retries=n.max_retries,
-                  ack_uses_data_power=int(n.ack_uses_data_power), cw_min=31,
+                  ack_uses_data_power=int(n.ack_uses_data_power),
+                  propagation_delay_enabled=int(n.propagation_delay_enabled), cw_min=31,
                   coalesce_idle_polls=int(config.runtime.coalesce_idle_polls),
                   map_size=w.map_size_m, dt=w.dt_s, max_speed=w.max_speed_mps,
                   max_accel=w.max_accel_mps2, safety_distance=w.safety_distance_m,
@@ -253,14 +257,19 @@ def params_from_config(config):
                   noise_power=10 ** ((n.noise_density_dbm_hz + 10*np.log10(n.bandwidth_hz)
                                      + n.noise_figure_db - 30)/10),
                   sinr_threshold=n.sinr_threshold_db, cca_threshold=n.cca_threshold_dbm,
-                  nlos_scale=10 ** (-(12 + n.obstacle_extra_loss_db)/10),
+                  nlos_exponent=nlos_exponent, nlos_excess_loss_db=nlos_excess_db,
+                  nlos_scale=10 ** (-(nlos_excess_db + n.obstacle_extra_loss_db)/10),
                   slot=20., sifs=10., difs=50., ack_bits=240., header_bits=464.,
                   reward_discovery=r.discovery, reward_delivery=r.delivery,
                   reward_blocked=r.blocked_motion, reward_expired=r.expired_report,
                   reward_dropped=r.dropped_report, reward_step=r.step_cost,
                   reward_communication=r.communication_energy, reward_propulsion=r.propulsion_energy_per_kj)
     gcs = w.gcs_position_m or [w.map_size_m/2, 0.]
-    values.update(gcs_x=gcs[0], gcs_y=gcs[1], ack_timeout=240/n.bit_rate_bps*1e6+60,
+    ack_timeout = 240/n.bit_rate_bps*1e6+60
+    if n.propagation_delay_enabled:
+        max_distance = np.sqrt(2*w.map_size_m**2+c.altitude_m**2)
+        ack_timeout += 2*max_distance/299_792_458.0*1e6
+    values.update(gcs_x=gcs[0], gcs_y=gcs[1], ack_timeout=ack_timeout,
                   retention=2*(n.payload_bytes*8+192)/n.bit_rate_bps*1e6,
                   fragments=(n.report_bytes+n.payload_bytes-1)//n.payload_bytes)
     values.update(packet_capacity=w.num_uavs*(n.max_queue_packets+2),
@@ -316,6 +325,7 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False):
         shapes[name] = ((e,n,t), wp.int32)
     shapes["report_created"] = ((e,n,t), wp.float64)
     shapes["trace_report"] = ((e,p.trace_capacity if trace else 0,9), wp.float64)
+    shapes["tx_propagation_delay"] = ((e,p.frame_capacity,n+1) if p.propagation_delay_enabled else (e,0,n+1), wp.float64)
     shapes["report_order"] = ((e,n,t), wp.int64)
     for name in ("steps","terminated","blocked","clipped","errors","event_count","frame_count",
                  "trace_count","report_delivery_count","coalesce_step"):

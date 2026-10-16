@@ -4,6 +4,7 @@ from ...environment.gpu.state import WorldParams, WorldState
 from .reports import active
 
 PI = wp.constant(wp.float64(3.141592653589793))
+C = wp.constant(wp.float64(299792458.0))
 
 
 @wp.func
@@ -12,6 +13,16 @@ def xy(s: WorldState, p: WorldParams, e: int, node: int) -> wp.vec2d:
     if node < p.n:
         point = wp.vec2d(s.positions[e,node])
     return point
+
+
+@wp.func
+def link_distance(s: WorldState, p: WorldParams, e: int, first: int, second: int) -> wp.float64:
+    a = xy(s,p,e,first)
+    b = xy(s,p,e,second)
+    dz = wp.float64(0)
+    if (first == p.n) != (second == p.n):
+        dz = p.altitude
+    return wp.sqrt(wp.dot(a-b,a-b)+dz*dz)
 
 
 @wp.func
@@ -60,14 +71,11 @@ def gain(s: WorldState, p: WorldParams, e: int, transmitter: int, receiver: int,
         or now-s.pair_time[e,index] >= wp.float64(100000)
         or wp.length(a-s.pair_transmitter[e,index]) >= wp.float64(1)
         or wp.length(b-s.pair_receiver[e,index]) >= wp.float64(1)):
-        dz = wp.float64(0)
-        if (transmitter == p.n) != (receiver == p.n):
-            dz = p.altitude
-        distance = wp.max(wp.float64(1),wp.sqrt(wp.dot(a-b,a-b)+dz*dz))
-        reference = (wp.float64(299792458)/p.frequency/(wp.float64(4)*PI))**wp.float64(2)
+        distance = wp.max(wp.float64(1),link_distance(s,p,e,transmitter,receiver))
+        reference = (C/p.frequency/(wp.float64(4)*PI))**wp.float64(2)
         result = reference*distance**wp.float64(-2)
         if not los(s,p,e,a,b):
-            result = reference*distance**wp.float64(-3)*p.nlos_scale
+            result = reference*distance**(-p.nlos_exponent)*p.nlos_scale
         s.pair_gain[e,index] = result
         s.pair_time[e,index] = now
         s.pair_transmitter[e,index] = a
@@ -76,15 +84,41 @@ def gain(s: WorldState, p: WorldParams, e: int, transmitter: int, receiver: int,
 
 
 @wp.func
+def propagation_delay_us(s: WorldState, p: WorldParams, e: int, frame: int, node: int) -> wp.float64:
+    if p.propagation_delay_enabled != 0:
+        return s.tx_propagation_delay[e,frame,node]
+    return wp.float64(0)
+
+
+@wp.func
+def arrival_start(s: WorldState, p: WorldParams, e: int, frame: int, node: int) -> wp.float64:
+    return s.tx_start[e,frame]+propagation_delay_us(s,p,e,frame,node)
+
+
+@wp.func
+def arrival_end(s: WorldState, p: WorldParams, e: int, frame: int, node: int) -> wp.float64:
+    return s.tx_end[e,frame]+propagation_delay_us(s,p,e,frame,node)
+
+
+@wp.func
+def latest_arrival_end(s: WorldState, p: WorldParams, e: int, frame: int) -> wp.float64:
+    result = s.tx_end[e,frame]
+    if p.propagation_delay_enabled != 0:
+        for node in range(p.n+1):
+            result = wp.max(result,s.tx_end[e,frame]+s.tx_propagation_delay[e,frame,node])
+    return result
+
+
+@wp.func
 def busy(s: WorldState, p: WorldParams, e: int, node: int, now: wp.float64) -> bool:
     power = wp.float64(0)
     for k in range(s.frame_count[e]):
         j = s.frame_order[e,k]
         if (s.tx_source[e,j] != node
-            and s.tx_start[e,j] <= now and now < s.tx_end[e,j]):
+            and arrival_start(s,p,e,j,node) <= now and now < arrival_end(s,p,e,j,node)):
             power += s.tx_power[e,j]*gain(s,p,e,s.tx_source[e,j],node,now)
     if power <= wp.float64(0):
-        return wp.float64(-200) >= p.cca_threshold
+        return False
     return wp.float64(10)*wp.log10(power*wp.float64(1000)) >= p.cca_threshold
 
 
@@ -107,7 +141,7 @@ def emit(s: WorldState, p: WorldParams, e: int, packet: int, source: int, destin
     retained = int(0)
     for k in range(s.frame_count[e]):
         j = s.frame_order[e,k]
-        if s.tx_end[e,j] >= now-p.retention:
+        if latest_arrival_end(s,p,e,j) >= now-p.retention:
             s.frame_order[e,retained] = j
             retained += 1
         else:
@@ -146,6 +180,9 @@ def emit(s: WorldState, p: WorldParams, e: int, packet: int, source: int, destin
     s.tx_power[e,frame] = power
     s.tx_start[e,frame] = now
     s.tx_end[e,frame] = now+bits/p.bit_rate*wp.float64(1e6)
+    if p.propagation_delay_enabled != 0:
+        for node in range(p.n+1):
+            s.tx_propagation_delay[e,frame,node] = link_distance(s,p,e,source,node)/C*wp.float64(1e6)
     s.tx_created[e,frame] = s.pkt_created[e,packet]
     s.tx_report_created[e,frame] = s.pkt_report_created[e,packet]
     s.tx_receive[e,frame] = 0
@@ -166,15 +203,17 @@ def emit(s: WorldState, p: WorldParams, e: int, packet: int, source: int, destin
 @wp.func
 def evaluate(s: WorldState, p: WorldParams, e: int, frame: int, now: wp.float64) -> bool:
     receiver = s.tx_destination[e,frame]
-    duration = s.tx_end[e,frame]-s.tx_start[e,frame]
+    start = arrival_start(s,p,e,frame,receiver)
+    end = arrival_end(s,p,e,frame,receiver)
+    duration = end-start
     signal = s.tx_power[e,frame]*gain(s,p,e,s.tx_source[e,frame],receiver,now)
     interference = wp.float64(0)
     collided = bool(False)
     for k in range(s.frame_count[e]):
         j = s.frame_order[e,k]
         if j != frame:
-            overlap = wp.max(wp.float64(0),wp.min(s.tx_end[e,frame],s.tx_end[e,j])
-                             -wp.max(s.tx_start[e,frame],s.tx_start[e,j]))
+            overlap = wp.max(wp.float64(0),wp.min(end,arrival_end(s,p,e,j,receiver))
+                             -wp.max(start,arrival_start(s,p,e,j,receiver)))
             if overlap > wp.float64(0):
                 collided = True
                 interference += s.tx_power[e,j]*gain(s,p,e,s.tx_source[e,j],receiver,now)*(overlap/duration)

@@ -29,8 +29,9 @@ class RuntimeTests(unittest.TestCase):
 
     def test_motion_gpu_profile_uses_parallel_off_policy_training_budget(self):
         c = load_config("configs/motion-gpu.yaml")
-        self.assertEqual(c.world.num_targets, 25)
-        self.assertEqual(c.world.num_obstacles, 15)
+        self.assertEqual(c.world.num_targets, 35)
+        self.assertEqual(c.world.num_obstacles, 25)
+        self.assertTrue(c.network.propagation_delay_enabled)
         self.assertEqual(c.runtime.num_envs, 512)
         self.assertEqual(c.runtime.log_interval_steps, 51200)
         self.assertEqual(c.runtime.episodes, 4096)

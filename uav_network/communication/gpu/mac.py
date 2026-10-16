@@ -4,7 +4,7 @@ from ...environment.gpu.state import WorldParams, WorldState
 from .rng import seed_mt, randbelow
 from .reports import (active, bytes_used, can_receive, discard_sessions, transfer,
                       begin_step, sense_reports, masked_sense_reports, end_step)
-from .phy import xy, busy, emit, evaluate
+from .phy import xy, busy, emit, evaluate, arrival_end, latest_arrival_end
 from .events import push, pop
 
 # Preserve CPython scalar FP64 operation boundaries on CUDA as well as CPU.
@@ -68,7 +68,7 @@ def inject(s: WorldState, p: WorldParams, e: int, source: int, dest: int,
                     if (s.tx_active[e,frame] != 0 and s.tx_packet[e,frame] == j
                         and s.tx_generation[e,frame] == s.pkt_generation[e,j]
                         and (s.tx_receive[e,frame] == 1 or s.tx_receive[e,frame] == 2
-                             or (s.tx_receive[e,frame] < 3 and s.tx_end[e,frame] >= now))):
+                             or (s.tx_receive[e,frame] < 3 and latest_arrival_end(s,p,e,frame) >= now))):
                         retained = True
                 if not retained:
                     slot = j
@@ -250,7 +250,7 @@ def event(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
         duration = (wp.float64(wp.min(p.payload_bytes,p.report_bytes-s.pkt_fragment[e,packet]*p.payload_bytes)*8)+p.header_bits)/p.bit_rate*wp.float64(1e6)
         push(s,p,e,now+duration,10,packet,generation,1)
         if frame >= 0:
-            push(s,p,e,now+duration,11,frame,0,1)
+            push(s,p,e,arrival_end(s,p,e,frame,dest),11,frame,0,1)
     elif kind == 10:
         packet = arg
         source = s.pkt_source[e,packet]
@@ -313,7 +313,7 @@ def event(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
         duration = p.ack_bits/p.bit_rate*wp.float64(1e6)
         push(s,p,e,now+duration,16,frame,0,1)
         if ack >= 0:
-            push(s,p,e,now+duration,11,ack,0,1)
+            push(s,p,e,arrival_end(s,p,e,ack,s.tx_source[e,frame]),11,ack,0,1)
     elif kind == 16:
         frame = arg
         node = s.tx_destination[e,frame]
@@ -451,7 +451,7 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
             s.selection_counts[e,2] += 1
     idle = p.coalesce_idle_polls != 0
     for frame in range(p.frame_capacity):
-        if s.tx_active[e,frame] != 0 and s.tx_end[e,frame] >= now:
+        if s.tx_active[e,frame] != 0 and latest_arrival_end(s,p,e,frame) >= now:
             idle = False
     for node in range(p.n+1):
         if (s.node_queue_count[e,node] > 0 or s.node_current[e,node] >= 0

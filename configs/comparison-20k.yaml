@@ -1,11 +1,12 @@
 # Matched BASE/PQL profile: only toggle pql.enabled for the architecture comparison.
 # Both algorithms receive the same episode budget, scenario, batch, replay and seed.
 world:
-  num_targets: 25
-  num_obstacles: 15
+  num_targets: 35
+  num_obstacles: 25
   max_steps: 1500
   motion_safety: dynamic_window
 network:
+  propagation_delay_enabled: true
   receiver_admission_mask: true
 masac:
   hidden_sizes: [256, 256]
@@ -40,7 +41,7 @@ runtime:
   log_interval_steps: 409600
   checkpoint_interval: 128
   max_train_seconds: 36000
-  output_dir: outputs/comparison-20k
+  output_dir: outputs/comparison-20k-t35-o25
 pql:
   enabled: false
   mode: async
@@ -61,5 +62,5 @@ tracking:
   project: auto
   checkpoint_repo: duy95/uav-search-checkpoints-public
   checkpoint_repo_private: false
-  group: uav-network-base-pql-20k-seed44
-  tags: [uav-network, base-pql-comparison, warp-packet, env4096, targets25, obstacles15, batch8192, episodes20000]
+  group: uav-network-base-pql-20k-seed44-t35-o25
+  tags: [uav-network, base-pql-comparison, warp-packet, env4096, targets35, obstacles25, batch8192, episodes20000]

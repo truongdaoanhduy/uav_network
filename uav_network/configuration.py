@@ -70,6 +70,7 @@ class NetworkConfig:
     noise_density_dbm_hz: float = -174.0
     noise_figure_db: float = 7.0
     nlos_model: str = "urban"
+    propagation_delay_enabled: bool = False  # Opt in for new studies; preserve saved legacy runs.
     obstacle_extra_loss_db: float = 0.0
 
 
@@ -253,8 +254,12 @@ class Config:
             raise ValueError("FOV must be strictly between 0 and 180 degrees")
         if n.tx_power_max_w < n.tx_power_min_w or n.buffer_bytes < n.report_bytes:
             raise ValueError("Invalid TX power range or buffer smaller than one report")
-        if n.obstacle_polygon_sides < 8 or n.nlos_model not in {"urban", "free_space"}:
-            raise ValueError("Invalid obstacle polygon or A2A NLOS model")
+        if n.obstacle_polygon_sides < 8:
+            raise ValueError("Invalid obstacle polygon")
+        if n.nlos_model not in {"urban", "suburban"}:
+            raise ValueError("network.nlos_model must be one of: urban, suburban")
+        if type(n.propagation_delay_enabled) is not bool:
+            raise ValueError("network.propagation_delay_enabled must be a boolean")
         if (not 0 <= a.gamma <= 1 or not 0 < a.tau <= 1
                 or not 0 <= a.target_discrete_entropy_ratio <= 1
                 or a.batch_size > a.replay_capacity):

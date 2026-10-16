@@ -14,11 +14,15 @@ from uav_network.experiments.training import train
 
 
 class Matched10kTests(unittest.TestCase):
-    def test_20k_profile_changes_only_requested_budget_and_public_checkpoint_visibility(self):
+    def test_20k_profile_preserves_training_controls_and_uses_new_scenario(self):
         base = load_config("configs/comparison-10k.yaml", ["pql.enabled=false"])
         longer = load_config("configs/comparison-20k.yaml", ["pql.enabled=false"])
         self.assertEqual(longer.runtime.episodes, 20000)
         self.assertEqual(longer.world.max_steps, 1500)
+        self.assertEqual((base.world.num_targets, base.world.num_obstacles), (25, 15))
+        self.assertEqual((longer.world.num_targets, longer.world.num_obstacles), (35, 25))
+        self.assertFalse(base.network.propagation_delay_enabled)
+        self.assertTrue(longer.network.propagation_delay_enabled)
         self.assertFalse(longer.tracking.checkpoint_repo_private)
         self.assertEqual(longer.tracking.checkpoint_repo, 'duy95/uav-search-checkpoints-public')
         self.assertEqual(longer.runtime.num_envs, base.runtime.num_envs)

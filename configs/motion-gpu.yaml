@@ -1,4 +1,4 @@
-# GPU-resident off-policy training preset for the 25-target/15-obstacle mission.
+# GPU-resident off-policy training preset for the 35-target/25-obstacle mission.
 # 512 parallel envs keep collection highly parallel without overwhelming the learner.
 # 16 learner updates per vector step with batch=envs=512 gives 16 replay-sample
 # usages per newly collected transition. This is an aggressive high-reuse setting
@@ -6,11 +6,12 @@
 # SAC/TD3 algorithmic internals (gamma/tau/policy_delay/noise) remain unchanged.
 # Use --cpu-visualize in the Kaggle launcher for a separate CPU-only session.
 world:
-  num_targets: 25
-  num_obstacles: 15
+  num_targets: 35
+  num_obstacles: 25
   max_steps: 1000
   motion_safety: dynamic_window
 network:
+  propagation_delay_enabled: true
   receiver_admission_mask: true
 masac:
   hidden_sizes: [256, 256]
@@ -41,11 +42,11 @@ runtime:
   log_interval_steps: 51200  # 100 vector steps
   checkpoint_interval: 128
   max_train_seconds: 36000
-  output_dir: outputs/motion-gpu
+  output_dir: outputs/motion-gpu-t35-o25
 tracking:
   evaluation_interval: 0
   enabled: true
   entity: auto
   project: auto
-  group: uav-network-gpu-packet
-  tags: [uav-network, 2d, fov, warp-packet, kaggle, vectorized-critics, gpu-env, env512, targets25, obstacles15, high-reuse-u16]
+  group: uav-network-gpu-packet-t35-o25
+  tags: [uav-network, 2d, fov, warp-packet, kaggle, vectorized-critics, gpu-env, env512, targets35, obstacles25, high-reuse-u16]

@@ -30,7 +30,7 @@ def network_info(s, p, index=0):
         "uav_communication_energy_j": float(energy[:-1].sum()),
         "gcs_communication_energy_j": float(energy[-1]),
         "energy_blocked_transmissions": int(counts[5]),
-        "obstacle_extra_loss_db": -10*math.log10(p.nlos_scale)-12,
+        "obstacle_extra_loss_db": -10*math.log10(p.nlos_scale)-p.nlos_excess_loss_db,
         "payload_throughput_kbps": int(counts[6])*8/max(elapsed,1e-12)/1000,
         "targets_delivered": int(row(s.delivered,index).sum()),
         "report_e2e_delay_s": float(row(s.report_delay_sum,index))/max(delivered,1),
