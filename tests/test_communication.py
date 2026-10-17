@@ -7,6 +7,7 @@ import numpy as np
 from uav_network.configuration import Config
 from uav_network.environment.env import Action, SwarmSearchEnv
 from uav_network.communication.backend import UavNetSimNetwork
+from uav_network.environment.observations import destination_mask
 
 
 def network_config(**network):
@@ -66,6 +67,43 @@ class CommunicationTests(unittest.TestCase):
         env.step(actions(2))
         self.assertIn(0, env.reports.buffers[0])
         self.assertEqual(env.network.metrics()["generated_packets"], 0)
+
+    def test_v2_low_power_near_success_far_failure_and_high_power_recovery(self):
+        def scenario(y):
+            c = Config()
+            c.world.num_uavs, c.world.num_targets, c.world.num_obstacles = 2, 1, 0
+            c.world.max_steps = 20
+            c.sensor.altitude_m = 20
+            c.network.gcs_range_m = c.network.peer_range_m = 500
+            c.network.tx_power_min_w, c.network.tx_power_max_w = 0.001, 0.4
+            c.network.tx_power_mapping = "log"
+            c.network.power_limited_admission = True
+            return c, [[500, y], [900, 900]]
+
+        c, positions = scenario(150)
+        env = self.prepare(c, positions)
+        _, _, _, _, info = env.step(actions(2, power=-1))
+        self.assertTrue(env.reports.delivered[0])
+        self.assertAlmostEqual(info["network"]["diagnostics"]["data_tx_power_w"]["mean"], 0.001)
+        env.close(); self.env = None
+
+        c, positions = scenario(400)
+        env = self.prepare(c, positions)
+        self.assertTrue(destination_mask(env)[0, -1], "Pmax makes this link nominally feasible")
+        _, _, _, _, info = env.step(actions(2, power=-1))
+        self.assertFalse(env.reports.delivered[0])
+        self.assertIn(0, env.reports.buffers[0])
+        d = info["network"]["diagnostics"]
+        self.assertGreater(d["data_weak_signal_failures"], 0)
+        self.assertGreater(d["data_retries"], 0)
+        self.assertAlmostEqual(d["data_tx_power_w"]["mean"], 0.001)
+        env.close(); self.env = None
+
+        c, positions = scenario(400)
+        env = self.prepare(c, positions)
+        _, _, _, _, info = env.step(actions(2, power=1))
+        self.assertTrue(env.reports.delivered[0])
+        self.assertAlmostEqual(info["network"]["diagnostics"]["data_tx_power_w"]["mean"], 0.4)
 
     def test_failed_phy_attempt_consumes_action_power_and_retains_report(self):
         energies = []

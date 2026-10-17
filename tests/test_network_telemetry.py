@@ -45,6 +45,25 @@ class NetworkTelemetryTests(unittest.TestCase):
         self.assertEqual(d["data_peer_tx_power_w"]["count"], 0)
         self.assertEqual(d["data_gcs_tx_power_w"]["count"], d["data_attempts"])
 
+    def test_v2_high_power_nominally_feasible_links_can_still_fail_from_interference(self):
+        from uav_network.communication.link_budget import nominal_required_power_w
+        c = config(cca_threshold_dbm=-30)
+        c.world.num_targets = 2
+        c.network.tx_power_min_w, c.network.tx_power_max_w = 0.001, 0.4
+        c.network.tx_power_mapping = "log"
+        c.network.power_limited_admission = True
+        positions = [[500,100],[550,100]]
+        targets = [positions[0],positions[1]]
+        for source in positions:
+            required = nominal_required_power_w(source, [500,0], [], c.network,
+                                                c.sensor.altitude_m, True)
+            self.assertLess(required, c.network.tx_power_max_w)
+        env = self.native(c, positions=positions, targets=targets)
+        d = self.step(env, [2,2], 1)["network"]["diagnostics"]
+        self.assertGreater(d["data_interference_failures"], 0)
+        self.assertGreater(d["data_attempts"], 0)
+        self.assertAlmostEqual(d["data_tx_power_w"]["mean"], 0.4)
+
     def test_conditional_delivery_hops_and_report_age_are_undefined_until_delivery(self):
         env = self.native()
         r = env.info()["report_diagnostics"]
