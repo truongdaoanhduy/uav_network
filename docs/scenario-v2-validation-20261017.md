@@ -57,7 +57,7 @@ The tiny returns are deliberately **not compared** because this smoke is not a l
 
 Before freezing the V2 profile, the authoritative active suite completed:
 
-`444 passed, 47 skipped, 385 subtests passed in 231.76s`.
+`444 passed, 47 skipped, 385 subtests passed in 237.78s`.
 
 Task 6 focused profile/comparison checks completed `32 passed, 239 subtests passed`. Final review also made mean TX-power margin a **descriptive** metric: negative margin indicates under-power while excessive positive margin indicates waste, so paired comparison never uses it to auto-favor an algorithm.
 

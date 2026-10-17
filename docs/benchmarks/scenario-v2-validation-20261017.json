@@ -29,7 +29,7 @@
   },
   "tests": {
     "task6_focused": "32 passed, 239 subtests passed",
-    "authoritative_full": "444 passed, 47 skipped, 385 subtests passed in 231.76s",
+    "authoritative_full": "444 passed, 47 skipped, 385 subtests passed in 237.78s",
     "task7_micro_validation": "11 passed, 2 subtests passed",
     "tiny_learning_smoke": {
       "masac": {
