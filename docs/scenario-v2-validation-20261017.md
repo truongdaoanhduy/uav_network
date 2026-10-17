@@ -42,7 +42,7 @@ Explicit deterministic microtests verified:
 - peer custody telemetry distinguishes toward-GCS and away-from-GCS transfer;
 - shield correction is zero for pass-through/no-active cases and positive when safety changes the command.
 
-The explicit Task 7 validation set finished **10 passed, 2 subtests passed**.
+The explicit Task 7 validation set finished **11 passed, 2 subtests passed**.
 
 ## End-to-end learner smoke
 
