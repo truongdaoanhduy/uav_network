@@ -179,12 +179,16 @@ class TrackingConfig:
     tags: list = field(default_factory=lambda: ["uav-network", "2d", "fov", "uavnetsim"])
     log_checkpoint: bool = True
     checkpoint_upload_interval_seconds: float = 300.0
+    local_checkpoints_to_keep: int = 2
     checkpoint_store: str = "huggingface"
     checkpoint_repo: str = "auto"
     checkpoint_repo_private: bool = True
     system_metrics: bool = True
     artifact_timeout_seconds: int = 120
     evaluation_interval: int = 50
+    evaluation_interval_steps: int = 0  # Absolute joint transitions; zero disables.
+    periodic_evaluation_episodes: int = 5
+    periodic_evaluation_seed: int = 1000000044
     evaluation_timeout_seconds: int = 300
     diagnostic_window: int = 20
     delivery_gap_threshold_percent: float = 40.0
@@ -288,14 +292,21 @@ class Config:
             raise ValueError("vectorize_critics requires compile_models=false: eager vmap cannot wrap a compiled critic")
         if r.max_train_seconds < 0:
             raise ValueError("max_train_seconds must be nonnegative; zero disables the soft deadline")
-        if self.tracking.evaluation_interval < 0 or self.tracking.evaluation_timeout_seconds < 1:
-            raise ValueError("evaluation_interval must be nonnegative and evaluation timeout positive")
+        for name, minimum in (("evaluation_interval", 0), ("evaluation_interval_steps", 0),
+                              ("periodic_evaluation_episodes", 1), ("periodic_evaluation_seed", 0),
+                              ("evaluation_timeout_seconds", 1)):
+            value = getattr(self.tracking, name)
+            if type(value) is not int or value < minimum:
+                raise ValueError(f"Invalid evaluation setting {name}: expected integer >= {minimum}")
         if self.tracking.diagnostic_window < 2:
             raise ValueError("diagnostic_window must be at least two episodes")
         for value in (self.tracking.delivery_gap_threshold_percent, self.tracking.return_drop_threshold,
                       self.tracking.blocked_rate_threshold):
             if not math.isfinite(value) or value < 0:
                 raise ValueError("Diagnostic thresholds must be finite and nonnegative")
+        if (type(self.tracking.local_checkpoints_to_keep) is not int
+                or self.tracking.local_checkpoints_to_keep < 1):
+            raise ValueError("local_checkpoints_to_keep must be a positive integer")
         if self.tracking.checkpoint_store not in {"huggingface", "wandb"}:
             raise ValueError("checkpoint_store must be huggingface or legacy wandb")
         if (self.tracking.checkpoint_repo != "auto"

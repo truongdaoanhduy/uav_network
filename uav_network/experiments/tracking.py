@@ -9,6 +9,7 @@ from uuid import uuid4
 import numpy as np
 
 from .hardware import hardware_info
+from .telemetry import episode_telemetry
 
 
 def progress_metrics(observations, config):
@@ -70,6 +71,7 @@ def episode_metrics(record, num_uavs):
     result["reports/buffer_count"] = record.get("buffer_reports", 0)
     result["motion/final_mean_speed_mps"] = record.get("mean_speed_mps", 0)
     result["episode/termination_reason"] = record.get("termination_reason") or "unknown"
+    result.update(episode_telemetry(record))
     return result
 
 
@@ -171,6 +173,7 @@ class OnlineTracker:
             if os.environ.get("UAV_INPUT_ARTIFACT"):
                 self.run.use_artifact(os.environ["UAV_INPUT_ARTIFACT"], type="model")
             self.run.save(str(self.output / "diagnostics.jsonl"), base_path=str(self.output), policy="live")
+            self.run.save(str(self.output / "cohorts.jsonl"), base_path=str(self.output), policy="live")
             self.run.save(str(self.output / "resolved_config.yaml"), base_path=str(self.output), policy="now")
             self.run.summary.update({"run_started_at_utc": metadata["run_started_at_utc"],
                                      "training_mode": metadata["training_mode"],
@@ -181,6 +184,9 @@ class OnlineTracker:
                                      "workspace_url": default_workspace_url(entity, project)})
             self.run.define_metric("global_step")
             self.run.define_metric("*", step_metric="global_step", step_sync=True)
+            self.run.define_metric("evaluation/checkpoint_global_step")
+            for prefix in ("evaluation/*", "eval/*"):
+                self.run.define_metric(prefix, step_metric="evaluation/checkpoint_global_step", step_sync=True)
             (self.output / "wandb_run.json").write_text(json.dumps(self.identity(), indent=2))
             print(f"W&B Personal Workspace: {self.identity()['wandb_workspace_url']}", flush=True)
         except BaseException:

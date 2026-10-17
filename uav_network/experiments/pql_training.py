@@ -9,7 +9,9 @@ import torch
 import yaml
 
 from ..environment.vector import make_vector, random_actions, unpack_info
-from .diagnostics import TrainingDiagnostics, evaluate_checkpoint, failure_report
+from .diagnostics import TrainingDiagnostics, failure_report
+from .async_evaluation import AsyncCheckpointEvaluator
+from .local_checkpoints import prune_episode_checkpoints, disk_metrics
 from .pql_system import PQLSystem
 from .reproducibility import reproducibility_result
 from .tracking import final_metrics, progress_metrics, start_tracking
@@ -25,7 +27,7 @@ def train_pql(config):
     output.mkdir(parents=True, exist_ok=True)
     (output / "resolved_config.yaml").write_text(yaml.safe_dump(config.to_dict(), sort_keys=False))
     started = time.perf_counter()
-    engine = vector = tracker = None
+    engine = vector = tracker = evaluator = None
     completed_ok = False
     completed = global_step = collection_steps = 0
     history = []
@@ -37,11 +39,13 @@ def train_pql(config):
         completed, global_step, collection_steps = (initial[key] for key in ("episodes", "global_step", "collection_steps"))
         if completed >= config.runtime.episodes:
             raise ValueError("Requested episode budget must exceed completed checkpoint episodes")
+        diagnostics.start_windows(global_step)
         history = list(initial["records"])
         resumed = checkpoint != "none"
         initial["optimizer_replay_restored"] = resumed and len(engine.replay) > 0
         initial["state_restore"] = "training_state_environment_reset" if resumed else "fresh"
         tracker = start_tracking(config, output, initial_progress=initial)
+        evaluator = AsyncCheckpointEvaluator(config, output, tracker, diagnostics, global_step, completed)
         vector = make_vector(config, device=engine.collector_device)
         count = config.runtime.num_envs
         seeds = np.arange(count) + initial["next_seed"]
@@ -85,6 +89,7 @@ def train_pql(config):
             engine.critic.save(policy_path, progress=state)
             if tracker and not final:
                 tracker.checkpoint(policy_path, state)
+            prune_episode_checkpoints(output, config.tracking.local_checkpoints_to_keep)
             return state
 
         with (output / "episodes.jsonl").open("w") as stream:
@@ -117,6 +122,7 @@ def train_pql(config):
                     engine.flush()
                 with engine.condition:
                     latest = dict(engine.latest)
+                batch_records = []
                 for i in indices:
                     if completed >= config.runtime.episodes:
                         break
@@ -130,17 +136,32 @@ def train_pql(config):
                     encoded = json.dumps(record, allow_nan=False)
                     stream.write(encoded + "\n")
                     history.append(json.loads(encoded))
+                    batch_records.append(record)
                     values = diagnostics.episode(record)
                     if tracker:
                         tracker.episode(record)
                         tracker.diagnostic(values, global_step)
                 stream.flush()
+                values = diagnostics.batch(batch_records, global_step, final=final_batch,
+                    partial=len(batch_records) < len(indices))
+                if tracker and values:
+                    tracker.diagnostic(values, global_step)
+
+                def evaluation_source():
+                    snapshot, version = engine.policy_mailbox.read()
+                    return snapshot["actors"], version
+
+                evaluator.tick(global_step, completed, evaluation_source,
+                    {"episodes": completed, "global_step": global_step,
+                     "collection_steps": collection_steps, "next_seed": next_seed},
+                    allow_submit=not time_limit and (not config.runtime.max_train_seconds or
+                        time.perf_counter() - started + 10 < config.runtime.max_train_seconds))
                 obs = following
                 if global_step >= next_log or indices or final_batch:
                     values = engine.metrics()
                     if tracker:
                         tracker.learner(latest, global_step)
-                        tracker.diagnostic(values, global_step)
+                        tracker.diagnostic({**values, **disk_metrics(output)}, global_step)
                         tracker.progress(obs, global_step, completed, engine.critic, len(engine.replay), force=True)
                     print(json.dumps({"algorithm": config.runtime.algorithm, "architecture": "pql-inspired",
                                       "episodes": completed, "global_step": global_step,
@@ -158,9 +179,6 @@ def train_pql(config):
                     path = output / f"episode_{completed:06d}.pt"
                     save(path)
                     next_checkpoint = (completed // config.runtime.checkpoint_interval + 1) * config.runtime.checkpoint_interval
-                    interval = config.tracking.evaluation_interval
-                    if tracker and interval and completed % interval == 0:
-                        evaluate_checkpoint(config, path, completed, global_step, tracker, diagnostics)
                 if final_batch:
                     break
                 if indices:
@@ -174,6 +192,8 @@ def train_pql(config):
                     obs, _ = vector.reset(seed=reset_seeds, options={"reset_mask": reset_mask})
         final = output / "final.pt"
         save(final, final=True)
+        drain = min(10., max(0., config.runtime.max_train_seconds - (time.perf_counter() - started))) if config.runtime.max_train_seconds else 10.
+        evaluator.close(global_step, drain_seconds=drain)
         elapsed = time.perf_counter() - started
         result = {"checkpoint": str(final), "resume_checkpoint": str(output / "resume_latest.pt"),
                   "training_architecture": "pql-inspired", "pql_mode": config.pql.mode,
@@ -197,6 +217,9 @@ def train_pql(config):
                   "startup_s": startup_s, "elapsed_s": elapsed,
                   "joint_transitions_per_s": (global_step - initial["global_step"]) / max(elapsed, 1e-9),
                   "pql": engine.metrics(), "final_episode": history[-1] if history else None}
+        result["periodic_evaluation"] = dict(evaluator.counts)
+        result["storage"] = disk_metrics(output)
+        result["replay"] = engine.replay.stats()
         result["reproducibility"] = reproducibility_result(engine.critic, history)
         result["reproducibility"].update(scheduling_deterministic=not engine.asynchronous,
             scope=("Synchronous schedule requires identical source/settings/platform; resume resets simulators"
@@ -221,15 +244,20 @@ def train_pql(config):
         completed_ok = True
         return result
     except BaseException as error:
-        if engine and hasattr(engine, "failed_batch"):
-            torch.save(engine.failed_batch, output / "failed_batch.pt")
-        path = failure_report(config, output, error, {"global_step": global_step, "episodes": completed,
-                              "updates": engine.critic.updates if engine else 0,
-                              "training_architecture": "pql-inspired"})
-        if tracker:
-            tracker.failure(path, global_step)
+        try:
+            path = failure_report(config, output, error, {"global_step": global_step, "episodes": completed,
+                                  "updates": engine.critic.updates if engine else 0,
+                                  "training_architecture": "pql-inspired"})
+            if engine and hasattr(engine, "failed_batch"):
+                torch.save(engine.failed_batch, output / "failed_batch.pt")
+            if tracker:
+                tracker.failure(path, global_step)
+        except Exception as reporting_error:
+            print(f"Failure reporting also failed: {type(reporting_error).__name__}", flush=True)
         raise
     finally:
+        if evaluator is not None:
+            evaluator.close(global_step, drain_seconds=0)
         try:
             if engine:
                 engine.close()

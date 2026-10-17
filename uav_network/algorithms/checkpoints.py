@@ -1,4 +1,5 @@
 """Versioned policies and optional progress; Adam/replay are not serialized."""
+from contextlib import suppress
 from pathlib import Path
 import torch
 
@@ -29,8 +30,12 @@ def save_policy(learner, path, progress=None, *, training=None):
         saved["actor_updates"] = learner.actor_updates
     if progress is not None:
         saved["progress"] = progress
-    torch.save(saved, temporary)
-    temporary.replace(path)
+    try:
+        torch.save(saved, temporary)
+        temporary.replace(path)
+    finally:
+        with suppress(OSError):
+            temporary.unlink(missing_ok=True)
 
 
 def load_policy(path, device="cpu", expected_algorithm=None, *, payload=None):

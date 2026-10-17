@@ -10,7 +10,7 @@ import torch
 import yaml
 
 from ..algorithms.optimization import compile_models
-from ..algorithms.replay import TensorReplayBuffer
+from .pql_replay import MeasuredReplay
 from ..environment.observations import state_dim
 from ..environment.vector import make_vector, random_actions, unpack_info
 from .tracking import start_tracking, final_metrics
@@ -18,7 +18,9 @@ from .lifecycle import graceful_termination
 from .continuation import restore_learner
 from .fixed_checkpoints import save_fixed_checkpoint, restore_replay, restore_runtime_rng
 from .reproducibility import reproducibility_result
-from .diagnostics import TrainingDiagnostics, failure_report, evaluate_checkpoint
+from .diagnostics import TrainingDiagnostics, failure_report
+from .async_evaluation import AsyncCheckpointEvaluator
+from .local_checkpoints import prune_episode_checkpoints, disk_metrics
 
 
 def seed_runtime(config):
@@ -72,11 +74,12 @@ def _train(config):
     next_metrics_at = 0
     episode_seeds = np.arange(count) + config.runtime.seed
     episode_returns, episode_lengths = np.zeros(count), np.zeros(count, dtype=int)
-    tracker = vector = learner = None
+    tracker = vector = learner = evaluator = None
     completed_ok = False
     try:
         learner, initial = restore_learner(config, device)
         completed, global_step, collection_steps = (initial[k] for k in ("episodes", "global_step", "collection_steps"))
+        diagnostics.start_windows(global_step)
         initial_updates = learner.updates
         restored_training = initial.pop("_training", None)
         resumed = restored_training is not None
@@ -96,7 +99,7 @@ def _train(config):
             episode_lengths = torch.zeros(count,device=device,dtype=torch.int64)
         if config.runtime.compile_models:
             compile_models(learner)
-        replay = TensorReplayBuffer(settings.replay_capacity, obs["observation"].shape[1:],
+        replay = MeasuredReplay(settings.replay_capacity, obs["observation"].shape[1:],
                                     state_dim(config), config.runtime.seed, replay_device,
                                     pin_memory=device == "cuda" and replay_device == "cpu")
         rng = np.random.default_rng(config.runtime.seed + 1)
@@ -104,6 +107,7 @@ def _train(config):
             restore_replay(replay, restored_training["replay"])
         initial["optimizer_replay_restored"] = resumed
         tracker = start_tracking(config, output, initial_progress=initial)
+        evaluator = AsyncCheckpointEvaluator(config, output, tracker, diagnostics, global_step, completed)
         if restored_training:
             restore_runtime_rng(restored_training["rng"], rng, action_generator=getattr(vector, "action_generator", None))
         restored_training = None  # Release the CPU checkpoint copy after restoring replay.
@@ -133,7 +137,8 @@ def _train(config):
             update_s += time.perf_counter() - begin
             if checked:
                 if tracker:
-                    tracker.diagnostic({"timing/collector_wait_seconds": collection_wait_s,
+                    tracker.diagnostic({**replay.stats(), **disk_metrics(output),
+                                        "timing/collector_wait_seconds": collection_wait_s,
                                         "timing/learner_seconds": update_s,
                                         "train/sample_uses_per_new_transition":
                                             (learner.updates - initial_updates) * settings.batch_size /
@@ -194,7 +199,8 @@ def _train(config):
                     # The last collected batch has no following CPU step in
                     # which to execute its deferred updates; drain them here.
                     learn(force_metrics=final_batch)
-                checkpoint_events, evaluations = [], []
+                batch_records = []
+                before_completed = completed
                 for i in done_indices[:config.runtime.episodes - completed]:
                     completed += 1
                     info = unpack_info(infos, i)
@@ -208,6 +214,7 @@ def _train(config):
                     stream.write(encoded + "\n")
                     stream.flush()
                     history.append(json.loads(encoded))
+                    batch_records.append(record)
                     if tracker:
                         tracker.episode(record)
                         tracker.diagnostic(diagnostic_values, global_step)
@@ -224,25 +231,25 @@ def _train(config):
                                       "regenerated_reports": info["regenerated_reports"],
                                       "motion": info["motion_counts"],
                                       "routing": info["network"].get("selection_counts", {})}), flush=True)
-                    if completed % config.runtime.checkpoint_interval == 0:
-                        path = output / f"episode_{completed:06d}.pt"
-                        progress = save(path, full_state=False)
-                        checkpoint_events.append((path, progress))
-                    interval = config.tracking.evaluation_interval
-                    if tracker and interval and completed % interval == 0:
-                        path = output / f"episode_{completed:06d}.pt"
-                        if completed % config.runtime.checkpoint_interval != 0:
-                            save(path, full_state=False)
-                        evaluations.append((path, completed))
-                # A vector batch can cross many episode checkpoint boundaries.
-                if checkpoint_events or evaluations:
+                values = diagnostics.batch(batch_records, global_step, final=final_batch,
+                    partial=len(batch_records) < len(done_indices))
+                if tracker and values:
+                    tracker.diagnostic(values, global_step)
+                evaluator.tick(global_step, completed,
+                    lambda: (learner.actors.state_dict(), learner.actor_updates),
+                    {"episodes": completed, "global_step": global_step,
+                     "collection_steps": collection_steps, "next_seed": next_seed},
+                    allow_submit=not time_limit and (not config.runtime.max_train_seconds or
+                        time.perf_counter() - start + 10 < config.runtime.max_train_seconds))
+                # One policy per completed collection; every worker has identical weights here.
+                if completed // config.runtime.checkpoint_interval > before_completed // config.runtime.checkpoint_interval:
+                    path = output / f"episode_{completed:06d}.pt"
+                    progress = save(path, full_state=False)
                     save(output / "latest.pt", final=final_batch)
                     final_resume_saved = final_batch
-                for path, progress in checkpoint_events:
                     if tracker:
                         tracker.checkpoint(path, progress)
-                for path, episode in evaluations:
-                    evaluate_checkpoint(config, path, episode, global_step, tracker, diagnostics)
+                    prune_episode_checkpoints(output, config.tracking.local_checkpoints_to_keep)
                 obs = next_obs
                 if tracker:
                     tracker.progress(obs, global_step, completed, learner, len(replay), force=final_batch)
@@ -259,6 +266,8 @@ def _train(config):
                     obs, _ = vector.reset(seed=seeds, options={"reset_mask": reset_mask})
         checkpoint = output / "final.pt"
         save(checkpoint, final=True, full_state=not final_resume_saved)
+        drain = min(10., max(0., config.runtime.max_train_seconds - (time.perf_counter() - start))) if config.runtime.max_train_seconds else 10.
+        evaluator.close(global_step, drain_seconds=drain)
         elapsed = time.perf_counter() - start
         result = {"checkpoint": str(checkpoint), "resume_checkpoint": str(output / "resume_latest.pt"),
                   "algorithm": learner.algorithm,
@@ -279,6 +288,9 @@ def _train(config):
                   "startup_s": startup_s, "collection_wait_s": collection_wait_s, "learner_s": update_s,
                   "elapsed_s": elapsed, "joint_transitions_per_s": (global_step - initial["global_step"]) / elapsed,
                   "final_episode": history[-1] if history else None}
+        result["periodic_evaluation"] = dict(evaluator.counts)
+        result["storage"] = disk_metrics(output)
+        result["replay"] = replay.stats()
         result["reproducibility"] = reproducibility_result(learner, history)
         if history:
             result.update(final_metrics(history))
@@ -306,21 +318,24 @@ def _train(config):
             if learner is not None:
                 state = {name: tensor.detach().cpu() for name, tensor in learner.state_dict().items()}
                 bad_parameters = [name for name, tensor in state.items() if not torch.isfinite(tensor).all()]
-                torch.save({"model": state, "config": config.to_dict(), "updates": learner.updates,
-                            "snapshot_stage": "after_failure; optimizer may have partially updated"},
-                           output / "failure_state.pt")
             path = failure_report(config, output, error, {
                 "algorithm": config.runtime.algorithm, "global_step": global_step,
                 "episodes": completed, "updates": learner.updates if learner is not None else None,
                 "episode_seeds": episode_seeds.tolist(),
                 "last_learner_metrics": latest, "device": device,
                 "nonfinite_parameter_names": bad_parameters})
+            if learner is not None:
+                torch.save({"model": state, "config": config.to_dict(), "updates": learner.updates,
+                            "snapshot_stage": "after_failure; optimizer may have partially updated"},
+                           output / "failure_state.pt")
             if tracker:
                 tracker.failure(path, global_step)
         except Exception as reporting_error:
             print(f"Failure reporting also failed: {type(reporting_error).__name__}", flush=True)
         raise
     finally:
+        if evaluator is not None:
+            evaluator.close(global_step, drain_seconds=0)
         try:
             if vector is not None:
                 vector.close()

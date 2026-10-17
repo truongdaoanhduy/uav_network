@@ -12,17 +12,17 @@ from .dashboard_columns import VISIBLE_COLUMNS, save_with_visible_columns
 
 
 PANELS = {
-    "Mission outcomes": [
-        ("Team return", "episode/return"),
-        ("Found targets (%)", "outcome/search_rate_percent"),
-        ("Delivered targets (%)", "outcome/delivery_rate_percent"),
-        ("Mission success", "outcome/success"),
+    "Completed outcomes per transition window": [
+        ("Completed-outcome return", "cohort/return_mean"),
+        ("Completed-outcome discovery (%)", "cohort/search_rate_percent_mean"),
+        ("Completed-outcome delivery (%)", "cohort/delivery_rate_percent_mean"),
+        ("Completed-outcome success fraction", "cohort/success_mean"),
     ],
     "Report communication": [
-        ("Packet delivery (%)", "network/pdr_percent"),
-        ("Report delay (s)", "network/report_e2e_delay_s"),
+        ("Pooled packet delivery fraction", "cohort/network/packet_pdr_fraction"),
+        ("Delivered-report age (s)", "cohort/reports/delivered_report_age_mean_s"),
         ("Payload throughput (kbps)", "network/payload_throughput_kbps"),
-        ("Report hops", "network/report_average_hops"),
+        ("Delivered-report hops", "cohort/reports/delivery_hops_mean"),
     ],
     "Battery": [
         ("Total UAV energy (J)", "energy/total_uav_energy_j"),
@@ -35,8 +35,8 @@ PANELS = {
     ],
     "Learner": [("Actor loss", "learner/actor_loss"), ("Critic loss", "learner/critic_loss")],
     "Fixed-seed evaluation": [
-        ("Evaluation return", "eval/mean_return"),
-        ("Evaluation delivery (%)", "eval/mean_delivery_rate_percent"),
+        ("Validation return (fixed checkpoint)", "evaluation/mean_return"),
+        ("Validation delivery (%)", "evaluation/mean_delivery_rate_percent"),
     ],
     "Diagnostic alerts": [("Warning count", "diagnostics/warning_count")],
 }
@@ -61,6 +61,10 @@ DIAGNOSTIC_PANELS = {
         ("Fatal error", "diagnostics/fatal_error_count"),
     ],
 }
+
+
+def panel_axis(metric):
+    return "evaluation/checkpoint_global_step" if metric.startswith(("evaluation/", "eval/")) else "global_step"
 
 
 def run_filter(group, run_ids=()):
@@ -166,7 +170,7 @@ def create_dashboard(config, run_ids=(), name="UAV Network 2D - MASAC and MATD3"
     panels = PANELS if profile == "core" else DIAGNOSTIC_PANELS
     workspace.sections = [ws.Section(name=title, is_open=title not in
                                      ("Fixed-seed evaluation", "Diagnostic alerts"), panels=[
-        wr.LinePlot(title=label, x="global_step", y=[metric]) for label, metric in metrics
+        wr.LinePlot(title=label, x=panel_axis(metric), y=[metric]) for label, metric in metrics
     ]) for title, metrics in panels.items()]
     workspace.settings = ws.WorkspaceSettings(x_axis="global_step", max_runs=1000)
     workspace.runset_settings = ws.RunsetSettings(

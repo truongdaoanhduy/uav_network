@@ -8,6 +8,8 @@ from ..algorithms.checkpoints import load_policy
 from ..environment.env import SwarmSearchEnv
 from .rendering import COMMUNICATION_WINDOW_S, animation_frame, render_animation, render_episode
 from .comparison_metrics import MissionMetrics, evaluation_protocol, summarize_metrics
+from .evaluation_snapshots import load_evaluation_snapshot
+from .telemetry import OutcomePool
 
 
 def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=False,
@@ -18,7 +20,9 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=Fals
         raise ValueError("video_format must be auto, mp4 or gif")
     saved = torch.load(checkpoint, map_location="cpu", weights_only=True)
     progress = dict(saved.get("progress", {}))
-    learner = load_policy(checkpoint, device="cpu", payload=saved)
+    source = saved.get("source")
+    learner = (load_evaluation_snapshot(saved) if saved.get("purpose") == "evaluation_only"
+               else load_policy(checkpoint, device="cpu", payload=saved))
     del saved
     config = learner.config
     torch.set_num_threads(config.runtime.torch_threads)
@@ -70,6 +74,11 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=Fals
                   "protocol": evaluation_protocol(config, [r["seed"] for r in records], progress),
                   "metric_summary": summarize_metrics(records),
                   "records": records}
+        pool = OutcomePool()
+        pool.add(records)
+        result["pooled"] = pool.metrics()
+        if source is not None:
+            result["source"] = source
         if animate:
             events = [event for frame in frames for event in frame["communication_events"]]
             ledger = {"schema": 1, "seed": seed + episodes - 1,

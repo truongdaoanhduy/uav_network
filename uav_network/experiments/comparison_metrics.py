@@ -44,19 +44,26 @@ def evaluation_protocol(config, seeds, progress):
     earliest = min([config.runtime.seed, *history_seeds])
     interval = [earliest, next_seed - 1] if type(next_seed) is int else None
     overlap = any(interval[0] <= s <= interval[1] for s in seeds) if interval else None
-    periodic_eval = (config.tracking.enabled and config.tracking.evaluation_interval > 0
-                     and progress.get("episodes", 0) >= config.tracking.evaluation_interval)
-    validation_interval = ([config.runtime.eval_seed, config.runtime.eval_seed + config.runtime.eval_episodes - 1]
-                           if periodic_eval else None)
-    validation_overlap = (any(validation_interval[0] <= s <= validation_interval[1] for s in seeds)
-                          if validation_interval else False)
+    validation_intervals = []
+    if (config.tracking.enabled and config.tracking.evaluation_interval > 0
+            and progress.get("episodes", 0) >= config.tracking.evaluation_interval):
+        validation_intervals.append([config.runtime.eval_seed,
+                                     config.runtime.eval_seed + config.runtime.eval_episodes - 1])
+    if (config.tracking.evaluation_interval_steps > 0
+            and progress.get("global_step", 0) >= config.tracking.evaluation_interval_steps):
+        validation_intervals.append([config.tracking.periodic_evaluation_seed,
+                                     config.tracking.periodic_evaluation_seed +
+                                     config.tracking.periodic_evaluation_episodes - 1])
+    validation_interval = validation_intervals[0] if validation_intervals else None
+    validation_overlap = any(low <= seed <= high for low, high in validation_intervals for seed in seeds)
     # Earlier checkpoints may have used a different validation bank; old checkpoints lack that history.
     if config.runtime.warm_start_checkpoint != "none" and not validation_overlap:
         validation_overlap = None
-    return {"version": 2, "scenario_hash": digest, "scenario": scenario, "seeds": list(seeds),
+    return {"version": 3, "scenario_hash": digest, "scenario": scenario, "seeds": list(seeds),
             "deterministic_policy": True, "training_seed_interval_conservative": interval,
             "training_seed_overlap": overlap, "training_seed": config.runtime.seed,
             "validation_seed_interval_current": validation_interval,
+            "validation_seed_intervals_current": validation_intervals,
             "validation_seed_overlap": validation_overlap,
             "exposure_provenance": "resumed_history_incomplete" if config.runtime.warm_start_checkpoint != "none"
                                    else "saved_fresh_training_configuration",

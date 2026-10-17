@@ -4,24 +4,72 @@ from datetime import datetime, timezone
 import json
 import math
 import os
-import subprocess
-import sys
 from pathlib import Path
 import traceback
 
 import numpy as np
 
+from .telemetry import OutcomePool
+
 
 class TrainingDiagnostics:
-    def __init__(self, config, output):
+    def __init__(self, config, output, initial_step=0):
         self.settings = config.tracking
         self.output = Path(output)
         self.output.mkdir(parents=True, exist_ok=True)
         self.path = self.output / "diagnostics.jsonl"
         self.path.touch()
+        self.cohorts_path = self.output / "cohorts.jsonl"
+        self.cohorts_path.touch()
         self.window = deque(maxlen=2 * self.settings.diagnostic_window)
         self.warning_count = 0
         self.last_warning = {}
+        self.cohort_interval = config.world.max_steps * config.runtime.num_envs
+        self.start_windows(initial_step)
+
+    def start_windows(self, step):
+        self.cohort_start = step // self.cohort_interval * self.cohort_interval
+        self.cohort_partial = step != self.cohort_start
+        self.pool = OutcomePool()
+        self.previous_cohort = None
+
+    def batch(self, records, step, final=False, partial=False):
+        """Call once after ALL completed worlds in the collection have been consumed."""
+        values = {}
+        while step > self.cohort_start + self.cohort_interval:
+            values = self._finish_window(self.cohort_start + self.cohort_interval, False)
+        self.pool.add(records)
+        self.cohort_partial |= bool(partial)
+        if step == self.cohort_start + self.cohort_interval or final:
+            values = self._finish_window(step, final and step < self.cohort_start + self.cohort_interval)
+        return values
+
+    def _finish_window(self, step, partial):
+        partial = bool(partial or self.cohort_partial)
+        values = {f"cohort/{key}": value for key, value in self.pool.metrics().items()}
+        values.update({"cohort/source_start_step": self.cohort_start,
+                       "cohort/source_end_step": step, "cohort/partial": int(partial),
+                       "cohort/source": "completed_outcomes_in_absolute_transition_window"})
+        previous = self.previous_cohort
+        mean, n = values["cohort/return_mean"], values["cohort/episodes"]
+        ready = not partial and n >= self.settings.diagnostic_window
+        warning = False
+        if ready and previous is not None:
+            values["cohort/return_change"] = mean - previous["cohort/return_mean"]
+            warning = values["cohort/return_change"] < -self.settings.return_drop_threshold
+        values["diagnostics/return_drop_warning"] = int(warning)
+        if warning:
+            self.warning_count += 1
+            self.event("return_drop", step, {"previous_cohort": previous, "current_cohort": values.copy(),
+                       "interpretation": "Completed outcomes in distinct transition windows; observed symptom"})
+        self.previous_cohort = values.copy() if ready else None
+        values["diagnostics/warning_count"] = self.warning_count
+        with self.cohorts_path.open("a") as stream:
+            stream.write(json.dumps(values, allow_nan=False) + "\n")
+        self.pool = OutcomePool()
+        self.cohort_start = step
+        self.cohort_partial = False
+        return values
 
     def event(self, code, step, evidence, severity="warning"):
         event = {"timestamp_utc": datetime.now(timezone.utc).isoformat(),
@@ -49,6 +97,11 @@ class TrainingDiagnostics:
             values[f"rolling/{name}_rate"] = float(np.mean([
                 r.get(group, {}).get(count, 0) / max(1, components * r.get("episode_length", 1)
                                                   * r.get("num_uavs", 6)) for r in recent]))
+        if len(self.window) == 2 * n:
+            previous = list(self.window)[:n]
+            # Descriptive compatibility metric; regression warnings use closed cohorts.
+            values["rolling/return_change"] = values["rolling/return_mean"] - float(
+                np.mean([r["return"] for r in previous]))
         checks = {
             **{name: values[f"rolling/{name}_rate"] >= self.settings.blocked_rate_threshold
                for name in ("shield_intervention", "commanded_stall", "movement_saturation")},
@@ -63,11 +116,6 @@ class TrainingDiagnostics:
             "reward_accounting": any("reward_components" in r and not math.isclose(
                 sum(r["reward_components"].values()), r["return"], rel_tol=1e-6, abs_tol=1e-5) for r in recent),
         }
-        if len(self.window) == 2*n:
-            previous = list(self.window)[:n]
-            values["rolling/return_change"] = values["rolling/return_mean"] - float(
-                np.mean([r["return"] for r in previous]))
-            checks["return_drop"] = values["rolling/return_change"] < -self.settings.return_drop_threshold
         for code, condition in checks.items():
             active = bool(condition and (len(recent) >= n or code == "reward_accounting"))
             values[f"diagnostics/{code}_warning"] = int(active)
@@ -101,36 +149,6 @@ def failure_report(config, output, error, context):
               "error_type": type(error).__name__, "traceback": detail,
               "context": context, "root_cause_confirmed": False}
     path = Path(output) / "failure.json"
-    path.write_text(json.dumps(result, indent=2, allow_nan=False))
     print(json.dumps({"training_failure": result}), flush=True)
+    path.write_text(json.dumps(result, indent=2, allow_nan=False))
     return path
-
-
-def evaluate_checkpoint(config, checkpoint, episode, step, tracker, diagnostics):
-    """Separate CPU process preserves learner RNG and uses identical evaluation seeds."""
-    folder = Path(checkpoint).parent / "evaluations" / f"episode_{episode:06d}"
-    log = Path(checkpoint).parent / f"evaluation_{episode:06d}.log"
-    command = [sys.executable, "-m", "uav_network", "evaluate", "--checkpoint", str(checkpoint),
-               "--output-dir", str(folder), "--episodes", str(config.runtime.eval_episodes),
-               "--seed", str(config.runtime.eval_seed)]
-    try:
-        with log.open("w") as stream:
-            subprocess.run(command, stdout=stream, stderr=subprocess.STDOUT, check=True,
-                           timeout=config.tracking.evaluation_timeout_seconds)
-        result = json.loads((folder / "metrics.json").read_text())
-        metrics = {f"eval/{key}": result[key] for key in
-                   ("mean_return", "success_rate", "mean_search_rate_percent", "mean_delivery_rate_percent")}
-        for name, summary in result.get("metric_summary", {}).items():
-            value = summary.get("mean", summary.get("value"))
-            if value is not None:
-                metrics[f"eval/{name}"] = value
-        metrics.update({"eval/episodes": result["episodes"], "eval/seed": config.runtime.eval_seed,
-                        "eval/checkpoint_episode": episode})
-        tracker.diagnostic(metrics, step)
-        tracker.run.save(str(folder / "metrics.json"), base_path=str(diagnostics.output), policy="now")
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
-        diagnostics.event("evaluation_failed", step, {"episode": episode, "error_type": type(error).__name__,
-                                                     "log": str(log)}, severity="error")
-        tracker.diagnostic({"diagnostics/evaluation_failed": 1}, step)
-    finally:
-        tracker.run.save(str(log), base_path=str(diagnostics.output), policy="now")

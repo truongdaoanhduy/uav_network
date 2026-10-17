@@ -4,12 +4,16 @@ Purpose: use actual rollout, replay-batch and fixed-seed evaluation evidence to
 investigate weak learning. Warnings identify symptoms; they do not prove a
 particular code bug or guarantee discovery of every logical error.
 
+Diagnostics v1 adds actual-attempt telemetry, pooled completed-outcome windows
+and asynchronous actor-only CPU checkpoints. See [diagnostics-v1.md](diagnostics-v1.md)
+for units, denominators, seed banks, lifecycle and storage limits.
+
 ## Metric interpretation
 
 | Evidence | Metrics | Interpretation |
 |---|---|---|
 | Mission outcomes | episode/return, search/delivery/success | Higher return alone can hide poor delivery. Compare all three outcomes. |
-| Recent trend | rolling/return_mean/std/change, rolling/delivery_rate_percent | Non-overlapping window comparison; warm-start windows use new episodes only. |
+| Recent trend | cohort/return_mean/std, cohort/delivery_rate_percent_mean, cohort/episodes | Closed absolute transition windows; partial/n labels are explicit. Rolling episode metrics remain descriptive. |
 | Generalization | eval/mean_return, search/delivery/success | Deterministic CPU evaluation with the same held-out seeds every interval. |
 | Reward accounting | reward/discovery/delivery/blocked_motion/expired_report/dropped_report/propulsion_energy/communication_energy | Cumulative components should sum to the actual episode return. |
 | Critic | learner/q_mean/q_abs_max/target_mean/target_abs_max/td_error_abs_mean/max/twin_q_gap | Large Q/TD error or critic disagreement is evidence to inspect, not proof of divergence. |
@@ -47,14 +51,16 @@ A hard process/machine kill can prevent the final failure upload; periodic onlin
 checkpoints and prior console/diagnostic files are the durable evidence.
 
 Fixed-seed evaluation runs in a separate CPU process, preserving learner RNG.
-Default interval50 episodes, timeout300 seconds, runtime.eval_episodes=3,
-runtime.eval_seed=10044. Set tracking.evaluation_interval=0 to disable it.
+The legacy default interval is50 episodes with timeout300 seconds. Set
+tracking.evaluation_interval=0 to disable that schedule. The diagnostics-v1
+profile instead validates5 disjoint mini-bank seeds every7372800 joint
+transitions and retains the existing final30 CPU evaluation route.
 Evaluation failure is logged separately and does not silently become a good score.
 Evaluation consumes CPU time and is included in the job's wall-time budget.
 
 ## Reading the dashboard
 
-Start with fixed-seed delivery/success and rolling return. Then use reward,
+Start with fixed-checkpoint validation delivery/success and completed-outcome window return/counts. Then use reward,
 actions, network and energy to explain changes. For numerical failures, inspect
 Q/target/TD/gradient/entropy and failure.json + failed_batch.pt.
 Use the run's System tab for native CPU/GPU/VRAM telemetry and Logs for output.

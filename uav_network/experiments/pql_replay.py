@@ -1,4 +1,4 @@
-"""Single-writer joint replay with measured sampling age and unsampled evictions."""
+"""Single-writer replay; collection age is measured, policy age is unavailable."""
 import torch
 
 from ..algorithms.replay import TensorReplayBuffer
@@ -7,13 +7,12 @@ from ..algorithms.replay import TensorReplayBuffer
 class MeasuredReplay(TensorReplayBuffer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.born = torch.zeros(self.capacity, device=self.device, dtype=torch.int64)
+        self.born = torch.full((self.capacity,), -1, device=self.device, dtype=torch.int64)
         self.seen = torch.zeros(self.capacity, device=self.device, dtype=torch.bool)
         self.collections = self.inserted = self.sample_uses = 0
         self.overwritten = torch.zeros((), device=self.device, dtype=torch.int64)
-        self.unsampled = self.overwritten.clone()
-        self.age_sum = self.overwritten.clone()
-        self.age_max = self.overwritten.clone()
+        for name in ("unsampled", "age_sum", "age_max", "age_count", "measured_evictions", "known_rows"):
+            setattr(self, name, self.overwritten.clone())
 
     @property
     def allocated_bytes(self):
@@ -25,8 +24,11 @@ class MeasuredReplay(TensorReplayBuffer):
             raise ValueError("Replay insert must contain 1..capacity joint transitions")
         indices = (torch.arange(count, device=self.device) + self.index) % self.capacity
         occupied = (indices < self.size) if self.size < self.capacity else torch.ones_like(indices, dtype=torch.bool)
+        known = self.born[indices] >= 0
         self.overwritten += occupied.sum()
-        self.unsampled += (occupied & ~self.seen[indices]).sum()
+        self.measured_evictions += (occupied & known).sum()
+        self.unsampled += (occupied & known & ~self.seen[indices]).sum()
+        self.known_rows += (~known).sum()
         super().add_batch(*values)
         self.collections += 1
         self.inserted += count
@@ -37,30 +39,56 @@ class MeasuredReplay(TensorReplayBuffer):
         if batch_size < 1 or batch_size > self.size:
             raise ValueError("Not enough transitions for this batch")
         indices = torch.randint(self.size, (batch_size,), device=self.device, generator=self.rng)
-        # Unique indices avoid concurrent duplicate writes on CUDA.
         self.seen[indices.unique()] = True
-        age = self.collections - self.born[indices]
+        born = self.born[indices]
+        known = born >= 0
+        age = torch.where(known, self.collections - born, 0)
         self.age_sum += age.sum()
         self.age_max = torch.maximum(self.age_max, age.max())
+        self.age_count += known.sum()
         self.sample_uses += batch_size
-        return {name: array[indices] for name, array in self.data.items()}
+        result = {name: array[indices] for name, array in self.data.items()}
+        if self.pin_memory:
+            result = {name: value.pin_memory() for name, value in result.items()}
+        return result
 
     def stats(self):
-        overwritten, unsampled, age_sum, age_max = torch.stack(
-            [self.overwritten, self.unsampled, self.age_sum, self.age_max]).cpu().tolist()
+        overwritten, unsampled, age_sum, age_max, ages, evictions, known = torch.stack(
+            [self.overwritten, self.unsampled, self.age_sum, self.age_max, self.age_count,
+             self.measured_evictions, self.known_rows]).cpu().tolist()
         return {"replay/size": self.size, "replay/bytes": self.allocated_bytes,
                 "replay/inserted_rows": self.inserted, "replay/sample_uses": self.sample_uses,
                 "replay/overwritten_rows": overwritten, "replay/evicted_unsampled_rows": unsampled,
-                "replay/evicted_unsampled_fraction": unsampled / max(1, overwritten),
-                "replay/sample_age_mean_collections": age_sum / max(1, self.sample_uses),
-                "replay/sample_age_max_collections": age_max}
+                "replay/eviction_measured_rows": evictions,
+                "replay/evicted_unsampled_fraction": unsampled / evictions if evictions else None,
+                "replay/sample_age_measured_uses": ages,
+                "replay/sample_age_mean_collections": age_sum / ages if ages else None,
+                "replay/sample_age_max_collections": age_max if ages else None,
+                "replay/measurement_unknown_rows": self.size - known,
+                "replay/policy_age_available": 0}
+
+    def measurement_state(self):
+        result = {name: getattr(self, name) for name in (
+            "collections", "inserted", "sample_uses", "overwritten", "unsampled", "age_sum",
+            "age_max", "age_count", "measured_evictions", "known_rows")}
+        result.update(born=self.born[:self.size], seen=self.seen[:self.size])
+        return result
+
+    def load_measurement_state(self, saved):
+        for name in ("collections", "inserted", "sample_uses"):
+            setattr(self, name, saved[name])
+        for name in ("born", "seen"):
+            getattr(self, name)[:self.size].copy_(saved[name])
+        for name in ("overwritten", "unsampled", "age_sum", "age_max"):
+            getattr(self, name).copy_(saved[name])
+        # Original PQL checkpoints measured all their rows; old BASE has no metadata.
+        for name, fallback in (("age_count", saved["sample_uses"]),
+                               ("measured_evictions", saved["overwritten"]), ("known_rows", self.size)):
+            getattr(self, name).copy_(torch.as_tensor(saved.get(name, fallback), device=self.device))
 
     def state_dict(self):
         return {"capacity": self.capacity, "index": self.index, "size": self.size,
-                "collections": self.collections, "inserted": self.inserted, "sample_uses": self.sample_uses,
-                "rng": self.rng.get_state(), "born": self.born[:self.size], "seen": self.seen[:self.size],
-                "overwritten": self.overwritten, "unsampled": self.unsampled,
-                "age_sum": self.age_sum, "age_max": self.age_max,
+                "rng": self.rng.get_state(), **self.measurement_state(),
                 "data": {name: value[:self.size] for name, value in self.data.items()}}
 
     def load_state_dict(self, saved):
@@ -69,12 +97,7 @@ class MeasuredReplay(TensorReplayBuffer):
         if not 0 <= saved["index"] < self.capacity:
             raise ValueError("Invalid PQL replay cursor")
         self.index, self.size = saved["index"], saved["size"]
-        for name in ("collections", "inserted", "sample_uses"):
-            setattr(self, name, saved[name])
-        for name in ("born", "seen"):
-            getattr(self, name)[:self.size].copy_(saved[name])
-        for name in ("overwritten", "unsampled", "age_sum", "age_max"):
-            getattr(self, name).copy_(saved[name])
+        self.load_measurement_state(saved)
         for name, value in self.data.items():
             if saved["data"][name].shape != value[:self.size].shape:
                 raise ValueError("PQL replay checkpoint transition shape mismatch")

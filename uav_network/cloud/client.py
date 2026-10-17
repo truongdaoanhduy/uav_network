@@ -106,7 +106,7 @@ def private_dataset_file(account, ref, username, filenames, timeout=120, only_se
     with TemporaryDirectory(prefix="uav-wandb-check-") as temp:
         Path(temp).chmod(0o700)
         single_file_archive = len(files) == 1
-        selection = ["--unzip"] if single_file_archive else ["-f", selected[0]]
+        selection = ["-f", selected[0]]
         run_kaggle(["datasets", "download", "-d", ref, *selection, "-p", temp, "-q"],
                    account, timeout=timeout)
         if single_file_archive:

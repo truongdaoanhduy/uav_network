@@ -6,6 +6,7 @@ from .reports import (active, bytes_used, can_receive, discard_sessions, transfe
                       begin_step, sense_reports, masked_sense_reports, end_step)
 from .phy import xy, busy, emit, evaluate, arrival_end, latest_arrival_end
 from .events import push, pop
+from .telemetry import record_action
 from . import diagnostics as diag
 
 # Preserve CPython scalar FP64 operation boundaries on CUDA as well as CPU.
@@ -431,41 +432,7 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
     clear_pending(s,p,e,now/wp.float64(1e6))
     for source in range(p.n):
         index = int(destination[e,source])
-        if index == 0:
-            s.action_counts[e,0] += wp.int64(1)
-        elif index == p.n:
-            s.action_counts[e,2] += wp.int64(1)
-        else:
-            s.action_counts[e,1] += wp.int64(1)
-        for j in range(2):
-            if wp.abs(continuous[e,source,j]) >= wp.float32(0.99):
-                s.action_counts[e,3] += wp.int64(1)
-        if p.network_enabled != 0:
-            s.diagnostic_counts[e,diag.ACTION_SLOTS] += wp.int64(1)
-            if index == 0:
-                s.diagnostic_counts[e,diag.ACTION_SILENT] += wp.int64(1)
-            is_active = active(s,p,e,source)
-            if is_active:
-                s.diagnostic_counts[e,diag.ACTION_ACTIVE] += wp.int64(1)
-            bearing = is_active and bytes_used(s,p,e,source) > 0
-            eligible = bool(False)
-            if bearing:
-                s.diagnostic_counts[e,diag.ACTION_REPORT_BEARING] += wp.int64(1)
-                for receiver in range(p.n+1):
-                    if receiver != source and active(s,p,e,receiver):
-                        reach = p.peer_range
-                        if receiver == p.n:
-                            reach = p.gcs_range
-                        if wp.length(xy(s,p,e,source)-xy(s,p,e,receiver)) <= reach:
-                            for target in range(p.targets_count):
-                                if (s.report_present[e,source,target] != 0
-                                    and now/wp.float64(1e6)-s.report_created[e,source,target] < p.report_ttl
-                                    and can_receive(s,p,e,receiver,target)):
-                                    eligible = True
-            if eligible:
-                s.diagnostic_counts[e,diag.ACTION_RECEIVER_ELIGIBLE] += wp.int64(1)
-            else:
-                s.diagnostic_counts[e,diag.ACTION_NO_OPPORTUNITY] += wp.int64(1)
+        record_action(s,p,e,source,index,continuous,now)
         if p.network_enabled == 0 or index == 0:
             continue
         dest = p.n

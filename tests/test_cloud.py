@@ -126,13 +126,14 @@ class CloudTests(unittest.TestCase):
                 verify_credential_dataset(account, credentials, dataset.ref, "owner")
         self.assertEqual(len(calls), 3)
 
-    def test_verified_single_credential_downloads_one_file_archive(self):
+    def test_verified_single_credential_downloads_exact_named_file(self):
         from uav_network.cloud.client import private_dataset_file
         def kaggle(args, account, **kwargs):
             if args[:2] == ["datasets", "files"]:
                 return json.dumps([{"name": "uav_cpu_launch_token.txt"}])
-            self.assertNotIn("-f", args)
-            self.assertIn("--unzip", args)
+            self.assertIn("-f", args)
+            self.assertEqual(args[args.index("-f") + 1], "uav_cpu_launch_token.txt")
+            self.assertNotIn("--unzip", args)
             folder = Path(args[args.index("-p") + 1])
             (folder / "uav_cpu_launch_token.txt").write_text("test-launch-token")
             return ""

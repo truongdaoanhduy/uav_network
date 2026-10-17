@@ -2,8 +2,10 @@
 VISIBLE_COLUMNS = [
     "run:displayName", "run:state", "run:createdAt", "run:duration",
     "config:kaggle_account", "summary:train/episodes_completed",
-    "summary:episode/return", "summary:outcome/search_rate_percent",
-    "summary:outcome/delivery_rate_percent",
+    "summary:cohort/return_mean", "summary:cohort/episodes", "summary:cohort/partial",
+    "summary:cohort/source_end_step", "summary:cohort/search_rate_percent_mean",
+    "summary:cohort/delivery_rate_percent_mean", "summary:evaluation/mean_delivery_rate_percent",
+    "summary:evaluation/checkpoint_global_step", "summary:evaluation/episodes",
 ]
 
 

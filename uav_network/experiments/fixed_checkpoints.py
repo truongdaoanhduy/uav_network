@@ -10,9 +10,13 @@ from .pql_workers import optimizer_states, restore_optimizers
 
 
 def replay_state(replay):
-    return {"capacity": replay.capacity, "index": replay.index, "size": replay.size,
+    result = {"capacity": replay.capacity, "index": replay.index, "size": replay.size,
             "device_type": replay.device.type, "rng": replay.rng.get_state(),
             "data": {name: value[:replay.size].detach().cpu().clone() for name, value in replay.data.items()}}
+    if hasattr(replay, "measurement_state"):
+        result["measurement"] = {key: value.detach().cpu().clone() if isinstance(value, torch.Tensor) else value
+                                 for key, value in replay.measurement_state().items()}
+    return result
 
 
 def restore_replay(replay, saved):
@@ -30,6 +34,8 @@ def restore_replay(replay, saved):
         value[:saved["size"]].copy_(incoming)
     replay.rng.set_state(saved["rng"].cpu())
     replay.index, replay.size = saved["index"], saved["size"]
+    if hasattr(replay, "load_measurement_state") and "measurement" in saved:
+        replay.load_measurement_state(saved["measurement"])
 
 
 def runtime_rng_state(rng, *, action_generator=None):
