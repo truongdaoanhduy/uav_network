@@ -111,6 +111,17 @@ def transfer(s: WorldState, p: WorldParams, e: int, source: int, destination: in
     return True
 
 
+
+@wp.func
+def reset_reward_state(s: WorldState, e: int):
+    s.reward[e] = wp.float32(0)
+    s.shield_correction_step[e] = wp.float64(0)
+    s.shield_correction[e] = wp.float64(0)
+    for j in range(8):
+        s.before[e,j] = wp.float64(0)
+    for j in range(10):
+        s.reward_components[e,j] = wp.float64(0)
+
 @wp.kernel
 def begin_step(s: WorldState, p: WorldParams):
     e = wp.tid()
@@ -218,7 +229,9 @@ def end_step(s: WorldState, p: WorldParams):
     c5 = -p.reward_step
     c6 = -p.reward_communication*(comm-s.before[e,6])
     c7 = -p.reward_propulsion*(flight-s.before[e,5])/wp.float64(1000)
-    s.reward[e] = wp.float32(c0+c1+c2+c3+c4+c5+c6+c7)
+    c8 = -p.reward_communication_efficiency*(comm-s.before[e,6])/p.report_reference_tx_energy
+    c9 = -p.reward_shield_correction*s.shield_correction_step[e]
+    s.reward[e] = wp.float32(c0+c1+c2+c3+c4+c5+c6+c7+c8+c9)
     s.reward_components[e,0] += c0
     s.reward_components[e,1] += c1
     s.reward_components[e,2] += c2
@@ -227,4 +240,6 @@ def end_step(s: WorldState, p: WorldParams):
     s.reward_components[e,5] += c5
     s.reward_components[e,6] += c6
     s.reward_components[e,7] += c7
+    s.reward_components[e,8] += c8
+    s.reward_components[e,9] += c9
     s.terminated[e] = int(delivered == p.targets_count or live == 0 or s.steps[e] >= p.max_steps)

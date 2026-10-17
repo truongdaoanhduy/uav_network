@@ -5,6 +5,7 @@ import numpy as np
 
 from uav_network.configuration import Config
 from uav_network.environment.env import Action, SwarmSearchEnv
+from uav_network.communication.link_budget import report_reference_tx_energy_j
 
 
 def config(network=False, capacity=1000):
@@ -32,6 +33,53 @@ class EnergyTests(unittest.TestCase):
             "positions": positions or [[500, 100], [600, 100]],
             "targets": [target or [900, 900]], "obstacles": []})
         return self.env
+
+    def test_report_reference_energy_matches_data_fragment_airtime_at_pmax(self):
+        c = Config()
+        c.network.report_bytes = 2048
+        c.network.payload_bytes = 512
+        c.network.bit_rate_bps = 2_000_000.0
+        c.network.tx_power_max_w = 0.4
+        expected = 4 * (512 * 8 + 464) / 2_000_000.0 * 0.4
+        self.assertAlmostEqual(report_reference_tx_energy_j(c.network), expected, places=15)
+
+    def test_communication_efficiency_changes_reward_not_physical_battery(self):
+        def run(weight):
+            c = config(network=True, capacity=10)
+            c.energy.idle_power_w = c.energy.hover_power_w = 0
+            c.reward.communication_efficiency = weight
+            env = self.prepare(c, positions=[[500,100],[900,900]], target=[500,100])
+            action = Action(np.array([[0.,0.,1.],[0.,0.,0.]]), np.array([2,0]))
+            _, reward, _, _, info = env.step(action)
+            result = (reward, env.battery_j.copy(), info["network"]["uav_communication_energy_j"],
+                      dict(info["reward_components"]), report_reference_tx_energy_j(c.network))
+            env.close(); self.env = None
+            return result
+        base = run(0.0)
+        shaped = run(1.0)
+        np.testing.assert_allclose(base[1], shaped[1], rtol=0, atol=1e-12)
+        self.assertAlmostEqual(base[2], shaped[2], places=15)
+        expected_cost = shaped[2] / shaped[4]
+        self.assertAlmostEqual(shaped[0] - base[0], -expected_cost, places=10)
+        self.assertAlmostEqual(shaped[3]["communication_efficiency"], -expected_cost, places=10)
+        self.assertEqual(base[3]["communication_efficiency"], 0.0)
+
+    def test_retry_rf_energy_is_fully_charged_to_normalized_communication_cost(self):
+        c = config(network=True, capacity=10)
+        c.energy.idle_power_w = c.energy.hover_power_w = 0
+        c.network.tx_power_min_w, c.network.tx_power_max_w = 0.001, 0.4
+        c.network.tx_power_mapping = "log"
+        c.network.power_limited_admission = True
+        c.reward.communication_efficiency = 1.0
+        env = self.prepare(c, positions=[[500,400],[900,900]], target=[500,400])
+        action = Action(np.array([[0.,0.,-1.],[0.,0.,0.]]), np.array([2,0]))
+        _, _, _, _, info = env.step(action)
+        rf = info["network"]["uav_communication_energy_j"]
+        d = info["network"]["diagnostics"]
+        self.assertGreater(d["data_retries"], 0)
+        self.assertGreater(rf, 0)
+        expected = -rf / report_reference_tx_energy_j(c.network)
+        self.assertAlmostEqual(info["reward_components"]["communication_efficiency"], expected, places=10)
 
     def test_realized_motion_debits_propulsion_and_observation_charge(self):
         env = self.prepare(config())

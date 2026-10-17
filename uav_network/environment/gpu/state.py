@@ -4,6 +4,7 @@ import warp as wp
 
 from ..observations import observation_dim, state_dim
 from ...communication.diagnostics import COUNTERS, STATS
+from ...communication.link_budget import report_reference_tx_energy_j
 
 
 @wp.struct
@@ -93,6 +94,7 @@ class WorldParams:
     reward_propulsion: wp.float64
     reward_communication_efficiency: wp.float64
     reward_shield_correction: wp.float64
+    report_reference_tx_energy: wp.float64
 
 
 @wp.struct
@@ -152,6 +154,8 @@ class WorldState:
     report_hop_sum: wp.array(dtype=wp.float64)
     before: wp.array2d(dtype=wp.float64)
     reward_components: wp.array2d(dtype=wp.float64)
+    shield_correction_step: wp.array(dtype=wp.float64)
+    shield_correction: wp.array(dtype=wp.float64)
     event_time: wp.array2d(dtype=wp.float64)
     pkt_created: wp.array2d(dtype=wp.float64)
     pkt_deadline: wp.array2d(dtype=wp.float64)
@@ -281,7 +285,8 @@ def params_from_config(config):
                   reward_dropped=r.dropped_report, reward_step=r.step_cost,
                   reward_communication=r.communication_energy, reward_propulsion=r.propulsion_energy_per_kj,
                   reward_communication_efficiency=r.communication_efficiency,
-                  reward_shield_correction=r.shield_correction)
+                  reward_shield_correction=r.shield_correction,
+                  report_reference_tx_energy=report_reference_tx_energy_j(n))
     gcs = w.gcs_position_m or [w.map_size_m/2, 0.]
     ack_timeout = 240/n.bit_rate_bps*1e6+60
     if n.propagation_delay_enabled:
@@ -341,7 +346,8 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False):
         "state": ((e,state_dim(config)), wp.float32), "reward": ((e,), wp.float32),
         "pcg_state": ((e,4), wp.uint64), "seeds": ((e,), wp.int64),
         "motion_work": ((e,n,3), wp.vec2d), "motion_flags": ((e,n,5), wp.int32),
-        "before": ((e,8), wp.float64), "reward_components": ((e,8), wp.float64),
+        "before": ((e,8), wp.float64), "reward_components": ((e,10), wp.float64),
+        "shield_correction_step": ((e,), wp.float64), "shield_correction": ((e,), wp.float64),
         "packet_counts": ((e,8), wp.int32), "selection_counts": ((e,5), wp.int32),
         "action_counts": ((e,4), wp.int64), "mt": ((e,n+1,624), wp.uint32),
         "mt_index": ((e,n+1), wp.int32)}

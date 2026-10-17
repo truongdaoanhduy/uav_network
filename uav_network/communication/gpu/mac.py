@@ -3,7 +3,7 @@ import warp as wp
 from ...environment.gpu.state import WorldParams, WorldState
 from .rng import seed_mt, randbelow
 from .reports import (active, bytes_used, can_receive, discard_sessions, transfer,
-                      begin_step, sense_reports, masked_sense_reports, end_step)
+                      begin_step, sense_reports, masked_sense_reports, end_step, reset_reward_state)
 from .phy import xy, busy, emit, evaluate, arrival_end, latest_arrival_end
 from .events import push, pop
 from .telemetry import record_action
@@ -354,7 +354,7 @@ def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32))
         s.report_hop_sum[e] = wp.float64(0)
         s.report_delivery_count[e] = 0
         s.trace_count[e] = 0
-        s.reward[e] = wp.float32(0)
+        reset_reward_state(s,e)
         for j in range(diag.COUNTER_COUNT):
             s.diagnostic_counts[e,j] = wp.int64(0)
         for j in range(8):
@@ -398,8 +398,6 @@ def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32))
             s.motion_counts[e,j] = 0
         for j in range(8):
             s.packet_counts[e,j] = 0
-            s.reward_components[e,j] = wp.float64(0)
-            s.before[e,j] = wp.float64(0)
         for j in range(5):
             s.selection_counts[e,j] = 0
         for j in range(4):

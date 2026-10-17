@@ -15,11 +15,15 @@ def move_uavs(positions, velocities, acceleration, obstacles, config, disabled=N
         speed = np.linalg.norm(proposed_velocity, axis=1, keepdims=True)
         proposed_velocity *= np.minimum(1, w.max_speed_mps / np.maximum(speed, 1e-12))
     proposed_velocity[disabled] = 0
+    nominal_velocity = proposed_velocity.copy()
     shield = {f"shield_{name}": 0 for name in ("interventions", "obstacle_interventions",
               "peer_interventions", "boundary_interventions", "infeasible")}
     if w.motion_safety == "dynamic_window":
         proposed_velocity, shield = filter_velocities(positions, velocities, proposed_velocity,
                                                       obstacles, w, disabled)
+    active = ~disabled
+    shield_correction = (float(np.linalg.norm(proposed_velocity[active] - nominal_velocity[active], axis=1).mean()
+                               / w.max_speed_mps) if active.any() else 0.0)
     unbounded = positions + proposed_velocity * w.dt_s
     proposed = np.clip(unbounded, 0, w.map_size_m)
     proposed[disabled] = positions[disabled]
@@ -45,6 +49,7 @@ def move_uavs(positions, velocities, acceleration, obstacles, config, disabled=N
     actual_velocity = (resolved - positions) / w.dt_s
     if diagnostics is not None:
         diagnostics.update(shield)
+        diagnostics["shield_correction"] = shield_correction
         diagnostics.update(obstacle_blocks=int((obstacle_blocked & ~disabled).sum()),
                            peer_blocks=int((blocked & ~obstacle_blocked & ~disabled).sum()),
                            commanded_stalls=int(((np.linalg.norm(acceleration, axis=1) > .1)

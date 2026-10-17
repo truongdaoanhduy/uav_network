@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from ..communication.reports import ReportStore
+from ..communication.link_budget import report_reference_tx_energy_j
 from .energy import funded_motion
 from .observations import centralized_state, local_observations, observation_dim, state_dim
 from .sensing import visible_target_ids
@@ -85,6 +86,7 @@ class SwarmSearchEnv:
         self.motion_counts.update({f"shield_{name}": 0 for name in (
             "interventions", "obstacle_interventions", "peer_interventions",
             "boundary_interventions", "infeasible")})
+        self.motion_counts["shield_correction"] = 0.0
         self.reward_components = {}
         self.action_counts = {"silent": 0, "peer": 0, "gcs": 0, "saturated": 0}
         self._sense()
@@ -123,20 +125,27 @@ class SwarmSearchEnv:
         self.velocities[~self.active] = 0
         self.reports.expire(self.time_s)
         r = self.config.reward
+        communication_efficiency = (comm_energy / report_reference_tx_energy_j(self.config.network)
+                                    if comm_energy else 0.0)
+        shield_correction = float(motion_details.get("shield_correction", 0.0))
         reward = (r.discovery * (self.reports.known.any(axis=0).sum() - before_found)
                   + r.delivery * (self.reports.delivered.sum() - before_delivery)
                   - r.blocked_motion * blocked - r.step_cost
                   - r.expired_report * (self.reports.expired - before_expired)
                   - r.dropped_report * (self.reports.dropped - before_dropped)
                   - r.communication_energy * comm_energy
-                  - r.propulsion_energy_per_kj * flight_energy.sum() / 1000)
+                  - r.propulsion_energy_per_kj * flight_energy.sum() / 1000
+                  - r.communication_efficiency * communication_efficiency
+                  - r.shield_correction * shield_correction)
         components = {"discovery": r.discovery * (self.reports.known.any(axis=0).sum() - before_found),
                       "delivery": r.delivery * (self.reports.delivered.sum() - before_delivery),
                       "blocked_motion": -r.blocked_motion * blocked, "step_cost": -r.step_cost,
                       "expired_report": -r.expired_report * (self.reports.expired - before_expired),
                       "dropped_report": -r.dropped_report * (self.reports.dropped - before_dropped),
                       "communication_energy": -r.communication_energy * comm_energy,
-                      "propulsion_energy": -r.propulsion_energy_per_kj * flight_energy.sum() / 1000}
+                      "propulsion_energy": -r.propulsion_energy_per_kj * flight_energy.sum() / 1000,
+                      "communication_efficiency": -r.communication_efficiency * communication_efficiency,
+                      "shield_correction": -r.shield_correction * shield_correction}
         for key, value in components.items():
             self.reward_components[key] = self.reward_components.get(key, 0.0) + float(value)
         dest = np.asarray(action.destination)

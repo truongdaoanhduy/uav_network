@@ -93,6 +93,19 @@ class BoundaryEscapeTests(unittest.TestCase):
         np.testing.assert_array_equal(velocity, [[1., 2.]])
         np.testing.assert_array_equal(position, [[51., 52.]])
         self.assertEqual((blocked, clipped, diagnostics['shield_interventions']), (0, 0, 0))
+        self.assertEqual(diagnostics['shield_correction'], 0.0)
+
+    def test_shield_correction_is_positive_on_intervention_and_zero_with_no_active_uav(self):
+        c = config()
+        diagnostics = {}
+        move_uavs(np.array([[0., 50.]]), np.zeros((1,2)), np.array([[-1.,0.]]),
+                  np.empty((0,3)), c, diagnostics=diagnostics)
+        self.assertGreater(diagnostics['shield_correction'], 0.0)
+        self.assertTrue(np.isfinite(diagnostics['shield_correction']))
+        disabled = {}
+        move_uavs(np.array([[0., 50.]]), np.zeros((1,2)), np.array([[-1.,0.]]),
+                  np.empty((0,3)), c, disabled=np.array([True]), diagnostics=disabled)
+        self.assertEqual(disabled['shield_correction'], 0.0)
 
     @unittest.skipIf(wp is None, 'optional warp-lang dependency required')
     def test_warp_matches_native_escape_and_constrained_safety(self):

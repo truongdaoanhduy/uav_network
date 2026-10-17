@@ -3,6 +3,7 @@ import math
 
 C_M_S = 299_792_458.0
 NLOS = {"urban": (3.0, 12.0), "suburban": (2.6, 8.0)}
+DATA_HEADER_BITS = 464.0
 
 
 def _unit_interval(value):
@@ -98,3 +99,15 @@ def nominal_required_power_w(source_xy, destination_xy, obstacles, network_confi
                             network_config.noise_figure_db, network_config.sinr_threshold_db,
                             network_config.nlos_model, line_of_sight,
                             network_config.obstacle_extra_loss_db)
+
+
+def report_reference_tx_energy_j(network_config) -> float:
+    """One complete DATA report emitted once at Pmax; excludes ACKs/retries."""
+    remaining = int(network_config.report_bytes)
+    total_bits = 0.0
+    payload = int(network_config.payload_bytes)
+    while remaining > 0:
+        fragment = min(payload, remaining)
+        total_bits += fragment * 8.0 + DATA_HEADER_BITS
+        remaining -= fragment
+    return total_bits / float(network_config.bit_rate_bps) * float(network_config.tx_power_max_w)

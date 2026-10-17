@@ -4,6 +4,7 @@ import importlib.util
 import unittest
 
 import numpy as np
+import test_gpu_packets as packet_tests
 try:
     import warp as wp
 except ImportError:
@@ -92,7 +93,9 @@ class GPUPhysicsTests(unittest.TestCase):
         np.testing.assert_allclose(s.flight_energy.numpy()[0], env.propulsion_energy_j,
                                    rtol=0, atol=2e-7)
         counts = s.motion_counts.numpy()[0, :8]
-        np.testing.assert_array_equal(counts, list(env.motion_counts.values()))
+        np.testing.assert_array_equal(counts, list(env.motion_counts.values())[:8])
+        self.assertAlmostEqual(float(s.shield_correction.numpy()[0]),
+                               env.motion_counts["shield_correction"], places=10)
         self.assertEqual(int(s.blocked.numpy()[0]), env.blocked_moves)
         self.assertEqual(int(s.clipped.numpy()[0]), env.boundary_clips)
 
@@ -336,6 +339,34 @@ class GPUPhysicsTests(unittest.TestCase):
         self.assign(s, "velocities", env.velocities[None])
         self.step_motion(env, s, p, [[0, 0, 0], [0, 0, 0]])
         np.testing.assert_array_equal(s.positions.numpy()[0], [[100, 500], [200, 500]])
+
+    def test_v2_reward_components_and_physical_energy_match_native(self):
+        c = Config()
+        c.world.num_uavs, c.world.num_targets, c.world.num_obstacles = 1, 1, 0
+        c.sensor.altitude_m = 20
+        c.energy.idle_power_w = c.energy.hover_power_w = 0
+        c.network.tx_power_min_w, c.network.tx_power_max_w = 0.001, 0.4
+        c.network.tx_power_mapping = "log"
+        c.reward.communication_efficiency = 1.0
+        c.reward.shield_correction = 0.1
+        positions, targets = [[500,100]], [[500,100]]
+        env = SwarmSearchEnv(c)
+        env.reset(seed=44, options=dict(positions=positions, targets=targets, obstacles=[]))
+        self.addCleanup(env.close)
+        from uav_network.environment.env import Action
+        _, expected_reward, _, _, expected = env.step(
+            Action(np.array([[0.,0.,1.]], np.float32), np.array([1])))
+        helper = packet_tests.GPUPacketTests()
+        wp, s, p, mac = helper.prepare(c, positions, targets, [], 44)
+        helper.step(c, s, p, mac, wp, [1], 1)
+        from uav_network.communication.gpu.metrics import world_info
+        actual = world_info(s,p)
+        self.assertAlmostEqual(float(s.reward.numpy()[0]), expected_reward, places=5)
+        for key in ("communication_efficiency","shield_correction"):
+            self.assertAlmostEqual(actual["reward_components"][key], expected["reward_components"][key], places=8)
+        np.testing.assert_allclose(actual["energy"]["battery_j"], expected["energy"]["battery_j"], rtol=0, atol=2e-7)
+        self.assertAlmostEqual(actual["network"]["uav_communication_energy_j"],
+                               expected["network"]["uav_communication_energy_j"], places=10)
 
     def test_reset_impossible_geometry_sets_explicit_error(self):
         c = Config()

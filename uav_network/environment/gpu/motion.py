@@ -298,6 +298,17 @@ def motion_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
                     unaffordable = bool(True)
         if not unaffordable:
             break
+    correction_sum = wp.float64(0.0)
+    active_count = int(0)
+    for i in range(p.n):
+        if s.motion_flags[e, i, 0] == 0:
+            correction_sum += wp.length(s.motion_work[e, i, 1] - s.motion_work[e, i, 0]) / p.max_speed
+            active_count += 1
+    correction = wp.float64(0.0)
+    if active_count > 0:
+        correction = correction_sum / wp.float64(active_count)
+    s.shield_correction_step[e] = correction
+    s.shield_correction[e] += correction
     for i in range(p.n):
         realized = (s.motion_work[e, i, 2] - s.positions[e, i]) / p.dt
         cost = _cost(s.velocities[e, i], realized, p)
