@@ -359,6 +359,7 @@ def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32))
             s.diagnostic_counts[e,j] = wp.int64(0)
         for j in range(8):
             s.delivery_hop_histogram[e,j] = wp.int64(0)
+        for j in range(diag.STAT_COUNT):
             for k in range(4):
                 s.diagnostic_stats[e,j,k] = wp.float64(0)
         for j in range(2):

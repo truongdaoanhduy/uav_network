@@ -29,6 +29,11 @@ METRICS = {
     "shield_interventions_per_uav_step": ("interventions/UAV-step", "lower"),
     "blocked_moves_per_uav_step": ("blocks/UAV-step", "lower"),
     "packet_pdr_fraction": ("fraction of per-hop generated packets", "higher"),
+    "data_below_required_power_fraction": ("fraction of DATA attempts", "lower"),
+    "relay_toward_gcs_fraction": ("fraction of peer custody transfers", "higher"),
+    "tx_power_margin_db_mean": ("dB", "lower"),
+    "relay_gcs_distance_improvement_mean_m": ("m/peer custody transfer", "higher"),
+    "shield_correction_mean_per_step": ("normalized velocity correction/step", "lower"),
     "return": ("configured reward units", "higher"),
 }
 
@@ -137,6 +142,12 @@ class MissionMetrics:
         capped_discovery = np.where(found, self.discovered, horizon)
         generated = net.get("generated_packets", 0)
         received = net.get("received_packets", 0)
+        diagnostics = net.get("diagnostics") or {}
+        attempts = diagnostics.get("data_attempts", 0)
+        peer_transfers = diagnostics.get("custody_peer_transfers", 0)
+        power_margin = diagnostics.get("data_power_margin_db") or {}
+        relay_progress = diagnostics.get("relay_gcs_distance_improvement_m") or {}
+        motion = info.get("motion_counts", {})
         return {
             "targets_found": f, "targets_delivered": d, "target_discovery_fraction": f / w.num_targets,
             "gcs_delivery_fraction": d / w.num_targets,
@@ -151,6 +162,13 @@ class MissionMetrics:
             "report_delay_delivered_mean_s": net.get("report_e2e_delay_s") if d and net.get("enabled") else None,
             "uav_energy_j": energy, "uav_j_per_gcs_delivery": energy / d if d else None,
             "packet_pdr_fraction": received / generated if generated and net.get("enabled") else None,
+            "data_below_required_power_fraction": (diagnostics.get("data_below_required_power_attempts", 0) / attempts
+                                                    if attempts else None),
+            "relay_toward_gcs_fraction": (diagnostics.get("relay_toward_gcs_transfers", 0) / peer_transfers
+                                           if peer_transfers else None),
+            "tx_power_margin_db_mean": power_margin.get("mean"),
+            "relay_gcs_distance_improvement_mean_m": relay_progress.get("mean"),
+            "shield_correction_mean_per_step": motion.get("shield_correction", 0.) / max(1, self.step),
             "path_length_m": self.path_length, "safe_episode": float(self.unsafe_steps == 0),
             "safety_violation_steps": self.unsafe_steps,
             "swept_peer_violation_pairs": self.peer_violations,

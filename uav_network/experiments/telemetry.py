@@ -30,6 +30,8 @@ def diagnostic_rates(raw):
         ("data_nlos_success_fraction", "data_nlos_successes", "data_nlos_decodes"),
         ("data_peer_success_fraction", "data_peer_successes", "data_peer_decodes"),
         ("data_gcs_success_fraction", "data_gcs_successes", "data_gcs_decodes"),
+        ("data_below_required_power_fraction", "data_below_required_power_attempts", "data_attempts"),
+        ("relay_toward_gcs_fraction", "relay_toward_gcs_transfers", "custody_peer_transfers"),
     ):
         if numerator in raw and denominator in raw:
             n = raw[denominator]

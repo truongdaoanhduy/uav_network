@@ -183,6 +183,12 @@ def emit(s: WorldState, p: WorldParams, e: int, packet: int, source: int, destin
         s.errors[e] = 3
         return -1
     diag.emission(s,p,e,packet,destination,kind,power)
+    if kind == 0:
+        required = nominal_required_power(s,p,e,source,destination)
+        diag.sample(s,e,diag.STAT_DATA_REQUIRED_POWER_W,required)
+        diag.sample(s,e,diag.STAT_DATA_POWER_MARGIN_DB,wp.float64(10)*wp.log10(power/required))
+        if power < required:
+            s.diagnostic_counts[e,diag.DATA_BELOW_REQUIRED_POWER_ATTEMPTS] += wp.int64(1)
     s.frame_order[e,s.frame_count[e]] = frame
     s.frame_count[e] += 1
     s.tx_active[e,frame] = 1

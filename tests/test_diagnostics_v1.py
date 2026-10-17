@@ -177,3 +177,16 @@ def test_legacy_rolling_return_change_stays_descriptive_without_regression_warni
         assert values["rolling/return_change"] == -100.
         assert not any(json.loads(line)["code"] == "return_drop"
                        for line in d.path.read_text().splitlines())
+
+
+def test_v2_pooled_fractions_use_raw_attempt_and_relay_denominators():
+    from uav_network.experiments.telemetry import OutcomePool
+    a, b = outcome(samples=1), outcome(samples=3)
+    for record, attempts, below, peers, toward in ((a,1,1,1,1),(b,3,0,3,1)):
+        d = record["network"]["diagnostics"]
+        d.update(data_attempts=attempts, data_below_required_power_attempts=below,
+                 custody_peer_transfers=peers, relay_toward_gcs_transfers=toward,
+                 relay_away_from_gcs_transfers=peers-toward)
+    pool = OutcomePool(); pool.add([a,b]); values = pool.metrics()
+    assert values["network/diagnostics/data_below_required_power_fraction"] == .25
+    assert values["network/diagnostics/relay_toward_gcs_fraction"] == .5

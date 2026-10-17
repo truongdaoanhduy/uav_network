@@ -44,6 +44,28 @@ class ComparisonMetricsTests(unittest.TestCase):
         self.assertEqual(values["report_delay_delivered_mean_s"], .5)
         self.assertEqual(values["first_gcs_delivery_observed_s"], [2., None])
 
+    def test_v2_comparison_metrics_expose_power_relay_and_shield_without_composite_score(self):
+        m = self.module(); c = self.config()
+        trace = m.MissionMetrics(c, np.array([[0.,0.],[10.,0.]]), np.array([[5.,5.,1.]]),
+                                 [False,False],[False,False])
+        trace.observe(np.array([[0.,0.],[10.,0.]]), [False,False], [False,False], 1)
+        info = {"success":False,"energy":{"propulsion_energy_j":2.},"blocked_moves":0,
+                "motion_counts":{"shield_interventions":2,"shield_correction":.4},
+                "network":{"enabled":True,"generated_packets":4,"received_packets":2,
+                           "uav_communication_energy_j":1.,"report_e2e_delay_s":0.,
+                           "diagnostics":{"data_attempts":4,"data_below_required_power_attempts":1,
+                                          "custody_peer_transfers":2,"relay_toward_gcs_transfers":1,
+                                          "relay_away_from_gcs_transfers":1,
+                                          "data_power_margin_db":{"count":4,"sum":8.,"mean":2.,"min":-1.,"max":4.},
+                                          "relay_gcs_distance_improvement_m":{"count":2,"sum":30.,"mean":15.,"min":-10.,"max":40.}}}}
+        values = trace.finish(info,0.)
+        self.assertEqual(values["data_below_required_power_fraction"], .25)
+        self.assertEqual(values["relay_toward_gcs_fraction"], .5)
+        self.assertEqual(values["tx_power_margin_db_mean"], 2.)
+        self.assertEqual(values["relay_gcs_distance_improvement_mean_m"], 15.)
+        self.assertEqual(values["shield_correction_mean_per_step"], .4)
+        self.assertNotIn("best_algorithm_score", values)
+
     def test_zero_delivery_or_generation_has_null_conditional_metrics(self):
         m = self.module()
         trace = m.MissionMetrics(self.config(), np.array([[0., 0.], [10., 0.]]),

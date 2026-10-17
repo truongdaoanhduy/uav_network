@@ -46,6 +46,9 @@ ACTION_NO_OPPORTUNITY = wp.constant(36)
 DATA_ENERGY_DENIALS = wp.constant(37)
 ACK_ENERGY_DENIALS = wp.constant(38)
 ACK_TIMEOUTS = wp.constant(39)
+DATA_BELOW_REQUIRED_POWER_ATTEMPTS = wp.constant(40)
+RELAY_TOWARD_GCS_TRANSFERS = wp.constant(41)
+RELAY_AWAY_FROM_GCS_TRANSFERS = wp.constant(42)
 STAT_DATA_TX_POWER_W = wp.constant(0)
 STAT_ACK_TX_POWER_W = wp.constant(1)
 STAT_DATA_PEER_TX_POWER_W = wp.constant(2)
@@ -54,6 +57,23 @@ STAT_DATA_SNR_DB = wp.constant(4)
 STAT_DATA_SINR_DB = wp.constant(5)
 STAT_DATA_RSSI_DBM = wp.constant(6)
 STAT_DATA_DISTANCE_M = wp.constant(7)
+STAT_DATA_REQUIRED_POWER_W = wp.constant(8)
+STAT_DATA_POWER_MARGIN_DB = wp.constant(9)
+STAT_RELAY_GCS_DISTANCE_IMPROVEMENT_M = wp.constant(10)
+
+
+@wp.func
+def reset(s: WorldState, e: int):
+    for j in range(COUNTER_COUNT):
+        s.diagnostic_counts[e,j] = wp.int64(0)
+    for j in range(STAT_COUNT):
+        for k in range(4):
+            s.diagnostic_stats[e,j,k] = wp.float64(0)
+    for j in range(8):
+        s.delivery_hop_histogram[e,j] = wp.int64(0)
+    for j in range(2):
+        for k in range(6):
+            s.power_histogram[e,j,k] = wp.int64(0)
 
 @wp.func
 def sample(s: WorldState, e: int, index: int, value: wp.float64):

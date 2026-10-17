@@ -2,6 +2,7 @@
 import math
 import numpy as np
 from .diagnostics import COUNT, STAT, POWER_EDGES, add_sample
+from .link_budget import nominal_required_power_w
 
 
 def install_telemetry(bridge):
@@ -18,8 +19,17 @@ def install_telemetry(bridge):
         bridge.power_histogram[int(not data), np.searchsorted(POWER_EDGES, power, side="right")] += 1
         if data:
             counts[COUNT["data_retries"]] += int(packet.number_retransmission_attempt[source] > 1)
-            link = "gcs" if packet.dst_drone.identifier == bridge.config.world.num_uavs else "peer"
+            destination = packet.dst_drone.identifier
+            link = "gcs" if destination == bridge.config.world.num_uavs else "peer"
             add_sample(stats, STAT["data_" + link + "_tx_power_w"], power)
+            src_xy = bridge.simulator.drones[source].coords[:2]
+            dst_xy = bridge.simulator.drones[destination].coords[:2]
+            required = nominal_required_power_w(src_xy, dst_xy, bridge.scene.obstacles, bridge.config.network,
+                                                bridge.config.sensor.altitude_m, destination == bridge.config.world.num_uavs)
+            add_sample(stats, STAT["data_required_power_w"], required)
+            margin = 10 * math.log10(power / required)
+            add_sample(stats, STAT["data_power_margin_db"], margin)
+            counts[COUNT["data_below_required_power_attempts"]] += int(power < required)
         return original_transmit(packet, source, receivers)
 
     def evaluate(target, receiver):

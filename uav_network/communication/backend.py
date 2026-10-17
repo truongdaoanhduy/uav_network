@@ -4,7 +4,7 @@ import numpy as np
 
 from .upstream import REVISION, start_simulator
 from .energy import install_obstacle_loss, install_phy_budget
-from .diagnostics import COUNTERS, STATS, COUNT, network_diagnostics
+from .diagnostics import COUNTERS, STATS, COUNT, STAT, add_sample, network_diagnostics
 from .telemetry import install_telemetry
 from .link_budget import power_from_action, nominal_required_power_w
 
@@ -148,6 +148,13 @@ class UavNetSimNetwork:
         fragments = (transfer.report.size_bytes + self.config.network.payload_bytes - 1) // self.config.network.payload_bytes
         if len(transfer.arrived) == fragments:
             if self.reports.transfer(transfer.source, receiver, transfer.report, now):
+                if receiver < self.config.world.num_uavs:
+                    source_xy = np.asarray(self.simulator.drones[transfer.source].coords[:2], dtype=float)
+                    destination_xy = np.asarray(self.simulator.drones[receiver].coords[:2], dtype=float)
+                    progress = float(np.linalg.norm(source_xy - self.scene.gcs) - np.linalg.norm(destination_xy - self.scene.gcs))
+                    counter = "relay_toward_gcs_transfers" if progress > 0 else "relay_away_from_gcs_transfers"
+                    self.diagnostic_counts[COUNT[counter]] += 1
+                    add_sample(self.diagnostic_stats, STAT["relay_gcs_distance_improvement_m"], progress)
                 if self.communication_events is not None:
                     self.communication_events.append({
                         "event": "report_received", "time_s": float(now),

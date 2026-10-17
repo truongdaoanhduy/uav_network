@@ -81,6 +81,14 @@ def transfer(s: WorldState, p: WorldParams, e: int, source: int, destination: in
             s.report_hop_sum[e] += wp.float64(hops+1)
     else:
         s.diagnostic_counts[e,diag.CUSTODY_PEER_TRANSFERS] += wp.int64(1)
+        source_distance = wp.length(s.positions[e,source]-s.gcs[e])
+        destination_distance = wp.length(s.positions[e,destination]-s.gcs[e])
+        progress = source_distance-destination_distance
+        if progress > wp.float64(0):
+            s.diagnostic_counts[e,diag.RELAY_TOWARD_GCS_TRANSFERS] += wp.int64(1)
+        else:
+            s.diagnostic_counts[e,diag.RELAY_AWAY_FROM_GCS_TRANSFERS] += wp.int64(1)
+        diag.sample(s,e,diag.STAT_RELAY_GCS_DISTANCE_IMPROVEMENT_M,progress)
         s.known[e,destination,target] = 1
         insert(s,p,e,destination,target,origin,created,hops+1)
     discard_sessions(s,p,e,source,target)

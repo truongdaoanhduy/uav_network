@@ -13,10 +13,11 @@ COUNTERS = (
     "custody_peer_transfers", "direct_gcs_reports", "relayed_gcs_reports",
     "action_slots", "action_active", "action_report_bearing", "action_receiver_eligible",
     "action_silent", "action_no_opportunity", "data_energy_denials", "ack_energy_denials",
-    "ack_timeouts",
+    "ack_timeouts", "data_below_required_power_attempts", "relay_toward_gcs_transfers", "relay_away_from_gcs_transfers",
 )
 STATS = ("data_tx_power_w", "ack_tx_power_w", "data_peer_tx_power_w", "data_gcs_tx_power_w",
-         "data_snr_db", "data_sinr_db", "data_rssi_dbm", "data_distance_m")
+         "data_snr_db", "data_sinr_db", "data_rssi_dbm", "data_distance_m",
+         "data_required_power_w", "data_power_margin_db", "relay_gcs_distance_improvement_m")
 # Six bins: <0.1, [0.1,0.2), [0.2,0.3), [0.3,0.4), [0.4,0.5), >=0.5 W.
 POWER_EDGES = (0.1, 0.2, 0.3, 0.4, 0.5)
 HOP_BINS = 8  # 1..7, >=8.
@@ -43,6 +44,12 @@ def network_diagnostics(counts, stats, power_histogram, hops):
     result["data_tx_power_histogram"] = list(map(int, power_histogram[0]))
     result["ack_tx_power_histogram"] = list(map(int, power_histogram[1]))
     result["delivery_hop_histogram"] = list(map(int, hops))
+    attempts = result.get("data_attempts", 0)
+    peers = result.get("custody_peer_transfers", 0)
+    result["data_below_required_power_fraction"] = (
+        result.get("data_below_required_power_attempts", 0) / attempts if attempts else None)
+    result["relay_toward_gcs_fraction"] = (
+        result.get("relay_toward_gcs_transfers", 0) / peers if peers else None)
     return result
 
 
