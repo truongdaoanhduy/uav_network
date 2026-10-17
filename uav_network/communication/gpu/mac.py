@@ -7,11 +7,11 @@ from .reports import (active, bytes_used, can_receive, discard_sessions, transfe
 from .phy import xy, busy, emit, evaluate, arrival_end, latest_arrival_end
 from .events import push, pop
 from .telemetry import record_action
+from .power import power_from_action
 from . import diagnostics as diag
 
 # Preserve CPython scalar FP64 operation boundaries on CUDA as well as CPU.
 wp.set_module_options({"enable_fp_fma": False, "enable_backward": False})
-
 # SimPy urgent (0) versus normal (1); insertion order breaks equal-time ties.
 POLL, START, MAC, IDLE, IDLE_DONE, LISTEN, INTERRUPT = range(1,8)
 BACKOFF_DONE, TX_START, DATA_END, DELIVER, ACK_TIMEOUT, RELEASE = range(8,14)
@@ -459,7 +459,7 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
                 if selected < 0 or s.report_order[e,source,t] < s.report_order[e,source,selected]:
                     selected = t
         if selected >= 0:
-            power = p.tx_power_min+(wp.float64(continuous[e,source,2])+wp.float64(1))/wp.float64(2)*(p.tx_power_max-p.tx_power_min)
+            power = power_from_action(p,continuous[e,source,2])
             s.selection_counts[e,1] += 1
             inject(s,p,e,source,dest,selected,power,now)
         elif can_forward:

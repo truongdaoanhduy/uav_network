@@ -6,6 +6,7 @@ from .upstream import REVISION, start_simulator
 from .energy import install_obstacle_loss, install_phy_budget
 from .diagnostics import COUNTERS, STATS, COUNT, network_diagnostics
 from .telemetry import install_telemetry
+from .link_budget import power_from_action
 
 _ACTIVE = None  # Upstream configuration and packet IDs are process globals.
 
@@ -206,9 +207,7 @@ class UavNetSimNetwork:
             report = next((r for r in buffer.values()
                            if self._eligible(source, destination, positions, r)), None)
             if report is not None:
-                normalized = (float(action.continuous[source, 2]) + 1) / 2
-                n = self.config.network
-                power = n.tx_power_min_w + normalized * (n.tx_power_max_w - n.tx_power_min_w)
+                power = power_from_action(float(action.continuous[source, 2]), self.config.network)
                 self.selection_counts["accepted"] += 1
                 self._inject(source, destination, power, report)
             elif all(not self.reports.can_forward(source, destination, r, self.clock.now / 1e6)

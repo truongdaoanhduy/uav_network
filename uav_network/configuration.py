@@ -53,6 +53,9 @@ class NetworkConfig:
     gcs_range_m: float = 500.0
     tx_power_min_w: float = 0.1
     tx_power_max_w: float = 0.4
+    tx_power_mapping: str = "linear"
+    power_limited_admission: bool = False
+    link_state_observation: bool = False
     report_bytes: int = 1024
     buffer_bytes: int = 3072
     report_ttl_s: float = 300.0
@@ -94,6 +97,8 @@ class RewardConfig:
     step_cost: float = 0.01
     communication_energy: float = 0.01
     propulsion_energy_per_kj: float = 0.01
+    communication_efficiency: float = 0.0
+    shield_correction: float = 0.0
 
 
 @dataclass
@@ -256,8 +261,13 @@ class Config:
             raise ValueError("Launch spacing must be at least the safety distance")
         if not 0 < s.full_fov_deg < 180:
             raise ValueError("FOV must be strictly between 0 and 180 degrees")
-        if n.tx_power_max_w < n.tx_power_min_w or n.buffer_bytes < n.report_bytes:
+        if (n.tx_power_min_w <= 0 or n.tx_power_max_w <= 0
+                or n.tx_power_max_w < n.tx_power_min_w or n.buffer_bytes < n.report_bytes):
             raise ValueError("Invalid TX power range or buffer smaller than one report")
+        if n.tx_power_mapping not in {"linear", "log"}:
+            raise ValueError("network.tx_power_mapping must be linear or log")
+        if type(n.power_limited_admission) is not bool or type(n.link_state_observation) is not bool:
+            raise ValueError("network V2 feature flags must be booleans")
         if n.obstacle_polygon_sides < 8:
             raise ValueError("Invalid obstacle polygon")
         if n.nlos_model not in {"urban", "suburban"}:
@@ -323,8 +333,9 @@ class Config:
         if e.battery_capacity_j <= 0 or any(v < 0 for v in (
                 e.idle_power_w, e.hover_power_w, e.speed_squared_coefficient,
                 e.acceleration_squared_coefficient, n.obstacle_extra_loss_db,
-                self.reward.propulsion_energy_per_kj)):
-            raise ValueError("Battery capacity must be positive and energy/loss coefficients nonnegative")
+                self.reward.propulsion_energy_per_kj, self.reward.communication_efficiency,
+                self.reward.shield_correction)):
+            raise ValueError("Battery capacity must be positive and energy/reward/loss coefficients nonnegative")
         for learner in (self.masac, self.matd3):
             if (not 0 <= learner.gamma <= 1 or not 0 < learner.tau <= 1
                     or any(v <= 0 for v in (learner.replay_capacity, learner.batch_size,

@@ -29,6 +29,7 @@ class WorldParams:
     max_retries: wp.int32
     ack_uses_data_power: wp.int32
     propagation_delay_enabled: wp.int32
+    tx_power_mapping_log: wp.int32
     cw_min: wp.int32
     event_capacity: wp.int32
     packet_capacity: wp.int32
@@ -88,6 +89,8 @@ class WorldParams:
     reward_step: wp.float64
     reward_communication: wp.float64
     reward_propulsion: wp.float64
+    reward_communication_efficiency: wp.float64
+    reward_shield_correction: wp.float64
 
 
 @wp.struct
@@ -246,7 +249,8 @@ def params_from_config(config):
                   polygon_sides=n.obstacle_polygon_sides, max_queue_packets=n.max_queue_packets,
                   payload_bytes=n.payload_bytes, max_retries=n.max_retries,
                   ack_uses_data_power=int(n.ack_uses_data_power),
-                  propagation_delay_enabled=int(n.propagation_delay_enabled), cw_min=31,
+                  propagation_delay_enabled=int(n.propagation_delay_enabled),
+                  tx_power_mapping_log=int(n.tx_power_mapping == "log"), cw_min=31,
                   coalesce_idle_polls=int(config.runtime.coalesce_idle_polls),
                   map_size=w.map_size_m, dt=w.dt_s, max_speed=w.max_speed_mps,
                   max_accel=w.max_accel_mps2, safety_distance=w.safety_distance_m,
@@ -271,7 +275,9 @@ def params_from_config(config):
                   reward_discovery=r.discovery, reward_delivery=r.delivery,
                   reward_blocked=r.blocked_motion, reward_expired=r.expired_report,
                   reward_dropped=r.dropped_report, reward_step=r.step_cost,
-                  reward_communication=r.communication_energy, reward_propulsion=r.propulsion_energy_per_kj)
+                  reward_communication=r.communication_energy, reward_propulsion=r.propulsion_energy_per_kj,
+                  reward_communication_efficiency=r.communication_efficiency,
+                  reward_shield_correction=r.shield_correction)
     gcs = w.gcs_position_m or [w.map_size_m/2, 0.]
     ack_timeout = 240/n.bit_rate_bps*1e6+60
     if n.propagation_delay_enabled:

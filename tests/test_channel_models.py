@@ -9,6 +9,43 @@ from uav_network.environment.env import Action, SwarmSearchEnv
 
 
 class ChannelModelTests(unittest.TestCase):
+    def test_v1_linear_and_v2_log_power_mapping_and_inverse_fraction(self):
+        from uav_network.communication.link_budget import power_from_action, power_fraction
+        c = Config()
+        self.assertAlmostEqual(power_from_action(-1.0, c.network), 0.1, places=12)
+        self.assertAlmostEqual(power_from_action(0.0, c.network), 0.25, places=12)
+        self.assertAlmostEqual(power_from_action(1.0, c.network), 0.4, places=12)
+        c.network.tx_power_min_w = 0.001
+        c.network.tx_power_max_w = 0.4
+        c.network.tx_power_mapping = "log"
+        self.assertAlmostEqual(power_from_action(-1.0, c.network), 0.001, places=12)
+        self.assertAlmostEqual(power_from_action(0.0, c.network), np.sqrt(0.001 * 0.4), places=12)
+        self.assertAlmostEqual(power_from_action(1.0, c.network), 0.4, places=12)
+        for action in (-1.0, -0.5, 0.0, 0.5, 1.0):
+            self.assertAlmostEqual(power_fraction(power_from_action(action, c.network), c.network),
+                                   (action + 1.0) / 2.0, places=12)
+
+    def test_required_los_power_at_500m_matches_analytic_link_budget(self):
+        from uav_network.communication.link_budget import required_power_w
+        required = required_power_w(500.0, 2_400_000_000.0, 22_000_000.0,
+                                    -174.0, 7.0, 6.0, "urban", True)
+        self.assertAlmostEqual(required, 0.00442144, places=8)
+
+    def test_scenario_v2_configuration_validation_rejects_bad_mapping_power_and_reward_weights(self):
+        c = Config()
+        c.network.tx_power_mapping = "quadratic"
+        with self.assertRaisesRegex(ValueError, "tx_power_mapping"):
+            c.validate()
+        c = Config(); c.network.tx_power_min_w = 0.0
+        with self.assertRaises(ValueError):
+            c.validate()
+        c = Config(); c.reward.communication_efficiency = -1.0
+        with self.assertRaisesRegex(ValueError, "reward"):
+            c.validate()
+        c = Config(); c.reward.shield_correction = float("nan")
+        with self.assertRaisesRegex(ValueError, "reward"):
+            c.validate()
+
     def test_supported_upstream_nlos_models_are_accepted(self):
         for backend in ("native", "warp_packet"):
             for model in ("urban", "suburban"):
