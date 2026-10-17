@@ -31,7 +31,7 @@ METRICS = {
     "packet_pdr_fraction": ("fraction of per-hop generated packets", "higher"),
     "data_below_required_power_fraction": ("fraction of DATA attempts", "lower"),
     "relay_toward_gcs_fraction": ("fraction of peer custody transfers", "higher"),
-    "tx_power_margin_db_mean": ("dB", "lower"),
+    "tx_power_margin_db_mean": ("dB", "descriptive"),
     "relay_gcs_distance_improvement_mean_m": ("m/peer custody transfer", "higher"),
     "shield_correction_mean_per_step": ("normalized velocity correction/step", "lower"),
     "return": ("configured reward units", "higher"),

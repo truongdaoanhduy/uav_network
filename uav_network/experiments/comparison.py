@@ -60,7 +60,7 @@ def compare_evaluations(left, right, bootstrap_samples=2000, seed=44):
             sample = indices if count == n else rng.integers(count, size=(bootstrap_samples, count))
             interval = list(map(float, np.quantile(diff[sample].mean(axis=1), [.025, .975])))
         favored = "inconclusive"
-        if interval and not exploratory:
+        if interval and not exploratory and preferred in {"higher", "lower"}:
             signed = np.asarray(interval) * (1 if preferred == "higher" else -1)
             if signed.min() > 1e-12:
                 favored = "left"

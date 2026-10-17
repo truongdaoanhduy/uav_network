@@ -153,3 +153,27 @@ class ComparisonMetricsTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_power_margin_is_descriptive_and_never_declares_algorithm_winner():
+    from uav_network.experiments.comparison import compare_evaluations
+    def report(algorithm, margins):
+        return {
+            "algorithm": algorithm,
+            "protocol": {"scenario_hash": "same-v2", "training_seed_overlap": False,
+                         "validation_seed_overlap": False, "training_global_step": 100},
+            "records": [
+                {"seed": seed, "comparison_metrics": {
+                    "tx_power_margin_db_mean": margin,
+                    "uav_energy_j": 100.0,
+                    "targets_delivered": 1,
+                }}
+                for seed, margin in zip((2000000044, 2000000045), margins)
+            ],
+        }
+    result = compare_evaluations(report("masac", [-3.0, -2.0]),
+                                 report("matd3", [3.0, 4.0]),
+                                 bootstrap_samples=100, seed=44)
+    metric = result["metrics"]["tx_power_margin_db_mean"]
+    assert metric["preferred"] == "descriptive"
+    assert metric["favored"] == "inconclusive"
