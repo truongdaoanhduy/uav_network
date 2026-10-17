@@ -6,7 +6,7 @@ from .upstream import REVISION, start_simulator
 from .energy import install_obstacle_loss, install_phy_budget
 from .diagnostics import COUNTERS, STATS, COUNT, network_diagnostics
 from .telemetry import install_telemetry
-from .link_budget import power_from_action
+from .link_budget import power_from_action, nominal_required_power_w
 
 _ACTIVE = None  # Upstream configuration and packet IDs are process globals.
 
@@ -85,8 +85,12 @@ class UavNetSimNetwork:
         peer = destination < len(positions)
         xy = positions[destination] if peer else self.scene.gcs
         reach = n.peer_range_m if peer else n.gcs_range_m
+        feasible = True
+        if n.power_limited_admission:
+            feasible = nominal_required_power_w(positions[source], xy, self.scene.obstacles, n,
+                                                self.config.sensor.altitude_m, not peer) <= n.tx_power_max_w
         return (self.node_active(source) and self.node_active(destination)
-                and np.linalg.norm(positions[source] - xy) <= reach
+                and np.linalg.norm(positions[source] - xy) <= reach and feasible
                 and self.reports.can_forward(source, destination, report, self.clock.now / 1e6))
 
     def _inject(self, source, destination, power, report):

@@ -1,11 +1,65 @@
 """Receiver masks must agree with report admission, independent of channel loss."""
 import unittest
+import numpy as np
 from uav_network.configuration import Config
 from uav_network.environment.env import SwarmSearchEnv
-from uav_network.environment.observations import destination_mask
+from uav_network.environment.observations import destination_mask, local_observations, observation_dim
 
 
 class ReceiverAdmissionTests(unittest.TestCase):
+    def test_v2_link_state_layout_progress_buffer_and_mask_tail(self):
+        c = Config()
+        c.world.num_uavs, c.world.num_targets, c.world.num_obstacles = 3, 2, 0
+        c.sensor.altitude_m = 20
+        old_dim = observation_dim(c)
+        c.network.peer_range_m = c.network.gcs_range_m = 500
+        c.network.tx_power_min_w, c.network.tx_power_max_w = 0.001, 0.002
+        c.network.tx_power_mapping = "log"
+        c.network.power_limited_admission = True
+        c.network.link_state_observation = True
+        c.network.buffer_bytes = 2048
+        self.assertEqual(observation_dim(c), old_dim + 3 * c.world.num_uavs)
+        env = SwarmSearchEnv(c)
+        try:
+            env.reset(seed=44, options={"positions": [[500,500],[500,200],[500,700]],
+                                        "targets": [[900,900],[900,800]], "obstacles": []})
+            env.reports.discover(0, 0, 0)
+            env.reports.discover(1, 1, 0)
+            obs = local_observations(env)[0]
+            n = c.world.num_uavs
+            features = obs[-(n + 1 + 3*n):-(n+1)].reshape(n, 3)
+            mask = obs[-(n+1):]
+            self.assertGreater(features[0,0], 0.0)
+            self.assertLess(features[0,0], 1.0)
+            self.assertGreater(features[0,1], 0.0)
+            self.assertAlmostEqual(features[0,2], 0.5, places=7)
+            self.assertEqual(features[1,0], 0.0)
+            self.assertLess(features[1,1], 0.0)
+            self.assertEqual(features[1,2], 1.0)
+            self.assertEqual(features[2,0], 1.0)
+            self.assertGreater(features[2,1], 0.0)
+            self.assertEqual(features[2,2], 1.0)
+            np.testing.assert_array_equal(mask, [1,1,1,0])
+        finally:
+            env.close()
+
+    def test_power_limited_admission_can_be_disabled_without_changing_range_mask(self):
+        c = Config()
+        c.world.num_uavs, c.world.num_targets, c.world.num_obstacles = 1, 1, 0
+        c.sensor.altitude_m = 20
+        c.network.gcs_range_m = 500
+        c.network.tx_power_min_w, c.network.tx_power_max_w = 0.001, 0.002
+        c.network.tx_power_mapping = "log"
+        env = SwarmSearchEnv(c)
+        try:
+            env.reset(seed=44, options={"positions": [[500,500]], "targets": [[900,900]], "obstacles": []})
+            env.reports.discover(0, 0, 0)
+            self.assertTrue(destination_mask(env)[0,-1])
+            c.network.power_limited_admission = True
+            self.assertFalse(destination_mask(env)[0,-1])
+        finally:
+            env.close()
+
     def test_known_target_full_buffer_and_expired_reports_are_not_advertised(self):
         c=Config();c.world.num_uavs=3;c.world.num_targets=2;c.world.num_obstacles=0
         c.sensor.altitude_m=20;c.network.buffer_bytes=1024

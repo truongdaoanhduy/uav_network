@@ -248,6 +248,37 @@ class GPUPhysicsTests(unittest.TestCase):
         np.testing.assert_array_equal(s.observation.numpy()[0], local_observations(env))
         np.testing.assert_array_equal(s.state.numpy()[0], centralized_state(env))
 
+    def test_v2_link_state_and_power_admission_match_native(self):
+        c = Config()
+        c.world.num_uavs, c.world.num_targets, c.world.num_obstacles = 3, 2, 1
+        c.sensor.altitude_m = 20
+        c.network.enabled = True
+        c.network.peer_range_m = c.network.gcs_range_m = 500
+        c.network.tx_power_min_w, c.network.tx_power_max_w = 0.001, 0.4
+        c.network.tx_power_mapping = "log"
+        c.network.power_limited_admission = True
+        c.network.link_state_observation = True
+        c.network.buffer_bytes = 2048
+        positions = [[300,500],[500,500],[300,700]]
+        targets = [[900,900],[900,800]]
+        obstacles = [[400,500,20]]
+        env = SwarmSearchEnv(c)
+        env.reset(seed=44, options=dict(positions=positions, targets=targets, obstacles=obstacles))
+        self.addCleanup(env.close)
+        env.reports.discover(0,0,0)
+        env.reports.discover(1,1,0)
+        s,p = self.allocate(c,seeds=[44])
+        for name,value in (("positions",env.positions),("velocities",env.velocities),
+                           ("targets",env.targets),("obstacles",env.obstacles),("battery",env.battery_j)):
+            self.assign(s,name,np.asarray(value)[None])
+        self.assign(s,"gcs",env.gcs[None])
+        self.compare_observations(env,s,p)
+        actual=s.observation.numpy()[0]
+        expected=local_observations(env)
+        np.testing.assert_allclose(actual,expected,rtol=0,atol=1e-6)
+        n=c.world.num_uavs
+        np.testing.assert_array_equal(actual[0,-(n+1):],expected[0,-(n+1):])
+
     def test_recovery_ttl_receiver_admission_and_sorted_slots_match_native(self):
         c, env, s, p = self.layout(
             [[300, 500], [350, 450], [900, 900]],

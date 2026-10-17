@@ -7,7 +7,7 @@ from .reports import (active, bytes_used, can_receive, discard_sessions, transfe
 from .phy import xy, busy, emit, evaluate, arrival_end, latest_arrival_end
 from .events import push, pop
 from .telemetry import record_action
-from .power import power_from_action
+from .power import power_from_action, link_power_feasible
 from . import diagnostics as diag
 
 # Preserve CPython scalar FP64 operation boundaries on CUDA as well as CPU.
@@ -455,7 +455,7 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
             if dest == p.n:
                 reach = p.gcs_range
             if (forward and active(s,p,e,source) and active(s,p,e,dest)
-                and wp.length(xy(s,p,e,source)-xy(s,p,e,dest)) <= reach):
+                and wp.length(xy(s,p,e,source)-xy(s,p,e,dest)) <= reach and link_power_feasible(s,p,e,source,dest)):
                 if selected < 0 or s.report_order[e,source,t] < s.report_order[e,source,selected]:
                     selected = t
         if selected >= 0:

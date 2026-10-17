@@ -30,6 +30,8 @@ class WorldParams:
     ack_uses_data_power: wp.int32
     propagation_delay_enabled: wp.int32
     tx_power_mapping_log: wp.int32
+    power_limited_admission: wp.int32
+    link_state_observation: wp.int32
     cw_min: wp.int32
     event_capacity: wp.int32
     packet_capacity: wp.int32
@@ -250,7 +252,9 @@ def params_from_config(config):
                   payload_bytes=n.payload_bytes, max_retries=n.max_retries,
                   ack_uses_data_power=int(n.ack_uses_data_power),
                   propagation_delay_enabled=int(n.propagation_delay_enabled),
-                  tx_power_mapping_log=int(n.tx_power_mapping == "log"), cw_min=31,
+                  tx_power_mapping_log=int(n.tx_power_mapping == "log"),
+                  power_limited_admission=int(n.power_limited_admission),
+                  link_state_observation=int(n.link_state_observation), cw_min=31,
                   coalesce_idle_polls=int(config.runtime.coalesce_idle_polls),
                   map_size=w.map_size_m, dt=w.dt_s, max_speed=w.max_speed_mps,
                   max_accel=w.max_accel_mps2, safety_distance=w.safety_distance_m,

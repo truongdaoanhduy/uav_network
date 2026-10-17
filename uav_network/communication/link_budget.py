@@ -53,3 +53,48 @@ def required_power_w(distance_m: float, frequency_hz: float, bandwidth_hz: float
     noise_w = 10 ** ((noise_dbm - 30.0) / 10.0)
     threshold = 10 ** (float(sinr_threshold_db) / 10.0)
     return threshold * noise_w / gain
+
+
+def polygon_line_of_sight(start_xy, end_xy, obstacles, sides: int) -> bool:
+    """Match the regular-polygon obstacle footprint used by UavNetSim/Warp."""
+    import numpy as np
+    a = np.asarray(start_xy, dtype=float)
+    b = np.asarray(end_xy, dtype=float)
+    d = b - a
+    for obstacle in np.asarray(obstacles, dtype=float).reshape(-1, 3):
+        center, radius = obstacle[:2], float(obstacle[2])
+        low, high, intersects = 0.0, 1.0, True
+        for j in range(int(sides)):
+            angle = j * 2.0 * math.pi / sides
+            next_angle = (j + 1) * 2.0 * math.pi / sides
+            first = center + radius * np.array([math.cos(angle), math.sin(angle)])
+            second = center + radius * np.array([math.cos(next_angle), math.sin(next_angle)])
+            edge = second - first
+            f = edge[0] * (a - first)[1] - edge[1] * (a - first)[0]
+            slope = edge[0] * d[1] - edge[1] * d[0]
+            if slope == 0.0:
+                if f < 0.0:
+                    intersects = False
+            elif slope > 0.0:
+                low = max(low, -f / slope)
+            else:
+                high = min(high, -f / slope)
+        if intersects and low <= high:
+            return False
+    return True
+
+
+def nominal_required_power_w(source_xy, destination_xy, obstacles, network_config,
+                             altitude_m: float = 0.0, destination_is_gcs: bool = False) -> float:
+    import numpy as np
+    source = np.asarray(source_xy, dtype=float)
+    destination = np.asarray(destination_xy, dtype=float)
+    horizontal = float(np.linalg.norm(destination - source))
+    distance = math.hypot(horizontal, float(altitude_m) if destination_is_gcs else 0.0)
+    line_of_sight = polygon_line_of_sight(source, destination, obstacles,
+                                          network_config.obstacle_polygon_sides)
+    return required_power_w(distance, network_config.carrier_frequency_hz,
+                            network_config.bandwidth_hz, network_config.noise_density_dbm_hz,
+                            network_config.noise_figure_db, network_config.sinr_threshold_db,
+                            network_config.nlos_model, line_of_sight,
+                            network_config.obstacle_extra_loss_db)

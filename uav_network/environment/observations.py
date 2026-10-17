@@ -2,17 +2,48 @@
 import numpy as np
 
 from .sensing import visible_target_ids
+from ..communication.link_budget import nominal_required_power_w, power_fraction
 
 
 def observation_dim(config):
-    w, s = config.world, config.sensor
+    w, s, n = config.world, config.sensor, config.network
+    link = 3 * w.num_uavs if n.link_state_observation else 0
     return (10 + 2 * w.num_targets + 4 * (s.visible_target_slots + s.visible_obstacle_slots)
-            + 6 * (w.num_uavs - 1) + w.num_uavs + 1)
+            + 6 * (w.num_uavs - 1) + link + w.num_uavs + 1)
 
 
 def state_dim(config):
     w = config.world
     return 7 * w.num_uavs + 3 * w.num_targets + 3 * w.num_obstacles + 2 * w.num_uavs * w.num_targets + 1
+
+
+def _nominal_required(env, source, destination):
+    count = env.config.world.num_uavs
+    target = env.gcs if destination == count else env.positions[destination]
+    return nominal_required_power_w(env.positions[source], target, env.obstacles, env.config.network,
+                                    env.config.sensor.altitude_m, destination == count)
+
+
+def _power_feasible(env, source, destination):
+    return (not env.config.network.power_limited_admission
+            or _nominal_required(env, source, destination) <= env.config.network.tx_power_max_w)
+
+
+def link_state_features(env, source):
+    w, n = env.config.world, env.config.network
+    count = w.num_uavs
+    source_gcs = float(np.linalg.norm(env.positions[source] - env.gcs))
+    diagonal = np.sqrt(2.0) * w.map_size_m
+    values = []
+    for destination in [j for j in range(count) if j != source] + [count]:
+        target = env.gcs if destination == count else env.positions[destination]
+        required = _nominal_required(env, source, destination)
+        destination_gcs = 0.0 if destination == count else float(np.linalg.norm(target - env.gcs))
+        progress = np.clip((source_gcs - destination_gcs) / diagonal, -1.0, 1.0)
+        free = 1.0 if destination == count else np.clip(
+            (n.buffer_bytes - env.reports.bytes_used(destination)) / n.buffer_bytes, 0.0, 1.0)
+        values.extend((power_fraction(required, n), progress, free))
+    return np.asarray(values, dtype=float)
 
 
 def destination_mask(env):
@@ -30,10 +61,12 @@ def destination_mask(env):
         for slot, j in enumerate(k for k in range(count) if k != i):
             masks[i, slot + 1] = (env.active[j]
                                   and np.linalg.norm(env.positions[j] - env.positions[i]) <= n.peer_range_m
+                                  and _power_feasible(env, i, j)
                                   and (not n.receiver_admission_mask or any(
                                       env.reports.can_forward(i, j, report, env.time_s)
                                       for report in env.reports.buffers[i].values())))
         masks[i, count] = (np.linalg.norm(env.gcs - env.positions[i]) <= n.gcs_range_m
+                           and _power_feasible(env, i, count)
                            and (not n.receiver_admission_mask or any(
                                env.reports.can_forward(i, count, report, env.time_s)
                                for report in env.reports.buffers[i].values())))
@@ -80,8 +113,9 @@ def local_observations(env):
             if env.active[i] and np.linalg.norm(env.positions[j] - position) <= n.peer_range_m:
                 peers[slot] = [*((env.positions[j] - position) / w.map_size_m),
                                *(env.velocities[j] / w.max_speed_mps), env.battery_fraction[j], env.active[j]]
+        link = link_state_features(env, i) if n.link_state_observation else np.empty(0)
         rows.append(np.r_[own, env.reports.known[i], age, targets.ravel(),
-                          obstacles.ravel(), peers.ravel(), masks[i]])
+                          obstacles.ravel(), peers.ravel(), link, masks[i]])
     return np.asarray(rows, dtype=np.float32)
 
 

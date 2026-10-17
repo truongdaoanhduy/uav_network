@@ -84,6 +84,19 @@ def gain(s: WorldState, p: WorldParams, e: int, transmitter: int, receiver: int,
     return s.pair_gain[e,index]
 
 
+
+@wp.func
+def nominal_required_power(s: WorldState, p: WorldParams, e: int, transmitter: int, receiver: int) -> wp.float64:
+    a = xy(s,p,e,transmitter)
+    b = xy(s,p,e,receiver)
+    distance = wp.max(wp.float64(1), link_distance(s,p,e,transmitter,receiver))
+    reference = (C/p.frequency/(wp.float64(4)*PI))**wp.float64(2)
+    nominal = reference*distance**wp.float64(-2)
+    if not los(s,p,e,a,b):
+        nominal = reference*distance**(-p.nlos_exponent)*p.nlos_scale
+    threshold = wp.pow(wp.float64(10), p.sinr_threshold/wp.float64(10))
+    return threshold*p.noise_power/nominal
+
 @wp.func
 def propagation_delay_us(s: WorldState, p: WorldParams, e: int, frame: int, node: int) -> wp.float64:
     if p.propagation_delay_enabled != 0:

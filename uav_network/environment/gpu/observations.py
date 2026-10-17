@@ -2,6 +2,8 @@
 import warp as wp
 
 from .state import WorldParams, WorldState
+from ...communication.gpu.phy import xy, nominal_required_power
+from ...communication.gpu.power import power_fraction
 
 # Keep native NumPy operation rounding; these simulator kernels need no gradients.
 wp.set_module_options({"enable_backward": False, "fuse_fp": False})
@@ -56,6 +58,8 @@ def destination_allowed(s: WorldState, p: WorldParams, e: int, i: int, destinati
                    and wp.length(s.positions[e, destination] - s.positions[e, i]) <= p.peer_range)
     else:
         allowed = allowed and wp.length(s.gcs[e] - s.positions[e, i]) <= p.gcs_range
+    if p.power_limited_admission != 0:
+        allowed = allowed and nominal_required_power(s,p,e,i,destination) <= p.tx_power_max
     if p.admission_mask != 0:
         allowed = allowed and _admissible(s, p, e, i, destination)
     return allowed
@@ -127,6 +131,26 @@ def observe(s: WorldState, p: WorldParams):
                 s.observation[e, i, offset + 6 * slot + 5] = wp.float32(int(_active(s, p, e, j)))
             slot = slot + 1
     offset = offset + 6 * (p.n - 1)
+    if p.link_state_observation != 0:
+        source_gcs = wp.length(s.positions[e,i]-s.gcs[e])
+        diagonal = wp.sqrt(wp.float64(2))*p.map_size
+        slot = int(0)
+        for j in range(p.n):
+            if j != i:
+                required = nominal_required_power(s,p,e,i,j)
+                progress = wp.clamp((source_gcs-wp.length(s.positions[e,j]-s.gcs[e]))/diagonal,
+                                    wp.float64(-1),wp.float64(1))
+                free = wp.clamp((wp.float64(p.buffer_bytes)-wp.float64(_report_count(s,p,e,j)*p.report_bytes))
+                                /wp.float64(p.buffer_bytes),wp.float64(0),wp.float64(1))
+                s.observation[e,i,offset+3*slot] = wp.float32(power_fraction(p,required))
+                s.observation[e,i,offset+3*slot+1] = wp.float32(progress)
+                s.observation[e,i,offset+3*slot+2] = wp.float32(free)
+                slot += 1
+        required = nominal_required_power(s,p,e,i,p.n)
+        s.observation[e,i,offset+3*slot] = wp.float32(power_fraction(p,required))
+        s.observation[e,i,offset+3*slot+1] = wp.float32(wp.clamp(source_gcs/diagonal,wp.float64(-1),wp.float64(1)))
+        s.observation[e,i,offset+3*slot+2] = wp.float32(1.0)
+        offset = offset + 3*p.n
     s.observation[e, i, offset] = wp.float32(1.0)
     slot = int(0)
     for j in range(p.n):
