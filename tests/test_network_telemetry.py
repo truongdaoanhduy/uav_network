@@ -75,7 +75,6 @@ class NetworkTelemetryTests(unittest.TestCase):
         self.assertGreater(d["data_required_power_w"]["mean"], 0.001)
         self.assertLess(d["data_power_margin_db"]["mean"], 0.0)
         self.assertEqual(d["data_below_required_power_attempts"], d["data_attempts"])
-        self.assertEqual(d["data_below_required_power_fraction"], 1.0)
 
     def test_v2_peer_relay_progress_counts_toward_and_away_but_not_gcs_delivery(self):
         cases = [([[500,300],[500,150]], "relay_toward_gcs_transfers", 1),
@@ -88,7 +87,6 @@ class NetworkTelemetryTests(unittest.TestCase):
                 self.assertEqual(d["custody_peer_transfers"], 1)
                 self.assertEqual(d[key], 1)
                 self.assertEqual(np.sign(d["relay_gcs_distance_improvement_m"]["mean"]), sign)
-                self.assertEqual(d["relay_toward_gcs_fraction"], float(sign > 0))
                 env.close()
         c = config(); c.world.num_targets = 2
         env = self.native(c, positions=[[500,100],[900,900]], targets=[[500,100],[900,900]])

@@ -44,12 +44,6 @@ def network_diagnostics(counts, stats, power_histogram, hops):
     result["data_tx_power_histogram"] = list(map(int, power_histogram[0]))
     result["ack_tx_power_histogram"] = list(map(int, power_histogram[1]))
     result["delivery_hop_histogram"] = list(map(int, hops))
-    attempts = result.get("data_attempts", 0)
-    peers = result.get("custody_peer_transfers", 0)
-    result["data_below_required_power_fraction"] = (
-        result.get("data_below_required_power_attempts", 0) / attempts if attempts else None)
-    result["relay_toward_gcs_fraction"] = (
-        result.get("relay_toward_gcs_transfers", 0) / peers if peers else None)
     return result
 
 

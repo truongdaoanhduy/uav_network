@@ -117,7 +117,7 @@ class OutcomePool:
                     elif isinstance(value, list):
                         old = self.raw.setdefault(key, [0] * len(value))
                         self.raw[key] = [a + b for a, b in zip(old, value)]
-                    else:
+                    elif value is not None:
                         self.raw[key] = self.raw.get(key, 0) + value
             reports = r.get("report_diagnostics")
             if reports is not None:

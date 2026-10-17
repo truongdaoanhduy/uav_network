@@ -190,3 +190,46 @@ def test_v2_pooled_fractions_use_raw_attempt_and_relay_denominators():
     pool = OutcomePool(); pool.add([a,b]); values = pool.metrics()
     assert values["network/diagnostics/data_below_required_power_fraction"] == .25
     assert values["network/diagnostics/relay_toward_gcs_fraction"] == .5
+
+
+def test_scenario_v2_profile_is_new_and_v1_remains_immutable():
+    import hashlib
+    from uav_network.environment.observations import observation_dim
+    from uav_network.communication.link_budget import power_from_action
+    root = Path(__file__).resolve().parents[1]
+    v1_path = root / "configs/comparison-25k-diagnostics.yaml"
+    assert hashlib.sha256(v1_path.read_bytes()).hexdigest() == "6253e377e72d2caf709c017dfdcd016b45b4b895605a4c257a704c364dd3d48b"
+    v1 = load_config(v1_path)
+    v2 = load_config(root / "configs/comparison-25k-scenario-v2.yaml")
+    assert (v2.world.num_uavs, v2.world.num_targets, v2.world.num_obstacles, v2.world.max_steps) == (6,35,25,1800)
+    assert (v2.network.peer_range_m, v2.network.gcs_range_m) == (500.0,500.0)
+    assert (v2.network.report_bytes, v2.network.buffer_bytes, v2.network.report_ttl_s, v2.network.max_retries) == (1024,3072,300.0,5)
+    assert (v2.network.tx_power_min_w, v2.network.tx_power_max_w, v2.network.tx_power_mapping) == (0.001,0.4,"log")
+    assert v2.network.power_limited_admission and v2.network.link_state_observation
+    assert (v2.reward.communication_efficiency, v2.reward.shield_correction) == (1.0,0.1)
+    assert observation_dim(v2) == observation_dim(v1) + 3 * v2.world.num_uavs
+    assert power_from_action(-1, v1.network) == 0.1
+    assert power_from_action(-1, v2.network) == 0.001
+    p1 = evaluation_protocol(v1, [2000000044], {"next_seed":50000})
+    p2 = evaluation_protocol(v2, [2000000044], {"next_seed":50000})
+    assert p1["scenario_hash"] != p2["scenario_hash"]
+    assert (v2.runtime.eval_seed, v2.runtime.eval_episodes) == (2000000044,30)
+    assert "scenario-v2" in v2.tracking.tags
+    assert "scenario-v2" in v2.tracking.group
+
+
+def test_outcome_pool_ignores_undefined_derived_diagnostic_scalars():
+    from uav_network.experiments.telemetry import OutcomePool
+    r = outcome(samples=0)
+    r["network"]["diagnostics"].update(
+        data_below_required_power_attempts=0,
+        data_below_required_power_fraction=None,
+        custody_peer_transfers=0,
+        relay_toward_gcs_transfers=0,
+        relay_toward_gcs_fraction=None,
+    )
+    pool = OutcomePool()
+    pool.add([r])
+    values = pool.metrics()
+    assert values["network/diagnostics/data_below_required_power_fraction"] is None
+    assert values["network/diagnostics/relay_toward_gcs_fraction"] is None
