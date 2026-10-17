@@ -14,6 +14,7 @@ COUNTERS = (
     "action_slots", "action_active", "action_report_bearing", "action_receiver_eligible",
     "action_silent", "action_no_opportunity", "data_energy_denials", "ack_energy_denials",
     "ack_timeouts", "data_below_required_power_attempts", "relay_toward_gcs_transfers", "relay_away_from_gcs_transfers",
+    "action_eligible_silent", "action_progress_peer_opportunity", "action_progress_peer_silent",
 )
 STATS = ("data_tx_power_w", "ack_tx_power_w", "data_peer_tx_power_w", "data_gcs_tx_power_w",
          "data_snr_db", "data_sinr_db", "data_rssi_dbm", "data_distance_m",

@@ -144,7 +144,7 @@ When `link_state_observation=true`, append fixed-order features for every non-si
 
 These are neighbor/beacon/channel-estimate features, not privileged target coordinates. Existing target information remains local FOV knowledge. The ideal receiver-admission handshake already assumes receiver metadata is advertised reliably; V2 makes the relevant cost information explicit rather than forcing the policy to reconstruct it implicitly.
 
-Do not add a recent-ACK/SINR recurrent feature in V2 core. The real PHY remains stochastic/interference-dependent; the nominal power feature is enough to make the immediate decision well posed without adding stateful link memory. Recent-link feedback can be a later ablation.
+Do not add a recent-ACK/SINR recurrent feature in V2 core. The configured PHY is deterministic for fixed geometry and traffic, with seeded contention and time-varying interference; the nominal power feature is enough to make the immediate decision well posed without adding stateful link memory. Recent-link feedback can be a later ablation.
 
 ### 5.5 Communication-efficiency objective
 

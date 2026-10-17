@@ -118,7 +118,12 @@ def _guidance(s: WorldState, p: WorldParams, e: int, i: int):
             guide[0] = wp.float64(0.0)
         if outside_y:
             guide[1] = wp.float64(0.0)
-        if wp.length(guide) <= wp.float64(1e-8) or wp.dot(guide, previous) < wp.float64(-1e-8):
+        aimed = reachable(previous + _clip_box(guide - previous,
+            wp.vec2d(-step, -step), wp.vec2d(step, step)), previous, p)
+        guide_safe = (static_path(s, p, e, position, aimed)
+                      and _others_safe(s, p, e, i, aimed))
+        if (wp.length(guide) <= wp.float64(1e-8)
+                or wp.dot(guide, previous) < wp.float64(-1e-8) or not guide_safe):
             # Match the native certified tangent fallback and established side.
             stop_guide, has_stop = wp.vec2d(0.0, 0.0), bool(False)
             for axis in range(2):

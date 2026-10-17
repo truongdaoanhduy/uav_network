@@ -26,6 +26,8 @@ def diagnostic_rates(raw):
         ("action_receiver_eligible_fraction", "action_receiver_eligible", "action_slots"),
         ("action_silent_fraction", "action_silent", "action_slots"),
         ("action_no_opportunity_fraction", "action_no_opportunity", "action_slots"),
+        ("action_silent_given_eligible_fraction", "action_eligible_silent", "action_receiver_eligible"),
+        ("action_silent_given_progress_peer_fraction", "action_progress_peer_silent", "action_progress_peer_opportunity"),
         ("data_los_success_fraction", "data_los_successes", "data_los_decodes"),
         ("data_nlos_success_fraction", "data_nlos_successes", "data_nlos_decodes"),
         ("data_peer_success_fraction", "data_peer_successes", "data_peer_decodes"),

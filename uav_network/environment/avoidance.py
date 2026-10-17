@@ -119,11 +119,18 @@ def _guidance(position, previous, nominal, path, obstacles, other_paths, world):
     if outside.any():
         guide = nominal.copy()
         guide[outside] = 0  # Brake the outward component, keep existing motion along the edge.
-        if np.linalg.norm(guide) <= 1e-8 or guide @ previous < -1e-8:
+        step = world.max_accel_mps2 * world.dt_s
+        aimed = reachable_velocities(
+            (previous + np.clip(guide - previous, -step, step))[None], previous[None], world)[0]
+        certificate = braking_paths(position[None], aimed[None], world)
+        guide_safe = (_static_valid(certificate, obstacles, world)[0]
+                      and _peer_valid(certificate, other_paths, world)[0])
+        if np.linalg.norm(guide) <= 1e-8 or guide @ previous < -1e-8 or not guide_safe:
             # Keep the established side when an outward command erases/reverses
             # edge motion; otherwise turns can settle into a small corner loop.
+            # A nonzero edge guide may also be blocked by a peer; search the
+            # opposite tangent before zero motion wins against that unsafe guide.
             # Both wall tangents still need the same braking certificates.
-            step = world.max_accel_mps2 * world.dt_s
             stop_guide = None
             for axis in range(2):
                 if not outside[axis]:

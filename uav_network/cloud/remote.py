@@ -196,6 +196,7 @@ def run_job(spec):
     spec["warm_start_paths"] = prepare_checkpoints(spec, output, config=config)
     (output / "hardware.json").write_text(json.dumps(hardware_info(), indent=2))
     checks = [("test_cuda.py", "cuda-tests.log"),
+              ("test_cuda_scenario_v2.py", "scenario-v2-cuda-tests.log"),
               ("test_training_audit_regressions.py", "mission-regressions.log")]
     if config.pql.enabled:
         checks.append(("test_pql_training.py", "pql-smoke-tests.log"))

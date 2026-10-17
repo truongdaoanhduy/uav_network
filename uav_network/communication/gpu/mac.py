@@ -17,7 +17,6 @@ POLL, START, MAC, IDLE, IDLE_DONE, LISTEN, INTERRUPT = range(1,8)
 BACKOFF_DONE, TX_START, DATA_END, DELIVER, ACK_TIMEOUT, RELEASE = range(8,14)
 RECEIVE, ACK_START, RECEIVE_DONE = range(14,17)
 
-
 @wp.func
 def clear_pending(s: WorldState, p: WorldParams, e: int, now: wp.float64):
     for session in range(p.session_capacity):
@@ -33,7 +32,6 @@ def clear_pending(s: WorldState, p: WorldParams, e: int, now: wp.float64):
                 for f in range(p.fragments):
                     if s.fragment_expiry[e,session,f] <= now:
                         s.fragment_pending[e,session,f] = wp.int64(0)
-
 
 @wp.func
 def inject(s: WorldState, p: WorldParams, e: int, source: int, dest: int,
@@ -105,7 +103,6 @@ def inject(s: WorldState, p: WorldParams, e: int, source: int, dest: int,
         s.packet_counts[e,0] += 1
         s.node_queue_count[e,source] += 1
 
-
 @wp.func
 def next_receive(s: WorldState, p: WorldParams, e: int, node: int, now: wp.float64):
     if s.node_receiving[e,node] == 0:
@@ -118,7 +115,6 @@ def next_receive(s: WorldState, p: WorldParams, e: int, node: int, now: wp.float
             s.node_receiving[e,node] = 1
             s.tx_receive[e,frame] = 2
             push(s,p,e,now,14,frame,0,0)
-
 
 @wp.func
 def receive_data(s: WorldState, p: WorldParams, e: int, frame: int, now: wp.float64):
@@ -150,7 +146,6 @@ def receive_data(s: WorldState, p: WorldParams, e: int, frame: int, now: wp.floa
                                 s.tx_report_created[e,frame],s.tx_hops[e,frame],now/wp.float64(1e6),
                                 s.tx_power[e,frame]):
                     s.session_active[e,session] = 0
-
 
 @wp.func
 def poll_delay(s: WorldState, p: WorldParams, e: int, now: wp.float64) -> wp.float64:
@@ -288,6 +283,10 @@ def event(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
                 s.diagnostic_counts[e,diag.RETRY_LIMIT] += wp.int64(1)
                 s.node_wait_finish[e,source] = 1
                 s.pkt_status[e,packet] = 4
+                session = int(s.pkt_session[e,packet])
+                f = s.pkt_fragment[e,packet]
+                if s.fragment_pending[e,session,f] == s.pkt_id[e,packet]:
+                    s.fragment_pending[e,session,f] = wp.int64(0)
     elif kind == 13:
         packet = arg
         source = s.pkt_source[e,packet]

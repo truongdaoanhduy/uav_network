@@ -31,6 +31,22 @@ def boundaries():
             ([50., 50.], [-1., -1.]), ([0., 0.], [-.5, -1.])]
 
 
+def boundary_peer_scenes():
+    scenes = []
+    for spacing in (15., 20., 30.):
+        for tangential in (1., .25):
+            position = np.array([[0., 475.], [0., 475. + spacing]])
+            commands = np.array([[-1., tangential], [-1., -tangential]], np.float32)
+            for _ in range(4):
+                scenes.append((position.copy(), commands.copy(), np.array([False, False])))
+                position = np.column_stack((1000 - position[:, 1], position[:, 0]))
+                commands = np.column_stack((-commands[:, 1], commands[:, 0]))
+    # The same open tangent must remain available beside an immobilized peer.
+    scenes.append((np.array([[0., 25.], [0., 10.]]),
+                   np.array([[-1., -1.], [0., 0.]], np.float32), np.array([False, True])))
+    return scenes
+
+
 class BoundaryEscapeTests(unittest.TestCase):
     def test_outward_commands_keep_progress_through_repeated_boundary_turns(self):
         c = config()
@@ -86,6 +102,36 @@ class BoundaryEscapeTests(unittest.TestCase):
                 if len(start) == 4:
                     np.testing.assert_array_equal(position, start)
 
+    def test_diagonal_boundary_commands_do_not_stall_beside_peers(self):
+        c = config(2)
+        c.world.map_size_m = 1000
+        for start, commands, disabled in boundary_peer_scenes():
+            with self.subTest(start=start.tolist(), commands=commands.tolist(), disabled=disabled.tolist()):
+                position = start.copy(); velocity = np.zeros_like(position)
+                trace = [position.copy()]
+                stalled = np.zeros(2, dtype=int); longest_stall = stalled.copy()
+                for _ in range(80):
+                    old = position.copy(); previous = velocity.copy()
+                    position, velocity, blocked, clipped = move_uavs(position, velocity,
+                        commands, np.empty((0, 3)), c, disabled=disabled)
+                    trace.append(position.copy())
+                    self.assertEqual((blocked, clipped), (0, 0))
+                    self.assertTrue(np.all(np.abs(velocity - previous) <= 2 + 1e-8))
+                    self.assertTrue(np.all(np.linalg.norm(velocity, axis=1) <= c.world.max_speed_mps + 1e-8))
+                    self.assertTrue(np.all((position >= 0) & (position <= c.world.map_size_m)))
+                    self.assertGreaterEqual(segment_distance(old[0] - old[1],
+                        position[0] - position[1], [0., 0.]), c.world.safety_distance_m - 1e-8)
+                    np.testing.assert_array_equal(position[disabled], start[disabled])
+                    stalled = np.where(np.linalg.norm(velocity, axis=1) < 1e-8, stalled + 1, 0)
+                    longest_stall = np.maximum(longest_stall, stalled)
+                recent = np.asarray(trace)[-21:]
+                distance = np.linalg.norm(np.diff(recent, axis=0), axis=2).sum(axis=0)
+                self.assertTrue(np.all(distance[~disabled] > 10),
+                                'A blocked wall guide must use a certified open tangent')
+                self.assertTrue(np.all(np.ptp(recent, axis=0).max(axis=1)[~disabled] > 10),
+                                'Progress must cover space rather than oscillate in place')
+                self.assertTrue(np.all(longest_stall[~disabled] <= 2))
+
     def test_safe_interior_velocity_is_unchanged(self):
         diagnostics = {}
         position, velocity, blocked, clipped = move_uavs(np.array([[50., 50.]]),
@@ -124,6 +170,16 @@ class BoundaryEscapeTests(unittest.TestCase):
         obstacle_commands = np.array([[[-1., 0., 0.]]], np.float32)
         cases.append((config(1, 1), np.array([[[0., 50.]]]), obstacle_commands,
                       np.array([[5., 35.85, 5.]]), np.array([False]), 20))
+        peer_scenes = boundary_peer_scenes()
+        for scenes in (peer_scenes[:-1], peer_scenes[-1:]):
+            starts = np.asarray([scene[0] for scene in scenes])
+            peer_commands = np.zeros((len(scenes), 2, 3), np.float32)
+            peer_commands[..., :2] = np.asarray([scene[1] for scene in scenes])
+            peer_config = config(2); peer_config.world.map_size_m = 1000
+            peer_config.energy.enabled = bool(scenes[0][2].any())
+            # Each batch shares the same disabled mask.
+            cases.append((peer_config, starts, peer_commands,
+                          np.empty((0, 3)), scenes[0][2], 80))
         for c, position, commands, obstacles, disabled, steps in cases:
             with self.subTest(agents=c.world.num_uavs, obstacles=c.world.num_obstacles):
                 position = position.copy(); velocity = np.zeros_like(position)

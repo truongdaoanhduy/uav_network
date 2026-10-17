@@ -183,8 +183,12 @@ class UavNetSimNetwork:
             if not self.reports.contains(transfer.source, transfer.report):
                 del self.sessions[key]
                 continue
+            mac = self.simulator.drones[transfer.source].mac_protocol
             for offset, (packet_id, expiry) in list(transfer.pending.items()):
-                if packet_id in failed or expiry <= self.clock.now / 1e6:
+                ack_key = f"wait_ack{transfer.source}_{packet_id}"
+                # Upstream terminal ACK timeouts do not publish packet_dropped.
+                if (packet_id in failed or expiry <= self.clock.now / 1e6
+                        or mac.wait_ack_process_finish.get(ack_key, 0) == 1):
                     del transfer.pending[offset]
 
     def step(self, action, positions, time_s):
@@ -198,13 +202,23 @@ class UavNetSimNetwork:
         for source in range(self.config.world.num_uavs):
             active = self.node_active(source)
             bearing = active and bool(self.reports.buffers[source])
-            eligible = bearing and any(self._eligible(source, destination, positions, report)
-                for destination in range(self.config.world.num_uavs + 1) if destination != source
-                for report in self.reports.buffers[source].values())
+            n = self.config.world.num_uavs
+            receivers = {destination for destination in range(n + 1) if destination != source
+                         and bearing and any(self._eligible(source, destination, positions, report)
+                             for report in self.reports.buffers[source].values())}
+            eligible = bool(receivers)
+            # A closer eligible peer is a local opportunity, not an end-to-end route guarantee.
+            progress_peer = n not in receivers and any(
+                np.linalg.norm(positions[destination] - self.scene.gcs)
+                < np.linalg.norm(positions[source] - self.scene.gcs) - 1e-9
+                for destination in receivers if destination < n)
+            silent = action.destination[source] == 0
             for name, value in (("action_slots", 1), ("action_active", active),
                                 ("action_report_bearing", bearing), ("action_receiver_eligible", eligible),
-                                ("action_silent", action.destination[source] == 0),
-                                ("action_no_opportunity", not eligible)):
+                                ("action_silent", silent), ("action_no_opportunity", not eligible),
+                                ("action_eligible_silent", eligible and silent),
+                                ("action_progress_peer_opportunity", progress_peer),
+                                ("action_progress_peer_silent", progress_peer and silent)):
                 self.diagnostic_counts[COUNT[name]] += int(value)
         for source, index in enumerate(action.destination):
             destination = self._destination(source, int(index))
