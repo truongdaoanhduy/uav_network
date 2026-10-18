@@ -31,6 +31,8 @@ class UavNetSimNetwork:
         self.sessions = {}
         self.communication_events = None  # Opt-in single-mission visualization only.
         self.energy_j = np.zeros(config.world.num_uavs + 1)
+        self.tx_energy_j = np.zeros(config.world.num_uavs + 1)
+        self.rx_energy_j = np.zeros(config.world.num_uavs + 1)
         self.battery_j = (battery_j if battery_j is not None else
                           np.full(config.world.num_uavs, config.energy.battery_capacity_j, dtype=float))
         self.selection_counts = {"selected": 0, "accepted": 0, "receiver_rejected": 0,
@@ -308,6 +310,10 @@ class UavNetSimNetwork:
                 "communication_energy_j": float(self.energy_j.sum()),
                 "uav_communication_energy_j": float(self.energy_j[:-1].sum()),
                 "gcs_communication_energy_j": float(self.energy_j[-1]),
+                "uav_tx_energy_j": float(self.tx_energy_j[:-1].sum()),
+                "uav_rx_energy_j": float(self.rx_energy_j[:-1].sum()),
+                "gcs_tx_energy_j": float(self.tx_energy_j[-1]),
+                "gcs_rx_energy_j": float(self.rx_energy_j[-1]),
                 "energy_blocked_transmissions": self.energy_blocked_transmissions,
                 "obstacle_extra_loss_db": self.config.network.obstacle_extra_loss_db,
                 "payload_throughput_kbps": self.received_payload_bytes * 8 / max(elapsed, 1e-12) / 1000,

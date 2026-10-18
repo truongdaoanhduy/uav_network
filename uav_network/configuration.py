@@ -54,6 +54,10 @@ class NetworkConfig:
     tx_power_min_w: float = 0.1
     tx_power_max_w: float = 0.4
     tx_power_mapping: str = "linear"
+    # Radio hardware defaults preserve the historical RF-output-only energy model.
+    pa_efficiency: float = 1.0
+    tx_circuit_power_w: float = 0.0
+    rx_circuit_power_w: float = 0.0
     power_limited_admission: bool = False
     link_state_observation: bool = False
     report_bytes: int = 1024
@@ -264,6 +268,10 @@ class Config:
         if (n.tx_power_min_w <= 0 or n.tx_power_max_w <= 0
                 or n.tx_power_max_w < n.tx_power_min_w or n.buffer_bytes < n.report_bytes):
             raise ValueError("Invalid TX power range or buffer smaller than one report")
+        if (not math.isfinite(n.pa_efficiency) or not 0 < n.pa_efficiency <= 1
+                or not math.isfinite(n.tx_circuit_power_w) or n.tx_circuit_power_w < 0
+                or not math.isfinite(n.rx_circuit_power_w) or n.rx_circuit_power_w < 0):
+            raise ValueError("Radio PA efficiency must be in (0,1] and circuit powers finite/nonnegative")
         if n.tx_power_mapping not in {"linear", "log"}:
             raise ValueError("network.tx_power_mapping must be linear or log")
         if type(n.power_limited_admission) is not bool or type(n.link_state_observation) is not bool:

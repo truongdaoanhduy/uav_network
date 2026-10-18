@@ -13,6 +13,8 @@ def row(array, index):
 def network_info(s, p, index=0):
     counts = row(s.packet_counts,index)
     energy = row(s.communication_energy,index)
+    tx_energy = row(s.tx_energy,index)
+    rx_energy = row(s.rx_energy,index)
     selection = row(s.selection_counts,index)
     delivered = int(row(s.report_delivery_count,index))
     received = int(counts[1])
@@ -32,6 +34,10 @@ def network_info(s, p, index=0):
         "communication_energy_j": float(energy.sum()),
         "uav_communication_energy_j": float(energy[:-1].sum()),
         "gcs_communication_energy_j": float(energy[-1]),
+        "uav_tx_energy_j": float(tx_energy[:-1].sum()),
+        "uav_rx_energy_j": float(rx_energy[:-1].sum()),
+        "gcs_tx_energy_j": float(tx_energy[-1]),
+        "gcs_rx_energy_j": float(rx_energy[-1]),
         "energy_blocked_transmissions": int(counts[5]),
         "obstacle_extra_loss_db": -10*math.log10(p.nlos_scale)-p.nlos_excess_loss_db,
         "payload_throughput_kbps": int(counts[6])*8/max(elapsed,1e-12)/1000,
@@ -81,6 +87,8 @@ def world_info(s, p, index=0):
         "action_counts": dict(zip(("silent","peer","gcs","saturated"),map(int,actions))),
         "energy": {"per_uav_propulsion_energy_j": row(s.flight_energy,index).tolist(),
                    "per_uav_rf_energy_j": row(s.communication_energy,index)[:-1].tolist(),
+                   "per_uav_tx_radio_energy_j": row(s.tx_energy,index)[:-1].tolist(),
+                   "per_uav_rx_radio_energy_j": row(s.rx_energy,index)[:-1].tolist(),
                    "per_uav_total_energy_j": (row(s.flight_energy,index)+row(s.communication_energy,index)[:-1]).tolist(),
                    "battery_j": battery.tolist(), "battery_fraction": (battery/p.capacity).tolist(),
                    "active_uavs": int(active.sum()),

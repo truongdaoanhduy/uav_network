@@ -110,4 +110,7 @@ def report_reference_tx_energy_j(network_config) -> float:
         fragment = min(payload, remaining)
         total_bits += fragment * 8.0 + DATA_HEADER_BITS
         remaining -= fragment
-    return total_bits / float(network_config.bit_rate_bps) * float(network_config.tx_power_max_w)
+    airtime = total_bits / float(network_config.bit_rate_bps)
+    pa_efficiency = float(getattr(network_config, "pa_efficiency", 1.0))
+    circuit = float(getattr(network_config, "tx_circuit_power_w", 0.0))
+    return airtime * (circuit + float(network_config.tx_power_max_w) / pa_efficiency)

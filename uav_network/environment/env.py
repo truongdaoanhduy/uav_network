@@ -168,6 +168,8 @@ class SwarmSearchEnv:
         found, delivered = int(self.reports.known.any(axis=0).sum()), int(self.reports.delivered.sum())
         count = self.config.world.num_targets
         rf = self.network.energy_j[:-1] if self.network else np.zeros_like(self.propulsion_energy_j)
+        tx_rf = self.network.tx_energy_j[:-1] if self.network else np.zeros_like(self.propulsion_energy_j)
+        rx_rf = self.network.rx_energy_j[:-1] if self.network else np.zeros_like(self.propulsion_energy_j)
         return {"report_diagnostics": self.reports.diagnostics(self.time_s),"motion_counts": dict(self.motion_counts), "reward_components": dict(self.reward_components), "action_counts": dict(self.action_counts),
                 "buffer_reports": sum(len(b) for b in self.reports.buffers),
                 "buffer_bytes": sum(self.reports.bytes_used(i) for i in range(self.config.world.num_uavs)),
@@ -183,6 +185,8 @@ class SwarmSearchEnv:
                                        "time_limit" if self.steps >= self.config.world.max_steps else None),
                 "energy": {"per_uav_propulsion_energy_j": self.propulsion_energy_j.tolist(),
                            "per_uav_rf_energy_j": rf.tolist(),
+                           "per_uav_tx_radio_energy_j": tx_rf.tolist(),
+                           "per_uav_rx_radio_energy_j": rx_rf.tolist(),
                            "per_uav_total_energy_j": (self.propulsion_energy_j + rf).tolist(),
                            "battery_j": self.battery_j.tolist(),
                            "battery_fraction": self.battery_fraction.tolist(),

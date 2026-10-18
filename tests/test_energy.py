@@ -43,6 +43,65 @@ class EnergyTests(unittest.TestCase):
         expected = 4 * (512 * 8 + 464) / 2_000_000.0 * 0.4
         self.assertAlmostEqual(report_reference_tx_energy_j(c.network), expected, places=15)
 
+    def test_radio_hardware_config_validation_and_reference_formula(self):
+        c = Config()
+        for name, value in (("pa_efficiency", 0.0), ("pa_efficiency", 1.01),
+                            ("tx_circuit_power_w", -0.1), ("rx_circuit_power_w", -0.1)):
+            with self.subTest(name=name, value=value):
+                bad = Config()
+                setattr(bad.network, name, value)
+                with self.assertRaisesRegex(ValueError, "radio|efficiency|circuit"):
+                    bad.validate()
+        c.network.report_bytes = 2048
+        c.network.payload_bytes = 512
+        c.network.bit_rate_bps = 2_000_000.0
+        c.network.tx_power_max_w = 0.4
+        c.network.pa_efficiency = 0.5
+        c.network.tx_circuit_power_w = 0.2
+        c.network.rx_circuit_power_w = 0.1
+        airtime = 4 * (512 * 8 + 464) / 2_000_000.0
+        self.assertAlmostEqual(report_reference_tx_energy_j(c.network),
+                               airtime * (0.2 + 0.4 / 0.5), places=15)
+
+    def test_native_radio_energy_splits_tx_rx_and_battery_uses_total_uav_radio(self):
+        c = config(network=True, capacity=10)
+        c.energy.idle_power_w = c.energy.hover_power_w = 0
+        c.network.tx_power_min_w = c.network.tx_power_max_w = 0.4
+        c.network.pa_efficiency = 0.5
+        c.network.tx_circuit_power_w = 0.2
+        c.network.rx_circuit_power_w = 0.1
+        env = self.prepare(c, positions=[[500,100],[900,900]], target=[500,100])
+        before = env.battery_j.copy()
+        _, _, _, _, info = env.step(Action(np.zeros((2, 3)), np.array([2,0])))
+        net = info["network"]
+        self.assertGreater(net["uav_tx_energy_j"], 0)
+        self.assertGreater(net["uav_rx_energy_j"], 0)  # ACK reception
+        self.assertGreater(net["gcs_tx_energy_j"], 0)  # ACK transmission
+        self.assertGreater(net["gcs_rx_energy_j"], 0)  # DATA reception
+        self.assertAlmostEqual(net["uav_communication_energy_j"],
+                               net["uav_tx_energy_j"] + net["uav_rx_energy_j"], places=12)
+        self.assertAlmostEqual(net["gcs_communication_energy_j"],
+                               net["gcs_tx_energy_j"] + net["gcs_rx_energy_j"], places=12)
+        self.assertAlmostEqual(float((before-env.battery_j).sum()),
+                               net["uav_communication_energy_j"], places=10)
+
+    def test_failed_decode_consumes_receiver_listening_energy(self):
+        c = config(network=True, capacity=10)
+        c.energy.idle_power_w = c.energy.hover_power_w = 0
+        c.network.sinr_threshold_db = 200
+        c.network.pa_efficiency = 0.5
+        c.network.tx_circuit_power_w = 0.2
+        c.network.rx_circuit_power_w = 0.1
+        env = self.prepare(c, positions=[[500,100],[600,100]], target=[500,100])
+        before = env.battery_j.copy()
+        _, _, _, _, info = env.step(Action(np.zeros((2, 3)), np.array([1,0])))
+        net = info["network"]
+        self.assertGreater(net["phy_failures"], 0)
+        self.assertGreater(net["uav_tx_energy_j"], 0)
+        self.assertGreater(net["uav_rx_energy_j"], 0)
+        self.assertFalse(env.reports.delivered[0])
+        self.assertGreater(before[1]-env.battery_j[1], 0)
+
     def test_communication_efficiency_changes_reward_not_physical_battery(self):
         def run(weight):
             c = config(network=True, capacity=10)

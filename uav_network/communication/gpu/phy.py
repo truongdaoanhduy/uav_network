@@ -149,7 +149,8 @@ def emit(s: WorldState, p: WorldParams, e: int, packet: int, source: int, destin
         bits = p.ack_bits
         if p.ack_uses_data_power == 0:
             power = p.tx_power_min
-    cost = bits/p.bit_rate*power
+    airtime = bits/p.bit_rate
+    cost = airtime*(p.tx_circuit_power + power/p.pa_efficiency)
     if not active(s,p,e,source) or (source < p.n and p.energy_enabled != 0 and cost > s.battery[e,source]):
         s.packet_counts[e,5] += 1
         s.diagnostic_counts[e,diag.ENERGY_DENIALS] += wp.int64(1)
@@ -159,6 +160,7 @@ def emit(s: WorldState, p: WorldParams, e: int, packet: int, source: int, destin
         s.diagnostic_counts[e,count] += wp.int64(1)
         return -1
     s.communication_energy[e,source] += cost
+    s.tx_energy[e,source] += cost
     if source < p.n and p.energy_enabled != 0:
         s.battery[e,source] = wp.max(wp.float64(0),s.battery[e,source]-cost)
     retained = int(0)
@@ -251,6 +253,19 @@ def evaluate(s: WorldState, p: WorldParams, e: int, frame: int, now: wp.float64)
     if signal > wp.float64(0):
         sinr = wp.float64(10)*wp.log10(signal/(p.noise_power+interference))
     success = sinr >= p.sinr_threshold
+    rx_cost = duration/wp.float64(1e6)*p.rx_circuit_power
+    if rx_cost > wp.float64(0) and active(s,p,e,receiver):
+        consumed = rx_cost
+        affordable = bool(True)
+        if receiver < p.n and p.energy_enabled != 0:
+            if rx_cost > s.battery[e,receiver]:
+                consumed = s.battery[e,receiver]
+                affordable = False
+            s.battery[e,receiver] = wp.max(wp.float64(0),s.battery[e,receiver]-consumed)
+        s.communication_energy[e,receiver] += consumed
+        s.rx_energy[e,receiver] += consumed
+        if not affordable:
+            success = False
     snr = wp.float64(-200)
     rssi = wp.float64(-200)
     if signal > wp.float64(0):

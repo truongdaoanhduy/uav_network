@@ -67,6 +67,9 @@ class WorldParams:
     gcs_y: wp.float64
     tx_power_min: wp.float64
     tx_power_max: wp.float64
+    pa_efficiency: wp.float64
+    tx_circuit_power: wp.float64
+    rx_circuit_power: wp.float64
     packet_lifetime: wp.float64
     queue_poll: wp.float64
     bit_rate: wp.float64
@@ -115,6 +118,8 @@ class WorldState:
     flight_energy: wp.array2d(dtype=wp.float64)
     inflight: wp.array2d(dtype=wp.float64)
     communication_energy: wp.array2d(dtype=wp.float64)
+    tx_energy: wp.array2d(dtype=wp.float64)
+    rx_energy: wp.array2d(dtype=wp.float64)
     visible: wp.array3d(dtype=wp.int32)
     known: wp.array3d(dtype=wp.int32)
     recovery: wp.array3d(dtype=wp.int32)
@@ -275,6 +280,8 @@ def params_from_config(config):
                   target_exclusion=w.target_exclusion_radius_m,
                   obstacle_min_radius=w.obstacle_radius_min_m, obstacle_max_radius=w.obstacle_radius_max_m,
                   tx_power_min=n.tx_power_min_w, tx_power_max=n.tx_power_max_w,
+                  pa_efficiency=n.pa_efficiency, tx_circuit_power=n.tx_circuit_power_w,
+                  rx_circuit_power=n.rx_circuit_power_w,
                   packet_lifetime=n.packet_lifetime_s, queue_poll=n.queue_poll_us,
                   bit_rate=n.bit_rate_bps, frequency=n.carrier_frequency_hz,
                   noise_power=10 ** ((n.noise_density_dbm_hz + 10*np.log10(n.bandwidth_hz)
@@ -345,6 +352,7 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False):
         "flight_energy": ((e,n), wp.float64), "delivered": ((e,t), wp.int32),
         "motion_counts": ((e,9), wp.int32), "report_counts": ((e,3), wp.int32),
         "inflight": ((e,n), wp.float64), "communication_energy": ((e,n+1), wp.float64),
+        "tx_energy": ((e,n+1), wp.float64), "rx_energy": ((e,n+1), wp.float64),
         "observation": ((e,n,observation_dim(config)), wp.float32),
         "state": ((e,state_dim(config)), wp.float32), "reward": ((e,), wp.float32),
         "pcg_state": ((e,4), wp.uint64), "seeds": ((e,), wp.int64),

@@ -340,6 +340,31 @@ class GPUPhysicsTests(unittest.TestCase):
         self.step_motion(env, s, p, [[0, 0, 0], [0, 0, 0]])
         np.testing.assert_array_equal(s.positions.numpy()[0], [[100, 500], [200, 500]])
 
+    def test_radio_hardware_tx_rx_energy_matches_native_on_failed_decode(self):
+        c = Config()
+        c.world.num_uavs, c.world.num_targets, c.world.num_obstacles = 2, 1, 0
+        c.sensor.altitude_m = 20
+        c.energy.idle_power_w = c.energy.hover_power_w = 0
+        c.network.sinr_threshold_db = 200
+        c.network.pa_efficiency = 0.5
+        c.network.tx_circuit_power_w = 0.2
+        c.network.rx_circuit_power_w = 0.1
+        positions, targets = [[500,100],[600,100]], [[500,100]]
+        env = SwarmSearchEnv(c)
+        env.reset(seed=44, options=dict(positions=positions, targets=targets, obstacles=[]))
+        self.addCleanup(env.close)
+        from uav_network.environment.env import Action
+        _, _, _, _, expected = env.step(Action(np.zeros((2,3)), np.array([1,0])))
+        helper = packet_tests.GPUPacketTests()
+        wp, state, params, mac = helper.prepare(c, positions, targets, [], 44)
+        actual = helper.step(c, state, params, mac, wp, [1,0], 0)
+        for key in ("uav_tx_energy_j", "uav_rx_energy_j",
+                    "gcs_tx_energy_j", "gcs_rx_energy_j",
+                    "uav_communication_energy_j", "gcs_communication_energy_j"):
+            self.assertAlmostEqual(actual[key], expected["network"][key], places=10, msg=key)
+        np.testing.assert_allclose(state.battery.numpy()[0], expected["energy"]["battery_j"],
+                                   rtol=0, atol=2e-7)
+
     def test_v2_reward_components_and_physical_energy_match_native(self):
         c = Config()
         c.world.num_uavs, c.world.num_targets, c.world.num_obstacles = 1, 1, 0

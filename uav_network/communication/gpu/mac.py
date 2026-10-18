@@ -295,6 +295,8 @@ def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32))
             s.node_wait_packet[e,i] = -1
             s.node_receiving[e,i] = 0
             s.communication_energy[e,i] = wp.float64(0)
+            s.tx_energy[e,i] = wp.float64(0)
+            s.rx_energy[e,i] = wp.float64(0)
             if p.network_enabled != 0:
                 push(s,p,e,p.queue_poll,1,i,0,1)
             if i < p.n:
