@@ -143,6 +143,20 @@ class WarpRetryRecoveryTests(unittest.TestCase):
         self.assertEqual(recovered["received_packets"], 2)
         self.assertEqual(recovered["diagnostics"]["data_attempts"], 7)
 
+    def test_failed_sender_recovers_while_another_report_streams(self):
+        c = retry_config(report_bytes=4096, buffer_bytes=8192, payload_bytes=512,
+                         max_queue_packets=2, max_retries=1)
+        c.world.num_targets = 2
+        positions = [[500, 450], [500, 100]]
+        actions = [([2, 2], [-1, 1]), ([2, 2], [1, 1])]
+        wp, state, params, mac = packets.GPUPacketTests().compare(
+            c, positions, actions, targets=positions)
+        self.assertEqual(state.delivered.numpy().tolist(), [[1, 1]])
+        result = mac.metrics_at(state, params)
+        self.assertEqual(result["generated_packets"], 18)
+        self.assertEqual(result["received_packets"], 16)
+        self.assertEqual(result["diagnostics"]["data_attempts"], 18)
+
     def test_retry_recovery_does_not_refresh_report_ttl(self):
         state, result = self.compare([([2, 0], -1), ([0, 0], -1), ([2, 0], 1)],
             retry_config(report_ttl_s=1.5, rediscovery_recovery=False))

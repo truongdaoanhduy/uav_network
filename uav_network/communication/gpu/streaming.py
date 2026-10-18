@@ -32,9 +32,9 @@ def fragment_bit(s: WorldState, e: int, session: int, fragment: int) -> wp.uint6
 
 @wp.func
 def clear_pending(s: WorldState, p: WorldParams, e: int, now: wp.float64):
-    # Session validity is report-custody based. Terminal packet slots keep their
-    # pending bit until the next policy interval so retry exhaustion does not
-    # silently create another attempt under the same action.
+    # Rebuild at policy boundaries: another streaming session may already have
+    # reused a terminal packet slot. Deferring this reconciliation preserves the
+    # rule that retry exhaustion needs a later policy action.
     for session in range(p.session_capacity):
         if s.session_active[e,session] != 0:
             source = session//((p.n+1)*p.targets_count)
@@ -44,15 +44,19 @@ def clear_pending(s: WorldState, p: WorldParams, e: int, now: wp.float64):
                 or s.report_origin[e,source,target] != s.session_origin[e,session]
                 or s.report_hops[e,source,target] != s.session_hops[e,session]):
                 discard_sessions(s,p,e,source,target)
+            s.session_pending_mask[e,session] = wp.uint64(0)
     for packet in range(p.packet_capacity):
-        if s.pkt_status[e,packet] == 4:
+        if s.pkt_status[e,packet] == 1 or s.pkt_status[e,packet] == 2:
             session = int(s.pkt_session[e,packet])
             if (session >= 0 and session < p.session_capacity
                 and s.session_active[e,session] != 0
                 and s.pkt_session_id[e,packet] == s.session_id[e,session]):
-                bit = fragment_bit(s,e,session,s.pkt_fragment[e,packet])
-                if bit != wp.uint64(0):
-                    s.session_pending_mask[e,session] = s.session_pending_mask[e,session] & ~bit
+                fragment = s.pkt_fragment[e,packet]
+                start = s.session_window_start[e,session]
+                bit = fragment_bit(s,e,session,fragment)
+                if (bit != wp.uint64(0) and fragment < start+window_count(p,start)
+                    and (s.session_arrived_mask[e,session] & bit) == wp.uint64(0)):
+                    s.session_pending_mask[e,session] = s.session_pending_mask[e,session] | bit
 
 
 @wp.func

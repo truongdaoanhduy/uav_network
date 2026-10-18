@@ -6,6 +6,7 @@ import sys
 import yaml
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from threading import Event
 import unittest
 from unittest.mock import patch
 
@@ -66,6 +67,56 @@ class PQLTrainingTests(unittest.TestCase):
             self.assertEqual(writes, [8])
             saved = torch.load(result["resume_checkpoint"], weights_only=True)
             self.assertEqual(saved["progress"]["episodes"], 8)
+
+    def test_periodic_checkpoint_waits_for_live_vectorized_critic_update(self):
+        from uav_network.experiments.pql_system import PQLSystem
+        for algorithm in ("masac", "matd3"):
+            with self.subTest(algorithm=algorithm), TemporaryDirectory() as folder:
+                output = Path(folder) / "run"
+                c = self.config(output, algorithm)
+                c.runtime.episodes, c.runtime.checkpoint_interval = 8, 4
+                c.runtime.vectorize_critics = True
+                c.world.max_steps = 1
+                c.pql.warmup_collection_steps = 1
+                c.pql.critic_sample_ratio = 1
+                engine = PQLSystem(c)
+                entered, release = Event(), Event()
+
+                def hold_first_forward(module, args):
+                    # functional_call has installed vmap's temporary parameters.
+                    if not entered.is_set():
+                        entered.set()
+                        if not release.wait(5):
+                            raise TimeoutError("Checkpoint did not drain the live critic")
+
+                hook = engine.critic.critics[0].register_forward_pre_hook(hold_first_forward)
+                real_submit, real_flush = engine.submit, engine.flush
+
+                def submit(transition):
+                    real_submit(transition)
+                    if engine.collections == 1 and not entered.wait(5):
+                        raise TimeoutError("Vectorized critic did not enter functional_call")
+
+                def flush():
+                    # Let the real drain finish the held update before reading weights.
+                    release.set()
+                    return real_flush()
+
+                try:
+                    with patch("uav_network.experiments.pql_training.PQLSystem", return_value=engine), \
+                         patch.object(engine, "submit", side_effect=submit), \
+                         patch.object(engine, "flush", side_effect=flush):
+                        result = train(c)
+                    saved = torch.load(output / "episode_000004.pt", weights_only=True)
+                    self.assertEqual(saved["version"], 2)
+                    self.assertNotIn("training", saved)
+                    self.assertEqual(saved["updates"], 1)
+                    self.assertTrue(all(torch.isfinite(value).all() for value in saved["model"].values()))
+                    self.assertEqual(result["updates"], 2)
+                finally:
+                    release.set()
+                    hook.remove()
+                    engine.close()
 
     def test_resume_retains_episode_prefix_optimizer_replay_and_rate_counters(self):
         with TemporaryDirectory() as folder:

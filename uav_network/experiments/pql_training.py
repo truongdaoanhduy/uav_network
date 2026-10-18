@@ -87,6 +87,10 @@ def train_pql(config):
                 collector_rng = {"numpy": rng.bit_generator.state,
                                  "torch": generator.get_state().cpu() if generator is not None else None}
                 engine.save(output / "resume_latest.pt", state, collector_rng=collector_rng)
+            else:
+                # vmap temporarily swaps live critic parameters; light snapshots
+                # need the same drained boundary as a full resume checkpoint.
+                engine.flush()
             engine.critic.save(policy_path, progress=state)
             if tracker and not final:
                 tracker.checkpoint(policy_path, state)
