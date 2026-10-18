@@ -102,6 +102,15 @@ def _guidance(s: WorldState, p: WorldParams, e: int, i: int):
         second[axis] = second[axis] - direction * radius
         if not static_point(s, p, e, first) and static_point(s, p, e, second):
             guide = -guide
+        for reverse in range(2):
+            alternative = wp.vec2d(guide)
+            if reverse == 1:
+                alternative = -guide
+            aimed = reachable(previous + _clip_box(alternative - previous,
+                wp.vec2d(-step, -step), wp.vec2d(step, step)), previous, p)
+            if (static_path(s, p, e, position, aimed)
+                    and _others_safe(s, p, e, i, aimed)):
+                return alternative, int(0)
         return guide, int(0)
     point, speed = wp.vec2d(position), wp.vec2d(nominal)
     outside_x, outside_y = bool(False), bool(False)

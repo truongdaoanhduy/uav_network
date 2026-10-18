@@ -71,5 +71,48 @@ class SharedScenarioV2CUDATests(unittest.TestCase):
         self.assertGreaterEqual(float(np.ptp(np.asarray(trace)[-20:],axis=0).max()),20)
         self.assertTrue(s.positions.device.is_cuda)
 
+    def test_real_cuda_obstacle_peer_conflict_uses_the_certified_open_tangent(self):
+        import warp as wp
+        from uav_network.environment.gpu.state import allocate_state
+        from uav_network.environment.gpu.motion import motion_step
+        from uav_network.environment.geometry import segment_distance
+        c=packets.config()
+        c.world.num_uavs=6
+        c.world.num_obstacles=1
+        c.energy.enabled=True
+        positions=np.array([[439.,500.],[439.,484.5],[100.,100.],
+                            [250.,100.],[750.,100.],[900.,100.]])
+        velocities=np.zeros_like(positions)
+        obstacles=np.array([[500.,500.,50.]])
+        commands=np.zeros((6,2),np.float32); commands[0,0]=1
+        s,p=allocate_state(c,num_envs=1,device="cuda")
+        s.positions.assign(positions[None])
+        s.obstacles.assign(obstacles[None])
+        actions=np.zeros((1,6,3),np.float32)
+        actions[0,:,:2]=commands
+        values=wp.array(actions,dtype=wp.float32,device="cuda")
+        trace=[]
+        for step in range(80):
+            old,previous=positions.copy(),velocities.copy()
+            positions,velocities,blocked,clipped=move_uavs(
+                positions,velocities,commands,obstacles,c)
+            self.assertEqual((blocked,clipped),(0,0))
+            self.assertTrue(np.all(np.abs(velocities-previous)<=2+1e-8))
+            self.assertGreaterEqual(segment_distance(old[0],positions[0],obstacles[0,:2]),60-1e-8)
+            self.assertGreaterEqual(segment_distance(old[0]-old[1],positions[0]-positions[1],[0.,0.]),15-1e-8)
+            wp.launch(motion_step,dim=1,inputs=[s,p,values],device="cuda")
+            np.testing.assert_allclose(s.positions.numpy()[0],positions,rtol=0,atol=2e-8)
+            np.testing.assert_allclose(s.velocities.numpy()[0],velocities,rtol=0,atol=2e-8)
+            if step==0:
+                self.assertGreater(positions[0,1],old[0,1])
+            trace.append(positions.copy())
+        self.assertGreater(positions[0,0],570)
+        self.assertGreater(float(np.ptp(np.asarray(trace)[-20:,0],axis=0).max()),10)
+        counts=s.motion_counts.numpy()[0]
+        self.assertEqual((counts[2],counts[7]),(0,0))
+        self.assertGreater(counts[4],0)
+        self.assertTrue(np.all(s.battery.numpy()>0))
+        self.assertTrue(s.positions.device.is_cuda)
+
 if __name__=="__main__":
     unittest.main()

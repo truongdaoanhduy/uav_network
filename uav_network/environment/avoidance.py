@@ -113,8 +113,16 @@ def _guidance(position, previous, nominal, path, obstacles, other_paths, world):
         threatening = np.flatnonzero(gaps < 1e-9)
         if len(threatening):
             index = min(threatening, key=lambda k: np.linalg.norm(position - obstacles[k, :2]))
-            return _obstacle_tangent(position, previous, nominal, obstacles[index],
-                                     obstacles, world), "obstacle"
+            guide = _obstacle_tangent(position, previous, nominal, obstacles[index], obstacles, world)
+            step = world.max_accel_mps2 * world.dt_s
+            for alternative in (guide, -guide):
+                aimed = reachable_velocities(
+                    (previous + np.clip(alternative - previous, -step, step))[None], previous[None], world)[0]
+                certificate = braking_paths(position[None], aimed[None], world)
+                if (_static_valid(certificate, obstacles, world)[0]
+                        and _peer_valid(certificate, other_paths, world)[0]):
+                    return alternative, "obstacle"
+            return guide, "obstacle"
     outside = ((path < 0) | (path > world.map_size_m)).any(axis=0)
     if outside.any():
         guide = nominal.copy()

@@ -170,6 +170,13 @@ class BoundaryEscapeTests(unittest.TestCase):
         obstacle_commands = np.array([[[-1., 0., 0.]]], np.float32)
         cases.append((config(1, 1), np.array([[[0., 50.]]]), obstacle_commands,
                       np.array([[5., 35.85, 5.]]), np.array([False]), 20))
+        obstacle_peer_config = config(6, 1); obstacle_peer_config.world.map_size_m = 1000
+        obstacle_peer_config.energy.enabled = True
+        obstacle_peer_start = np.array([[[439., 500.], [439., 484.5], [100., 100.],
+                                         [250., 100.], [750., 100.], [900., 100.]]])
+        obstacle_peer_commands = np.zeros((1, 6, 3), np.float32); obstacle_peer_commands[0, 0, 0] = 1
+        cases.append((obstacle_peer_config, obstacle_peer_start, obstacle_peer_commands,
+                      np.array([[500., 500., 50.]]), np.zeros(6, dtype=bool), 80))
         peer_scenes = boundary_peer_scenes()
         for scenes in (peer_scenes[:-1], peer_scenes[-1:]):
             starts = np.asarray([scene[0] for scene in scenes])
@@ -198,6 +205,12 @@ class BoundaryEscapeTests(unittest.TestCase):
                     np.testing.assert_allclose(state.velocities.numpy(), velocity, rtol=0, atol=2e-8)
                 self.assertFalse(state.blocked.numpy().any())
                 self.assertFalse(state.clipped.numpy().any())
+                if c is obstacle_peer_config:
+                    self.assertGreater(position[0, 0, 0], 570)
+                    counts = state.motion_counts.numpy()[0]
+                    self.assertEqual((counts[2], counts[7]), (0, 0))
+                    self.assertGreater(counts[4], 0)
+                    self.assertTrue(np.all(state.battery.numpy() > 0))
 
 
 if __name__ == '__main__':

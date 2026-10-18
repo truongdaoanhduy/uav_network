@@ -134,6 +134,41 @@ class AvoidanceTests(unittest.TestCase):
                 self.assertGreater(env.positions[0, 0], 600, "UAV chose the sealed side and stalled")
                 self.assertEqual(env.blocked_moves, 0)
 
+    def test_obstacle_detour_uses_open_tangent_beside_a_stationary_live_peer(self):
+        c = Config()
+        # V2 motion limits and six live UAVs; four peers are far from the local conflict.
+        position = np.array([[439., 500.], [439., 484.5], [100., 100.],
+                             [250., 100.], [750., 100.], [900., 100.]])
+        velocity = np.zeros_like(position)
+        stationary = position[1:].copy()
+        obstacles = np.array([[500., 500., 50.]])
+        commands = np.zeros((6, 2), np.float32); commands[0, 0] = 1
+        trace = [position.copy()]
+        for step in range(80):
+            old, previous = position.copy(), velocity.copy()
+            diagnostics = {}
+            position, velocity, blocked, clipped = move_uavs(
+                position, velocity, commands, obstacles, c, diagnostics=diagnostics)
+            self.assertEqual((blocked, clipped, diagnostics['shield_infeasible'],
+                              diagnostics['commanded_stalls']), (0, 0, 0, 0))
+            self.assertTrue(np.all(np.abs(velocity - previous) <= 2 + 1e-8))
+            self.assertTrue(np.all(np.linalg.norm(velocity, axis=1) <= c.world.max_speed_mps + 1e-8))
+            self.assertGreaterEqual(segment_distance(old[0], position[0], obstacles[0, :2]),
+                                    60 - 1e-8)
+            for i in range(len(position)):
+                for j in range(i):
+                    self.assertGreaterEqual(segment_distance(old[i] - old[j],
+                        position[i] - position[j], [0., 0.]), c.world.safety_distance_m - 1e-8)
+            np.testing.assert_array_equal(position[1:], stationary)
+            if step == 0:
+                self.assertEqual(diagnostics['shield_obstacle_interventions'], 1)
+                self.assertGreater(position[0, 1], old[0, 1], 'Use the certified open obstacle tangent')
+            trace.append(position.copy())
+        self.assertGreater(position[0, 0], 570, 'The detour must pass the obstacle')
+        recent = np.asarray(trace)[-21:, 0]
+        self.assertGreater(float(np.linalg.norm(np.diff(recent, axis=0), axis=1).sum()), 10)
+        self.assertGreater(float(np.ptp(recent, axis=0).max()), 10)
+
     def test_target_adjacent_detour_can_complete_native_packet_delivery(self):
         env = scenario([[300, 500]], [[561, 500]], [[500, 500, 50]], network=True)
         self.addCleanup(env.close)
