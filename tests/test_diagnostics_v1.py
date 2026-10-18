@@ -21,9 +21,13 @@ def outcome(step=8, value=1., generated=1, received=1, deliveries=1, samples=1):
         "energy": {"propulsion_energy_j": 100., "battery_fraction": [.8, .7],
                    "battery_j": [80., 70.], "active_uavs": 2,
                    "per_uav_propulsion_energy_j": [40., 60.],
-                   "per_uav_rf_energy_j": [1., 2.], "per_uav_total_energy_j": [41., 62.]},
+                   "per_uav_rf_energy_j": [1., 2.],
+                   "per_uav_tx_radio_energy_j": [.7, 1.3],
+                   "per_uav_rx_radio_energy_j": [.3, .7],
+                   "per_uav_total_energy_j": [41., 62.]},
         "network": {"enabled": True, "generated_packets": generated, "received_packets": received,
-                    "uav_communication_energy_j": 3.,
+                    "uav_communication_energy_j": 3., "uav_tx_energy_j": 2., "uav_rx_energy_j": 1.,
+                    "gcs_tx_energy_j": .1, "gcs_rx_energy_j": .2,
                     "diagnostics": {"data_attempts": samples, "data_phy_successes": samples,
                         "action_slots": 8, "action_receiver_eligible": 2, "action_silent": 4,
                         "data_tx_power_w": {"count": samples, "sum": .2 * samples,
@@ -57,6 +61,23 @@ def test_episode_emission_counts_and_per_uav_values_keep_null_conditionals():
     legacy["network"].pop("diagnostics")
     legacy.pop("report_diagnostics")
     assert episode_metrics(legacy, 2)["network/diagnostics/available"] == 0
+
+
+def test_v3_radio_energy_pool_uses_raw_joules_and_delivery_denominator():
+    from uav_network.experiments.telemetry import OutcomePool
+    pool = OutcomePool(); pool.add([outcome(deliveries=1), outcome(deliveries=2)])
+    values = pool.metrics()
+    assert values["energy/uav_tx_radio_energy_j"] == 4.
+    assert values["energy/uav_rx_radio_energy_j"] == 2.
+    assert values["energy/uav_rf_energy_j"] == 6.
+    assert values["energy/radio_j_per_gcs_delivery"] == 2.
+    episode = episode_metrics(outcome(deliveries=1), 2)
+    assert episode["energy/uav_tx_radio_energy_j"] == 2.
+    assert episode["energy/uav_rx_radio_energy_j"] == 1.
+    assert episode["energy/gcs_tx_radio_energy_j"] == .1
+    assert episode["energy/gcs_rx_radio_energy_j"] == .2
+    assert episode["energy/uav_1/tx_radio_energy_j"] == 1.3
+    assert episode["energy/uav_1/rx_radio_energy_j"] == .7
 
 
 def test_time_windows_pool_raw_counts_and_finish_entire_collection_before_comparing():

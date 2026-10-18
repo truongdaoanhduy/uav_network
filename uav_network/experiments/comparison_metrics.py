@@ -20,6 +20,8 @@ METRICS = {
     "report_delay_delivered_mean_s": ("s", "lower"),
     "uav_energy_j": ("J", "lower"),
     "uav_j_per_gcs_delivery": ("J/delivered target", "lower"),
+    "uav_radio_energy_j": ("J", "lower"),
+    "uav_radio_j_per_gcs_delivery": ("J/delivered target", "lower"),
     "path_length_m": ("m", "lower"),
     "safe_episode": ("fraction", "higher"),
     "safety_violation_steps": ("observed steps including reset", "lower"),
@@ -42,6 +44,14 @@ def evaluation_protocol(config, seeds, progress):
     """Hash only shared scientific conditions, including the backend's scene generator."""
     values = config.to_dict()
     scenario = {k: values[k] for k in ("world", "sensor", "network", "energy", "reward")}
+    # New V3 radio fields must not relabel historical V1/V2 physics when they
+    # are at their exact legacy defaults. Non-default V3 values remain hashed.
+    network = scenario["network"]
+    if (network.get("pa_efficiency") == 1.0
+            and network.get("tx_circuit_power_w") == 0.0
+            and network.get("rx_circuit_power_w") == 0.0):
+        for key in ("pa_efficiency", "tx_circuit_power_w", "rx_circuit_power_w"):
+            network.pop(key, None)
     scenario["environment_backend"] = config.runtime.environment_backend
     digest = hashlib.sha256(json.dumps(scenario, sort_keys=True, allow_nan=False).encode()).hexdigest()
     next_seed = progress.get("next_seed")
@@ -137,7 +147,8 @@ class MissionMetrics:
         if success != bool(info["success"]):
             raise ValueError("Mission success disagrees with observed GCS deliveries")
         net = info["network"]
-        energy = float(info["energy"]["propulsion_energy_j"]) + float(net.get("uav_communication_energy_j", 0.))
+        radio_energy = float(net.get("uav_communication_energy_j", 0.))
+        energy = float(info["energy"]["propulsion_energy_j"]) + radio_energy
         capped_delivery = np.where(delivered, self.delivered, horizon)
         capped_discovery = np.where(found, self.discovered, horizon)
         generated = net.get("generated_packets", 0)
@@ -161,6 +172,8 @@ class MissionMetrics:
                 float((self.delivered[delivered] - self.discovered[delivered]).mean()) if d else None,
             "report_delay_delivered_mean_s": net.get("report_e2e_delay_s") if d and net.get("enabled") else None,
             "uav_energy_j": energy, "uav_j_per_gcs_delivery": energy / d if d else None,
+            "uav_radio_energy_j": radio_energy,
+            "uav_radio_j_per_gcs_delivery": radio_energy / d if d else None,
             "packet_pdr_fraction": received / generated if generated and net.get("enabled") else None,
             "data_below_required_power_fraction": (diagnostics.get("data_below_required_power_attempts", 0) / attempts
                                                     if attempts else None),
@@ -200,4 +213,8 @@ def summarize_metrics(records, bootstrap_samples=2000, seed=44):
     delivered = sum(r["comparison_metrics"]["targets_delivered"] for r in records)
     result["pooled_uav_j_per_gcs_delivery"] = {"value": energy / delivered if delivered else None,
                                              "total_energy_j": energy, "total_targets_delivered": delivered}
+    radio = sum(r["comparison_metrics"].get("uav_radio_energy_j", 0.) for r in records)
+    result["pooled_uav_radio_j_per_gcs_delivery"] = {
+        "value": radio / delivered if delivered else None,
+        "total_radio_energy_j": radio, "total_targets_delivered": delivered}
     return result

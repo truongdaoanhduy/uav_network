@@ -307,7 +307,10 @@ class TrackingTests(unittest.TestCase):
                   "blocked_moves": 2, "boundary_clips": 1, "expired_reports": 1, "dropped_reports": 2,
                   "energy": {"propulsion_energy_j": 500, "battery_fraction": [.5, .25], "active_uavs": 2},
                   "network": {"enabled": True, "uav_communication_energy_j": 3,
-                              "gcs_communication_energy_j": 1, "packet_pdr_percent": 80,
+                              "gcs_communication_energy_j": 1,
+                              "uav_tx_energy_j": 2, "uav_rx_energy_j": 1,
+                              "gcs_tx_energy_j": .4, "gcs_rx_energy_j": .6,
+                              "packet_pdr_percent": 80,
                               "packet_e2e_delay_ms": 12, "payload_throughput_kbps": 4,
                               "phy_success_percent": 60, "collisions": 2,
                               "report_e2e_delay_s": 1.2, "report_average_hops": 2,
@@ -316,6 +319,10 @@ class TrackingTests(unittest.TestCase):
         self.assertEqual(metrics["episode/return"], -5)
         self.assertEqual(metrics["safety/blocked_motion_rate"], .1)
         self.assertEqual(metrics["energy/total_uav_energy_j"], 503)
+        self.assertEqual(metrics["energy/uav_tx_radio_energy_j"], 2)
+        self.assertEqual(metrics["energy/uav_rx_radio_energy_j"], 1)
+        self.assertEqual(metrics["energy/gcs_tx_radio_energy_j"], .4)
+        self.assertEqual(metrics["energy/gcs_rx_radio_energy_j"], .6)
         self.assertEqual(metrics["network/pdr_percent"], 80)
         later = {**record, "return": 10, "search_rate_percent": 100,
                  "delivery_rate_percent": 100, "success": True}

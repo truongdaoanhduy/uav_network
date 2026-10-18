@@ -1,0 +1,85 @@
+# Scenario V3: large-report, energy-aware communication study on the same V2 mission/training budget.
+# Radio hardware values are shared rounded study assumptions, not per-algorithm tuning or calibrated hardware claims.
+# The model follows P_radio,tx = P_circuit,tx + P_RF / eta_PA and P_radio,rx = P_circuit,rx.
+world:
+  num_targets: 35
+  num_obstacles: 25
+  max_steps: 1800
+  motion_safety: dynamic_window
+network:
+  propagation_delay_enabled: true
+  receiver_admission_mask: true
+  peer_range_m: 500.0
+  gcs_range_m: 500.0
+  tx_power_min_w: 0.001
+  tx_power_max_w: 0.4
+  tx_power_mapping: log
+  pa_efficiency: 0.35
+  tx_circuit_power_w: 0.1
+  rx_circuit_power_w: 0.1
+  power_limited_admission: true
+  link_state_observation: true
+  report_bytes: 1000000
+  buffer_bytes: 3000000
+  report_ttl_s: 300.0
+  max_retries: 5
+reward:
+  communication_efficiency: 1.0
+  shield_correction: 0.1
+masac:
+  hidden_sizes: [256, 256]
+  replay_capacity: 500000
+  batch_size: 8192
+  learning_starts: 131072
+  updates_per_step: 8
+matd3:
+  hidden_sizes: [256, 256]
+  replay_capacity: 500000
+  batch_size: 8192
+  learning_starts: 131072
+  updates_per_step: 8
+  epsilon_decay_steps: 14745600
+runtime:
+  environment_backend: warp_packet
+  seed: 44
+  eval_seed: 2000000044
+  eval_episodes: 30
+  num_envs: 4096
+  coalesce_idle_polls: true
+  vectorize_critics: true
+  compile_models: false
+  fused_optimizers: false
+  episodes: 25000
+  device: cuda
+  replay_device: cuda
+  deterministic: true
+  torch_threads: 1
+  log_interval_steps: 409600
+  checkpoint_interval: 128
+  max_train_seconds: 36000
+  output_dir: outputs/comparison-25k-t35-o25-scenario-v2
+pql:
+  enabled: false
+  mode: async
+  critic_sample_ratio: 8
+  warmup_collection_steps: 32
+  max_pending_collections: 2
+  max_pending_policy_updates: 2
+  collector_device: auto
+  learner_device: auto
+  policy_device: auto
+  worker_timeout_s: 600
+  checkpoint_replay: true
+tracking:
+  enabled: true
+  artifact_timeout_seconds: 900
+  evaluation_interval: 0
+  evaluation_interval_steps: 7372800
+  periodic_evaluation_episodes: 5
+  periodic_evaluation_seed: 1000000044
+  entity: truongdaoanhduy-uit
+  project: uav_search_target
+  checkpoint_repo: duy95/uav-search-checkpoints-public
+  checkpoint_repo_private: false
+  group: uav-network-base-pql-25k-seed44-t35-o25-scenario-v3
+  tags: [uav-network, base-pql-comparison, warp-packet, env4096, targets35, obstacles25, batch8192, steps1800, episodes25000, scenario-v3, report1mb, radio-energy, eval5, finaleval30]

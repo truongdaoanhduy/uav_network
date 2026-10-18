@@ -49,7 +49,10 @@ def episode_telemetry(record):
     for source, name in (
         ("battery_j", "battery_j"), ("battery_fraction", "battery_fraction"),
         ("per_uav_propulsion_energy_j", "propulsion_energy_j"),
-        ("per_uav_rf_energy_j", "rf_energy_j"), ("per_uav_total_energy_j", "total_energy_j"),
+        ("per_uav_rf_energy_j", "rf_energy_j"),
+        ("per_uav_tx_radio_energy_j", "tx_radio_energy_j"),
+        ("per_uav_rx_radio_energy_j", "rx_radio_energy_j"),
+        ("per_uav_total_energy_j", "total_energy_j"),
     ):
         for i, value in enumerate(energy.get(source, [])):
             result[f"energy/uav_{i}/{name}"] = value
@@ -101,6 +104,8 @@ class OutcomePool:
             for source, target in (("propulsion_energy_j", "propulsion_energy_j"),):
                 self._sum(f"energy/{target}", energy.get(source, 0.))
             self._sum("energy/uav_rf_energy_j", network.get("uav_communication_energy_j", 0.))
+            self._sum("energy/uav_tx_radio_energy_j", network.get("uav_tx_energy_j", 0.))
+            self._sum("energy/uav_rx_radio_energy_j", network.get("uav_rx_energy_j", 0.))
             if network.get("enabled") and "generated_packets" in network:
                 self.network_n += 1
                 for key in ("generated_packets", "received_packets"):
@@ -157,6 +162,8 @@ class OutcomePool:
         values["network/received_packets"] = self.sums.get("network/received_packets", 0)
         values["energy/j_per_gcs_delivery"] = (self.sums.get("energy/total_uav_energy_j", 0.) / self.delivered
                                                 if self.delivered and self.reports_n == self.n else None)
+        values["energy/radio_j_per_gcs_delivery"] = (self.sums.get("energy/uav_rf_energy_j", 0.) / self.delivered
+                                                      if self.delivered and self.reports_n == self.n else None)
         raw = deepcopy(self.raw)
         for stat in raw.values():
             if isinstance(stat, dict):

@@ -40,6 +40,8 @@ class ComparisonMetricsTests(unittest.TestCase):
         self.assertAlmostEqual(values["delivery_auc"], .4)
         self.assertEqual(values["uav_energy_j"], 120.)
         self.assertEqual(values["uav_j_per_gcs_delivery"], 120.)
+        self.assertEqual(values["uav_radio_energy_j"], 20.)
+        self.assertEqual(values["uav_radio_j_per_gcs_delivery"], 20.)
         self.assertEqual(values["first_discovery_to_gcs_delay_delivered_mean_s"], 2.)
         self.assertEqual(values["report_delay_delivered_mean_s"], .5)
         self.assertEqual(values["first_gcs_delivery_observed_s"], [2., None])

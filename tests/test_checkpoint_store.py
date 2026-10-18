@@ -16,6 +16,20 @@ from uav_network.configuration import Config
 
 
 class CheckpointStoreTests(unittest.TestCase):
+    def test_explicit_env_credentials_do_not_parse_unneeded_malformed_key_file(self):
+        from uav_network.experiments import checkpoint_store as store
+        with TemporaryDirectory() as directory:
+            broken = Path(directory) / "key.txt"
+            broken.write_text('{"huggingface": {"token": "fallback",},}')
+            config = Config()
+            config.tracking.credentials_file = str(broken)
+            config.tracking.checkpoint_repo = "owner/explicit"
+            with patch.dict(os.environ, {"HF_TOKEN": "env-token", "HF_REPO_ID": "owner/env"}, clear=False):
+                token, repo = store.storage_credentials(config)
+                self.assertEqual((token, repo), ("env-token", "owner/explicit"))
+                token_only, _ = store.storage_credentials(None, require_repo=False)
+                self.assertEqual(token_only, "env-token")
+
     def test_public_checkpoint_store_is_allowed_when_explicitly_configured(self):
         from uav_network.experiments import checkpoint_store as store
         created = []

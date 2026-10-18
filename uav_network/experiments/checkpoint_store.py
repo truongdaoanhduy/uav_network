@@ -20,20 +20,31 @@ def file_sha256(path):
     return digest.hexdigest()
 
 
-def storage_credentials(config=None):
-    data = {}
-    path = Path(config.tracking.credentials_file if config is not None else 'key.txt').expanduser()
-    if not path.is_absolute():
-        path = Path(__file__).resolve().parents[2] / path
-    if path.is_file():
-        data = json.loads(path.read_text()).get('huggingface', {})
-    token = os.environ.get('HF_TOKEN') or data.get('token')
+def storage_credentials(config=None, require_repo=True):
+    """Resolve explicit env/config credentials before consulting key.txt fallback.
+
+    Downloading an immutable manifest already supplies its repository, so callers
+    that only need a token can set ``require_repo=False`` and avoid unrelated
+    local credential-file parsing entirely.
+    """
+    token = os.environ.get('HF_TOKEN')
     repo = getattr(getattr(config, 'tracking', None), 'checkpoint_repo', 'auto')
     if repo == 'auto':
-        repo = os.environ.get('HF_REPO_ID') or data.get('repo_id')
+        repo = os.environ.get('HF_REPO_ID')
+    need_fallback = not token or (require_repo and not repo)
+    data = {}
+    if need_fallback:
+        path = Path(config.tracking.credentials_file if config is not None else 'key.txt').expanduser()
+        if not path.is_absolute():
+            path = Path(__file__).resolve().parents[2] / path
+        if path.is_file():
+            data = json.loads(path.read_text()).get('huggingface', {})
+        token = token or data.get('token')
+        if require_repo and not repo:
+            repo = data.get('repo_id')
     if not token:
         raise RuntimeError('Checkpoint storage requires HF_TOKEN or huggingface.token in key.txt')
-    if config is not None and (not isinstance(repo, str) or not re.fullmatch(r'[\w.-]+/[\w.-]+', repo)):
+    if require_repo and (not isinstance(repo, str) or not re.fullmatch(r'[\w.-]+/[\w.-]+', repo)):
         raise ValueError('Checkpoint storage needs a valid HF repository ID')
     return token, repo
 
@@ -135,7 +146,7 @@ def download_manifest_file(manifest, entry, destination, force_download=False):
     if item is None:
         raise ValueError('Manifest does not contain requested checkpoint state')
     from huggingface_hub import hf_hub_download
-    token, _ = storage_credentials()
+    token, _ = storage_credentials(require_repo=False)
     downloaded = Path(hf_hub_download(repo_id=manifest['repo_id'], repo_type='model',
         filename=item['path'], revision=manifest['revision'], token=token,
         local_dir=str(destination), force_download=force_download))

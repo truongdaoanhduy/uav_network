@@ -47,6 +47,10 @@ def episode_metrics(record, num_uavs):
               "energy/propulsion_energy_j": energy["propulsion_energy_j"],
               "energy/uav_rf_energy_j": network.get("uav_communication_energy_j", 0),
               "energy/gcs_rf_energy_j": network.get("gcs_communication_energy_j", 0),
+              "energy/uav_tx_radio_energy_j": network.get("uav_tx_energy_j", 0),
+              "energy/uav_rx_radio_energy_j": network.get("uav_rx_energy_j", 0),
+              "energy/gcs_tx_radio_energy_j": network.get("gcs_tx_energy_j", 0),
+              "energy/gcs_rx_radio_energy_j": network.get("gcs_rx_energy_j", 0),
               "energy/mean_battery_fraction": float(np.mean(energy["battery_fraction"])),
               "energy/exhausted_uavs": num_uavs - energy["active_uavs"]}
     result["energy/total_uav_energy_j"] = result["energy/propulsion_energy_j"] + result["energy/uav_rf_energy_j"]
