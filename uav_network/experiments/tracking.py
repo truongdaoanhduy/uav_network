@@ -164,7 +164,7 @@ class OnlineTracker:
                               config={**config.to_dict(), **metadata}, dir=str(output), mode="online",
                               resume="never", reinit="finish_previous", save_code=False,
                               settings=wandb.Settings(x_disable_stats=not config.tracking.system_metrics,
-                                                     disable_code=True, console="wrap"))
+                                                     disable_code=True, console="off"))
         try:
             if self.run.offline:
                 raise RuntimeError("W&B did not start online")
@@ -172,7 +172,6 @@ class OnlineTracker:
                 raise RuntimeError("W&B run destination differs from the configured main project")
             if os.environ.get("UAV_INPUT_ARTIFACT"):
                 self.run.use_artifact(os.environ["UAV_INPUT_ARTIFACT"], type="model")
-            self.run.save(str(self.output / "diagnostics.jsonl"), base_path=str(self.output), policy="live")
             self.run.save(str(self.output / "cohorts.jsonl"), base_path=str(self.output), policy="live")
             self.run.save(str(self.output / "resolved_config.yaml"), base_path=str(self.output), policy="now")
             self.run.summary.update({"run_started_at_utc": metadata["run_started_at_utc"],
@@ -238,7 +237,6 @@ class OnlineTracker:
                     < self.config.tracking.checkpoint_upload_interval_seconds):
             self.run.summary["checkpoint_uploads_skipped"] = self.run.summary.get("checkpoint_uploads_skipped", 0) + 1
             return None
-        self.run.save(str(self.output / "episodes.jsonl"), base_path=str(self.output), policy="now")
         artifact = self.wandb.Artifact(f"uav-network-{self.config.runtime.algorithm}-{self.run.id}", type="model",
                                       metadata={"completed_episodes": progress["episodes"],
                                                 "global_step": progress["global_step"],

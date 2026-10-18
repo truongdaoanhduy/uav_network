@@ -58,6 +58,30 @@ class OnlineRun:
 
 
 class TrackingTests(unittest.TestCase):
+    def test_online_tracker_does_not_sync_large_raw_run_files(self):
+        run = OnlineRun()
+        saved = []
+        settings = {}
+        run.save = lambda path, **kwargs: saved.append(Path(path).name)
+        def make_settings(**kwargs):
+            settings.update(kwargs)
+            return kwargs
+        sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=make_settings, Artifact=StoredArtifact)
+        with TemporaryDirectory() as directory:
+            c = Config()
+            c.tracking.checkpoint_store = "wandb"
+            c.tracking.credentials_file = str(Path(directory) / "absent.txt")
+            policy = Path(directory) / "policy.pt"
+            policy.write_bytes(b"policy")
+            with patch.dict(sys.modules, {"wandb": sdk}), patch.dict(os.environ, {
+                    "WANDB_API_KEY": "test-key", "WANDB_ENTITY": "owner", "WANDB_PROJECT": "project"}):
+                tracker = OnlineTracker(c, directory)
+                tracker.checkpoint(policy, {"episodes": 1, "global_step": 10})
+                tracker.close()
+        self.assertEqual(settings.get("console"), "off")
+        self.assertNotIn("diagnostics.jsonl", saved)
+        self.assertNotIn("episodes.jsonl", saved)
+
     def test_periodic_uploads_are_paced_but_final_full_state_always_uploads(self):
         run = OnlineRun()
         sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs, Artifact=StoredArtifact)
