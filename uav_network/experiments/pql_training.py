@@ -79,13 +79,14 @@ def train_pql(config):
                               stop_reason="episode_budget" if completed >= config.runtime.episodes else "time_budget")
             return result
 
-        def save(policy_path, final=False):
+        def save(policy_path, final=False, full_state=True):
             state = progress(final)
             # Resume state stays separate from the small model used for W&B/evaluation.
-            generator = getattr(vector, "action_generator", None)
-            collector_rng = {"numpy": rng.bit_generator.state,
-                             "torch": generator.get_state().cpu() if generator is not None else None}
-            engine.save(output / "resume_latest.pt", state, collector_rng=collector_rng)
+            if full_state:
+                generator = getattr(vector, "action_generator", None)
+                collector_rng = {"numpy": rng.bit_generator.state,
+                                 "torch": generator.get_state().cpu() if generator is not None else None}
+                engine.save(output / "resume_latest.pt", state, collector_rng=collector_rng)
             engine.critic.save(policy_path, progress=state)
             if tracker and not final:
                 tracker.checkpoint(policy_path, state)
@@ -177,7 +178,7 @@ def train_pql(config):
                     next_log = global_step + config.runtime.log_interval_steps
                 if not final_batch and completed >= next_checkpoint:
                     path = output / f"episode_{completed:06d}.pt"
-                    save(path)
+                    save(path, full_state=False)
                     next_checkpoint = (completed // config.runtime.checkpoint_interval + 1) * config.runtime.checkpoint_interval
                 if final_batch:
                     break

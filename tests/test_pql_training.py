@@ -48,6 +48,25 @@ class PQLTrainingTests(unittest.TestCase):
                 self.assertEqual(results[0]["reproducibility"][key], results[1]["reproducibility"][key])
             self.assertTrue(results[0]["reproducibility"]["scheduling_deterministic"])
 
+    def test_periodic_checkpoint_writes_full_resume_only_at_segment_end(self):
+        from uav_network.experiments.pql_system import PQLSystem
+        with TemporaryDirectory() as folder:
+            output = Path(folder) / "run"
+            c = self.config(output, mode="synchronous")
+            c.runtime.episodes = 8
+            c.runtime.checkpoint_interval = 4
+            writes = []
+            real_save = PQLSystem.save
+            def record_save(engine, path, progress, collector_rng=None):
+                result = real_save(engine, path, progress, collector_rng=collector_rng)
+                writes.append(progress["episodes"])
+                return result
+            with patch.object(PQLSystem, "save", record_save):
+                result = train(c)
+            self.assertEqual(writes, [8])
+            saved = torch.load(result["resume_checkpoint"], weights_only=True)
+            self.assertEqual(saved["progress"]["episodes"], 8)
+
     def test_resume_retains_episode_prefix_optimizer_replay_and_rate_counters(self):
         with TemporaryDirectory() as folder:
             first = train(self.config(Path(folder) / "first", "matd3", "synchronous"))

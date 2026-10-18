@@ -33,6 +33,8 @@
 **Files:**
 - Modify: `uav_network/experiments/training.py`
 - Modify: `tests/test_baseline_resume.py`
+- Modify: `uav_network/experiments/pql_training.py`
+- Modify: `tests/test_pql_training.py`
 
 **Interfaces:**
 - Consumes: existing `save(path, final=False, full_state=True)` helper and `save_fixed_checkpoint(...)`.
@@ -40,7 +42,8 @@
 
 - [ ] Adjust regression tests so a two-checkpoint segment observes resume existence `[False, True]`, and full-state writes occur only once at segment completion.
 - [ ] Run focused tests and verify they fail on the current implementation.
-- [ ] Change the periodic `latest.pt` save to request full state only when `final_batch` is true.
+- [ ] Change BASE periodic `latest.pt` save to request full state only when `final_batch` is true.
+- [ ] Change PQL periodic saves to keep policy-only checkpoints and write its full replay/optimizer/RNG resume only at segment end.
 - [ ] Run focused tests and verify they pass.
 - [ ] Run baseline continuation tests proving replay/optimizer/RNG restoration is unchanged.
 - [ ] Commit the change.
