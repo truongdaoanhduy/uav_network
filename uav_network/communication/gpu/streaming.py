@@ -134,5 +134,3 @@ def inject(s: WorldState, p: WorldParams, e: int, source: int, dest: int,
         s.session_pending_mask[e,session] = wp.uint64(0)
     s.session_power[e,session] = power
     fill_session(s,p,e,session,source,dest,target,now)
-
-

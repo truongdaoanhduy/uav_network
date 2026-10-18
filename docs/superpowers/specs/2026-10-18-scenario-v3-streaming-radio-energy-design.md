@@ -128,7 +128,7 @@ For a receiver processing the frame for duration `t`:
 
 TX energy is charged on every real transmission attempt, including failed PHY attempts. RX energy is charged for the defined receive/listen semantics consistently in both backends. GCS energy may remain separately reported and excluded from UAV battery objectives.
 
-The exact default PA/circuit values must be sourced from an appropriate paper or radio datasheet before final publication runs; infrastructure tests should use explicit deterministic test values rather than guessed constants.
+The V3 shared study defaults are `pa_efficiency=0.35`, `tx_circuit_power_w=0.1`, and `rx_circuit_power_w=0.1`. The model form is consistent with UAV-to-UAV energy-efficiency work that separates radiated power divided by PA efficiency from circuit/system power. For the numeric study assumptions, relay energy-efficiency literature reports PA efficiency 0.35 and practical circuit power in the tens-to-hundreds-of-mW range (Journal on Wireless Communications and Networking 2012:46, DOI 10.1186/1687-1499-2012-46); 0.1 W TX and RX are deliberately shared in-range values, not a calibrated hardware claim. Publication text must retain that distinction.
 
 ## Reward formulation
 
@@ -234,4 +234,3 @@ Benchmark environment memory and throughput at 1, 64, 512, then 4096 environment
 ## Compatibility
 
 Scenario V3 must use a new config/group/tag and, where state layout changes, an explicit checkpoint/schema version. V2 checkpoints must not be silently resumed into incompatible V3 state. Existing V2 jobs and artifacts stay untouched.
-

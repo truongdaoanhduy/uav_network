@@ -1,6 +1,8 @@
 # Scenario V3: large-report, energy-aware communication study on the same V2 mission/training budget.
-# Radio hardware values are shared rounded study assumptions, not per-algorithm tuning or calibrated hardware claims.
-# The model follows P_radio,tx = P_circuit,tx + P_RF / eta_PA and P_radio,rx = P_circuit,rx.
+# Radio hardware values are shared study assumptions, not calibrated hardware claims.
+# Model basis: P_radio,tx = P_circuit,tx + P_RF / eta_PA; UAV-to-UAV EE literature uses this split.
+# Parameter basis: eta_PA=0.35 and practical circuit powers of tens-to-hundreds of mW are used in relay EE literature
+# (J. Wireless Com. Network 2012:46, DOI 10.1186/1687-1499-2012-46); 0.1 W TX/RX is a shared in-range study value.
 world:
   num_targets: 35
   num_obstacles: 25
@@ -57,7 +59,7 @@ runtime:
   log_interval_steps: 409600
   checkpoint_interval: 128
   max_train_seconds: 36000
-  output_dir: outputs/comparison-25k-t35-o25-scenario-v2
+  output_dir: outputs/comparison-25k-t35-o25-scenario-v3
 pql:
   enabled: false
   mode: async

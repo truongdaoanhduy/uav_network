@@ -40,6 +40,7 @@ class ScenarioV3Tests(unittest.TestCase):
         self.assertEqual(v3.reward.communication_efficiency, 1.0)
         self.assertIn("scenario-v3", v3.tracking.tags)
         self.assertIn("scenario-v3", v3.tracking.group)
+        self.assertIn("scenario-v3", v3.runtime.output_dir)
         self.assertNotEqual(evaluation_protocol(v3, [2000000044], {"next_seed": 50000})["scenario_hash"],
                             V2_HASH)
 
