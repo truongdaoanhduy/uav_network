@@ -64,6 +64,11 @@ def fill_session(s: WorldState, p: WorldParams, e: int, session: int,
                  source: int, dest: int, target: int, now: wp.float64):
     start = s.session_window_start[e,session]
     count = window_count(p,start)
+    queued = int(0)
+    for j in range(p.packet_capacity):
+        if s.pkt_status[e,j] == 1 and s.pkt_source[e,j] == source:
+            queued += 1
+    slot_cursor = int(0)
     for offset in range(64):
         if offset >= count:
             continue
@@ -71,18 +76,21 @@ def fill_session(s: WorldState, p: WorldParams, e: int, session: int,
         if ((s.session_arrived_mask[e,session] & bit) != wp.uint64(0)
             or (s.session_pending_mask[e,session] & bit) != wp.uint64(0)):
             continue
-        queued = int(0)
-        for j in range(p.packet_capacity):
-            if s.pkt_status[e,j] == 1 and s.pkt_source[e,j] == source:
-                queued += 1
         if queued >= p.max_queue_packets:
             break
         remaining = s.report_created[e,source,target]+p.report_ttl-now/wp.float64(1e6)
         if remaining <= wp.float64(0):
             break
         slot = int(-1)
-        for j in range(p.packet_capacity):
-            if slot < 0 and (s.pkt_status[e,j] == 0 or s.pkt_status[e,j] == 4):
+        while slot_cursor < p.packet_capacity and slot < 0:
+            j = slot_cursor
+            slot_cursor += 1
+            status = s.pkt_status[e,j]
+            if status == 0:
+                # Status zero is virgin state: reset is its only writer, so no
+                # retained frame can refer to this generation.
+                slot = j
+            elif status == 4:
                 retained = bool(False)
                 for frame in range(p.frame_capacity):
                     if (s.tx_active[e,frame] != 0 and s.tx_packet[e,frame] == j
@@ -121,6 +129,7 @@ def fill_session(s: WorldState, p: WorldParams, e: int, session: int,
         s.session_pending_mask[e,session] = s.session_pending_mask[e,session] | bit
         s.packet_counts[e,0] += 1
         s.node_queue_count[e,source] += 1
+        queued += 1
 
 
 @wp.func
