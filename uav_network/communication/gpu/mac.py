@@ -2,12 +2,13 @@
 import warp as wp
 from ...environment.gpu.state import WorldParams, WorldState
 from .rng import seed_mt, randbelow
-from .reports import (active, bytes_used, can_receive, discard_sessions, transfer,
-                      begin_step, sense_reports, masked_sense_reports, end_step, reset_reward_state)
+from .reports import (active, bytes_used, can_receive, transfer, begin_step, sense_reports,
+                      masked_sense_reports, end_step, reset_reward_state)
 from .phy import xy, busy, emit, evaluate, arrival_end, latest_arrival_end
 from .events import push, pop
 from .telemetry import record_action
 from .power import power_from_action, link_power_feasible
+from .streaming import (clear_pending, fill_session, fragment_bit, inject, window_count, window_mask)
 from . import diagnostics as diag
 
 # Preserve CPython scalar FP64 operation boundaries on CUDA as well as CPU.
@@ -16,92 +17,6 @@ wp.set_module_options({"enable_fp_fma": False, "enable_backward": False})
 POLL, START, MAC, IDLE, IDLE_DONE, LISTEN, INTERRUPT = range(1,8)
 BACKOFF_DONE, TX_START, DATA_END, DELIVER, ACK_TIMEOUT, RELEASE = range(8,14)
 RECEIVE, ACK_START, RECEIVE_DONE = range(14,17)
-
-@wp.func
-def clear_pending(s: WorldState, p: WorldParams, e: int, now: wp.float64):
-    for session in range(p.session_capacity):
-        if s.session_active[e,session] != 0:
-            source = session//((p.n+1)*p.targets_count)
-            target = (session//(p.n+1))%p.targets_count
-            if (s.report_present[e,source,target] == 0
-                or s.report_created[e,source,target] != s.session_created[e,session]
-                or s.report_origin[e,source,target] != s.session_origin[e,session]
-                or s.report_hops[e,source,target] != s.session_hops[e,session]):
-                discard_sessions(s,p,e,source,target)
-            else:
-                for f in range(p.fragments):
-                    if s.fragment_expiry[e,session,f] <= now:
-                        s.fragment_pending[e,session,f] = wp.int64(0)
-
-@wp.func
-def inject(s: WorldState, p: WorldParams, e: int, source: int, dest: int,
-           target: int, power: wp.float64, now: wp.float64):
-    session = (source*p.targets_count+target)*(p.n+1)+dest
-    if s.session_active[e,session] == 0:
-        s.session_active[e,session] = 1
-        s.session_id[e,session] += wp.int64(1)
-        s.session_origin[e,session] = s.report_origin[e,source,target]
-        s.session_created[e,session] = s.report_created[e,source,target]
-        s.session_hops[e,session] = s.report_hops[e,source,target]
-        for f in range(p.fragments):
-            s.fragment_pending[e,session,f] = wp.int64(0)
-            s.fragment_arrived[e,session,f] = 0
-    for f in range(p.fragments):
-        if s.fragment_arrived[e,session,f] != 0:
-            continue
-        if s.fragment_pending[e,session,f] != wp.int64(0) and s.fragment_expiry[e,session,f] > now/wp.float64(1e6):
-            continue
-        queued = int(0)
-        for j in range(p.packet_capacity):
-            if s.pkt_status[e,j] == 1 and s.pkt_source[e,j] == source:
-                queued += 1
-        if queued >= p.max_queue_packets:
-            s.diagnostic_counts[e,diag.QUEUE_FULL] += wp.int64(1)
-            break
-        remaining = s.report_created[e,source,target]+p.report_ttl-now/wp.float64(1e6)
-        if remaining <= wp.float64(0):
-            break
-        slot = int(-1)
-        for j in range(p.packet_capacity):
-            if slot < 0 and (s.pkt_status[e,j] == 0 or s.pkt_status[e,j] == 4):
-                retained = bool(False)
-                for frame in range(p.frame_capacity):
-                    if (s.tx_active[e,frame] != 0 and s.tx_packet[e,frame] == j
-                        and s.tx_generation[e,frame] == s.pkt_generation[e,j]
-                        and (s.tx_receive[e,frame] == 1 or s.tx_receive[e,frame] == 2
-                             or (s.tx_receive[e,frame] < 3 and latest_arrival_end(s,p,e,frame) >= now))):
-                        retained = True
-                if not retained:
-                    slot = j
-        if slot < 0:
-            s.errors[e] = 2
-            break
-        s.packet_sequence[e] += wp.int64(1)
-        s.pkt_id[e,slot] = s.packet_sequence[e]
-        s.pkt_order[e,slot] = s.packet_sequence[e]
-        s.pkt_status[e,slot] = 1
-        s.pkt_generation[e,slot] += 1
-        s.pkt_backoff_version[e,slot] += 1
-        s.pkt_source[e,slot] = source
-        s.pkt_destination[e,slot] = dest
-        s.pkt_target[e,slot] = target
-        s.pkt_fragment[e,slot] = f
-        s.pkt_attempt[e,slot] = 0
-        s.pkt_ttl[e,slot] = 0
-        s.pkt_delivered[e,slot] = 0
-        s.pkt_session[e,slot] = wp.int64(session)
-        s.pkt_session_id[e,slot] = s.session_id[e,session]
-        s.pkt_origin[e,slot] = s.report_origin[e,source,target]
-        s.pkt_hops[e,slot] = s.report_hops[e,source,target]
-        s.pkt_report_created[e,slot] = s.report_created[e,source,target]
-        s.pkt_created[e,slot] = now
-        s.pkt_deadline[e,slot] = now+wp.min(p.packet_lifetime,remaining)*wp.float64(1e6)
-        s.pkt_power[e,slot] = power
-        s.pkt_first_attempt[e,slot] = wp.float64(-1)
-        s.fragment_pending[e,session,f] = s.pkt_id[e,slot]
-        s.fragment_expiry[e,session,f] = s.pkt_deadline[e,slot]/wp.float64(1e6)
-        s.packet_counts[e,0] += 1
-        s.node_queue_count[e,source] += 1
 
 @wp.func
 def next_receive(s: WorldState, p: WorldParams, e: int, node: int, now: wp.float64):
@@ -133,19 +48,29 @@ def receive_data(s: WorldState, p: WorldParams, e: int, frame: int, now: wp.floa
             and s.report_origin[e,source,target] == s.tx_origin[e,frame]
             and s.report_hops[e,source,target] == s.tx_hops[e,frame]
             and now/wp.float64(1e6)-s.tx_report_created[e,frame] < p.report_ttl):
-            f = s.tx_fragment[e,frame]
-            if s.fragment_arrived[e,session,f] == 0:
-                s.packet_counts[e,6] += s.tx_payload[e,frame]
-                s.fragment_arrived[e,session,f] = 1
-            s.fragment_pending[e,session,f] = wp.int64(0)
-            arrived = int(0)
-            for f in range(p.fragments):
-                arrived += s.fragment_arrived[e,session,f]
-            if arrived == p.fragments:
-                if not transfer(s,p,e,source,dest,target,s.tx_origin[e,frame],
-                                s.tx_report_created[e,frame],s.tx_hops[e,frame],now/wp.float64(1e6),
-                                s.tx_power[e,frame]):
-                    s.session_active[e,session] = 0
+            fragment = s.tx_fragment[e,frame]
+            bit = fragment_bit(s,e,session,fragment)
+            if bit != wp.uint64(0):
+                if (s.session_arrived_mask[e,session] & bit) == wp.uint64(0):
+                    s.packet_counts[e,6] += s.tx_payload[e,frame]
+                    s.session_arrived_mask[e,session] = s.session_arrived_mask[e,session] | bit
+                s.session_pending_mask[e,session] = s.session_pending_mask[e,session] & ~bit
+                start = s.session_window_start[e,session]
+                current_mask = window_mask(p,start)
+                if s.session_arrived_mask[e,session] == current_mask:
+                    next_start = start+window_count(p,start)
+                    if next_start >= p.fragments:
+                        if not transfer(s,p,e,source,dest,target,s.tx_origin[e,frame],
+                                        s.tx_report_created[e,frame],s.tx_hops[e,frame],now/wp.float64(1e6),
+                                        s.tx_power[e,frame]):
+                            s.session_active[e,session] = 0
+                    else:
+                        s.session_window_start[e,session] = next_start
+                        s.session_arrived_mask[e,session] = wp.uint64(0)
+                        s.session_pending_mask[e,session] = wp.uint64(0)
+                        fill_session(s,p,e,session,source,dest,target,now)
+                else:
+                    fill_session(s,p,e,session,source,dest,target,now)
 
 @wp.func
 def poll_delay(s: WorldState, p: WorldParams, e: int, now: wp.float64) -> wp.float64:
@@ -178,10 +103,6 @@ def event(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
                         reason = diag.PACKET_LIFETIME
                     s.diagnostic_counts[e,reason] += wp.int64(1)
                     s.pkt_status[e,packet] = 4
-                    session = int(s.pkt_session[e,packet])
-                    f = s.pkt_fragment[e,packet]
-                    if s.fragment_pending[e,session,f] == s.pkt_id[e,packet]:
-                        s.fragment_pending[e,session,f] = wp.int64(0)
                     s.packet_counts[e,7] += 1
                     push(s,p,e,now+poll_delay(s,p,e,now),1,node,0,1)
                 else:
@@ -283,10 +204,6 @@ def event(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
                 s.diagnostic_counts[e,diag.RETRY_LIMIT] += wp.int64(1)
                 s.node_wait_finish[e,source] = 1
                 s.pkt_status[e,packet] = 4
-                session = int(s.pkt_session[e,packet])
-                f = s.pkt_fragment[e,packet]
-                if s.fragment_pending[e,session,f] == s.pkt_id[e,packet]:
-                    s.fragment_pending[e,session,f] = wp.int64(0)
     elif kind == 13:
         packet = arg
         source = s.pkt_source[e,packet]
@@ -415,10 +332,11 @@ def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32))
         for j in range(p.session_capacity):
             s.session_active[e,j] = 0
             s.session_id[e,j] = wp.int64(0)
-            for f in range(p.fragments):
-                s.fragment_pending[e,j,f] = wp.int64(0)
-                s.fragment_arrived[e,j,f] = 0
-                s.fragment_expiry[e,j,f] = wp.float64(0)
+            s.session_window_start[e,j] = 0
+            s.session_arrived_mask[e,j] = wp.uint64(0)
+            s.session_pending_mask[e,j] = wp.uint64(0)
+            s.session_created[e,j] = wp.float64(0)
+            s.session_power[e,j] = wp.float64(0)
 
 
 @wp.kernel

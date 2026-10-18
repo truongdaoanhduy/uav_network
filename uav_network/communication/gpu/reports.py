@@ -31,9 +31,10 @@ def discard_sessions(s: WorldState, p: WorldParams, e: int, source: int, target:
     for dest in range(p.n+1):
         session = (source*p.targets_count+target)*(p.n+1)+dest
         s.session_active[e,session] = 0
-        for f in range(p.fragments):
-            s.fragment_pending[e,session,f] = wp.int64(0)
-            s.fragment_arrived[e,session,f] = 0
+        s.session_window_start[e,session] = 0
+        s.session_arrived_mask[e,session] = wp.uint64(0)
+        s.session_pending_mask[e,session] = wp.uint64(0)
+        s.session_power[e,session] = wp.float64(0)
 
 
 @wp.func
@@ -221,13 +222,10 @@ def end_step(s: WorldState, p: WorldParams):
         else:
             s.velocities[e,i] = wp.vec2d(wp.float64(0),wp.float64(0))
         pending = int(0)
-        for t in range(p.targets_count):
-            for dest in range(p.n+1):
-                session = (i*p.targets_count+t)*(p.n+1)+dest
-                if s.session_active[e,session] != 0:
-                    for f in range(p.fragments):
-                        if s.fragment_pending[e,session,f] != wp.int64(0):
-                            pending += 1
+        for packet in range(p.packet_capacity):
+            if (s.pkt_source[e,packet] == i
+                and (s.pkt_status[e,packet] == 1 or s.pkt_status[e,packet] == 2)):
+                pending += 1
         s.inflight[e,i] = wp.float64(pending)
     c0 = p.reward_discovery*(wp.float64(found)-s.before[e,0])
     c1 = p.reward_delivery*(wp.float64(delivered)-s.before[e,1])

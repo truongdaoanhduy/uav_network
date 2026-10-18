@@ -86,7 +86,9 @@ class GPUPacketTests(unittest.TestCase):
             for dest, power in actions:
                 continuous = np.zeros((c.world.num_uavs, 3))
                 continuous[:, 2] = power
-                env.step(Action(continuous, np.asarray(dest)))
+                _, _, terminated, truncated, _ = env.step(Action(continuous, np.asarray(dest)))
+                if terminated or truncated:
+                    break
             events = env.network.simulator.event_bus.since(0)
             trace = [(e["event_type"], e["sim_time_us"], e["data"].get("source"),
                       e["data"].get("destination")) for e in events
@@ -104,6 +106,8 @@ class GPUPacketTests(unittest.TestCase):
         for dest, power in actions:
             actual = self.step(c, s, p, mac, wp, dest, power)
             times.extend(mac.transmission_times(s, 0))
+            if int(s.terminated.numpy()[0]):
+                break
         for key in ("generated_packets", "received_packets", "phy_successes", "phy_failures",
                     "collisions", "energy_blocked_transmissions"):
             self.assertEqual(actual[key], native[key], key)
@@ -175,9 +179,64 @@ class GPUPacketTests(unittest.TestCase):
         c.world.num_obstacles = 1
         self.compare(c, [[500, 100], [600, 100]], [([2, 0], 0)], obstacles=[[500, 50, 15]])
 
+    def test_large_report_streams_past_queue_window_in_one_interval(self):
+        wp, s, p, mac = self.compare(
+            config(report_bytes=4096, buffer_bytes=8192, payload_bytes=512, max_queue_packets=2),
+            [[500, 100], [600, 100]], [([2, 0], 0)])
+        stats = mac.metrics_at(s, p, 0)
+        self.assertEqual(s.delivered.numpy().tolist(), [[1]])
+        self.assertEqual(stats["generated_packets"], 8)
+        self.assertEqual(stats["received_packets"], 8)
+
+    def test_large_report_streams_through_two_mission_hops(self):
+        c = config(report_bytes=4096, buffer_bytes=8192, payload_bytes=512,
+                   max_queue_packets=2)
+        wp, s, p, mac = self.compare(
+            c, [[500, 300], [500, 150]], [([1, 0], 0), ([0, 2], 0)])
+        stats = mac.metrics_at(s, p, 0)
+        self.assertEqual(s.delivered.numpy().tolist(), [[1]])
+        self.assertEqual(stats["generated_packets"], 16)
+        self.assertEqual(stats["received_packets"], 16)
+        self.assertEqual(stats["report_average_hops"], 2.0)
+
+    def test_large_report_streams_through_three_mission_hops(self):
+        c = config(report_bytes=4096, buffer_bytes=8192, payload_bytes=512,
+                   max_queue_packets=2)
+        c.world.num_uavs = 3
+        wp, s, p, mac = self.compare(
+            c, [[500, 450], [500, 300], [500, 150]],
+            [([1, 0, 0], 0), ([0, 2, 0], 0), ([0, 0, 3], 0)])
+        stats = mac.metrics_at(s, p, 0)
+        self.assertEqual(s.delivered.numpy().tolist(), [[1]])
+        self.assertEqual(stats["generated_packets"], 24)
+        self.assertEqual(stats["received_packets"], 24)
+        self.assertEqual(stats["report_average_hops"], 3.0)
+
+    def test_session_state_memory_does_not_scale_with_total_fragments(self):
+        wp, state, _ = self.backend()
+        c = config(report_bytes=1_000_000, buffer_bytes=3_000_000, payload_bytes=1024, max_queue_packets=64)
+        s, p = state.allocate_state(c, seeds=[44], device=self.device)
+        dense = []
+        for name, value in vars(s).items():
+            if isinstance(value, wp.array) and len(value.shape) == 3:
+                if value.shape[1:] == (p.session_capacity, p.fragments):
+                    dense.append(name)
+        self.assertEqual(dense, [])
+
+    def test_streaming_queue_window_above_uint64_capacity_is_rejected(self):
+        _, state, _ = self.backend()
+        c = config(max_queue_packets=65)
+        with self.assertRaisesRegex(NotImplementedError, "max_queue_packets<=64"):
+            state.params_from_config(c)
+
     def test_queue_cap_fragment_reinjection(self):
-        self.compare(config(report_bytes=2048, payload_bytes=512, max_queue_packets=1),
-                     [[500, 100], [600, 100]], [([2, 0], 0)] * 4)
+        wp, s, p, mac = self.compare(
+            config(report_bytes=2048, payload_bytes=512, max_queue_packets=1),
+            [[500, 100], [600, 100]], [([2, 0], 0)])
+        stats = mac.metrics_at(s, p, 0)
+        self.assertEqual(s.delivered.numpy().tolist(), [[1]])
+        self.assertEqual(stats["generated_packets"], 4)
+        self.assertEqual(stats["received_packets"], 4)
 
     def test_exhausted_energy_attempt_never_delivers(self):
         c = config()

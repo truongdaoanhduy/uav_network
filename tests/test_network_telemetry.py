@@ -236,6 +236,8 @@ class NetworkTelemetryTests(unittest.TestCase):
                 wp, s, p, mac = helper.prepare(c, positions, targets, obstacles, seed)
                 for destination, power in actions:
                     actual = helper.step(c, s, p, mac, wp, destination, power)["diagnostics"]
+                    if int(s.terminated.numpy()[0]):
+                        break
                 for key, value in expected.items():
                     if isinstance(value, dict):
                         self.assertEqual(actual[key]["count"], value["count"], key)

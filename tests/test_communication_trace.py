@@ -107,9 +107,10 @@ class CommunicationTraceTests(unittest.TestCase):
     def test_partial_fragments_do_not_emit_whole_report_hops(self):
         for backend in self.backends():
             with self.subTest(backend=backend):
-                env = self.prepare(backend, trace_config(report_bytes=2048, payload_bytes=512,
-                                                        max_queue_packets=1))
-                for _ in range(3):
+                c = trace_config(report_bytes=2048, payload_bytes=512, max_queue_packets=1)
+                c.world.dt_s = 0.005
+                env = self.prepare(backend, c)
+                for _ in range(2):
                     env.step(action([1, 0]))
                     self.assertEqual(env.drain_communication_events(), [])
                 env.step(action([1, 0]))

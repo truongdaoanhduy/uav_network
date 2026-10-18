@@ -128,6 +128,16 @@ class CommunicationTests(unittest.TestCase):
         self.assertEqual(env.network.metrics()["generated_packets"], 4)
         self.assertEqual(env.network.metrics()["received_packets"], 4)
 
+    def test_large_report_streams_past_queue_window_in_one_interval(self):
+        env = self.prepare(network_config(report_bytes=4096, buffer_bytes=8192, payload_bytes=512,
+                                          max_queue_packets=2),
+                           positions=[[500, 100], [600, 100]])
+        env.step(actions(2))
+        stats = env.network.metrics()
+        self.assertTrue(env.reports.delivered[0])
+        self.assertEqual(stats["generated_packets"], 8)
+        self.assertEqual(stats["received_packets"], 8)
+
     def test_original_ttl_survives_relay_and_no_stale_delivery(self):
         env = self.prepare(network_config(report_ttl_s=1.5))
         env.step(actions(1))

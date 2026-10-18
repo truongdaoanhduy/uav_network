@@ -228,10 +228,11 @@ class WorldState:
     tx_session: wp.array2d(dtype=wp.int64)
     tx_receive_order: wp.array2d(dtype=wp.int64)
     session_id: wp.array2d(dtype=wp.int64)
-    fragment_expiry: wp.array3d(dtype=wp.float64)
-    fragment_pending: wp.array3d(dtype=wp.int64)
-    fragment_arrived: wp.array3d(dtype=wp.int32)
+    session_window_start: wp.array2d(dtype=wp.int32)
+    session_arrived_mask: wp.array2d(dtype=wp.uint64)
+    session_pending_mask: wp.array2d(dtype=wp.uint64)
     session_created: wp.array2d(dtype=wp.float64)
+    session_power: wp.array2d(dtype=wp.float64)
     pair_transmitter: wp.array2d(dtype=wp.vec2d)
     pair_receiver: wp.array2d(dtype=wp.vec2d)
     mt: wp.array3d(dtype=wp.uint32)
@@ -243,6 +244,8 @@ def params_from_config(config):
     w, c, n, en, r = config.world, config.sensor, config.network, config.energy, config.reward
     if n.max_retries > 26:
         raise NotImplementedError("warp_packet supports max_retries<=26; larger retries need multiword getrandbits")
+    if n.max_queue_packets > 64:
+        raise NotImplementedError("warp_packet streaming reports support max_queue_packets<=64")
     nlos_exponent, nlos_excess_db = {"urban": (3.0, 12.0), "suburban": (2.6, 8.0)}[n.nlos_model]
     p = WorldParams()
     values = dict(n=w.num_uavs, targets_count=w.num_targets, obstacles_count=w.num_obstacles,
@@ -377,17 +380,15 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False):
         (p.frame_capacity, wp.int64, "tx_id tx_session tx_receive_order"),
         ((n+1)*(n+1), wp.float64, "pair_gain pair_time"),
         ((n+1)*(n+1), wp.vec2d, "pair_transmitter pair_receiver"),
-        (p.session_capacity, wp.int32, "session_active session_origin session_hops"),
-        (p.session_capacity, wp.float64, "session_created"),
+        (p.session_capacity, wp.int32, "session_active session_origin session_hops session_window_start"),
+        (p.session_capacity, wp.float64, "session_created session_power"),
         (p.session_capacity, wp.int64, "session_id"),
+        (p.session_capacity, wp.uint64, "session_arrived_mask session_pending_mask"),
         (p.trace_capacity, wp.float64, "trace_time"),
         (p.trace_capacity, wp.int32, "trace_source trace_destination trace_kind"))
     for length, dtype, names in groups:
         for name in names.split():
             shapes[name] = ((e,length), dtype)
-    for name, dtype in (("fragment_expiry",wp.float64),("fragment_pending",wp.int64),
-                        ("fragment_arrived",wp.int32)):
-        shapes[name] = ((e,p.session_capacity,p.fragments), dtype)
     for name, (shape, dtype) in shapes.items():
         setattr(s, name, wp.zeros(shape, dtype=dtype, device=device))
     s.seeds.assign(seeds)

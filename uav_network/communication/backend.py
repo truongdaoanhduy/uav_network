@@ -16,8 +16,10 @@ class Transfer:
     source: int
     destination: int
     report: object
-    arrived: set = field(default_factory=set)
-    pending: dict = field(default_factory=dict)  # offset -> (packet ID, expiry seconds)
+    window_start: int = 0  # fragment index, not byte offset
+    arrived_mask: int = 0
+    pending: dict = field(default_factory=dict)  # byte offset -> (packet ID, expiry seconds)
+    power_w: float = 0.0
 
 
 class UavNetSimNetwork:
@@ -93,19 +95,35 @@ class UavNetSimNetwork:
                 and np.linalg.norm(positions[source] - xy) <= reach and feasible
                 and self.reports.can_forward(source, destination, report, self.clock.now / 1e6))
 
+    def _fragment_count(self, report):
+        payload = self.config.network.payload_bytes
+        return (report.size_bytes + payload - 1) // payload
+
+    def _window_count(self, transfer):
+        remaining = self._fragment_count(transfer.report) - transfer.window_start
+        return min(self.config.network.max_queue_packets, remaining)
+
+    def _window_mask(self, transfer):
+        count = self._window_count(transfer)
+        return (1 << count) - 1 if count else 0
+
     def _inject(self, source, destination, power, report):
         n, now = self.config.network, self.clock.now / 1e6
         key = (source, report.key, destination)
         transfer = self.sessions.setdefault(key, Transfer(source, destination, report))
+        transfer.power_w = float(power)
         sender = self.simulator.drones[source]
-        for offset in range(0, report.size_bytes, n.payload_bytes):
-            if offset in transfer.arrived:
+        count = self._window_count(transfer)
+        for relative in range(count):
+            bit = 1 << relative
+            fragment = transfer.window_start + relative
+            offset = fragment * n.payload_bytes
+            if transfer.arrived_mask & bit:
                 continue
             pending = transfer.pending.get(offset)
             if pending and pending[1] > now:
                 continue
             if sender.transmitting_queue.qsize() >= n.max_queue_packets:
-                self.diagnostic_counts[COUNT["queue_full"]] += 1
                 break
             remaining = report.created_s + n.report_ttl_s - now
             if remaining <= 0:
@@ -123,7 +141,7 @@ class UavNetSimNetwork:
             packet.deadline = lifetime * 1e6
             packet.transmission_mode = 0
             packet.waiting_start_time = self.clock.now
-            packet.mission_power_w = power
+            packet.mission_power_w = transfer.power_w
             packet.mission_session = key
             packet.mission_offset = offset
             packet.mission_payload_bytes = payload
@@ -140,35 +158,50 @@ class UavNetSimNetwork:
         if (not self.reports.contains(transfer.source, transfer.report)
                 or now - transfer.report.created_s >= self.config.network.report_ttl_s):
             return
+        payload = self.config.network.payload_bytes
         offset = packet.mission_offset
-        if offset not in transfer.arrived:
+        fragment = offset // payload
+        relative = fragment - transfer.window_start
+        if relative < 0 or relative >= self._window_count(transfer):
+            return
+        bit = 1 << relative
+        if not (transfer.arrived_mask & bit):
             self.received_payload_bytes += packet.mission_payload_bytes
-            transfer.arrived.add(offset)
+            transfer.arrived_mask |= bit
         transfer.pending.pop(offset, None)
-        fragments = (transfer.report.size_bytes + self.config.network.payload_bytes - 1) // self.config.network.payload_bytes
-        if len(transfer.arrived) == fragments:
-            if self.reports.transfer(transfer.source, receiver, transfer.report, now):
-                if receiver < self.config.world.num_uavs:
-                    source_xy = np.asarray(self.simulator.drones[transfer.source].coords[:2], dtype=float)
-                    destination_xy = np.asarray(self.simulator.drones[receiver].coords[:2], dtype=float)
-                    progress = float(np.linalg.norm(source_xy - self.scene.gcs) - np.linalg.norm(destination_xy - self.scene.gcs))
-                    counter = "relay_toward_gcs_transfers" if progress > 0 else "relay_away_from_gcs_transfers"
-                    self.diagnostic_counts[COUNT[counter]] += 1
-                    add_sample(self.diagnostic_stats, STAT["relay_gcs_distance_improvement_m"], progress)
-                if self.communication_events is not None:
-                    self.communication_events.append({
-                        "event": "report_received", "time_s": float(now),
-                        "source": int(transfer.source), "destination": int(receiver),
-                        "target": int(transfer.report.target_id), "origin": int(transfer.report.source_id),
-                        "created_s": float(transfer.report.created_s), "hops": int(transfer.report.hops + 1),
-                        "power_w": float(packet.mission_power_w), "power_scope": "last_fragment",
-                        "source_xy": [float(v) for v in self.simulator.drones[transfer.source].coords[:2]],
-                        "destination_xy": [float(v) for v in self.simulator.drones[receiver].coords[:2]]})
-                self._discard_report_sessions(transfer.source, transfer.report)
-            else:
-                # The receiver may have filled after admission. Drop this
-                # reassembly; source custody stays valid for later retransmission.
-                del self.sessions[key]
+        if transfer.arrived_mask == self._window_mask(transfer):
+            next_start = transfer.window_start + self._window_count(transfer)
+            if next_start >= self._fragment_count(transfer.report):
+                if self.reports.transfer(transfer.source, receiver, transfer.report, now):
+                    if receiver < self.config.world.num_uavs:
+                        source_xy = np.asarray(self.simulator.drones[transfer.source].coords[:2], dtype=float)
+                        destination_xy = np.asarray(self.simulator.drones[receiver].coords[:2], dtype=float)
+                        progress = float(np.linalg.norm(source_xy - self.scene.gcs) - np.linalg.norm(destination_xy - self.scene.gcs))
+                        counter = "relay_toward_gcs_transfers" if progress > 0 else "relay_away_from_gcs_transfers"
+                        self.diagnostic_counts[COUNT[counter]] += 1
+                        add_sample(self.diagnostic_stats, STAT["relay_gcs_distance_improvement_m"], progress)
+                    if self.communication_events is not None:
+                        self.communication_events.append({
+                            "event": "report_received", "time_s": float(now),
+                            "source": int(transfer.source), "destination": int(receiver),
+                            "target": int(transfer.report.target_id), "origin": int(transfer.report.source_id),
+                            "created_s": float(transfer.report.created_s), "hops": int(transfer.report.hops + 1),
+                            "power_w": float(packet.mission_power_w), "power_scope": "last_fragment",
+                            "source_xy": [float(v) for v in self.simulator.drones[transfer.source].coords[:2]],
+                            "destination_xy": [float(v) for v in self.simulator.drones[receiver].coords[:2]]})
+                    self._discard_report_sessions(transfer.source, transfer.report)
+                else:
+                    # The receiver may have filled after admission. Drop this
+                    # reassembly; source custody stays valid for later retransmission.
+                    del self.sessions[key]
+                return
+            transfer.window_start = next_start
+            transfer.arrived_mask = 0
+        # Refill the bounded window immediately. Failed fragments remain in
+        # pending until _collect_drops at the policy-interval boundary, so a
+        # retry-limit failure still needs a later policy action (possibly with
+        # a new TX power) rather than silently retrying forever.
+        self._inject(transfer.source, transfer.destination, transfer.power_w, transfer.report)
 
     def _discard_report_sessions(self, source, report):
         for key in list(self.sessions):
