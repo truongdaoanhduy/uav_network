@@ -47,7 +47,7 @@ def assert_nested_equal(test, actual, expected):
 
 
 class BaselineResumeTests(unittest.TestCase):
-    def test_vector_episode_batch_writes_full_replay_once_per_collection(self):
+    def test_vector_episode_batch_writes_full_replay_only_at_segment_end(self):
         from unittest.mock import patch
         from uav_network.experiments.fixed_checkpoints import save_fixed_checkpoint
         for algorithm in ("masac", "matd3"):
@@ -67,7 +67,7 @@ class BaselineResumeTests(unittest.TestCase):
 
                 with patch("uav_network.experiments.training.save_fixed_checkpoint", side_effect=record_write):
                     result = train(config)
-                self.assertEqual(completed, [2, 4])
+                self.assertEqual(completed, [4])
                 self.assertEqual(result["episodes"], 4)
                 saved = torch.load(result["resume_checkpoint"], map_location="cpu", weights_only=True)
                 self.assertEqual(len(saved["progress"]["records"]), 4)
@@ -192,7 +192,7 @@ class BaselineResumeTests(unittest.TestCase):
             self.assertEqual([row["episode"] for row in saved["progress"]["records"]], list(range(1, 7)))
             self.assertEqual(len((Path(config.runtime.output_dir) / "episodes.jsonl").read_text().splitlines()), 6)
 
-    def test_periodic_checkpoint_saves_resume_before_final_completion(self):
+    def test_periodic_checkpoint_defers_full_resume_until_final_completion(self):
         with TemporaryDirectory() as directory:
             output = Path(directory) / "training"
             config = small_config(output)
@@ -200,16 +200,18 @@ class BaselineResumeTests(unittest.TestCase):
             periodic = []
             def checkpoint(path, progress):
                 resume = output / "resume_latest.pt"
-                self.assertTrue(resume.is_file(), "periodic saves must retain complete resume state")
-                periodic.append(torch.load(resume, weights_only=True)["progress"]["episodes"])
+                episodes = torch.load(resume, weights_only=True)["progress"]["episodes"] if resume.is_file() else None
+                periodic.append((resume.is_file(), episodes))
             tracker = SimpleNamespace(episode=lambda record: None, learner=lambda *args: None,
                 diagnostic=lambda *args: None, failure=lambda *args: None, progress=lambda *args, **kwargs: None,
                 identity=lambda: {"wandb_run_id": "test"}, checkpoint=checkpoint,
                 complete=lambda result: {}, close=lambda **kwargs: None)
             from unittest.mock import patch
             with patch("uav_network.experiments.training.start_tracking", return_value=tracker):
-                train(config)
-            self.assertEqual(periodic, [1, 2])
+                result = train(config)
+            self.assertEqual(periodic, [(False, None), (True, 2)])
+            saved = torch.load(result["resume_checkpoint"], weights_only=True)
+            self.assertEqual(saved["progress"]["episodes"], 2)
 
     def test_final_fixed_artifact_includes_resume_but_legacy_policy_only_remains_valid(self):
         with TemporaryDirectory() as directory:

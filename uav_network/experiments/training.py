@@ -245,7 +245,7 @@ def _train(config):
                 if completed // config.runtime.checkpoint_interval > before_completed // config.runtime.checkpoint_interval:
                     path = output / f"episode_{completed:06d}.pt"
                     progress = save(path, full_state=False)
-                    save(output / "latest.pt", final=final_batch)
+                    save(output / "latest.pt", final=final_batch, full_state=final_batch)
                     final_resume_saved = final_batch
                     if tracker:
                         tracker.checkpoint(path, progress)
