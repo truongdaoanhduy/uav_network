@@ -125,3 +125,19 @@
 - [ ] **Step 3: If CUDA is locally available, run V3 CUDA parity/resource smoke; otherwise produce the exact existing Kaggle validation command/config needed for a GPU gate without launching a 25k training job.**
 - [ ] **Step 4: Run `git diff --check`, inspect branch diff against `4c75c5c`, and perform final code review.**
 - [ ] **Step 5: Commit any integration-only tests/docs and leave the branch ready for an explicitly separated short cloud smoke run.**
+
+### Task 5: Privileged feasibility oracle
+
+**Files:**
+- Create: `uav_network/experiments/feasibility.py`
+- Create: `tests/test_feasibility.py`
+
+**Interfaces:**
+- Produces: deterministic `oracle_action(env)` and `run_feasibility(config, seeds)` used only to test whether Scenario V3 is structurally feasible before MARL training.
+- Preserves: MASAC/MATD3 code and action semantics; the oracle may use privileged world state and is never a learned-policy baseline.
+
+- [ ] **Step 1:** Add failing tests for inverse TX-power action, unique target assignment, direct-GCS preference when feasible, progress-peer relay when direct is unavailable, and a deterministic small mission that reaches GCS with positive remaining battery.
+- [ ] **Step 2:** Verify RED because the feasibility module does not exist.
+- [ ] **Step 3:** Implement a privileged controller: unique nearest-undiscovered-target motion, report-carrying UAVs without a useful transmission route bias toward GCS, and communication choice based on feasible required power plus positive GCS progress. Use a small positive TX safety margin, never overwrite the environment action contract.
+- [ ] **Step 4:** Implement `run_feasibility(config, seeds)` returning mission/search/delivery/energy/network summaries without W&B side effects.
+- [ ] **Step 5:** Run focused tests, then full pytest; record Scenario V3 feasibility evidence on deterministic seeds; commit.
