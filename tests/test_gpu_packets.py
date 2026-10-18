@@ -83,16 +83,21 @@ class GPUPacketTests(unittest.TestCase):
                       "obstacles": obstacles if obstacles is not None else []})
             if battery is not None:
                 env.battery_j[:] = battery
+            event_bus = env.network.simulator.event_bus
+            sequence = event_bus.sequence
+            trace = []
             for dest, power in actions:
                 continuous = np.zeros((c.world.num_uavs, 3))
                 continuous[:, 2] = power
                 _, _, terminated, truncated, _ = env.step(Action(continuous, np.asarray(dest)))
+                events = event_bus.since(sequence)
+                sequence = event_bus.sequence
+                trace.extend((e["event_type"], e["sim_time_us"], e["data"].get("source"),
+                              e["data"].get("destination")) for e in events
+                             if e["event_type"] in {"packet_tx_started", "packet_rx_succeeded",
+                                                     "packet_rx_failed"})
                 if terminated or truncated:
                     break
-            events = env.network.simulator.event_bus.since(0)
-            trace = [(e["event_type"], e["sim_time_us"], e["data"].get("source"),
-                      e["data"].get("destination")) for e in events
-                     if e["event_type"] in {"packet_tx_started", "packet_rx_succeeded", "packet_rx_failed"}]
             return (env.network.metrics(), env.reports.known.copy(), env.reports.delivered.copy(),
                     [[(t, r.source_id, r.created_s, r.hops) for t, r in b.items()]
                      for b in env.reports.buffers], trace)
@@ -156,6 +161,13 @@ class GPUPacketTests(unittest.TestCase):
 
     def test_relay_preserves_created_time_and_hops(self):
         self.compare(config(), [[500, 300], [500, 150]], [([1, 0], 0), ([0, 2], 0)])
+
+    def test_long_streaming_relay_trace_parity_survives_bounded_native_history(self):
+        c = config(report_bytes=1_000_000, buffer_bytes=3_000_000, payload_bytes=1024,
+                   max_queue_packets=64, peer_range_m=500, gcs_range_m=500)
+        c.world.max_steps = 80
+        self.compare(c, [[500, 700], [500, 350]],
+                     [([1, 0], 1.0)] * 10 + [([0, 2], 1.0)] * 10)
 
     def test_all_fragments_required_and_fifo_poll_phase(self):
         self.compare(config(report_bytes=2048, payload_bytes=512), [[500, 100], [600, 100]], [([2, 0], 0)])
