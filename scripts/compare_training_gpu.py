@@ -20,6 +20,7 @@ from uav_network.experiments.pql_benchmark import benchmark_pql
 
 
 CASES = ("legacy", "pql-single", "pql-dual")
+DIRECT_CASES = CASES + ("base-dual",)
 
 
 class UnavailableCase(RuntimeError):
@@ -28,12 +29,12 @@ class UnavailableCase(RuntimeError):
 
 def case_config(config, case, algorithm, output, *, allow_cpu=False):
     c = deepcopy(config)
-    if case not in CASES or algorithm not in ("masac", "matd3"):
+    if case not in DIRECT_CASES or algorithm not in ("masac", "matd3"):
         raise ValueError("Unknown comparison case or algorithm")
     c.runtime.algorithm = algorithm
     c.runtime.output_dir = str(output)
     c.tracking.enabled = False
-    c.pql.enabled, c.pql.mode = case != "legacy", "async"
+    c.pql.enabled, c.pql.mode = case not in {"legacy", "base-dual"}, "async"
     ratio = float(c.pql.critic_sample_ratio)
     if not ratio.is_integer():
         raise ValueError("Matched legacy comparison requires an integer critic_sample_ratio")
@@ -43,15 +44,15 @@ def case_config(config, case, algorithm, output, *, allow_cpu=False):
         raise ValueError("Comparison cases require fresh learners without warm-start checkpoints")
     available = torch.cuda.device_count() if torch.cuda.is_available() else 0
     cpu = c.runtime.device == "cpu" or (c.runtime.device == "auto" and not available and allow_cpu)
-    if case == "pql-dual" and (cpu or available < 2):
-        raise UnavailableCase("pql-dual requires two usable CUDA devices; no single-GPU or CPU substitution")
+    if case in {"pql-dual", "base-dual"} and (cpu or available < 2):
+        raise UnavailableCase(f"{case} requires two usable CUDA devices; no single-GPU or CPU substitution")
     if cpu and not allow_cpu:
         raise UnavailableCase("CUDA measurement required; use --allow-cpu with runtime.device=cpu for a CPU smoke test")
     if not cpu and not available:
         raise UnavailableCase("CUDA unavailable; no GPU measurement performed")
     c.runtime.device = c.runtime.replay_device = "cpu" if cpu else "cuda"
     collector = "cpu" if cpu else "cuda:0"
-    learner = "cuda:1" if case == "pql-dual" else collector
+    learner = "cuda:1" if case in {"pql-dual", "base-dual"} else collector
     c.pql.collector_device, c.pql.learner_device, c.pql.policy_device = collector, learner, learner
     return c.validate()
 
@@ -67,7 +68,7 @@ def run_case(config, case, algorithm, steps, output, *, allow_cpu=False):
     report = {"status": "failed", "cuda_pipeline_verified": False, "target_t4_scenario_verified": False}
     try:
         c = case_config(c, case, algorithm, c.runtime.output_dir, allow_cpu=allow_cpu)
-        report = (benchmark_legacy(c, steps) if case == "legacy" else benchmark_pql(c, steps))
+        report = (benchmark_legacy(c, steps) if case in {"legacy", "base-dual"} else benchmark_pql(c, steps))
     except Exception as error:
         cause = error
         while cause.__cause__ is not None:
@@ -178,7 +179,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="configs/motion-pql.yaml")
     parser.add_argument("--algorithms", nargs="+", choices=["masac", "matd3"], default=["masac", "matd3"])
-    parser.add_argument("--case", choices=CASES, help="Internal child case; omitted to launch all three cases")
+    parser.add_argument("--case", choices=DIRECT_CASES, help="Internal child case; omitted to launch all three cases")
     parser.add_argument("--algorithm", choices=["masac", "matd3"], help="Algorithm for an internal child case")
     parser.add_argument("--steps", type=int, default=40)
     parser.add_argument("--set", dest="overrides", action="append", default=[])

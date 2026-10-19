@@ -174,6 +174,18 @@ class LegacyComparisonTests(unittest.TestCase):
             self.assertEqual(legacy.get("reset_collections"), 1)
             self.assertEqual(legacy.get("completed_episodes"), result["completed_episodes"])
 
+    @patch("torch.cuda.is_available", return_value=True)
+    @patch("torch.cuda.device_count", return_value=2)
+    def test_legacy_device_resolution_can_split_collector_from_learner(self, _count, _available):
+        module = self.module()
+        c = tiny_config("matd3")
+        c.runtime.device = c.runtime.replay_device = "cuda"
+        c.pql.collector_device = "cuda:0"
+        c.pql.learner_device = c.pql.policy_device = "cuda:1"
+        collector, learner = module.resolve_legacy_devices(c)
+        self.assertEqual(str(collector), "cuda:0")
+        self.assertEqual(str(learner), "cuda:1")
+
     def test_legacy_refuses_fractional_update_ratio(self):
         module = self.module()
         c = tiny_config()
@@ -218,6 +230,18 @@ class ComparisonRunnerTests(unittest.TestCase):
                 self.assertEqual(selected.pql.learner_device, "cpu")
         self.assertEqual(c.runtime.algorithm, "masac")
         self.assertTrue(c.tracking.enabled)
+
+    @patch("torch.cuda.is_available", return_value=True)
+    @patch("torch.cuda.device_count", return_value=2)
+    def test_base_dual_routes_collector_and_learner_to_separate_gpus(self, _count, _available):
+        module = self.module()
+        c = tiny_config()
+        c.runtime.device = c.runtime.replay_device = "cuda"
+        selected = module.case_config(c, "base-dual", "matd3", "unused-output")
+        self.assertFalse(selected.pql.enabled)
+        self.assertEqual(selected.pql.collector_device, "cuda:0")
+        self.assertEqual(selected.pql.learner_device, "cuda:1")
+        self.assertEqual(selected.pql.policy_device, "cuda:1")
 
     def test_cpu_requires_explicit_permission_and_dual_gpu_is_explicitly_unavailable(self):
         module = self.module()

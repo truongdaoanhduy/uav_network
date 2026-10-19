@@ -25,6 +25,20 @@ from .training import choose_device, seed_runtime
 LEGACY_REFERENCE_COMMIT = "afeaa3dba27edd736be13f84b602f84c268e3a22"
 
 
+def resolve_legacy_devices(config):
+    selected = choose_device(config.runtime.device)
+    default = torch.device("cuda:0" if selected == "cuda" else selected)
+
+    def pick(value, fallback):
+        if value == "auto":
+            return fallback
+        return torch.device("cuda:0" if value == "cuda" else value)
+
+    collector = pick(config.pql.collector_device, default)
+    learner = pick(config.pql.learner_device, collector)
+    return collector, learner
+
+
 def benchmark_legacy(config, steps=40):
     """Preserve step_async -> previous replay updates -> step_wait and final drain."""
     c = deepcopy(config)
@@ -106,21 +120,21 @@ def benchmark_legacy(config, steps=40):
 
     try:
         sampler.start()
-        selected = choose_device(c.runtime.device)
-        device = torch.device("cuda:0" if selected == "cuda" else selected)
-        # The original same-GPU baseline keeps learner and replay on collector GPU0.
-        replay_device = device
-        learner = make_learner(c, observation_dim(c), state_dim(c), device)
+        collector_device, learner_device = resolve_legacy_devices(c)
+        replay_device = learner_device
+        learner = make_learner(c, observation_dim(c), state_dim(c), learner_device)
         if c.runtime.compile_models:
             compile_models(learner)
-        vector = make_vector(c, device=device)
+        vector = make_vector(c, device=collector_device)
         obs, _ = vector.reset(seed=c.runtime.seed)
         replay = TensorReplayBuffer(settings.replay_capacity, obs["observation"].shape[1:],
                                     state_dim(c), c.runtime.seed, replay_device)
         rng = np.random.default_rng(c.runtime.seed + 1)
         next_seed = c.runtime.seed + c.runtime.num_envs
         device_env = c.runtime.environment_backend == "warp_packet"
-        synchronize(device)
+        synchronize(collector_device)
+        if learner_device != collector_device:
+            synchronize(learner_device)
         report["startup_s"] = time.perf_counter() - started
         window_start = time.perf_counter()
         for iteration in range(steps):
@@ -159,7 +173,9 @@ def benchmark_legacy(config, steps=40):
                     next_seed += 1
                 obs, _ = vector.reset(seed=seeds, options={
                     "reset_mask": done.cpu().numpy() if device_env else done})
-        synchronize(device)
+        synchronize(learner_device)
+        if collector_device != learner_device:
+            synchronize(collector_device)
         window_end = time.perf_counter()
         elapsed = window_end - window_start
         with (output / "episodes.jsonl").open("w") as stream:
@@ -177,11 +193,12 @@ def benchmark_legacy(config, steps=40):
                       environment_bytes=getattr(vector, "allocated_bytes", None),
                       num_cpu_env_workers=vector.num_cpu_workers if device_env else
                                           (c.runtime.num_envs if c.runtime.num_envs > 1 else 0),
-                      devices={"collector": str(device), "critic": str(device), "policy": str(device)},
+                      devices={"collector": str(collector_device), "critic": str(learner_device),
+                               "policy": str(learner_device)},
                       learning_metrics=latest)
         if learner.updates != expected_updates or learner.actor_updates != expected_updates // delay:
             raise RuntimeError("Legacy benchmark did not complete the matched critic and policy update budget")
-        report["cuda_pipeline_verified"] = device.type == "cuda"
+        report["cuda_pipeline_verified"] = collector_device.type == learner_device.type == "cuda"
         report["peak_memory"] = peak_memory()
     except Exception as error:
         cause = error
