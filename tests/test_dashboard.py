@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 from uav_network.configuration import Config
-from uav_network.experiments.dashboard import create_dashboard
+from uav_network.experiments.dashboard import PANELS, create_dashboard
 
 
 @unittest.skipUnless(importlib.util.find_spec("wandb_workspaces"), "cloud SDK is optional")
@@ -59,7 +59,7 @@ class DashboardTests(unittest.TestCase):
                 self.assertEqual(result["workspace_url"], "https://wandb.ai/owner/project/workspace")
                 self.assertEqual(result["workspace_type"], "personal")
                 self.assertEqual(result["pinned_runs"], [])
-                self.assertEqual(result["panel_count"], 18)
+                self.assertEqual(result["panel_count"], sum(len(items) for items in PANELS.values()))
                 self.assertEqual(json.loads(Path("outputs/wandb/workspace.json").read_text()), result)
 
         self.assertEqual(set(stored), {"nw-existing-v", personal_name})
@@ -72,7 +72,8 @@ class DashboardTests(unittest.TestCase):
         self.assertGreaterEqual(spec["settings"]["maxRuns"], 1000)
         self.assertEqual(spec["settings"]["xAxis"], "global_step")
         self.assertFalse(spec["settings"]["shouldAutoGeneratePanels"])
-        self.assertEqual(sum(len(s["panels"]) for s in spec["panelBankConfig"]["sections"]), 18)
+        self.assertEqual(sum(len(s["panels"]) for s in spec["panelBankConfig"]["sections"]),
+                         sum(len(items) for items in PANELS.values()))
 
     def test_updates_existing_personal_workspace_without_creating_saved_views(self):
         self.check_personal_workspace(exists=True)

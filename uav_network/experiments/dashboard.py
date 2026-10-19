@@ -12,6 +12,36 @@ from .dashboard_columns import VISIBLE_COLUMNS, save_with_visible_columns
 
 
 PANELS = {
+    "Live mission progress": [
+        ("Live search (%)", "progress/search_rate_percent"),
+        ("Live delivery (%)", "progress/delivery_rate_percent"),
+        ("Live battery fraction", "progress/mean_battery_fraction"),
+        ("Active UAVs", "progress/mean_active_uavs"),
+    ],
+    "Training throughput": [
+        ("Joint transitions / s", "train/joint_transitions_per_s"),
+        ("Replay size", "train/replay_size"),
+        ("Learner updates", "train/updates"),
+        ("Sample uses / new transition", "train/sample_uses_per_new_transition"),
+        ("Elapsed hours", "run/elapsed_hours"),
+    ],
+    "Learning quality": [
+        ("Actor loss", "learner/actor_loss"),
+        ("Critic loss", "learner/critic_loss"),
+        ("TD error |mean|", "learner/td_error_abs_mean"),
+        ("Q |max|", "learner/q_abs_max"),
+        ("Critic gradient", "learner/critic_grad_norm"),
+        ("Actor gradient", "learner/actor_grad_norm"),
+    ],
+    "PQL execution": [
+        ("PQL transitions / s", "pql/transitions_per_s"),
+        ("PQL critic updates / s", "pql/critic_updates_per_s"),
+        ("PQL actor updates / s", "pql/actor_updates_per_s"),
+        ("Critic / collector ratio", "pql/critic_collector_ratio"),
+        ("PQL sample uses / new transition", "pql/sample_uses_per_new_transition"),
+        ("Queued collections", "pql/queued_collections"),
+        ("Collector wait (s)", "pql/collector_wait_seconds"),
+    ],
     "Completed outcomes per transition window": [
         ("Completed-outcome return", "cohort/return_mean"),
         ("Completed-outcome discovery (%)", "cohort/search_rate_percent_mean"),
@@ -20,26 +50,36 @@ PANELS = {
     ],
     "Report communication": [
         ("Pooled packet delivery fraction", "cohort/network/packet_pdr_fraction"),
-        ("Delivered-report age (s)", "cohort/reports/delivered_report_age_mean_s"),
         ("Payload throughput (kbps)", "network/payload_throughput_kbps"),
+        ("PHY success (%)", "network/phy_success_percent"),
         ("Delivered-report hops", "cohort/reports/delivery_hops_mean"),
+        ("Delivered-report age (s)", "cohort/reports/delivered_report_age_mean_s"),
+        ("Collisions", "network/collisions"),
     ],
-    "Battery": [
+    "Battery and energy": [
         ("Total UAV energy (J)", "energy/total_uav_energy_j"),
+        ("Propulsion energy (J)", "energy/propulsion_energy_j"),
+        ("Communication energy (J)", "energy/uav_rf_energy_j"),
         ("Battery fraction", "energy/mean_battery_fraction"),
     ],
     "Safety and report loss": [
         ("Blocked motion rate", "safety/blocked_motion_rate"),
+        ("Boundary clip rate", "safety/boundary_clip_rate"),
         ("Expired reports", "reports/expired"),
         ("Dropped reports", "reports/dropped"),
     ],
-    "Learner": [("Actor loss", "learner/actor_loss"), ("Critic loss", "learner/critic_loss")],
     "Fixed-seed evaluation": [
         ("Validation return (fixed checkpoint)", "evaluation/mean_return"),
+        ("Validation search (%)", "evaluation/mean_search_rate_percent"),
         ("Validation delivery (%)", "evaluation/mean_delivery_rate_percent"),
+        ("Validation success", "evaluation/success_rate"),
     ],
-    "Diagnostic alerts": [("Warning count", "diagnostics/warning_count")],
+    "Diagnostic alerts": [
+        ("Warning count", "diagnostics/warning_count"),
+        ("Fatal error count", "diagnostics/fatal_error_count"),
+    ],
 }
+
 
 DIAGNOSTIC_PANELS = {
     "Numerical learning": [
