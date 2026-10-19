@@ -1,0 +1,293 @@
+{
+  "checked_at_utc": "2026-10-19T01:41:21.299503+00:00",
+  "baseline_commit": "c8dba4f80ff3c9f26556f5ea13d14b0a95d89f1c",
+  "candidate_commit": "8b0282af3c6a9bf67774f2eb5b818d6b26290d5c",
+  "ab": {
+    "baseline_run": "16045411",
+    "candidate_run": "33000c42",
+    "matched_scientific_config": true,
+    "runtime_differences": {},
+    "baseline_tps": 91.17760997071632,
+    "candidate_tps": 91.48192912516907,
+    "candidate_speedup_percent": 0.33376522432480016,
+    "matched_progress_points": 14,
+    "metric_equality": {
+      "4096": {
+        "progress/search_rate_percent": true,
+        "progress/delivery_rate_percent": true,
+        "progress/mean_battery_fraction": true,
+        "train/replay_size": true,
+        "train/updates": true,
+        "train/episodes_completed": true
+      },
+      "8192": {
+        "progress/search_rate_percent": true,
+        "progress/delivery_rate_percent": true,
+        "progress/mean_battery_fraction": true,
+        "train/replay_size": true,
+        "train/updates": true,
+        "train/episodes_completed": true
+      },
+      "12288": {
+        "progress/search_rate_percent": true,
+        "progress/delivery_rate_percent": true,
+        "progress/mean_battery_fraction": true,
+        "train/replay_size": true,
+        "train/updates": true,
+        "train/episodes_completed": true
+      },
+      "16384": {
+        "progress/search_rate_percent": true,
+        "progress/delivery_rate_percent": true,
+        "progress/mean_battery_fraction": true,
+        "train/replay_size": true,
+        "train/updates": true,
+        "train/episodes_completed": true
+      },
+      "20480": {
+        "progress/search_rate_percent": true,
+        "progress/delivery_rate_percent": true,
+        "progress/mean_battery_fraction": true,
+        "train/replay_size": true,
+        "train/updates": true,
+        "train/episodes_completed": true
+      },
+      "24576": {
+        "progress/search_rate_percent": true,
+        "progress/delivery_rate_percent": true,
+        "progress/mean_battery_fraction": true,
+        "train/replay_size": true,
+        "train/updates": true,
+        "train/episodes_completed": true
+      },
+      "28672": {
+        "progress/search_rate_percent": true,
+        "progress/delivery_rate_percent": true,
+        "progress/mean_battery_fraction": true,
+        "train/replay_size": true,
+        "train/updates": true,
+        "train/episodes_completed": true
+      },
+      "32768": {
+        "progress/search_rate_percent": true,
+        "progress/delivery_rate_percent": true,
+        "progress/mean_battery_fraction": true,
+        "train/replay_size": true,
+        "train/updates": true,
+        "train/episodes_completed": true
+      },
+      "36864": {
+        "progress/search_rate_percent": true,
+        "progress/delivery_rate_percent": true,
+        "progress/mean_battery_fraction": true,
+        "train/replay_size": true,
+        "train/updates": true,
+        "train/episodes_completed": true
+      },
+      "40960": {
+        "progress/search_rate_percent": true,
+        "progress/delivery_rate_percent": true,
+        "progress/mean_battery_fraction": true,
+        "train/replay_size": true,
+        "train/updates": true,
+        "train/episodes_completed": true
+      },
+      "45056": {
+        "progress/search_rate_percent": true,
+        "progress/delivery_rate_percent": true,
+        "progress/mean_battery_fraction": true,
+        "train/replay_size": true,
+        "train/updates": true,
+        "train/episodes_completed": true
+      },
+      "49152": {
+        "progress/search_rate_percent": true,
+        "progress/delivery_rate_percent": true,
+        "progress/mean_battery_fraction": true,
+        "train/replay_size": true,
+        "train/updates": true,
+        "train/episodes_completed": true
+      },
+      "53248": {
+        "progress/search_rate_percent": true,
+        "progress/delivery_rate_percent": true,
+        "progress/mean_battery_fraction": true,
+        "train/replay_size": true,
+        "train/updates": true,
+        "train/episodes_completed": true
+      },
+      "57344": {
+        "progress/search_rate_percent": true,
+        "progress/delivery_rate_percent": true,
+        "progress/mean_battery_fraction": true,
+        "train/replay_size": true,
+        "train/updates": true,
+        "train/episodes_completed": true
+      }
+    },
+    "decision": "Do not promote: observed throughput difference is about 0.33%; no repeatable practical gain established."
+  },
+  "collector_evaluation": {
+    "trained": false,
+    "learner_updates": 0,
+    "evaluation_files_identical": true,
+    "metrics_sha256": "e892d2be5691f531fc4b93e6393ba69af8cd854bb00e10bc648a802f45a93864",
+    "episodes": 1,
+    "device": "cpu",
+    "environment_backend": "warp_packet",
+    "found": 14,
+    "delivered": 5,
+    "targets": 35,
+    "search_rate_percent": 40,
+    "delivery_rate_percent": 14.285714285714286,
+    "termination_reason": "time_limit"
+  },
+  "current_jobs": {
+    "masac128": {
+      "run_id": "bedd17bb",
+      "wandb_state": "running",
+      "kaggle_state": "running",
+      "kaggle_ref": "fwijevwe/uavnet-validate-20261018-233451-5f9212",
+      "latest_logged_global_step": 128,
+      "latest_logged_updates": 0,
+      "latest_logged_at_utc": "2026-10-18T23:38:02.378677+00:00",
+      "latest_system": {
+        "_timestamp": 1792374076.7916794,
+        "_runtime": 7410.903826316,
+        "system.gpu.0.gpu": 100,
+        "system.gpu.0.memoryAllocatedBytes": 6831341568,
+        "system.gpu.0.powerWatts": 50.854
+      },
+      "warmup_verified": false,
+      "note": "Progress metrics are stale. GPU activity does not prove environment-step progress."
+    },
+    "matd3128": {
+      "run_id": "1e5569af",
+      "wandb_state": "running",
+      "kaggle_state": "running",
+      "kaggle_ref": "iofiewfjw/uavnet-validate-20261018-233552-fd6464",
+      "latest_logged_global_step": 128,
+      "latest_logged_updates": 0,
+      "latest_logged_at_utc": "2026-10-18T23:39:03.682990+00:00",
+      "latest_system": {
+        "_timestamp": 1792374032.9879067,
+        "_runtime": 7305.639451634,
+        "system.gpu.0.gpu": 100,
+        "system.gpu.0.memoryAllocatedBytes": 6835535872,
+        "system.gpu.0.powerWatts": 47.831
+      },
+      "warmup_verified": false,
+      "note": "Progress metrics are stale. GPU activity does not prove environment-step progress."
+    }
+  },
+  "profiling": {
+    "label": "Read-only CPU profiling; not a CUDA benchmark",
+    "source_commit": "8b0282af3c6a9bf67774f2eb5b818d6b26290d5c",
+    "scenario_config": "configs/comparison-25k-scenario-v3.yaml",
+    "envs": 4,
+    "warmup_steps": 4,
+    "timed_steps": 64,
+    "elapsed_seconds": 75.98712990900094,
+    "joint_transitions_per_s": 3.3689915687903342,
+    "kernel_seconds": {
+      "validate_actions": 0.0045046779996482655,
+      "begin_step": 0.0022466530062956735,
+      "motion_step": 0.015715143010311294,
+      "sense": 0.01040301001194166,
+      "sense_reports": 0.0016742960069677792,
+      "packet_step": 75.72885839505034,
+      "end_step": 0.007375047971436288,
+      "observe": 0.16930224899260793,
+      "centralized": 0.002924167005403433
+    },
+    "kernel_calls": {
+      "validate_actions": 64,
+      "begin_step": 64,
+      "motion_step": 64,
+      "sense": 64,
+      "sense_reports": 64,
+      "packet_step": 64,
+      "end_step": 64,
+      "observe": 64,
+      "centralized": 64
+    },
+    "checkpoints": [
+      {
+        "vector_step": 12,
+        "timed_steps": 8,
+        "elapsed_seconds": 0.0279409869981464,
+        "cca_checks_total": 0,
+        "frame_count_max": 0,
+        "event_count_max": 7
+      },
+      {
+        "vector_step": 20,
+        "timed_steps": 16,
+        "elapsed_seconds": 1.042217656999128,
+        "cca_checks_total": 547190,
+        "frame_count_max": 5,
+        "event_count_max": 8
+      },
+      {
+        "vector_step": 28,
+        "timed_steps": 24,
+        "elapsed_seconds": 3.2530569860027754,
+        "cca_checks_total": 1760582,
+        "frame_count_max": 5,
+        "event_count_max": 8
+      },
+      {
+        "vector_step": 36,
+        "timed_steps": 32,
+        "elapsed_seconds": 8.449597641003493,
+        "cca_checks_total": 4641135,
+        "frame_count_max": 5,
+        "event_count_max": 8
+      },
+      {
+        "vector_step": 44,
+        "timed_steps": 40,
+        "elapsed_seconds": 18.144583843000873,
+        "cca_checks_total": 10678518,
+        "frame_count_max": 6,
+        "event_count_max": 13
+      },
+      {
+        "vector_step": 52,
+        "timed_steps": 48,
+        "elapsed_seconds": 36.98963753999851,
+        "cca_checks_total": 21464677,
+        "frame_count_max": 7,
+        "event_count_max": 17
+      },
+      {
+        "vector_step": 60,
+        "timed_steps": 56,
+        "elapsed_seconds": 57.31742128800397,
+        "cca_checks_total": 31826144,
+        "frame_count_max": 7,
+        "event_count_max": 12
+      },
+      {
+        "vector_step": 68,
+        "timed_steps": 64,
+        "elapsed_seconds": 75.98700240199832,
+        "cca_checks_total": 41091656,
+        "frame_count_max": 6,
+        "event_count_max": 12
+      }
+    ],
+    "frame_capacity": 1632,
+    "retention_us": 8384
+  },
+  "local_import_note": "The worktree .venv editable installation resolves to the old main checkout for /tmp scripts unless PYTHONPATH explicitly selects this worktree. Failed initial profiling attempt was discarded; successful run used PYTHONPATH=/home/aduy/Documents/NCKH/uav_network-cpu-flow-20261014.",
+  "gates": {
+    "perf_promote": false,
+    "warmup_verified": false,
+    "learned_final_evaluation_available": false,
+    "reward_change_justified": false,
+    "full25k_allowed": false,
+    "pql_ready": false
+  },
+  "changes": "Evidence and documentation only. No simulator, reward, algorithm, training job, or default scientific branch changes."
+}
