@@ -73,7 +73,7 @@ def launch(args, credentials):
             "project": credentials.project if config.tracking.project == "auto" else config.tracking.project,
             "stage": args.stage, "config": config_file, "overrides": args.overrides, "runs": runs}
     spec.update({"requested_episodes": config.runtime.episodes, "training_mode": training_mode,
-                 "accelerator": args.accelerator})
+                 "accelerator": args.accelerator, "gpus_per_run": args.gpus_per_run})
     if auto_continue:
         spec.update({"auto_continue": True, "root_kernel_ref": spec["kernel_ref"],
                      "continuation_index": 0})
@@ -143,6 +143,8 @@ def main(argv=None):
     submit.add_argument("--auto-continue", action="store_true",
                         help="Resume full GPU training across sessions to the episode target, then CPU visualization")
     submit.add_argument("--set", dest="overrides", action="append", default=[])
+    submit.add_argument("--gpus-per-run", type=int, choices=[1, 2], default=1,
+                        help="Visible GPUs per BASE learner; PQL continues to own all visible GPUs")
     submit.add_argument("--accelerator", default="NvidiaTeslaT4")
     submit.add_argument("--timeout-seconds", type=int, default=39600)
     status = commands.add_parser("status")

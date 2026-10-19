@@ -18,6 +18,8 @@ class PQLCloudTests(unittest.TestCase):
         c.pql.enabled = False
         self.assertEqual(remote.gpu_allocation(c, 2, 0), (2, "0"))
         self.assertEqual(remote.gpu_allocation(c, 2, 1), (2, "1"))
+        self.assertEqual(remote.gpu_allocation(c, 2, 0, gpus_per_run=2), (1, "0,1"))
+        self.assertEqual(remote.gpu_allocation(c, 2, 1, gpus_per_run=2), (1, "0,1"))
 
     def test_pql_benchmark_gate_uses_exact_scenario_rates_batch_and_all_devices(self):
         self.assertTrue(callable(getattr(remote, "pql_benchmarks", None)), "Missing PQL benchmark gate")

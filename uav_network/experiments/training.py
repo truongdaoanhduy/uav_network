@@ -21,6 +21,7 @@ from .reproducibility import reproducibility_result
 from .diagnostics import TrainingDiagnostics, failure_report
 from .async_evaluation import AsyncCheckpointEvaluator
 from .local_checkpoints import prune_episode_checkpoints, disk_metrics
+from .pql_workers import cloned_state, inference_copy, synchronize as synchronize_worker
 
 
 def seed_runtime(config):
@@ -46,6 +47,38 @@ def choose_device(value):
     return "cuda" if value == "auto" and torch.cuda.is_available() else "cpu" if value == "auto" else value
 
 
+def resolve_base_devices(config):
+    """Place BASE collection on GPU0 and its learner/replay on GPU1 when visible."""
+    available = torch.cuda.device_count() if torch.cuda.is_available() else 0
+    requested = config.runtime.device
+    if requested == "cuda" and not available:
+        raise RuntimeError("CUDA requested but no CUDA device is available")
+    if requested == "cpu" or (requested == "auto" and not available):
+        collector = learner = torch.device("cpu")
+    else:
+        collector = torch.device("cuda:0")
+        learner = torch.device("cuda:1" if available >= 2 else "cuda:0")
+    requested_replay = config.runtime.replay_device
+    if requested_replay == "cpu":
+        replay = torch.device("cpu")
+    elif requested_replay == "cuda":
+        if not available:
+            raise RuntimeError("CUDA replay requested but no CUDA device is available")
+        replay = learner if learner.type == "cuda" else torch.device("cuda:0")
+    else:
+        replay = learner
+    return collector, learner, replay
+
+
+def refresh_base_collector(collector, learner):
+    if collector is learner:
+        return
+    snapshot = cloned_state(learner.actors)
+    synchronize_worker(learner.device)
+    collector.actors.load_state_dict(snapshot)
+    synchronize_worker(collector.device)
+
+
 def train(config):
     with graceful_termination():
         if config.pql.enabled:
@@ -57,8 +90,9 @@ def train(config):
 def _train(config):
     config.validate()
     seed_runtime(config)
-    device = choose_device(config.runtime.device)
-    replay_device = device if config.runtime.replay_device == "auto" else choose_device(config.runtime.replay_device)
+    device = choose_device(config.runtime.device)  # legacy summary field
+    legacy_replay_device = device if config.runtime.replay_device == "auto" else choose_device(config.runtime.replay_device)
+    collector_device, learner_device, replay_device = resolve_base_devices(config)
     settings = config.algorithm_config
     output = Path(config.runtime.output_dir)
     if output.exists() and any(output.iterdir()):
@@ -77,7 +111,7 @@ def _train(config):
     tracker = vector = learner = evaluator = None
     completed_ok = False
     try:
-        learner, initial = restore_learner(config, device)
+        learner, initial = restore_learner(config, learner_device)
         completed, global_step, collection_steps = (initial[k] for k in ("episodes", "global_step", "collection_steps"))
         diagnostics.start_windows(global_step)
         initial_updates = learner.updates
@@ -91,17 +125,19 @@ def _train(config):
         history = list(initial["records"])
         episode_seeds = np.arange(count) + initial["next_seed"]
         next_seed = initial["next_seed"] + count
-        vector = make_vector(config)
+        collector = learner if collector_device == learner_device else inference_copy(learner, collector_device)
+        collector_version = learner.actor_updates
+        vector = make_vector(config, device=collector_device)
         obs, _ = vector.reset(seed=episode_seeds.tolist())
         device_env = config.runtime.environment_backend == "warp_packet"
         if device_env:
-            episode_returns = torch.zeros(count,device=device,dtype=torch.float64)
-            episode_lengths = torch.zeros(count,device=device,dtype=torch.int64)
+            episode_returns = torch.zeros(count,device=collector_device,dtype=torch.float64)
+            episode_lengths = torch.zeros(count,device=collector_device,dtype=torch.int64)
         if config.runtime.compile_models:
             compile_models(learner)
         replay = MeasuredReplay(settings.replay_capacity, obs["observation"].shape[1:],
                                     state_dim(config), config.runtime.seed, replay_device,
-                                    pin_memory=device == "cuda" and replay_device == "cpu")
+                                    pin_memory=learner_device.type == "cuda" and replay_device.type == "cpu")
         rng = np.random.default_rng(config.runtime.seed + 1)
         if restored_training:
             restore_replay(replay, restored_training["replay"])
@@ -172,7 +208,7 @@ def _train(config):
                     action = (vector.random_actions(obs["observation"]) if device_env else
                               random_actions(obs["observation"],rng,config.world.num_uavs+1))
                 else:
-                    action = learner.act_batch(obs["observation"],step=global_step,return_tensors=device_env)
+                    action = collector.act_batch(obs["observation"],step=global_step,return_tensors=device_env)
                 actions = {"continuous": action.continuous, "destination": action.destination}
                 overlap = count > 1 and config.runtime.collector_overlap
                 if overlap:
@@ -250,6 +286,9 @@ def _train(config):
                     if tracker:
                         tracker.checkpoint(path, progress)
                     prune_episode_checkpoints(output, config.tracking.local_checkpoints_to_keep)
+                if collector is not learner and learner.actor_updates != collector_version:
+                    refresh_base_collector(collector, learner)
+                    collector_version = learner.actor_updates
                 obs = next_obs
                 if tracker:
                     tracker.progress(obs, global_step, completed, learner, len(replay), episode_lengths=episode_lengths, force=final_batch)
@@ -280,9 +319,11 @@ def _train(config):
                   "optimizer_replay_restored": resumed,
                   "global_step": global_step, "collection_steps": collection_steps,
                   "num_envs": count, "updates": learner.updates, "device": device,
+                  "devices": {"collector": str(collector_device), "learner": str(learner_device),
+                              "replay": str(replay_device)},
                   "environment_backend": config.runtime.environment_backend,
                   "num_cpu_env_workers": vector.num_cpu_workers if device_env else (count if count>1 else 0),
-                  "replay_device": replay_device, "replay_bytes": replay.allocated_bytes,
+                  "replay_device": legacy_replay_device, "replay_bytes": replay.allocated_bytes,
                   "sample_updates_per_transition": learner.updates * settings.batch_size / global_step,
                   "collector_overlap": count > 1 and config.runtime.collector_overlap,
                   "startup_s": startup_s, "collection_wait_s": collection_wait_s, "learner_s": update_s,
@@ -322,7 +363,7 @@ def _train(config):
                 "algorithm": config.runtime.algorithm, "global_step": global_step,
                 "episodes": completed, "updates": learner.updates if learner is not None else None,
                 "episode_seeds": episode_seeds.tolist(),
-                "last_learner_metrics": latest, "device": device,
+                "last_learner_metrics": latest, "device": str(learner_device),
                 "nonfinite_parameter_names": bad_parameters})
             if learner is not None:
                 torch.save({"model": state, "config": config.to_dict(), "updates": learner.updates,

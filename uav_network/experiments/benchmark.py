@@ -4,6 +4,7 @@ import math
 import time
 
 import numpy as np
+import torch
 
 from ..algorithms.checkpoints import make_learner
 from ..algorithms.optimization import compile_models
@@ -11,7 +12,22 @@ from ..algorithms.replay import TensorReplayBuffer
 from ..environment.observations import observation_dim, state_dim
 from ..environment.vector import make_vector, random_actions
 from .hardware import hardware_info, synchronize
-from .training import choose_device, seed_runtime
+from .training import resolve_base_devices, seed_runtime
+
+
+def peak_memory():
+    return [{"device": index, "name": torch.cuda.get_device_name(index),
+             "total_bytes": torch.cuda.get_device_properties(index).total_memory,
+             "peak_allocated_bytes": torch.cuda.max_memory_allocated(index),
+             "peak_reserved_bytes": torch.cuda.max_memory_reserved(index)}
+            for index in range(torch.cuda.device_count())]
+
+
+def dual_gpu_verified(devices, actor_updates, peak_memory):
+    if (devices.get("collector"), devices.get("learner"), devices.get("replay")) != ("cuda:0", "cuda:1", "cuda:1"):
+        return False
+    used = {row.get("device"): row.get("peak_allocated_bytes", 0) for row in peak_memory}
+    return actor_updates > 0 and used.get(0, 0) > 0 and used.get(1, 0) > 0
 
 
 def benchmark(config, env_counts=(1, 2, 4), steps=32, learner_updates=10):
@@ -23,18 +39,21 @@ def benchmark(config, env_counts=(1, 2, 4), steps=32, learner_updates=10):
         c.runtime.num_envs = count
         c.validate()
         seed_runtime(c)
-        device = choose_device(c.runtime.device)
-        replay_device = device if c.runtime.replay_device == "auto" else choose_device(c.runtime.replay_device)
+        collector_device, learner_device, replay_device = resolve_base_devices(c)
+        if torch.cuda.device_count():
+            torch.cuda.init()
+            for index in range(torch.cuda.device_count()):
+                torch.cuda.reset_peak_memory_stats(index)
         settings = c.algorithm_config
         rounds = max(steps, math.ceil(settings.batch_size / count))
         started = time.perf_counter()
-        vector = make_vector(c)
+        vector = make_vector(c, device=collector_device)
         try:
             obs, _ = vector.reset(seed=c.runtime.seed)
             startup = time.perf_counter() - started
             replay = TensorReplayBuffer(settings.replay_capacity, obs["observation"].shape[1:],
                                         state_dim(c), c.runtime.seed, replay_device,
-                                        pin_memory=device == "cuda" and replay_device == "cpu")
+                                        pin_memory=learner_device.type == "cuda" and replay_device.type == "cpu")
             rng = np.random.default_rng(c.runtime.seed + 1)
             next_seed = c.runtime.seed + count
             collector_s = reset_s = 0.0
@@ -60,31 +79,41 @@ def benchmark(config, env_counts=(1, 2, 4), steps=32, learner_updates=10):
                     obs, _ = vector.reset(seed=seeds, options={
                         "reset_mask": done.cpu().numpy() if device_env else done})
                     reset_s += time.perf_counter() - begin
-            learner = make_learner(c, observation_dim(c), state_dim(c), device)
+            learner = make_learner(c, observation_dim(c), state_dim(c), learner_device)
             if c.runtime.compile_models:
                 compile_models(learner)
             begin = time.perf_counter()
             for _ in range(2):
                 learner.update(replay.sample(settings.batch_size))
-            synchronize(device)
+            synchronize(learner_device)
             warmup_s = time.perf_counter() - begin
             begin = time.perf_counter()
             for _ in range(learner_updates):
                 learner.update(replay.sample(settings.batch_size), collect_metrics=False)
-            synchronize(device)
+            synchronize(learner_device)
             learner_s = time.perf_counter() - begin
-            results.append({"num_envs": count, "algorithm": learner.algorithm,
-                            "device": device, "replay_device": replay_device,
-                            "vector_steps": rounds, "joint_transitions": rounds * count,
+            devices = {"collector": str(collector_device), "learner": str(learner_device),
+                       "replay": str(replay_device)}
+            peaks = peak_memory() if torch.cuda.device_count() else []
+            results.append({"status": "passed", "num_envs": count, "algorithm": learner.algorithm,
+                            "device": str(learner_device), "replay_device": str(replay_device),
+                            "devices": devices, "vector_steps": rounds,
+                            "joint_transitions": rounds * count,
                             "startup_s": startup, "collector_s": collector_s, "reset_s": reset_s,
                             "joint_transitions_per_s": rounds * count / collector_s,
                             "learner_batch_size": settings.batch_size,
                             "learner_warmup_s": warmup_s, "learner_updates": learner_updates,
+                            "actor_updates": learner.actor_updates,
                             "learner_s": learner_s, "learner_updates_per_s": learner_updates / learner_s,
                             "replay_bytes": replay.allocated_bytes,
+                            "environment_bytes": getattr(vector, "allocated_bytes", None),
+                            "peak_memory": peaks,
+                            "cuda_pipeline_verified": all(value.startswith("cuda:") for value in devices.values())
+                                                      and learner.actor_updates > 0,
+                            "dual_gpu_verified": dual_gpu_verified(devices, learner.actor_updates, peaks),
                             "compile_models": c.runtime.compile_models,
                             "coalesce_idle_polls": c.runtime.coalesce_idle_polls,
-                            "fused_optimizers": c.runtime.fused_optimizers and device == "cuda",
+                            "fused_optimizers": c.runtime.fused_optimizers and learner_device.type == "cuda",
                             "vectorize_critics": c.runtime.vectorize_critics})
         finally:
             vector.close()

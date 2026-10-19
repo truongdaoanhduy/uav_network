@@ -114,11 +114,18 @@ def learner_time_limit(spec, config, gpu_count, index, elapsed):
     return min(config.runtime.max_train_seconds or available, available)
 
 
-def gpu_allocation(config, count, index):
+def gpu_allocation(config, count, index, gpus_per_run=1):
     if count < 1:
         raise ValueError("At least one CUDA GPU is required")
-    # One PQL experiment owns all GPUs; independent algorithms run in waves.
-    return (1, ",".join(str(i) for i in range(count))) if config.pql.enabled else (count, str(index % count))
+    # One PQL experiment owns all GPUs; BASE defaults to one GPU unless the job explicitly requests two.
+    if config.pql.enabled:
+        return 1, ",".join(str(i) for i in range(count))
+    if gpus_per_run not in {1, 2} or gpus_per_run > count:
+        raise ValueError("Requested GPUs per BASE run are unavailable")
+    slots = count // gpus_per_run
+    slot = index % slots
+    start = slot * gpus_per_run
+    return slots, ",".join(str(i) for i in range(start, start + gpus_per_run))
 
 
 def pql_benchmarks(spec, config, output):
@@ -233,7 +240,7 @@ def run_job(spec):
     scheduling_error = None
     try:
         for index, (algorithm, run) in enumerate(spec["runs"].items()):
-            slots, visible = gpu_allocation(config, count, index)
+            slots, visible = gpu_allocation(config, count, index, spec.get("gpus_per_run", 1))
             if index and index % slots == 0:
                 wait_all(processes[-slots:])
             destination = output / spec["stage"] / algorithm

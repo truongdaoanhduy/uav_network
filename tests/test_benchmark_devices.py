@@ -27,3 +27,13 @@ def check_warp_benchmark(device):
 class BenchmarkDeviceTests(unittest.TestCase):
     def test_warp_tensor_preflight_collects_resets_and_updates_both_learners(self):
         check_warp_benchmark("cpu")
+
+    def test_dual_gpu_evidence_requires_roles_actor_update_and_memory_on_both_boards(self):
+        from uav_network.experiments.benchmark import dual_gpu_verified
+        devices = {"collector": "cuda:0", "learner": "cuda:1", "replay": "cuda:1"}
+        peaks = [{"device": 0, "peak_allocated_bytes": 10}, {"device": 1, "peak_allocated_bytes": 20}]
+        self.assertTrue(dual_gpu_verified(devices, actor_updates=1, peak_memory=peaks))
+        self.assertFalse(dual_gpu_verified(devices, actor_updates=0, peak_memory=peaks))
+        self.assertFalse(dual_gpu_verified({**devices, "learner": "cuda:0"}, actor_updates=1, peak_memory=peaks))
+        self.assertFalse(dual_gpu_verified(devices, actor_updates=1,
+                                           peak_memory=[peaks[0], {"device": 1, "peak_allocated_bytes": 0}]))
