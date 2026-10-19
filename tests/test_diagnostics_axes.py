@@ -51,16 +51,14 @@ def test_workspace_run_table_is_compact_and_decision_focused():
 
     expected = [
         "run:displayName", "run:state", "run:duration", "config:kaggle_account",
-        "config:runtime.algorithm", "summary:training_mode", "config:runtime.num_envs",
-        "summary:global_step", "summary:progress/episode_step_mean",
+        "summary:training_mode", "summary:global_step",
         "summary:progress/episode_progress_percent_mean", "summary:train/episodes_completed",
         "summary:train/joint_transitions_per_s", "summary:progress/search_rate_percent",
         "summary:progress/delivery_rate_percent", "summary:progress/mean_battery_fraction",
         "summary:episode/return", "summary:outcome/delivery_rate_percent", "summary:outcome/success",
         "summary:network/pdr_percent", "summary:network/report_average_hops",
         "summary:reports/expired", "summary:reports/dropped",
-        "summary:cohort/return_mean", "summary:cohort/delivery_rate_percent_mean",
-        "summary:cohort/success_mean", "summary:final_mean_return",
+        "summary:cohort/delivery_rate_percent_mean", "summary:cohort/success_mean",
         "summary:final_delivery_rate_percent", "summary:final_success_rate",
     ]
     assert VISIBLE_COLUMNS == expected
@@ -88,7 +86,7 @@ def test_workspace_run_table_is_compact_and_decision_focused():
 def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source():
     from uav_network.experiments.dashboard import PANELS, panel_axis
     from uav_network.experiments.dashboard_columns import VISIBLE_COLUMNS
-    assert "summary:cohort/return_mean" in VISIBLE_COLUMNS
+    assert "summary:cohort/return_mean" not in VISIBLE_COLUMNS
     assert "summary:cohort/delivery_rate_percent_mean" in VISIBLE_COLUMNS
     assert "summary:cohort/success_mean" in VISIBLE_COLUMNS
     assert panel_axis("evaluation/mean_return") == "evaluation/checkpoint_global_step"
