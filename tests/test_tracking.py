@@ -156,6 +156,27 @@ class TrackingTests(unittest.TestCase):
                 self.assertEqual(run.logged[-1]["train/joint_transitions_per_s"], 5)
                 tracker.close()
 
+    def test_progress_logs_episode_step_distribution_and_percent(self):
+        run = OnlineRun()
+        sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs)
+        with TemporaryDirectory() as directory:
+            c = Config()
+            c.world.max_steps = 2000
+            c.tracking.checkpoint_store = "wandb"
+            c.tracking.credentials_file = str(Path(directory) / "absent.txt")
+            with patch.dict(sys.modules, {"wandb": sdk}), patch.dict(os.environ, {
+                    "WANDB_API_KEY": "test-key", "WANDB_ENTITY": "owner", "WANDB_PROJECT": "project"}):
+                tracker = OnlineTracker(c, directory)
+                obs = {"observation": np.zeros((4, 6, 95)), "state": np.zeros((4, 217))}
+                tracker.progress(obs, 400, 2, SimpleNamespace(updates=3), 100,
+                                 episode_lengths=np.array([100, 200, 300, 400]), force=True)
+                logged = run.logged[-1]
+                self.assertEqual(logged["progress/episode_step_min"], 100)
+                self.assertEqual(logged["progress/episode_step_mean"], 250)
+                self.assertEqual(logged["progress/episode_step_max"], 400)
+                self.assertEqual(logged["progress/episode_progress_percent_mean"], 12.5)
+                tracker.close()
+
     def test_periodic_upload_is_committed_while_the_run_is_still_active(self):
         run = OnlineRun()
         sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs, Artifact=StoredArtifact)

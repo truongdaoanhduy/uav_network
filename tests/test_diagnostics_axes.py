@@ -45,59 +45,43 @@ def test_cpu_visualization_launcher_preserves_transition_validation_and_final_te
     assert c.runtime.eval_seed == 2000000044
 
 
-def test_workspace_surfaces_live_training_progress_and_comparison_metrics():
+def test_workspace_run_table_is_compact_and_decision_focused():
     from uav_network.experiments.dashboard import PANELS
     from uav_network.experiments.dashboard_columns import VISIBLE_COLUMNS
 
-    expected_columns = {
-        "summary:global_step",
-        "summary:train/updates",
-        "summary:train/replay_size",
-        "summary:train/joint_transitions_per_s",
-        "summary:progress/search_rate_percent",
-        "summary:progress/delivery_rate_percent",
-        "summary:progress/mean_battery_fraction",
-        "summary:learner/actor_loss",
-        "summary:learner/critic_loss",
-        "summary:learner/td_error_abs_mean",
-        "summary:pql/transitions_per_s",
-        "summary:pql/critic_updates_per_s",
-        "summary:pql/queued_collections",
-        "summary:episode/return",
-        "summary:outcome/search_rate_percent",
-        "summary:outcome/delivery_rate_percent",
-        "summary:network/pdr_percent",
-        "summary:energy/total_uav_energy_j",
-        "summary:reports/expired",
-        "summary:reports/dropped",
-    }
-    assert expected_columns <= set(VISIBLE_COLUMNS)
+    expected = [
+        "run:displayName", "run:state", "run:duration", "config:kaggle_account",
+        "config:runtime.algorithm", "summary:training_mode", "config:runtime.num_envs",
+        "summary:global_step", "summary:progress/episode_step_mean",
+        "summary:progress/episode_progress_percent_mean", "summary:train/episodes_completed",
+        "summary:train/joint_transitions_per_s", "summary:progress/search_rate_percent",
+        "summary:progress/delivery_rate_percent", "summary:progress/mean_battery_fraction",
+        "summary:episode/return", "summary:outcome/delivery_rate_percent", "summary:outcome/success",
+        "summary:network/pdr_percent", "summary:network/report_average_hops",
+        "summary:reports/expired", "summary:reports/dropped",
+        "summary:cohort/return_mean", "summary:cohort/delivery_rate_percent_mean",
+        "summary:cohort/success_mean", "summary:final_mean_return",
+        "summary:final_delivery_rate_percent", "summary:final_success_rate",
+    ]
+    assert VISIBLE_COLUMNS == expected
 
-    assert {
-        "Live mission progress",
-        "Training throughput",
-        "Learning quality",
-        "PQL execution",
-        "Completed outcomes per transition window",
-        "Report communication",
-        "Battery and energy",
-        "Safety and report loss",
-    } <= set(PANELS)
+    # Diagnostic detail stays available in charts without bloating the Runs table.
+    hidden_from_runs = {
+        "summary:train/updates", "summary:train/replay_size",
+        "summary:learner/actor_loss", "summary:learner/critic_loss",
+        "summary:learner/td_error_abs_mean", "summary:learner/q_abs_max",
+        "summary:pql/transitions_per_s", "summary:pql/critic_updates_per_s",
+        "summary:pql/queued_collections", "summary:cohort/episodes",
+        "summary:evaluation/checkpoint_global_step",
+    }
+    assert hidden_from_runs.isdisjoint(VISIBLE_COLUMNS)
+
     all_metrics = {metric for panels in PANELS.values() for _, metric in panels}
     assert {
-        "progress/search_rate_percent",
-        "progress/delivery_rate_percent",
-        "train/joint_transitions_per_s",
-        "train/replay_size",
-        "learner/td_error_abs_mean",
-        "learner/q_abs_max",
-        "pql/transitions_per_s",
-        "pql/critic_updates_per_s",
-        "pql/queued_collections",
-        "cohort/return_mean",
-        "cohort/network/packet_pdr_fraction",
-        "energy/total_uav_energy_j",
-        "reports/expired",
+        "progress/episode_step_mean", "progress/episode_progress_percent_mean",
+        "learner/actor_loss", "learner/critic_loss", "learner/td_error_abs_mean",
+        "pql/transitions_per_s", "pql/critic_updates_per_s", "pql/queued_collections",
+        "train/replay_size", "cohort/network/packet_pdr_fraction",
     } <= all_metrics
 
 
@@ -105,8 +89,8 @@ def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source()
     from uav_network.experiments.dashboard import PANELS, panel_axis
     from uav_network.experiments.dashboard_columns import VISIBLE_COLUMNS
     assert "summary:cohort/return_mean" in VISIBLE_COLUMNS
-    assert "summary:cohort/episodes" in VISIBLE_COLUMNS
-    assert "summary:evaluation/mean_delivery_rate_percent" in VISIBLE_COLUMNS
+    assert "summary:cohort/delivery_rate_percent_mean" in VISIBLE_COLUMNS
+    assert "summary:cohort/success_mean" in VISIBLE_COLUMNS
     assert panel_axis("evaluation/mean_return") == "evaluation/checkpoint_global_step"
     assert panel_axis("eval/mean_return") == "evaluation/checkpoint_global_step"
     assert panel_axis("evaluation_status/failed") == "global_step"

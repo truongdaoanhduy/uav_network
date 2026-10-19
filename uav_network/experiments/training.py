@@ -252,7 +252,7 @@ def _train(config):
                     prune_episode_checkpoints(output, config.tracking.local_checkpoints_to_keep)
                 obs = next_obs
                 if tracker:
-                    tracker.progress(obs, global_step, completed, learner, len(replay), force=final_batch)
+                    tracker.progress(obs, global_step, completed, learner, len(replay), episode_lengths=episode_lengths, force=final_batch)
                 if final_batch:
                     break
                 if done_indices:

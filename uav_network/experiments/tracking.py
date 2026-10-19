@@ -201,15 +201,27 @@ class OnlineTracker:
                 "wandb_entity": self.run.entity, "wandb_project": self.run.project,
                 "wandb_workspace_url": default_workspace_url(self.run.entity, self.run.project)}
 
-    def progress(self, observations, step, completed, learner, replay_size, force=False):
+    def progress(self, observations, step, completed, learner, replay_size, episode_lengths=None, force=False):
         if not force and step < self.next_progress:
             return
+        episode_progress = {}
+        if episode_lengths is not None:
+            lengths = (episode_lengths.detach().cpu().numpy() if hasattr(episode_lengths, "detach")
+                       else np.asarray(episode_lengths))
+            if lengths.size:
+                mean_step = float(lengths.mean())
+                episode_progress = {
+                    "progress/episode_step_min": int(lengths.min()),
+                    "progress/episode_step_mean": mean_step,
+                    "progress/episode_step_max": int(lengths.max()),
+                    "progress/episode_progress_percent_mean": mean_step / self.config.world.max_steps * 100,
+                }
         values = {"global_step": step, "train/episodes_completed": completed,
                   "train/updates": learner.updates, "train/replay_size": replay_size,
                   "train/joint_transitions_per_s": (step - self.initial_step) / max(time.perf_counter() - self.started, 1e-9),
                   "run/elapsed_seconds": time.perf_counter() - self.started,
                   "run/elapsed_hours": (time.perf_counter() - self.started) / 3600,
-                  **progress_metrics(observations, self.config)}
+                  **progress_metrics(observations, self.config), **episode_progress}
         self.run.log(values)
         self.next_progress = step + self.config.runtime.log_interval_steps
 

@@ -13,6 +13,10 @@ from .dashboard_columns import VISIBLE_COLUMNS, save_with_visible_columns
 
 PANELS = {
     "Live mission progress": [
+        ("Episode progress (%)", "progress/episode_progress_percent_mean"),
+        ("Episode step mean", "progress/episode_step_mean"),
+        ("Episode step min", "progress/episode_step_min"),
+        ("Episode step max", "progress/episode_step_max"),
         ("Live search (%)", "progress/search_rate_percent"),
         ("Live delivery (%)", "progress/delivery_rate_percent"),
         ("Live battery fraction", "progress/mean_battery_fraction"),

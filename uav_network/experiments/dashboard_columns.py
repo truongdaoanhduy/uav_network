@@ -1,32 +1,17 @@
 """Curated W&B run-table columns for live and completed UAV comparisons."""
 VISIBLE_COLUMNS = [
-    "run:displayName", "run:state", "run:createdAt", "run:duration",
-    "config:kaggle_account",
-    # Live training progress: available before the first episode terminates.
-    "summary:global_step", "summary:train/episodes_completed", "summary:train/updates",
-    "summary:train/replay_size", "summary:train/joint_transitions_per_s",
-    "summary:train/sample_uses_per_new_transition",
-    "summary:progress/search_rate_percent", "summary:progress/delivery_rate_percent",
-    "summary:progress/mean_battery_fraction", "summary:progress/mean_active_uavs",
-    # Learner health.
-    "summary:learner/actor_loss", "summary:learner/critic_loss",
-    "summary:learner/td_error_abs_mean", "summary:learner/q_abs_max",
-    # PQL execution health; blank for BASE runs by design.
-    "summary:pql/transitions_per_s", "summary:pql/critic_updates_per_s",
-    "summary:pql/actor_updates_per_s", "summary:pql/critic_collector_ratio",
-    "summary:pql/sample_uses_per_new_transition", "summary:pql/queued_collections",
-    # Latest completed episode.
-    "summary:episode/return", "summary:outcome/search_rate_percent",
-    "summary:outcome/delivery_rate_percent", "summary:outcome/success",
-    "summary:network/pdr_percent", "summary:network/payload_throughput_kbps",
-    "summary:network/report_average_hops", "summary:energy/total_uav_energy_j",
-    "summary:energy/mean_battery_fraction", "summary:reports/expired", "summary:reports/dropped",
-    # Windowed/fixed-seed outcome summaries.
-    "summary:cohort/return_mean", "summary:cohort/episodes", "summary:cohort/partial",
-    "summary:cohort/source_end_step", "summary:cohort/search_rate_percent_mean",
-    "summary:cohort/delivery_rate_percent_mean", "summary:cohort/success_mean",
-    "summary:evaluation/mean_delivery_rate_percent",
-    "summary:evaluation/checkpoint_global_step", "summary:evaluation/episodes",
+    "run:displayName", "run:state", "run:duration", "config:kaggle_account",
+    "config:runtime.algorithm", "summary:training_mode", "config:runtime.num_envs",
+    "summary:global_step", "summary:progress/episode_step_mean",
+    "summary:progress/episode_progress_percent_mean", "summary:train/episodes_completed",
+    "summary:train/joint_transitions_per_s", "summary:progress/search_rate_percent",
+    "summary:progress/delivery_rate_percent", "summary:progress/mean_battery_fraction",
+    "summary:episode/return", "summary:outcome/delivery_rate_percent", "summary:outcome/success",
+    "summary:network/pdr_percent", "summary:network/report_average_hops",
+    "summary:reports/expired", "summary:reports/dropped",
+    "summary:cohort/return_mean", "summary:cohort/delivery_rate_percent_mean",
+    "summary:cohort/success_mean", "summary:final_mean_return",
+    "summary:final_delivery_rate_percent", "summary:final_success_rate",
 ]
 
 

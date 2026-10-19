@@ -167,7 +167,7 @@ def train_pql(config):
                     if tracker:
                         tracker.learner(latest, global_step)
                         tracker.diagnostic({**values, **disk_metrics(output)}, global_step)
-                        tracker.progress(obs, global_step, completed, engine.critic, len(engine.replay), force=True)
+                        tracker.progress(obs, global_step, completed, engine.critic, len(engine.replay), episode_lengths=lengths, force=True)
                     print(json.dumps({"algorithm": config.runtime.algorithm, "architecture": "pql-inspired",
                                       "episodes": completed, "global_step": global_step,
                                       "critic_updates": engine.critic.updates,
