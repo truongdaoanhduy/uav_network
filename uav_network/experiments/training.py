@@ -18,6 +18,7 @@ from .lifecycle import graceful_termination
 from .continuation import restore_learner
 from .fixed_checkpoints import save_fixed_checkpoint, restore_replay, restore_runtime_rng
 from .reproducibility import reproducibility_result
+from .environment_checkpoints import snapshot_environment, initialize_environment
 from .diagnostics import TrainingDiagnostics, failure_report
 from .async_evaluation import AsyncCheckpointEvaluator
 from .local_checkpoints import prune_episode_checkpoints, disk_metrics
@@ -123,16 +124,16 @@ def _train(config):
         if restored_training:
             next_metrics_at, latest = restored_training["next_metrics_at"], restored_training["latest"]
         history = list(initial["records"])
-        episode_seeds = np.arange(count) + initial["next_seed"]
-        next_seed = initial["next_seed"] + count
         collector = learner if collector_device == learner_device else inference_copy(learner, collector_device)
         collector_version = learner.actor_updates
         vector = make_vector(config, device=collector_device)
-        obs, _ = vector.reset(seed=episode_seeds.tolist())
+        environment = restored_training.get("environment") if restored_training else None
+        obs, episode_returns, episode_lengths, episode_seeds, next_seed = initialize_environment(
+            vector, initial, environment)
+        initial["state_restore"] = ("training_state_exact_environment" if environment is not None
+                                    else initial.get("state_restore", "fresh"))
+        environment = None  # Release the large CPU snapshot after restoring worlds.
         device_env = config.runtime.environment_backend == "warp_packet"
-        if device_env:
-            episode_returns = torch.zeros(count,device=collector_device,dtype=torch.float64)
-            episode_lengths = torch.zeros(count,device=collector_device,dtype=torch.int64)
         if config.runtime.compile_models:
             compile_models(learner)
         replay = MeasuredReplay(settings.replay_capacity, obs["observation"].shape[1:],
@@ -195,7 +196,9 @@ def _train(config):
                 save_fixed_checkpoint(learner, output / "resume_latest.pt", progress, replay, rng,
                                       warmup_origin=warmup_origin, random_warmup=random_warmup,
                                       next_metrics_at=next_metrics_at, latest=latest, pending_learning=pending_learning,
-                                      action_generator=getattr(vector, "action_generator", None))
+                                      action_generator=getattr(vector, "action_generator", None),
+                                      environment=snapshot_environment(vector, episode_returns, episode_lengths,
+                                                                       episode_seeds, next_seed))
             return progress
 
         time_limit = False
@@ -317,6 +320,7 @@ def _train(config):
                   "stop_reason": "episode_budget" if completed >= config.runtime.episodes else "time_budget",
                   "state_restore": initial.get("state_restore", "fresh"),
                   "optimizer_replay_restored": resumed,
+                  "environment_state_saved": device_env,
                   "global_step": global_step, "collection_steps": collection_steps,
                   "num_envs": count, "updates": learner.updates, "device": device,
                   "devices": {"collector": str(collector_device), "learner": str(learner_device),

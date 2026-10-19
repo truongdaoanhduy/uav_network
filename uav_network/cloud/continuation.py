@@ -47,18 +47,33 @@ def next_stage(parent, results):
     if (result.get("algorithm") != algorithm or result.get("requested_episodes") != target
             or result.get("tracking_status") != "finished"
             or type(completed) is not int or type(initial) is not int
-            or not 0 <= initial < completed <= target
+            or not 0 <= initial <= completed <= target
             or result.get("segment_episodes", completed - initial) != completed - initial):
-        raise ValueError("Continuation summary must match the target and show real advanced episodes")
+        raise ValueError("Continuation summary must match the target and verified episode prefix")
+    initial_step, current_step = result.get("initial_global_step"), result.get("global_step")
+    expected_step = parent.get("continuation_expected_global_step", {}).get(algorithm)
+    if type(current_step) is not int or current_step < 0:
+        raise ValueError("Continuation global-step counter is invalid")
+    # Legacy positive-episode summaries did not expose initial_global_step.
+    # Every new child records it, and zero-episode segments require exact worlds.
+    step_metadata = initial_step is not None or expected_step is not None or initial == completed
+    if step_metadata and (type(initial_step) is not int or type(current_step) is not int
+                          or not 0 <= initial_step < current_step
+                          or (expected_step is not None and initial_step != expected_step)):
+        raise ValueError("Continuation requires verified positive global-step progress and input prefix")
+    if initial == completed and result.get("environment_state_saved") is not True:
+        raise ValueError("Zero-episode continuation requires exact saved environment state")
     expected = parent.get("continuation_expected_episodes", {}).get(algorithm)
     index = parent.get("continuation_index", 0)
-    if (type(index) is not int or index < 0 or index > target
-            or (index and expected is None) or (expected is not None and initial != expected)):
+    if (type(index) is not int or index < 0 or index > current_step
+            or (index and expected is None) or (expected is not None and initial != expected)
+            or (index and initial == completed and expected_step is None)):
         raise ValueError("Continuation initial episodes differ from its verified input prefix")
     artifact = result.get("checkpoint_artifact")
     prefix = re.escape(parent["entity"] + "/" + parent["project"] + "/")
     if (not isinstance(artifact, str) or not re.fullmatch(prefix + r"[\w.-]+:v[0-9]+", artifact)
-            or artifact == parent.get("warm_start_artifacts", {}).get(algorithm)):
+            or artifact in {parent.get("warm_start_artifacts", {}).get(algorithm),
+                            parent.get("resolved_warm_start_artifacts", {}).get(algorithm)}):
         raise ValueError("Continuation requires a newly uploaded immutable checkpoint artifact")
     complete = result.get("episode_budget_complete")
     if type(complete) is not bool or complete != (completed == target):
@@ -96,6 +111,9 @@ def build_continuation_spec(parent, results):
                  requested_episodes=config.runtime.episodes, training_mode=mode,
                  warm_start_artifacts={algorithm: results[algorithm]["checkpoint_artifact"]},
                  continuation_expected_episodes={algorithm: results[algorithm]["episodes"]},
+                 continuation_expected_global_step={algorithm: results[algorithm]["global_step"]},
+                 continuation_requires_environment_state=(
+                     results[algorithm]["episodes"] == results[algorithm]["initial_episodes"]),
                  runs={algorithm: {"id": run_id, "name": f"{root_name}-c{index:02d}-{run_id}"}})
     return child
 

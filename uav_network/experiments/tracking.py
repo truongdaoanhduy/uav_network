@@ -168,7 +168,7 @@ class OnlineTracker:
                               config={**config.to_dict(), **metadata}, dir=str(output), mode="online",
                               resume="never", reinit="finish_previous", save_code=False,
                               settings=wandb.Settings(x_disable_stats=not config.tracking.system_metrics,
-                                                     disable_code=True, console="off"))
+                                                     disable_code=True, console="wrap"))
         try:
             if self.run.offline:
                 raise RuntimeError("W&B did not start online")
@@ -286,7 +286,11 @@ class OnlineTracker:
         self.run.summary.update({**metrics, "global_step": result["global_step"],
                                  "episodes_completed": result["episodes"], "learner_updates": result["updates"],
                                  "episode_budget_complete": result.get("episode_budget_complete", True),
-                                 "stop_reason": result.get("stop_reason", "episode_budget")})
+                                 "stop_reason": result.get("stop_reason", "episode_budget"),
+                                 "session_status": ("episode_budget_complete" if result.get("episode_budget_complete", True)
+                                                    else "session_time_budget_reached"),
+                                 "initial_global_step": result.get("initial_global_step", self.initial_step),
+                                 "environment_state_saved": result.get("environment_state_saved", False)})
         if "reproducibility" in result:
             self.run.summary["reproducibility"] = result["reproducibility"]
         artifact = self.checkpoint(result["checkpoint"], result, final=True)

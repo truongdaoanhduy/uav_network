@@ -99,7 +99,17 @@ def prepare_checkpoints(spec, output, config=None):
             expected = spec.get("continuation_expected_episodes", {}).get(algorithm)
             if expected is not None and progress["episodes"] != expected:
                 raise ValueError("Downloaded resume checkpoint differs from the expected episode prefix")
+            expected_step = spec.get("continuation_expected_global_step", {}).get(algorithm)
+            if expected_step is not None and progress["global_step"] != expected_step:
+                raise ValueError("Downloaded resume checkpoint differs from expected global-step prefix")
+            environment = saved["training"].get("environment")
+            if spec.get("continuation_requires_environment_state") and environment is None:
+                raise ValueError("Zero-episode continuation requires exact environment checkpoint")
+            if environment is not None:
+                from ..experiments.environment_checkpoints import validate_environment
+                validate_environment(environment, selected, progress)
             spec.setdefault("continuation_expected_episodes", {})[algorithm] = progress["episodes"]
+            spec.setdefault("continuation_expected_global_step", {})[algorithm] = progress["global_step"]
         paths[algorithm] = path
     return paths
 

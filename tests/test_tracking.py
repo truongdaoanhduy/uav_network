@@ -78,7 +78,7 @@ class TrackingTests(unittest.TestCase):
                 tracker = OnlineTracker(c, directory)
                 tracker.checkpoint(policy, {"episodes": 1, "global_step": 10})
                 tracker.close()
-        self.assertEqual(settings.get("console"), "off")
+        self.assertEqual(settings.get("console"), "wrap")
         self.assertNotIn("diagnostics.jsonl", saved)
         self.assertNotIn("episodes.jsonl", saved)
 
@@ -108,6 +108,31 @@ class TrackingTests(unittest.TestCase):
                 self.assertEqual(upload.call_count, 3)
                 self.assertIn('resume.pt', upload.call_args.args[1])
                 tracker.close()
+
+    def test_finished_session_reports_time_limit_separately_from_episode_budget(self):
+        run = OnlineRun()
+        sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs, Artifact=StoredArtifact)
+        with TemporaryDirectory() as directory:
+            c = Config()
+            c.tracking.checkpoint_store = "wandb"
+            c.tracking.credentials_file = str(Path(directory) / "absent.txt")
+            policy, resume = Path(directory) / "policy.pt", Path(directory) / "resume.pt"
+            policy.write_bytes(b"policy")
+            resume.write_bytes(b"full training")
+            with patch.dict(sys.modules, {"wandb": sdk}), patch.dict(os.environ, {
+                    "WANDB_API_KEY": "test-key", "WANDB_ENTITY": "owner", "WANDB_PROJECT": "project"}):
+                tracker = OnlineTracker(c, directory)
+                tracker.complete({"checkpoint": str(policy), "resume_checkpoint": str(resume),
+                                  "episodes": 0, "global_step": 8, "updates": 0,
+                                  "initial_global_step": 4, "episode_budget_complete": False,
+                                  "stop_reason": "time_budget", "environment_state_saved": True})
+                tracker.close()
+            self.assertTrue(run.finished)
+            self.assertFalse(run.summary["episode_budget_complete"])
+            self.assertEqual(run.summary["session_status"], "session_time_budget_reached")
+            self.assertEqual(run.summary["initial_global_step"], 4)
+            self.assertEqual(run.summary["global_step"], 8)
+            self.assertTrue(run.summary["environment_state_saved"])
 
     def test_checkpoint_upload_interval_must_be_finite_and_nonnegative(self):
         for value in (-1, float('nan'), float('inf')):

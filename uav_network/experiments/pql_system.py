@@ -55,9 +55,14 @@ class PQLSystem:
         self.initial_progress = {"episodes": 0, "global_step": 0, "collection_steps": 0,
                                  "next_seed": config.runtime.seed, "records": []}
         saved = torch.load(checkpoint, map_location="cpu", weights_only=True) if checkpoint else None
+        self.initial_environment = None
         self.initial_collector_rng = None
         if saved:
             validate_pql_checkpoint(saved, config)
+            self.initial_environment = saved["training"].get("environment")
+            if self.initial_environment is not None:
+                from .environment_checkpoints import validate_environment
+                validate_environment(self.initial_environment, config, saved["progress"])
             self.initial_collector_rng = saved["training"]["rng"].get("collector")
             for group in ("world", "sensor", "network", "energy", "reward", config.runtime.algorithm):
                 if saved["config"][group] != config.to_dict()[group]:
@@ -318,7 +323,7 @@ class PQLSystem:
                     "pql/ratio_credit": self.credit,
                     "pql/scheduling_deterministic": int(not self.asynchronous)}
 
-    def save(self, path, progress, collector_rng=None):
+    def save(self, path, progress, collector_rng=None, environment=None):
         self.flush()
         numpy_state = np.random.get_state()
         training = {"optimizers": optimizer_states(self.critic, self.policy),
@@ -332,6 +337,8 @@ class PQLSystem:
                             "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else [],
                             "python": random.getstate(), "collector": collector_rng,
                             "numpy": (numpy_state[0], numpy_state[1].tolist(), *numpy_state[2:])}}
+        if environment is not None:
+            training["environment"] = environment
         save_policy(self.critic, path, progress, training=training)
 
     def close(self):

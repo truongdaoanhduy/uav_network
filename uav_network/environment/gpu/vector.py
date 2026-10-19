@@ -124,6 +124,67 @@ class WarpVectorEnv:
         self._ready = True
         return observation, {"environment_backend":"warp_packet","num_cpu_env_workers":0}
 
+    def _snapshot_config(self):
+        config = self.config.to_dict()
+        return {key: deepcopy(config[key]) for key in
+                ("world", "sensor", "network", "energy", "reward")} | {
+                    "num_envs": self.num_envs, "backend": self.environment_backend}
+
+    def snapshot_state(self):
+        """Copy every simulator array at a completed collection boundary."""
+        if self._closed or self._waiting or not self._ready:
+            raise RuntimeError("Cannot snapshot a closed, waiting, or uninitialized vector")
+        self._bind_stream()
+        wp.synchronize_device(self.wp_device)
+        return {"version": 1, "config": self._snapshot_config(),
+                "device_type": self.device.type,
+                "arrays": {name: wp.to_torch(value).detach().to(device="cpu", copy=True)
+                           for name, value in vars(self.s).items() if isinstance(value, wp.array)},
+                "seeds": torch.as_tensor(self._seeds.copy()),
+                "action_generator": self.action_generator.get_state().cpu().clone()}
+
+    def restore_state(self, snapshot):
+        """Validate the complete payload before changing any live world."""
+        if self._closed or self._waiting:
+            raise RuntimeError("Cannot restore a closed or waiting vector")
+        if (not isinstance(snapshot, dict) or snapshot.get("version") != 1
+                or snapshot.get("config") != self._snapshot_config()
+                or snapshot.get("device_type") != self.device.type):
+            raise ValueError("Incompatible Warp snapshot version/config/device")
+        arrays = {name: wp.to_torch(value) for name, value in vars(self.s).items()
+                  if isinstance(value, wp.array)}
+        incoming = snapshot.get("arrays")
+        if not isinstance(incoming, dict) or incoming.keys() != arrays.keys():
+            raise ValueError("Warp snapshot array fields mismatch")
+        for name, target in arrays.items():
+            value = incoming[name]
+            if (not isinstance(value, torch.Tensor) or value.device.type != "cpu"
+                    or value.shape != target.shape or value.dtype != target.dtype
+                    or value.layout != torch.strided):
+                raise ValueError(f"Warp snapshot array shape/dtype mismatch: {name}")
+        seeds = snapshot.get("seeds")
+        if (not isinstance(seeds, torch.Tensor) or seeds.shape != (self.num_envs,)
+                or seeds.dtype != torch.int64 or seeds.device.type != "cpu"
+                or not torch.equal(seeds, incoming["seeds"])):
+            raise ValueError("Warp snapshot active seeds mismatch")
+        # Validate generator state on a disposable generator, before any copies.
+        generator = torch.Generator(device=self.device)
+        try:
+            generator.set_state(snapshot["action_generator"])
+        except (KeyError, TypeError, RuntimeError) as error:
+            raise ValueError("Invalid Warp snapshot action RNG") from error
+        self._bind_stream()
+        wp.synchronize_device(self.wp_device)
+        for name, target in arrays.items():
+            target.copy_(incoming[name])
+        self._seeds = seeds.numpy().copy()
+        self.action_generator.set_state(generator.get_state())
+        self._ready = True
+        # The current buffer already owns s.observation/state. No publish kernels
+        # run here: even observation arrays are restored byte for byte.
+        wp.synchronize_device(self.wp_device)
+        return self._buffers[self._buffer]
+
     def random_actions(self, observations):
         shape = observations.shape[:-1]
         continuous = torch.rand((*shape,3),device=self.device,generator=self.action_generator)*2-1

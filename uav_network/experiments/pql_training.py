@@ -14,6 +14,7 @@ from .async_evaluation import AsyncCheckpointEvaluator
 from .local_checkpoints import prune_episode_checkpoints, disk_metrics
 from .pql_system import PQLSystem
 from .reproducibility import reproducibility_result
+from .environment_checkpoints import snapshot_environment, initialize_environment
 from .tracking import final_metrics, progress_metrics, start_tracking
 from .training import seed_runtime
 
@@ -43,20 +44,16 @@ def train_pql(config):
         history = list(initial["records"])
         resumed = checkpoint != "none"
         initial["optimizer_replay_restored"] = resumed and len(engine.replay) > 0
-        initial["state_restore"] = "training_state_environment_reset" if resumed else "fresh"
+        initial["state_restore"] = ("training_state_exact_environment" if engine.initial_environment is not None
+                                    else "training_state_environment_reset" if resumed else "fresh")
         tracker = start_tracking(config, output, initial_progress=initial)
         evaluator = AsyncCheckpointEvaluator(config, output, tracker, diagnostics, global_step, completed)
         vector = make_vector(config, device=engine.collector_device)
         count = config.runtime.num_envs
-        seeds = np.arange(count) + initial["next_seed"]
-        next_seed = initial["next_seed"] + count
-        obs, _ = vector.reset(seed=seeds.tolist())
+        obs, returns, lengths, seeds, next_seed = initialize_environment(
+            vector, initial, engine.initial_environment)
+        engine.initial_environment = None
         device_env = config.runtime.environment_backend == "warp_packet"
-        if device_env:
-            returns = torch.zeros(count, device=engine.collector_device, dtype=torch.float64)
-            lengths = torch.zeros(count, device=engine.collector_device, dtype=torch.int64)
-        else:
-            returns, lengths = np.zeros(count), np.zeros(count, dtype=np.int64)
         rng = np.random.default_rng(config.runtime.seed + 1)
         if engine.initial_collector_rng is not None:
             rng.bit_generator.state = engine.initial_collector_rng["numpy"]
@@ -86,7 +83,9 @@ def train_pql(config):
                 generator = getattr(vector, "action_generator", None)
                 collector_rng = {"numpy": rng.bit_generator.state,
                                  "torch": generator.get_state().cpu() if generator is not None else None}
-                engine.save(output / "resume_latest.pt", state, collector_rng=collector_rng)
+                engine.flush()
+                environment = snapshot_environment(vector, returns, lengths, seeds, next_seed)
+                engine.save(output / "resume_latest.pt", state, collector_rng=collector_rng, environment=environment)
             else:
                 # vmap temporarily swaps live critic parameters; light snapshots
                 # need the same drained boundary as a full resume checkpoint.
@@ -210,7 +209,8 @@ def train_pql(config):
                   "updates": engine.critic.updates, "new_updates": engine.critic.updates - engine.initial_updates,
                   "episode_budget_complete": completed >= config.runtime.episodes,
                   "stop_reason": "episode_budget" if completed >= config.runtime.episodes else "time_budget",
-                  "state_restore": "training_state_environment_reset" if resumed else "fresh",
+                  "state_restore": initial["state_restore"],
+                  "environment_state_saved": device_env,
                   "optimizer_replay_restored": initial["optimizer_replay_restored"],
                   "devices": {"collector": str(engine.collector_device), "critic": str(engine.critic_device),
                               "policy": str(engine.policy_device)},
@@ -227,7 +227,7 @@ def train_pql(config):
         result["replay"] = engine.replay.stats()
         result["reproducibility"] = reproducibility_result(engine.critic, history)
         result["reproducibility"].update(scheduling_deterministic=not engine.asynchronous,
-            scope=("Synchronous schedule requires identical source/settings/platform; resume resets simulators"
+            scope=("Synchronous schedule requires identical source/settings/platform; exact Warp state when available"
                    if not engine.asynchronous else "Seeded algorithms/environment; asynchronous scheduling is not bitwise deterministic"))
         if history:
             result.update(final_metrics(history))

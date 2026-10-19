@@ -58,8 +58,8 @@ class PQLTrainingTests(unittest.TestCase):
             c.runtime.checkpoint_interval = 4
             writes = []
             real_save = PQLSystem.save
-            def record_save(engine, path, progress, collector_rng=None):
-                result = real_save(engine, path, progress, collector_rng=collector_rng)
+            def record_save(engine, path, progress, collector_rng=None, environment=None):
+                result = real_save(engine, path, progress, collector_rng=collector_rng, environment=environment)
                 writes.append(progress["episodes"])
                 return result
             with patch.object(PQLSystem, "save", record_save):
@@ -130,7 +130,7 @@ class PQLTrainingTests(unittest.TestCase):
             self.assertEqual(second["episodes"], 8)
             self.assertEqual(second["initial_global_step"], 16)
             self.assertEqual(second["updates"], 17)
-            self.assertEqual(second["state_restore"], "training_state_environment_reset")
+            self.assertEqual(second["state_restore"], "training_state_exact_environment")
             self.assertTrue(second["optimizer_replay_restored"])
             saved = torch.load(second["resume_checkpoint"], weights_only=True)
             self.assertEqual(len(saved["progress"]["records"]), 8)

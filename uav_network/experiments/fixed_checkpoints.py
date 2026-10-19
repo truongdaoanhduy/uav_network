@@ -1,4 +1,4 @@
-"""Complete fixed-schedule learner state; simulators start new seeded episodes."""
+"""Complete fixed-schedule learner state with optional in-flight mission state."""
 import random
 
 import numpy as np
@@ -143,6 +143,9 @@ def validate_fixed_checkpoint(saved, config):
         raise ValueError("Fixed-schedule checkpoint collector RNG differs from environment backend")
     if not all(torch.isfinite(value).all() for value in saved["model"].values()):
         raise ValueError("Fixed-schedule checkpoint contains non-finite model tensors")
+    if "environment" in training:
+        from .environment_checkpoints import validate_environment
+        validate_environment(training["environment"], config, progress)
     return progress
 
 
@@ -156,11 +159,13 @@ def restore_fixed_learner(saved, learner):
 
 
 def save_fixed_checkpoint(learner, path, progress, replay, rng, *, warmup_origin, random_warmup,
-                          next_metrics_at, latest, pending_learning, action_generator=None):
+                          next_metrics_at, latest, pending_learning, action_generator=None, environment=None):
     training = {"trainer": "fixed_schedule", "optimizers": optimizer_states(learner, learner),
                 "replay": replay_state(replay), "rng": runtime_rng_state(rng, action_generator=action_generator),
                 "collections": progress["collection_steps"], "warmup_origin": warmup_origin,
                 "random_warmup": random_warmup, "pending_learning": pending_learning, "next_metrics_at": next_metrics_at,
                 "latest": latest, "last_actor_metrics": getattr(learner, "_last_actor_metrics", {}),
                 "learner_device_type": learner.device.type}
+    if environment is not None:
+        training["environment"] = environment
     save_policy(learner, path, progress, training=training)
