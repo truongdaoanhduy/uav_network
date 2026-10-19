@@ -1,0 +1,354 @@
+{
+  "verified_at_utc": "2026-10-19T02:15:45.661035+00:00",
+  "source_commit": "3050007d6fc0b19cb571228924adae5bf7d402d5",
+  "config": "configs/comparison-20k-steps2000-scenario-v3.yaml",
+  "requested": {
+    "num_envs": 4096,
+    "episodes_per_case": 20000,
+    "max_steps_per_episode": 2000,
+    "seed": 44,
+    "eval_seed": 2000000044
+  },
+  "verification": {
+    "focused_tests": "40 passed, 2 skipped, 30 subtests passed",
+    "full_budget_and_CPU_only_handoff_verified_for_cases": 4,
+    "workspace_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/workspace"
+  },
+  "status": {
+    "checked_at_utc": "2026-10-19T02:15:45.661035+00:00",
+    "submitted": 4,
+    "runs": [
+      {
+        "case": "masac-base",
+        "algorithm": "masac",
+        "mode": "base",
+        "account": "account_05",
+        "kernel_ref": "riujick/uavnet-validate-20261019-020745-00020d",
+        "kaggle_url": "https://www.kaggle.com/code/riujick/uavnet-validate-20261019-020745-00020d",
+        "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/1b6cacd3",
+        "run_id": "1b6cacd3",
+        "auto_continue": true,
+        "cpu_visualize": true,
+        "commit": "3050007d6fc0b19cb571228924adae5bf7d402d5",
+        "kaggle_state": "running",
+        "wandb_state": "running",
+        "global_step": 28672,
+        "updates": 0,
+        "episodes_completed": 0,
+        "search_rate_percent": 1.4885602678571428,
+        "delivery_rate_percent": 0.0020926339285714285,
+        "config_verified": true,
+        "system": {
+          "_timestamp": 1792376136.4714353,
+          "system.cpu": 25.04173469543457,
+          "system.gpu.0.gpu": 100,
+          "system.gpu.0.memoryAllocatedBytes": 9144500224,
+          "system.gpu.1.gpu": 0,
+          "system.gpu.1.memoryAllocatedBytes": 3014656
+        }
+      },
+      {
+        "case": "masac-pql",
+        "algorithm": "masac",
+        "mode": "pql",
+        "account": "account_13",
+        "kernel_ref": "uhgiwwiurfw/uavnet-validate-20261019-020945-040080",
+        "kaggle_url": "https://www.kaggle.com/code/uhgiwwiurfw/uavnet-validate-20261019-020945-040080",
+        "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/11869744",
+        "run_id": "11869744",
+        "auto_continue": true,
+        "cpu_visualize": true,
+        "commit": "3050007d6fc0b19cb571228924adae5bf7d402d5",
+        "kaggle_state": "running",
+        "wandb_state": "running",
+        "global_step": 12288,
+        "updates": 0,
+        "episodes_completed": 0,
+        "search_rate_percent": 1.2227957589285714,
+        "delivery_rate_percent": 0,
+        "config_verified": true,
+        "system": {
+          "_timestamp": 1792376140.518388,
+          "system.cpu": 25.08344268798828,
+          "system.gpu.0.gpu": 100,
+          "system.gpu.0.memoryAllocatedBytes": 2664300544,
+          "system.gpu.1.gpu": 0,
+          "system.gpu.1.memoryAllocatedBytes": 6812467200
+        }
+      },
+      {
+        "case": "matd3-base",
+        "algorithm": "matd3",
+        "mode": "base",
+        "account": "account_14",
+        "kernel_ref": "fiuhgweh/uavnet-validate-20261019-020845-4e329e",
+        "kaggle_url": "https://www.kaggle.com/code/fiuhgweh/uavnet-validate-20261019-020845-4e329e",
+        "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/3e97c782",
+        "run_id": "3e97c782",
+        "auto_continue": true,
+        "cpu_visualize": true,
+        "commit": "3050007d6fc0b19cb571228924adae5bf7d402d5",
+        "kaggle_state": "running",
+        "wandb_state": "running",
+        "global_step": 16384,
+        "updates": 0,
+        "episodes_completed": 0,
+        "search_rate_percent": 1.2772042410714284,
+        "delivery_rate_percent": 0,
+        "config_verified": true,
+        "system": {
+          "_timestamp": 1792376133.8870893,
+          "system.cpu": 25.054210662841797,
+          "system.gpu.0.gpu": 100,
+          "system.gpu.0.memoryAllocatedBytes": 9148694528,
+          "system.gpu.1.gpu": 0,
+          "system.gpu.1.memoryAllocatedBytes": 3014656
+        }
+      },
+      {
+        "case": "matd3-pql",
+        "algorithm": "matd3",
+        "mode": "pql",
+        "account": "account_17",
+        "kernel_ref": "sfkjewfljwejf/uavnet-validate-20261019-021046-466c65",
+        "kaggle_url": "https://www.kaggle.com/code/sfkjewfljwejf/uavnet-validate-20261019-021046-466c65",
+        "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/89f59c30",
+        "run_id": "89f59c30",
+        "auto_continue": true,
+        "cpu_visualize": true,
+        "commit": "3050007d6fc0b19cb571228924adae5bf7d402d5",
+        "kaggle_state": "running",
+        "wandb_state": "running",
+        "global_step": 4096,
+        "updates": 0,
+        "episodes_completed": 0,
+        "search_rate_percent": 1.1635044642857144,
+        "delivery_rate_percent": 0,
+        "config_verified": true,
+        "system": {
+          "_timestamp": 1792376140.2394423,
+          "system.cpu": 25.10858726501465,
+          "system.gpu.0.gpu": 100,
+          "system.gpu.0.memoryAllocatedBytes": 2605580288,
+          "system.gpu.1.gpu": 0,
+          "system.gpu.1.memoryAllocatedBytes": 6818758656
+        }
+      }
+    ]
+  },
+  "launches": [
+    {
+      "submitted_at_utc": "2026-10-19T02:07:45.131781+00:00",
+      "commit": "3050007d6fc0b19cb571228924adae5bf7d402d5",
+      "kernel_ref": "riujick/uavnet-validate-20261019-020745-00020d",
+      "account": "account_05",
+      "timeout_seconds": 39600,
+      "warm_start_artifacts": {},
+      "credential_dataset": "riujick/uav-cpu-wandb-credential",
+      "entity": "truongdaoanhduy-uit",
+      "project": "uav_search_target",
+      "stage": "validate",
+      "config": "configs/comparison-20k-steps2000-scenario-v3.yaml",
+      "overrides": [
+        "pql.enabled=false"
+      ],
+      "runs": {
+        "masac": {
+          "id": "1b6cacd3",
+          "name": "MASAC-BASE-uav-network-2d-seed44-20261019-020745-00020d"
+        }
+      },
+      "requested_episodes": 20000,
+      "training_mode": "base",
+      "accelerator": "NvidiaTeslaT4",
+      "auto_continue": true,
+      "root_kernel_ref": "riujick/uavnet-validate-20261019-020745-00020d",
+      "continuation_index": 0,
+      "cpu_visualize": true,
+      "pipeline_credential_dataset": "riujick/uav-cpu-launch-credential",
+      "cpu_credential_dataset": "riujick/uav-cpu-wandb-credential",
+      "cpu_eval": {
+        "episodes": 30,
+        "seed": 2000000044,
+        "frame_stride": 5,
+        "fps": 10
+      },
+      "checkpoint_repo": "duy95/uav-search-checkpoints",
+      "storage_credential_dataset": "riujick/uav-hf-checkpoint-credential",
+      "kernel_url": "https://www.kaggle.com/code/riujick/uavnet-validate-20261019-020745-00020d",
+      "wandb_urls": {
+        "masac": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/1b6cacd3"
+      },
+      "manifest": "/home/aduy/Documents/NCKH/uav_network-cpu-flow-20261014/outputs/kaggle/uavnet-validate-20261019-020745-00020d/launch.json",
+      "handoff_preflight": {
+        "final_stage": "cpu",
+        "enable_gpu": false,
+        "enable_tpu": false,
+        "eval_episodes": 30,
+        "frame_stride": 5,
+        "fps": 10
+      },
+      "direct_training_entry_note": "validate entry executes the full trainer and CUDA checks without repeating the already-measured long throughput benchmark. Budgets remain 4096 envs / 20000 episodes / 2000 steps."
+    },
+    {
+      "submitted_at_utc": "2026-10-19T02:09:45.868304+00:00",
+      "commit": "3050007d6fc0b19cb571228924adae5bf7d402d5",
+      "kernel_ref": "uhgiwwiurfw/uavnet-validate-20261019-020945-040080",
+      "account": "account_13",
+      "timeout_seconds": 39600,
+      "warm_start_artifacts": {},
+      "credential_dataset": "uhgiwwiurfw/uav-cpu-wandb-credential",
+      "entity": "truongdaoanhduy-uit",
+      "project": "uav_search_target",
+      "stage": "validate",
+      "config": "configs/comparison-20k-steps2000-scenario-v3.yaml",
+      "overrides": [
+        "pql.enabled=true"
+      ],
+      "runs": {
+        "masac": {
+          "id": "11869744",
+          "name": "MASAC-PQL-uav-network-2d-seed44-20261019-020945-040080"
+        }
+      },
+      "requested_episodes": 20000,
+      "training_mode": "pql",
+      "accelerator": "NvidiaTeslaT4",
+      "auto_continue": true,
+      "root_kernel_ref": "uhgiwwiurfw/uavnet-validate-20261019-020945-040080",
+      "continuation_index": 0,
+      "cpu_visualize": true,
+      "pipeline_credential_dataset": "uhgiwwiurfw/uav-cpu-launch-credential",
+      "cpu_credential_dataset": "uhgiwwiurfw/uav-cpu-wandb-credential",
+      "cpu_eval": {
+        "episodes": 30,
+        "seed": 2000000044,
+        "frame_stride": 5,
+        "fps": 10
+      },
+      "checkpoint_repo": "duy95/uav-search-checkpoints",
+      "storage_credential_dataset": "uhgiwwiurfw/uav-hf-checkpoint-credential",
+      "kernel_url": "https://www.kaggle.com/code/uhgiwwiurfw/uavnet-validate-20261019-020945-040080",
+      "wandb_urls": {
+        "masac": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/11869744"
+      },
+      "manifest": "/home/aduy/Documents/NCKH/uav_network-cpu-flow-20261014/outputs/kaggle/uavnet-validate-20261019-020945-040080/launch.json",
+      "handoff_preflight": {
+        "final_stage": "cpu",
+        "enable_gpu": false,
+        "enable_tpu": false,
+        "eval_episodes": 30,
+        "frame_stride": 5,
+        "fps": 10
+      },
+      "direct_training_entry_note": "validate entry executes the full trainer and CUDA checks without repeating the already-measured long throughput benchmark. Budgets remain 4096 envs / 20000 episodes / 2000 steps."
+    },
+    {
+      "submitted_at_utc": "2026-10-19T02:08:45.656251+00:00",
+      "commit": "3050007d6fc0b19cb571228924adae5bf7d402d5",
+      "kernel_ref": "fiuhgweh/uavnet-validate-20261019-020845-4e329e",
+      "account": "account_14",
+      "timeout_seconds": 39600,
+      "warm_start_artifacts": {},
+      "credential_dataset": "fiuhgweh/uav-cpu-wandb-credential",
+      "entity": "truongdaoanhduy-uit",
+      "project": "uav_search_target",
+      "stage": "validate",
+      "config": "configs/comparison-20k-steps2000-scenario-v3.yaml",
+      "overrides": [
+        "pql.enabled=false"
+      ],
+      "runs": {
+        "matd3": {
+          "id": "3e97c782",
+          "name": "MATD3-BASE-uav-network-2d-seed44-20261019-020845-4e329e"
+        }
+      },
+      "requested_episodes": 20000,
+      "training_mode": "base",
+      "accelerator": "NvidiaTeslaT4",
+      "auto_continue": true,
+      "root_kernel_ref": "fiuhgweh/uavnet-validate-20261019-020845-4e329e",
+      "continuation_index": 0,
+      "cpu_visualize": true,
+      "pipeline_credential_dataset": "fiuhgweh/uav-cpu-launch-credential",
+      "cpu_credential_dataset": "fiuhgweh/uav-cpu-wandb-credential",
+      "cpu_eval": {
+        "episodes": 30,
+        "seed": 2000000044,
+        "frame_stride": 5,
+        "fps": 10
+      },
+      "checkpoint_repo": "duy95/uav-search-checkpoints",
+      "storage_credential_dataset": "fiuhgweh/uav-hf-checkpoint-credential",
+      "kernel_url": "https://www.kaggle.com/code/fiuhgweh/uavnet-validate-20261019-020845-4e329e",
+      "wandb_urls": {
+        "matd3": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/3e97c782"
+      },
+      "manifest": "/home/aduy/Documents/NCKH/uav_network-cpu-flow-20261014/outputs/kaggle/uavnet-validate-20261019-020845-4e329e/launch.json",
+      "handoff_preflight": {
+        "final_stage": "cpu",
+        "enable_gpu": false,
+        "enable_tpu": false,
+        "eval_episodes": 30,
+        "frame_stride": 5,
+        "fps": 10
+      },
+      "direct_training_entry_note": "validate entry executes the full trainer and CUDA checks without repeating the already-measured long throughput benchmark. Budgets remain 4096 envs / 20000 episodes / 2000 steps."
+    },
+    {
+      "submitted_at_utc": "2026-10-19T02:10:46.177379+00:00",
+      "commit": "3050007d6fc0b19cb571228924adae5bf7d402d5",
+      "kernel_ref": "sfkjewfljwejf/uavnet-validate-20261019-021046-466c65",
+      "account": "account_17",
+      "timeout_seconds": 39600,
+      "warm_start_artifacts": {},
+      "credential_dataset": "sfkjewfljwejf/uav-cpu-wandb-credential",
+      "entity": "truongdaoanhduy-uit",
+      "project": "uav_search_target",
+      "stage": "validate",
+      "config": "configs/comparison-20k-steps2000-scenario-v3.yaml",
+      "overrides": [
+        "pql.enabled=true"
+      ],
+      "runs": {
+        "matd3": {
+          "id": "89f59c30",
+          "name": "MATD3-PQL-uav-network-2d-seed44-20261019-021046-466c65"
+        }
+      },
+      "requested_episodes": 20000,
+      "training_mode": "pql",
+      "accelerator": "NvidiaTeslaT4",
+      "auto_continue": true,
+      "root_kernel_ref": "sfkjewfljwejf/uavnet-validate-20261019-021046-466c65",
+      "continuation_index": 0,
+      "cpu_visualize": true,
+      "pipeline_credential_dataset": "sfkjewfljwejf/uav-cpu-launch-credential",
+      "cpu_credential_dataset": "sfkjewfljwejf/uav-cpu-wandb-credential",
+      "cpu_eval": {
+        "episodes": 30,
+        "seed": 2000000044,
+        "frame_stride": 5,
+        "fps": 10
+      },
+      "checkpoint_repo": "duy95/uav-search-checkpoints",
+      "storage_credential_dataset": "sfkjewfljwejf/uav-hf-checkpoint-credential",
+      "kernel_url": "https://www.kaggle.com/code/sfkjewfljwejf/uavnet-validate-20261019-021046-466c65",
+      "wandb_urls": {
+        "matd3": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/89f59c30"
+      },
+      "manifest": "/home/aduy/Documents/NCKH/uav_network-cpu-flow-20261014/outputs/kaggle/uavnet-validate-20261019-021046-466c65/launch.json",
+      "handoff_preflight": {
+        "final_stage": "cpu",
+        "enable_gpu": false,
+        "enable_tpu": false,
+        "eval_episodes": 30,
+        "frame_stride": 5,
+        "fps": 10
+      },
+      "direct_training_entry_note": "validate entry executes the full trainer and CUDA checks without repeating the already-measured long throughput benchmark. Budgets remain 4096 envs / 20000 episodes / 2000 steps."
+    }
+  ],
+  "local_transport": "The host IPv6 connection stalled in SYN-SENT. Only local launch/poll processes used /tmp/uav-launch-http/sitecustomize.py to prefer IPv4 and bound otherwise unbounded Kaggle HTTPS calls. The cloud source and simulator are unchanged."
+}
