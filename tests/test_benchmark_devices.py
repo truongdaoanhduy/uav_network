@@ -1,6 +1,7 @@
 """Real device-vector preflight must collect, reset and update both learners."""
 import math
 import unittest
+import torch
 
 from uav_network.configuration import Config
 from uav_network.experiments.benchmark import benchmark
@@ -37,3 +38,17 @@ class BenchmarkDeviceTests(unittest.TestCase):
         self.assertFalse(dual_gpu_verified({**devices, "learner": "cuda:0"}, actor_updates=1, peak_memory=peaks))
         self.assertFalse(dual_gpu_verified(devices, actor_updates=1,
                                            peak_memory=[peaks[0], {"device": 1, "peak_allocated_bytes": 0}]))
+
+class BenchmarkOomReportingTests(unittest.TestCase):
+    def test_base_benchmark_reports_cuda_oom_instead_of_raising(self):
+        from unittest.mock import patch
+        from uav_network.configuration import Config
+        from uav_network.experiments.benchmark import benchmark
+        c = Config()
+        c.runtime.device = c.runtime.replay_device = "cpu"
+        c.runtime.environment_backend = "native"
+        with patch("uav_network.experiments.benchmark.make_vector", side_effect=torch.OutOfMemoryError("probe oom")):
+            report = benchmark(c, env_counts=(1,), steps=1, learner_updates=1)
+        row = report["results"][0]
+        self.assertEqual(row["status"], "oom")
+        self.assertEqual(row["error_type"], "OutOfMemoryError")

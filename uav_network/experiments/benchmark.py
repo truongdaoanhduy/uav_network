@@ -47,8 +47,9 @@ def benchmark(config, env_counts=(1, 2, 4), steps=32, learner_updates=10):
         settings = c.algorithm_config
         rounds = max(steps, math.ceil(settings.batch_size / count))
         started = time.perf_counter()
-        vector = make_vector(c, device=collector_device)
+        vector = None
         try:
+            vector = make_vector(c, device=collector_device)
             obs, _ = vector.reset(seed=c.runtime.seed)
             startup = time.perf_counter() - started
             replay = TensorReplayBuffer(settings.replay_capacity, obs["observation"].shape[1:],
@@ -115,8 +116,18 @@ def benchmark(config, env_counts=(1, 2, 4), steps=32, learner_updates=10):
                             "coalesce_idle_polls": c.runtime.coalesce_idle_polls,
                             "fused_optimizers": c.runtime.fused_optimizers and learner_device.type == "cuda",
                             "vectorize_critics": c.runtime.vectorize_critics})
+        except torch.OutOfMemoryError as error:
+            devices = {"collector": str(collector_device), "learner": str(learner_device),
+                       "replay": str(replay_device)}
+            results.append({"status": "oom", "num_envs": count,
+                            "algorithm": c.runtime.algorithm, "devices": devices,
+                            "replay_capacity": settings.replay_capacity,
+                            "learner_batch_size": settings.batch_size,
+                            "error_type": type(error).__name__, "error": str(error),
+                            "peak_memory": peak_memory() if torch.cuda.device_count() else []})
         finally:
-            vector.close()
+            if vector is not None:
+                vector.close()
     return {"hardware": hardware_info(), "network_enabled": config.network.enabled,
             "num_uavs_per_env": config.world.num_uavs, "results": results,
             "timing_notes": "Collection includes random action sampling and worker wait, excludes replay writes/startup/resets. Learner timing is warmed and CUDA-synchronized."}
