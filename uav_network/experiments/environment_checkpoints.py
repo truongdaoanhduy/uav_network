@@ -32,6 +32,7 @@ def validate_environment(saved, config, progress):
         raise ValueError("Invalid environment world/config")
     arrays = world["arrays"]
     if (not torch.isfinite(saved["returns"]).all() or bool((saved["lengths"] < 0).any())
+            or bool((saved["lengths"] > progress["collection_steps"]).any())
             or type(saved.get("next_seed")) is not int or saved["next_seed"] != progress["next_seed"]
             or saved["next_seed"] <= int(saved["seeds"].max())
             or not torch.equal(saved["seeds"], arrays.get("seeds", torch.empty(0)))

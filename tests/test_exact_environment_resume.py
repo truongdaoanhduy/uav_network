@@ -125,6 +125,35 @@ class ExactWorldTests(unittest.TestCase):
         finally:
             v.close()
 
+    def test_collector_and_world_lengths_cannot_exceed_verified_collection_prefix(self):
+        from uav_network.experiments.environment_checkpoints import (
+            snapshot_environment, validate_environment, initialize_environment)
+        c = self.config()
+        vector = WarpVectorEnv(c)
+        try:
+            obs, _ = vector.reset(seed=[44, 45])
+            vector.step(vars(vector.random_actions(obs["observation"])))
+            before = vector.snapshot_state()
+            progress = {"episodes": 0, "global_step": 2, "collection_steps": 1,
+                        "next_seed": 46, "records": []}
+            saved = snapshot_environment(vector, torch.zeros(2, dtype=torch.float64),
+                                         torch.ones(2, dtype=torch.int64), np.array([44, 45]), 46)
+            validate_environment(saved, c, progress)
+            for invalid in (-1, 2, 11, c.world.max_steps + 1):
+                with self.subTest(length=invalid):
+                    bad = deepcopy(saved)
+                    bad["lengths"].fill_(invalid)
+                    bad["world"]["arrays"]["steps"].fill_(invalid)
+                    with self.assertRaisesRegex(ValueError, "counters.*progress"):
+                        validate_environment(bad, c, progress)
+                    with self.assertRaisesRegex(ValueError, "counters.*progress"):
+                        initialize_environment(vector, progress, bad)
+                    for name, value in before["arrays"].items():
+                        torch.testing.assert_close(vector.snapshot_state()["arrays"][name], value,
+                                                   rtol=0, atol=0, equal_nan=True)
+        finally:
+            vector.close()
+
     def test_zero_episode_time_limited_base_and_pql_keep_active_worlds(self):
         for pql, algorithm, mode in ((False, "masac", "synchronous"), (False, "matd3", "synchronous"),
                                      (True, "masac", "synchronous"), (True, "matd3", "synchronous"),
