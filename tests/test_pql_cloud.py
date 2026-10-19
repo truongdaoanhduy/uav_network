@@ -21,6 +21,28 @@ class PQLCloudTests(unittest.TestCase):
         self.assertEqual(remote.gpu_allocation(c, 2, 0, gpus_per_run=2), (1, "0,1"))
         self.assertEqual(remote.gpu_allocation(c, 2, 1, gpus_per_run=2), (1, "0,1"))
 
+    def test_base_benchmark_stage_uses_dual_gpu_probe_and_preserves_oom_result(self):
+        c = load_config("configs/comparison-20k-steps2000-scenario-v3.yaml", [
+            "pql.enabled=false", "matd3.replay_capacity=5000000", "matd3.batch_size=8192",
+            "runtime.num_envs=4096"])
+        spec = {"stage": "benchmark", "config": "configs/comparison-20k-steps2000-scenario-v3.yaml",
+                "overrides": ["pql.enabled=false", "matd3.replay_capacity=5000000",
+                              "matd3.batch_size=8192", "runtime.num_envs=4096"],
+                "runs": {"matd3": {"id": "base-probe"}}, "gpus_per_run": 2}
+        seen = []
+        def child(args, **kwargs):
+            seen.append(args)
+            self.assertIn("benchmark", args)
+            self.assertEqual(args[args.index("--env-counts") + 1], "4096")
+            self.assertEqual(args[args.index("--learner-updates") + 1], "2")
+            output = Path(args[args.index("--output") + 1])
+            output.write_text(json.dumps({"results": [{"status": "oom",
+                "devices": {"collector": "cuda:0", "learner": "cuda:1", "replay": "cuda:1"}}]}))
+        with TemporaryDirectory() as folder, patch.object(remote.subprocess, "run", side_effect=child):
+            result = remote.base_benchmarks(spec, c, Path(folder))
+        self.assertEqual(result["matd3"]["results"][0]["status"], "oom")
+        self.assertEqual(len(seen), 1)
+
     def test_pql_benchmark_gate_uses_exact_scenario_rates_batch_and_all_devices(self):
         self.assertTrue(callable(getattr(remote, "pql_benchmarks", None)), "Missing PQL benchmark gate")
         c = load_config("configs/motion-pql.yaml")
@@ -41,6 +63,17 @@ class PQLCloudTests(unittest.TestCase):
             result = remote.pql_benchmarks(spec, c, Path(folder))
         self.assertEqual(len(seen), 2)
         self.assertEqual(set(result), {"masac", "matd3"})
+
+    def test_pql_benchmark_stage_preserves_oom_result_instead_of_raising(self):
+        c = load_config("configs/motion-pql.yaml")
+        spec = {"stage": "benchmark", "config": "configs/motion-pql.yaml", "overrides": [],
+                "runs": {"matd3": {"id": "probe"}}}
+        def child(args, **kwargs):
+            output = Path(args[args.index("--output") + 1])
+            output.write_text(json.dumps({"results": [{"status": "oom", "cuda_pipeline_verified": False}]}))
+        with TemporaryDirectory() as folder, patch.object(remote.subprocess, "run", side_effect=child):
+            result = remote.pql_benchmarks(spec, c, Path(folder), require_pass=False)
+        self.assertEqual(result["matd3"]["results"][0]["status"], "oom")
 
     def test_oom_gate_refuses_to_launch_training_without_changing_batch(self):
         self.assertTrue(callable(getattr(remote, "pql_benchmarks", None)), "Missing PQL benchmark gate")

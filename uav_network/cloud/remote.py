@@ -128,7 +128,22 @@ def gpu_allocation(config, count, index, gpus_per_run=1):
     return slots, ",".join(str(i) for i in range(start, start + gpus_per_run))
 
 
-def pql_benchmarks(spec, config, output):
+def base_benchmarks(spec, config, output):
+    results = {}
+    for algorithm in spec["runs"]:
+        path = output / f"{algorithm}-benchmark.json"
+        args = [sys.executable, "-m", "uav_network", "benchmark", "--config", spec["config"],
+                "--env-counts", str(config.runtime.num_envs), "--steps", "2",
+                "--learner-updates", "2", "--output", str(path)]
+        for override in [*spec["overrides"], f"runtime.algorithm={algorithm}",
+                         "runtime.device=cuda", "runtime.replay_device=cuda"]:
+            args += ["--set", override]
+        subprocess.run(args, check=True)
+        results[algorithm] = json.loads(path.read_text())
+    return results
+
+
+def pql_benchmarks(spec, config, output, require_pass=True):
     results = {}
     for algorithm in spec["runs"]:
         batch = getattr(config, algorithm).batch_size
@@ -149,7 +164,7 @@ def pql_benchmarks(spec, config, output):
         with (output / f"{algorithm}-benchmark.log").open("w") as log:
             subprocess.run(args, env=benchmark_env, stdout=log, stderr=subprocess.STDOUT, check=True)
         report = json.loads(path.read_text())
-        if (not report.get("results") or any(row.get("status") != "passed"
+        if require_pass and (not report.get("results") or any(row.get("status") != "passed"
                 or not row.get("cuda_pipeline_verified") for row in report["results"])):
             raise RuntimeError(f"PQL benchmark failed for {algorithm}; inspect {path}; batch remains {batch}")
         results[algorithm] = report
@@ -216,9 +231,13 @@ def run_job(spec):
             raise ValueError("Matched comparison only supports the PQL benchmark stage")
         return comparison_benchmarks(spec, config, output)
     if spec["stage"] == "benchmark" and not config.pql.enabled:
-        raise ValueError("benchmark cloud stage requires pql.enabled=true")
+        reports = base_benchmarks(spec, config, output)
+        (output / "job-result.json").write_text(json.dumps(reports, indent=2))
+        print(json.dumps({algorithm: report["results"][0]["status"]
+                          for algorithm, report in reports.items()}), flush=True)
+        return reports
     if config.pql.enabled and spec["stage"] in {"train", "benchmark"}:
-        reports = pql_benchmarks(spec, config, output)
+        reports = pql_benchmarks(spec, config, output, require_pass=spec["stage"] != "benchmark")
         if spec["stage"] == "benchmark":
             (output / "job-result.json").write_text(json.dumps(reports, indent=2))
             print(json.dumps({algorithm: report["results"][0]["status"]
