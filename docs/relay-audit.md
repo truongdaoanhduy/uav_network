@@ -65,3 +65,26 @@ Future Kaggle runs use
 parameters match the prior 2000-step profile. Existing checkpoints retain their
 saved 2000-step evaluation horizon. Exact full-state continuation across the
 horizon change is incompatible.
+
+## Live paired evaluation snapshot (2026-10-20 03:25 UTC)
+
+The existing four historical-checkpoint CPU audits were inspected in place and
+left running; none was restarted. At this snapshot they had completed 183/360
+atomic cases across 30 paired evaluation seeds and three communication modes per
+checkpoint. These checkpoints retain their saved 2000-step horizon. This is a
+legacy checkpoint evaluation, not a new Kaggle algorithm/training run; the
+1800-step requirement remains binding for new training runs.
+
+| Checkpoint | Cases | learned - direct-only | learned - fixed-power |
+| --- | ---: | ---: | ---: |
+| MASAC BASE | 41/90 | +2.65 pp (14 paired seeds) | -1.98 pp (13 paired seeds) |
+| MATD3 BASE | 46/90 | +0.38 pp (15 paired seeds) | -1.33 pp (15 paired seeds) |
+| MASAC PQL | 44/90 | +8.19 pp (15 paired seeds) | +3.27 pp (14 paired seeds) |
+| MATD3 PQL | 52/90 | +0.34 pp (17 paired seeds) | -2.02 pp (17 paired seeds) |
+
+All four audit processes were alive when this snapshot was recorded. The values
+above are preliminary paired mean delivery-rate differences only. The analysis
+intentionally emits no 95% bootstrap confidence interval until all 30 paired
+seeds exist for a contrast, so these numbers are not final algorithm or relay/
+power conclusions. The checkpoint training budgets are also partial and unequal,
+which further prevents a final algorithm ranking from this snapshot.
