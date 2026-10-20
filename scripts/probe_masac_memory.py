@@ -14,9 +14,7 @@ from pathlib import Path
 import subprocess
 import time
 import traceback
-
 import torch
-
 
 def replay_bytes(capacity, observation_shape, state_dim):
     """Exact original TensorReplayBuffer FP32/int64 payload, without allocating."""
@@ -24,7 +22,6 @@ def replay_bytes(capacity, observation_shape, state_dim):
         raise ValueError("Replay dimensions and capacity must be positive")
     n, obs = observation_shape
     return capacity * (4 * (2 * n * obs + 2 * state_dim + 3 * n + 2) + 8 * n)
-
 
 def require_two_t4():
     """Fail before models, worlds, replay, or any large CPU fallback allocation."""
@@ -38,7 +35,6 @@ def require_two_t4():
              "compute_capability": [device.major, device.minor],
              "uuid": str(device.uuid) if getattr(device, "uuid", None) is not None else None}
             for index, device in enumerate(devices)]
-
 
 class ProbeAMP:
     """Single-threaded, process-local adapter with independent scaler clocks.
@@ -55,7 +51,6 @@ class ProbeAMP:
         self.counts = {name: {"attempted": 0, "applied": 0, "skipped": 0}
                        for name in self.scalers}
         self.original = None
-
     def _step(self, group, losses, optimizers, parameter_groups, grad_clip, check_finite=True):
         with torch.autocast(self.device_type, enabled=False):
             if check_finite and not torch.isfinite(torch.stack(losses)).all():
@@ -69,7 +64,6 @@ class ProbeAMP:
             torch.autograd.backward([scaler.scale(loss) for loss in losses])
             for optimizer in optimizers:
                 scaler.unscale_(optimizer)
-            # Norms are explicitly measured on unscaled gradients, before clipping.
             norms = [torch.nn.utils.clip_grad_norm_(values, grad_clip,
                                                    error_if_nonfinite=False).detach()
                      for values in parameters]
@@ -80,46 +74,36 @@ class ProbeAMP:
                 scaler.update()
                 count["applied"] += 1
             else:
-                # Do not call any optimizer step. Explicit backoff also covers a
-                # nonfinite aggregate norm from individually finite large gradients.
                 scaler.update(new_scale=scaler.get_scale() * scaler.get_backoff_factor())
                 count["skipped"] += 1
             return norms
-
     def single_step(self, loss, optimizer, parameters, grad_clip, check_finite=True):
         group = "critic" if optimizer is self.learner.critic_optimizer else "alpha"
         return self._step(group, [loss], [optimizer], [parameters], grad_clip, check_finite)[0]
-
     def actor_steps(self, losses, optimizers, parameter_groups, grad_clip, check_finite=True):
         return self._step("actor", losses, optimizers, parameter_groups, grad_clip, check_finite)
-
     def __enter__(self):
         import uav_network.algorithms.masac as module
         self.original = (module.step_optimizer, module.step_actor_optimizers)
         module.step_optimizer, module.step_actor_optimizers = self.single_step, self.actor_steps
         return self
-
     def __exit__(self, *exc):
         import uav_network.algorithms.masac as module
         module.step_optimizer, module.step_actor_optimizers = self.original
-
     def evidence(self):
         return {"counts": self.counts,
                 "scales": {name: scaler.get_scale() for name, scaler in self.scalers.items()},
                 "unscale_before_clip": True, "actor_all_or_none": True,
                 "scope": "standalone probe only; original MASAC equations"}
 
-
 class ProbeCompiler:
     """Compile the outer vmap function, never an inner critic called by vmap."""
     def __init__(self, learner, evidence, enabled=True):
         self.learner, self.evidence, self.enabled = learner, evidence, enabled
         self.restores = []
-
     def _observe(self, name, function):
         record = self.evidence.setdefault(name, {"completed_calls": 0, "fp16_outputs": 0,
                                                "output_dtypes": []})
-
         def observed(*args, **kwargs):
             output = function(*args, **kwargs)
             tensors = output if isinstance(output, tuple) else (output,)
@@ -129,7 +113,6 @@ class ProbeCompiler:
                                              {str(value.dtype) for value in tensors})
             return output
         return observed
-
     def __enter__(self):
         import uav_network.algorithms.masac as module
         from torch._dynamo.utils import counters
@@ -151,7 +134,6 @@ class ProbeCompiler:
             self.__exit__()
             raise
         return self
-
     def __exit__(self, *exc):
         from torch._dynamo.utils import counters
         from torch._inductor import metrics
@@ -170,7 +152,6 @@ class ProbeCompiler:
             and any(self.evidence.get(name, {}).get("completed_calls", 0) > 0
                     for name in ("actors", "critic")))
 
-
 def json_safe(value):
     if isinstance(value, float) and not math.isfinite(value):
         return None
@@ -179,7 +160,6 @@ def json_safe(value):
     if isinstance(value, (list, tuple)):
         return [json_safe(item) for item in value]
     return value
-
 
 def parser():
     result = argparse.ArgumentParser(description=__doc__)
@@ -199,8 +179,6 @@ def parser():
     result.add_argument("--wandb-run-id", default=None)
     return result
 
-
-
 def resolve_config(args):
     """Resolve and validate the diagnostic profile without allocating any tensors."""
     from uav_network.configuration import load_config
@@ -210,8 +188,6 @@ def resolve_config(args):
     config.runtime.environment_backend = "warp_packet"
     config.runtime.device = config.runtime.replay_device = "cuda"
     config.runtime.num_envs = args.envs
-    # Production compile_models compiles *inside* vmap and its validator forbids
-    # that pairing. Only ProbeCompiler compiles the outer vectorized function.
     config.runtime.compile_models = False
     config.runtime.fused_optimizers = args.fused
     config.runtime.vectorize_critics = True
@@ -224,7 +200,6 @@ def resolve_config(args):
         raise ValueError("Bounded probe requires 1..16 rounds and 1..32 updates per round")
     return config, {"diagnostic_only": True, "original_learning_starts": original_starts,
                     "diagnostic_learning_starts": 2 * args.envs, "warmup_vector_steps": 2}
-
 
 def finalize_probe(report, output, run, vector, sampler, started, persist):
     """Finish measurements and cleanup before online reporting; always finish a run."""
@@ -243,11 +218,10 @@ def finalize_probe(report, output, run, vector, sampler, started, persist):
             report["environment_close_error"] = str(error)
             if report["status"] == "passed":
                 report["status"] = "failed"
-
     gpus = report.get("gpu_resources", {}).get("gpus", [])
-    by_uuid = {gpu["uuid"]: gpu for gpu in gpus}
+    by_uuid = {gpu["uuid"].removeprefix("GPU-"): gpu for gpu in gpus}
     mapping = [{"logical_index": board["index"], "uuid": board.get("uuid"),
-                "physical_index": by_uuid.get(board.get("uuid"), {}).get("physical_index")}
+                "physical_index": by_uuid.get((board.get("uuid") or "").removeprefix("GPU-"), {}).get("physical_index")}
                for board in report.get("hardware", [])]
     report["cuda_physical_mapping"] = mapping
     mapped = [row["physical_index"] for row in mapping if row["physical_index"] is not None]
@@ -303,7 +277,6 @@ def finalize_probe(report, output, run, vector, sampler, started, persist):
         except Exception:
             pass
     finally:
-        # Summary/save failures must never bypass run finalization.
         try:
             run.finish(exit_code=0 if report["status"] == "passed" else 1)
         except Exception as error:
@@ -311,6 +284,26 @@ def finalize_probe(report, output, run, vector, sampler, started, persist):
             if report["status"] == "passed":
                 report["status"] = "failed"
         persist()
+
+def verify_evidence(args, report):
+    compiler = report["compiler"]
+    compiled_executed = compiler.get("probe_compile_executed", False)
+    actor_fp16 = compiler.get("actors", {}).get("fp16_outputs", 0) > 0
+    critic = compiler.get("critic", {})
+    critic_executed = critic.get("completed_calls", 0) > 0 or critic.get("fp16_outputs", 0) > 0
+    fp16_executed = actor_fp16 and critic_executed
+    actual_steps = all(value["applied"] > 0 for value in report["amp"]["counts"].values())
+    if args.compile and not compiled_executed:
+        raise RuntimeError("Requested compilation has no executed Dynamo/Inductor graph evidence")
+    if not fp16_executed or not actual_steps:
+        raise RuntimeError("Missing FP16 forward evidence or an optimizer group never applied a step")
+    if args.fused and not report["fused"]["all_param_groups_fused"]:
+        raise RuntimeError("Requested fused optimizers lack fused parameter-group evidence")
+    return {"fp16_forward": fp16_executed,
+            "compiled_graphs": compiled_executed,
+            "all_optimizer_groups_applied": actual_steps,
+            "fused_optimizer_steps": args.fused and actual_steps and
+                report["fused"]["all_param_groups_fused"]}
 
 def run_probe(args):
     output = Path(args.output)
@@ -330,13 +323,11 @@ def run_probe(args):
                            "production_inner_compile_models": False,
                            "strategy": "probe outer vectorized critic and actor encoders"},
               "full_training_verified": False}
-
     def persist():
         report["wall_seconds"] = time.perf_counter() - started
         temporary = output / "result.json.tmp"
         temporary.write_text(json.dumps(json_safe(report), indent=2, allow_nan=False))
         temporary.replace(output / "result.json")
-
     def snapshot(name, synchronize=True):
         nonlocal phase
         phase = report["phase"] = name
@@ -359,7 +350,6 @@ def run_probe(args):
             run.log({"probe/phase": name, "probe/wall_seconds": stage["wall_seconds"],
                      **{f"memory/gpu{row['device']}/{key}": value
                         for row in memory for key, value in row.items() if key != "device"}})
-
     try:
         report["hardware"] = require_two_t4()
         torch.cuda.init()
@@ -420,7 +410,6 @@ def run_probe(args):
                            "all_param_groups_fused": all(group.get("fused") is True
                                for optimizer in all_optimizers for group in optimizer.param_groups)}
         snapshot("replay_allocation")
-        # Full requested original FP32/int64 storage on GPU1. No offload/shard/tuning.
         replay = TensorReplayBuffer(args.capacity, obs["observation"].shape[1:],
                                     state_dim(config), config.runtime.seed, device="cuda:1")
         report["replay"] = {"allocated_bytes": replay.allocated_bytes, "capacity": replay.capacity,
@@ -429,7 +418,6 @@ def run_probe(args):
                                         for key, value in replay.data.items()}}
         snapshot("replay_allocated")
         next_seed = config.runtime.seed + args.envs
-
         def collect(warm=False):
             nonlocal obs, next_seed
             action = (vector.random_actions(obs["observation"]) if warm else
@@ -449,7 +437,6 @@ def run_probe(args):
                     next_seed += 1
                 obs, _ = vector.reset(seed=seeds,
                                      options={"reset_mask": (terminated | truncated).cpu().numpy()})
-
         for step in range(2):
             snapshot(f"warmup_collection_{step + 1}")
             collect(warm=True)
@@ -479,23 +466,10 @@ def run_probe(args):
                 refresh_base_collector(collector, learner)
                 snapshot(f"round_{round_index + 1}_complete")
         report["amp"] = amp.evidence()
-        compiler = report["compiler"]
-        compiled_executed = compiler.get("probe_compile_executed", False)
-        fp16_executed = all(compiler.get(name, {}).get("fp16_outputs", 0) > 0
-                            for name in ("actors", "critic"))
-        actual_steps = all(value["applied"] > 0 for value in amp.counts.values())
-        if args.compile and not compiled_executed:
-            raise RuntimeError("Requested compilation has no executed Dynamo/Inductor graph evidence")
-        if not fp16_executed or not actual_steps:
-            raise RuntimeError("Missing FP16 forward evidence or an optimizer group never applied a step")
-        report["evidence_verified"] = {"fp16_forward": fp16_executed,
-                                        "compiled_graphs": compiled_executed,
-                                        "all_optimizer_groups_applied": actual_steps,
-                                        "fused_optimizer_steps": args.fused and actual_steps and
-                                            report["fused"]["all_param_groups_fused"]}
+        report["evidence_verified"] = verify_evidence(args, report)
         report["probe_outcome"] = "passed"
         report["status"] = "updates_complete"
-        report["compiler"]["probe_compile_executed"] = compiled_executed
+        report["compiler"]["probe_compile_executed"] = report["evidence_verified"]["compiled_graphs"]
         snapshot("complete")
     except BaseException as error:
         report.update(status="oom" if isinstance(error, torch.OutOfMemoryError) else "failed",
@@ -503,8 +477,6 @@ def run_probe(args):
                       traceback=traceback.format_exc())
         if amp:
             report["amp"] = amp.evidence()
-        # Keep successful world/model stage evidence and per-GPU allocator peaks,
-        # even when replay construction failed partway through its dict.
         try:
             snapshot(phase, synchronize=False)
         except Exception as measurement_error:
@@ -512,7 +484,6 @@ def run_probe(args):
     finally:
         finalize_probe(report, output, run, vector, sampler, started, persist)
     return json_safe(report)
-
 
 if __name__ == "__main__":
     result = run_probe(parser().parse_args())

@@ -194,7 +194,7 @@ def test_default_resolved_probe_config_validates_without_compiling_inside_vmap()
 
 
 def finalize_case(tmp_path, status="passed", indices=(0, 1), save_error=False,
-                  close_error=False, summary_error=False):
+                  close_error=False, summary_error=False, bare_torch_uuid=False):
     p = probe()
     assert hasattr(p, "finalize_probe"), "Testable finalization boundary is missing"
     import json
@@ -204,7 +204,7 @@ def finalize_case(tmp_path, status="passed", indices=(0, 1), save_error=False,
                   {"physical_index": index, "uuid": f"GPU-{index}", "sample_count": 1,
                    "physical_memory_used_bytes_max": 1024, "power": {"status": "unavailable"}}
                   for index in indices]}}
-    report["hardware"] = [{"index": logical, "uuid": f"GPU-{physical}"}
+    report["hardware"] = [{"index": logical, "uuid": str(physical) if bare_torch_uuid else f"GPU-{physical}"}
                           for logical, physical in enumerate(indices)]
     class Summary:
         def update(self, values):
@@ -280,3 +280,62 @@ def test_logical_cuda_devices_map_to_physical_uuid_after_reordering(tmp_path):
     assert report["cuda_physical_mapping"] == [
         {"logical_index": 0, "uuid": "GPU-1", "physical_index": 1},
         {"logical_index": 1, "uuid": "GPU-0", "physical_index": 0}]
+
+
+def test_bare_torch_uuid_maps_to_prefixed_physical_uuid(tmp_path):
+    report, _ = finalize_case(tmp_path, indices=(1, 0), bare_torch_uuid=True)
+    assert [row["physical_index"] for row in report["cuda_physical_mapping"]] == [1, 0]
+    assert [row["uuid"] for row in report["cuda_physical_mapping"]] == ["1", "0"]
+
+
+@pytest.mark.parametrize("requested_fused,actual_fused", [(True, True), (True, False), (False, False)])
+def test_success_evidence_requires_requested_fused_and_allows_no_fused(requested_fused, actual_fused):
+    p = probe()
+    assert hasattr(p, "verify_evidence"), "Testable success-evidence gate is missing"
+    args = p.parser().parse_args(["--capacity", "1000000"] + ([] if requested_fused else ["--no-fused"]))
+    report = {"compiler": {"probe_compile_executed": True,
+                           "actors": {"fp16_outputs": 1}, "critic": {"fp16_outputs": 1}},
+              "amp": {"counts": {name: {"applied": 1} for name in ("critic", "actor", "alpha")}},
+              "fused": {"all_param_groups_fused": actual_fused}}
+    if requested_fused and not actual_fused:
+        with pytest.raises(RuntimeError, match="Requested fused"):
+            p.verify_evidence(args, report)
+    else:
+        evidence = p.verify_evidence(args, report)
+        assert evidence == {"fp16_forward": True, "compiled_graphs": True,
+                            "all_optimizer_groups_applied": True,
+                            "fused_optimizer_steps": requested_fused and actual_fused}
+
+
+@pytest.mark.parametrize("missing", ["compile", "actor_fp16", "critic_call", "critic_step", "actor_step", "alpha_step"])
+def test_success_evidence_preserves_compile_fp16_and_applied_step_gates(missing):
+    p = probe()
+    args = p.parser().parse_args(["--capacity", "1000000"])
+    report = {"compiler": {"probe_compile_executed": True,
+                           "actors": {"fp16_outputs": 1},
+                           "critic": {"completed_calls": 1, "fp16_outputs": 0,
+                                      "output_dtypes": ["torch.float32"]}},
+              "amp": {"counts": {name: {"applied": 1} for name in ("critic", "actor", "alpha")}},
+              "fused": {"all_param_groups_fused": True}}
+    if missing == "compile":
+        report["compiler"]["probe_compile_executed"] = False
+    elif missing == "actor_fp16":
+        report["compiler"]["actors"]["fp16_outputs"] = 0
+    elif missing == "critic_call":
+        report["compiler"]["critic"]["completed_calls"] = 0
+    else:
+        report["amp"]["counts"][missing.removesuffix("_step")]["applied"] = 0
+    with pytest.raises(RuntimeError, match="compilation|FP16"):
+        p.verify_evidence(args, report)
+
+
+def test_fp32_critic_output_is_valid_with_direct_fp16_actor_and_completed_critic_evidence():
+    p = probe()
+    args = p.parser().parse_args(["--capacity", "1000000"])
+    report = {"compiler": {"probe_compile_executed": True,
+                           "actors": {"fp16_outputs": 7},
+                           "critic": {"completed_calls": 3, "fp16_outputs": 0,
+                                      "output_dtypes": ["torch.float32"]}},
+              "amp": {"counts": {name: {"applied": 1} for name in ("critic", "actor", "alpha")}},
+              "fused": {"all_param_groups_fused": True}}
+    assert p.verify_evidence(args, report)["fp16_forward"] is True
