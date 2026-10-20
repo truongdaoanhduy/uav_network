@@ -35,7 +35,8 @@ def require_two_t4():
     if any("t4" not in device.name.lower() for device in devices):
         raise RuntimeError(message)
     return [{"index": index, "name": device.name, "total_bytes": device.total_memory,
-             "compute_capability": [device.major, device.minor]}
+             "compute_capability": [device.major, device.minor],
+             "uuid": str(device.uuid) if getattr(device, "uuid", None) is not None else None}
             for index, device in enumerate(devices)]
 
 
@@ -162,6 +163,12 @@ class ProbeCompiler:
                     if value != self.before.get(group, {}).get(key, 0)}
             for group, values in counters.items()}
         self.evidence["inductor_generated_kernels"] = metrics.generated_kernel_count - self.kernels_before
+        self.evidence["probe_compile_executed"] = bool(
+            self.enabled
+            and self.evidence["dynamo"].get("stats", {}).get("unique_graphs", 0) > 0
+            and self.evidence["inductor_generated_kernels"] > 0
+            and any(self.evidence.get(name, {}).get("completed_calls", 0) > 0
+                    for name in ("actors", "critic")))
 
 
 def json_safe(value):
@@ -193,6 +200,118 @@ def parser():
     return result
 
 
+
+def resolve_config(args):
+    """Resolve and validate the diagnostic profile without allocating any tensors."""
+    from uav_network.configuration import load_config
+    config = load_config(args.config)
+    original_starts = config.masac.learning_starts
+    config.runtime.algorithm, config.pql.enabled = "masac", False
+    config.runtime.environment_backend = "warp_packet"
+    config.runtime.device = config.runtime.replay_device = "cuda"
+    config.runtime.num_envs = args.envs
+    # Production compile_models compiles *inside* vmap and its validator forbids
+    # that pairing. Only ProbeCompiler compiles the outer vectorized function.
+    config.runtime.compile_models = False
+    config.runtime.fused_optimizers = args.fused
+    config.runtime.vectorize_critics = True
+    config.world.max_steps = 1800
+    config.masac.batch_size, config.masac.replay_capacity = args.batch, args.capacity
+    config.masac.learning_starts, config.masac.updates_per_step = 2 * args.envs, args.updates_per_round
+    config.tracking.enabled = False
+    config.validate()
+    if not 1 <= args.rounds <= 16 or not 1 <= args.updates_per_round <= 32:
+        raise ValueError("Bounded probe requires 1..16 rounds and 1..32 updates per round")
+    return config, {"diagnostic_only": True, "original_learning_starts": original_starts,
+                    "diagnostic_learning_starts": 2 * args.envs, "warmup_vector_steps": 2}
+
+
+def finalize_probe(report, output, run, vector, sampler, started, persist):
+    """Finish measurements and cleanup before online reporting; always finish a run."""
+    report.setdefault("probe_outcome", report["status"])
+    if report["status"] == "updates_complete":
+        report["status"] = report["probe_outcome"]
+    if sampler:
+        try:
+            report["gpu_resources"] = sampler.finish(started, time.perf_counter())
+        except Exception as error:
+            report["measurement_error"] = f"{type(error).__name__}: {error}"
+    if vector:
+        try:
+            vector.close()
+        except Exception as error:
+            report["environment_close_error"] = str(error)
+            if report["status"] == "passed":
+                report["status"] = "failed"
+
+    gpus = report.get("gpu_resources", {}).get("gpus", [])
+    by_uuid = {gpu["uuid"]: gpu for gpu in gpus}
+    mapping = [{"logical_index": board["index"], "uuid": board.get("uuid"),
+                "physical_index": by_uuid.get(board.get("uuid"), {}).get("physical_index")}
+               for board in report.get("hardware", [])]
+    report["cuda_physical_mapping"] = mapping
+    mapped = [row["physical_index"] for row in mapping if row["physical_index"] is not None]
+    expected = sorted(set(mapped)) if len(set(mapped)) == 2 else [0, 1]
+    measured = sorted({gpu["physical_index"] for gpu in gpus
+                       if gpu.get("sample_count", 0) > 0
+                       and isinstance(gpu.get("physical_memory_used_bytes_max"), (int, float))
+                       and math.isfinite(gpu["physical_memory_used_bytes_max"])
+                       and gpu["physical_memory_used_bytes_max"] >= 0})
+    missing = sorted(set(expected) - set(measured))
+    report["measurement_complete"] = not missing
+    report["measurement"] = {"expected_physical_indices": expected,
+                              "measured_physical_indices": measured,
+                              "missing_physical_indices": missing,
+                              "power_required": False}
+    if missing:
+        report.setdefault("measurement_error", f"Missing physical memory samples for GPUs {missing}")
+        if report["status"] == "passed":
+            report["status"] = "failed"
+    persist()
+    if not run:
+        return
+    try:
+        run.summary.update(json_safe({
+            "status": report["status"], "probe_outcome": report["probe_outcome"],
+            "phase": report["phase"], "wall_seconds": report.get("wall_seconds"),
+            "scope": report.get("scope"), "source_git_commit": report.get("source_git_commit"),
+            "probe_sha256": report.get("probe_sha256"),
+            "replay_expected_bytes": report.get("replay_expected_bytes"),
+            "replay_allocated_bytes": report.get("replay", {}).get("allocated_bytes"),
+            "amp": report.get("amp"), "evidence_verified": report.get("evidence_verified"),
+            "error_type": report.get("error_type"), "error": report.get("error"),
+            "measurement_complete": report["measurement_complete"],
+            "measurement": report["measurement"], "measurement_error": report.get("measurement_error"),
+            "environment_close_error": report.get("environment_close_error"),
+            "torch_memory": report["stages"][-1]["torch"] if report.get("stages") else [],
+            "physical_memory_peaks": [
+                {"uuid": gpu["uuid"], "physical_index": gpu["physical_index"],
+                 "bytes": gpu.get("physical_memory_used_bytes_max")} for gpu in gpus],
+            "inductor_generated_kernels": report.get("compiler", {}).get("inductor_generated_kernels"),
+            "dynamo_stats": report.get("compiler", {}).get("dynamo", {}).get("stats", {})}))
+        for filename in ("result.json", "resolved_config.json"):
+            if (output / filename).exists():
+                run.save(str((output / filename).resolve()), base_path=str(output.resolve()), policy="now")
+    except Exception as error:
+        report["tracking_finalize_error"] = f"{type(error).__name__}: {error}"
+        if report["status"] == "passed":
+            report["status"] = "failed"
+        persist()
+        try:
+            run.summary.update({"status": report["status"], "probe_outcome": report["probe_outcome"],
+                                "tracking_finalize_error": report["tracking_finalize_error"]})
+        except Exception:
+            pass
+    finally:
+        # Summary/save failures must never bypass run finalization.
+        try:
+            run.finish(exit_code=0 if report["status"] == "passed" else 1)
+        except Exception as error:
+            report["tracking_finish_error"] = f"{type(error).__name__}: {error}"
+            if report["status"] == "passed":
+                report["status"] = "failed"
+        persist()
+
 def run_probe(args):
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
@@ -206,7 +325,11 @@ def run_probe(args):
                           "learner": "cuda:1", "replay": "cuda:1"},
               "source_git_commit": os.environ.get("UAV_GIT_COMMIT"),
               "probe_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-              "compiler": {}, "full_training_verified": False}
+              "compiler": {"probe_compile_requested": args.compile,
+                           "probe_compile_executed": False,
+                           "production_inner_compile_models": False,
+                           "strategy": "probe outer vectorized critic and actor encoders"},
+              "full_training_verified": False}
 
     def persist():
         report["wall_seconds"] = time.perf_counter() - started
@@ -257,31 +380,13 @@ def run_probe(args):
         if run is None or run.settings.mode != "online":
             raise RuntimeError("W&B online run was not initialized")
         report["wandb"] = {"id": run.id, "url": run.url, "mode": run.settings.mode}
-        from uav_network.configuration import load_config
         from uav_network.algorithms.masac import MASAC
         from uav_network.algorithms.replay import TensorReplayBuffer
         from uav_network.environment.observations import observation_dim, state_dim
         from uav_network.environment.vector import make_vector
         from uav_network.experiments.pql_workers import inference_copy
         from uav_network.experiments.training import seed_runtime, refresh_base_collector
-        config = load_config(args.config)
-        original_starts = config.masac.learning_starts
-        config.runtime.algorithm, config.pql.enabled = "masac", False
-        config.runtime.environment_backend = "warp_packet"
-        config.runtime.device = config.runtime.replay_device = "cuda"
-        config.runtime.num_envs = args.envs
-        config.runtime.compile_models, config.runtime.fused_optimizers = args.compile, args.fused
-        config.runtime.vectorize_critics = True
-        config.world.max_steps = 1800
-        config.masac.batch_size, config.masac.replay_capacity = args.batch, args.capacity
-        config.masac.learning_starts, config.masac.updates_per_step = 2 * args.envs, args.updates_per_round
-        config.tracking.enabled = False  # Only the explicit online diagnostic run; no checkpoint machinery.
-        config.validate()
-        if not 1 <= args.rounds <= 16 or not 1 <= args.updates_per_round <= 32:
-            raise ValueError("Bounded probe requires 1..16 rounds and 1..32 updates per round")
-        report["warmup_override"] = {"diagnostic_only": True, "original_learning_starts": original_starts,
-                                     "diagnostic_learning_starts": 2 * args.envs,
-                                     "warmup_vector_steps": 2}
+        config, report["warmup_override"] = resolve_config(args)
         report["replay_expected_bytes"] = replay_bytes(
             args.capacity, (config.world.num_uavs, observation_dim(config)), state_dim(config))
         report["resolved_config"] = config.to_dict()
@@ -375,8 +480,7 @@ def run_probe(args):
                 snapshot(f"round_{round_index + 1}_complete")
         report["amp"] = amp.evidence()
         compiler = report["compiler"]
-        compiled_executed = (compiler.get("dynamo", {}).get("stats", {}).get("unique_graphs", 0) > 0
-                             and compiler.get("inductor_generated_kernels", 0) > 0)
+        compiled_executed = compiler.get("probe_compile_executed", False)
         fp16_executed = all(compiler.get(name, {}).get("fp16_outputs", 0) > 0
                             for name in ("actors", "critic"))
         actual_steps = all(value["applied"] > 0 for value in amp.counts.values())
@@ -389,7 +493,9 @@ def run_probe(args):
                                         "all_optimizer_groups_applied": actual_steps,
                                         "fused_optimizer_steps": args.fused and actual_steps and
                                             report["fused"]["all_param_groups_fused"]}
-        report["status"] = "passed"
+        report["probe_outcome"] = "passed"
+        report["status"] = "updates_complete"
+        report["compiler"]["probe_compile_executed"] = compiled_executed
         snapshot("complete")
     except BaseException as error:
         report.update(status="oom" if isinstance(error, torch.OutOfMemoryError) else "failed",
@@ -404,41 +510,7 @@ def run_probe(args):
         except Exception as measurement_error:
             report["failure_measurement_error"] = str(measurement_error)
     finally:
-        if sampler:
-            report["gpu_resources"] = sampler.finish(started, time.perf_counter())
-        persist()
-        if run:
-            try:
-                run.summary.update(json_safe({
-                    "status": report["status"], "phase": report["phase"],
-                    "wall_seconds": report["wall_seconds"], "scope": report["scope"],
-                    "source_git_commit": report["source_git_commit"],
-                    "probe_sha256": report["probe_sha256"],
-                    "replay_expected_bytes": report.get("replay_expected_bytes"),
-                    "replay_allocated_bytes": report.get("replay", {}).get("allocated_bytes"),
-                    "amp": report.get("amp"), "evidence_verified": report.get("evidence_verified"),
-                    "error_type": report.get("error_type"), "error": report.get("error"),
-                    "torch_memory": report["stages"][-1]["torch"] if report["stages"] else [],
-                    "physical_memory_peaks": [
-                        {"uuid": gpu["uuid"], "physical_index": gpu["physical_index"],
-                         "bytes": gpu["physical_memory_used_bytes_max"]}
-                        for gpu in report.get("gpu_resources", {}).get("gpus", [])],
-                    "inductor_generated_kernels": report["compiler"].get("inductor_generated_kernels"),
-                    "dynamo_stats": report["compiler"].get("dynamo", {}).get("stats", {})}))
-                for filename in ("result.json", "resolved_config.json"):
-                    if (output / filename).exists():
-                        run.save(str((output / filename).resolve()), base_path=str(output.resolve()), policy="now")
-                run.finish(exit_code=0 if report["status"] == "passed" else 1)
-            except Exception as error:
-                report["tracking_finalize_error"] = f"{type(error).__name__}: {error}"
-                report["status"] = "failed"
-        if vector:
-            try:
-                vector.close()
-            except Exception as error:
-                report["environment_close_error"] = str(error)
-                report["status"] = "failed"
-        persist()
+        finalize_probe(report, output, run, vector, sampler, started, persist)
     return json_safe(report)
 
 

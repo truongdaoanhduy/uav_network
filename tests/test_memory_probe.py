@@ -176,3 +176,107 @@ def test_nonfinite_unscaled_loss_with_finite_derivative_never_steps():
                             optimizers, [[parameter] for parameter in parameters], 10)
     assert [parameter.item() for parameter in parameters] == [1, 1]
     assert all(not optimizer.state for optimizer in optimizers)
+
+
+def test_default_resolved_probe_config_validates_without_compiling_inside_vmap():
+    p = probe()
+    args = p.parser().parse_args(["--capacity", "1000000"])
+    assert hasattr(p, "resolve_config"), "CPU-testable default configuration resolver is missing"
+    config, warmup = p.resolve_config(args)
+    assert config.validate() is config
+    assert args.compile is True
+    assert config.runtime.compile_models is False
+    assert config.runtime.vectorize_critics is True
+    assert config.runtime.fused_optimizers is True
+    assert (config.runtime.num_envs, config.masac.batch_size, config.world.max_steps) == (2048, 4096, 1800)
+    assert warmup["original_learning_starts"] == 131072
+    assert warmup["diagnostic_learning_starts"] == 4096
+
+
+def finalize_case(tmp_path, status="passed", indices=(0, 1), save_error=False,
+                  close_error=False, summary_error=False):
+    p = probe()
+    assert hasattr(p, "finalize_probe"), "Testable finalization boundary is missing"
+    import json
+    events = []
+    report = {"status": status, "phase": "complete" if status == "passed" else "replay_allocation",
+              "stages": [], "compiler": {}, "gpu_resources": {"gpus": [
+                  {"physical_index": index, "uuid": f"GPU-{index}", "sample_count": 1,
+                   "physical_memory_used_bytes_max": 1024, "power": {"status": "unavailable"}}
+                  for index in indices]}}
+    report["hardware"] = [{"index": logical, "uuid": f"GPU-{physical}"}
+                          for logical, physical in enumerate(indices)]
+    class Summary:
+        def update(self, values):
+            events.append(("summary", values["status"]))
+            if summary_error:
+                raise OSError("summary failed")
+    class Run:
+        summary = Summary()
+        def save(self, *args, **kwargs):
+            events.append(("save",))
+            if save_error:
+                raise OSError("upload failed")
+        def finish(self, exit_code):
+            events.append(("finish", exit_code))
+    class Vector:
+        def close(self):
+            events.append(("close",))
+            if close_error:
+                raise RuntimeError("close failed")
+    def persist():
+        (tmp_path / "result.json").write_text(json.dumps(report))
+    persist()
+    p.finalize_probe(report, tmp_path, Run(), Vector(), None, 0, persist)
+    saved = json.loads((tmp_path / "result.json").read_text())
+    assert saved == report
+    return report, events
+
+
+def test_success_requires_physical_memory_on_both_boards_and_power_is_optional(tmp_path):
+    report, events = finalize_case(tmp_path, indices=(0,))
+    assert report["status"] == "failed"
+    assert report["probe_outcome"] == "passed"
+    assert report["measurement_complete"] is False
+    assert report["measurement"]["expected_physical_indices"] == [0, 1]
+    assert report["measurement"]["missing_physical_indices"] == [1]
+    assert events[-1] == ("finish", 1)
+    report, events = finalize_case(tmp_path, indices=(0, 1))
+    assert report["status"] == "passed"
+    assert report["measurement_complete"] is True
+    assert events[-1] == ("finish", 0)
+
+
+def test_incomplete_measurement_retains_oom_capacity_outcome(tmp_path):
+    report, events = finalize_case(tmp_path, status="oom", indices=())
+    assert report["status"] == report["probe_outcome"] == "oom"
+    assert report["measurement_complete"] is False
+    assert events[-1] == ("finish", 1)
+
+
+@pytest.mark.parametrize("boundary", ["upload", "summary"])
+def test_upload_failure_still_finishes_nonzero_and_retains_probe_outcome(tmp_path, boundary):
+    report, events = finalize_case(tmp_path, save_error=boundary == "upload",
+                                   summary_error=boundary == "summary")
+    assert report["status"] == "failed"
+    assert report["probe_outcome"] == "passed"
+    assert f"{boundary} failed" in report["tracking_finalize_error"]
+    assert events[-1] == ("finish", 1)
+
+
+def test_environment_close_failure_is_final_before_summary_upload(tmp_path):
+    report, events = finalize_case(tmp_path, close_error=True)
+    assert report["status"] == "failed"
+    assert report["probe_outcome"] == "passed"
+    assert report["environment_close_error"] == "close failed"
+    assert events[0] == ("close",)
+    assert ("summary", "failed") in events
+    assert events[-1] == ("finish", 1)
+
+
+def test_logical_cuda_devices_map_to_physical_uuid_after_reordering(tmp_path):
+    report, _ = finalize_case(tmp_path, indices=(1, 0))
+    assert report["measurement_complete"] is True
+    assert report["cuda_physical_mapping"] == [
+        {"logical_index": 0, "uuid": "GPU-1", "physical_index": 1},
+        {"logical_index": 1, "uuid": "GPU-0", "physical_index": 0}]
