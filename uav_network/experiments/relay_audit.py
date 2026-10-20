@@ -116,6 +116,93 @@ def _summary(protocol, records):
             "by_mode": by_mode, "records": records}
 
 
+def run_relay_audit_cases(checkpoint, output_dir, cases, on_progress=None):
+    """Run selected cases inside an existing full audit protocol.
+
+    This is a parallelization helper: it never creates or changes the protocol.
+    Every produced case therefore belongs to the exact fingerprint established
+    by :func:`run_relay_audit`.
+    """
+    checkpoint = Path(checkpoint)
+    output = Path(output_dir)
+    protocol_path = output / "protocol.json"
+    protocol = json.loads(protocol_path.read_text())
+    if not isinstance(protocol, dict) or protocol.get("schema") != 1:
+        raise ValueError("Existing audit protocol is invalid")
+    checkpoint_hash = _checkpoint_hash(checkpoint)
+    if protocol.get("checkpoint_sha256") != checkpoint_hash:
+        raise ValueError("Checkpoint does not match existing audit protocol")
+
+    learner, progress, source = load_evaluation_policy(checkpoint)
+    config = learner.config
+    torch.set_num_threads(config.runtime.torch_threads)
+    seeds = list(protocol.get("seeds", []))
+    modes = list(protocol.get("modes", []))
+    power = _fixed_power(config, protocol.get("fixed_power_w"))
+    expected = {
+        "schema": 1, "controls_version": CONTROLS_VERSION,
+        "checkpoint_sha256": checkpoint_hash, "config": config.to_dict(),
+        "algorithm": learner.algorithm,
+        "evaluation": evaluation_protocol(config, seeds, progress),
+        "seeds": seeds, "modes": modes, "fixed_power_w": power,
+        "trace": bool(protocol.get("trace")),
+        "training_budget": {"episodes_completed": progress.get("episodes"),
+                            "global_step": progress.get("global_step"),
+                            "episodes_target": config.runtime.episodes,
+                            "episode_budget_complete": progress.get("episodes") == config.runtime.episodes},
+        "scope": "Fixed-policy communication ablations, not retrained baselines; per-action movement is preserved but later trajectories may diverge.",
+        "trace_semantics": TRACE_SEMANTICS,
+    }
+    if source is not None:
+        expected["source"] = source
+    expected["fingerprint"] = _digest(expected)
+    if expected != protocol:
+        raise ValueError("Existing audit protocol/checkpoint is incompatible")
+
+    requested = list(cases)
+    if len(set(requested)) != len(requested):
+        raise ValueError("Requested audit cases must be unique")
+    allowed_seeds, allowed_modes = set(seeds), set(modes)
+    for seed, mode in requested:
+        if seed not in allowed_seeds or mode not in allowed_modes:
+            raise ValueError("Requested audit case is outside the existing protocol")
+
+    completed = skipped = 0
+    for seed, mode in requested:
+        path = output / "cases" / f"{mode}-{seed}.json"
+        try:
+            case = json.loads(path.read_text())
+        except (FileNotFoundError, json.JSONDecodeError):
+            case = {}
+        if isinstance(case, dict) and case.get("complete") is True:
+            if (case.get("fingerprint") != protocol["fingerprint"] or case.get("mode") != mode
+                    or case.get("seed") != seed or not isinstance(case.get("record"), dict)):
+                raise ValueError(f"Incompatible completed audit case: {path}")
+            skipped += 1
+            continue
+
+        env = make_evaluation_env(config)
+        def notify(value):
+            value = {**value, "mode": mode, "fingerprint": protocol["fingerprint"]}
+            if on_progress is not None:
+                on_progress(value)
+        try:
+            record, _, _, events = run_episode(
+                env, learner, seed=seed,
+                action_control=partial(communication_control, mode=mode, fixed_power_w=power),
+                trace=bool(protocol["trace"]), on_progress=notify)
+            record["mode"] = mode
+            if protocol["trace"]:
+                record["communication_trace"] = {"semantics": TRACE_SEMANTICS, "events": events}
+            _atomic_json(path, {"complete": True, "fingerprint": protocol["fingerprint"],
+                                "mode": mode, "seed": seed, "record": record})
+            completed += 1
+        finally:
+            env.close()
+    return {"completed_cases": completed, "skipped_cases": skipped,
+            "requested_cases": len(requested), "fingerprint": protocol["fingerprint"]}
+
+
 def run_relay_audit(checkpoint, seeds=None, modes=MODES, fixed_power_w=None, output_dir=None,
                     trace=False, on_progress=None):
     """Evaluate a complete paired matrix, reusing only matching completed cases.

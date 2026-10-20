@@ -222,6 +222,35 @@ class RelayAuditTests(unittest.TestCase):
                 audit.run_relay_audit(checkpoint, [101], ["learned"], output_dir=output)
             self.assertEqual(path.read_bytes(), before)
 
+    def test_case_shard_runner_reuses_full_protocol_fingerprint_and_matches_full_audit(self):
+        from uav_network.experiments import relay_audit as audit
+        with TemporaryDirectory() as folder:
+            checkpoint = snapshot(Path(folder) / "policy", small_config())
+            full = Path(folder) / "full"
+            audit.run_relay_audit(checkpoint, [101, 102],
+                                  ["learned", "direct_only", "fixed_power"],
+                                  output_dir=full, trace=True)
+            expected = json.loads((full / "cases" / "fixed_power-102.json").read_text())
+
+            shard = Path(folder) / "shard"
+            shard.mkdir()
+            (shard / "protocol.json").write_bytes((full / "protocol.json").read_bytes())
+            result = audit.run_relay_audit_cases(
+                checkpoint, shard, [(102, "fixed_power")])
+
+            actual = json.loads((shard / "cases" / "fixed_power-102.json").read_text())
+            self.assertEqual(actual, expected)
+            self.assertEqual(result["completed_cases"], 1)
+            self.assertEqual(result["skipped_cases"], 0)
+            self.assertEqual(actual["fingerprint"],
+                             json.loads((full / "protocol.json").read_text())["fingerprint"])
+            with patch.object(audit, "run_episode", wraps=audit.run_episode) as run:
+                repeated = audit.run_relay_audit_cases(
+                    checkpoint, shard, [(102, "fixed_power")])
+                run.assert_not_called()
+            self.assertEqual(repeated["completed_cases"], 0)
+            self.assertEqual(repeated["skipped_cases"], 1)
+
     def test_audit_cli_runs_saved_policy_and_writes_complete_case(self):
         import subprocess
         import sys
