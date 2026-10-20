@@ -69,7 +69,6 @@ def gain(s: WorldState, p: WorldParams, e: int, transmitter: int, receiver: int,
     b = xy(s,p,e,receiver)
     index = transmitter*(p.n+1)+receiver
     if (s.pair_time[e,index] < wp.float64(0)
-        or now-s.pair_time[e,index] >= wp.float64(100000)
         or wp.length(a-s.pair_transmitter[e,index]) >= wp.float64(1)
         or wp.length(b-s.pair_receiver[e,index]) >= wp.float64(1)):
         distance = wp.max(wp.float64(1),link_distance(s,p,e,transmitter,receiver))

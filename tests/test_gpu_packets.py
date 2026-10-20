@@ -134,6 +134,10 @@ class GPUPacketTests(unittest.TestCase):
                                    rtol=0, atol=1e-9)
         return wp, s, p, mac
 
+    def test_event_heap_exposes_root_reschedule_primitive(self):
+        events = importlib.import_module("uav_network.communication.gpu.events")
+        self.assertTrue(hasattr(events, "replace_root"))
+
     def test_state_schema_and_masked_reset(self):
         wp, state, mac = self.backend()
         c = config()
@@ -318,6 +322,18 @@ class GPUPacketTests(unittest.TestCase):
     def test_idle_poll_jump_preserves_next_step_native_poll_phase(self):
         self.compare(config(), [[500,100],[600,100]],
                      [([0,0],0),([0,0],0),([2,0],0)])
+
+    def test_pair_gain_cache_is_stable_within_packet_step(self):
+        c = config(report_bytes=1_000_000, buffer_bytes=3_000_000, payload_bytes=1024,
+                   max_queue_packets=64, peer_range_m=500, gcs_range_m=500)
+        wp, s, p, mac = self.prepare(c, [[500, 100], [600, 100]])
+        self.step(c, s, p, mac, wp, [0, 0])
+        start = float(s.packet_time.numpy()[0])
+        self.step(c, s, p, mac, wp, [2, 0], 1.0)
+        pair = 0 * (p.n + 1) + p.n
+        cached_at = float(s.pair_time.numpy()[0, pair])
+        self.assertGreaterEqual(cached_at, start)
+        self.assertLess(cached_at, start + 100_000)
 
     def test_wholly_idle_interval_coalesces_poll_events(self):
         c = config()

@@ -72,3 +72,31 @@ def pop(s: WorldState, e: int):
                 break
             swap(s,e,i,child)
             i = child
+
+
+@wp.func
+def replace_root(s: WorldState, e: int, time: wp.float64, kind: int, arg: int,
+                 generation: int, priority: int):
+    """Replace the current minimum with one newly inserted event.
+
+    This is exactly the heap state transition of pop()+push() when the popped
+    event only reschedules itself: event_count is unchanged and insertion order
+    still advances by one.
+    """
+    s.event_sequence[e] += wp.int64(1)
+    s.event_time[e,0] = time
+    s.event_kind[e,0] = kind
+    s.event_arg[e,0] = arg
+    s.event_generation[e,0] = generation
+    s.event_priority[e,0] = priority
+    s.event_order[e,0] = s.event_sequence[e]
+    count = s.event_count[e]
+    i = int(0)
+    while i*2+1 < count:
+        child = i*2+1
+        if child+1 < count and earlier(s,e,child+1,child):
+            child += 1
+        if not earlier(s,e,child,i):
+            break
+        swap(s,e,i,child)
+        i = child

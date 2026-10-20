@@ -5,7 +5,7 @@ from .rng import seed_mt, randbelow
 from .reports import (active, bytes_used, can_receive, transfer, begin_step, sense_reports,
                       masked_sense_reports, end_step, reset_reward_state)
 from .phy import xy, busy, emit, evaluate, arrival_end, latest_arrival_end
-from .events import push, pop
+from .events import push, pop, replace_root
 from .telemetry import record_action
 from .power import power_from_action, link_power_feasible
 from .streaming import (clear_pending, fill_session, fragment_bit, inject, window_count, window_mask)
@@ -347,6 +347,9 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
     e = wp.tid()
     now = s.packet_time[e]
     end = (s.mission_time[e]+p.dt)*wp.float64(1e6)
+    # Motion is fixed during packet_step; invalidate once, then reuse exact link gains.
+    for pair in range((p.n+1)*(p.n+1)):
+        s.pair_time[e,pair] = wp.float64(-1)
     clear_pending(s,p,e,now/wp.float64(1e6))
     for source in range(p.n):
         index = int(destination[e,source])
@@ -400,8 +403,17 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
         kind = s.event_kind[e,0]
         arg = s.event_arg[e,0]
         generation = s.event_generation[e,0]
-        pop(s,e)
         s.packet_time[e] = time
+        if kind == LISTEN and s.pkt_backoff_version[e,arg] == generation:
+            if not busy(s,p,e,s.pkt_source[e,arg],time):
+                replace_root(s,e,time+wp.float64(1),LISTEN,arg,generation,1)
+                continue
+        if kind == POLL and s.node_feed_alive[e,arg] != 0:
+            if not (s.node_queue_count[e,arg] > 0 and s.node_current[e,arg] < 0
+                    and s.node_wait_finish[e,arg] != 0):
+                replace_root(s,e,time+poll_delay(s,p,e,time),POLL,arg,0,1)
+                continue
+        pop(s,e)
         event(s,p,e,kind,arg,generation,time)
     s.packet_time[e] = end
     clear_pending(s,p,e,end/wp.float64(1e6))
