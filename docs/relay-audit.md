@@ -88,3 +88,17 @@ intentionally emits no 95% bootstrap confidence interval until all 30 paired
 seeds exist for a contrast, so these numbers are not final algorithm or relay/
 power conclusions. The checkpoint training budgets are also partial and unequal,
 which further prevents a final algorithm ranking from this snapshot.
+
+### Paired-audit health check (2026-10-20 03:29 UTC)
+
+A later non-invasive health check showed 189/360 completed atomic cases, up from
+183/360 at the earlier snapshot. All four audit processes were alive and actively
+using CPU, and all four `progress.json` files were being updated. Validation of
+every completed case found zero malformed/incomplete cases and zero fingerprint
+mismatches. No `.tmp` or `.partial` result files were present. Approximately 68 GB
+of filesystem space remained. The only stderr message was Warp's expected warning
+that no CUDA driver is available; these audits are intentionally running on CPU.
+
+Current completed cases by checkpoint were 42/90 MASAC BASE, 48/90 MATD3 BASE,
+46/90 MASAC PQL, and 53/90 MATD3 PQL. The matrix remains incomplete, so final
+confidence intervals and communication-ablation conclusions are still withheld.
