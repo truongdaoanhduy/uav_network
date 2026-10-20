@@ -31,7 +31,11 @@ SHA256, full configuration/scenario, seed bank, modes, physical fixed power, tra
 setting, and controls version. Restart the identical command to reuse complete
 matching cases. Incomplete/malformed cases are rerun; changed protocols require
 another directory. `summary.complete` refers to the entire requested matrix;
-per-mode completeness is also explicit. Use one writer per output directory.
+per-mode completeness is also explicit. `run_relay_audit` remains the single
+writer that establishes the protocol. After `protocol.json` exists,
+`run_relay_audit_cases` may evaluate disjoint case subsets in parallel; each case
+is fingerprint-checked and atomically replaced, and already-complete matching
+cases are skipped.
 
 Summaries retain MissionMetrics and OutcomePool packet PDR, power/underpower
 diagnostics, search, delivery, success, battery, and successful direct/relayed
@@ -117,3 +121,64 @@ relay/power audit work.
 This gate does not close the paired experiment itself. Final completion still
 requires all 360 atomic cases (4 checkpoints x 30 seeds x 3 communication modes),
 followed by a fresh final verification and the 30-seed paired confidence intervals.
+
+
+## Final paired evaluation (2026-10-20)
+
+The legacy-checkpoint communication matrix is complete: **360/360 atomic cases**
+(4 checkpoints x 30 seeds x 3 communication modes). Every case was reread after
+completion; all 360 were complete, parseable, matched the expected checkpoint
+fingerprint/mode/seed, and contained a record. No `.tmp` or `.partial` result
+files remained. Each paired contrast therefore has all 30 seeds and a 10,000-
+replicate paired bootstrap 95% confidence interval.
+
+| Checkpoint | learned - direct-only delivery | 95% CI | learned - fixed-power delivery | 95% CI |
+| --- | ---: | ---: | ---: | ---: |
+| MASAC BASE (`1b6cacd3`) | +1.33 pp | [-2.38, +5.05] | -4.95 pp | [-10.29, +0.29] |
+| MATD3 BASE (`3e97c782`) | -0.19 pp | [-0.86, +0.48] | -1.24 pp | [-2.95, +0.38] |
+| MASAC PQL (`11869744`) | **+6.19 pp** | **[+2.95, +9.52]** | +2.76 pp | [-0.57, +6.10] |
+| MATD3 PQL (`89f59c30`) | +0.38 pp | [-0.10, +0.95] | **-2.86 pp** | **[-4.48, -1.33]** |
+
+Within these fixed historical checkpoints, the strongest supported relay result
+is MASAC PQL: preserving its learned peer/GCS destination decisions improves
+mean delivery by 6.19 percentage points relative to forcing direct-only
+communication, and the paired 95% interval excludes zero. MASAC BASE, MATD3
+BASE, and MATD3 PQL do not show a statistically resolved learned-vs-direct-only
+change under this 30-seed audit.
+
+The power ablation gives a different signal. MATD3 PQL's learned power is 2.86
+percentage points worse than fixed maximum power and its 95% interval is wholly
+below zero. For MASAC PQL, MASAC BASE, and MATD3 BASE, the learned-vs-fixed-power
+intervals cross zero, so this audit does not establish a power advantage for the
+learned control in those checkpoints.
+
+Mode-level diagnostics are consistent with those contrasts. MASAC PQL delivered
+526 reports with learned communication versus 461 direct-only and 497 fixed-
+power; its learned mode completed 203 relayed GCS reports. MATD3 PQL delivered
+184 reports learned versus 180 direct-only and 214 fixed-power. Fixed maximum
+power also produced pooled packet PDR near 98-99% for all four checkpoints,
+whereas learned MATD3/MATD3-PQL power had substantially lower pooled PDR
+(73.68% and 70.93%, respectively).
+
+These are **communication ablations of immutable partial checkpoints**, not an
+algorithm ranking and not evidence of training convergence. All four checkpoint
+records report `episodes_completed=0`, `episode_budget_complete=false`, unequal
+global-step exposure, and a saved 2000-step evaluation horizon. Across every
+checkpoint/mode, all 30 audited episodes ended with all UAV batteries empty.
+Therefore this matrix can support statements about relay/power behavior at each
+fixed checkpoint, but it cannot establish that MASAC, MATD3, or PQL is globally
+better or energy-optimal. New Kaggle training remains governed by the 1800-step
+profile.
+
+Final verification after matrix completion ran the relay/feasibility/resume test
+group and reported **34 passed, 11 skipped, 721 subtests passed**. A fresh diff
+from audit base `c547595042ab336140f62c101b865592132a179b` still shows no changes
+under `uav_network/algorithms`, `uav_network/experiments/training.py`,
+`uav_network/experiments/pql_training.py`, or `configs`; the MASAC/MATD3 training
+baseline source is unchanged.
+
+A supplementary Kaggle attempt was not used in the scientific matrix. The
+kernel failed before evaluation because the launcher assumed a dataset mount
+path that did not contain `protocol.json`; no remote case from that failed run
+was imported. The complete 360-case matrix above was produced and validated from
+the local fingerprinted case store.
