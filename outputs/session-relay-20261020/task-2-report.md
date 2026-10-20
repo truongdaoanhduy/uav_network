@@ -80,3 +80,24 @@ Intermediate verification: first GREEN had one invalid test fixture (.02W below 
 ## Limits and root follow-up
 
 No expensive checkpoint matrix or full35 mission was launched by this worker. Root will run actual saved2000 checkpoint controls, supplied full35/25-obstacle/1MB/3MB feasibility at 1800, full CPU discovery, and available CUDA verification. No CUDA driver is available in this worker's CPU runtime. The audit expects one writer per output directory. A failed privileged oracle episode is evidence about that controller, not mission impossibility. Controls are fixed-policy ablations; later trajectories may diverge after feedback. No dependencies, credentials, cloud launches, pushes, scientific kernels, channel equations, reward equations, or algorithm blobs changed.
+
+
+## Review fix round 1 — initial staging and malformed case recovery
+
+Fix base: f9124b22fe4e65ba8732f0721f562f34f274d436. Addressed independent review I1 and M1 without changing controls, scenario, evaluator or scientific behavior.
+
+Initial protocol recovery now accepts only a directory consisting entirely of regular, non-symlink `protocol.json.<eight tempfile characters>.tmp` staging files. Complete staged JSON must match the requested protocol; incomplete/empty JSON may be rewritten. All entries are validated before publication or cleanup. After atomic protocol publication, old staging files are removed. Unknown entries, directories, symlinks, incompatible complete staging, and incompatible finalized protocols remain rejected under the existing single-writer contract. Case roots decoded as null/list/scalar are treated as incomplete and rerun; completed cases claiming foreign protocol/mode/seed still reject without overwrite.
+
+RED command:
+```bash
+PYTHONPATH=/tmp/uav-launch-http:.:tests .venv/bin/python -m pytest tests/test_relay_audit.py -q -k 'initial_protocol_sigkill or valid_json_malformed'
+```
+Evidence `task-2-fix1-red.txt`: **6 failed, 1 passed, 8 deselected in 12.24s**. The real child was SIGKILLed at initial fsync (exit -9), leaving staged protocol output; restart rejected it. The five malformed roots (null, list, number, string, boolean) raised AttributeError before the fix. The test also verifies conservative rejection of unrelated startup content and foreign completed cases.
+
+GREEN command (covering file only, as requested):
+```bash
+PYTHONPATH=/tmp/uav-launch-http:.:tests .venv/bin/python -m pytest tests/test_relay_audit.py -q
+```
+Evidence `task-2-fix1-green.txt`: **10 passed, 8 subtests passed in 21.22s**. `git diff --check` passed; scientific directories have no diff from FIX_BASE. No larger suite repeated, expensive scenario runs launched, or running root feasibility state changed.
+
+Fix files: uav_network/experiments/relay_audit.py; tests/test_relay_audit.py; this report; task-2-fix1-red.txt; task-2-fix1-green.txt.

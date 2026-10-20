@@ -142,6 +142,86 @@ class RelayAuditTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     audit.run_relay_audit(checkpoint, seeds, modes, output_dir=Path(folder) / "bad")
 
+    def test_initial_protocol_sigkill_and_partial_staging_recover(self):
+        import signal
+        import subprocess
+        import sys
+        from uav_network.experiments import relay_audit as audit
+        with TemporaryDirectory() as folder:
+            checkpoint = snapshot(Path(folder) / "policy", small_config())
+            output = Path(folder) / "audit"
+            child = (
+                "import os, signal, sys; from unittest.mock import patch; "
+                "from uav_network.experiments import relay_audit as audit; "
+                "kill = lambda _: os.kill(os.getpid(), signal.SIGKILL); "
+                "context = patch.object(audit.os, 'fsync', side_effect=kill); "
+                "context.start(); "
+                "audit.run_relay_audit(sys.argv[1], [101], ['learned'], output_dir=sys.argv[2])"
+            )
+            process = subprocess.run([sys.executable, "-c", child, str(checkpoint), str(output)],
+                                     cwd=ROOT, capture_output=True, text=True, timeout=30)
+            self.assertEqual(process.returncode, -signal.SIGKILL, process.stderr)
+            self.assertFalse((output / "protocol.json").exists())
+            staged = list(output.iterdir())
+            self.assertEqual(len(staged), 1)
+            self.assertTrue(staged[0].name.startswith("protocol.json."))
+            # Earlier loss during the write can also leave a partial/empty staging file.
+            (output / "protocol.json.abcdefgh.tmp").write_text("{")
+            (output / "protocol.json.12345678.tmp").write_text("")
+            result = audit.run_relay_audit(checkpoint, [101], ["learned"], output_dir=output)
+            self.assertTrue(result["complete"])
+            self.assertEqual(list(output.glob("protocol.json.*.tmp")), [])
+
+    def test_initial_protocol_recovery_rejects_unknown_or_incompatible_content(self):
+        from uav_network.experiments import relay_audit as audit
+        with TemporaryDirectory() as folder:
+            checkpoint = snapshot(Path(folder) / "policy", small_config())
+            for name in ("notes.txt", "protocol.json.unrelated.tmp", "cases"):
+                with self.subTest(name=name):
+                    output = Path(folder) / name.replace(".", "_")
+                    output.mkdir()
+                    staging = output / "protocol.json.abcdefgh.tmp"
+                    staging.write_text("{")
+                    unrelated = output / name
+                    if name == "cases":
+                        unrelated.mkdir()
+                    else:
+                        unrelated.write_text("unrelated")
+                    with self.assertRaises(ValueError):
+                        audit.run_relay_audit(checkpoint, [101], ["learned"], output_dir=output)
+                    self.assertTrue(staging.exists())
+                    self.assertTrue(unrelated.exists())
+            output = Path(folder) / "foreign"
+            output.mkdir()
+            staged = output / "protocol.json.abcdefgh.tmp"
+            staged.write_text('{"fingerprint": "another-protocol"}')
+            with self.assertRaises(ValueError):
+                audit.run_relay_audit(checkpoint, [101], ["learned"], output_dir=output)
+            self.assertTrue(staged.exists())
+
+    def test_valid_json_malformed_case_roots_recover_but_foreign_complete_case_rejects(self):
+        from uav_network.experiments import relay_audit as audit
+        with TemporaryDirectory() as folder:
+            checkpoint = snapshot(Path(folder) / "policy", small_config())
+            output = Path(folder) / "audit"
+            audit.run_relay_audit(checkpoint, [101], ["learned"], output_dir=output)
+            path = output / "cases" / "learned-101.json"
+            original_case = json.loads(path.read_text())
+            for value in (None, [], 42, "invalid case", True):
+                with self.subTest(value=value):
+                    path.write_text(json.dumps(value))
+                    with patch.object(audit, "run_episode", wraps=audit.run_episode) as run:
+                        result = audit.run_relay_audit(checkpoint, [101], ["learned"], output_dir=output)
+                    self.assertEqual(run.call_count, 1)
+                    self.assertTrue(result["complete"])
+            case = original_case
+            case["fingerprint"] = "another-protocol"
+            path.write_text(json.dumps(case))
+            before = path.read_bytes()
+            with self.assertRaises(ValueError):
+                audit.run_relay_audit(checkpoint, [101], ["learned"], output_dir=output)
+            self.assertEqual(path.read_bytes(), before)
+
     def test_audit_cli_runs_saved_policy_and_writes_complete_case(self):
         import subprocess
         import sys

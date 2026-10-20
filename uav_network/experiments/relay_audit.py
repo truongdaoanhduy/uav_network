@@ -11,6 +11,7 @@ import hashlib
 import json
 import math
 import os
+import re
 from pathlib import Path
 import tempfile
 
@@ -160,9 +161,22 @@ def run_relay_audit(checkpoint, seeds=None, modes=MODES, fixed_power_w=None, out
         if json.loads(protocol_path.read_text()) != protocol:
             raise ValueError("Existing audit protocol/checkpoint is incompatible; use another output directory")
     else:
-        if any(output.iterdir()):
-            raise ValueError("Nonempty audit output has no protocol; use another output directory")
+        # Single-writer recovery: process loss before initial replace can leave
+        # only our NamedTemporaryFile staging files, including partial writes.
+        staging = list(output.iterdir())
+        for path in staging:
+            if (not re.fullmatch(r"protocol\.json\.[a-z0-9_]{8}\.tmp", path.name)
+                    or path.is_symlink() or not path.is_file()):
+                raise ValueError("Nonempty audit output has no protocol; use another output directory")
+            try:
+                staged_protocol = json.loads(path.read_text())
+            except json.JSONDecodeError:
+                continue
+            if staged_protocol != protocol:
+                raise ValueError("Existing staged audit protocol/checkpoint is incompatible")
         _atomic_json(protocol_path, protocol)
+        for path in staging:
+            path.unlink()
     records = []
     pending = []
     for seed in seeds:
@@ -171,6 +185,8 @@ def run_relay_audit(checkpoint, seeds=None, modes=MODES, fixed_power_w=None, out
             try:
                 case = json.loads(path.read_text())
             except (FileNotFoundError, json.JSONDecodeError):
+                case = {}
+            if not isinstance(case, dict):
                 case = {}
             if case.get("complete") is True:
                 if (case.get("fingerprint") != protocol["fingerprint"] or case.get("mode") != mode
