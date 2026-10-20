@@ -20,8 +20,9 @@ def resolve_kaggle_dataset_mount(input_root, required_files):
     """Return the unique Kaggle input directory containing all required files."""
     root = Path(input_root)
     required = tuple(required_files)
-    matches = [folder for folder in root.iterdir()
-               if folder.is_dir() and all((folder / name).is_file() for name in required)]
+    candidates = [root, *(path for path in root.rglob("*") if path.is_dir())]
+    matches = [folder for folder in candidates
+               if all((folder / name).is_file() for name in required)]
     if not matches:
         raise FileNotFoundError(f"No Kaggle dataset mount contains {sorted(required)!r}")
     if len(matches) > 1:

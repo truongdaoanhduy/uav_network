@@ -28,6 +28,17 @@ class CloudTests(unittest.TestCase):
                 root, {"protocol.json", "checkpoint.pt", "cases.json"})
             self.assertEqual(resolved, mounted)
 
+    def test_kaggle_dataset_mount_resolves_namespaced_nested_mount(self):
+        from uav_network.cloud.client import resolve_kaggle_dataset_mount
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            mounted = root / "datasets" / "owner" / "actual-dataset-slug"
+            mounted.mkdir(parents=True)
+            required = {"protocol.json", "checkpoint.pt", "cases.json"}
+            for name in required:
+                (mounted / name).write_text(name)
+            self.assertEqual(resolve_kaggle_dataset_mount(root, required), mounted)
+
     def test_kaggle_dataset_mount_rejects_missing_or_ambiguous_inputs(self):
         from uav_network.cloud.client import resolve_kaggle_dataset_mount
         required = {"protocol.json", "checkpoint.pt", "cases.json"}
