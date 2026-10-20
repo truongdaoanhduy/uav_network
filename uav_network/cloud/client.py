@@ -16,6 +16,20 @@ class CredentialFileSetError(RuntimeError):
     """A private credential dataset contains files the CPU job must not mount."""
 
 
+def resolve_kaggle_dataset_mount(input_root, required_files):
+    """Return the unique Kaggle input directory containing all required files."""
+    root = Path(input_root)
+    required = tuple(required_files)
+    matches = [folder for folder in root.iterdir()
+               if folder.is_dir() and all((folder / name).is_file() for name in required)]
+    if not matches:
+        raise FileNotFoundError(f"No Kaggle dataset mount contains {sorted(required)!r}")
+    if len(matches) > 1:
+        raise RuntimeError(f"Kaggle dataset mount is ambiguous for {sorted(required)!r}: "
+                           f"{[folder.name for folder in matches]!r}")
+    return matches[0]
+
+
 def run_kaggle(args, account, timeout=45):
     env = os.environ.copy()
     env["KAGGLE_API_TOKEN"] = account.token

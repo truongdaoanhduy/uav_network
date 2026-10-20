@@ -14,6 +14,35 @@ from uav_network.cloud.remote import learner_command, wait_all
 
 
 class CloudTests(unittest.TestCase):
+    def test_kaggle_dataset_mount_is_resolved_by_required_files_not_slug(self):
+        from uav_network.cloud import client
+        self.assertTrue(hasattr(client, "resolve_kaggle_dataset_mount"),
+                        "cloud client needs a dataset mount resolver")
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            mounted = root / "unexpected-kaggle-mount-name"
+            mounted.mkdir()
+            for name in ("protocol.json", "checkpoint.pt", "cases.json"):
+                (mounted / name).write_text(name)
+            resolved = client.resolve_kaggle_dataset_mount(
+                root, {"protocol.json", "checkpoint.pt", "cases.json"})
+            self.assertEqual(resolved, mounted)
+
+    def test_kaggle_dataset_mount_rejects_missing_or_ambiguous_inputs(self):
+        from uav_network.cloud.client import resolve_kaggle_dataset_mount
+        required = {"protocol.json", "checkpoint.pt", "cases.json"}
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            with self.assertRaises(FileNotFoundError):
+                resolve_kaggle_dataset_mount(root, required)
+            for folder_name in ("first-mount", "second-mount"):
+                folder = root / folder_name
+                folder.mkdir()
+                for name in required:
+                    (folder / name).write_text(name)
+            with self.assertRaisesRegex(RuntimeError, "ambiguous"):
+                resolve_kaggle_dataset_mount(root, required)
+
     def test_cli_uses_the_active_python_environment_without_a_global_executable(self):
         from uav_network.cloud.client import run_kaggle
         import os
