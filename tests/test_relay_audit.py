@@ -310,6 +310,55 @@ class RelayAuditTests(unittest.TestCase):
             for name, value in before.items():
                 np.testing.assert_array_equal(getattr(state, name).numpy(), value)
 
+    def test_warp_oracle_view_exposes_report_recovery_state(self):
+        from uav_network.environment.gpu.vector import WarpMissionEnv
+        from uav_network.experiments.feasibility import _warp_oracle_view
+        c = load_config(ROOT / "configs/comparison-25k-scenario-v3.yaml")
+        c.world.num_uavs, c.world.num_targets, c.world.num_obstacles = 2, 1, 0
+        c.runtime.num_envs = 1
+        c.runtime.device = c.runtime.replay_device = "cpu"
+        env = WarpMissionEnv(c)
+        self.addCleanup(env.close)
+        obs, _ = env.reset(seed=44)
+        state = env.vector.s
+        recovery = np.zeros((1, 2, 1), np.int32)
+        recovery[0, 0, 0] = 1
+        state.recovery.assign(recovery)
+
+        view = _warp_oracle_view(env, obs)
+
+        self.assertTrue(hasattr(view.reports, "recovery_pending"))
+        self.assertTrue(bool(view.reports.recovery_pending[0, 0]))
+        self.assertTrue(hasattr(view.reports, "delivered"))
+
+    def test_warp_oracle_revisits_known_undelivered_target_after_custody_loss(self):
+        from uav_network.environment.gpu.vector import WarpMissionEnv
+        from uav_network.experiments.feasibility import oracle_action
+        c = load_config(ROOT / "configs/comparison-25k-scenario-v3.yaml")
+        c.world.num_uavs, c.world.num_targets, c.world.num_obstacles = 2, 1, 0
+        c.runtime.num_envs = 1
+        c.sensor.altitude_m, c.sensor.obstacle_occlusion = 20, False
+        c.runtime.device = c.runtime.replay_device = "cpu"
+        env = WarpMissionEnv(c)
+        self.addCleanup(env.close)
+        env.reset(seed=44)
+        state = env.vector.s
+        state.positions.assign(np.asarray([[[500., 100.], [900., 900.]]], np.float64))
+        state.velocities.zero_()
+        state.targets.assign(np.asarray([[[500., 400.]]], np.float64))
+        state.report_present.zero_()
+        state.known.assign(np.ones((1, 2, 1), np.int32))
+        state.delivered.zero_()
+        recovery = np.zeros((1, 2, 1), np.int32)
+        recovery[0, 0, 0] = 1
+        state.recovery.assign(recovery)
+        obs = env.vector._publish(env.vector._buffers[env.vector._buffer])["observation"][0].numpy()
+        env._refresh()
+
+        action = oracle_action(env, observation=obs)
+
+        self.assertGreater(float(action.continuous[0, 1]), 0.0)
+
     def test_real_warp_feasibility_preserves_config_and_reports_backend_layout(self):
         from uav_network.experiments.feasibility import run_feasibility
         c = small_config()

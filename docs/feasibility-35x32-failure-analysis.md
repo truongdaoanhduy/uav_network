@@ -76,3 +76,54 @@ A follow-up oracle-only improvement may prioritize known-but-undelivered targets
 that have no live custody/recovery owner. Such a change must remain isolated from
 MASAC/MATD3 baseline learning logic and be regression-tested before rerunning the
 feasibility probe.
+
+
+## Recovery-aware oracle follow-up (2026-10-20)
+
+The oracle-only recovery change described above was implemented without changing
+MASAC/MATD3 learners, training code, reward equations, network equations, report
+TTL/buffer limits, or the 1800-step production profile. The revised feasibility
+assignment treats an undelivered target with no live custody as search work only
+when the selected active UAV can legitimately create a fresh report: either the
+UAV has never known that target, or it owns `recovery_pending` while rediscovery
+recovery is enabled. Targets already delivered or still held in a live report
+buffer are not reassigned. Warp evaluation reads the existing `recovery` and
+`delivered` state; no simulator state is mutated by the oracle view.
+
+A rerun used exactly the same configuration and seed as the original 35/32
+artifact: `warp_packet`, seed `2000000044`, 35 targets, 25 obstacles, 1800-step
+horizon, 1 MB reports, and 3 MB buffers. The resolved configuration objects are
+identical and both runs have the same layout hash
+`5dfd97d53720f5708e04a5f6c0a57b048ce4cdedc5af5e0829910f13eb5ceb5d`.
+
+| Metric | Original oracle | Recovery-aware oracle |
+| --- | ---: | ---: |
+| Search | 35/35 (100%) | 35/35 (100%) |
+| GCS delivery | 32/35 (91.43%) | **35/35 (100%)** |
+| Termination | time limit | **success** |
+| Episode length | 1800 | **1486** |
+| Regenerated reports | 19 | 25 |
+| Expired reports | 7 | 8 |
+| Fresh-discovery buffer drops | 31 | 37 |
+| Direct / relayed GCS reports | 24 / 8 | 23 / 12 |
+| Peer custody transfers | 17 | 23 |
+| Packet PDR | 89.83% | 86.11% |
+| PHY success | 73.28% | 65.58% |
+| Propulsion energy | 1,654,100.67 J | **1,511,953.99 J** |
+| UAV radio energy | 106.48 J | 124.10 J |
+
+All six UAVs still had positive battery when the revised oracle terminated
+successfully; final battery fractions were approximately 11.51%, 5.75%, 12.25%,
+12.37%, 11.95%, and 0.68%. The network was actually noisier by PDR/PHY metrics
+and incurred more retry-limit pressure, so the 35/35 result is not explained by a
+friendlier channel realization. Instead, deliberate report recovery allowed the
+mission to finish before battery exhaustion despite that contention.
+
+This closes the specific oracle blind spot identified in the 35/32 run. It shows
+that this exact V3 scene is not blocked by the configured 1800-step horizon,
+battery, TTL, buffer, or packet model when the privileged controller deliberately
+recovers lost custody. It does **not** prove every random V3 scene is feasible,
+and it does not establish that MASAC/MATD3 learned policies can reproduce the
+oracle behavior. Those remain separate training/evaluation questions.
+
+Evidence: `outputs/session-relay-20261020/feasibility-warp-recovery-full35-1800/result.json`.

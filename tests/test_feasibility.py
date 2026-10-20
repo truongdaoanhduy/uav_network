@@ -83,6 +83,28 @@ class FeasibilityOracleTests(unittest.TestCase):
         action = oracle_action(env)
         self.assertLess(action.continuous[0, 1], 0.0)
 
+    def test_oracle_revisits_known_undelivered_target_after_custody_loss(self):
+        from uav_network.experiments.feasibility import oracle_action
+        c = self.config(uavs=2, targets=1)
+        env = SwarmSearchEnv(c)
+        self.addCleanup(env.close)
+        env.reset(seed=44, options={"positions": [[500, 100], [900, 900]],
+                                    "targets": [[500, 400]], "obstacles": []})
+        # The report existed before, then custody expired/dropped. UAV 0 is the
+        # legitimate recovery owner: a fresh camera observation can regenerate it.
+        env.reports.known[:, 0] = True
+        env.reports.delivered[0] = False
+        env.reports.buffers[0].clear()
+        env.reports.buffers[1].clear()
+        env.reports.recovery_pending[:, 0] = False
+        env.reports.recovery_pending[0, 0] = True
+
+        action = oracle_action(env)
+
+        # Returning to GCS from y=100 produces negative y acceleration; recovery
+        # requires deliberately flying north toward the lost target at y=400.
+        self.assertGreater(float(action.continuous[0, 1]), 0.0)
+
     def test_small_deterministic_mission_delivers_with_battery_remaining(self):
         from uav_network.experiments.feasibility import run_explicit_feasibility
         c = self.config(uavs=2, targets=2)

@@ -49,6 +49,49 @@ def assign_search_targets(positions, targets, discovered, active):
     return result
 
 
+def assign_oracle_search_targets(positions, targets, known, recovery_pending, delivered,
+                                 buffers, active, recovery_enabled=True):
+    """Assign targets that can create a new live report after observation.
+
+    Undiscovered targets remain ordinary search work. A globally known target is
+    revisited only when it is still undelivered, has no live custody, and the
+    selected UAV can legitimately create a report: either that UAV has never
+    known the target or it owns a pending rediscovery recovery.
+    """
+    positions = np.asarray(positions, dtype=float)
+    targets = np.asarray(targets, dtype=float)
+    known = np.asarray(known, dtype=bool)
+    recovery_pending = np.asarray(recovery_pending, dtype=bool)
+    delivered = np.asarray(delivered, dtype=bool)
+    active = np.asarray(active, dtype=bool)
+    custody = np.zeros(len(targets), dtype=bool)
+    for buffer in buffers:
+        for target_id in buffer:
+            custody[int(target_id)] = True
+
+    result = [None] * len(positions)
+    uavs = set(np.flatnonzero(active).tolist())
+    targets_left = set(np.flatnonzero(~delivered & ~custody).tolist())
+    while uavs and targets_left:
+        candidates = []
+        for i in uavs:
+            for target_id in targets_left:
+                globally_known = bool(known[:, target_id].any())
+                can_create = (not known[i, target_id] or
+                              (bool(recovery_enabled) and recovery_pending[i, target_id]))
+                if globally_known and not can_create:
+                    continue
+                candidates.append((float(np.linalg.norm(positions[i] - targets[target_id])),
+                                   i, target_id))
+        if not candidates:
+            break
+        _, i, target_id = min(candidates)
+        result[i] = target_id
+        uavs.remove(i)
+        targets_left.remove(target_id)
+    return result
+
+
 def _peer_action_index(source, peer, num_uavs):
     peers = [i for i in range(num_uavs) if i != source]
     return peers.index(peer) + 1
@@ -144,7 +187,11 @@ def _warp_oracle_view(env, observation):
         config=env.config, positions=env.positions, velocities=env.velocities,
         targets=env.targets, obstacles=env.obstacles, gcs=env.gcs,
         active=obs[:, 9].astype(bool),
-        reports=SimpleNamespace(buffers=buffers, known=env.reports.known),
+        reports=SimpleNamespace(
+            buffers=buffers,
+            known=s.known.numpy()[0].astype(bool),
+            recovery_pending=s.recovery.numpy()[0].astype(bool),
+            delivered=s.delivered.numpy()[0].astype(bool)),
         network=SimpleNamespace(_eligible=eligible))
 
 
@@ -168,8 +215,10 @@ def oracle_action(env, margin_db=3.0, observation=None):
                 break
         return_to_gcs[source] = communication[source] is None
 
-    discovered = env.reports.known.any(axis=0)
-    assignments = assign_search_targets(env.positions, env.targets, discovered, env.active)
+    assignments = assign_oracle_search_targets(
+        env.positions, env.targets, env.reports.known, env.reports.recovery_pending,
+        env.reports.delivered, env.reports.buffers, env.active,
+        recovery_enabled=env.config.network.rediscovery_recovery)
     continuous = np.zeros((n, 3), dtype=np.float32)
     continuous[:, :2] = _motion_action(env, assignments, return_to_gcs).astype(np.float32)
     destination = np.zeros(n, dtype=np.int64)
