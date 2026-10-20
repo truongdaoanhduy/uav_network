@@ -69,7 +69,7 @@ def test_actor_overflow_skips_every_optimizer_and_scale_is_independent():
     optimizers = [torch.optim.Adam([parameter], lr=.01) for parameter in parameters]
     adapter = p.ProbeAMP(SimpleNamespace(), device_type="cpu", init_scale=128.0)
     critic_scale = adapter.scalers["critic"].get_scale()
-    adapter.actor_steps([parameters[0] * 2, parameters[1] * float("inf")],
+    adapter.actor_steps([parameters[0] * 2, parameters[1] * 1e38],
                         optimizers, [[parameter] for parameter in parameters], 1.0)
     assert [parameter.item() for parameter in parameters] == [1.0, 1.0]
     assert all(not optimizer.state for optimizer in optimizers)
@@ -159,3 +159,20 @@ def test_cpu_adapter_preserves_original_masac_equations_and_compiler_patch_resto
     assert [actor.encoder.forward for actor in learner.actors] == forwards
     assert evidence["critic"]["completed_calls"] == 3
     assert evidence["critic"]["fp16_outputs"] == 0
+
+
+def test_nonfinite_unscaled_loss_with_finite_derivative_never_steps():
+    p = probe()
+    parameters = [torch.nn.Parameter(torch.tensor(1.0)) for _ in range(2)]
+    optimizers = [torch.optim.Adam([parameter], lr=.01) for parameter in parameters]
+    adapter = p.ProbeAMP(SimpleNamespace(critic_optimizer=optimizers[0]),
+                         device_type="cpu", init_scale=128)
+    with pytest.raises(FloatingPointError, match="Non-finite"):
+        adapter.single_step(parameters[0] * 2 + float("inf"), optimizers[0], [parameters[0]], 10)
+    assert parameters[0].item() == 1
+    assert not optimizers[0].state
+    with pytest.raises(FloatingPointError, match="Non-finite"):
+        adapter.actor_steps([parameters[0] * 2, parameters[1] * 2 + float("inf")],
+                            optimizers, [[parameter] for parameter in parameters], 10)
+    assert [parameter.item() for parameter in parameters] == [1, 1]
+    assert all(not optimizer.state for optimizer in optimizers)

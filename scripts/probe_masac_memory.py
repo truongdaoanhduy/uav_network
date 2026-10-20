@@ -55,8 +55,10 @@ class ProbeAMP:
                        for name in self.scalers}
         self.original = None
 
-    def _step(self, group, losses, optimizers, parameter_groups, grad_clip):
+    def _step(self, group, losses, optimizers, parameter_groups, grad_clip, check_finite=True):
         with torch.autocast(self.device_type, enabled=False):
+            if check_finite and not torch.isfinite(torch.stack(losses)).all():
+                raise FloatingPointError("Non-finite learner loss")
             scaler = self.scalers[group]
             count = self.counts[group]
             count["attempted"] += 1
@@ -85,10 +87,10 @@ class ProbeAMP:
 
     def single_step(self, loss, optimizer, parameters, grad_clip, check_finite=True):
         group = "critic" if optimizer is self.learner.critic_optimizer else "alpha"
-        return self._step(group, [loss], [optimizer], [parameters], grad_clip)[0]
+        return self._step(group, [loss], [optimizer], [parameters], grad_clip, check_finite)[0]
 
     def actor_steps(self, losses, optimizers, parameter_groups, grad_clip, check_finite=True):
-        return self._step("actor", losses, optimizers, parameter_groups, grad_clip)
+        return self._step("actor", losses, optimizers, parameter_groups, grad_clip, check_finite)
 
     def __enter__(self):
         import uav_network.algorithms.masac as module
