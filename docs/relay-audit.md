@@ -102,3 +102,18 @@ that no CUDA driver is available; these audits are intentionally running on CPU.
 Current completed cases by checkpoint were 42/90 MASAC BASE, 48/90 MATD3 BASE,
 46/90 MASAC PQL, and 53/90 MATD3 PQL. The matrix remains incomplete, so final
 confidence intervals and communication-ablation conclusions are still withheld.
+
+### Integration and baseline-preservation gate
+
+The archived full CPU integration run for this branch completed 526 tests with
+`OK (skipped=68)` and `UAV_TASK3_UNITTEST_EXIT=0`. A fresh source-tree diff from
+commit `c547595042ab336140f62c101b865592132a179b` through the current audit branch
+shows no changes under `uav_network/algorithms`, `uav_network/experiments/training.py`,
+`uav_network/experiments/pql_training.py`, or `configs`. The post-audit changes in
+that range are documentation and exact-resume verification tests only. Thus the
+MASAC/MATD3 learner/training baseline source remains unchanged by the current
+relay/power audit work.
+
+This gate does not close the paired experiment itself. Final completion still
+requires all 360 atomic cases (4 checkpoints x 30 seeds x 3 communication modes),
+followed by a fresh final verification and the 30-seed paired confidence intervals.
