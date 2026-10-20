@@ -1,6 +1,7 @@
 """Pinned native versus device packet engine: custody, MAC timing and energy."""
 import importlib
 import importlib.util
+import inspect
 import random
 import unittest
 
@@ -138,6 +139,11 @@ class GPUPacketTests(unittest.TestCase):
         events = importlib.import_module("uav_network.communication.gpu.events")
         self.assertTrue(hasattr(events, "replace_root"))
         self.assertTrue(hasattr(events, "next_time_after_root"))
+
+    def test_active_poll_coalescing_ignores_other_poll_events_as_boundaries(self):
+        _, _, mac = self.backend()
+        source = inspect.getsource(mac.packet_step)
+        self.assertIn("if s.event_kind[e,k] != POLL:", source)
 
     def test_state_schema_and_masked_reset(self):
         wp, state, mac = self.backend()

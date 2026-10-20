@@ -428,7 +428,10 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
                 delay = poll_delay(s,p,e,time)
                 if (s.coalesce_step[e] == 0 and wp.floor(p.queue_poll) == p.queue_poll
                     and wp.floor(time) == time):
-                    boundary = next_time_after_root(s,e,end)
+                    boundary = end
+                    for k in range(1,s.event_count[e]):
+                        if s.event_kind[e,k] != POLL:
+                            boundary = wp.min(boundary,s.event_time[e,k])
                     jumps = int(wp.ceil((boundary-time)/p.queue_poll))
                     if jumps < 1:
                         jumps = 1
