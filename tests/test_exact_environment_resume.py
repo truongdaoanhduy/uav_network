@@ -11,6 +11,7 @@ import torch
 import warp as wp
 
 from test_continuation import small_config
+from exact_resume_helpers import exact_world_config, assert_snapshot_arrays
 from test_cloud_continuation import parent_spec, learner_result, write_resume
 from uav_network.environment.gpu.vector import WarpVectorEnv
 from uav_network.experiments.training import train
@@ -20,11 +21,7 @@ from uav_network.cloud import remote
 
 class ExactWorldTests(unittest.TestCase):
     def config(self, folder="unused"):
-        c = small_config(folder)
-        c.runtime.environment_backend = "warp_packet"
-        c.network.enabled = True
-        c.world.max_steps = 12
-        return c
+        return exact_world_config(folder)
 
     def test_split_world_preserves_every_array_and_future_random_actions(self):
         c = self.config()
@@ -50,8 +47,7 @@ class ExactWorldTests(unittest.TestCase):
                 restored, reward_b, done_b, _, _ = right.step(vars(b))
                 torch.testing.assert_close(reward_a, reward_b, rtol=0, atol=0)
                 torch.testing.assert_close(done_a, done_b)
-                for name, value in left.snapshot_state()["arrays"].items():
-                    torch.testing.assert_close(value, right.snapshot_state()["arrays"][name], rtol=0, atol=0, equal_nan=True)
+                assert_snapshot_arrays(self, right.snapshot_state()["arrays"], left.snapshot_state()["arrays"])
         finally:
             left.close()
             right.close()
@@ -84,8 +80,7 @@ class ExactWorldTests(unittest.TestCase):
                 left.step(actions)
                 right.step(actions)
             actual, expected = right.snapshot_state(), left.snapshot_state()
-            for name, value in expected["arrays"].items():
-                torch.testing.assert_close(actual["arrays"][name], value, rtol=0, atol=0, equal_nan=True)
+            assert_snapshot_arrays(self, actual["arrays"], expected["arrays"])
         finally:
             left.close()
             right.close()

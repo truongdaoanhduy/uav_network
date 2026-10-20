@@ -1,2 +1,0 @@
-..........                                                       [100%]
-10 passed, 8 subtests passed in 21.22s
