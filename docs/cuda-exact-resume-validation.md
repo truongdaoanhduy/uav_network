@@ -46,3 +46,19 @@ compares one current array at a time. The training cases retain only small metad
 between calls. Temporary files are removed and CUDA caches released between cases.
 Allow disk space for two full snapshots/checkpoints per case plus replay/model
 data. Do not invoke the production fixture with CPU device overrides.
+
+## Verified Kaggle execution (2026-10-20)
+
+The reviewed branch `fix/v3-session-resume-relay-audit-20261020` at commit
+`da6cc466c2e9df740b90047150c4a5f61f4dfa29` was executed in the private Kaggle
+kernel `duytrngoanh/uav-resume-1800-cuda-check-20261020-da6cc466`. A fresh
+read-only status/output check at `2026-10-20T03:22:59Z` reported `complete` and
+validated two visible Tesla T4 GPUs. The exact production-profile fixture used
+`configs/comparison-20k-steps1800-scenario-v3.yaml` with 4096 environments,
+20,000 target episodes, `max_steps=1800`, and seed 44. All 11 CUDA tests executed
+with 0 failures, 0 errors, and 0 skips.
+
+This is a CUDA simulator/collector/checkpoint correctness validation, including
+full-4096 warmup/resume segments. It is **not** evidence that the 20,000-episode
+scored training budget has completed, and this validation did not submit a
+production training run.
