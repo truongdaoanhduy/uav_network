@@ -75,6 +75,17 @@ def pop(s: WorldState, e: int):
 
 
 @wp.func
+def next_time_after_root(s: WorldState, e: int, fallback: wp.float64) -> wp.float64:
+    result = fallback
+    count = s.event_count[e]
+    if count > 1:
+        child = int(1)
+        if count > 2 and earlier(s,e,2,1):
+            child = 2
+        result = wp.min(result,s.event_time[e,child])
+    return result
+
+@wp.func
 def replace_root(s: WorldState, e: int, time: wp.float64, kind: int, arg: int,
                  generation: int, priority: int):
     """Replace the current minimum with one newly inserted event.

@@ -4,8 +4,8 @@ from ...environment.gpu.state import WorldParams, WorldState
 from .rng import seed_mt, randbelow
 from .reports import (active, bytes_used, can_receive, transfer, begin_step, sense_reports,
                       masked_sense_reports, end_step, reset_reward_state)
-from .phy import xy, busy, emit, evaluate, arrival_end, latest_arrival_end
-from .events import push, pop, replace_root
+from .phy import xy, busy, emit, evaluate, arrival_start, arrival_end, latest_arrival_end
+from .events import push, pop, replace_root, next_time_after_root
 from .telemetry import record_action
 from .power import power_from_action, link_power_feasible
 from .streaming import (clear_pending, fill_session, fragment_bit, inject, window_count, window_mask)
@@ -405,13 +405,37 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
         generation = s.event_generation[e,0]
         s.packet_time[e] = time
         if kind == LISTEN and s.pkt_backoff_version[e,arg] == generation:
-            if not busy(s,p,e,s.pkt_source[e,arg],time):
-                replace_root(s,e,time+wp.float64(1),LISTEN,arg,generation,1)
+            node = s.pkt_source[e,arg]
+            if not busy(s,p,e,node,time):
+                boundary = next_time_after_root(s,e,end)
+                for k in range(s.frame_count[e]):
+                    frame = s.frame_order[e,k]
+                    if s.tx_source[e,frame] != node:
+                        start = arrival_start(s,p,e,frame,node)
+                        if time < start:
+                            boundary = wp.min(boundary,start)
+                jumps = int(wp.ceil(boundary-time))
+                if jumps < 1:
+                    jumps = 1
+                if jumps > 1:
+                    s.event_sequence[e] += wp.int64(jumps-1)
+                    s.diagnostic_counts[e,diag.CCA_CHECKS] += wp.int64(jumps-1)
+                replace_root(s,e,time+wp.float64(jumps),LISTEN,arg,generation,1)
                 continue
         if kind == POLL and s.node_feed_alive[e,arg] != 0:
             if not (s.node_queue_count[e,arg] > 0 and s.node_current[e,arg] < 0
                     and s.node_wait_finish[e,arg] != 0):
-                replace_root(s,e,time+poll_delay(s,p,e,time),POLL,arg,0,1)
+                delay = poll_delay(s,p,e,time)
+                if (s.coalesce_step[e] == 0 and wp.floor(p.queue_poll) == p.queue_poll
+                    and wp.floor(time) == time):
+                    boundary = next_time_after_root(s,e,end)
+                    jumps = int(wp.ceil((boundary-time)/p.queue_poll))
+                    if jumps < 1:
+                        jumps = 1
+                    if jumps > 1:
+                        s.event_sequence[e] += wp.int64(jumps-1)
+                    delay = wp.float64(jumps)*p.queue_poll
+                replace_root(s,e,time+delay,POLL,arg,0,1)
                 continue
         pop(s,e)
         event(s,p,e,kind,arg,generation,time)

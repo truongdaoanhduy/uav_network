@@ -137,6 +137,7 @@ class GPUPacketTests(unittest.TestCase):
     def test_event_heap_exposes_root_reschedule_primitive(self):
         events = importlib.import_module("uav_network.communication.gpu.events")
         self.assertTrue(hasattr(events, "replace_root"))
+        self.assertTrue(hasattr(events, "next_time_after_root"))
 
     def test_state_schema_and_masked_reset(self):
         wp, state, mac = self.backend()
