@@ -8,7 +8,7 @@
 **Spec:** docs/superpowers/specs/2026-10-20-v3-session-relay-design.md
 
 ## Global Constraints
-- Preserve scientific equations and algorithm blobs; preserve4096env/20000episodes/2000steps/seed44 for production profile.
+- Preserve scientific equations and algorithm blobs; preserve4096env/20000episodes/1800steps/seed44 for future Kaggle runs for production profile.
 - Never label an interrupted session as episode-budget complete.
 - No quota bypass,account creation,mass launches,or secret output.
 

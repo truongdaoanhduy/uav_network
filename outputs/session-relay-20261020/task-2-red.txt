@@ -1,0 +1,62 @@
+test_controls_copy_preserve_movement_and_direct_admission (test_relay_audit.RelayAuditTests.test_controls_copy_preserve_movement_and_direct_admission) ... ERROR
+test_fixed_power_inverts_existing_mapping_and_rejects_bad_values (test_relay_audit.RelayAuditTests.test_fixed_power_inverts_existing_mapping_and_rejects_bad_values) ... ERROR
+test_future_profile_only_changes_horizon_and_run_labels (test_relay_audit.RelayAuditTests.test_future_profile_only_changes_horizon_and_run_labels) ... ERROR
+test_real_pairing_restart_protocol_and_incomplete_recovery (test_relay_audit.RelayAuditTests.test_real_pairing_restart_protocol_and_incomplete_recovery) ... ERROR
+test_real_warp_feasibility_preserves_config_and_reports_backend_layout (test_relay_audit.RelayAuditTests.test_real_warp_feasibility_preserves_config_and_reports_backend_layout) ... ERROR
+
+======================================================================
+ERROR: test_controls_copy_preserve_movement_and_direct_admission (test_relay_audit.RelayAuditTests.test_controls_copy_preserve_movement_and_direct_admission)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/aduy/Documents/NCKH/uav_network-cpu-flow-20261014/tests/test_relay_audit.py", line 44, in test_controls_copy_preserve_movement_and_direct_admission
+    from uav_network.experiments.relay_audit import communication_control
+ModuleNotFoundError: No module named 'uav_network.experiments.relay_audit'
+
+======================================================================
+ERROR: test_fixed_power_inverts_existing_mapping_and_rejects_bad_values (test_relay_audit.RelayAuditTests.test_fixed_power_inverts_existing_mapping_and_rejects_bad_values)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/aduy/Documents/NCKH/uav_network-cpu-flow-20261014/tests/test_relay_audit.py", line 64, in test_fixed_power_inverts_existing_mapping_and_rejects_bad_values
+    from uav_network.experiments.relay_audit import communication_control
+ModuleNotFoundError: No module named 'uav_network.experiments.relay_audit'
+
+======================================================================
+ERROR: test_future_profile_only_changes_horizon_and_run_labels (test_relay_audit.RelayAuditTests.test_future_profile_only_changes_horizon_and_run_labels)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/aduy/Documents/NCKH/uav_network-cpu-flow-20261014/tests/test_relay_audit.py", line 137, in test_future_profile_only_changes_horizon_and_run_labels
+    c = load_config(ROOT / "configs/comparison-20k-steps1800-scenario-v3.yaml")
+  File "/home/aduy/Documents/NCKH/uav_network-cpu-flow-20261014/uav_network/configuration.py", line 389, in load_config
+    _apply(config, yaml.safe_load(Path(path).read_text()) or {})
+                                  ~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/aduy/miniconda3/lib/python3.13/pathlib/_local.py", line 546, in read_text
+    return PathBase.read_text(self, encoding, errors, newline)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/aduy/miniconda3/lib/python3.13/pathlib/_abc.py", line 632, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors, newline=newline) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/aduy/miniconda3/lib/python3.13/pathlib/_local.py", line 537, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/aduy/Documents/NCKH/uav_network-cpu-flow-20261014/configs/comparison-20k-steps1800-scenario-v3.yaml'
+
+======================================================================
+ERROR: test_real_pairing_restart_protocol_and_incomplete_recovery (test_relay_audit.RelayAuditTests.test_real_pairing_restart_protocol_and_incomplete_recovery)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/aduy/Documents/NCKH/uav_network-cpu-flow-20261014/tests/test_relay_audit.py", line 82, in test_real_pairing_restart_protocol_and_incomplete_recovery
+    from uav_network.experiments import relay_audit as audit
+ImportError: cannot import name 'relay_audit' from 'uav_network.experiments' (/home/aduy/Documents/NCKH/uav_network-cpu-flow-20261014/uav_network/experiments/__init__.py)
+
+======================================================================
+ERROR: test_real_warp_feasibility_preserves_config_and_reports_backend_layout (test_relay_audit.RelayAuditTests.test_real_warp_feasibility_preserves_config_and_reports_backend_layout)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/aduy/Documents/NCKH/uav_network-cpu-flow-20261014/tests/test_relay_audit.py", line 154, in test_real_warp_feasibility_preserves_config_and_reports_backend_layout
+    result = run_feasibility(c, [44], on_progress=progress.append)
+TypeError: run_feasibility() got an unexpected keyword argument 'on_progress'
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.030s
+
+FAILED (errors=5)

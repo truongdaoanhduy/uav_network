@@ -7,10 +7,14 @@ scores.
 """
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import numpy as np
 
 from ..communication.link_budget import nominal_required_power_w, power_fraction
 from ..environment.env import Action, SwarmSearchEnv
+from .evaluation import make_evaluation_env, run_episode
+from .comparison_metrics import evaluation_protocol
 
 
 def power_action_for_required(required_w, network_config, margin_db=3.0):
@@ -118,8 +122,36 @@ def _motion_action(env, assignments, return_to_gcs):
     return acceleration
 
 
-def oracle_action(env, margin_db=3.0):
-    """Construct one privileged search/relay/power action for a native environment."""
+def _warp_oracle_view(env, observation):
+    """Read-only host view for the existing oracle, using backend admission masks.
+
+    Actions select a destination, not a report. The backend retains legitimate
+    report/session admission and custody selection; this view never edits state.
+    """
+    s = env.vector.s
+    obs = s.observation.numpy()[0] if observation is None else np.asarray(observation)
+    n = env.config.world.num_uavs
+    masks = obs[:, -(n + 1):] > 0
+    present, created, origin = (getattr(s, name).numpy()[0] for name in
+                                ("report_present", "report_created", "report_origin"))
+    buffers = [{int(t): SimpleNamespace(created_s=float(created[i, t]),
+                                        target_id=int(t), source_id=int(origin[i, t]))
+                for t in np.flatnonzero(present[i])} for i in range(n)]
+    def eligible(source, destination, positions, report):
+        index = n if destination == n else _peer_action_index(source, destination, n)
+        return bool(masks[source, index])
+    return SimpleNamespace(
+        config=env.config, positions=env.positions, velocities=env.velocities,
+        targets=env.targets, obstacles=env.obstacles, gcs=env.gcs,
+        active=obs[:, 9].astype(bool),
+        reports=SimpleNamespace(buffers=buffers, known=env.reports.known),
+        network=SimpleNamespace(_eligible=eligible))
+
+
+def oracle_action(env, margin_db=3.0, observation=None):
+    """Construct a privileged search/relay/power action for the selected backend."""
+    if hasattr(env, "vector"):
+        env = _warp_oracle_view(env, observation)
     n = env.config.world.num_uavs
     communication = [None] * n
     return_to_gcs = np.zeros(n, dtype=bool)
@@ -190,25 +222,35 @@ def run_explicit_feasibility(config, seed, positions, targets, obstacles, margin
         env.close()
 
 
-def run_feasibility(config, seeds, margin_db=3.0):
-    """Run deterministic generated scenarios and return raw records plus aggregates."""
+def run_feasibility(config, seeds, margin_db=3.0, on_progress=None):
+    """Run the supplied scenario/horizon on its backend, with observable progress.
+
+    Warp runs one CPU world. Equal native/Warp seeds do not imply equal layouts.
+    Failure describes this privileged controller, not mission impossibility.
+    """
+    seeds = list(seeds)
+    if not seeds or any(type(seed) is not int or not 0 <= seed < 2**32 for seed in seeds):
+        raise ValueError("seeds must contain unsigned 32-bit integers")
     records = []
-    for seed in [int(value) for value in seeds]:
-        env = SwarmSearchEnv(config)
+    for seed in seeds:
+        env = make_evaluation_env(config)
+        class Oracle:
+            def act(self, observation, deterministic=True):
+                return oracle_action(env, margin_db, observation)
         try:
-            env.reset(seed=seed)
-            while True:
-                _, _, terminated, truncated, _ = env.step(oracle_action(env, margin_db))
-                if terminated or truncated:
-                    records.append(_finish_result(env, seed))
-                    break
+            record, _, _, _ = run_episode(env, Oracle(), seed=seed, on_progress=on_progress)
+            record = {**_finish_result(env, seed), **record,
+                      "scenario": evaluation_protocol(config, [seed], {})["scenario"]}
+            records.append(record)
         finally:
             env.close()
-    if not records:
-        raise ValueError("seeds must contain at least one seed")
     return {
         "controller": "privileged_feasibility_oracle",
         "not_a_policy_baseline": True,
+        "complete": True,
+        "environment_backend": config.runtime.environment_backend,
+        "layout_semantics": "Backend-specific scene generator; equal numeric seeds across backends do not prove equal geometry.",
+        "failure_semantics": "An oracle failure is evidence about this controller, not proof that the mission is impossible.",
         "episodes": len(records),
         "success_rate": float(np.mean([r["success"] for r in records])),
         "mean_search_rate_percent": float(np.mean([r["search_rate_percent"] for r in records])),
