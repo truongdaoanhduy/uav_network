@@ -114,7 +114,10 @@ class CudaDeviceIntegrationTests(unittest.TestCase):
                                                equal_nan=True,msg=name)
             self.assertTrue(bool((gen2.snapshot_state()["arrays"]["session_active"] != 0).any()),
                             "CUDA exactness corpus must retain an active 1 MB session")
-            self.assertGreater(gen2.scheduler_metrics()["attempted_chains"],0)
+            self.assertEqual(gen2.scheduler_metrics(), {
+                "attempted_chains": 0, "completed_chains": 0, "fused_events": 0,
+                "competitor_fallbacks": 0, "boundary_fallbacks": 0, "max_chain_length": 0,
+            })
         finally:
             gen1.close(); gen2.close()
 
