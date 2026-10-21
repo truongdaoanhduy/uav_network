@@ -61,5 +61,11 @@ def restore_learner(config, device):
         progress["_training"] = saved["training"]
         progress["state_restore"] = "training_state_environment_reset"
     else:
+        # A policy-only checkpoint supplies weights and counters, not execution
+        # or optimizer state. Build these from the requested runtime profile.
+        previous = learner
+        learner = make_learner(config, observation_dim(config), state_dim(config), device)
+        learner.load_state_dict(previous.state_dict())
+        learner.updates, learner.actor_updates = previous.updates, previous.actor_updates
         progress["state_restore"] = "policy_warm_start"
     return learner, progress

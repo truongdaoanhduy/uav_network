@@ -23,8 +23,8 @@ def test_scenario_v2_keeps_standard_algorithm_sources_unchanged():
     import hashlib
     root = Path(__file__).resolve().parents[1]
     expected = {
-        "uav_network/algorithms/masac.py": "e6f38a562c7ae4a1bccaa5324689876450f4a75b4f4eb5f63e36c1b869660419",
-        "uav_network/algorithms/matd3.py": "fee6b3692d0ac6115c340ab397bb8098c811a97331e0bca2cb0f8aab729ecf4b",
+        "uav_network/algorithms/masac.py": "466d62095ee4c5e8e92681fc72c2e230c5c4e5b8fc0d9412c157fbecb9995b51",
+        "uav_network/algorithms/matd3.py": "0a25fc4966596242f474f68a9289b367672781d08e2a8a9beee937fd1bce962c",
     }
     for name, digest in expected.items():
         assert hashlib.sha256((root / name).read_bytes()).hexdigest() == digest

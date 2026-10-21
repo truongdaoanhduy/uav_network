@@ -4,6 +4,7 @@ import math
 import torch
 
 from .continuation import validate_progress
+from ..algorithms.precision import validate_precision_state
 
 
 def validate_pql_checkpoint(saved, config):
@@ -11,6 +12,18 @@ def validate_pql_checkpoint(saved, config):
         raise ValueError("PQL resume requires a complete version-3 training checkpoint")
     progress = validate_progress(saved.get("progress"), config.runtime.episodes)
     training = saved["training"]
+    before, current = saved["config"]["runtime"], config.to_dict()["runtime"]
+    for name in ("amp_mode", "compile_models", "fused_optimizers", "vectorize_critics", "deterministic"):
+        if before.get(name, "off" if name == "amp_mode" else None) != current[name]:
+            raise ValueError(f"PQL resume runtime.{name} differs from checkpoint")
+    precision = training.get("precision")
+    if precision is not None and (not isinstance(precision, dict) or precision.keys() != {"critic", "policy"}):
+        raise ValueError("PQL precision checkpoint must preserve both worker states")
+    groups = ("critic", "actor", "alpha") if config.runtime.algorithm == "masac" else ("critic", "actor")
+    for worker in ("critic", "policy"):
+        validate_precision_state(precision.get(worker) if precision is not None else None,
+                                 config.runtime.amp_mode, groups)
+
     required = {"collections", "eligible_collections", "credit", "warmup_origin", "optimizers",
                 "collector_policy_version", "critic_policy_version", "policy_critic_version", "rng", "replay"}
     if not required <= training.keys():

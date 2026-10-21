@@ -11,6 +11,7 @@ from .action_utils import canonical_continuous, joint_action, valid_destinations
 from .checkpoints import load_policy, save_policy
 from .models import DeterministicActor, TwinCritic
 from .parallel_critics import critic_values
+from .precision import MixedPrecision, autocast_update
 from .optimization import scalar_metrics, step_optimizer, step_actor_optimizers, tensor_batch, critic_metrics
 
 
@@ -41,6 +42,8 @@ class MATD3(nn.Module):
             adam["fused"] = True
         self.actor_optimizers = [torch.optim.Adam(actor.parameters(), **adam) for actor in self.actors]
         self.critic_optimizer = torch.optim.Adam(self.critics.parameters(), **adam)
+        self.precision = MixedPrecision(config.runtime.amp_mode, self.device,
+                                        ("critic", "actor", "alpha") if self.algorithm == "masac" else ("critic", "actor"))
         self.updates = self.actor_updates = 0
         self._last_actor_metrics = {}
 
@@ -94,6 +97,10 @@ class MATD3(nn.Module):
         action = self.act_batch(np.asarray(observations)[None], deterministic, step)
         return Action(action.continuous[0], action.destination[0])
 
+    def _critic_values(self, *args):
+        return getattr(self, "_compiled_critic_values", critic_values)(*args)
+
+    @autocast_update
     def update_critic(self, batch, collect_metrics=True):
         data, a = tensor_batch(batch, self.device), self.config.matd3
         vectorized = self.config.runtime.vectorize_critics
@@ -101,15 +108,16 @@ class MATD3(nn.Module):
             next_actions = self.target_actions(data["next_observation"])
             if vectorized:
                 target = td3_target(data["reward"][:, None], data["terminated"][:, None],
-                                    *critic_values(self.target_critics, data["next_state"], next_actions, True), a.gamma)
+                                    *self._critic_values(self.target_critics, data["next_state"], next_actions, True), a.gamma)
             else:
                 target = torch.stack([td3_target(data["reward"], data["terminated"],
                                                 *critic(data["next_state"], next_actions), a.gamma)
                                       for critic in self.target_critics], 1)
         replay_actions = joint_action(data["continuous"], data["destination"], self.destinations)
-        q1, q2 = critic_values(self.critics, data["state"], replay_actions, vectorized)
+        q1, q2 = self._critic_values(self.critics, data["state"], replay_actions, vectorized)
         loss = F.mse_loss(q1, target) + F.mse_loss(q2, target)
-        critic_grad = step_optimizer(loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
+        critic_step = (lambda *args: self.precision.step("critic", *args)) if self.precision.enabled else step_optimizer
+        critic_grad = critic_step(loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
         batch_metrics = critic_metrics(q1, q2, target, data) if collect_metrics else {}
         self.updates += 1
         if not collect_metrics:
@@ -119,6 +127,7 @@ class MATD3(nn.Module):
                                "critic_gradient_clipped": (critic_grad > a.grad_clip_norm).float(),
                                "policy_updated": torch.tensor(0., device=self.device)})
 
+    @autocast_update
     def update_actor(self, batch, collect_metrics=True):
         data, a = tensor_batch(batch, self.device), self.config.matd3
         vectorized = self.config.runtime.vectorize_critics
@@ -135,7 +144,7 @@ class MATD3(nn.Module):
                 joints[indices, :, indices] = torch.stack([
                     self._actor_action(actor, data["observation"][:, i], straight_through=True)
                     for i, actor in enumerate(self.actors)])
-                batched_q, _ = critic_values(self.critics, data["state"], joints, True, True)
+                batched_q, _ = self._critic_values(self.critics, data["state"], joints, True, True)
             for i, actor in enumerate(self.actors):
                 if vectorized:
                     q1 = batched_q[:, i]
@@ -145,7 +154,8 @@ class MATD3(nn.Module):
                     q1, _ = self.critics[i](data["state"], joint)
                 actor_loss = -q1.mean()
                 actor_losses.append(actor_loss)
-            actor_grads = step_actor_optimizers(actor_losses, self.actor_optimizers,
+            actor_step = self.precision.step_actors if self.precision.enabled else step_actor_optimizers
+            actor_grads = actor_step(actor_losses, self.actor_optimizers,
                                                [actor.parameters() for actor in self.actors],
                                                a.grad_clip_norm, collect_metrics)
             actor_losses = [loss.detach() for loss in actor_losses]

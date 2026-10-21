@@ -10,6 +10,8 @@ import numpy as np
 import torch
 
 from ..algorithms.checkpoints import load_policy, make_learner, save_policy
+from ..algorithms.optimization import compile_models
+from ..algorithms.precision import CompileStartupGate
 from ..environment.observations import observation_dim, state_dim
 from .pql_checkpoints import validate_pql_checkpoint
 from .pql_replay import MeasuredReplay
@@ -90,6 +92,9 @@ class PQLSystem:
         if saved:
             training = saved["training"]
             restore_optimizers(self.critic, self.policy, training["optimizers"])
+            if training.get("precision") is not None:
+                self.critic.precision.load_state_dict(training["precision"]["critic"])
+                self.policy.precision.load_state_dict(training["precision"]["policy"])
             self.collections = self.processed_collections = training["collections"]
             self.eligible_collections = training["eligible_collections"]
             self.credit, self.warmup_origin = training["credit"], training["warmup_origin"]
@@ -123,6 +128,13 @@ class PQLSystem:
                 self.critic.log_alpha_discrete.requires_grad_(False)
             self.critic.actors.requires_grad_(False)
             self.policy.critics.requires_grad_(False)
+        if config.runtime.compile_models:
+            compile_models(self.critic)
+            if self.policy is not self.critic:
+                compile_models(self.policy)
+            if self.asynchronous:
+                gate = CompileStartupGate()
+                self.critic._compile_startup_gate = self.policy._compile_startup_gate = gate
         self.initial_updates, self.initial_actors = self.critic.updates, self.policy.actor_updates
         self.initial_collections = self.collections
         if saved:
@@ -327,6 +339,8 @@ class PQLSystem:
         self.flush()
         numpy_state = np.random.get_state()
         training = {"optimizers": optimizer_states(self.critic, self.policy),
+                    "precision": {"critic": self.critic.precision.state_dict(),
+                                  "policy": self.policy.precision.state_dict()},
                     "collections": self.collections, "eligible_collections": self.eligible_collections,
                     "credit": self.credit, "warmup_origin": self.warmup_origin,
                     "collector_policy_version": self.collector_version,

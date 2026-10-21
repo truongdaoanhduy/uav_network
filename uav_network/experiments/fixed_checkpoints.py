@@ -5,6 +5,7 @@ import numpy as np
 import torch
 
 from ..algorithms.checkpoints import save_policy
+from ..algorithms.precision import validate_precision_state
 from ..algorithms.replay import transition_shapes
 from .pql_workers import optimizer_states, restore_optimizers
 
@@ -83,9 +84,11 @@ def validate_fixed_checkpoint(saved, config):
         if before[group] != current[group]:
             raise ValueError(f"Fixed-schedule resume {group} differs from checkpoint")
     for name in ("seed", "num_envs", "environment_backend", "collector_overlap", "deterministic",
-                 "vectorize_critics", "compile_models", "fused_optimizers", "torch_threads"):
-        if before["runtime"][name] != current["runtime"][name]:
+                 "vectorize_critics", "compile_models", "fused_optimizers", "torch_threads", "amp_mode"):
+        if before["runtime"].get(name, "off" if name == "amp_mode" else None) != current["runtime"][name]:
             raise ValueError(f"Fixed-schedule resume runtime.{name} differs from checkpoint")
+    groups = ("critic", "actor", "alpha") if config.runtime.algorithm == "masac" else ("critic", "actor")
+    validate_precision_state(training.get("precision"), config.runtime.amp_mode, groups)
     progress = validate_progress(saved.get("progress"), config.runtime.episodes)
     for name in ("updates", "actor_updates"):
         if type(saved.get(name)) is not int or saved[name] < 0:
@@ -154,6 +157,8 @@ def restore_fixed_learner(saved, learner):
     if training["learner_device_type"] != learner.device.type:
         raise ValueError("Fixed-schedule learner RNG resume requires the original device type")
     restore_optimizers(learner, learner, training["optimizers"])
+    if training.get("precision") is not None:
+        learner.precision.load_state_dict(training["precision"])
     if learner.algorithm == "matd3":
         learner._last_actor_metrics = {name: value.to(learner.device) for name, value in training["last_actor_metrics"].items()}
 
@@ -161,6 +166,7 @@ def restore_fixed_learner(saved, learner):
 def save_fixed_checkpoint(learner, path, progress, replay, rng, *, warmup_origin, random_warmup,
                           next_metrics_at, latest, pending_learning, action_generator=None, environment=None):
     training = {"trainer": "fixed_schedule", "optimizers": optimizer_states(learner, learner),
+                "precision": learner.precision.state_dict(),
                 "replay": replay_state(replay), "rng": runtime_rng_state(rng, action_generator=action_generator),
                 "collections": progress["collection_steps"], "warmup_origin": warmup_origin,
                 "random_warmup": random_warmup, "pending_learning": pending_learning, "next_metrics_at": next_metrics_at,

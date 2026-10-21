@@ -52,16 +52,16 @@ def step_actor_optimizers(losses, optimizers, parameter_groups, grad_clip, check
 
 
 def compile_models(learner):
+    """Compile the whole vmap boundary; preserve original parameter/state keys."""
+    from .parallel_critics import critic_values
     if not hasattr(nn.Module, "compile"):
         raise RuntimeError("torch.compile requires a supported PyTorch build")
+    learner._compiled_critic_values = torch.compile(critic_values, dynamic=True, backend="inductor")
     for actor in learner.actors:
-        actor.encoder.compile(dynamic=True)
-    for collection in (learner.critics, learner.target_critics):
-        for critic in collection:
-            critic.compile(dynamic=True)
+        actor.encoder.compile(dynamic=True, backend="inductor")
     if hasattr(learner, "target_actors"):
         for actor in learner.target_actors:
-            actor.encoder.compile(dynamic=True)
+            actor.encoder.compile(dynamic=True, backend="inductor")
 
 
 def critic_metrics(q1, q2, target, data):

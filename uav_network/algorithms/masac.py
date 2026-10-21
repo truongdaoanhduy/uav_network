@@ -13,6 +13,7 @@ from .action_utils import canonical_continuous, joint_action, valid_destinations
 from .checkpoints import load_policy, save_policy
 from .models import HybridActor, TwinCritic
 from .parallel_critics import critic_values
+from .precision import MixedPrecision, autocast_update
 from .optimization import scalar_metrics, step_optimizer, step_actor_optimizers, tensor_batch, critic_metrics
 
 
@@ -45,6 +46,8 @@ class MASAC(nn.Module):
         self.actor_optimizers = [torch.optim.Adam(actor.parameters(), **adam) for actor in self.actors]
         self.critic_optimizer = torch.optim.Adam(self.critics.parameters(), **adam)
         self.alpha_optimizer = torch.optim.Adam([self.log_alpha_continuous, self.log_alpha_discrete], **adam)
+        self.precision = MixedPrecision(config.runtime.amp_mode, self.device,
+                                        ("critic", "actor", "alpha") if self.algorithm == "masac" else ("critic", "actor"))
         self.updates = self.actor_updates = 0
 
     def _sample(self, actor, observation, deterministic=False):
@@ -94,7 +97,7 @@ class MASAC(nn.Module):
         choices = continuous[:, None].expand(-1, k, -1).clone()
         choices[:, 0, 2] = 0
         alternatives[:, :, index, :3] = choices
-        alternatives[:, :, index, 3:] = torch.eye(k, device=self.device)[None]
+        alternatives[:, :, index, 3:] = torch.eye(k, device=self.device, dtype=alternatives.dtype)[None]
         repeated_state = state[:, None].expand(-1, k, -1).reshape(b * k, -1)
         q1, q2 = critic(repeated_state, alternatives.reshape(b * k, self.num_uavs, -1))
         return torch.minimum(q1, q2).reshape(b, k)
@@ -107,11 +110,15 @@ class MASAC(nn.Module):
         choices[:, :, 0, 2] = 0
         indices = torch.arange(n, device=self.device)
         alternatives[indices, :, :, indices, :3] = choices
-        alternatives[indices, :, :, indices, 3:] = torch.eye(k, device=self.device)
+        alternatives[indices, :, :, indices, 3:] = torch.eye(k, device=self.device, dtype=alternatives.dtype)
         repeated_state = state[:, None].expand(-1, k, -1).reshape(b * k, -1)
-        q1, q2 = critic_values(critics, repeated_state, alternatives.reshape(n, b * k, n, -1), True, True)
+        q1, q2 = self._critic_values(critics, repeated_state, alternatives.reshape(n, b * k, n, -1), True, True)
         return torch.minimum(q1, q2).reshape(b, k, n).transpose(1, 2)
 
+    def _critic_values(self, *args):
+        return getattr(self, "_compiled_critic_values", critic_values)(*args)
+
+    @autocast_update
     def update_critic(self, batch, collect_metrics=True):
         data = tensor_batch(batch, self.device)
         a = self.config.masac
@@ -128,9 +135,10 @@ class MASAC(nn.Module):
                 targets.append(soft_bellman_target(data["reward"], data["terminated"], soft, a.gamma))
             target = torch.stack(targets, 1)
         replay_joint = joint_action(data["continuous"], data["destination"], self.destinations)
-        q1, q2 = critic_values(self.critics, data["state"], replay_joint, vectorized)
+        q1, q2 = self._critic_values(self.critics, data["state"], replay_joint, vectorized)
         critic_loss = F.mse_loss(q1, target) + F.mse_loss(q2, target)
-        critic_grad = step_optimizer(critic_loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
+        critic_step = (lambda *args: self.precision.step("critic", *args)) if self.precision.enabled else step_optimizer
+        critic_grad = critic_step(critic_loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
         self.updates += 1
         if not collect_metrics:
             return {}
@@ -139,6 +147,7 @@ class MASAC(nn.Module):
                                "critic_gradient_clipped": (critic_grad > a.grad_clip_norm).float(),
                                "critic_loss": critic_loss})
 
+    @autocast_update
     def update_actor(self, batch, collect_metrics=True):
         data, a = tensor_batch(batch, self.device), self.config.masac
         vectorized = self.config.runtime.vectorize_critics
@@ -165,7 +174,8 @@ class MASAC(nn.Module):
                 targets_c.append((a.target_continuous_entropy / 3 * (3 - probs[:, 0].detach()) * active).mean())
                 choices = valid_destinations(obs, self.destinations).sum(-1).float()
                 targets_d.append((a.target_discrete_entropy_ratio * choices.log()).mean())
-            actor_grads = step_actor_optimizers(actor_losses, self.actor_optimizers,
+            actor_step = self.precision.step_actors if self.precision.enabled else step_actor_optimizers
+            actor_grads = actor_step(actor_losses, self.actor_optimizers,
                                                [actor.parameters() for actor in self.actors],
                                                a.grad_clip_norm, collect_metrics)
             actor_losses = [loss.detach() for loss in actor_losses]
@@ -174,7 +184,8 @@ class MASAC(nn.Module):
         hc, hd, tc, td = (torch.stack(v) for v in (entropies_c, entropies_d, targets_c, targets_d))
         before_c, before_d = self.log_alpha_continuous.detach().clone(), self.log_alpha_discrete.detach().clone()
         alpha_loss = (self.log_alpha_continuous * (hc - tc) + self.log_alpha_discrete * (hd - td)).mean()
-        alpha_grad = step_optimizer(alpha_loss, self.alpha_optimizer,
+        alpha_step = (lambda *args: self.precision.step("alpha", *args)) if self.precision.enabled else step_optimizer
+        alpha_grad = alpha_step(alpha_loss, self.alpha_optimizer,
                        [self.log_alpha_continuous, self.log_alpha_discrete], a.grad_clip_norm, collect_metrics)
         with torch.no_grad():
             available_c = (data["observation"][:, :, 9] > .5).any(0)

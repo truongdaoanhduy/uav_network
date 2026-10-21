@@ -46,11 +46,10 @@ def check_vectorized_learners(device="cpu"):
 
 
 class VectorizedCriticTests(unittest.TestCase):
-    def test_compiled_critic_inside_eager_vmap_is_rejected_before_training(self):
+    def test_outer_compiled_vmap_configuration_is_supported(self):
         c = Config()
         c.runtime.vectorize_critics = c.runtime.compile_models = True
-        with self.assertRaisesRegex(ValueError, "vectorize_critics.*compile_models"):
-            c.validate()
+        self.assertIs(c.validate(), c)
 
     def test_live_independent_outputs_and_parameter_input_gradients(self):
         try:

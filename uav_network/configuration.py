@@ -154,6 +154,7 @@ class RuntimeConfig:
     replay_device: str = "auto"
     deterministic: bool = True
     compile_models: bool = False
+    amp_mode: str = "off"
     coalesce_idle_polls: bool = True
     fused_optimizers: bool = False
     vectorize_critics: bool = False
@@ -298,16 +299,14 @@ class Config:
         for value in (p.collector_device, p.learner_device, p.policy_device):
             if value not in {"auto", "cpu", "cuda"} and not re.fullmatch(r"cuda:\d+", value):
                 raise ValueError("PQL devices must be auto, cpu, cuda or cuda:N")
-        if p.enabled and r.compile_models:
-            raise ValueError("PQL snapshot workers currently require compile_models=false")
         if r.environment_backend not in {"native", "warp_packet"}:
             raise ValueError("environment_backend must be native or warp_packet")
         if r.algorithm not in {"masac", "matd3"}:
             raise ValueError("algorithm must be masac or matd3")
         if r.num_envs < 1 or r.log_interval_steps < 1:
             raise ValueError("num_envs and log_interval_steps must be positive")
-        if r.vectorize_critics and r.compile_models:
-            raise ValueError("vectorize_critics requires compile_models=false: eager vmap cannot wrap a compiled critic")
+        if r.amp_mode not in {"off", "fp16"}:
+            raise ValueError("runtime.amp_mode must be off or fp16")
         if r.max_train_seconds < 0:
             raise ValueError("max_train_seconds must be nonnegative; zero disables the soft deadline")
         for name, minimum in (("evaluation_interval", 0), ("evaluation_interval_steps", 0),

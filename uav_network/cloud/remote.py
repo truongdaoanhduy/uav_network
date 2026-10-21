@@ -236,6 +236,15 @@ def run_job(spec):
         with (output / log_name).open("w") as log:
             subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests",
                             "-p", pattern, "-v"], stdout=log, stderr=subprocess.STDOUT, check=True)
+    if config.runtime.amp_mode == "fp16":
+        for algorithm in spec["runs"]:
+            args = [sys.executable, "-m", "uav_network.cloud.execution_check",
+                    "--config", spec["config"], "--algorithm", algorithm,
+                    "--output", str(output / f"{algorithm}-execution-check.json")]
+            for override in spec["overrides"]:
+                args += ["--set", override]
+            with (output / f"{algorithm}-execution-check.log").open("w") as log:
+                subprocess.run(args, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=1200)
     if spec.get("compare_legacy"):
         if spec["stage"] != "benchmark" or not config.pql.enabled:
             raise ValueError("Matched comparison only supports the PQL benchmark stage")
