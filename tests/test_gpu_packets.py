@@ -64,14 +64,18 @@ class GPUPacketTests(unittest.TestCase):
         s.visible.assign(visible)
         wp.launch(mac.sense_reports, dim=1, inputs=[s, p], device=self.device)
 
-    def step(self, c, s, p, mac, wp, destination, power=0):
+    def step(self, c, s, p, mac, wp, destination, power=0, scheduler="gen1"):
         continuous = np.zeros((1, p.n, 3), dtype=np.float32)
         continuous[:, :, 2] = power
         wp.launch(mac.begin_step, dim=1, inputs=[s, p], device=self.device)
         self.sense(c, s, p, mac, wp)
-        wp.launch(mac.packet_step, dim=1,
-                  inputs=[s, p, wp.array(continuous, dtype=wp.float32, device=self.device),
-                          wp.array([destination], dtype=wp.int64, device=self.device)], device=self.device)
+        inputs=[s,p,wp.array(continuous,dtype=wp.float32,device=self.device),
+                wp.array([destination],dtype=wp.int64,device=self.device)]
+        if scheduler == "gen2":
+            inputs.append(wp.zeros((1,6),dtype=wp.int64,device=self.device))
+            wp.launch(mac.packet_step_gen2,dim=1,inputs=inputs,device=self.device)
+        else:
+            wp.launch(mac.packet_step,dim=1,inputs=inputs,device=self.device)
         wp.launch(mac.end_step, dim=1, inputs=[s, p], device=self.device)
         self.assertEqual(s.errors.numpy().tolist(), [0])
         return mac.metrics_at(s, p, 0)
@@ -133,6 +137,15 @@ class GPUPacketTests(unittest.TestCase):
         np.testing.assert_array_equal(s.report_present.numpy()[0], expected)
         np.testing.assert_allclose(times, [t[1] for t in trace if t[0] == "packet_tx_started"],
                                    rtol=0, atol=1e-9)
+        _, gen2, p2, mac2 = self.prepare(c, positions, targets, obstacles, seed, battery)
+        for dest, power in actions:
+            self.step(c, gen2, p2, mac2, wp, dest, power, scheduler="gen2")
+            if int(gen2.terminated.numpy()[0]):
+                break
+        for name,value in vars(s).items():
+            other=getattr(gen2,name,None)
+            if isinstance(value,wp.array) and isinstance(other,wp.array):
+                np.testing.assert_allclose(other.numpy(),value.numpy(),rtol=0,atol=0,equal_nan=True,err_msg=name)
         return wp, s, p, mac
 
     def test_event_heap_exposes_root_reschedule_primitive(self):
@@ -142,7 +155,7 @@ class GPUPacketTests(unittest.TestCase):
 
     def test_active_poll_coalescing_ignores_other_poll_events_as_boundaries(self):
         _, _, mac = self.backend()
-        source = inspect.getsource(mac.run_event_loop_gen1)
+        source = inspect.getsource(mac.handle_fast_root)
         self.assertIn("if s.event_kind[e,k] != POLL:", source)
 
     def test_state_schema_and_masked_reset(self):

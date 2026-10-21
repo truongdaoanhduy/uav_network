@@ -66,9 +66,31 @@ if HAS_WARP:
             handled[0] = int(fused)
             if not fused:
                 _mac.event(s,p,0,_mac.START,packet,generation,now)
+
+
+        @wp.kernel
+        def _gen1_tx_probe(s: WorldState, p: WorldParams, now: wp.float64, packet: int,
+                           generation: int, consume_data_end: int):
+            _mac.event(s,p,0,_mac.TX_START,packet,generation,now)
+            if (consume_data_end != 0 and s.event_count[0] > 0
+                    and s.event_kind[0,0] == _mac.DATA_END and s.event_arg[0,0] == packet):
+                kind = s.event_kind[0,0]; arg = s.event_arg[0,0]
+                gen = s.event_generation[0,0]; time = s.event_time[0,0]
+                _events.pop(s,0); _mac.event(s,p,0,kind,arg,gen,time)
+
+        @wp.kernel
+        def _gen2_event_probe(s: WorldState, p: WorldParams, kind: int, now: wp.float64,
+                              arg: int, generation: int, counters: wp.array2d(dtype=wp.int64),
+                              handled: wp.array(dtype=wp.int32)):
+            fused = _try_macro_event(s,p,0,kind,arg,generation,now,counters)
+            handled[0] = int(fused)
+            if not fused:
+                _mac.event(s,p,0,kind,arg,generation,now)
     else:
         _gen1_prefix_probe = None
         _gen2_prefix_probe = None
+        _gen1_tx_probe = None
+        _gen2_event_probe = None
 else:
     wp = None
     _events = None
@@ -78,6 +100,8 @@ else:
     _candidate_root_probe = None
     _gen1_prefix_probe = None
     _gen2_prefix_probe = None
+    _gen1_tx_probe = None
+    _gen2_event_probe = None
 
 
 @unittest.skipUnless(HAS_WARP, "optional warp_packet dependency not installed")
@@ -254,6 +278,40 @@ class MacroPrefixTests(unittest.TestCase):
         self.assertEqual(counters[1],0)
         self.assertEqual(counters[4],1)
 
+    def prepared_tx(self, equal_competitor=False):
+        s,p = self.prepared()
+        fields = {
+            "pkt_destination": int(p.n), "pkt_target": 0, "pkt_fragment": 0,
+            "pkt_attempt": 1, "pkt_generation": 1, "pkt_status": 2,
+            "pkt_power": .4, "pkt_created": 0., "pkt_report_created": 0.,
+        }
+        for name,value in fields.items():
+            a=getattr(s,name).numpy(); a[0,0]=value; getattr(s,name).assign(a)
+        if equal_competitor:
+            duration=(min(int(p.payload_bytes),int(p.report_bytes))*8+float(p.header_bits))/float(p.bit_rate)*1e6
+            s.event_count.assign(np.array([1],dtype=np.int32))
+            for name,value in (("event_time",100.+duration),("event_kind",_mac.POLL),
+                               ("event_arg",0),("event_priority",1),("event_order",20)):
+                a=getattr(s,name).numpy(); a[0,0]=value; getattr(s,name).assign(a)
+        return s,p
+
+    def test_tx_start_fuses_data_end_but_equal_key_competitor_wins(self):
+        for competitor in (False,True):
+            with self.subTest(equal_key_competitor=competitor):
+                left,p1=self.prepared_tx(competitor); right,p2=self.prepared_tx(competitor)
+                counters=wp.zeros((1,6),dtype=wp.int64,device=self.device)
+                handled=wp.zeros(1,dtype=wp.int32,device=self.device)
+                wp.launch(_gen1_tx_probe,dim=1,inputs=[left,p1,wp.float64(100),0,1,int(not competitor)],device=self.device)
+                wp.launch(_gen2_event_probe,dim=1,inputs=[right,p2,_mac.TX_START,wp.float64(100),0,1,counters,handled],device=self.device)
+                self.assert_arrays_equal(self.arrays(left),self.arrays(right))
+                self.assertTrue(bool(handled.numpy()[0]))
+                values=counters.numpy()[0]
+                self.assertEqual(values[0],1)
+                if competitor:
+                    self.assertEqual(values[2],0); self.assertEqual(values[3],1)
+                else:
+                    self.assertGreaterEqual(values[2],1); self.assertEqual(values[1],1)
+
 
 @unittest.skipUnless(HAS_WARP, "optional warp_packet dependency not installed")
 class SchedulerSelectionParityTests(unittest.TestCase):
@@ -315,6 +373,29 @@ class SchedulerSelectionParityTests(unittest.TestCase):
         finally:
             left.close()
             right.close()
+
+    def test_active_direct_packet_exercises_tx_receive_ack_fusion(self):
+        from uav_network.environment.gpu.vector import WarpVectorEnv
+        import torch
+        c=self.config(); c.runtime.num_envs=1; c.world.num_targets=1
+        c.sensor.altitude_m=10000; c.network.report_bytes=c.network.payload_bytes=512
+        c.network.buffer_bytes=1024; c.network.gcs_range_m=c.network.peer_range_m=1_000_000
+        c.network.sinr_threshold_db=-100; c.energy.enabled=False
+        left=WarpVectorEnv(c,device="cpu",packet_scheduler="gen1")
+        right=WarpVectorEnv(c,device="cpu",packet_scheduler="gen2")
+        try:
+            left.reset(seed=44); right.reset(seed=44)
+            actions={"continuous":torch.zeros((1,2,3)),"destination":torch.tensor([[2,0]])}
+            actions["continuous"][0,0,2]=1
+            a=left.step(actions); b=right.step(actions)
+            torch.testing.assert_close(a[1],b[1],rtol=0,atol=0); torch.testing.assert_close(a[2],b[2])
+            for name,value in left.snapshot_state()["arrays"].items():
+                torch.testing.assert_close(value,right.snapshot_state()["arrays"][name],rtol=0,atol=0,equal_nan=True,msg=name)
+            metrics=right.scheduler_metrics()
+            self.assertGreater(metrics["completed_chains"],1)
+            self.assertGreater(metrics["fused_events"],2)
+        finally:
+            left.close(); right.close()
 
     def test_gen2_scheduler_metrics_are_external_to_snapshot_state(self):
         from uav_network.environment.gpu.vector import WarpVectorEnv

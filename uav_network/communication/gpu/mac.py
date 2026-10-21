@@ -248,6 +248,42 @@ def event(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
         next_receive(s,p,e,node,now)
 
 
+@wp.func
+def handle_fast_root(s: WorldState, p: WorldParams, e: int, end: wp.float64) -> bool:
+    time=s.event_time[e,0]; kind=s.event_kind[e,0]; arg=s.event_arg[e,0]
+    generation=s.event_generation[e,0]
+    if kind == LISTEN and s.pkt_backoff_version[e,arg] == generation:
+        node=s.pkt_source[e,arg]
+        if not busy(s,p,e,node,time):
+            boundary=next_time_after_root(s,e,end)
+            for k in range(s.frame_count[e]):
+                frame=s.frame_order[e,k]
+                if s.tx_source[e,frame] != node:
+                    start=arrival_start(s,p,e,frame,node)
+                    if time < start: boundary=wp.min(boundary,start)
+            jumps=int(wp.ceil(boundary-time)); jumps=wp.max(jumps,1)
+            if jumps > 1:
+                s.event_sequence[e] += wp.int64(jumps-1)
+                s.diagnostic_counts[e,diag.CCA_CHECKS] += wp.int64(jumps-1)
+            replace_root(s,e,time+wp.float64(jumps),LISTEN,arg,generation,1)
+            return True
+    if kind == POLL and s.node_feed_alive[e,arg] != 0:
+        if not (s.node_queue_count[e,arg] > 0 and s.node_current[e,arg] < 0
+                and s.node_wait_finish[e,arg] != 0):
+            delay=poll_delay(s,p,e,time)
+            if (s.coalesce_step[e] == 0 and wp.floor(p.queue_poll) == p.queue_poll
+                and wp.floor(time) == time):
+                boundary=end
+                for k in range(1,s.event_count[e]):
+                    if s.event_kind[e,k] != POLL: boundary=wp.min(boundary,s.event_time[e,k])
+                jumps=int(wp.ceil((boundary-time)/p.queue_poll)); jumps=wp.max(jumps,1)
+                if jumps > 1: s.event_sequence[e] += wp.int64(jumps-1)
+                delay=wp.float64(jumps)*p.queue_poll
+            replace_root(s,e,time+delay,POLL,arg,0,1)
+            return True
+    return False
+
+
 SCHED_ATTEMPTED = 0
 SCHED_COMPLETED = 1
 SCHED_FUSED_EVENTS = 2
@@ -257,9 +293,92 @@ SCHED_MAX_CHAIN = 5
 
 
 @wp.func
+def consume_root_event(s: WorldState, p: WorldParams, e: int, end: wp.float64,
+                       kind: int, arg: int, generation: int) -> bool:
+    if (s.event_count[e] > 0 and s.event_time[e,0] < end
+        and s.event_kind[e,0] == kind and s.event_arg[e,0] == arg
+        and s.event_generation[e,0] == generation):
+        time=s.event_time[e,0]; pop(s,e); event(s,p,e,kind,arg,generation,time); return True
+    return False
+
+
+@wp.func
 def try_macro_event(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
                     generation: int, now: wp.float64,
                     counters: wp.array2d(dtype=wp.int64)) -> bool:
+    if kind == IDLE_DONE:
+        counters[e,SCHED_ATTEMPTED] += wp.int64(1); valid=s.pkt_backoff_version[e,arg] == generation
+        event(s,p,e,kind,arg,generation,now); end=(s.mission_time[e]+p.dt)*wp.float64(1e6)
+        if (valid and s.errors[e] == 0 and s.event_count[e] > 0 and s.event_time[e,0] < end
+            and s.event_kind[e,0] == LISTEN and s.event_arg[e,0] == arg
+            and s.event_generation[e,0] == generation):
+            if not handle_fast_root(s,p,e,end):
+                time=s.event_time[e,0]; pop(s,e); event(s,p,e,LISTEN,arg,generation,time)
+            counters[e,SCHED_COMPLETED] += wp.int64(1); counters[e,SCHED_FUSED_EVENTS] += wp.int64(1)
+            counters[e,SCHED_MAX_CHAIN]=wp.max(counters[e,SCHED_MAX_CHAIN],wp.int64(2))
+        elif s.errors[e] != 0: counters[e,SCHED_BOUNDARY_FALLBACK] += wp.int64(1)
+        return True
+    if kind == DELIVER or kind == RECEIVE or kind == ACK_START:
+        counters[e,SCHED_ATTEMPTED] += wp.int64(1)
+        event(s,p,e,kind,arg,generation,now)
+        if s.errors[e] != 0:
+            counters[e,SCHED_BOUNDARY_FALLBACK] += wp.int64(1); return True
+        end=(s.mission_time[e]+p.dt)*wp.float64(1e6); fused=int(0)
+        if kind == DELIVER and consume_root_event(s,p,e,end,RECEIVE,arg,0):
+            fused=1
+            if consume_root_event(s,p,e,end,ACK_START,arg,0): fused=2
+            if fused == 2 and consume_root_event(s,p,e,end,RECEIVE_DONE,arg,0): fused=3
+        elif kind == RECEIVE and consume_root_event(s,p,e,end,ACK_START,arg,0):
+            fused=1
+            if consume_root_event(s,p,e,end,RECEIVE_DONE,arg,0): fused=2
+        elif kind == ACK_START and consume_root_event(s,p,e,end,RECEIVE_DONE,arg,0): fused=1
+        if fused > 0:
+            counters[e,SCHED_COMPLETED] += wp.int64(1); counters[e,SCHED_FUSED_EVENTS] += wp.int64(fused)
+            counters[e,SCHED_MAX_CHAIN]=wp.max(counters[e,SCHED_MAX_CHAIN],wp.int64(fused+1))
+        return True
+    if kind == BACKOFF_DONE:
+        counters[e,SCHED_ATTEMPTED] += wp.int64(1)
+        valid=s.pkt_backoff_version[e,arg] == generation
+        event(s,p,e,kind,arg,generation,now)
+        if s.errors[e] != 0:
+            counters[e,SCHED_BOUNDARY_FALLBACK] += wp.int64(1); return True
+        end=(s.mission_time[e]+p.dt)*wp.float64(1e6); fused=int(0)
+        txgen=s.pkt_generation[e,arg]
+        if (valid and s.event_count[e] > 0 and s.event_time[e,0] < end
+            and s.event_kind[e,0] == TX_START and s.event_arg[e,0] == arg
+            and s.event_generation[e,0] == txgen):
+            time=s.event_time[e,0]; pop(s,e); event(s,p,e,TX_START,arg,txgen,time); fused=1
+            if (s.event_count[e] > 0 and s.event_time[e,0] < end
+                and s.event_kind[e,0] == DATA_END and s.event_arg[e,0] == arg
+                and s.event_generation[e,0] == txgen):
+                time=s.event_time[e,0]; pop(s,e); event(s,p,e,DATA_END,arg,txgen,time); fused=2
+        if fused > 0:
+            counters[e,SCHED_COMPLETED] += wp.int64(1); counters[e,SCHED_FUSED_EVENTS] += wp.int64(fused)
+            counters[e,SCHED_MAX_CHAIN]=wp.max(counters[e,SCHED_MAX_CHAIN],wp.int64(fused+1))
+        elif valid:
+            counters[e,SCHED_COMPETITOR_FALLBACK] += wp.int64(1)
+        else:
+            counters[e,SCHED_BOUNDARY_FALLBACK] += wp.int64(1)
+        return True
+    if kind == TX_START:
+        counters[e,SCHED_ATTEMPTED] += wp.int64(1)
+        event(s,p,e,kind,arg,generation,now)
+        if s.errors[e] != 0:
+            counters[e,SCHED_BOUNDARY_FALLBACK] += wp.int64(1)
+            return True
+        end = (s.mission_time[e]+p.dt)*wp.float64(1e6)
+        if (s.event_count[e] > 0 and s.event_time[e,0] < end
+            and s.event_kind[e,0] == DATA_END and s.event_arg[e,0] == arg
+            and s.event_generation[e,0] == generation):
+            time = s.event_time[e,0]
+            pop(s,e)
+            event(s,p,e,DATA_END,arg,generation,time)
+            counters[e,SCHED_COMPLETED] += wp.int64(1)
+            counters[e,SCHED_FUSED_EVENTS] += wp.int64(1)
+            counters[e,SCHED_MAX_CHAIN] = wp.max(counters[e,SCHED_MAX_CHAIN],wp.int64(2))
+        else:
+            counters[e,SCHED_COMPETITOR_FALLBACK] += wp.int64(1)
+        return True
     if kind != START:
         return False
     counters[e,SCHED_ATTEMPTED] += wp.int64(1)
@@ -310,100 +429,23 @@ from .reset import reset_network
 @wp.func
 def run_event_loop_gen1(s: WorldState, p: WorldParams, e: int, end: wp.float64):
     while s.event_count[e] > 0 and s.errors[e] == 0:
-        time = s.event_time[e,0]
-        if time >= end:
-            break
-        kind = s.event_kind[e,0]
-        arg = s.event_arg[e,0]
-        generation = s.event_generation[e,0]
-        s.packet_time[e] = time
-        if kind == LISTEN and s.pkt_backoff_version[e,arg] == generation:
-            node = s.pkt_source[e,arg]
-            if not busy(s,p,e,node,time):
-                boundary = next_time_after_root(s,e,end)
-                for k in range(s.frame_count[e]):
-                    frame = s.frame_order[e,k]
-                    if s.tx_source[e,frame] != node:
-                        start = arrival_start(s,p,e,frame,node)
-                        if time < start:
-                            boundary = wp.min(boundary,start)
-                jumps = int(wp.ceil(boundary-time))
-                if jumps < 1:
-                    jumps = 1
-                if jumps > 1:
-                    s.event_sequence[e] += wp.int64(jumps-1)
-                    s.diagnostic_counts[e,diag.CCA_CHECKS] += wp.int64(jumps-1)
-                replace_root(s,e,time+wp.float64(jumps),LISTEN,arg,generation,1)
-                continue
-        if kind == POLL and s.node_feed_alive[e,arg] != 0:
-            if not (s.node_queue_count[e,arg] > 0 and s.node_current[e,arg] < 0
-                    and s.node_wait_finish[e,arg] != 0):
-                delay = poll_delay(s,p,e,time)
-                if (s.coalesce_step[e] == 0 and wp.floor(p.queue_poll) == p.queue_poll
-                    and wp.floor(time) == time):
-                    boundary = end
-                    for k in range(1,s.event_count[e]):
-                        if s.event_kind[e,k] != POLL:
-                            boundary = wp.min(boundary,s.event_time[e,k])
-                    jumps = int(wp.ceil((boundary-time)/p.queue_poll))
-                    if jumps < 1:
-                        jumps = 1
-                    if jumps > 1:
-                        s.event_sequence[e] += wp.int64(jumps-1)
-                    delay = wp.float64(jumps)*p.queue_poll
-                replace_root(s,e,time+delay,POLL,arg,0,1)
-                continue
-        pop(s,e)
-        event(s,p,e,kind,arg,generation,time)
+        time=s.event_time[e,0]
+        if time >= end: break
+        kind=s.event_kind[e,0]; arg=s.event_arg[e,0]; generation=s.event_generation[e,0]
+        s.packet_time[e]=time
+        if handle_fast_root(s,p,e,end): continue
+        pop(s,e); event(s,p,e,kind,arg,generation,time)
 
 
 @wp.func
 def run_event_loop_gen2(s: WorldState, p: WorldParams, e: int, end: wp.float64,
                         counters: wp.array2d(dtype=wp.int64)):
     while s.event_count[e] > 0 and s.errors[e] == 0:
-        time = s.event_time[e,0]
-        if time >= end:
-            break
-        kind = s.event_kind[e,0]
-        arg = s.event_arg[e,0]
-        generation = s.event_generation[e,0]
-        s.packet_time[e] = time
-        if kind == LISTEN and s.pkt_backoff_version[e,arg] == generation:
-            node = s.pkt_source[e,arg]
-            if not busy(s,p,e,node,time):
-                boundary = next_time_after_root(s,e,end)
-                for k in range(s.frame_count[e]):
-                    frame = s.frame_order[e,k]
-                    if s.tx_source[e,frame] != node:
-                        start = arrival_start(s,p,e,frame,node)
-                        if time < start:
-                            boundary = wp.min(boundary,start)
-                jumps = int(wp.ceil(boundary-time))
-                if jumps < 1:
-                    jumps = 1
-                if jumps > 1:
-                    s.event_sequence[e] += wp.int64(jumps-1)
-                    s.diagnostic_counts[e,diag.CCA_CHECKS] += wp.int64(jumps-1)
-                replace_root(s,e,time+wp.float64(jumps),LISTEN,arg,generation,1)
-                continue
-        if kind == POLL and s.node_feed_alive[e,arg] != 0:
-            if not (s.node_queue_count[e,arg] > 0 and s.node_current[e,arg] < 0
-                    and s.node_wait_finish[e,arg] != 0):
-                delay = poll_delay(s,p,e,time)
-                if (s.coalesce_step[e] == 0 and wp.floor(p.queue_poll) == p.queue_poll
-                    and wp.floor(time) == time):
-                    boundary = end
-                    for k in range(1,s.event_count[e]):
-                        if s.event_kind[e,k] != POLL:
-                            boundary = wp.min(boundary,s.event_time[e,k])
-                    jumps = int(wp.ceil((boundary-time)/p.queue_poll))
-                    if jumps < 1:
-                        jumps = 1
-                    if jumps > 1:
-                        s.event_sequence[e] += wp.int64(jumps-1)
-                    delay = wp.float64(jumps)*p.queue_poll
-                replace_root(s,e,time+delay,POLL,arg,0,1)
-                continue
+        time=s.event_time[e,0]
+        if time >= end: break
+        kind=s.event_kind[e,0]; arg=s.event_arg[e,0]; generation=s.event_generation[e,0]
+        s.packet_time[e]=time
+        if handle_fast_root(s,p,e,end): continue
         pop(s,e)
         if not try_macro_event(s,p,e,kind,arg,generation,time,counters):
             event(s,p,e,kind,arg,generation,time)
