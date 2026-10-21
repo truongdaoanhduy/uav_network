@@ -4,12 +4,26 @@ from ...environment.gpu.state import WorldParams, WorldState
 
 
 @wp.func
+def key_before(time_a: wp.float64, priority_a: int, order_a: wp.int64,
+               time_b: wp.float64, priority_b: int, order_b: wp.int64) -> bool:
+    return (time_a < time_b
+        or (time_a == time_b
+            and (priority_a < priority_b
+                 or (priority_a == priority_b and order_a < order_b))))
+
+
+@wp.func
+def candidate_before_root(s: WorldState, e: int, time: wp.float64,
+                          priority: int, order: wp.int64) -> bool:
+    return (s.event_count[e] == 0
+            or key_before(time, priority, order,
+                          s.event_time[e,0], s.event_priority[e,0], s.event_order[e,0]))
+
+
+@wp.func
 def earlier(s: WorldState, e: int, a: int, b: int) -> bool:
-    return (s.event_time[e,a] < s.event_time[e,b]
-        or (s.event_time[e,a] == s.event_time[e,b]
-            and (s.event_priority[e,a] < s.event_priority[e,b]
-                 or (s.event_priority[e,a] == s.event_priority[e,b]
-                     and s.event_order[e,a] < s.event_order[e,b]))))
+    return key_before(s.event_time[e,a], s.event_priority[e,a], s.event_order[e,a],
+                      s.event_time[e,b], s.event_priority[e,b], s.event_order[e,b])
 
 
 @wp.func
