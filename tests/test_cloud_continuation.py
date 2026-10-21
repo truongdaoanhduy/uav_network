@@ -87,6 +87,14 @@ def write_resume(config, path):
 
 
 class CloudContinuationTests(unittest.TestCase):
+    def test_continuation_preserves_requested_dual_gpu_allocation(self):
+        parent = parent_spec()
+        parent["gpus_per_run"] = 2
+        child = self.module().build_continuation_spec(parent, learner_result())
+        self.assertEqual(child.get("gpus_per_run"), 2)
+        self.assertEqual(remote.gpu_allocation(Config(), 2, 0,
+                                             child["gpus_per_run"]), (1, "0,1"))
+
     def test_baseline_auto_continuation_reserves_time_for_full_replay_upload(self):
         config = Config()
         config.pql.enabled = False
