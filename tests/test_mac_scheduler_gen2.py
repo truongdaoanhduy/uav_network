@@ -12,11 +12,13 @@ HAS_WARP = importlib.util.find_spec("warp") is not None
 if HAS_WARP:
     import warp as wp
 
-    from uav_network.environment.gpu.state import WorldState
+    from uav_network.environment.gpu.state import WorldState, WorldParams
 
     _events = importlib.import_module("uav_network.communication.gpu.events")
     _key_before = getattr(_events, "key_before", None)
     _candidate_before_root = getattr(_events, "candidate_before_root", None)
+    _mac = importlib.import_module("uav_network.communication.gpu.mac")
+    _try_macro_event = getattr(_mac, "try_macro_event", None)
 
     if _key_before is not None:
         @wp.kernel
@@ -35,11 +37,47 @@ if HAS_WARP:
             out[0] = int(_candidate_before_root(s, 0, time, priority, order))
     else:
         _candidate_root_probe = None
+
+    if _try_macro_event is not None:
+        @wp.kernel
+        def _gen1_prefix_probe(s: WorldState, p: WorldParams, now: wp.float64, packet: int, generation: int):
+            _mac.event(s, p, 0, _mac.START, packet, generation, now)
+            if (s.event_count[0] > 0 and s.event_kind[0,0] == _mac.MAC
+                    and s.event_arg[0,0] == packet):
+                kind = s.event_kind[0,0]
+                arg = s.event_arg[0,0]
+                gen = s.event_generation[0,0]
+                time = s.event_time[0,0]
+                _events.pop(s,0)
+                _mac.event(s,p,0,kind,arg,gen,time)
+            if (s.event_count[0] > 0 and s.event_kind[0,0] == _mac.IDLE
+                    and s.event_arg[0,0] == packet):
+                kind = s.event_kind[0,0]
+                arg = s.event_arg[0,0]
+                gen = s.event_generation[0,0]
+                time = s.event_time[0,0]
+                _events.pop(s,0)
+                _mac.event(s,p,0,kind,arg,gen,time)
+
+        @wp.kernel
+        def _gen2_prefix_probe(s: WorldState, p: WorldParams, now: wp.float64, packet: int, generation: int,
+                               counters: wp.array2d(dtype=wp.int64), handled: wp.array(dtype=wp.int32)):
+            fused = _try_macro_event(s,p,0,_mac.START,packet,generation,now,counters)
+            handled[0] = int(fused)
+            if not fused:
+                _mac.event(s,p,0,_mac.START,packet,generation,now)
+    else:
+        _gen1_prefix_probe = None
+        _gen2_prefix_probe = None
 else:
     wp = None
     _events = None
+    _mac = None
+    _try_macro_event = None
     _key_before_probe = None
     _candidate_root_probe = None
+    _gen1_prefix_probe = None
+    _gen2_prefix_probe = None
 
 
 @unittest.skipUnless(HAS_WARP, "optional warp_packet dependency not installed")
@@ -122,6 +160,102 @@ class ExactEventOrderingTests(unittest.TestCase):
 
 
 @unittest.skipUnless(HAS_WARP, "optional warp_packet dependency not installed")
+class MacroPrefixTests(unittest.TestCase):
+    device = "cpu"
+
+    def config(self):
+        c = Config()
+        c.runtime.num_envs = 1
+        c.runtime.device = c.runtime.replay_device = "cpu"
+        c.runtime.environment_backend = "warp_packet"
+        c.world.num_uavs = 1
+        c.world.num_targets = 1
+        c.world.num_obstacles = 0
+        c.energy.enabled = False
+        c.network.report_bytes = 512
+        c.network.buffer_bytes = 1024
+        c.network.payload_bytes = 512
+        return c.validate()
+
+    def prepared(self, competitor=None, full=False):
+        state = importlib.import_module("uav_network.environment.gpu.state")
+        s, p = state.allocate_state(self.config(), num_envs=1, seeds=[44], device=self.device)
+        mask = wp.array([1], dtype=wp.int32, device=self.device)
+        wp.launch(_mac.reset_network, dim=1, inputs=[s,p,mask], device=self.device)
+        s.event_count.assign(np.array([0], dtype=np.int32))
+        s.event_sequence.assign(np.array([20], dtype=np.int64))
+        status = s.pkt_status.numpy(); status[0,0] = 2; s.pkt_status.assign(status)
+        source = s.pkt_source.numpy(); source[0,0] = 0; s.pkt_source.assign(source)
+        generation = s.pkt_generation.numpy(); generation[0,0] = 1; s.pkt_generation.assign(generation)
+        attempts = s.pkt_attempt.numpy(); attempts[0,0] = 0; s.pkt_attempt.assign(attempts)
+        versions = s.pkt_backoff_version.numpy(); versions[0,0] = 0; s.pkt_backoff_version.assign(versions)
+        current = s.node_current.numpy(); current[0,0] = -1; s.node_current.assign(current)
+        if full:
+            s.event_count.assign(np.array([int(p.event_capacity)], dtype=np.int32))
+        elif competitor is not None:
+            time, priority, order = competitor
+            s.event_count.assign(np.array([1], dtype=np.int32))
+            times = s.event_time.numpy(); times[0,0] = time; s.event_time.assign(times)
+            priorities = s.event_priority.numpy(); priorities[0,0] = priority; s.event_priority.assign(priorities)
+            orders = s.event_order.numpy(); orders[0,0] = order; s.event_order.assign(orders)
+            kinds = s.event_kind.numpy(); kinds[0,0] = _mac.POLL; s.event_kind.assign(kinds)
+            args = s.event_arg.numpy(); args[0,0] = 0; s.event_arg.assign(args)
+            gens = s.event_generation.numpy(); gens[0,0] = 0; s.event_generation.assign(gens)
+        return s,p
+
+    def arrays(self, s):
+        import torch
+        return {name: wp.to_torch(value).detach().clone() for name,value in vars(s).items() if isinstance(value,wp.array)}
+
+    def assert_arrays_equal(self, left, right):
+        import torch
+        self.assertEqual(left.keys(), right.keys())
+        for name in left:
+            torch.testing.assert_close(left[name],right[name],rtol=0,atol=0,equal_nan=True,msg=name)
+
+    def run_case(self, competitor=None, full=False):
+        self.assertIsNotNone(_gen2_prefix_probe, "try_macro_event helper is missing")
+        left,p_left = self.prepared(competitor,full)
+        right,p_right = self.prepared(competitor,full)
+        counters = wp.zeros((1,6), dtype=wp.int64, device=self.device)
+        handled = wp.zeros(1,dtype=wp.int32,device=self.device)
+        now = wp.float64(100.0)
+        wp.launch(_gen1_prefix_probe,dim=1,inputs=[left,p_left,now,0,1],device=self.device)
+        wp.launch(_gen2_prefix_probe,dim=1,inputs=[right,p_right,now,0,1,counters,handled],device=self.device)
+        self.assert_arrays_equal(self.arrays(left),self.arrays(right))
+        return bool(handled.numpy()[0]), counters.numpy()[0].copy()
+
+    def test_safe_prefix_fuses_without_competitor_and_with_later_competitor(self):
+        for competitor in (None,(200.0,0,20)):
+            with self.subTest(competitor=competitor):
+                handled,counters = self.run_case(competitor)
+                self.assertTrue(handled)
+                self.assertEqual(counters[0],1)  # attempted chains
+                self.assertEqual(counters[1],1)  # completed chains
+                self.assertGreaterEqual(counters[2],2)  # fused successors
+                self.assertEqual(counters[3],0)
+                self.assertEqual(counters[4],0)
+                self.assertEqual(counters[5],3)  # START + MAC + IDLE
+
+    def test_earlier_and_equal_key_competitors_force_exact_fallback(self):
+        for competitor in ((99.0,0,20),(100.0,0,20)):
+            with self.subTest(competitor=competitor):
+                handled,counters = self.run_case(competitor)
+                self.assertFalse(handled)
+                self.assertEqual(counters[0],1)
+                self.assertEqual(counters[1],0)
+                self.assertEqual(counters[2],0)
+                self.assertEqual(counters[3],1)
+
+    def test_capacity_boundary_falls_back_without_preproof_mutation(self):
+        handled,counters = self.run_case(full=True)
+        self.assertFalse(handled)
+        self.assertEqual(counters[0],1)
+        self.assertEqual(counters[1],0)
+        self.assertEqual(counters[4],1)
+
+
+@unittest.skipUnless(HAS_WARP, "optional warp_packet dependency not installed")
 class SchedulerSelectionParityTests(unittest.TestCase):
     def config(self):
         c = Config()
@@ -181,6 +315,21 @@ class SchedulerSelectionParityTests(unittest.TestCase):
         finally:
             left.close()
             right.close()
+
+    def test_gen2_scheduler_metrics_are_external_to_snapshot_state(self):
+        from uav_network.environment.gpu.vector import WarpVectorEnv
+        vector = WarpVectorEnv(self.config(), device="cpu", packet_scheduler="gen2")
+        try:
+            vector.reset(seed=[44,45])
+            vector._scheduler_counters.assign(np.asarray([[1,1,2,0,3,3],[4,2,6,5,0,2]],dtype=np.int64))
+            metrics = vector.scheduler_metrics()
+            self.assertEqual(metrics, {"attempted_chains":5,"completed_chains":3,"fused_events":8,
+                                       "competitor_fallbacks":5,"boundary_fallbacks":3,"max_chain_length":3})
+            snapshot = vector.snapshot_state()
+            self.assertNotIn("scheduler_metrics",snapshot)
+            self.assertNotIn("scheduler_counters",snapshot["arrays"])
+        finally:
+            vector.close()
 
 
 if __name__ == "__main__":

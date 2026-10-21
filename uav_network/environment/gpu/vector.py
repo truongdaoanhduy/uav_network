@@ -28,7 +28,6 @@ class WarpVectorEnv:
         if packet_scheduler not in {"gen1", "gen2"}:
             raise ValueError(f"Unknown packet scheduler: {packet_scheduler}")
         self.packet_scheduler = packet_scheduler
-        self._packet_step_kernel = packet_step if packet_scheduler == "gen1" else packet_step_gen2
         self.config = config.validate()
         self.num_envs = config.runtime.num_envs
         selected = config.runtime.device if device is None else device
@@ -46,6 +45,8 @@ class WarpVectorEnv:
         scope = wp.ScopedStream(self.stream) if self.stream is not None else nullcontext()
         with scope:
             self.s, self.p = allocate_state(config, self.num_envs, device=self.wp_device)
+            self._scheduler_counters = (wp.zeros((self.num_envs,6), dtype=wp.int64, device=self.wp_device)
+                                        if self.packet_scheduler == "gen2" else None)
             self._buffers = [
                 {"observation":wp.to_torch(self.s.observation),"state":wp.to_torch(self.s.state)},
                 {"observation":torch.empty((self.num_envs,config.world.num_uavs,observation_dim(config)),
@@ -229,7 +230,10 @@ class WarpVectorEnv:
         self._launch(motion_step,self.num_envs,self.s,self.p,wc)
         self._launch(sense,(self.num_envs,self.p.n,self.p.targets_count),self.s,self.p)
         self._launch(sense_reports,self.num_envs,self.s,self.p)
-        self._launch(self._packet_step_kernel,self.num_envs,self.s,self.p,wc,wd)
+        if self.packet_scheduler == "gen2":
+            self._launch(packet_step_gen2,self.num_envs,self.s,self.p,wc,wd,self._scheduler_counters)
+        else:
+            self._launch(packet_step,self.num_envs,self.s,self.p,wc,wd)
         self._launch(end_step,self.num_envs,self.s,self.p)
         self._launch(observe,(self.num_envs,self.p.n),self.s,self.p)
         self._launch(centralized,self.num_envs,self.s,self.p)
@@ -253,6 +257,23 @@ class WarpVectorEnv:
     def step(self, actions):
         self.step_async(actions)
         return self.step_wait()
+
+    def scheduler_metrics(self):
+        names = ("attempted_chains", "completed_chains", "fused_events",
+                 "competitor_fallbacks", "boundary_fallbacks", "max_chain_length")
+        if self._scheduler_counters is None:
+            return {name: 0 for name in names}
+        self._bind_stream()
+        wp.synchronize_device(self.wp_device)
+        values = wp.to_torch(self._scheduler_counters).detach().cpu()
+        return {
+            "attempted_chains": int(values[:,0].sum()),
+            "completed_chains": int(values[:,1].sum()),
+            "fused_events": int(values[:,2].sum()),
+            "competitor_fallbacks": int(values[:,3].sum()),
+            "boundary_fallbacks": int(values[:,4].sum()),
+            "max_chain_length": int(values[:,5].max()) if len(values) else 0,
+        }
 
     def close(self):
         if not self._closed:
