@@ -70,6 +70,54 @@ class CudaDeviceIntegrationTests(unittest.TestCase):
             cpu.close()
             cuda.close()
 
+    def test_gen1_gen2_active_one_megabyte_session_is_bit_exact_on_cuda(self):
+        import warp as wp
+        from uav_network.configuration import load_config
+        from uav_network.environment.gpu.vector import WarpVectorEnv
+        from uav_network.environment.gpu.geometry import sense
+        from uav_network.communication.gpu.mac import sense_reports
+
+        root = Path(__file__).resolve().parents[1]
+        c = load_config(root / "configs/comparison-25k-scenario-v3.yaml")
+        c.runtime.device = c.runtime.replay_device = "cuda"
+        c.runtime.num_envs = 2
+        c.world.num_uavs, c.world.num_targets, c.world.num_obstacles = 2, 2, 0
+        c.world.max_steps = 20
+        c.tracking.enabled = False
+        gen1 = WarpVectorEnv(c, device="cuda", packet_scheduler="gen1")
+        gen2 = WarpVectorEnv(c, device="cuda", packet_scheduler="gen2")
+        try:
+            for vector in (gen1, gen2):
+                vector.reset(seed=[44,45])
+                positions = vector.s.positions.numpy()
+                targets = vector.s.targets.numpy()
+                targets[:,0,:] = positions[:,0,:]
+                vector.s.targets.assign(targets)
+                vector._launch(sense,(2,2,2),vector.s,vector.p)
+                vector._launch(sense_reports,2,vector.s,vector.p)
+                vector._publish(vector._buffers[vector._buffer])
+                wp.synchronize_device(vector.wp_device)
+            continuous = torch.zeros((2,2,3),device="cuda",dtype=torch.float32)
+            continuous[:,0,2] = 1.0
+            destination = torch.zeros((2,2),device="cuda",dtype=torch.int64)
+            destination[:,0] = 2
+            actions = {"continuous":continuous,"destination":destination}
+            for _ in range(2):
+                left = gen1.step(actions)
+                right = gen2.step(actions)
+                torch.testing.assert_close(left[1],right[1],rtol=0,atol=0,equal_nan=True)
+                torch.testing.assert_close(left[2],right[2],rtol=0,atol=0)
+                snap1,snap2 = gen1.snapshot_state(),gen2.snapshot_state()
+                self.assertEqual(snap1["arrays"].keys(),snap2["arrays"].keys())
+                for name,value in snap1["arrays"].items():
+                    torch.testing.assert_close(value,snap2["arrays"][name],rtol=0,atol=0,
+                                               equal_nan=True,msg=name)
+            self.assertTrue(bool((gen2.snapshot_state()["arrays"]["session_active"] != 0).any()),
+                            "CUDA exactness corpus must retain an active 1 MB session")
+            self.assertGreater(gen2.scheduler_metrics()["attempted_chains"],0)
+        finally:
+            gen1.close(); gen2.close()
+
     def test_vector_follows_nondefault_torch_stream_and_waits_for_async_step(self):
         from uav_network.environment.gpu.vector import WarpVectorEnv
         c = small_config()
