@@ -57,9 +57,11 @@ class ExactWorldTests(unittest.TestCase):
         from uav_network.communication.gpu.mac import sense_reports
         c = self.config()
         c.network.bit_rate_bps = 100000
-        c.network.report_bytes, c.network.buffer_bytes = 1024 * 1024, 3 * 1024 * 1024
+        c.network.report_bytes, c.network.buffer_bytes = 1_000_000, 3_000_000
+        c.network.payload_bytes = 1024
         c.network.propagation_delay_enabled = True
-        left, right = WarpVectorEnv(c), WarpVectorEnv(c)
+        left = WarpVectorEnv(c, packet_scheduler="gen2")
+        right = WarpVectorEnv(c, packet_scheduler="gen2")
         try:
             left.reset(seed=44)
             targets = left.s.targets.numpy().copy()
@@ -75,6 +77,17 @@ class ExactWorldTests(unittest.TestCase):
             snapshot = left.snapshot_state()
             self.assertTrue(bool((snapshot["arrays"]["packet_sequence"] > 0).any()))
             self.assertTrue(bool((snapshot["arrays"]["session_active"] != 0).any()))
+            gen1 = WarpVectorEnv(c, packet_scheduler="gen1")
+            try:
+                gen1.reset(seed=44)
+                schema = gen1.snapshot_state()
+                self.assertEqual(snapshot.keys(), schema.keys())
+                self.assertEqual(snapshot["arrays"].keys(), schema["arrays"].keys())
+                self.assertEqual(snapshot["config"], schema["config"])
+                self.assertNotIn("scheduler_metrics", snapshot)
+                self.assertNotIn("scheduler_counters", snapshot["arrays"])
+            finally:
+                gen1.close()
             right.restore_state(snapshot)
             for _ in range(3):
                 left.step(actions)
