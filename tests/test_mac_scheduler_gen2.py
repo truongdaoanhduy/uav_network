@@ -40,35 +40,6 @@ if HAS_WARP:
 
     if _try_macro_event is not None:
         @wp.kernel
-        def _gen1_prefix_probe(s: WorldState, p: WorldParams, now: wp.float64, packet: int, generation: int):
-            _mac.event(s, p, 0, _mac.START, packet, generation, now)
-            if (s.event_count[0] > 0 and s.event_kind[0,0] == _mac.MAC
-                    and s.event_arg[0,0] == packet):
-                kind = s.event_kind[0,0]
-                arg = s.event_arg[0,0]
-                gen = s.event_generation[0,0]
-                time = s.event_time[0,0]
-                _events.pop(s,0)
-                _mac.event(s,p,0,kind,arg,gen,time)
-            if (s.event_count[0] > 0 and s.event_kind[0,0] == _mac.IDLE
-                    and s.event_arg[0,0] == packet):
-                kind = s.event_kind[0,0]
-                arg = s.event_arg[0,0]
-                gen = s.event_generation[0,0]
-                time = s.event_time[0,0]
-                _events.pop(s,0)
-                _mac.event(s,p,0,kind,arg,gen,time)
-
-        @wp.kernel
-        def _gen2_prefix_probe(s: WorldState, p: WorldParams, now: wp.float64, packet: int, generation: int,
-                               counters: wp.array2d(dtype=wp.int64), handled: wp.array(dtype=wp.int32)):
-            fused = _try_macro_event(s,p,0,_mac.START,packet,generation,now,counters)
-            handled[0] = int(fused)
-            if not fused:
-                _mac.event(s,p,0,_mac.START,packet,generation,now)
-
-
-        @wp.kernel
         def _gen1_tx_probe(s: WorldState, p: WorldParams, now: wp.float64, packet: int,
                            generation: int, consume_data_end: int):
             _mac.event(s,p,0,_mac.TX_START,packet,generation,now)
@@ -86,11 +57,16 @@ if HAS_WARP:
             handled[0] = int(fused)
             if not fused:
                 _mac.event(s,p,0,kind,arg,generation,now)
+
+        @wp.kernel
+        def _macro_handled_only_probe(s: WorldState, p: WorldParams, kind: int, now: wp.float64,
+                                      arg: int, generation: int, counters: wp.array2d(dtype=wp.int64),
+                                      handled: wp.array(dtype=wp.int32)):
+            handled[0] = int(_try_macro_event(s,p,0,kind,arg,generation,now,counters))
     else:
-        _gen1_prefix_probe = None
-        _gen2_prefix_probe = None
         _gen1_tx_probe = None
         _gen2_event_probe = None
+        _macro_handled_only_probe = None
 else:
     wp = None
     _events = None
@@ -98,10 +74,9 @@ else:
     _try_macro_event = None
     _key_before_probe = None
     _candidate_root_probe = None
-    _gen1_prefix_probe = None
-    _gen2_prefix_probe = None
     _gen1_tx_probe = None
     _gen2_event_probe = None
+    _macro_handled_only_probe = None
 
 
 @unittest.skipUnless(HAS_WARP, "optional warp_packet dependency not installed")
@@ -201,7 +176,7 @@ class MacroPrefixTests(unittest.TestCase):
         c.network.payload_bytes = 512
         return c.validate()
 
-    def prepared(self, competitor=None, full=False):
+    def prepared(self):
         state = importlib.import_module("uav_network.environment.gpu.state")
         s, p = state.allocate_state(self.config(), num_envs=1, seeds=[44], device=self.device)
         mask = wp.array([1], dtype=wp.int32, device=self.device)
@@ -214,17 +189,6 @@ class MacroPrefixTests(unittest.TestCase):
         attempts = s.pkt_attempt.numpy(); attempts[0,0] = 0; s.pkt_attempt.assign(attempts)
         versions = s.pkt_backoff_version.numpy(); versions[0,0] = 0; s.pkt_backoff_version.assign(versions)
         current = s.node_current.numpy(); current[0,0] = -1; s.node_current.assign(current)
-        if full:
-            s.event_count.assign(np.array([int(p.event_capacity)], dtype=np.int32))
-        elif competitor is not None:
-            time, priority, order = competitor
-            s.event_count.assign(np.array([1], dtype=np.int32))
-            times = s.event_time.numpy(); times[0,0] = time; s.event_time.assign(times)
-            priorities = s.event_priority.numpy(); priorities[0,0] = priority; s.event_priority.assign(priorities)
-            orders = s.event_order.numpy(); orders[0,0] = order; s.event_order.assign(orders)
-            kinds = s.event_kind.numpy(); kinds[0,0] = _mac.POLL; s.event_kind.assign(kinds)
-            args = s.event_arg.numpy(); args[0,0] = 0; s.event_arg.assign(args)
-            gens = s.event_generation.numpy(); gens[0,0] = 0; s.event_generation.assign(gens)
         return s,p
 
     def arrays(self, s):
@@ -236,47 +200,6 @@ class MacroPrefixTests(unittest.TestCase):
         self.assertEqual(left.keys(), right.keys())
         for name in left:
             torch.testing.assert_close(left[name],right[name],rtol=0,atol=0,equal_nan=True,msg=name)
-
-    def run_case(self, competitor=None, full=False):
-        self.assertIsNotNone(_gen2_prefix_probe, "try_macro_event helper is missing")
-        left,p_left = self.prepared(competitor,full)
-        right,p_right = self.prepared(competitor,full)
-        counters = wp.zeros((1,6), dtype=wp.int64, device=self.device)
-        handled = wp.zeros(1,dtype=wp.int32,device=self.device)
-        now = wp.float64(100.0)
-        wp.launch(_gen1_prefix_probe,dim=1,inputs=[left,p_left,now,0,1],device=self.device)
-        wp.launch(_gen2_prefix_probe,dim=1,inputs=[right,p_right,now,0,1,counters,handled],device=self.device)
-        self.assert_arrays_equal(self.arrays(left),self.arrays(right))
-        return bool(handled.numpy()[0]), counters.numpy()[0].copy()
-
-    def test_safe_prefix_fuses_without_competitor_and_with_later_competitor(self):
-        for competitor in (None,(200.0,0,20)):
-            with self.subTest(competitor=competitor):
-                handled,counters = self.run_case(competitor)
-                self.assertTrue(handled)
-                self.assertEqual(counters[0],1)  # attempted chains
-                self.assertEqual(counters[1],1)  # completed chains
-                self.assertGreaterEqual(counters[2],2)  # fused successors
-                self.assertEqual(counters[3],0)
-                self.assertEqual(counters[4],0)
-                self.assertEqual(counters[5],3)  # START + MAC + IDLE
-
-    def test_earlier_and_equal_key_competitors_force_exact_fallback(self):
-        for competitor in ((99.0,0,20),(100.0,0,20)):
-            with self.subTest(competitor=competitor):
-                handled,counters = self.run_case(competitor)
-                self.assertFalse(handled)
-                self.assertEqual(counters[0],1)
-                self.assertEqual(counters[1],0)
-                self.assertEqual(counters[2],0)
-                self.assertEqual(counters[3],1)
-
-    def test_capacity_boundary_falls_back_without_preproof_mutation(self):
-        handled,counters = self.run_case(full=True)
-        self.assertFalse(handled)
-        self.assertEqual(counters[0],1)
-        self.assertEqual(counters[1],0)
-        self.assertEqual(counters[4],1)
 
     def prepared_tx(self, equal_competitor=False):
         s,p = self.prepared()
@@ -295,6 +218,30 @@ class MacroPrefixTests(unittest.TestCase):
                 a=getattr(s,name).numpy(); a[0,0]=value; getattr(s,name).assign(a)
         return s,p
 
+    def test_tx_only_candidate_rejects_non_tx_macro_families_without_mutation(self):
+        for kind in (_mac.START, _mac.IDLE_DONE, _mac.DELIVER, _mac.RECEIVE, _mac.ACK_START):
+            with self.subTest(kind=kind):
+                state, params = self.prepared()
+                before = self.arrays(state)
+                counters = wp.zeros((1,6), dtype=wp.int64, device=self.device)
+                handled = wp.zeros(1, dtype=wp.int32, device=self.device)
+                wp.launch(_macro_handled_only_probe, dim=1,
+                          inputs=[state, params, kind, wp.float64(100), 0, 1, counters, handled],
+                          device=self.device)
+                self.assertFalse(bool(handled.numpy()[0]))
+                self.assert_arrays_equal(before, self.arrays(state))
+                np.testing.assert_array_equal(counters.numpy(), np.zeros((1,6), dtype=np.int64))
+
+    def test_tx_only_candidate_keeps_scheduler_counters_cold_on_tx(self):
+        state, params = self.prepared_tx(False)
+        counters = wp.zeros((1,6), dtype=wp.int64, device=self.device)
+        handled = wp.zeros(1, dtype=wp.int32, device=self.device)
+        wp.launch(_macro_handled_only_probe, dim=1,
+                  inputs=[state, params, _mac.TX_START, wp.float64(100), 0, 1, counters, handled],
+                  device=self.device)
+        self.assertTrue(bool(handled.numpy()[0]))
+        np.testing.assert_array_equal(counters.numpy(), np.zeros((1,6), dtype=np.int64))
+
     def test_tx_start_fuses_data_end_but_equal_key_competitor_wins(self):
         for competitor in (False,True):
             with self.subTest(equal_key_competitor=competitor):
@@ -305,12 +252,7 @@ class MacroPrefixTests(unittest.TestCase):
                 wp.launch(_gen2_event_probe,dim=1,inputs=[right,p2,_mac.TX_START,wp.float64(100),0,1,counters,handled],device=self.device)
                 self.assert_arrays_equal(self.arrays(left),self.arrays(right))
                 self.assertTrue(bool(handled.numpy()[0]))
-                values=counters.numpy()[0]
-                self.assertEqual(values[0],1)
-                if competitor:
-                    self.assertEqual(values[2],0); self.assertEqual(values[3],1)
-                else:
-                    self.assertGreaterEqual(values[2],1); self.assertEqual(values[1],1)
+                np.testing.assert_array_equal(counters.numpy(), np.zeros((1,6), dtype=np.int64))
 
 
 @unittest.skipUnless(HAS_WARP, "optional warp_packet dependency not installed")
@@ -374,7 +316,7 @@ class SchedulerSelectionParityTests(unittest.TestCase):
             left.close()
             right.close()
 
-    def test_active_direct_packet_exercises_tx_receive_ack_fusion(self):
+    def test_active_direct_packet_tx_only_candidate_matches_gen1(self):
         from uav_network.environment.gpu.vector import WarpVectorEnv
         import torch
         c=self.config(); c.runtime.num_envs=1; c.world.num_targets=1
@@ -391,9 +333,9 @@ class SchedulerSelectionParityTests(unittest.TestCase):
             torch.testing.assert_close(a[1],b[1],rtol=0,atol=0); torch.testing.assert_close(a[2],b[2])
             for name,value in left.snapshot_state()["arrays"].items():
                 torch.testing.assert_close(value,right.snapshot_state()["arrays"][name],rtol=0,atol=0,equal_nan=True,msg=name)
-            metrics=right.scheduler_metrics()
-            self.assertGreater(metrics["completed_chains"],1)
-            self.assertGreater(metrics["fused_events"],2)
+            self.assertEqual(right.scheduler_metrics(), {
+                "attempted_chains":0, "completed_chains":0, "fused_events":0,
+                "competitor_fallbacks":0, "boundary_fallbacks":0, "max_chain_length":0})
         finally:
             left.close(); right.close()
 

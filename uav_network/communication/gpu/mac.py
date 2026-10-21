@@ -5,7 +5,7 @@ from .rng import randbelow
 from .reports import (active, bytes_used, can_receive, transfer, begin_step, sense_reports,
                       masked_sense_reports, end_step)
 from .phy import xy, busy, emit, evaluate, arrival_start, arrival_end, latest_arrival_end
-from .events import push, pop, replace_root, next_time_after_root, candidate_before_root
+from .events import push, pop, replace_root, next_time_after_root
 from .streaming import (fill_session, fragment_bit, window_count, window_mask)
 from . import diagnostics as diag
 from .packet_step_support import packet_step_preamble, packet_step_finish
@@ -284,142 +284,46 @@ def handle_fast_root(s: WorldState, p: WorldParams, e: int, end: wp.float64) -> 
     return False
 
 
-SCHED_ATTEMPTED = 0
-SCHED_COMPLETED = 1
-SCHED_FUSED_EVENTS = 2
-SCHED_COMPETITOR_FALLBACK = 3
-SCHED_BOUNDARY_FALLBACK = 4
-SCHED_MAX_CHAIN = 5
-
-
-@wp.func
-def consume_root_event(s: WorldState, p: WorldParams, e: int, end: wp.float64,
-                       kind: int, arg: int, generation: int) -> bool:
-    if (s.event_count[e] > 0 and s.event_time[e,0] < end
-        and s.event_kind[e,0] == kind and s.event_arg[e,0] == arg
-        and s.event_generation[e,0] == generation):
-        time=s.event_time[e,0]; pop(s,e); event(s,p,e,kind,arg,generation,time); return True
-    return False
-
-
 @wp.func
 def try_macro_event(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
                     generation: int, now: wp.float64,
                     counters: wp.array2d(dtype=wp.int64)) -> bool:
-    if kind == IDLE_DONE:
-        counters[e,SCHED_ATTEMPTED] += wp.int64(1); valid=s.pkt_backoff_version[e,arg] == generation
-        event(s,p,e,kind,arg,generation,now); end=(s.mission_time[e]+p.dt)*wp.float64(1e6)
-        if (valid and s.errors[e] == 0 and s.event_count[e] > 0 and s.event_time[e,0] < end
-            and s.event_kind[e,0] == LISTEN and s.event_arg[e,0] == arg
-            and s.event_generation[e,0] == generation):
-            if not handle_fast_root(s,p,e,end):
-                time=s.event_time[e,0]; pop(s,e); event(s,p,e,LISTEN,arg,generation,time)
-            counters[e,SCHED_COMPLETED] += wp.int64(1); counters[e,SCHED_FUSED_EVENTS] += wp.int64(1)
-            counters[e,SCHED_MAX_CHAIN]=wp.max(counters[e,SCHED_MAX_CHAIN],wp.int64(2))
-        elif s.errors[e] != 0: counters[e,SCHED_BOUNDARY_FALLBACK] += wp.int64(1)
-        return True
-    if kind == DELIVER or kind == RECEIVE or kind == ACK_START:
-        counters[e,SCHED_ATTEMPTED] += wp.int64(1)
-        event(s,p,e,kind,arg,generation,now)
-        if s.errors[e] != 0:
-            counters[e,SCHED_BOUNDARY_FALLBACK] += wp.int64(1); return True
-        end=(s.mission_time[e]+p.dt)*wp.float64(1e6); fused=int(0)
-        if kind == DELIVER and consume_root_event(s,p,e,end,RECEIVE,arg,0):
-            fused=1
-            if consume_root_event(s,p,e,end,ACK_START,arg,0): fused=2
-            if fused == 2 and consume_root_event(s,p,e,end,RECEIVE_DONE,arg,0): fused=3
-        elif kind == RECEIVE and consume_root_event(s,p,e,end,ACK_START,arg,0):
-            fused=1
-            if consume_root_event(s,p,e,end,RECEIVE_DONE,arg,0): fused=2
-        elif kind == ACK_START and consume_root_event(s,p,e,end,RECEIVE_DONE,arg,0): fused=1
-        if fused > 0:
-            counters[e,SCHED_COMPLETED] += wp.int64(1); counters[e,SCHED_FUSED_EVENTS] += wp.int64(fused)
-            counters[e,SCHED_MAX_CHAIN]=wp.max(counters[e,SCHED_MAX_CHAIN],wp.int64(fused+1))
-        return True
+    # Performance-qualified Gen2 candidate: only transmission-side fusion is
+    # retained. All other event families execute through the exact Gen1 path.
     if kind == BACKOFF_DONE:
-        counters[e,SCHED_ATTEMPTED] += wp.int64(1)
-        valid=s.pkt_backoff_version[e,arg] == generation
+        valid = s.pkt_backoff_version[e,arg] == generation
         event(s,p,e,kind,arg,generation,now)
         if s.errors[e] != 0:
-            counters[e,SCHED_BOUNDARY_FALLBACK] += wp.int64(1); return True
-        end=(s.mission_time[e]+p.dt)*wp.float64(1e6); fused=int(0)
-        txgen=s.pkt_generation[e,arg]
+            return True
+        end = (s.mission_time[e]+p.dt)*wp.float64(1e6)
+        txgen = s.pkt_generation[e,arg]
         if (valid and s.event_count[e] > 0 and s.event_time[e,0] < end
             and s.event_kind[e,0] == TX_START and s.event_arg[e,0] == arg
             and s.event_generation[e,0] == txgen):
-            time=s.event_time[e,0]; pop(s,e); event(s,p,e,TX_START,arg,txgen,time); fused=1
+            time = s.event_time[e,0]
+            pop(s,e)
+            event(s,p,e,TX_START,arg,txgen,time)
             if (s.event_count[e] > 0 and s.event_time[e,0] < end
                 and s.event_kind[e,0] == DATA_END and s.event_arg[e,0] == arg
                 and s.event_generation[e,0] == txgen):
-                time=s.event_time[e,0]; pop(s,e); event(s,p,e,DATA_END,arg,txgen,time); fused=2
-        if fused > 0:
-            counters[e,SCHED_COMPLETED] += wp.int64(1); counters[e,SCHED_FUSED_EVENTS] += wp.int64(fused)
-            counters[e,SCHED_MAX_CHAIN]=wp.max(counters[e,SCHED_MAX_CHAIN],wp.int64(fused+1))
-        elif valid:
-            counters[e,SCHED_COMPETITOR_FALLBACK] += wp.int64(1)
-        else:
-            counters[e,SCHED_BOUNDARY_FALLBACK] += wp.int64(1)
+                time = s.event_time[e,0]
+                pop(s,e)
+                event(s,p,e,DATA_END,arg,txgen,time)
         return True
-    if kind == TX_START:
-        counters[e,SCHED_ATTEMPTED] += wp.int64(1)
-        event(s,p,e,kind,arg,generation,now)
-        if s.errors[e] != 0:
-            counters[e,SCHED_BOUNDARY_FALLBACK] += wp.int64(1)
-            return True
-        end = (s.mission_time[e]+p.dt)*wp.float64(1e6)
-        if (s.event_count[e] > 0 and s.event_time[e,0] < end
-            and s.event_kind[e,0] == DATA_END and s.event_arg[e,0] == arg
-            and s.event_generation[e,0] == generation):
-            time = s.event_time[e,0]
-            pop(s,e)
-            event(s,p,e,DATA_END,arg,generation,time)
-            counters[e,SCHED_COMPLETED] += wp.int64(1)
-            counters[e,SCHED_FUSED_EVENTS] += wp.int64(1)
-            counters[e,SCHED_MAX_CHAIN] = wp.max(counters[e,SCHED_MAX_CHAIN],wp.int64(2))
-        else:
-            counters[e,SCHED_COMPETITOR_FALLBACK] += wp.int64(1)
+
+    if kind != TX_START:
+        return False
+
+    event(s,p,e,kind,arg,generation,now)
+    if s.errors[e] != 0:
         return True
-    if kind != START:
-        return False
-    counters[e,SCHED_ATTEMPTED] += wp.int64(1)
-    packet = arg
-    node = s.pkt_source[e,packet]
-    if (s.event_count[e] >= p.event_capacity
-        or s.pkt_generation[e,packet] != generation
-        or not active(s,p,e,node)
-        or s.node_current[e,node] >= 0):
-        counters[e,SCHED_BOUNDARY_FALLBACK] += wp.int64(1)
-        return False
-
-    # Gen1 would push MAC and then IDLE at the same timestamp, each with a
-    # fresh insertion order. Prove both successors beat the current heap root
-    # before mutating any scientific state or drawing from MT19937.
-    mac_order = s.event_sequence[e] + wp.int64(1)
-    idle_order = s.event_sequence[e] + wp.int64(2)
-    if (not candidate_before_root(s,e,now,0,mac_order)
-        or not candidate_before_root(s,e,now,0,idle_order)):
-        counters[e,SCHED_COMPETITOR_FALLBACK] += wp.int64(1)
-        return False
-
-    # Inline START -> MAC, advancing the sequence exactly as the omitted
-    # heap pushes would have done. Execute IDLE through the existing handler
-    # so its busy/next-event behavior is unchanged.
-    s.node_current[e,node] = packet
-    s.pkt_attempt[e,packet] += 1
-    s.event_sequence[e] = mac_order
-
-    attempt = s.pkt_attempt[e,packet]
-    window = (p.cw_min+1)*(1 << (attempt-1))-1
-    s.diagnostic_counts[e,diag.BACKOFF_DRAWS] += wp.int64(1)
-    s.pkt_backoff[e,packet] = wp.float64(randbelow(s,e,node,window))*p.slot
-    s.pkt_backoff_version[e,packet] += 1
-    s.event_sequence[e] = idle_order
-    idle_generation = s.pkt_backoff_version[e,packet]
-    event(s,p,e,IDLE,packet,idle_generation,now)
-
-    counters[e,SCHED_COMPLETED] += wp.int64(1)
-    counters[e,SCHED_FUSED_EVENTS] += wp.int64(2)
-    counters[e,SCHED_MAX_CHAIN] = wp.max(counters[e,SCHED_MAX_CHAIN],wp.int64(3))
+    end = (s.mission_time[e]+p.dt)*wp.float64(1e6)
+    if (s.event_count[e] > 0 and s.event_time[e,0] < end
+        and s.event_kind[e,0] == DATA_END and s.event_arg[e,0] == arg
+        and s.event_generation[e,0] == generation):
+        time = s.event_time[e,0]
+        pop(s,e)
+        event(s,p,e,DATA_END,arg,generation,time)
     return True
 
 
