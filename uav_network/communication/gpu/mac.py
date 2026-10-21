@@ -341,10 +341,9 @@ def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32))
             s.session_power[e,j] = wp.float64(0)
 
 
-@wp.kernel
-def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.float32),
-                destination: wp.array2d(dtype=wp.int64)):
-    e = wp.tid()
+@wp.func
+def packet_step_world(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.float32),
+                      destination: wp.array2d(dtype=wp.int64), e: int):
     now = s.packet_time[e]
     end = (s.mission_time[e]+p.dt)*wp.float64(1e6)
     # Motion is fixed during packet_step; invalidate once, then reuse exact link gains.
@@ -444,6 +443,21 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
         event(s,p,e,kind,arg,generation,time)
     s.packet_time[e] = end
     clear_pending(s,p,e,end/wp.float64(1e6))
+
+
+
+@wp.kernel
+def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.float32),
+                destination: wp.array2d(dtype=wp.int64)):
+    e = wp.tid()
+    packet_step_world(s,p,continuous,destination,e)
+
+
+@wp.kernel
+def packet_step_gen2(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.float32),
+                     destination: wp.array2d(dtype=wp.int64)):
+    e = wp.tid()
+    packet_step_world(s,p,continuous,destination,e)
 
 
 def transmission_times(s, index=0):

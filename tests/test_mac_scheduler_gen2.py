@@ -121,5 +121,67 @@ class ExactEventOrderingTests(unittest.TestCase):
             np.testing.assert_array_equal(getattr(s, name).numpy(), expected, err_msg=name)
 
 
+@unittest.skipUnless(HAS_WARP, "optional warp_packet dependency not installed")
+class SchedulerSelectionParityTests(unittest.TestCase):
+    def config(self):
+        c = Config()
+        c.runtime.num_envs = 2
+        c.runtime.device = c.runtime.replay_device = "cpu"
+        c.runtime.environment_backend = "warp_packet"
+        c.world.num_uavs = 2
+        c.world.num_targets = 2
+        c.world.num_obstacles = 0
+        c.world.max_steps = 8
+        c.sensor.altitude_m = 20
+        c.sensor.obstacle_occlusion = False
+        c.network.report_bytes = 2048
+        c.network.buffer_bytes = 4096
+        c.network.payload_bytes = 512
+        c.tracking.enabled = False
+        return c.validate()
+
+    def test_fallback_gen2_matches_gen1_every_array_for_identical_actions(self):
+        from uav_network.environment.gpu.vector import WarpVectorEnv
+        left = WarpVectorEnv(self.config(), device="cpu", packet_scheduler="gen1")
+        right = WarpVectorEnv(self.config(), device="cpu", packet_scheduler="gen2")
+        try:
+            obs_left, _ = left.reset(seed=[44, 45])
+            obs_right, _ = right.reset(seed=[44, 45])
+            for key in obs_left:
+                import torch
+                torch.testing.assert_close(obs_left[key], obs_right[key], rtol=0, atol=0, equal_nan=True)
+
+            import torch
+            continuous = torch.tensor([
+                [[0.10, -0.05, 0.75], [-0.10, 0.05, 0.50]],
+                [[0.05, 0.10, 0.25], [-0.05, -0.10, 1.00]],
+            ], dtype=torch.float32)
+            destinations = [
+                torch.tensor([[2, 0], [2, 0]], dtype=torch.int64),
+                torch.tensor([[1, 2], [0, 2]], dtype=torch.int64),
+                torch.tensor([[2, 0], [2, 0]], dtype=torch.int64),
+            ]
+            for destination in destinations:
+                actions = {"continuous": continuous, "destination": destination}
+                obs_left, reward_left, done_left, truncated_left, _ = left.step(actions)
+                obs_right, reward_right, done_right, truncated_right, _ = right.step(actions)
+                torch.testing.assert_close(reward_left, reward_right, rtol=0, atol=0, equal_nan=True)
+                torch.testing.assert_close(done_left, done_right, rtol=0, atol=0)
+                torch.testing.assert_close(truncated_left, truncated_right, rtol=0, atol=0)
+                for key in obs_left:
+                    torch.testing.assert_close(obs_left[key], obs_right[key], rtol=0, atol=0, equal_nan=True)
+                snap_left, snap_right = left.snapshot_state(), right.snapshot_state()
+                self.assertEqual(snap_left["arrays"].keys(), snap_right["arrays"].keys())
+                for name in snap_left["arrays"]:
+                    torch.testing.assert_close(snap_left["arrays"][name], snap_right["arrays"][name],
+                                               rtol=0, atol=0, equal_nan=True, msg=name)
+                torch.testing.assert_close(snap_left["seeds"], snap_right["seeds"], rtol=0, atol=0)
+                torch.testing.assert_close(snap_left["action_generator"], snap_right["action_generator"],
+                                           rtol=0, atol=0)
+        finally:
+            left.close()
+            right.close()
+
+
 if __name__ == "__main__":
     unittest.main()

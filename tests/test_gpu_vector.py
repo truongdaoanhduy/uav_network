@@ -36,6 +36,17 @@ class DeviceVectorTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             c.validate()
 
+    def test_warp_packet_scheduler_defaults_to_gen1_and_rejects_unknown_mode(self):
+        from uav_network.environment.gpu.vector import WarpVectorEnv
+        c = small_config()
+        vector = WarpVectorEnv(c, device="cpu")
+        try:
+            self.assertEqual(vector.packet_scheduler, "gen1")
+        finally:
+            vector.close()
+        with self.assertRaisesRegex(ValueError, "packet scheduler"):
+            WarpVectorEnv(c, device="cpu", packet_scheduler="unknown")
+
     def test_tensor_actions_equal_legacy_deterministic_actions_for_both_learners(self):
         torch.set_num_threads(1)
         for algorithm in ("masac","matd3"):

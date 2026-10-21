@@ -142,7 +142,7 @@ class GPUPacketTests(unittest.TestCase):
 
     def test_active_poll_coalescing_ignores_other_poll_events_as_boundaries(self):
         _, _, mac = self.backend()
-        source = inspect.getsource(mac.packet_step)
+        source = inspect.getsource(mac.packet_step_world)
         self.assertIn("if s.event_kind[e,k] != POLL:", source)
 
     def test_state_schema_and_masked_reset(self):

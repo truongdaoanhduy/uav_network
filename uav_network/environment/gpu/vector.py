@@ -13,7 +13,8 @@ from .world import reset_geometry
 from .validation import validate_actions
 from .geometry import sense
 from .observations import observe, centralized
-from ...communication.gpu.mac import reset_network, begin_step, sense_reports, masked_sense_reports, packet_step, end_step
+from ...communication.gpu.mac import (reset_network, begin_step, sense_reports, masked_sense_reports,
+                                      packet_step, packet_step_gen2, end_step)
 from ...communication.gpu.metrics import world_info
 from ..env import Action
 from ..observations import observation_dim, state_dim
@@ -23,7 +24,11 @@ class WarpVectorEnv:
     num_cpu_workers = 0
     environment_backend = "warp_packet"
 
-    def __init__(self, config, device=None):
+    def __init__(self, config, device=None, packet_scheduler="gen1"):
+        if packet_scheduler not in {"gen1", "gen2"}:
+            raise ValueError(f"Unknown packet scheduler: {packet_scheduler}")
+        self.packet_scheduler = packet_scheduler
+        self._packet_step_kernel = packet_step if packet_scheduler == "gen1" else packet_step_gen2
         self.config = config.validate()
         self.num_envs = config.runtime.num_envs
         selected = config.runtime.device if device is None else device
@@ -224,7 +229,7 @@ class WarpVectorEnv:
         self._launch(motion_step,self.num_envs,self.s,self.p,wc)
         self._launch(sense,(self.num_envs,self.p.n,self.p.targets_count),self.s,self.p)
         self._launch(sense_reports,self.num_envs,self.s,self.p)
-        self._launch(packet_step,self.num_envs,self.s,self.p,wc,wd)
+        self._launch(self._packet_step_kernel,self.num_envs,self.s,self.p,wc,wd)
         self._launch(end_step,self.num_envs,self.s,self.p)
         self._launch(observe,(self.num_envs,self.p.n),self.s,self.p)
         self._launch(centralized,self.num_envs,self.s,self.p)
