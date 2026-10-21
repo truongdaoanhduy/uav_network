@@ -98,4 +98,3 @@ def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32))
             s.session_pending_mask[e,j] = wp.uint64(0)
             s.session_created[e,j] = wp.float64(0)
             s.session_power[e,j] = wp.float64(0)
-

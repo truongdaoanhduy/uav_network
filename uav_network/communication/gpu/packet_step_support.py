@@ -70,4 +70,3 @@ def packet_step_preamble(s: WorldState, p: WorldParams, continuous: wp.array3d(d
 def packet_step_finish(s: WorldState, p: WorldParams, e: int, end: wp.float64):
     s.packet_time[e] = end
     clear_pending(s,p,e,end/wp.float64(1e6))
-
