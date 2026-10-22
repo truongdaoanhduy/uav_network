@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-10-22T11:53:43.731932+00:00",
+  "updated_at_utc": "2026-10-22T12:12:57.602891+00:00",
   "branch": "feat/cpu-replay-20261022",
   "authorization": "User explicitly requested implementation and incremental progress marking after the handoff. Existing replay flag/pinning path: bounded change.",
   "stages": {
@@ -31,12 +31,19 @@
       "evidence": "New Linux mmap/file-immutability checks, full CPU storage borrowing at synchronous save, partial ring compaction and legacy next-sample continuity pass. Actual 1M RAM peaks remain unmeasured."
     },
     "full_suite_after_changes": {
-      "state": "not_started"
+      "state": "passed",
+      "job_id": "ddfa97777c82",
+      "command": "python3 -m pytest -q",
+      "result": "622 passed, 74 skipped, 8 warnings, 1209 subtests passed in 493.37s",
+      "log": "outputs/cpu-replay-20261022/full-suite.log",
+      "result_json": "outputs/cpu-replay-20261022/full-suite-result.json",
+      "exit_code": 0,
+      "note": "Full suite discovered tests/test_cpu_replay_probe.py. Full 1M Kaggle RAM/VRAM gate remains pending."
     },
     "kaggle_full_1m_cpu_gate": {
       "state": "not_submitted"
     }
   },
-  "next_action": "Add bounded reproducible Kaggle full-1M CPU replay probe; run its tests and full suite, commit pinned code, then submit one two-T4 job using account_27 (last quota 26.23h; prior probe complete).",
+  "next_action": "Inspect the two untracked CPU replay probe files, run focused probe tests and git diff --check, then commit/push the probe harness if clean; do not submit Kaggle yet.",
   "production_500k": "preserved; existing server monitor running; no training restart requested or performed"
 }
