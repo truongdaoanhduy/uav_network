@@ -309,3 +309,99 @@ class RxIndexEventParityTests(unittest.TestCase):
             self.assertGreater(int(left.s.packet_counts.numpy()[0,1]),0,"corpus must exercise receive path")
         finally:
             left.close(); right.close()
+
+
+@unittest.skipUnless(HAS_WARP, "optional warp_packet dependency not installed")
+class RxIndexVectorLifecycleTests(unittest.TestCase):
+    def config(self, num_envs=2):
+        c=Config()
+        c.runtime.num_envs=num_envs
+        c.runtime.device=c.runtime.replay_device="cpu"
+        c.runtime.environment_backend="warp_packet"
+        c.world.num_uavs=2; c.world.num_targets=1; c.world.num_obstacles=0
+        c.energy.enabled=False
+        return c.validate()
+
+    def test_partial_reset_clears_only_selected_derived_rows(self):
+        from uav_network.environment.gpu.vector import WarpVectorEnv
+        vector=WarpVectorEnv(self.config(),device="cpu",packet_scheduler="rxindex")
+        try:
+            vector.reset(seed=[44,45])
+            sizes=np.full(vector._receiver_sizes.shape,2,dtype=np.int32)
+            sizes[0,:]=3
+            frames=np.zeros(vector._receiver_frames.shape,dtype=np.int32)
+            frames[0,:,:]=11; frames[1,:,:]=17
+            vector._receiver_sizes.assign(sizes); vector._receiver_frames.assign(frames)
+            before_row1={name:value.numpy()[1].copy() for name,value in vars(vector.s).items()
+                         if isinstance(value,wp.array) and value.shape and value.shape[0]==2}
+            before_frames=vector._receiver_frames.numpy()[1].copy()
+            before_sizes=vector._receiver_sizes.numpy()[1].copy()
+            vector.reset(seed=[99,None],options={"reset_mask":np.array([True,False])})
+            self.assertTrue(np.all(vector._receiver_sizes.numpy()[0]==0))
+            np.testing.assert_array_equal(vector._receiver_sizes.numpy()[1],before_sizes)
+            np.testing.assert_array_equal(vector._receiver_frames.numpy()[1],before_frames)
+            for name,expected in before_row1.items():
+                np.testing.assert_array_equal(getattr(vector.s,name).numpy()[1],expected,err_msg=name)
+        finally:
+            vector.close()
+
+    def test_restore_rebuilds_pending_heap_without_snapshot_schema_change(self):
+        from uav_network.environment.gpu.vector import WarpVectorEnv
+        c=self.config(num_envs=1)
+        gen1=WarpVectorEnv(c,device="cpu",packet_scheduler="gen1")
+        rx=WarpVectorEnv(c,device="cpu",packet_scheduler="rxindex")
+        try:
+            gen1.reset(seed=44); rx.reset(seed=144)
+            active=np.zeros(gen1.s.tx_active.shape,dtype=np.int32)
+            dest=np.zeros(gen1.s.tx_destination.shape,dtype=np.int32)
+            receive=np.zeros(gen1.s.tx_receive.shape,dtype=np.int32)
+            order=np.zeros(gen1.s.tx_receive_order.shape,dtype=np.int64)
+            active[0,4]=1; dest[0,4]=0; receive[0,4]=1; order[0,4]=20
+            active[0,2]=2; dest[0,2]=0; receive[0,2]=1; order[0,2]=10
+            active[0,7]=1; dest[0,7]=1; receive[0,7]=2; order[0,7]=5
+            gen1.s.tx_active.assign(active); gen1.s.tx_destination.assign(dest)
+            gen1.s.tx_receive.assign(receive); gen1.s.tx_receive_order.assign(order)
+            snapshot=gen1.snapshot_state()
+            self.assertNotIn("receiver_frames",snapshot["arrays"])
+            self.assertNotIn("receiver_sizes",snapshot["arrays"])
+            self.assertEqual(snapshot["arrays"].keys(),rx.snapshot_state()["arrays"].keys())
+            before_events=snapshot["arrays"]["event_count"].clone()
+            rx.restore_state(snapshot)
+            self.assertEqual(rx._receiver_sizes.numpy()[0,:2].tolist(),[2,0])
+            np.testing.assert_array_equal(rx._receiver_frames.numpy()[0,0,:2],[2,4])
+            torch.testing.assert_close(rx.snapshot_state()["arrays"]["event_count"],before_events,rtol=0,atol=0)
+            for name,expected in snapshot["arrays"].items():
+                torch.testing.assert_close(rx.snapshot_state()["arrays"][name],expected,rtol=0,atol=0,equal_nan=True,msg=name)
+        finally:
+            gen1.close(); rx.close()
+
+    def test_rxindex_snapshot_restore_rebuilds_same_derived_contents(self):
+        from uav_network.environment.gpu.vector import WarpVectorEnv
+        c=self.config(num_envs=1)
+        left=WarpVectorEnv(c,device="cpu",packet_scheduler="rxindex")
+        right=WarpVectorEnv(c,device="cpu",packet_scheduler="rxindex")
+        try:
+            left.reset(seed=44); right.reset(seed=144)
+            active=np.zeros(left.s.tx_active.shape,dtype=np.int32)
+            dest=np.zeros(left.s.tx_destination.shape,dtype=np.int32)
+            receive=np.zeros(left.s.tx_receive.shape,dtype=np.int32)
+            order=np.zeros(left.s.tx_receive_order.shape,dtype=np.int64)
+            for frame,value in ((9,30),(3,10),(6,20)):
+                active[0,frame]=1; dest[0,frame]=0; receive[0,frame]=1; order[0,frame]=value
+            left.s.tx_active.assign(active); left.s.tx_destination.assign(dest)
+            left.s.tx_receive.assign(receive); left.s.tx_receive_order.assign(order)
+            wp.launch(_rx.rebuild_receiver_index,dim=1,
+                      inputs=[left.s,left.p,left._receiver_frames,left._receiver_sizes],device="cpu")
+            expected_sizes=left._receiver_sizes.numpy().copy()
+            expected_pending=sorted(left._receiver_frames.numpy()[0,0,:3].tolist(),
+                                    key=lambda frame:(order[0,frame],frame))
+            snapshot=left.snapshot_state()
+            right.restore_state(snapshot)
+            np.testing.assert_array_equal(right._receiver_sizes.numpy(),expected_sizes)
+            out=right._receiver_frames.numpy()[0,0,:3].tolist()
+            self.assertEqual(sorted(out,key=lambda frame:(order[0,frame],frame)),expected_pending)
+            for name,expected in snapshot["arrays"].items():
+                torch.testing.assert_close(right.snapshot_state()["arrays"][name],expected,
+                                           rtol=0,atol=0,equal_nan=True,msg=name)
+        finally:
+            left.close(); right.close()

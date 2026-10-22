@@ -15,6 +15,7 @@ from .geometry import sense
 from .observations import observe, centralized
 from ...communication.gpu.mac import (reset_network, begin_step, sense_reports, masked_sense_reports,
                                       packet_step, packet_step_gen2, packet_step_rxindex, end_step)
+from ...communication.gpu.receiver_index import reset_receiver_index, rebuild_receiver_index
 from ...communication.gpu.metrics import world_info
 from ..env import Action
 from ..observations import observation_dim, state_dim
@@ -129,6 +130,9 @@ class WarpVectorEnv:
         mask_tensor = torch.as_tensor(mask,dtype=torch.int32,device=self.device)
         wp_mask = wp.from_torch(mask_tensor)
         self._launch(reset_network,self.num_envs,self.s,self.p,wp_mask)
+        if self.packet_scheduler == "rxindex":
+            self._launch(reset_receiver_index,self.num_envs,self.p,wp_mask,
+                         self._receiver_frames,self._receiver_sizes)
         self._launch(reset_geometry,self.num_envs,self.s,self.p,wp_mask)
         self._check_errors()
         self._launch(sense,(self.num_envs,self.p.n,self.p.targets_count),self.s,self.p)
@@ -192,6 +196,9 @@ class WarpVectorEnv:
             target.copy_(incoming[name])
         self._seeds = seeds.numpy().copy()
         self.action_generator.set_state(generator.get_state())
+        if self.packet_scheduler == "rxindex":
+            self._launch(rebuild_receiver_index,self.num_envs,self.s,self.p,
+                         self._receiver_frames,self._receiver_sizes)
         self._ready = True
         # The current buffer already owns s.observation/state. No publish kernels
         # run here: even observation arrays are restored byte for byte.

@@ -98,6 +98,41 @@ class ExactWorldTests(unittest.TestCase):
             left.close()
             right.close()
 
+
+
+    def test_gen1_live_packet_snapshot_restores_into_rxindex_and_continues_exactly(self):
+        from uav_network.environment.gpu.geometry import sense
+        from uav_network.communication.gpu.mac import sense_reports
+        c = self.config()
+        c.network.bit_rate_bps = 100000
+        c.network.report_bytes, c.network.buffer_bytes = 1_000_000, 3_000_000
+        c.network.payload_bytes = 1024
+        c.network.propagation_delay_enabled = True
+        left = WarpVectorEnv(c, packet_scheduler="gen1")
+        right = WarpVectorEnv(c, packet_scheduler="rxindex")
+        try:
+            left.reset(seed=44)
+            targets = left.s.targets.numpy().copy()
+            targets[:, 0] = left.s.positions.numpy()[:, 0]
+            targets[:, 1] = [900, 900]
+            left.s.targets.assign(targets)
+            left._launch(sense, (2, 2, 2), left.s, left.p)
+            left._launch(sense_reports, 2, left.s, left.p)
+            left._publish(left._buffers[left._buffer])
+            actions = {"continuous": torch.zeros((2, 2, 3)),
+                       "destination": torch.full((2, 2), 2, dtype=torch.int64)}
+            left.step(actions)
+            snapshot = left.snapshot_state()
+            self.assertTrue(bool((snapshot["arrays"]["session_active"] != 0).any()))
+            right.restore_state(snapshot)
+            self.assertNotIn("receiver_frames", snapshot["arrays"])
+            self.assertNotIn("receiver_sizes", snapshot["arrays"])
+            for _ in range(3):
+                left.step(actions); right.step(actions)
+                assert_snapshot_arrays(self, right.snapshot_state()["arrays"], left.snapshot_state()["arrays"])
+        finally:
+            left.close(); right.close()
+
     def test_invalid_snapshot_rejected_before_any_world_mutation_and_waiting_rejected(self):
         v = WarpVectorEnv(self.config())
         try:
