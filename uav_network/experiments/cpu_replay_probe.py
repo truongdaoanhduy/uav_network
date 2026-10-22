@@ -154,7 +154,7 @@ def run_probe(output, report=None):
     try:
         event("initializing")
         engine = PQLSystem(c)
-        vector = WarpVectorEnv(c, device=engine.collector_device, packet_scheduler="gen1")
+        vector = WarpVectorEnv(c, device=engine.collector_device)
         obs, returns, lengths, seeds, next_seed = initialize_environment(vector, engine.initial_progress, None)
         rng = np.random.default_rng(c.runtime.seed + 1)
         real_collections = 0

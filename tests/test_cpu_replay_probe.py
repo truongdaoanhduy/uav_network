@@ -73,3 +73,11 @@ def test_memory_probe_distinguishes_process_ram_from_effective_available_ram():
     if memory["cgroup_limit_bytes"] is not None:
         assert memory["effective_available_bytes"] <= max(
             0, memory["cgroup_limit_bytes"] - memory["cgroup_current_bytes"])
+
+
+def test_probe_uses_current_warp_vector_constructor_without_removed_scheduler_keyword():
+    import inspect
+    from uav_network.environment.gpu.vector import WarpVectorEnv
+    from uav_network.experiments import cpu_replay_probe
+    assert "packet_scheduler" not in inspect.signature(WarpVectorEnv).parameters
+    assert "packet_scheduler=" not in inspect.getsource(cpu_replay_probe.run_probe)
