@@ -81,3 +81,65 @@ def test_probe_uses_current_warp_vector_constructor_without_removed_scheduler_ke
     from uav_network.experiments import cpu_replay_probe
     assert "packet_scheduler" not in inspect.signature(WarpVectorEnv).parameters
     assert "packet_scheduler=" not in inspect.getsource(cpu_replay_probe.run_probe)
+
+
+def test_hybrid_probe_replay_splits_storage_and_restores_rng_exactly():
+    from uav_network.environment.env import Action
+    from uav_network.experiments.cpu_replay_probe import HybridMeasuredReplay
+    replay = HybridMeasuredReplay(8, (1, 2), 3, seed=7, hot_device="cpu")
+    assert replay.cpu_capacity == 4
+    assert replay.hot_capacity == 4
+    values = {
+        "observation": torch.arange(16, dtype=torch.float32).reshape(8, 1, 2),
+        "state": torch.arange(24, dtype=torch.float32).reshape(8, 3),
+        "continuous": torch.arange(24, dtype=torch.float32).reshape(8, 1, 3),
+        "destination": torch.arange(8, dtype=torch.long).reshape(8, 1),
+        "reward": torch.arange(8, dtype=torch.float32),
+        "next_observation": torch.arange(16, 32, dtype=torch.float32).reshape(8, 1, 2),
+        "next_state": torch.arange(24, 48, dtype=torch.float32).reshape(8, 3),
+        "terminated": torch.zeros(8),
+    }
+    replay.add_batch(values["observation"], values["state"],
+                     Action(values["continuous"], values["destination"]), values["reward"],
+                     values["next_observation"], values["next_state"], values["terminated"])
+    torch.testing.assert_close(replay.cpu_data["reward"], torch.arange(4, dtype=torch.float32))
+    torch.testing.assert_close(replay.hot_data["reward"], torch.arange(4, 8, dtype=torch.float32))
+    saved = replay.state_dict()
+    expected = replay.sample(6)
+    restored = HybridMeasuredReplay(8, (1, 2), 3, seed=999, hot_device="cpu")
+    restored.load_state_dict(saved)
+    actual = restored.sample(6)
+    for name in expected:
+        torch.testing.assert_close(expected[name], actual[name], rtol=0, atol=0)
+    assert restored.index == replay.index == 0
+    assert len(restored) == len(replay) == 8
+
+
+def test_pql_system_accepts_probe_replay_override_without_changing_default_path():
+    from test_pql_system import pql_config
+    from uav_network.experiments.cpu_replay_probe import HybridMeasuredReplay
+    from uav_network.experiments.pql_system import PQLSystem
+    c = pql_config()
+    from uav_network.environment.observations import observation_dim, state_dim
+    replay = HybridMeasuredReplay(c.algorithm_config.replay_capacity,
+                                  (c.world.num_uavs, observation_dim(c)),
+                                  state_dim(c), seed=c.runtime.seed, hot_device="cpu")
+    engine = PQLSystem(c, replay=replay)
+    try:
+        assert engine.replay is replay
+    finally:
+        engine.close()
+
+
+def test_probe_wandb_summary_update_uses_mapping_for_new_wandb_api():
+    from uav_network.experiments.cpu_replay_probe import record_probe_summary
+    class Summary:
+        def __init__(self): self.values = {}
+        def update(self, values): self.values.update(values)
+    run = type("Run", (), {"summary": Summary()})()
+    record_probe_summary(run, {"status": "passed"})
+    assert run.summary.values == {
+        "probe_passed": True,
+        "probe_duplicated_replay": True,
+        "episode_budget_complete": False,
+    }

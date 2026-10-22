@@ -80,3 +80,34 @@ def test_remote_cpu_replay_diagnostic_runs_reviewed_module_and_preserves_result(
             result = remote.cpu_replay_diagnostic(spec, root)
         assert result["status"] == "passed"
         assert json.loads((root / "job-result.json").read_text())["status"] == "passed"
+
+
+def test_cli_accepts_exact_hybrid_replay_diagnostic_mode():
+    def launch(args, credentials):
+        assert args.stage == "benchmark"
+        assert args.algorithm == "masac"
+        assert args.diagnostic == "hybrid-replay-1m"
+        return {"diagnostic": args.diagnostic}
+    with patch.object(cli, "load_credentials", return_value=None), \
+         patch.object(cli, "launch", side_effect=launch):
+        result = cli.main(["launch", "--stage", "benchmark", "--algorithm", "masac",
+                           "--diagnostic", "hybrid-replay-1m",
+                           "--credential-dataset", "owner/private"])
+    assert result == {"diagnostic": "hybrid-replay-1m"}
+
+
+def test_remote_hybrid_replay_diagnostic_selects_hybrid_layout():
+    spec = {"commit": "c" * 40, "diagnostic": "hybrid-replay-1m",
+            "runs": {"masac": {"id": "run456", "name": "DIAG-HYBRID"}}}
+    with TemporaryDirectory() as folder:
+        root = Path(folder)
+        def child(args, **kwargs):
+            assert args[:3] == [remote.sys.executable, "-m", "uav_network.experiments.cpu_replay_probe"]
+            assert args[args.index("--layout") + 1] == "hybrid"
+            out = Path(args[args.index("--output") + 1])
+            out.mkdir(parents=True, exist_ok=True)
+            (out / "cpu-replay-result.json").write_text(json.dumps({"status":"passed","schema":1,"layout":"hybrid"}))
+        with patch.object(remote.subprocess, "run", side_effect=child):
+            result = remote.cpu_replay_diagnostic(spec, root)
+        assert result["status"] == "passed"
+        assert result["layout"] == "hybrid"

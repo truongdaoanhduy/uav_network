@@ -221,15 +221,17 @@ def comparison_benchmarks(spec, config, output):
 
 
 def cpu_replay_diagnostic(spec, output):
-    if spec.get("diagnostic") != "cpu-replay-1m" or set(spec.get("runs", {})) != {"masac"}:
-        raise ValueError("CPU replay diagnostic requires exactly the MASAC cpu-replay-1m case")
+    diagnostic = spec.get("diagnostic")
+    if diagnostic not in {"cpu-replay-1m", "hybrid-replay-1m"} or set(spec.get("runs", {})) != {"masac"}:
+        raise ValueError("Replay diagnostic requires exactly one supported MASAC 1M case")
     run = spec["runs"]["masac"]
     destination = Path(output) / "cpu-replay"
     env = dict(os.environ, WANDB_RUN_ID=run["id"], WANDB_NAME=run["name"],
                PROBE_COMMIT=spec["commit"])
     env.pop("KAGGLE_API_TOKEN", None)
+    layout = "hybrid" if diagnostic == "hybrid-replay-1m" else "cpu"
     subprocess.run([sys.executable, "-m", "uav_network.experiments.cpu_replay_probe",
-                    "--output", str(destination)], env=env, check=True)
+                    "--output", str(destination), "--layout", layout], env=env, check=True)
     result_path = destination / "cpu-replay-result.json"
     if not result_path.is_file():
         raise RuntimeError("CPU replay diagnostic produced no result JSON")
@@ -243,7 +245,7 @@ def run_job(spec):
     output = Path("/kaggle/working")
     started = float(os.environ.get("UAV_JOB_STARTED_AT", time.monotonic()))
     (output / "hardware.json").write_text(json.dumps(hardware_info(), indent=2))
-    if spec.get("diagnostic") == "cpu-replay-1m":
+    if spec.get("diagnostic") in {"cpu-replay-1m", "hybrid-replay-1m"}:
         return cpu_replay_diagnostic(spec, output)
     config = load_config(spec["config"], spec["overrides"])
     spec["warm_start_paths"] = prepare_checkpoints(spec, output, config=config)
