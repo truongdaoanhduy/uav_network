@@ -114,5 +114,17 @@
       "target": "docs/superpowers/CURRENT_TASK.md"
     }
   ],
-  "training_test_suite": "not run: only documentation changed; no current CPU replay test or benchmark result is claimed"
+  "training_test_suite": "not run: only documentation changed; no current CPU replay test or benchmark result is claimed",
+  "remote_readback": {
+    "checked_at_utc": "2026-10-22T11:36:23.592372+00:00",
+    "commit": "750ac02bc6c8371c638d53fdf1598f9dac238f06",
+    "branch": "docs/session-handoff-20261022",
+    "remote_head_matches": true,
+    "github_files_read": [
+      "AGENTS.md",
+      "docs/superpowers/CURRENT_TASK.md"
+    ],
+    "github_compare": "ab60690..750ac02: 1 commit, 7 documentation files, no implementation changes",
+    "tool": "GitHub connector fetch_file and compare_commits"
+  }
 }
