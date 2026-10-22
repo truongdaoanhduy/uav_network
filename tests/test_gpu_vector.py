@@ -44,6 +44,11 @@ class DeviceVectorTests(unittest.TestCase):
             self.assertEqual(vector.packet_scheduler, "gen1")
         finally:
             vector.close()
+        rxindex = WarpVectorEnv(c, device="cpu", packet_scheduler="rxindex")
+        try:
+            self.assertEqual(rxindex.packet_scheduler, "rxindex")
+        finally:
+            rxindex.close()
         with self.assertRaisesRegex(ValueError, "packet scheduler"):
             WarpVectorEnv(c, device="cpu", packet_scheduler="unknown")
 

@@ -9,6 +9,7 @@ from .events import push, pop, replace_root, next_time_after_root
 from .streaming import (fill_session, fragment_bit, window_count, window_mask)
 from . import diagnostics as diag
 from .packet_step_support import packet_step_preamble, packet_step_finish
+from .receiver_index import receiver_push, next_receive_indexed
 
 # Preserve CPython scalar FP64 operation boundaries on CUDA as well as CPU.
 wp.set_module_options({"enable_fp_fma": False, "enable_backward": False})
@@ -249,6 +250,49 @@ def event(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
 
 
 @wp.func
+def event_rxindex(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
+                  generation: int, now: wp.float64,
+                  frames: wp.array3d(dtype=wp.int32), sizes: wp.array2d(dtype=wp.int32)):
+    if kind == DELIVER:
+        frame = arg
+        if evaluate(s,p,e,frame,now):
+            s.tx_receive[e,frame] = 1
+            s.tx_receive_order[e,frame] = s.event_sequence[e]
+            receiver = s.tx_destination[e,frame]
+            receiver_push(s,p,e,receiver,frames,sizes,frame)
+            next_receive_indexed(s,p,e,receiver,now,RECEIVE,frames,sizes)
+        else:
+            s.tx_receive[e,frame] = 3
+    elif kind == RECEIVE:
+        frame = arg
+        node = s.tx_destination[e,frame]
+        if not active(s,p,e,node) or s.tx_ttl[e,frame] >= p.n+2:
+            s.tx_receive[e,frame] = 3
+            s.node_receiving[e,node] = 0
+            next_receive_indexed(s,p,e,node,now,RECEIVE,frames,sizes)
+        elif s.tx_kind[e,frame] == 0:
+            receive_data(s,p,e,frame,now)
+            push(s,p,e,now+p.sifs,ACK_START,frame,0,1)
+        else:
+            packet = s.tx_packet[e,frame]
+            if s.pkt_generation[e,packet] == s.tx_generation[e,frame]:
+                if s.node_wait_packet[e,node] == packet:
+                    s.node_wait_finish[e,node] = 1
+                s.pkt_status[e,packet] = 4
+            s.tx_receive[e,frame] = 3
+            s.node_receiving[e,node] = 0
+            next_receive_indexed(s,p,e,node,now,RECEIVE,frames,sizes)
+    elif kind == RECEIVE_DONE:
+        frame = arg
+        node = s.tx_destination[e,frame]
+        s.tx_receive[e,frame] = 3
+        s.node_receiving[e,node] = 0
+        next_receive_indexed(s,p,e,node,now,RECEIVE,frames,sizes)
+    else:
+        event(s,p,e,kind,arg,generation,now)
+
+
+@wp.func
 def handle_fast_root(s: WorldState, p: WorldParams, e: int, end: wp.float64) -> bool:
     time=s.event_time[e,0]; kind=s.event_kind[e,0]; arg=s.event_arg[e,0]
     generation=s.event_generation[e,0]
@@ -356,6 +400,20 @@ def run_event_loop_gen2(s: WorldState, p: WorldParams, e: int, end: wp.float64,
 
 
 @wp.func
+def run_event_loop_rxindex(s: WorldState, p: WorldParams, e: int, end: wp.float64,
+                           frames: wp.array3d(dtype=wp.int32),
+                           sizes: wp.array2d(dtype=wp.int32)):
+    while s.event_count[e] > 0 and s.errors[e] == 0:
+        time=s.event_time[e,0]
+        if time >= end: break
+        kind=s.event_kind[e,0]; arg=s.event_arg[e,0]; generation=s.event_generation[e,0]
+        s.packet_time[e]=time
+        if handle_fast_root(s,p,e,end): continue
+        pop(s,e)
+        event_rxindex(s,p,e,kind,arg,generation,time,frames,sizes)
+
+
+@wp.func
 def packet_step_world(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.float32),
                       destination: wp.array2d(dtype=wp.int64), e: int):
     end = packet_step_preamble(s,p,continuous,destination,e)
@@ -369,6 +427,16 @@ def packet_step_world_gen2(s: WorldState, p: WorldParams, continuous: wp.array3d
                            counters: wp.array2d(dtype=wp.int64)):
     end = packet_step_preamble(s,p,continuous,destination,e)
     run_event_loop_gen2(s,p,e,end,counters)
+    packet_step_finish(s,p,e,end)
+
+
+@wp.func
+def packet_step_world_rxindex(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.float32),
+                              destination: wp.array2d(dtype=wp.int64), e: int,
+                              frames: wp.array3d(dtype=wp.int32),
+                              sizes: wp.array2d(dtype=wp.int32)):
+    end = packet_step_preamble(s,p,continuous,destination,e)
+    run_event_loop_rxindex(s,p,e,end,frames,sizes)
     packet_step_finish(s,p,e,end)
 
 
@@ -386,6 +454,14 @@ def packet_step_gen2(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype
                      counters: wp.array2d(dtype=wp.int64)):
     e = wp.tid()
     packet_step_world_gen2(s,p,continuous,destination,e,counters)
+
+
+@wp.kernel
+def packet_step_rxindex(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.float32),
+                        destination: wp.array2d(dtype=wp.int64),
+                        frames: wp.array3d(dtype=wp.int32), sizes: wp.array2d(dtype=wp.int32)):
+    e = wp.tid()
+    packet_step_world_rxindex(s,p,continuous,destination,e,frames,sizes)
 
 
 def transmission_times(s, index=0):

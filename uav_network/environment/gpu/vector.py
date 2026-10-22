@@ -14,7 +14,7 @@ from .validation import validate_actions
 from .geometry import sense
 from .observations import observe, centralized
 from ...communication.gpu.mac import (reset_network, begin_step, sense_reports, masked_sense_reports,
-                                      packet_step, packet_step_gen2, end_step)
+                                      packet_step, packet_step_gen2, packet_step_rxindex, end_step)
 from ...communication.gpu.metrics import world_info
 from ..env import Action
 from ..observations import observation_dim, state_dim
@@ -25,7 +25,7 @@ class WarpVectorEnv:
     environment_backend = "warp_packet"
 
     def __init__(self, config, device=None, packet_scheduler="gen1"):
-        if packet_scheduler not in {"gen1", "gen2"}:
+        if packet_scheduler not in {"gen1", "gen2", "rxindex"}:
             raise ValueError(f"Unknown packet scheduler: {packet_scheduler}")
         self.packet_scheduler = packet_scheduler
         self.config = config.validate()
@@ -47,6 +47,11 @@ class WarpVectorEnv:
             self.s, self.p = allocate_state(config, self.num_envs, device=self.wp_device)
             self._scheduler_counters = (wp.zeros((self.num_envs,6), dtype=wp.int64, device=self.wp_device)
                                         if self.packet_scheduler == "gen2" else None)
+            self._receiver_frames = (wp.zeros((self.num_envs,self.p.n+1,self.p.frame_capacity),
+                                              dtype=wp.int32,device=self.wp_device)
+                                     if self.packet_scheduler == "rxindex" else None)
+            self._receiver_sizes = (wp.zeros((self.num_envs,self.p.n+1),dtype=wp.int32,device=self.wp_device)
+                                    if self.packet_scheduler == "rxindex" else None)
             self._buffers = [
                 {"observation":wp.to_torch(self.s.observation),"state":wp.to_torch(self.s.state)},
                 {"observation":torch.empty((self.num_envs,config.world.num_uavs,observation_dim(config)),
@@ -64,6 +69,8 @@ class WarpVectorEnv:
         arrays = [value for value in vars(self.s).values() if isinstance(value,wp.array)]
         unique = {int(a.ptr):a for a in arrays if a.size}
         total = sum(a.size * wp.types.type_size_in_bytes(a.dtype) for a in unique.values())
+        derived = [a for a in (self._receiver_frames,self._receiver_sizes) if isinstance(a,wp.array)]
+        total += sum(a.size * wp.types.type_size_in_bytes(a.dtype) for a in derived)
         # Buffer1 is Torch-owned; buffer0 is already counted through the state.
         return total + sum(t.numel()*t.element_size() for t in self._buffers[1].values())
 
@@ -232,6 +239,9 @@ class WarpVectorEnv:
         self._launch(sense_reports,self.num_envs,self.s,self.p)
         if self.packet_scheduler == "gen2":
             self._launch(packet_step_gen2,self.num_envs,self.s,self.p,wc,wd,self._scheduler_counters)
+        elif self.packet_scheduler == "rxindex":
+            self._launch(packet_step_rxindex,self.num_envs,self.s,self.p,wc,wd,
+                         self._receiver_frames,self._receiver_sizes)
         else:
             self._launch(packet_step,self.num_envs,self.s,self.p,wc,wd)
         self._launch(end_step,self.num_envs,self.s,self.p)
