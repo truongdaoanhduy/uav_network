@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-10-22T12:29:26.154968+00:00",
+  "updated_at_utc": "2026-10-22T12:53:00.468273+00:00",
   "branch": "feat/cpu-replay-20261022",
   "authorization": "User explicitly requested implementation and incremental progress marking after the handoff. Existing replay flag/pinning path: bounded change.",
   "stages": {
@@ -74,8 +74,27 @@
       "production_monitor_alive": true,
       "production_500k_running": 4,
       "production_progress_verified": 4
+    },
+    "cloud_diagnostic_path": {
+      "state": "passed_local_pending_commit_push",
+      "reason": "Use the standard redacted/verified credential path; ad-hoc credential launcher was blocked before side effects.",
+      "red": "3 failed",
+      "green": "3 passed",
+      "focused": "39 passed, 2 subtests passed in 7.38s",
+      "full_suite_job_id": "375ac5b6f768",
+      "full_suite": "626 passed, 74 skipped, 8 warnings, 1210 subtests passed in 450.90s",
+      "full_suite_exit_code": 0,
+      "diff_check": "passed",
+      "constraints": [
+        "benchmark",
+        "masac",
+        "pinned scenario-v3",
+        "no overrides",
+        "idle-account recheck",
+        "standard private W&B credential dataset"
+      ]
     }
   },
-  "next_action": "Submit exactly one bounded MASAC-PQL CPU replay 1M two-T4 diagnostic using the verified probe at commit 68c5275, without touching the four production 500k runs.",
+  "next_action": "Commit/push the verified standard cloud diagnostic path, verify remote HEAD, then submit exactly one account_27 cpu-replay-1m diagnostic via uav_network.cloud.cli.",
   "production_500k": "preserved; existing server monitor running; no training restart requested or performed"
 }

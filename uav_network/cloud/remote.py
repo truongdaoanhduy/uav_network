@@ -219,14 +219,34 @@ def comparison_benchmarks(spec, config, output):
     return report
 
 
+
+def cpu_replay_diagnostic(spec, output):
+    if spec.get("diagnostic") != "cpu-replay-1m" or set(spec.get("runs", {})) != {"masac"}:
+        raise ValueError("CPU replay diagnostic requires exactly the MASAC cpu-replay-1m case")
+    run = spec["runs"]["masac"]
+    destination = Path(output) / "cpu-replay"
+    env = dict(os.environ, WANDB_RUN_ID=run["id"], WANDB_NAME=run["name"],
+               PROBE_COMMIT=spec["commit"])
+    env.pop("KAGGLE_API_TOKEN", None)
+    subprocess.run([sys.executable, "-m", "uav_network.experiments.cpu_replay_probe",
+                    "--output", str(destination)], env=env, check=True)
+    result_path = destination / "cpu-replay-result.json"
+    if not result_path.is_file():
+        raise RuntimeError("CPU replay diagnostic produced no result JSON")
+    result = json.loads(result_path.read_text())
+    (Path(output) / "job-result.json").write_text(json.dumps(result, indent=2))
+    return result
+
 def run_job(spec):
     if not torch.cuda.is_available():
         raise RuntimeError("Kaggle job requires usable CUDA; refusing a CPU fallback")
     output = Path("/kaggle/working")
     started = float(os.environ.get("UAV_JOB_STARTED_AT", time.monotonic()))
+    (output / "hardware.json").write_text(json.dumps(hardware_info(), indent=2))
+    if spec.get("diagnostic") == "cpu-replay-1m":
+        return cpu_replay_diagnostic(spec, output)
     config = load_config(spec["config"], spec["overrides"])
     spec["warm_start_paths"] = prepare_checkpoints(spec, output, config=config)
-    (output / "hardware.json").write_text(json.dumps(hardware_info(), indent=2))
     checks = [("test_cuda.py", "cuda-tests.log"),
               ("test_cuda_scenario_v2.py", "scenario-v2-cuda-tests.log"),
               ("test_training_audit_regressions.py", "mission-regressions.log")]

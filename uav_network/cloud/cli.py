@@ -47,6 +47,15 @@ def launch(args, credentials):
         if timeout_seconds <= reserve:
             raise RuntimeError("Selected account GPU quota cannot cover a safe training and upload segment")
     compare_legacy = getattr(args, "compare_legacy", False)
+    diagnostic = getattr(args, "diagnostic", None)
+    if diagnostic:
+        expected = "configs/comparison-20k-steps1800-scenario-v3.yaml"
+        if (diagnostic != "cpu-replay-1m" or args.stage != "benchmark" or args.algorithm != "masac"
+                or compare_legacy or args.warm_start_artifact or args.overrides
+                or auto_continue or cpu_visualize or (args.config not in {None, expected})):
+            raise ValueError("CPU replay diagnostic requires benchmark/MASAC, the pinned V3 config, and no extra overrides")
+        config_file = expected
+        config = load_config(ROOT / config_file)
     if compare_legacy and (args.stage != "benchmark" or not config.pql.enabled):
         raise ValueError("Matched comparison requires --stage benchmark and pql.enabled=true")
     if auto_continue and (args.algorithm == "both" or args.stage == "benchmark"):
@@ -63,7 +72,7 @@ def launch(args, credentials):
     slug = f"uavnet-{args.stage}-{stamp}-{token}"
     algorithms = ("masac", "matd3") if args.algorithm == "both" else (args.algorithm,)
     inputs = parse_warm_start_artifacts(args.warm_start_artifact, algorithms)
-    training_mode = "pql" if config.pql.enabled else "base"
+    training_mode = "pql" if diagnostic == "cpu-replay-1m" or config.pql.enabled else "base"
     runs = {a: {"id": uuid4().hex[:8], "name": f"{a.upper()}-{training_mode.upper()}-uav-network-2d-seed{config.runtime.seed}-{stamp}-{token}"}
             for a in algorithms}
     spec = {"submitted_at_utc": datetime.now(timezone.utc).isoformat(), "commit": commit, "kernel_ref": f"{username}/{slug}", "account": account.name,
@@ -72,8 +81,12 @@ def launch(args, credentials):
             "entity": credentials.entity if config.tracking.entity == "auto" else config.tracking.entity,
             "project": credentials.project if config.tracking.project == "auto" else config.tracking.project,
             "stage": args.stage, "config": config_file, "overrides": args.overrides, "runs": runs}
-    spec.update({"requested_episodes": config.runtime.episodes, "training_mode": training_mode,
+    spec.update({"training_mode": training_mode,
                  "accelerator": args.accelerator, "gpus_per_run": args.gpus_per_run})
+    if diagnostic:
+        spec["diagnostic"] = diagnostic
+    else:
+        spec["requested_episodes"] = config.runtime.episodes
     if auto_continue:
         spec.update({"auto_continue": True, "root_kernel_ref": spec["kernel_ref"],
                      "continuation_index": 0})
@@ -94,7 +107,7 @@ def launch(args, credentials):
     if (spec["entity"], spec["project"]) != (credentials.entity, credentials.project):
         raise ValueError("Cloud job must use the main W&B project in key.txt")
     storage_token = None
-    if config.tracking.checkpoint_store == "huggingface":
+    if not diagnostic and config.tracking.checkpoint_store == "huggingface":
         from ..experiments.checkpoint_store import ensure_private_store, storage_credentials
         from .client import ensure_storage_dataset
         config.tracking.credentials_file = args.key_file
@@ -105,6 +118,13 @@ def launch(args, credentials):
     serialized = json.dumps(spec)
     if any(secret in serialized for secret in [credentials.wandb_key, *(a.token for a in credentials.accounts), *([storage_token] if storage_token else [])]):
         raise RuntimeError("Refusing a job manifest containing credentials")
+    if diagnostic:
+        recent = json.loads(run_kaggle(["kernels", "list", "--mine", "--format", "json",
+                                       "--page-size", "20", "--sort-by", "dateRun"], account))
+        active = [{"ref": row["ref"], "status": kernel_status(row["ref"], account)} for row in recent]
+        active = [row for row in active if row["status"] in {"running", "pending", "queued"}]
+        if active:
+            raise RuntimeError(f"Diagnostic account has active kernels: {active}")
     folder = ROOT / "outputs/kaggle" / slug
     folder.mkdir(parents=True, exist_ok=False)
     (folder / "kernel.py").write_text(kernel_script(spec))
@@ -131,6 +151,8 @@ def main(argv=None):
     submit.add_argument("--stage", choices=["validate", "train", "benchmark"], default="train")
     submit.add_argument("--compare-legacy", action="store_true",
                         help="Benchmark matched legacy, single-GPU PQL and dual-GPU PQL; no production training")
+    submit.add_argument("--diagnostic", choices=["cpu-replay-1m"],
+                        help="Run one bounded reviewed diagnostic instead of a training/benchmark entrypoint")
     submit.add_argument("--account")
     submit.add_argument("--required-gpu-hours", type=float)
     submit.add_argument("--credential-dataset", required=True)
