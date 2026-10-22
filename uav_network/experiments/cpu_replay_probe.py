@@ -23,7 +23,6 @@ from .environment_checkpoints import initialize_environment, snapshot_environmen
 from .pql_system import PQLSystem
 from .training import seed_runtime
 
-
 class HybridMeasuredReplay:
     """Probe-only 50/50 CPU + hot-device replay with one global ring/RNG."""
     def __init__(self, capacity, observation_shape, state_dim_value, seed=44, hot_device="cuda:1"):
@@ -141,25 +140,21 @@ class HybridMeasuredReplay:
         return result
 
     def stats(self):
-        evictions = self.measured_evictions
-        ages = self.age_count
+        evictions, ages = self.measured_evictions, self.age_count
         return {"replay/size": self.size, "replay/bytes": self.allocated_bytes,
                 "replay/cpu_bytes": self.cpu_allocated_bytes, "replay/hot_bytes": self.hot_allocated_bytes,
                 "replay/hybrid": 1, "replay/inserted_rows": self.inserted,
                 "replay/sample_uses": self.sample_uses, "replay/overwritten_rows": self.overwritten,
                 "replay/evicted_unsampled_rows": self.unsampled, "replay/eviction_measured_rows": evictions,
                 "replay/evicted_unsampled_fraction": self.unsampled / evictions if evictions else None,
-                "replay/sample_age_measured_uses": ages,
-                "replay/sample_age_mean_collections": self.age_sum / ages if ages else None,
-                "replay/sample_age_max_collections": self.age_max if ages else None,
-                "replay/measurement_unknown_rows": self.size - self.known_rows,
+                "replay/sample_age_measured_uses": ages, "replay/sample_age_mean_collections": self.age_sum / ages if ages else None,
+                "replay/sample_age_max_collections": self.age_max if ages else None, "replay/measurement_unknown_rows": self.size - self.known_rows,
                 "replay/policy_age_available": 0}
 
     def measurement_state(self):
         return {"collections": self.collections, "inserted": self.inserted, "sample_uses": self.sample_uses,
                 "overwritten": self.overwritten, "unsampled": self.unsampled, "age_sum": self.age_sum,
-                "age_max": self.age_max, "age_count": self.age_count,
-                "measured_evictions": self.measured_evictions, "known_rows": self.known_rows,
+                "age_max": self.age_max, "age_count": self.age_count, "measured_evictions": self.measured_evictions, "known_rows": self.known_rows,
                 "born": self.born[:self.size], "seen": self.seen[:self.size]}
 
     def state_dict(self):
@@ -200,7 +195,6 @@ class HybridMeasuredReplay:
             self.hot_data[name][:hot_size].copy_(saved["hot_data"][name].to(self.hot_device))
         self.rng.set_state(saved["rng"].cpu())
 
-
 def probe_config():
     c = load_config("configs/comparison-20k-steps1800-scenario-v3.yaml")
     c.runtime.algorithm, c.runtime.num_envs = "masac", 2048
@@ -217,7 +211,6 @@ def probe_config():
     c.pql.worker_timeout_s = 1200
     return c.validate()
 
-
 def fill_replay(replay, values):
     """Repeat one real transition batch for MEMORY testing, including the tail."""
     observation, state, action, reward, nxt, next_state, terminated = values
@@ -232,7 +225,6 @@ def fill_replay(replay, values):
                          cpu[5][:count], cpu[6][:count], cpu[7][:count])
         inserted += count
     return inserted
-
 
 def _host_memory():
     status = {line.split(":")[0]: int(line.split()[1]) * 1024
@@ -255,7 +247,6 @@ def _host_memory():
             "system_available_bytes": available, "effective_available_bytes": effective,
             "cgroup_limit_bytes": limit, "cgroup_current_bytes": current}
 
-
 def _require_two_t4():
     message = "CPU replay probe requires exactly two T4 CUDA devices"
     if not torch.cuda.is_available() or torch.cuda.device_count() != 2:
@@ -267,7 +258,6 @@ def _require_two_t4():
              "compute_capability": [device.major, device.minor]}
             for i, device in enumerate(devices)]
 
-
 def _gpu_memory():
     return [{"device": i, "name": torch.cuda.get_device_name(i),
              "total_bytes": torch.cuda.get_device_properties(i).total_memory,
@@ -276,14 +266,12 @@ def _gpu_memory():
              "peak_reserved_bytes": torch.cuda.max_memory_reserved(i)}
             for i in range(torch.cuda.device_count())]
 
-
 def _digest(batch):
     digest = hashlib.sha256()
     for name, value in sorted(batch.items()):
         digest.update(name.encode())
         digest.update(value.detach().cpu().contiguous().numpy().tobytes())
     return digest.hexdigest()
-
 
 def run_probe(output, report=None, layout="cpu"):
     hardware = _require_two_t4()
@@ -477,12 +465,10 @@ def run_probe(output, report=None, layout="cpu"):
         if vector is not None:
             vector.close()
 
-
 def record_probe_summary(run, result):
     run.summary.update({"probe_passed": result["status"] == "passed",
                         "probe_duplicated_replay": True,
                         "episode_budget_complete": False})
-
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -509,7 +495,6 @@ def main():
         code = 0
     finally:
         run.finish(exit_code=code)
-
 
 if __name__ == "__main__":
     main()
