@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-10-22T17:44:27.902776+00:00",
+  "updated_at_utc": "2026-10-22T18:37:50.148046+00:00",
   "branch": "feat/cpu-replay-20261022",
   "authorization": "User explicitly requested implementation and incremental progress marking after the handoff. Existing replay flag/pinning path: bounded change.",
   "stages": {
@@ -237,8 +237,85 @@
       },
       "credential_note": "Six user-supplied new Kaggle tokens were not written to key.txt because the sandbox safety layer blocked a raw-secret file mutation before side effects. No bypass attempted; existing accounts were used.",
       "recommendation": "Among measured layouts, prefer 75% CPU / 25% GPU if hybrid placement is needed: GPU learner device peak is about 48%, versus 74.5% for 50/50 and 95.2% for GPU-only. CPU-only minimizes learner VRAM but has the slowest probe and highest process RSS."
+    },
+    "fair_base_pql_four_way_training_launch": {
+      "state": "running_preflight",
+      "source_commit": "71e11e97a0566623767413ffa4cb94aa7901b20d",
+      "purpose": "Matched production training to compare BASE versus PQL across both MASAC and MATD3; training architecture is the intended comparison variable.",
+      "local_preflight": {
+        "tests": "33 passed, 2 skipped, 27 subtests passed in 12.32s",
+        "resolved_config_verified_for_all_four": true
+      },
+      "matched_config": {
+        "scenario": "configs/comparison-20k-steps1800-scenario-v3.yaml",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "replay_capacity": 500000,
+        "updates_per_step": 8,
+        "pql_critic_sample_ratio": 8,
+        "episodes": 20000,
+        "max_steps": 1800,
+        "replay_device": "cuda",
+        "compile_models": false,
+        "fused_optimizers": false,
+        "seed": 44,
+        "eval_seed": 2000000044,
+        "gpus_per_run": 2,
+        "auto_continue": true,
+        "cpu_visualize": true
+      },
+      "device_mapping": {
+        "base": "CUDA0 collector/environment; CUDA1 learner + replay when two GPUs visible",
+        "pql": "CUDA0 collector/environment; CUDA1 critic/policy learner + replay when two GPUs visible"
+      },
+      "cases": {
+        "masac_base": {
+          "account": "account_28",
+          "kernel": "ekjfewflwejl/uavnet-train-20261022-181830-d84ca0",
+          "wandb": "29e6add6",
+          "kaggle_state": "running",
+          "wandb_state": "not_created_yet_preflight"
+        },
+        "masac_pql": {
+          "account": "account_22",
+          "kernel": "kjkuhukhkh/uavnet-train-20261022-181831-9edaa9",
+          "wandb": "f5cfb3f9",
+          "kaggle_state": "running",
+          "wandb_state": "not_created_yet_preflight"
+        },
+        "matd3_base": {
+          "account": "account_25",
+          "kernel": "kjhihgiugy/uavnet-train-20261022-181835-720ef9",
+          "wandb": "3070f38e",
+          "kaggle_state": "running",
+          "wandb_state": "not_created_yet_preflight"
+        },
+        "matd3_pql": {
+          "account": "account_24",
+          "kernel": "fewfijlwejfl/uavnet-train-20261022-182108-0f3166",
+          "wandb": "bda3bccd",
+          "kaggle_state": "running",
+          "wandb_state": "not_created_yet_preflight"
+        }
+      },
+      "launch_note": "Default 120 s Kaggle private-dataset operations timed out before kernel push. Root cause was slow credential dataset create/download. Retried the same reviewed CLI path with --credential-timeout-seconds 600. All four manifests now exist and all four Kaggle kernels are running. No duplicate comparison kernel was created.",
+      "comparison_metrics": [
+        "episodes/hour",
+        "time_to_20k",
+        "transitions/sec",
+        "search_rate",
+        "delivery_rate",
+        "mission_success",
+        "return",
+        "battery_remaining",
+        "relay_usage",
+        "packet_success",
+        "CPU_peak",
+        "GPU0_peak",
+        "GPU1_peak"
+      ]
     }
   },
-  "next_action": "Do not change production solely from this memory diagnostic. If adopting replay placement, use the 75/25 result as the leading candidate and validate it in an actual comparable training/eval cohort against CPU-only/500k before scientific conclusions.",
+  "next_action": "Monitor the four matched BASE/PQL training kernels until W&B learner runs appear; compare early episodes/hour and device memory first, then final 20k/eval quality. Do not change one mode independently while this matched cohort is running.",
   "production_500k": "preserved; existing server monitor running; no training restart requested or performed"
 }
