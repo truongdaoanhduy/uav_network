@@ -1,6 +1,6 @@
 # CPU replay: unfinished task brief
 
-Status: execution authorized; local baseline/TDD in progress; full-buffer validation pending.
+Status: local placement/pinning/RNG tests passed; checkpoint RAM work in progress; full-buffer CUDA validation pending.
 Read [CURRENT_TASK.md](CURRENT_TASK.md) for running jobs and constraints.
 
 ## Intended outcome
@@ -46,13 +46,13 @@ learns better than 500k or solve the collector bottleneck.
   applicable review gate; do not claim an unreviewed artifact was approved.
 - [x] Start from public fix `ab60690` (this handoff branch already contains it);
   keep Gen1. Use an isolated feature branch for implementation.
-- [ ] Run the relevant baseline tests. Read
+- [x] Run the relevant baseline tests. Read
   `tests/test_measured_replay.py`, `tests/test_pql_system.py`,
   `tests/test_optimization.py` and existing checkpoint tests located with
   `rg -n 'replay_state|restore_replay|replay_device|pin_memory' tests`.
-- [ ] Write and observe RED for PQL CPU replay placement and preserved
+- [x] Write and observe RED for PQL CPU replay placement and preserved
   default/auto behavior. Then minimally honor `runtime.replay_device`.
-- [ ] Write and observe RED for bounded batch pinning/transfer behavior,
+- [x] Write and observe RED for pageable CPU storage / batch-only pinning (CUDA transfer test remains pending),
   including PQL's sample override. Keep full CPU storage pageable and GPU
   allocations bounded to live minibatches; ensure async copy source lifetime.
 - [ ] Verify CPU replay same-device save/load restores next sample RNG,

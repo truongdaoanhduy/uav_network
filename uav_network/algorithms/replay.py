@@ -39,17 +39,33 @@ class ReplayBuffer:
         return {name: array[indices].copy() for name, array in self.data.items()}
 
 
+def resolve_replay_device(requested, learner_device):
+    """Resolve the existing replay flag after the learner role is validated."""
+    learner = torch.device(learner_device)
+    if requested == "cpu":
+        return torch.device("cpu")
+    if requested == "auto":
+        return learner
+    if requested != "cuda":
+        raise ValueError(f"Invalid replay device: {requested}")
+    if learner.type == "cuda":
+        return learner
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA replay requested but no CUDA device is available")
+    return torch.device("cuda:0")
+
+
 class TensorReplayBuffer:
     """Batched ring storage on CPU or CUDA; uniform samples with replacement."""
     def __init__(self, capacity, observation_shape, state_dim, seed=44, device="cpu", pin_memory=False):
         self.capacity = capacity
         self.device = torch.device(device)
+        # Pin sampled batches only; full CPU replay stays pageable.
         self.pin_memory = pin_memory and self.device.type == "cpu"
         self.index = self.size = 0
         self.rng = torch.Generator(device=self.device).manual_seed(seed)
         self.data = {name: torch.empty((capacity, *shape), device=self.device,
-                                     dtype=torch.long if name == "destination" else torch.float32,
-                                     pin_memory=self.pin_memory)
+                                     dtype=torch.long if name == "destination" else torch.float32)
                      for name, shape in transition_shapes(observation_shape, state_dim).items()}
 
     @property

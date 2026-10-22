@@ -10,6 +10,7 @@ import torch
 import yaml
 
 from ..algorithms.optimization import compile_models
+from ..algorithms.replay import resolve_replay_device
 from .pql_replay import MeasuredReplay
 from ..environment.observations import state_dim
 from ..environment.vector import make_vector, random_actions, unpack_info
@@ -59,15 +60,7 @@ def resolve_base_devices(config):
     else:
         collector = torch.device("cuda:0")
         learner = torch.device("cuda:1" if available >= 2 else "cuda:0")
-    requested_replay = config.runtime.replay_device
-    if requested_replay == "cpu":
-        replay = torch.device("cpu")
-    elif requested_replay == "cuda":
-        if not available:
-            raise RuntimeError("CUDA replay requested but no CUDA device is available")
-        replay = learner if learner.type == "cuda" else torch.device("cuda:0")
-    else:
-        replay = learner
+    replay = resolve_replay_device(config.runtime.replay_device, learner)
     return collector, learner, replay
 
 

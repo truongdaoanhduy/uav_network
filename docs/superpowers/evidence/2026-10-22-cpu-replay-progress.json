@@ -1,0 +1,38 @@
+{
+  "updated_at_utc": "2026-10-22T11:48:39.395637+00:00",
+  "branch": "feat/cpu-replay-20261022",
+  "authorization": "User explicitly requested implementation and incremental progress marking after the handoff. Existing replay flag/pinning path: bounded change.",
+  "stages": {
+    "baseline": {
+      "state": "passed",
+      "job_id": "704f81c9cf80",
+      "command": "python3 -m pytest -q",
+      "log": "outputs/cpu-replay-20261022/baseline.log",
+      "result": "601 passed, 72 skipped, 8 warnings, 1207 subtests passed in 496.03s"
+    },
+    "placement_pinning_rng_red": {
+      "state": "complete_expected_failures",
+      "command": "python3 -m pytest -q tests/test_cpu_replay.py",
+      "result": "10 failed, 2 skipped in 5.18s",
+      "log": "outputs/cpu-replay-20261022/placement-red.log"
+    },
+    "placement_pinning_rng_green": {
+      "state": "passed_local_cuda_deferred",
+      "command": "python3 -m pytest -q tests/test_cpu_replay.py tests/test_measured_replay.py tests/test_pql_system.py tests/test_base_multi_gpu.py tests/test_optimization.py",
+      "result": "24 passed, 2 skipped, 12 subtests passed in 8.44s",
+      "log": "outputs/cpu-replay-20261022/placement-green.log",
+      "remaining": "Run two-GPU placement/transfer tests on Kaggle; full suite after all implementation changes."
+    },
+    "checkpoint_ram": {
+      "state": "not_started"
+    },
+    "full_suite_after_changes": {
+      "state": "not_started"
+    },
+    "kaggle_full_1m_cpu_gate": {
+      "state": "not_submitted"
+    }
+  },
+  "next_action": "Checkpoint RAM: add RED tests for mmap loading, synchronous full CPU replay save without a duplicate, snapshot immutability and legacy RNG compatibility.",
+  "production_500k": "preserved; existing server monitor running; no training restart requested or performed"
+}

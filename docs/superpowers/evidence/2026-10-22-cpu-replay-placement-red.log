@@ -1,0 +1,220 @@
+FFFFFssFFFFF                                                             [100%]
+=================================== FAILURES ===================================
+_ test_cpu_storage_stays_pageable_when_sample_pinning_is_requested[TensorReplayBuffer] _
+
+replay_cls = <class 'uav_network.algorithms.replay.TensorReplayBuffer'>
+
+    @pytest.mark.parametrize("replay_cls", [TensorReplayBuffer, MeasuredReplay])
+    def test_cpu_storage_stays_pageable_when_sample_pinning_is_requested(replay_cls):
+        # A 1M replay must not lock ~12 GiB; pin only the returned minibatch.
+>       replay = replay_cls(16, (2, 3), 4, device="cpu", pin_memory=True)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_cpu_replay.py:26: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <uav_network.algorithms.replay.TensorReplayBuffer object at 0x78d4a10a41a0>
+capacity = 16, observation_shape = (2, 3), state_dim = 4, seed = 44
+device = 'cpu', pin_memory = True
+
+    def __init__(self, capacity, observation_shape, state_dim, seed=44, device="cpu", pin_memory=False):
+        self.capacity = capacity
+        self.device = torch.device(device)
+        self.pin_memory = pin_memory and self.device.type == "cpu"
+        self.index = self.size = 0
+        self.rng = torch.Generator(device=self.device).manual_seed(seed)
+>       self.data = {name: torch.empty((capacity, *shape), device=self.device,
+                                     dtype=torch.long if name == "destination" else torch.float32,
+                                     pin_memory=self.pin_memory)
+                     for name, shape in transition_shapes(observation_shape, state_dim).items()}
+E       RuntimeError: Found no NVIDIA driver on your system. Please check that you have an NVIDIA GPU and installed a driver from http://www.nvidia.com/Download/index.aspx
+
+uav_network/algorithms/replay.py:50: RuntimeError
+_ test_cpu_storage_stays_pageable_when_sample_pinning_is_requested[MeasuredReplay] _
+
+replay_cls = <class 'uav_network.experiments.pql_replay.MeasuredReplay'>
+
+    @pytest.mark.parametrize("replay_cls", [TensorReplayBuffer, MeasuredReplay])
+    def test_cpu_storage_stays_pageable_when_sample_pinning_is_requested(replay_cls):
+        # A 1M replay must not lock ~12 GiB; pin only the returned minibatch.
+>       replay = replay_cls(16, (2, 3), 4, device="cpu", pin_memory=True)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_cpu_replay.py:26: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+uav_network/experiments/pql_replay.py:9: in __init__
+    super().__init__(*args, **kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <uav_network.experiments.pql_replay.MeasuredReplay object at 0x78d4a10a4c20>
+capacity = 16, observation_shape = (2, 3), state_dim = 4, seed = 44
+device = 'cpu', pin_memory = True
+
+    def __init__(self, capacity, observation_shape, state_dim, seed=44, device="cpu", pin_memory=False):
+        self.capacity = capacity
+        self.device = torch.device(device)
+        self.pin_memory = pin_memory and self.device.type == "cpu"
+        self.index = self.size = 0
+        self.rng = torch.Generator(device=self.device).manual_seed(seed)
+>       self.data = {name: torch.empty((capacity, *shape), device=self.device,
+                                     dtype=torch.long if name == "destination" else torch.float32,
+                                     pin_memory=self.pin_memory)
+                     for name, shape in transition_shapes(observation_shape, state_dim).items()}
+E       RuntimeError: Found no NVIDIA driver on your system. Please check that you have an NVIDIA GPU and installed a driver from http://www.nvidia.com/Download/index.aspx
+
+uav_network/algorithms/replay.py:50: RuntimeError
+_____________ test_pql_rejects_an_explicit_unavailable_cuda_replay _____________
+
+    @pytest.mark.skipif(torch.cuda.is_available(), reason="requires a CPU-only host")
+    def test_pql_rejects_an_explicit_unavailable_cuda_replay():
+        config = pql_config()
+        config.runtime.replay_device = "cuda"
+        engine = None
+        try:
+>           with pytest.raises(RuntimeError, match="CUDA replay"):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE RuntimeError
+
+tests/test_cpu_replay.py:38: Failed
+______________ test_pql_replay_checkpoint_records_the_rng_device _______________
+
+    def test_pql_replay_checkpoint_records_the_rng_device():
+        engine = PQLSystem(pql_config())
+        try:
+>           assert engine.replay.state_dict().get("device_type") == "cpu"
+E           AssertionError: assert None == 'cpu'
+E            +  where None = <built-in method get of dict object at 0x78d4966b4400>('device_type')
+E            +    where <built-in method get of dict object at 0x78d4966b4400> = {'capacity': 16, 'index': 0, 'size': 0, 'rng': tensor([44,  0,  0,  ...,  0,  0,  0], dtype=torch.uint8), ...}.get
+E            +      where {'capacity': 16, 'index': 0, 'size': 0, 'rng': tensor([44,  0,  0,  ...,  0,  0,  0], dtype=torch.uint8), ...} = state_dict()
+E            +        where state_dict = <uav_network.experiments.pql_replay.MeasuredReplay object at 0x78d496799950>.state_dict
+E            +          where <uav_network.experiments.pql_replay.MeasuredReplay object at 0x78d496799950> = <uav_network.experiments.pql_system.PQLSystem object at 0x78d4a10b1e50>.replay
+
+tests/test_cpu_replay.py:48: AssertionError
+__________ test_foreign_replay_rng_device_is_rejected_before_mutation __________
+
+    def test_foreign_replay_rng_device_is_rejected_before_mutation():
+        learner = small_learner()
+        replay = MeasuredReplay(16, (learner.num_uavs, learner.observation_dim),
+                                learner.state_dim)
+        replay.add_batch(*transition(replay_batch(learner)))
+        replay.sample(4)
+        before = deepcopy(replay.state_dict())
+        bad = deepcopy(before)
+        bad["device_type"] = "cuda"
+        bad["index"] = (before["index"] + 1) % replay.capacity
+        bad["collections"] += 10
+        bad["data"]["observation"].fill_(99)
+>       with pytest.raises(ValueError, match="replay.*device|replay.*RNG"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_cpu_replay.py:65: Failed
+____ test_replay_role_selection_preserves_the_learner_default[auto-cpu-cpu] ____
+
+requested = 'auto', learner = 'cpu', expected = 'cpu'
+
+    @pytest.mark.parametrize("requested,learner,expected", [
+        ("auto", "cpu", "cpu"), ("auto", "cuda:1", "cuda:1"),
+        ("cpu", "cuda:1", "cpu"), ("cuda", "cuda:1", "cuda:1"),
+    ])
+    def test_replay_role_selection_preserves_the_learner_default(requested, learner, expected):
+        from uav_network.algorithms import replay
+>       assert str(replay.resolve_replay_device(requested, torch.device(learner))) == expected
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'uav_network.algorithms.replay' has no attribute 'resolve_replay_device'
+
+tests/test_cpu_replay.py:112: AttributeError
+_ test_replay_role_selection_preserves_the_learner_default[auto-cuda:1-cuda:1] _
+
+requested = 'auto', learner = 'cuda:1', expected = 'cuda:1'
+
+    @pytest.mark.parametrize("requested,learner,expected", [
+        ("auto", "cpu", "cpu"), ("auto", "cuda:1", "cuda:1"),
+        ("cpu", "cuda:1", "cpu"), ("cuda", "cuda:1", "cuda:1"),
+    ])
+    def test_replay_role_selection_preserves_the_learner_default(requested, learner, expected):
+        from uav_network.algorithms import replay
+>       assert str(replay.resolve_replay_device(requested, torch.device(learner))) == expected
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'uav_network.algorithms.replay' has no attribute 'resolve_replay_device'
+
+tests/test_cpu_replay.py:112: AttributeError
+___ test_replay_role_selection_preserves_the_learner_default[cpu-cuda:1-cpu] ___
+
+requested = 'cpu', learner = 'cuda:1', expected = 'cpu'
+
+    @pytest.mark.parametrize("requested,learner,expected", [
+        ("auto", "cpu", "cpu"), ("auto", "cuda:1", "cuda:1"),
+        ("cpu", "cuda:1", "cpu"), ("cuda", "cuda:1", "cuda:1"),
+    ])
+    def test_replay_role_selection_preserves_the_learner_default(requested, learner, expected):
+        from uav_network.algorithms import replay
+>       assert str(replay.resolve_replay_device(requested, torch.device(learner))) == expected
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'uav_network.algorithms.replay' has no attribute 'resolve_replay_device'
+
+tests/test_cpu_replay.py:112: AttributeError
+_ test_replay_role_selection_preserves_the_learner_default[cuda-cuda:1-cuda:1] _
+
+requested = 'cuda', learner = 'cuda:1', expected = 'cuda:1'
+
+    @pytest.mark.parametrize("requested,learner,expected", [
+        ("auto", "cpu", "cpu"), ("auto", "cuda:1", "cuda:1"),
+        ("cpu", "cuda:1", "cpu"), ("cuda", "cuda:1", "cuda:1"),
+    ])
+    def test_replay_role_selection_preserves_the_learner_default(requested, learner, expected):
+        from uav_network.algorithms import replay
+>       assert str(replay.resolve_replay_device(requested, torch.device(learner))) == expected
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'uav_network.algorithms.replay' has no attribute 'resolve_replay_device'
+
+tests/test_cpu_replay.py:112: AttributeError
+__________ test_invalid_legacy_rng_is_rejected_before_replay_mutation __________
+
+    def test_invalid_legacy_rng_is_rejected_before_replay_mutation():
+        learner = small_learner()
+        replay = MeasuredReplay(16, (learner.num_uavs, learner.observation_dim),
+                                learner.state_dim)
+        replay.add_batch(*transition(replay_batch(learner)))
+        before = deepcopy(replay.state_dict())
+        bad = deepcopy(before)
+        bad.pop("device_type", None)
+        bad["rng"] = torch.zeros(3, dtype=torch.uint8)
+        bad["index"] = (bad["index"] + 1) % replay.capacity
+        bad["data"]["observation"].fill_(99)
+        with pytest.raises(ValueError, match="replay.*RNG"):
+>           replay.load_state_dict(bad)
+
+tests/test_cpu_replay.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <uav_network.experiments.pql_replay.MeasuredReplay object at 0x78d4967fec40>
+saved = {'capacity': 16, 'index': 5, 'size': 4, 'rng': tensor([0, 0, 0], dtype=torch.uint8), ...}
+
+    def load_state_dict(self, saved):
+        if saved["capacity"] != self.capacity or not 0 <= saved["size"] <= self.capacity:
+            raise ValueError("PQL replay checkpoint capacity/size mismatch")
+        if not 0 <= saved["index"] < self.capacity:
+            raise ValueError("Invalid PQL replay cursor")
+        self.index, self.size = saved["index"], saved["size"]
+        self.load_measurement_state(saved)
+        for name, value in self.data.items():
+            if saved["data"][name].shape != value[:self.size].shape:
+                raise ValueError("PQL replay checkpoint transition shape mismatch")
+            value[:self.size].copy_(saved["data"][name])
+>       self.rng.set_state(saved["rng"].cpu())
+E       RuntimeError: Expected either a CPUGeneratorImplStateLegacy of size 5048 or a CPUGeneratorImplState of size 5056 but found the input RNG state size to be 3
+
+uav_network/experiments/pql_replay.py:105: RuntimeError
+=========================== short test summary info ============================
+FAILED tests/test_cpu_replay.py::test_cpu_storage_stays_pageable_when_sample_pinning_is_requested[TensorReplayBuffer]
+FAILED tests/test_cpu_replay.py::test_cpu_storage_stays_pageable_when_sample_pinning_is_requested[MeasuredReplay]
+FAILED tests/test_cpu_replay.py::test_pql_rejects_an_explicit_unavailable_cuda_replay
+FAILED tests/test_cpu_replay.py::test_pql_replay_checkpoint_records_the_rng_device
+FAILED tests/test_cpu_replay.py::test_foreign_replay_rng_device_is_rejected_before_mutation
+FAILED tests/test_cpu_replay.py::test_replay_role_selection_preserves_the_learner_default[auto-cpu-cpu]
+FAILED tests/test_cpu_replay.py::test_replay_role_selection_preserves_the_learner_default[auto-cuda:1-cuda:1]
+FAILED tests/test_cpu_replay.py::test_replay_role_selection_preserves_the_learner_default[cpu-cuda:1-cpu]
+FAILED tests/test_cpu_replay.py::test_replay_role_selection_preserves_the_learner_default[cuda-cuda:1-cuda:1]
+FAILED tests/test_cpu_replay.py::test_invalid_legacy_rng_is_rejected_before_replay_mutation
+10 failed, 2 skipped in 5.18s

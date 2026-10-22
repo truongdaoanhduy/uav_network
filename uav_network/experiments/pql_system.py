@@ -12,6 +12,7 @@ import torch
 from ..algorithms.checkpoints import load_policy, make_learner, save_policy
 from ..algorithms.optimization import compile_models
 from ..algorithms.precision import CompileStartupGate
+from ..algorithms.replay import resolve_replay_device
 from ..environment.observations import observation_dim, state_dim
 from .pql_checkpoints import validate_pql_checkpoint
 from .pql_replay import MeasuredReplay
@@ -42,6 +43,7 @@ class PQLSystem:
     def __init__(self, config, checkpoint=None):
         self.config = deepcopy(config).validate()
         self.collector_device, self.critic_device, self.policy_device = resolve_devices(config)
+        self.replay_device = resolve_replay_device(config.runtime.replay_device, self.critic_device)
         self.asynchronous = config.pql.mode == "async"
         self.condition, self.stop = Condition(), Event()
         self.error = None
@@ -100,7 +102,9 @@ class PQLSystem:
             self.credit, self.warmup_origin = training["credit"], training["warmup_origin"]
         self.replay = MeasuredReplay(config.algorithm_config.replay_capacity,
                                     (config.world.num_uavs, observation_dim(config)), state_dim(config),
-                                    config.runtime.seed, device=self.critic_device)
+                                    config.runtime.seed, device=self.replay_device,
+                                    pin_memory=self.replay_device.type == "cpu" and
+                                    (self.critic_device.type == "cuda" or self.policy_device.type == "cuda"))
         if saved and saved["training"].get("replay") is not None:
             self.replay.load_state_dict(saved["training"]["replay"])
         elif saved:

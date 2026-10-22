@@ -88,7 +88,7 @@ class MeasuredReplay(TensorReplayBuffer):
 
     def state_dict(self):
         return {"capacity": self.capacity, "index": self.index, "size": self.size,
-                "rng": self.rng.get_state(), **self.measurement_state(),
+                "device_type": self.device.type, "rng": self.rng.get_state(), **self.measurement_state(),
                 "data": {name: value[:self.size] for name, value in self.data.items()}}
 
     def load_state_dict(self, saved):
@@ -96,10 +96,26 @@ class MeasuredReplay(TensorReplayBuffer):
             raise ValueError("PQL replay checkpoint capacity/size mismatch")
         if not 0 <= saved["index"] < self.capacity:
             raise ValueError("Invalid PQL replay cursor")
+        if saved.get("device_type", self.device.type) != self.device.type:
+            raise ValueError("PQL replay RNG resume requires the original device type")
+        restored_rng = torch.Generator(device=self.device)
+        try:
+            restored_rng.set_state(saved["rng"].cpu())
+        except (RuntimeError, TypeError, AttributeError) as error:
+            # Legacy checkpoints lack device_type; validate their RNG before copying rows.
+            raise ValueError("PQL replay RNG state is incompatible with this device") from error
+        if saved["data"].keys() != self.data.keys():
+            raise ValueError("PQL replay checkpoint transition fields mismatch")
+        for name, value in self.data.items():
+            incoming = saved["data"][name]
+            if incoming.shape != value[:saved["size"]].shape or incoming.dtype != value.dtype:
+                raise ValueError("PQL replay checkpoint transition shape/dtype mismatch")
+        for name in ("born", "seen"):
+            value = getattr(self, name)
+            if saved[name].shape != value[:saved["size"]].shape or saved[name].dtype != value.dtype:
+                raise ValueError("PQL replay checkpoint measurement shape/dtype mismatch")
         self.index, self.size = saved["index"], saved["size"]
         self.load_measurement_state(saved)
         for name, value in self.data.items():
-            if saved["data"][name].shape != value[:self.size].shape:
-                raise ValueError("PQL replay checkpoint transition shape mismatch")
             value[:self.size].copy_(saved["data"][name])
-        self.rng.set_state(saved["rng"].cpu())
+        self.rng = restored_rng
