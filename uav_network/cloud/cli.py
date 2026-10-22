@@ -50,7 +50,7 @@ def launch(args, credentials):
     diagnostic = getattr(args, "diagnostic", None)
     if diagnostic:
         expected = "configs/comparison-20k-steps1800-scenario-v3.yaml"
-        if (diagnostic not in {"cpu-replay-1m", "hybrid-replay-1m"} or args.stage != "benchmark" or args.algorithm != "masac"
+        if (diagnostic not in {"cpu-replay-1m", "gpu-replay-1m", "hybrid-replay-1m", "hybrid75-replay-1m"} or args.stage != "benchmark" or args.algorithm != "masac"
                 or compare_legacy or args.warm_start_artifact or args.overrides
                 or auto_continue or cpu_visualize or (args.config not in {None, expected})):
             raise ValueError("CPU replay diagnostic requires benchmark/MASAC, the pinned V3 config, and no extra overrides")
@@ -151,7 +151,7 @@ def main(argv=None):
     submit.add_argument("--stage", choices=["validate", "train", "benchmark"], default="train")
     submit.add_argument("--compare-legacy", action="store_true",
                         help="Benchmark matched legacy, single-GPU PQL and dual-GPU PQL; no production training")
-    submit.add_argument("--diagnostic", choices=["cpu-replay-1m", "hybrid-replay-1m"],
+    submit.add_argument("--diagnostic", choices=["cpu-replay-1m", "gpu-replay-1m", "hybrid-replay-1m", "hybrid75-replay-1m"],
                         help="Run one bounded reviewed diagnostic instead of a training/benchmark entrypoint")
     submit.add_argument("--account")
     submit.add_argument("--required-gpu-hours", type=float)

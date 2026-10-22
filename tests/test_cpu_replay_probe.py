@@ -115,6 +115,15 @@ def test_hybrid_probe_replay_splits_storage_and_restores_rng_exactly():
     assert len(restored) == len(replay) == 8
 
 
+def test_hybrid_probe_replay_accepts_75_percent_cpu_split():
+    from uav_network.experiments.cpu_replay_probe import HybridMeasuredReplay
+    replay = HybridMeasuredReplay(8, (1, 2), 3, seed=7, hot_device="cpu", cpu_fraction=0.75)
+    assert replay.cpu_capacity == 6
+    assert replay.hot_capacity == 2
+    saved = replay.state_dict()
+    assert saved["cpu_capacity"] == 6
+
+
 def test_pql_system_accepts_probe_replay_override_without_changing_default_path():
     from test_pql_system import pql_config
     from uav_network.experiments.cpu_replay_probe import HybridMeasuredReplay

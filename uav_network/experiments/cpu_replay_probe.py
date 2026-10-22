@@ -10,10 +10,8 @@ import shutil
 from threading import Event, Thread
 import time
 import traceback
-
 import numpy as np
 import torch
-
 from ..configuration import load_config
 from ..environment.env import Action
 from ..environment.observations import observation_dim, state_dim
@@ -22,15 +20,16 @@ from .checkpoint_store import file_sha256
 from .environment_checkpoints import initialize_environment, snapshot_environment
 from .pql_system import PQLSystem
 from .training import seed_runtime
-
 class HybridMeasuredReplay:
-    """Probe-only 50/50 CPU + hot-device replay with one global ring/RNG."""
-    def __init__(self, capacity, observation_shape, state_dim_value, seed=44, hot_device="cuda:1"):
-        if capacity < 2 or capacity % 2:
-            raise ValueError("Hybrid probe replay requires an even capacity >= 2")
+    """Probe-only CPU + hot-device replay with one global ring/RNG."""
+    def __init__(self, capacity, observation_shape, state_dim_value, seed=44, hot_device="cuda:1", cpu_fraction=0.5):
+        if capacity < 2 or not 0 < cpu_fraction < 1:
+            raise ValueError("Hybrid probe replay requires capacity >= 2 and 0 < cpu_fraction < 1")
         self.capacity = capacity
-        self.cpu_capacity = capacity // 2
+        self.cpu_capacity = round(capacity * cpu_fraction)
         self.hot_capacity = capacity - self.cpu_capacity
+        if not self.cpu_capacity or not self.hot_capacity:
+            raise ValueError("Hybrid probe split must allocate at least one row per device")
         self.hot_device = torch.device(hot_device)
         self.device = self.hot_device
         self.index = self.size = 0
@@ -47,29 +46,23 @@ class HybridMeasuredReplay:
         self.collections = self.inserted = self.sample_uses = 0
         self.overwritten = self.unsampled = self.age_sum = self.age_max = 0
         self.age_count = self.measured_evictions = self.known_rows = 0
-
     def __len__(self):
         return self.size
-
     @property
     def cpu_allocated_bytes(self):
         data = sum(value.numel() * value.element_size() for value in self.cpu_data.values())
         return data + self.born.numel() * self.born.element_size() + self.seen.numel() * self.seen.element_size()
-
     @property
     def hot_allocated_bytes(self):
         return sum(value.numel() * value.element_size() for value in self.hot_data.values())
-
     @property
     def allocated_bytes(self):
         return self.cpu_allocated_bytes + self.hot_allocated_bytes
-
     @staticmethod
     def _rows(value, positions, device, dtype):
         tensor = torch.as_tensor(value)
         selected = tensor.index_select(0, positions.to(tensor.device))
         return selected.to(device=device, dtype=dtype)
-
     def add_batch(self, observation, state, action, reward, next_observation, next_state, terminated):
         values = dict(observation=observation, state=state, continuous=action.continuous,
                       destination=action.destination, reward=reward, next_observation=next_observation,
@@ -103,7 +96,6 @@ class HybridMeasuredReplay:
         self.inserted += count
         self.born[indices] = self.collections
         self.seen[indices] = False
-
     def sample(self, batch_size):
         if batch_size < 1 or batch_size > self.size:
             raise ValueError("Not enough transitions for this batch")
@@ -138,7 +130,6 @@ class HybridMeasuredReplay:
                 out.index_copy_(0, hot_positions.to(self.hot_device), rows)
             result[name] = out
         return result
-
     def stats(self):
         evictions, ages = self.measured_evictions, self.age_count
         return {"replay/size": self.size, "replay/bytes": self.allocated_bytes,
@@ -150,7 +141,6 @@ class HybridMeasuredReplay:
                 "replay/sample_age_measured_uses": ages, "replay/sample_age_mean_collections": self.age_sum / ages if ages else None,
                 "replay/sample_age_max_collections": self.age_max if ages else None, "replay/measurement_unknown_rows": self.size - self.known_rows,
                 "replay/policy_age_available": 0}
-
     def measurement_state(self):
         return {"collections": self.collections, "inserted": self.inserted, "sample_uses": self.sample_uses,
                 "overwritten": self.overwritten, "unsampled": self.unsampled, "age_sum": self.age_sum,
@@ -162,14 +152,14 @@ class HybridMeasuredReplay:
         hot_size = max(0, self.size - self.cpu_capacity)
         full = self.size == self.capacity
         compact = lambda value, size: value if full else value[:size].clone()
-        return {"layout": "hybrid50", "capacity": self.capacity, "cpu_capacity": self.cpu_capacity,
+        return {"layout": "hybrid", "capacity": self.capacity, "cpu_capacity": self.cpu_capacity,
                 "hot_device_type": self.hot_device.type, "index": self.index, "size": self.size,
                 "rng": self.rng.get_state(), **self.measurement_state(),
                 "cpu_data": {name: compact(value, cpu_size) for name, value in self.cpu_data.items()},
                 "hot_data": {name: compact(value, hot_size) for name, value in self.hot_data.items()}}
 
     def load_state_dict(self, saved):
-        if (saved.get("layout") != "hybrid50" or saved["capacity"] != self.capacity
+        if (saved.get("layout") != "hybrid" or saved["capacity"] != self.capacity
                 or saved["cpu_capacity"] != self.cpu_capacity or not 0 <= saved["size"] <= self.capacity
                 or not 0 <= saved["index"] < self.capacity):
             raise ValueError("Hybrid replay checkpoint capacity/layout/cursor mismatch")
@@ -195,10 +185,11 @@ class HybridMeasuredReplay:
             self.hot_data[name][:hot_size].copy_(saved["hot_data"][name].to(self.hot_device))
         self.rng.set_state(saved["rng"].cpu())
 
-def probe_config():
+def probe_config(layout="cpu"):
     c = load_config("configs/comparison-20k-steps1800-scenario-v3.yaml")
     c.runtime.algorithm, c.runtime.num_envs = "masac", 2048
-    c.runtime.device, c.runtime.replay_device = "cuda", "cpu"
+    c.runtime.device = "cuda"
+    c.runtime.replay_device = "cuda" if layout == "gpu" else "cpu"
     c.runtime.amp_mode, c.runtime.compile_models = "fp16", True
     c.runtime.fused_optimizers = c.runtime.vectorize_critics = True
     c.runtime.torch_threads = 1
@@ -209,6 +200,8 @@ def probe_config():
     c.pql.learner_device = c.pql.policy_device = "cuda:1"
     c.pql.warmup_collection_steps, c.pql.critic_sample_ratio = 2, 16
     c.pql.worker_timeout_s = 1200
+    if layout not in {"cpu", "gpu", "hybrid50", "hybrid75"}:
+        raise ValueError(f"Unsupported replay probe layout: {layout}")
     return c.validate()
 
 def fill_replay(replay, values):
@@ -277,7 +270,7 @@ def run_probe(output, report=None, layout="cpu"):
     hardware = _require_two_t4()
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
-    c = probe_config()
+    c = probe_config(layout)
     # Bound compiler subprocess RAM as well as Torch operator threads.
     from torch._inductor import config as inductor_config
     from ..environment.gpu.vector import WarpVectorEnv
@@ -320,11 +313,15 @@ def run_probe(output, report=None, layout="cpu"):
 
     try:
         event("initializing")
-        replay = (HybridMeasuredReplay(c.masac.replay_capacity,
-                                       (c.world.num_uavs, observation_dim(c)), state_dim(c),
-                                       seed=c.runtime.seed, hot_device="cuda:1")
-                  if layout == "hybrid" else None)
-        engine = PQLSystem(c, replay=replay)
+        def make_replay():
+            if layout not in {"hybrid50", "hybrid75"}:
+                return None
+            return HybridMeasuredReplay(c.masac.replay_capacity,
+                                        (c.world.num_uavs, observation_dim(c)), state_dim(c),
+                                        seed=c.runtime.seed, hot_device="cuda:1",
+                                        cpu_fraction=0.5 if layout == "hybrid50" else 0.75)
+
+        engine = PQLSystem(c, replay=make_replay())
         vector = WarpVectorEnv(c, device=engine.collector_device)
         obs, returns, lengths, seeds, next_seed = initialize_environment(vector, engine.initial_progress, None)
         rng = np.random.default_rng(c.runtime.seed + 1)
@@ -356,21 +353,26 @@ def run_probe(output, report=None, layout="cpu"):
         before = time.perf_counter()
         inserted = fill_replay(engine.replay, first)
         assert len(engine.replay) == 1_000_000
-        if layout == "hybrid":
-            assert engine.replay.cpu_capacity == engine.replay.hot_capacity == 500_000
+        if layout in {"hybrid50", "hybrid75"}:
+            expected_cpu = 500_000 if layout == "hybrid50" else 750_000
+            assert engine.replay.cpu_capacity == expected_cpu
+            assert engine.replay.hot_capacity == 1_000_000 - expected_cpu
             assert engine.replay.hot_device == engine.critic_device
+            cpu_bytes, hot_bytes = engine.replay.cpu_allocated_bytes, engine.replay.hot_allocated_bytes
+        elif layout == "gpu":
+            assert engine.replay.device == engine.critic_device
+            cpu_bytes, hot_bytes = 0, engine.replay.allocated_bytes
         else:
             assert engine.replay.device.type == "cpu"
             assert all(not value.is_pinned() for value in engine.replay.data.values())
+            cpu_bytes, hot_bytes = engine.replay.allocated_bytes, 0
         event("replay_full", duplicated_inserted_rows=inserted, replay_rows=len(engine.replay),
-              replay_bytes=engine.replay.allocated_bytes,
-              replay_cpu_bytes=getattr(engine.replay, "cpu_allocated_bytes", engine.replay.allocated_bytes),
-              replay_hot_bytes=getattr(engine.replay, "hot_allocated_bytes", 0),
-              fill_s=time.perf_counter() - before)
+              replay_bytes=engine.replay.allocated_bytes, replay_cpu_bytes=cpu_bytes,
+              replay_hot_bytes=hot_bytes, fill_s=time.perf_counter() - before)
         before = time.perf_counter()
         sample = engine.replay.sample(c.masac.batch_size)
         sample_s = time.perf_counter() - before
-        if layout == "hybrid":
+        if layout in {"gpu", "hybrid50", "hybrid75"}:
             assert all(value.device == engine.critic_device for value in sample.values())
         else:
             assert all(value.is_pinned() for value in sample.values())
@@ -415,11 +417,7 @@ def run_probe(output, report=None, layout="cpu"):
         torch.cuda.empty_cache()
         event("before_restore")
         before = time.perf_counter()
-        replay = (HybridMeasuredReplay(c.masac.replay_capacity,
-                                       (c.world.num_uavs, observation_dim(c)), state_dim(c),
-                                       seed=c.runtime.seed, hot_device="cuda:1")
-                  if layout == "hybrid" else None)
-        engine = PQLSystem(c, checkpoint=checkpoint, replay=replay)
+        engine = PQLSystem(c, checkpoint=checkpoint, replay=make_replay())
         obs, returns, lengths, seeds, next_seed = initialize_environment(
             vector, engine.initial_progress, engine.initial_environment)
         engine.initial_environment = None
@@ -473,15 +471,14 @@ def record_probe_summary(run, result):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", default="/kaggle/working")
-    parser.add_argument("--layout", choices=["cpu", "hybrid"], default="cpu")
+    parser.add_argument("--layout", choices=["cpu", "gpu", "hybrid50", "hybrid75"], default="cpu")
     args = parser.parse_args()
     import wandb
     run = wandb.init(entity=os.environ["WANDB_ENTITY"], project=os.environ["WANDB_PROJECT"],
                      id=os.environ["WANDB_RUN_ID"],
-                     name=("DIAG-HYBRID-REPLAY-1M-MASAC-PQL" if args.layout == "hybrid"
-                           else "DIAG-CPU-REPLAY-1M-MASAC-PQL"),
+                     name=f"DIAG-{args.layout.upper()}-REPLAY-1M-MASAC-PQL",
                      job_type="memory-diagnostic", config={"probe_scope": "full_buffer_memory_execution",
-                     "probe_layout": args.layout, "duplicated_replay": True, **probe_config().to_dict()})
+                     "probe_layout": args.layout, "duplicated_replay": True, **probe_config(args.layout).to_dict()})
     def report(row):
         metrics = {"probe/" + k: v for k, v in row.items() if type(v) in (int, float)}
         for gpu in row["gpu"]:
