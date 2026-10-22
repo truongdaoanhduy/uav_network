@@ -1,4 +1,4 @@
-"""Reproducible Warp MAC Scheduler Gen1/Gen2 throughput benchmark."""
+"""Reproducible Warp MAC Scheduler Gen1/Gen2/rxindex throughput benchmark."""
 from copy import deepcopy
 from pathlib import Path
 import argparse
@@ -14,11 +14,11 @@ import warp as wp
 from ..configuration import load_config
 from ..environment.gpu.geometry import sense
 from ..environment.gpu.vector import WarpVectorEnv
-from ..communication.gpu.mac import packet_step, packet_step_gen2, sense_reports
+from ..communication.gpu.mac import packet_step, packet_step_gen2, packet_step_rxindex, sense_reports
 
 
 CORPORA = {"low_contention", "active_streaming"}
-SCHEDULERS = {"gen1", "gen2"}
+SCHEDULERS = {"gen1", "gen2", "rxindex"}
 
 
 def _commit():
@@ -98,7 +98,7 @@ def _memory(vector):
 
 def benchmark_mac_scheduler(config, *, num_envs: int, steps: int, scheduler: str, corpus: str) -> dict:
     if scheduler not in SCHEDULERS:
-        raise ValueError("scheduler must be gen1 or gen2")
+        raise ValueError("scheduler must be gen1, gen2, or rxindex")
     if corpus not in CORPORA:
         raise ValueError("corpus must be low_contention or active_streaming")
     if int(num_envs) < 1:
@@ -116,7 +116,8 @@ def benchmark_mac_scheduler(config, *, num_envs: int, steps: int, scheduler: str
     vector = WarpVectorEnv(selected, device=device, packet_scheduler=scheduler)
     packet_seconds = 0.0
     original_launch = vector._launch
-    selected_kernel = packet_step_gen2 if scheduler == "gen2" else packet_step
+    selected_kernel = (packet_step_gen2 if scheduler == "gen2" else
+                       packet_step_rxindex if scheduler == "rxindex" else packet_step)
 
     def measured_launch(kernel, dim, *args):
         nonlocal packet_seconds

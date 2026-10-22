@@ -73,5 +73,20 @@ class MacSchedulerBenchmarkTests(unittest.TestCase):
         self.assertTrue(all(value == 0 for value in row["scheduler_metrics"].values()))
 
 
+    def test_rxindex_contract_science_and_derived_memory(self):
+        c = tiny_config()
+        gen1 = benchmark_mac_scheduler(c, num_envs=2, steps=1,
+                                       scheduler="gen1", corpus="active_streaming")
+        rx = benchmark_mac_scheduler(c, num_envs=2, steps=1,
+                                     scheduler="rxindex", corpus="active_streaming")
+        self.assertEqual(rx["scheduler"], "rxindex")
+        self.assertEqual(rx["scientific_metrics"], gen1["scientific_metrics"])
+        self.assertEqual(rx["simulator_error_count"], 0)
+        self.assertEqual(rx["terminated_worlds"], 0)
+        self.assertTrue(all(value == 0 for value in rx["scheduler_metrics"].values()))
+        self.assertGreater(rx["gpu_memory"]["allocated_bytes"],
+                           gen1["gpu_memory"]["allocated_bytes"])
+
+
 if __name__ == "__main__":
     unittest.main()

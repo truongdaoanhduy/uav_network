@@ -44,6 +44,8 @@ class GPUPacketTests(unittest.TestCase):
 
     def prepare(self, c, positions, targets=None, obstacles=None, seed=44, battery=None):
         wp, state, mac = self.backend()
+        if not hasattr(self, "receiver_indices"):
+            self.receiver_indices = {}
         s, p = state.allocate_state(c, seeds=[seed], device=self.device, trace=True)
         self.receiver_indices[id(s)] = (
             wp.zeros((1,p.n+1,p.frame_capacity),dtype=wp.int32,device=self.device),
