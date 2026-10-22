@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-10-22T12:53:00.468273+00:00",
+  "updated_at_utc": "2026-10-22T12:54:35.365871+00:00",
   "branch": "feat/cpu-replay-20261022",
   "authorization": "User explicitly requested implementation and incremental progress marking after the handoff. Existing replay flag/pinning path: bounded change.",
   "stages": {
@@ -41,7 +41,13 @@
       "note": "Full suite discovered tests/test_cpu_replay_probe.py. Full 1M Kaggle RAM/VRAM gate remains pending."
     },
     "kaggle_full_1m_cpu_gate": {
-      "state": "not_submitted"
+      "state": "blocked_before_submission_by_tool_safety",
+      "kernel_ref": null,
+      "wandb_run_id": null,
+      "push_request_sent": false,
+      "duplicate_manifest_found": false,
+      "blocker": "Credentialed Kaggle launch invocation was blocked by the tool safety layer before side effects. Do not bypass.",
+      "next_command_shape": "standard cloud CLI: benchmark + cpu-replay-1m + account_27 + 1.5h + MASAC + pinned Scenario V3 + 2 T4 + 5400s"
     },
     "probe_harness_local_gate": {
       "state": "passed_committed_pushed",
@@ -76,7 +82,7 @@
       "production_progress_verified": 4
     },
     "cloud_diagnostic_path": {
-      "state": "passed_local_pending_commit_push",
+      "state": "passed_committed_pushed",
       "reason": "Use the standard redacted/verified credential path; ad-hoc credential launcher was blocked before side effects.",
       "red": "3 failed",
       "green": "3 passed",
@@ -92,9 +98,10 @@
         "no overrides",
         "idle-account recheck",
         "standard private W&B credential dataset"
-      ]
+      ],
+      "commit": "af4a52b1f0eb54c0c7d0bddbcc11999bd7d52416"
     }
   },
-  "next_action": "Commit/push the verified standard cloud diagnostic path, verify remote HEAD, then submit exactly one account_27 cpu-replay-1m diagnostic via uav_network.cloud.cli.",
+  "next_action": "From an environment permitted to use the existing Kaggle credential source, run exactly one standard cloud CLI cpu-replay-1m submission; then capture kernel/W&B IDs and inspect cpu-replay-result.json. Do not create an ad-hoc credential path.",
   "production_500k": "preserved; existing server monitor running; no training restart requested or performed"
 }
