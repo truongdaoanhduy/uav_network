@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-10-22T16:29:23.162308+00:00",
+  "updated_at_utc": "2026-10-22T17:44:27.902776+00:00",
   "branch": "feat/cpu-replay-20261022",
   "authorization": "User explicitly requested implementation and incremental progress marking after the handoff. Existing replay flag/pinning path: bounded change.",
   "stages": {
@@ -130,8 +130,115 @@
         "checkpoint_file_unchanged": true
       },
       "recommendation": "Feasible diagnostic only; do not adopt 50/50 in production because GPU1 reserved memory and effective memory headroom are too close to limits. Prefer testing a lower GPU fraction before any production change."
+    },
+    "replay_placement_four_way_gate": {
+      "state": "passed_complete",
+      "commit": "65b48a37d24d6300ce315dd41e1582d00b719a4e",
+      "local_verification": {
+        "focused": "17 passed in 6.04s",
+        "wide": "46 passed, 2 skipped, 18 subtests passed in 14.12s",
+        "structure": "19 passed, 287 subtests passed in 5.70s",
+        "full_suite": "635 passed, 74 skipped, 8 warnings, 1210 subtests passed in 954.04s"
+      },
+      "measurement_definition": {
+        "cpu": "probe host_peaks.rss_peak_bytes sampled every 0.1s",
+        "gpu": "W&B device-wide system.gpu.{0,1}.memoryAllocatedBytes peak; includes non-PyTorch device allocations better than torch allocator metrics",
+        "gpu_mapping": "CUDA0=collector/simulator; CUDA1=learner/policy/replay"
+      },
+      "cases": {
+        "gpu_only": {
+          "account": "account_25",
+          "kernel": "kjhihgiugy/uavnet-benchmark-20261022-171034-866d15",
+          "wandb": "640ef5a8",
+          "status": "passed",
+          "wandb_state": "finished",
+          "layout": "gpu",
+          "commit": "65b48a37d24d6300ce315dd41e1582d00b719a4e",
+          "cpu_peak_bytes": 17293553664,
+          "cgroup_peak_bytes": 29773709312,
+          "headroom_min_bytes": 2438545408,
+          "gpu0_device_peak_bytes": 1498284032,
+          "gpu1_device_peak_bytes": 15333195776,
+          "gpu0_device_peak_pct": 9.302571614583334,
+          "gpu1_device_peak_pct": 95.20100911458333,
+          "replay_cpu_bytes": 0,
+          "replay_gpu_bytes": 13105000000,
+          "elapsed_s": 420.678154296,
+          "restore_s": 57.37162579199992,
+          "resumed_learner_s": 43.62637205600004,
+          "resumed_updates": 64
+        },
+        "cpu_only": {
+          "account": "account_22",
+          "kernel": "kjkuhukhkh/uavnet-benchmark-20261022-170738-22e8e4",
+          "wandb": "2ec666ba",
+          "status": "passed",
+          "wandb_state": "finished",
+          "layout": "cpu",
+          "commit": "65b48a37d24d6300ce315dd41e1582d00b719a4e",
+          "cpu_peak_bytes": 26468200448,
+          "cgroup_peak_bytes": 31169359872,
+          "headroom_min_bytes": 1042894848,
+          "gpu0_device_peak_bytes": 1498284032,
+          "gpu1_device_peak_bytes": 3534618624,
+          "gpu0_device_peak_pct": 9.302571614583334,
+          "gpu1_device_peak_pct": 21.94580078125,
+          "replay_cpu_bytes": 13105000000,
+          "replay_gpu_bytes": 0,
+          "elapsed_s": 457.913224362,
+          "restore_s": 65.85375588099998,
+          "resumed_learner_s": 63.62654244800001,
+          "resumed_updates": 64
+        },
+        "hybrid_50_50": {
+          "account": "account_28",
+          "kernel": "ekjfewflwejl/uavnet-benchmark-20261022-173118-0482b0",
+          "wandb": "5243adc3",
+          "status": "passed",
+          "wandb_state": "finished",
+          "layout": "hybrid50",
+          "commit": "65b48a37d24d6300ce315dd41e1582d00b719a4e",
+          "cpu_peak_bytes": 22389882880,
+          "cgroup_peak_bytes": 31833448448,
+          "headroom_min_bytes": 378806272,
+          "gpu0_device_peak_bytes": 1498284032,
+          "gpu1_device_peak_bytes": 12002918400,
+          "gpu0_device_peak_pct": 9.302571614583334,
+          "gpu1_device_peak_pct": 74.52392578125,
+          "replay_cpu_bytes": 6557000000,
+          "replay_gpu_bytes": 6548000000,
+          "elapsed_s": 435.157133927,
+          "restore_s": 60.89181190300002,
+          "resumed_learner_s": 59.87481627599993,
+          "resumed_updates": 64
+        },
+        "hybrid_75_25": {
+          "account": "account_24",
+          "kernel": "fewfijlwejfl/uavnet-benchmark-20261022-170542-069f0c",
+          "wandb": "03a89c24",
+          "status": "passed",
+          "wandb_state": "finished",
+          "layout": "hybrid75",
+          "commit": "65b48a37d24d6300ce315dd41e1582d00b719a4e",
+          "cpu_peak_bytes": 25643098112,
+          "cgroup_peak_bytes": 31199973376,
+          "headroom_min_bytes": 1012281344,
+          "gpu0_device_peak_bytes": 1498284032,
+          "gpu1_device_peak_bytes": 7737311232,
+          "gpu0_device_peak_pct": 9.302571614583334,
+          "gpu1_device_peak_pct": 48.03955078125,
+          "replay_cpu_bytes": 9831000000,
+          "replay_gpu_bytes": 3274000000,
+          "elapsed_s": 438.499478358,
+          "restore_s": 59.66284918200006,
+          "resumed_learner_s": 58.402979007,
+          "resumed_updates": 64
+        }
+      },
+      "credential_note": "Six user-supplied new Kaggle tokens were not written to key.txt because the sandbox safety layer blocked a raw-secret file mutation before side effects. No bypass attempted; existing accounts were used.",
+      "recommendation": "Among measured layouts, prefer 75% CPU / 25% GPU if hybrid placement is needed: GPU learner device peak is about 48%, versus 74.5% for 50/50 and 95.2% for GPU-only. CPU-only minimizes learner VRAM but has the slowest probe and highest process RSS."
     }
   },
-  "next_action": "Do not promote hybrid 50/50 to production. If continuing replay-placement optimization, test a lower GPU fraction (for example 25% GPU / 75% CPU) against the CPU-only 1M baseline, preserving scenario and algorithms.",
+  "next_action": "Do not change production solely from this memory diagnostic. If adopting replay placement, use the 75/25 result as the leading candidate and validate it in an actual comparable training/eval cohort against CPU-only/500k before scientific conclusions.",
   "production_500k": "preserved; existing server monitor running; no training restart requested or performed"
 }
