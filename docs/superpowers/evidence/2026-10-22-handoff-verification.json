@@ -1,0 +1,118 @@
+{
+  "checked_at_utc": "2026-10-22T11:35:19.395929+00:00",
+  "result": "passed",
+  "scope": "documentation handoff only",
+  "base_commit": "ab60690b76aeaf7d0a72cb10e782480be0cd1df0",
+  "branch": "docs/session-handoff-20261022",
+  "checks": [
+    "All relative Markdown links resolve",
+    "Four snapshot run IDs and exact continuation metadata validated",
+    "Each snapshot run increased both transitions and learner updates",
+    "All checkpoint storage flags are public",
+    "Snapshot readings were under 120 seconds old at capture",
+    "Audit report SHA-256 matches original",
+    "CPU replay explicitly recorded as not implemented/not benchmarked",
+    "Credential-shaped token scan passed",
+    "Tracked implementation files unchanged",
+    "git diff --check passed"
+  ],
+  "relative_links": [
+    {
+      "source": "AGENTS.md",
+      "target": "docs/superpowers/CURRENT_TASK.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/superpowers/CURRENT_TASK.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/obstacle-avoidance-single-seed.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/gpu-throughput-options-20261013.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/training-acceleration-20261013.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/verification-v02.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/kaggle-wandb-plan.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/verification-online-training.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/verification-kaggle-wandb.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/gpu-acceleration-research.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/design.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/progress.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/verification-continuation.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/training-diagnostics.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/completed-training-audit-20261013.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/gpu-cpu-visualization-20261014.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/pql-validation-20261014.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/pql-training.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/training-flow-comparison-20261014.md"
+    },
+    {
+      "source": "README.md",
+      "target": "docs/algorithm-comparison-research-20261014.md"
+    },
+    {
+      "source": "docs/superpowers/CURRENT_TASK.md",
+      "target": "docs/superpowers/evidence/2026-10-22-training-snapshot.json"
+    },
+    {
+      "source": "docs/superpowers/CURRENT_TASK.md",
+      "target": "docs/superpowers/CPU_REPLAY_NEXT_TASK.md"
+    },
+    {
+      "source": "docs/superpowers/CURRENT_TASK.md",
+      "target": "docs/superpowers/evidence/2026-10-22-wandb-audit.md"
+    },
+    {
+      "source": "docs/superpowers/CPU_REPLAY_NEXT_TASK.md",
+      "target": "docs/superpowers/CURRENT_TASK.md"
+    }
+  ],
+  "training_test_suite": "not run: only documentation changed; no current CPU replay test or benchmark result is claimed"
+}

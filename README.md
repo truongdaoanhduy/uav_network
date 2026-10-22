@@ -1,5 +1,7 @@
 # UAV network: tìm kiếm target, pin và truyền report
 
+Khi tiếp tục công việc W&B/Kaggle hoặc CPU replay, đọc [trạng thái và bước kế tiếp](docs/superpowers/CURRENT_TASK.md).
+
 Mặc định **6 UAV đồng nhất**, map 1000 × 1000 m, 10 target và 8 vật cản tròn.
 Chuyển động XY, camera FOV, pin hữu hạn, lựa chọn relay/GCS và công suất phát.
 Report đi qua **UavNetSim thật**: CSMA/CA, packet, ACK, retry và SINR.

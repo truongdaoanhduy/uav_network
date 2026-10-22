@@ -1,0 +1,112 @@
+{
+  "captured_at_utc": "2026-10-22T11:34:37.437478+00:00",
+  "kind": "historical_snapshot_not_live",
+  "source": "existing server monitor: public-resume-20261022/current-state.json",
+  "monitor_job_id": "5e55cfb663fd",
+  "runs": [
+    {
+      "checked_at_utc": "2026-10-22T11:34:12.142830+00:00",
+      "parent_id": "1e0c6017",
+      "run_id": "b55009f1",
+      "kernel_ref": "libiu123/uavnet-validate-20261022-104443-fe5080",
+      "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/b55009f1",
+      "expected_initial_step": 3565568,
+      "expected_initial_updates": 13680,
+      "kaggle_status": "running",
+      "wandb_state": "running",
+      "continuation": {
+        "kind": "training_state_exact_environment",
+        "source_run_id": "1e0c6017",
+        "state_restore": "training_state_exact_environment",
+        "input_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-1e0c6017:v5",
+        "initial_episodes": 1296,
+        "initial_global_step": 3565568,
+        "optimizer_replay_restored": true
+      },
+      "global_step": 3618816,
+      "episodes": 1842,
+      "updates": 13880,
+      "elapsed_s": 2564.885294495,
+      "storage_private": false,
+      "training_progress_verified": true
+    },
+    {
+      "checked_at_utc": "2026-10-22T11:34:24.834586+00:00",
+      "parent_id": "3efe3a0b",
+      "run_id": "143c7acc",
+      "kernel_ref": "vuliu123456/uavnet-validate-20261022-104625-33f02c",
+      "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/143c7acc",
+      "expected_initial_step": 2328576,
+      "expected_initial_updates": 8592,
+      "kaggle_status": "running",
+      "wandb_state": "running",
+      "continuation": {
+        "kind": "training_state_exact_environment",
+        "source_run_id": "3efe3a0b",
+        "state_restore": "training_state_exact_environment",
+        "input_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-3efe3a0b:v0",
+        "initial_episodes": 0,
+        "initial_global_step": 2328576,
+        "optimizer_replay_restored": true
+      },
+      "global_step": 3450880,
+      "episodes": 601,
+      "updates": 12960,
+      "elapsed_s": 2487.880156388,
+      "storage_private": false,
+      "training_progress_verified": true
+    },
+    {
+      "checked_at_utc": "2026-10-22T11:34:27.570848+00:00",
+      "parent_id": "925d10c4",
+      "run_id": "18e2823f",
+      "kernel_ref": "ergewh54/uavnet-validate-20261022-104712-566c39",
+      "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/18e2823f",
+      "expected_initial_step": 1624064,
+      "expected_initial_updates": 6096,
+      "kaggle_status": "running",
+      "wandb_state": "running",
+      "continuation": {
+        "kind": "training_state_exact_environment",
+        "source_run_id": "925d10c4",
+        "state_restore": "training_state_exact_environment",
+        "input_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-matd3-925d10c4:v0",
+        "initial_episodes": 0,
+        "initial_global_step": 1624064,
+        "optimizer_replay_restored": true
+      },
+      "global_step": 1814528,
+      "episodes": 0,
+      "updates": 6824,
+      "elapsed_s": 1795.792700087,
+      "storage_private": false,
+      "training_progress_verified": true
+    },
+    {
+      "checked_at_utc": "2026-10-22T11:34:30.352628+00:00",
+      "parent_id": "dc16b47e",
+      "run_id": "47bd6da9",
+      "kernel_ref": "nhtbrg/uavnet-validate-20261022-104752-461dfb",
+      "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/47bd6da9",
+      "expected_initial_step": 1927168,
+      "expected_initial_updates": 7024,
+      "kaggle_status": "running",
+      "wandb_state": "running",
+      "continuation": {
+        "kind": "training_state_exact_environment",
+        "source_run_id": "dc16b47e",
+        "state_restore": "training_state_exact_environment",
+        "input_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-matd3-dc16b47e:v0",
+        "initial_episodes": 0,
+        "initial_global_step": 1927168,
+        "optimizer_replay_restored": true
+      },
+      "global_step": 2060288,
+      "episodes": 0,
+      "updates": 7536,
+      "elapsed_s": 1748.857127794,
+      "storage_private": false,
+      "training_progress_verified": true
+    }
+  ]
+}
