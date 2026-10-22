@@ -83,7 +83,7 @@ tracking:
   entity: truongdaoanhduy-uit
   project: uav_search_target
   checkpoint_repo: duy95/uav-search-checkpoints
-  checkpoint_repo_private: true
+  checkpoint_repo_private: false
   group: uav-network-v3-full20k-env4096-steps1800-seed44-20261020
   tags:
   - uav-network

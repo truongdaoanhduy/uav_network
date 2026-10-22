@@ -56,8 +56,10 @@ class CheckpointStoreTests(unittest.TestCase):
                 lfs=SimpleNamespace(sha256=store.file_sha256(source)))])
             hub = SimpleNamespace(repo_info=Mock(return_value=remote),
                                   create_commit=Mock(side_effect=AssertionError('duplicate commit')))
+            config = Config()
+            config.tracking.checkpoint_repo_private = True
             with patch.object(store, 'ensure_private_store', return_value=(hub, 'owner/private')):
-                manifest = store.upload_checkpoint_files(Config(), {'checkpoint.pt':source}, 'archive/run/v1')
+                manifest = store.upload_checkpoint_files(config, {'checkpoint.pt':source}, 'archive/run/v1')
             self.assertEqual(manifest['revision'], 'b'*40)
             hub.create_commit.assert_not_called()
 
@@ -72,8 +74,10 @@ class CheckpointStoreTests(unittest.TestCase):
             hub = SimpleNamespace(repo_info=Mock(side_effect=[snapshot('0'*64, 'b'*40),
                 snapshot(store.file_sha256(source), 'c'*40)]),
                 create_commit=Mock(return_value=SimpleNamespace(oid='c'*40)))
+            config = Config()
+            config.tracking.checkpoint_repo_private = True
             with patch.object(store, 'ensure_private_store', return_value=(hub, 'owner/private')):
-                manifest = store.upload_checkpoint_files(Config(), {'checkpoint.pt':source}, 'archive/run/v1')
+                manifest = store.upload_checkpoint_files(config, {'checkpoint.pt':source}, 'archive/run/v1')
             self.assertEqual(manifest['revision'], 'c'*40)
             hub.create_commit.assert_called_once()
 
@@ -100,6 +104,7 @@ class CheckpointStoreTests(unittest.TestCase):
                 p.write_bytes(remote[filename]+(b'corrupt'if corrupt[0]else b''));return str(p)
             sdk=SimpleNamespace(HfApi=lambda **kwargs:Hub(),CommitOperationAdd=lambda **kwargs:SimpleNamespace(**kwargs),hf_hub_download=download)
             c=Config();c.tracking.credentials_file=str(root/'absent.txt')
+            c.tracking.checkpoint_repo_private = True
             with patch.dict(sys.modules,{'huggingface_hub':sdk}), patch.dict(os.environ,{'HF_TOKEN':'not-logged-secret','HF_REPO_ID':'owner/private-checkpoints'}):
                 manifest=store.upload_checkpoint_files(c,{'checkpoint.pt':source,'resume.pt':resume},'run-1/step-10')
                 self.assertEqual(manifest['revision'],'a'*40)

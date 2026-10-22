@@ -192,7 +192,7 @@ class TrackingConfig:
     local_checkpoints_to_keep: int = 2
     checkpoint_store: str = "huggingface"
     checkpoint_repo: str = "auto"
-    checkpoint_repo_private: bool = True
+    checkpoint_repo_private: bool = False
     system_metrics: bool = True
     artifact_timeout_seconds: int = 120
     evaluation_interval: int = 50
