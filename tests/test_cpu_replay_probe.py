@@ -1,0 +1,75 @@
+"""A reproducible diagnostic probe must preserve science and fill exact capacity."""
+import torch
+
+from uav_network.configuration import load_config
+from uav_network.experiments.pql_replay import MeasuredReplay
+from test_pql_system import transition
+from test_split_updates import replay_batch, small_learner
+
+
+def test_probe_profile_preserves_science_and_selects_cpu_replay():
+    from uav_network.experiments.cpu_replay_probe import probe_config
+    original = load_config("configs/comparison-20k-steps1800-scenario-v3.yaml")
+    config = probe_config()
+    for group in ("world", "sensor", "network", "energy", "reward"):
+        assert config.to_dict()[group] == original.to_dict()[group]
+    assert config.runtime.num_envs == 2048
+    assert config.masac.batch_size == 4096
+    assert config.masac.replay_capacity == 1_000_000
+    assert config.masac.hidden_sizes == [256, 256]
+    assert config.runtime.replay_device == "cpu"
+    assert config.pql.collector_device == "cuda:0"
+    assert config.pql.learner_device == "cuda:1"
+    assert config.pql.policy_device == "cuda:1"
+    assert config.runtime.amp_mode == "fp16"
+    assert config.runtime.compile_models and config.runtime.fused_optimizers
+    assert config.pql.enabled and config.pql.checkpoint_replay
+    assert config.pql.warmup_collection_steps == 2
+    assert config.pql.critic_sample_ratio == 16
+
+
+def test_probe_fill_touches_every_row_without_overfilling_non_multiple_capacity():
+    from uav_network.experiments.cpu_replay_probe import fill_replay
+    torch.set_num_threads(1)
+    learner = small_learner()
+    values = transition(replay_batch(learner))
+    replay = MeasuredReplay(7, values[0].shape[1:], learner.state_dim)
+    inserted = fill_replay(replay, values)
+    assert inserted == 7
+    assert len(replay) == replay.capacity
+    assert replay.index == 0
+    assert replay.stats()["replay/inserted_rows"] == 7
+    torch.testing.assert_close(replay.data["observation"][:4], values[0], rtol=0, atol=0)
+    torch.testing.assert_close(replay.data["observation"][4:], values[0][:3], rtol=0, atol=0)
+
+
+def test_probe_rejects_cpu_host_before_allocating_full_replay(tmp_path):
+    import pytest
+    from uav_network.experiments.cpu_replay_probe import run_probe
+    if torch.cuda.device_count() >= 2:
+        pytest.skip("two GPUs available")
+    with pytest.raises(RuntimeError, match="exactly two T4 CUDA"):
+        run_probe(tmp_path)
+
+
+def test_probe_rejects_non_t4_two_gpu_host_before_large_allocation(monkeypatch):
+    import pytest
+    from types import SimpleNamespace
+    from uav_network.experiments.cpu_replay_probe import _require_two_t4
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)
+    monkeypatch.setattr(torch.cuda, "get_device_properties",
+                        lambda index: SimpleNamespace(name="NVIDIA A100", total_memory=1,
+                                                      major=8, minor=0, uuid=None))
+    with pytest.raises(RuntimeError, match="exactly two T4 CUDA"):
+        _require_two_t4()
+
+
+def test_memory_probe_distinguishes_process_ram_from_effective_available_ram():
+    from uav_network.experiments.cpu_replay_probe import _host_memory
+    memory = _host_memory()
+    assert memory["host_rss_bytes"] > 0
+    assert 0 <= memory["effective_available_bytes"] <= memory["system_available_bytes"]
+    if memory["cgroup_limit_bytes"] is not None:
+        assert memory["effective_available_bytes"] <= max(
+            0, memory["cgroup_limit_bytes"] - memory["cgroup_current_bytes"])

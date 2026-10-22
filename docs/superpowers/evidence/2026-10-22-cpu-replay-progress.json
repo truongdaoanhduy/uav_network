@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-10-22T12:12:57.602891+00:00",
+  "updated_at_utc": "2026-10-22T12:26:16.255023+00:00",
   "branch": "feat/cpu-replay-20261022",
   "authorization": "User explicitly requested implementation and incremental progress marking after the handoff. Existing replay flag/pinning path: bounded change.",
   "stages": {
@@ -42,8 +42,21 @@
     },
     "kaggle_full_1m_cpu_gate": {
       "state": "not_submitted"
+    },
+    "probe_harness_local_gate": {
+      "state": "passed_pending_commit_push",
+      "review_findings": [
+        "pin PQL collector to cuda:0 and learner/policy to cuda:1",
+        "require exactly two T4 CUDA devices before large allocation"
+      ],
+      "red": "3 failed, 2 passed in 5.01s",
+      "focused_green": "36 passed, 2 skipped, 12 subtests passed in 8.77s",
+      "full_suite_job_id": "5502835ff02e",
+      "full_suite": "623 passed, 74 skipped, 8 warnings, 1209 subtests passed in 485.06s",
+      "full_suite_exit_code": 0,
+      "diff_check": "passed"
     }
   },
-  "next_action": "Inspect the two untracked CPU replay probe files, run focused probe tests and git diff --check, then commit/push the probe harness if clean; do not submit Kaggle yet.",
+  "next_action": "Commit/push the verified CPU replay probe harness and ledger, verify remote HEAD, then fresh-check Kaggle jobs/quota before any diagnostic submission.",
   "production_500k": "preserved; existing server monitor running; no training restart requested or performed"
 }

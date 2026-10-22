@@ -62,9 +62,10 @@ learns better than 500k or solve the collector bottleneck.
   Preserve immutable snapshot behavior and avoid full-size unnecessary
   copies. Evaluate mmap loading where compatible; test that updates to a
   live replay cannot corrupt a checkpoint.
-- [ ] Run focused tests RED→GREEN and the full project test command.
-  Record actual command/results and any skipped CUDA checks. Commit and push
-  before submitting remote validation.
+- [x] Run focused tests RED→GREEN and the full project test command.
+  Probe review RED: 3 failed / 2 passed; focused GREEN: 36 passed / 2 CUDA skipped / 12 subtests;
+  fresh full suite: 623 passed / 74 skipped / 8 warnings / 1209 subtests.
+  Commit/push the verified probe harness before submitting remote validation.
 - [ ] Run **one bounded separate** real two-T4 validation job after checking
   existing jobs and quota. Keep env=2048, batch=4096, replay capacity=1M,
   chosen AMP/compile/fused settings pinned and Gen1. A fresh job is not an
