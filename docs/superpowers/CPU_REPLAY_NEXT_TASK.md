@@ -1,6 +1,6 @@
 # CPU replay: unfinished task brief
 
-Status: proposal investigated; implementation and full-buffer validation pending.
+Status: execution authorized; local baseline/TDD in progress; full-buffer validation pending.
 Read [CURRENT_TASK.md](CURRENT_TASK.md) for running jobs and constraints.
 
 ## Intended outcome
@@ -41,10 +41,10 @@ learns better than 500k or solve the collector bottleneck.
 
 ## Continuation checklist
 
-- [ ] Recover the design stage and current branch state. Classify this existing
+- [x] Recover the design stage and current branch state. Classify this existing
   replay path with Superpowers, honoring prior user authorization and any
   applicable review gate; do not claim an unreviewed artifact was approved.
-- [ ] Start from public fix `ab60690` (this handoff branch already contains it);
+- [x] Start from public fix `ab60690` (this handoff branch already contains it);
   keep Gen1. Use an isolated feature branch for implementation.
 - [ ] Run the relevant baseline tests. Read
   `tests/test_measured_replay.py`, `tests/test_pql_system.py`,

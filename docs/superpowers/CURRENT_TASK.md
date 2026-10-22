@@ -8,14 +8,16 @@ The next engineering task under discussion is **replay buffer capacity 1,000,000
 stored in CPU RAM, with collection and learning on the GPUs**.
 “Replay buffer” here is the RL experience store, distinct from UAV packet relay.
 
-**Implementation state: NOT STARTED. No CPU-replay patch, local red/green cycle,
-or full-buffer Kaggle memory gate has been completed.**
-This handoff commit changes documentation only. It does not restart production.
+**Implementation state: IN PROGRESS. Baseline verification and TDD are starting.
+No CPU replay full-buffer Kaggle memory gate has completed.**
+The user explicitly requested execution on 2026-10-22 after reading the handoff.
+This is a bounded change to the existing replay/device flow. Preserve production.
 The CPU placement proposal is technically viable in PyTorch; its stability and
 speed in this project remain unverified.
 
 Repository: https://github.com/truongdaoanhduy/uav_network
-Handoff branch: `docs/session-handoff-20261022`
+Active implementation branch: `feat/cpu-replay-20261022`
+Stable handoff branch: `docs/session-handoff-20261022` (fast-forwarded at checkpoints)
 Handoff worktree at capture:
 `/home/aduy/Documents/NCKH/uav_network-public-hf-20261022`
 Base commit: `ab60690b76aeaf7d0a72cb10e782480be0cd1df0`
@@ -161,7 +163,7 @@ Use Context7 for PyTorch transfer/load semantics and GitHub for durable state.
 | --- | --- | --- |
 | Audit, public storage, seven videos, 500k recovery | Completed in previous session | Audit report; snapshot for timestamped progress |
 | Cross-chat handoff | Complete | Docs verified locally and read back through GitHub at commit `750ac02`; working tree was clean after push |
-| CPU replay behavior and tests | Not started | Follow the next-task brief; first write and run a failing test |
+| CPU replay behavior and tests | In progress | Baseline test job starting; then write failing placement/pinning/RNG tests |
 | Full 1M CPU RAM / 2-T4 checkpoint-resume gate | Not started | No CPU replay Kaggle job has been submitted |
 | Production adoption of CPU replay | Not started | Requires measured stability and throughput evidence first |
 
@@ -169,3 +171,5 @@ Keep historical evidence timestamped. Replace this ledger's current state
 after each task; add the actual verification command and commit.
 
 Handoff verification: commit `750ac02bc6c8371c638d53fdf1598f9dac238f06` was pushed; GitHub read-back of AGENTS/current task and a base/head comparison confirmed the seven documentation files. See [verification evidence](evidence/2026-10-22-handoff-verification.json). This ledger update is a follow-up documentation commit; use branch HEAD for the latest record.
+
+Execution started 2026-10-22T11:38:45.166191+00:00. User instruction: implement and mark progress as work proceeds. Next: baseline suite, then CPU replay placement RED→GREEN. Test logs: `outputs/cpu-replay-20261022/`.
