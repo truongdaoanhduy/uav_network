@@ -43,6 +43,7 @@ class ScenarioV3IntegrationTests(unittest.TestCase):
         if importlib.util.find_spec("warp"):
             yield "warp_gen1"
             yield "warp_gen2"
+            yield "warp_rxindex"
 
     def prepare(self, backend, positions):
         c = v3_fixture(len(positions))
@@ -59,7 +60,8 @@ class ScenarioV3IntegrationTests(unittest.TestCase):
             from uav_network.communication.gpu.mac import reset_network, sense_reports
             c.runtime.environment_backend = "warp_packet"
             env = WarpMissionEnv(c)
-            scheduler = "gen2" if backend == "warp_gen2" else "gen1"
+            scheduler = ("gen2" if backend == "warp_gen2" else
+                         "rxindex" if backend == "warp_rxindex" else "gen1")
             if scheduler != "gen1":
                 env.vector.close()
                 selected = deepcopy(c)
@@ -140,29 +142,31 @@ class ScenarioV3IntegrationTests(unittest.TestCase):
                 self.assertEqual(len(events), 1)
                 self.assertGreater(final["network"]["uav_communication_energy_j"], spent)
 
-    def test_gen1_gen2_v3_contention_matches_every_snapshot_array_and_metric(self):
+    def test_gen1_accelerated_v3_contention_matches_every_snapshot_array_and_metric(self):
         if not importlib.util.find_spec("warp"):
             self.skipTest("optional Warp dependency not installed")
         positions = [[500, 300], [520, 300], [950, 950]]
-        left = self.prepare("warp_gen1", positions)
-        right = self.prepare("warp_gen2", positions)
         actions = [command(3, (0, 3), 1.0), command(3, (1, 3), 1.0),
                    command(3, (0, 3), -1.0), command(3, None)]
         network_keys = ("generated_packets", "received_packets", "phy_successes", "phy_failures",
                         "collisions", "communication_energy_j", "uav_communication_energy_j",
                         "gcs_communication_energy_j", "report_average_hops", "report_e2e_delay_s")
-        for action in actions:
-            a = left.step(action); b = right.step(action)
-            self.assertEqual(a[2:4], b[2:4])
-            self.assertEqual(a[1], b[1])
-            for key in network_keys:
-                self.assertEqual(a[4]["network"][key], b[4]["network"][key], key)
-            snap_a, snap_b = left.vector.snapshot_state(), right.vector.snapshot_state()
-            self.assertEqual(snap_a["arrays"].keys(), snap_b["arrays"].keys())
-            for name in snap_a["arrays"]:
-                torch.testing.assert_close(snap_a["arrays"][name], snap_b["arrays"][name],
-                                           rtol=0, atol=0, equal_nan=True, msg=name)
-            self.assertEqual(left.drain_communication_events(), right.drain_communication_events())
+        for backend in ("warp_gen2","warp_rxindex"):
+            with self.subTest(backend=backend):
+                left = self.prepare("warp_gen1", positions)
+                right = self.prepare(backend, positions)
+                for action in actions:
+                    a = left.step(action); b = right.step(action)
+                    self.assertEqual(a[2:4], b[2:4])
+                    self.assertEqual(a[1], b[1])
+                    for key in network_keys:
+                        self.assertEqual(a[4]["network"][key], b[4]["network"][key], key)
+                    snap_a, snap_b = left.vector.snapshot_state(), right.vector.snapshot_state()
+                    self.assertEqual(snap_a["arrays"].keys(), snap_b["arrays"].keys())
+                    for name in snap_a["arrays"]:
+                        torch.testing.assert_close(snap_a["arrays"][name], snap_b["arrays"][name],
+                                                   rtol=0, atol=0, equal_nan=True, msg=name)
+                    self.assertEqual(left.drain_communication_events(), right.drain_communication_events())
 
 
 

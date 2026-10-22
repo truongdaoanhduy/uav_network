@@ -30,6 +30,9 @@ def config(**network):
 class GPUPacketTests(unittest.TestCase):
     device = "cpu"
 
+    def setUp(self):
+        self.receiver_indices = {}
+
     def backend(self):
         try:
             import warp as wp
@@ -42,6 +45,9 @@ class GPUPacketTests(unittest.TestCase):
     def prepare(self, c, positions, targets=None, obstacles=None, seed=44, battery=None):
         wp, state, mac = self.backend()
         s, p = state.allocate_state(c, seeds=[seed], device=self.device, trace=True)
+        self.receiver_indices[id(s)] = (
+            wp.zeros((1,p.n+1,p.frame_capacity),dtype=wp.int32,device=self.device),
+            wp.zeros((1,p.n+1),dtype=wp.int32,device=self.device))
         s.positions.assign(np.asarray([positions], dtype=np.float64))
         targets = targets if targets is not None else [positions[0]]
         obstacles = obstacles if obstacles is not None else []
@@ -74,6 +80,10 @@ class GPUPacketTests(unittest.TestCase):
         if scheduler == "gen2":
             inputs.append(wp.zeros((1,6),dtype=wp.int64,device=self.device))
             wp.launch(mac.packet_step_gen2,dim=1,inputs=inputs,device=self.device)
+        elif scheduler == "rxindex":
+            frames,sizes=self.receiver_indices[id(s)]
+            inputs.extend((frames,sizes))
+            wp.launch(mac.packet_step_rxindex,dim=1,inputs=inputs,device=self.device)
         else:
             wp.launch(mac.packet_step,dim=1,inputs=inputs,device=self.device)
         wp.launch(mac.end_step, dim=1, inputs=[s, p], device=self.device)
@@ -146,6 +156,18 @@ class GPUPacketTests(unittest.TestCase):
             other=getattr(gen2,name,None)
             if isinstance(value,wp.array) and isinstance(other,wp.array):
                 np.testing.assert_allclose(other.numpy(),value.numpy(),rtol=0,atol=0,equal_nan=True,err_msg=name)
+        _, rxindex, p3, mac3 = self.prepare(c, positions, targets, obstacles, seed, battery)
+        rx_times = []
+        for dest, power in actions:
+            self.step(c, rxindex, p3, mac3, wp, dest, power, scheduler="rxindex")
+            rx_times.extend(mac3.transmission_times(rxindex,0))
+            if int(rxindex.terminated.numpy()[0]):
+                break
+        for name,value in vars(s).items():
+            other=getattr(rxindex,name,None)
+            if isinstance(value,wp.array) and isinstance(other,wp.array):
+                np.testing.assert_allclose(other.numpy(),value.numpy(),rtol=0,atol=0,equal_nan=True,err_msg=f"rxindex:{name}")
+        np.testing.assert_allclose(rx_times, times, rtol=0, atol=0)
         return wp, s, p, mac
 
     def test_event_heap_exposes_root_reschedule_primitive(self):
