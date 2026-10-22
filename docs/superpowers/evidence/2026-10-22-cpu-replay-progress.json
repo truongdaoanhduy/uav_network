@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-10-22T12:54:35.365871+00:00",
+  "updated_at_utc": "2026-10-22T16:29:23.162308+00:00",
   "branch": "feat/cpu-replay-20261022",
   "authorization": "User explicitly requested implementation and incremental progress marking after the handoff. Existing replay flag/pinning path: bounded change.",
   "stages": {
@@ -41,13 +41,11 @@
       "note": "Full suite discovered tests/test_cpu_replay_probe.py. Full 1M Kaggle RAM/VRAM gate remains pending."
     },
     "kaggle_full_1m_cpu_gate": {
-      "state": "blocked_before_submission_by_tool_safety",
-      "kernel_ref": null,
-      "wandb_run_id": null,
-      "push_request_sent": false,
-      "duplicate_manifest_found": false,
-      "blocker": "Credentialed Kaggle launch invocation was blocked by the tool safety layer before side effects. Do not bypass.",
-      "next_command_shape": "standard cloud CLI: benchmark + cpu-replay-1m + account_27 + 1.5h + MASAC + pinned Scenario V3 + 2 T4 + 5400s"
+      "state": "passed_memory_execution_kernel_reporting_legacy_error_only",
+      "kernel_ref": "ekjfewflwejl/uavnet-benchmark-20261022-132914-97326d",
+      "wandb_run_id": "961c9487",
+      "result_status": "passed",
+      "note": "CPU-only 1M memory/execution probe passed all core phases; historical kernel state was error only after complete because old W&B SummaryDict.update keyword API was incompatible."
     },
     "probe_harness_local_gate": {
       "state": "passed_committed_pushed",
@@ -100,8 +98,40 @@
         "standard private W&B credential dataset"
       ],
       "commit": "af4a52b1f0eb54c0c7d0bddbcc11999bd7d52416"
+    },
+    "hybrid_50_50_1m_gate": {
+      "state": "passed_complete",
+      "commit": "4926dc2b2ab5961cae09cd5b5b064415cde56f72",
+      "account": "account_30",
+      "kernel_ref": "jwkjfwejfeio/uavnet-benchmark-20261022-155902-445596",
+      "wandb_run_id": "3716659c",
+      "layout": "500k CPU + 500k GPU1, one global ring/RNG",
+      "result_status": "passed",
+      "kernel_state": "complete",
+      "replay_rows": 1000000,
+      "replay_cpu_bytes": 6557000000,
+      "replay_hot_bytes": 6548000000,
+      "full_suite": "632 passed, 74 skipped, 8 warnings, 1210 subtests passed in 1090.62s",
+      "focused_suite": "43 passed, 2 skipped, 18 subtests passed in 16.53s",
+      "cpu_only_comparison": {
+        "total_elapsed_change_percent": -4.08,
+        "host_rss_peak_change_percent": -15.01,
+        "restore_time_change_percent": -6.57,
+        "gpu1_peak_allocated_gib": 12.326,
+        "gpu1_peak_reserved_gib": 14.2188,
+        "gpu1_total_gib": 14.5622,
+        "effective_available_min_gib": 0.3899,
+        "cpu_only_effective_available_min_gib": 1.031
+      },
+      "resume_checks": {
+        "rng_next_sample_matches": true,
+        "environment_restored": true,
+        "resumed_updates": 64,
+        "checkpoint_file_unchanged": true
+      },
+      "recommendation": "Feasible diagnostic only; do not adopt 50/50 in production because GPU1 reserved memory and effective memory headroom are too close to limits. Prefer testing a lower GPU fraction before any production change."
     }
   },
-  "next_action": "From an environment permitted to use the existing Kaggle credential source, run exactly one standard cloud CLI cpu-replay-1m submission; then capture kernel/W&B IDs and inspect cpu-replay-result.json. Do not create an ad-hoc credential path.",
+  "next_action": "Do not promote hybrid 50/50 to production. If continuing replay-placement optimization, test a lower GPU fraction (for example 25% GPU / 75% CPU) against the CPU-only 1M baseline, preserving scenario and algorithms.",
   "production_500k": "preserved; existing server monitor running; no training restart requested or performed"
 }
