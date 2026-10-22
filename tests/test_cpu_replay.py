@@ -128,3 +128,130 @@ def test_invalid_legacy_rng_is_rejected_before_replay_mutation():
     assert replay.index == before["index"]
     torch.testing.assert_close(replay.data["observation"][:replay.size],
                                before["data"]["observation"], rtol=0, atol=0)
+
+@pytest.mark.parametrize("legacy", [False, True])
+def test_cpu_replay_resume_keeps_next_samples_and_measurements(legacy):
+    learner = small_learner()
+    values = transition(replay_batch(learner))
+    original = MeasuredReplay(16, values[0].shape[1:], learner.state_dim)
+    for _ in range(5):
+        original.add_batch(*values)
+    original.sample(4)
+    saved = deepcopy(original.state_dict())
+    if legacy:
+        saved.pop("device_type", None)
+    restored = MeasuredReplay(16, values[0].shape[1:], learner.state_dim, seed=99)
+    restored.load_state_dict(saved)
+    expected, actual = original.sample(4), restored.sample(4)
+    for name in expected:
+        torch.testing.assert_close(actual[name], expected[name], rtol=0, atol=0)
+    assert restored.stats() == original.stats()
+    assert restored.index == original.index
+
+
+def test_full_cpu_replay_save_can_borrow_storage_without_changing_frozen_snapshots():
+    from uav_network.experiments.fixed_checkpoints import replay_state
+    learner = small_learner()
+    values = transition(replay_batch(learner))
+    replay = MeasuredReplay(4, values[0].shape[1:], learner.state_dim)
+    replay.add_batch(*values)
+    frozen = replay_state(replay)
+    borrowed = replay_state(replay, copy=False)
+    for name in replay.data:
+        assert borrowed["data"][name].data_ptr() == replay.data[name].data_ptr()
+        assert frozen["data"][name].data_ptr() != replay.data[name].data_ptr()
+    replay.data["observation"].add_(100)
+    torch.testing.assert_close(frozen["data"]["observation"], values[0],
+                               rtol=0, atol=0)
+
+
+def test_synchronous_fixed_save_borrows_full_cpu_storage_and_writes_immutable_file(tmp_path):
+    from unittest.mock import patch
+    import numpy as np
+    from uav_network.algorithms.checkpoints import save_policy
+    from uav_network.experiments.fixed_checkpoints import save_fixed_checkpoint
+
+    learner = small_learner()
+    values = transition(replay_batch(learner))
+    replay = MeasuredReplay(4, values[0].shape[1:], learner.state_dim)
+    replay.add_batch(*values)
+    borrowed = []
+
+    def observe_real_save(*args, **kwargs):
+        data = kwargs["training"]["replay"]["data"]
+        borrowed.append(all(data[name].data_ptr() == replay.data[name].data_ptr()
+                            for name in data))
+        return save_policy(*args, **kwargs)
+
+    path = tmp_path / "resume.pt"
+    with patch("uav_network.experiments.fixed_checkpoints.save_policy",
+               side_effect=observe_real_save):
+        save_fixed_checkpoint(
+            learner, path,
+            {"episodes": 0, "global_step": 4, "collection_steps": 1,
+             "next_seed": 48, "records": []},
+            replay, np.random.default_rng(45), warmup_origin=0,
+            random_warmup=True, next_metrics_at=0, latest={},
+            pending_learning=False)
+    assert borrowed == [True]
+    replay.data["observation"].add_(100)
+    written = torch.load(path, map_location="cpu", weights_only=True)
+    torch.testing.assert_close(written["training"]["replay"]["data"]["observation"],
+                               values[0], rtol=0, atol=0)
+
+
+def test_partial_cpu_pql_checkpoint_contains_only_occupied_storage(tmp_path):
+    learner = small_learner()
+    values = transition(replay_batch(learner))
+    replay = MeasuredReplay(64, values[0].shape[1:], learner.state_dim)
+    replay.add_batch(*values)
+    path = tmp_path / "partial.pt"
+    torch.save(replay.state_dict(), path)
+    written = torch.load(path, map_location="cpu", weights_only=True)
+    for name, value in written["data"].items():
+        assert value.untyped_storage().nbytes() == value.numel() * value.element_size(), name
+
+
+@pytest.mark.skipif(not __import__("pathlib").Path("/proc/self/maps").is_file(),
+                    reason="Linux mmap introspection required")
+@pytest.mark.parametrize("trainer", ["base", "pql"])
+def test_full_training_restore_maps_checkpoint_and_keeps_source_file_immutable(tmp_path, trainer):
+    from hashlib import sha256
+    from pathlib import Path
+    if trainer == "base":
+        from test_baseline_resume import small_config
+        from uav_network.experiments.training import train
+        from uav_network.experiments.continuation import restore_learner
+        config = small_config(tmp_path / "first", "matd3")
+        result = train(config)
+        path = Path(result["resume_checkpoint"]).resolve()
+        config.runtime.warm_start_checkpoint = str(path)
+        config.runtime.episodes = 3
+        before = sha256(path.read_bytes()).hexdigest()
+        learner, progress = restore_learner(config, "cpu")
+        assert str(path) in Path("/proc/self/maps").read_text()
+        # Optimizer state is mapped privately: an actual resumed update must
+        # never write through into the checkpoint file.
+        learner.update(replay_batch(learner))
+        assert progress["_training"]["replay"]["size"] > 0
+    else:
+        config = pql_config("masac")
+        engine = PQLSystem(config)
+        path = (tmp_path / "pql-resume.pt").resolve()
+        try:
+            values = transition(replay_batch(engine.critic))
+            for _ in range(3):
+                engine.submit(values)
+            engine.save(path, {"episodes": 0, "global_step": 12,
+                               "collection_steps": 3, "next_seed": 48, "records": []})
+        finally:
+            engine.close()
+        before = sha256(path.read_bytes()).hexdigest()
+        restored = PQLSystem(config, checkpoint=path)
+        try:
+            assert str(path) in Path("/proc/self/maps").read_text()
+            restored.submit(values)
+            restored.flush()
+        finally:
+            restored.close()
+    assert sha256(path.read_bytes()).hexdigest() == before

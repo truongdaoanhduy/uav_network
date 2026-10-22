@@ -1,6 +1,6 @@
 # CPU replay: unfinished task brief
 
-Status: local placement/pinning/RNG tests passed; checkpoint RAM work in progress; full-buffer CUDA validation pending.
+Status: local placement/pinning/RNG and checkpoint tests passed; full suite and full-buffer CUDA validation pending.
 Read [CURRENT_TASK.md](CURRENT_TASK.md) for running jobs and constraints.
 
 ## Intended outcome
@@ -55,10 +55,10 @@ learns better than 500k or solve the collector bottleneck.
 - [x] Write and observe RED for pageable CPU storage / batch-only pinning (CUDA transfer test remains pending),
   including PQL's sample override. Keep full CPU storage pageable and GPU
   allocations bounded to live minibatches; ensure async copy source lifetime.
-- [ ] Verify CPU replay same-device save/load restores next sample RNG,
+- [x] Verify CPU replay same-device save/load restores next sample RNG,
   cursor, measurement metadata and learning state. Reject unsupported
   CPU/CUDA RNG changes before mutation; a reseed is not exact continuation.
-- [ ] Measure/save/load peak CPU RAM at a drained checkpoint boundary.
+- [ ] Measure full-1M save/load peak CPU RAM at a drained checkpoint boundary (small local mmap/immutable-save tests passed).
   Preserve immutable snapshot behavior and avoid full-size unnecessary
   copies. Evaluate mmap loading where compatible; test that updates to a
   live replay cannot corrupt a checkpoint.

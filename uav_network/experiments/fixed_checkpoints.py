@@ -10,12 +10,20 @@ from ..algorithms.replay import transition_shapes
 from .pql_workers import optimizer_states, restore_optimizers
 
 
-def replay_state(replay):
+def replay_state(replay, *, copy=True):
+    """Freeze by default; borrow full CPU storage only during synchronous save."""
+    def snapshot(value):
+        result = value.detach().cpu()
+        # Compact partial views so torch.save never writes unused ring storage.
+        if copy or result.untyped_storage().nbytes() != result.numel() * result.element_size():
+            result = result.clone()
+        return result
+
     result = {"capacity": replay.capacity, "index": replay.index, "size": replay.size,
-            "device_type": replay.device.type, "rng": replay.rng.get_state(),
-            "data": {name: value[:replay.size].detach().cpu().clone() for name, value in replay.data.items()}}
+              "device_type": replay.device.type, "rng": replay.rng.get_state(),
+              "data": {name: snapshot(value[:replay.size]) for name, value in replay.data.items()}}
     if hasattr(replay, "measurement_state"):
-        result["measurement"] = {key: value.detach().cpu().clone() if isinstance(value, torch.Tensor) else value
+        result["measurement"] = {key: snapshot(value) if isinstance(value, torch.Tensor) else value
                                  for key, value in replay.measurement_state().items()}
     return result
 
@@ -167,7 +175,7 @@ def save_fixed_checkpoint(learner, path, progress, replay, rng, *, warmup_origin
                           next_metrics_at, latest, pending_learning, action_generator=None, environment=None):
     training = {"trainer": "fixed_schedule", "optimizers": optimizer_states(learner, learner),
                 "precision": learner.precision.state_dict(),
-                "replay": replay_state(replay), "rng": runtime_rng_state(rng, action_generator=action_generator),
+                "replay": replay_state(replay, copy=False), "rng": runtime_rng_state(rng, action_generator=action_generator),
                 "collections": progress["collection_steps"], "warmup_origin": warmup_origin,
                 "random_warmup": random_warmup, "pending_learning": pending_learning, "next_metrics_at": next_metrics_at,
                 "latest": latest, "last_actor_metrics": getattr(learner, "_last_actor_metrics", {}),

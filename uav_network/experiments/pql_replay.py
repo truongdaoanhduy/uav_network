@@ -89,7 +89,10 @@ class MeasuredReplay(TensorReplayBuffer):
     def state_dict(self):
         return {"capacity": self.capacity, "index": self.index, "size": self.size,
                 "device_type": self.device.type, "rng": self.rng.get_state(), **self.measurement_state(),
-                "data": {name: value[:self.size] for name, value in self.data.items()}}
+                # save() drains workers and serializes synchronously. Full CPU
+                # storage may be borrowed; partial rings must not expose unused rows.
+                "data": {name: value[:self.size].clone() if self.device.type == "cpu" and self.size < self.capacity
+                         else value[:self.size] for name, value in self.data.items()}}
 
     def load_state_dict(self, saved):
         if saved["capacity"] != self.capacity or not 0 <= saved["size"] <= self.capacity:

@@ -58,7 +58,7 @@ class PQLSystem:
         self.started = time.perf_counter()
         self.initial_progress = {"episodes": 0, "global_step": 0, "collection_steps": 0,
                                  "next_seed": config.runtime.seed, "records": []}
-        saved = torch.load(checkpoint, map_location="cpu", weights_only=True) if checkpoint else None
+        saved = torch.load(checkpoint, map_location="cpu", weights_only=True, mmap=True) if checkpoint else None
         self.initial_environment = None
         self.initial_collector_rng = None
         if saved:

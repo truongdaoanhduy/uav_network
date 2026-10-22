@@ -8,7 +8,7 @@ The next engineering task under discussion is **replay buffer capacity 1,000,000
 stored in CPU RAM, with collection and learning on the GPUs**.
 “Replay buffer” here is the RL experience store, distinct from UAV packet relay.
 
-**Implementation state: IN PROGRESS. CPU placement, batch-only pinning and replay RNG guards passed focused local tests.
+**Implementation state: IN PROGRESS. CPU placement, batch-only pinning, RNG guards and checkpoint RAM paths passed focused local tests.
 No CPU replay full-buffer Kaggle memory gate has completed.**
 The user explicitly requested execution on 2026-10-22 after reading the handoff.
 This is a bounded change to the existing replay/device flow. Preserve production.
@@ -163,7 +163,7 @@ Use Context7 for PyTorch transfer/load semantics and GitHub for durable state.
 | --- | --- | --- |
 | Audit, public storage, seven videos, 500k recovery | Completed in previous session | Audit report; snapshot for timestamped progress |
 | Cross-chat handoff | Complete | Docs verified locally and read back through GitHub at commit `750ac02`; working tree was clean after push |
-| CPU replay behavior and tests | Placement/pinning/RNG passed locally; checkpoint RAM next | 24 passed, 2 CUDA skipped; full suite after remaining implementation |
+| CPU replay behavior and tests | Local placement and checkpoint tests passed | 48 passed, 2 CUDA skipped; full suite and 1M peak-RAM gate pending |
 | Full 1M CPU RAM / 2-T4 checkpoint-resume gate | Not started | No CPU replay Kaggle job has been submitted |
 | Production adoption of CPU replay | Not started | Requires measured stability and throughput evidence first |
 
@@ -177,3 +177,5 @@ Execution started 2026-10-22T11:38:45.166191+00:00. User instruction: implement 
 Live implementation checkpoints: [CPU replay progress](evidence/2026-10-22-cpu-replay-progress.json). Baseline job `704f81c9cf80`; placement/pinning/RNG RED tests observed 10 expected failures and 2 CUDA skips. No production code modified yet.
 
 Checkpoint 2026-10-22T11:48:39.396466+00:00: baseline 601 pass/72 skip; focused placement/pinning/RNG 24 pass/2 CUDA skip. PQL honors runtime.replay_device; CPU storage stays pageable; replay device/RNG is validated before copying rows. Next: low-RAM checkpoint save/load tests and implementation.
+
+Checkpoint 2026-10-22T11:53:43.732665+00:00: checkpoint RAM RED→GREEN (5 expected failures; then 48 pass/2 CUDA skip including existing resume/environment tests). Restore uses mmap; full CPU save borrows storage only at synchronous drained boundary; default frozen snapshot remains independent, partial CPU PQL storage is compact. Commit before this checkpoint: `3d51fd3`. Next: bounded CUDA probe harness, its tests, full suite, then one Kaggle job.

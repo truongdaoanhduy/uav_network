@@ -33,7 +33,7 @@ def restore_learner(config, device):
             "next_seed": config.runtime.seed, "records": [],
         }
     path = config.runtime.warm_start_checkpoint
-    saved = torch.load(path, map_location="cpu", weights_only=True)
+    saved = torch.load(path, map_location="cpu", weights_only=True, mmap=True)
     progress = saved.get("progress")
     if saved.get("version") == 3:
         from .fixed_checkpoints import validate_fixed_checkpoint

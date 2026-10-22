@@ -1,0 +1,171 @@
+.....ss.......FFFFF                                                      [100%]
+=================================== FAILURES ===================================
+_ test_full_cpu_replay_save_can_borrow_storage_without_changing_frozen_snapshots _
+
+    def test_full_cpu_replay_save_can_borrow_storage_without_changing_frozen_snapshots():
+        from uav_network.experiments.fixed_checkpoints import replay_state
+        learner = small_learner()
+        values = transition(replay_batch(learner))
+        replay = MeasuredReplay(4, values[0].shape[1:], learner.state_dim)
+        replay.add_batch(*values)
+        frozen = replay_state(replay)
+>       borrowed = replay_state(replay, copy=False)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       TypeError: replay_state() got an unexpected keyword argument 'copy'
+
+tests/test_cpu_replay.py:159: TypeError
+_ test_synchronous_fixed_save_borrows_full_cpu_storage_and_writes_immutable_file _
+
+tmp_path = PosixPath('/tmp/pytest-of-aduy/pytest-2/test_synchronous_fixed_save_bo0')
+
+    def test_synchronous_fixed_save_borrows_full_cpu_storage_and_writes_immutable_file(tmp_path):
+        from unittest.mock import patch
+        import numpy as np
+        from uav_network.algorithms.checkpoints import save_policy
+        from uav_network.experiments.fixed_checkpoints import save_fixed_checkpoint
+    
+        learner = small_learner()
+        values = transition(replay_batch(learner))
+        replay = MeasuredReplay(4, values[0].shape[1:], learner.state_dim)
+        replay.add_batch(*values)
+        borrowed = []
+    
+        def observe_real_save(*args, **kwargs):
+            data = kwargs["training"]["replay"]["data"]
+            borrowed.append(all(data[name].data_ptr() == replay.data[name].data_ptr()
+                                for name in data))
+            return save_policy(*args, **kwargs)
+    
+        path = tmp_path / "resume.pt"
+        with patch("uav_network.experiments.fixed_checkpoints.save_policy",
+                   side_effect=observe_real_save):
+            save_fixed_checkpoint(
+                learner, path,
+                {"episodes": 0, "global_step": 4, "collection_steps": 1,
+                 "next_seed": 48, "records": []},
+                replay, np.random.default_rng(45), warmup_origin=0,
+                random_warmup=True, next_metrics_at=0, latest={},
+                pending_learning=False)
+>       assert borrowed == [True]
+E       assert [False] == [True]
+E         
+E         At index 0 diff: False != True
+E         Use -v to get more diff
+
+tests/test_cpu_replay.py:196: AssertionError
+________ test_partial_cpu_pql_checkpoint_contains_only_occupied_storage ________
+
+tmp_path = PosixPath('/tmp/pytest-of-aduy/pytest-2/test_partial_cpu_pql_checkpoin0')
+
+    def test_partial_cpu_pql_checkpoint_contains_only_occupied_storage(tmp_path):
+        learner = small_learner()
+        values = transition(replay_batch(learner))
+        replay = MeasuredReplay(64, values[0].shape[1:], learner.state_dim)
+        replay.add_batch(*values)
+        path = tmp_path / "partial.pt"
+        torch.save(replay.state_dict(), path)
+        written = torch.load(path, map_location="cpu", weights_only=True)
+        for name, value in written["data"].items():
+>           assert value.untyped_storage().nbytes() == value.numel() * value.element_size(), name
+E           AssertionError: observation
+E           assert 26112 == (408 * 4)
+E            +  where 26112 = <built-in method nbytes of torch.storage.UntypedStorage object at 0x7be944525900>()
+E            +    where <built-in method nbytes of torch.storage.UntypedStorage object at 0x7be944525900> =  64\n 176\n 228\n 61\n 24\n 219\n 80\n 63\n 134\n 110\n 134\n 62\n 206\n 190\n 247\n 62\n 87\n 47\n 45\n 63\n 79\n 0\n 65\n 63\n 96\n 127\n 134\n...\n 232\n 87\n 139\n 0\n 0\n 0\n 0\n 0\n 80\n 16\n 108\n 68\n 233\n 123\n 0\n 0\n[torch.storage.UntypedStorage(device=cpu) of size 26112].nbytes
+E            +      where  64\n 176\n 228\n 61\n 24\n 219\n 80\n 63\n 134\n 110\n 134\n 62\n 206\n 190\n 247\n 62\n 87\n 47\n 45\n 63\n 79\n 0\n 65\n 63\n 96\n 127\n 134\n...\n 232\n 87\n 139\n 0\n 0\n 0\n 0\n 0\n 80\n 16\n 108\n 68\n 233\n 123\n 0\n 0\n[torch.storage.UntypedStorage(device=cpu) of size 26112] = <built-in method untyped_storage of Tensor object at 0x7be944514690>()
+E            +        where <built-in method untyped_storage of Tensor object at 0x7be944514690> = tensor([[[0.1117, 0.8158, 0.2626, 0.4839, 0.6765, 0.7539, 0.2627, 0.0428,\n          0.2080, 0.0000, 0.1217, 0.7356, 0.... 0.5352,\n          0.2023, 0.9056, 0.0073, 0.7752, 0.3713, 0.0713, 0.2437, 0.7609,\n          1.0000, 1.0000, 1.0000]]]).untyped_storage
+E            +  and   408 = <built-in method numel of Tensor object at 0x7be944514690>()
+E            +    where <built-in method numel of Tensor object at 0x7be944514690> = tensor([[[0.1117, 0.8158, 0.2626, 0.4839, 0.6765, 0.7539, 0.2627, 0.0428,\n          0.2080, 0.0000, 0.1217, 0.7356, 0.... 0.5352,\n          0.2023, 0.9056, 0.0073, 0.7752, 0.3713, 0.0713, 0.2437, 0.7609,\n          1.0000, 1.0000, 1.0000]]]).numel
+E            +  and   4 = <built-in method element_size of Tensor object at 0x7be944514690>()
+E            +    where <built-in method element_size of Tensor object at 0x7be944514690> = tensor([[[0.1117, 0.8158, 0.2626, 0.4839, 0.6765, 0.7539, 0.2627, 0.0428,\n          0.2080, 0.0000, 0.1217, 0.7356, 0.... 0.5352,\n          0.2023, 0.9056, 0.0073, 0.7752, 0.3713, 0.0713, 0.2437, 0.7609,\n          1.0000, 1.0000, 1.0000]]]).element_size
+
+tests/test_cpu_replay.py:212: AssertionError
+_ test_full_training_restore_maps_checkpoint_and_keeps_source_file_immutable[base] _
+
+tmp_path = PosixPath('/tmp/pytest-of-aduy/pytest-2/test_full_training_restore_map0')
+trainer = 'base'
+
+    @pytest.mark.skipif(not __import__("pathlib").Path("/proc/self/maps").is_file(),
+                        reason="Linux mmap introspection required")
+    @pytest.mark.parametrize("trainer", ["base", "pql"])
+    def test_full_training_restore_maps_checkpoint_and_keeps_source_file_immutable(tmp_path, trainer):
+        from hashlib import sha256
+        from pathlib import Path
+        if trainer == "base":
+            from test_baseline_resume import small_config
+            from uav_network.experiments.training import train
+            from uav_network.experiments.continuation import restore_learner
+            config = small_config(tmp_path / "first", "matd3")
+            result = train(config)
+            path = Path(result["resume_checkpoint"]).resolve()
+            config.runtime.warm_start_checkpoint = str(path)
+            config.runtime.episodes = 3
+            before = sha256(path.read_bytes()).hexdigest()
+            learner, progress = restore_learner(config, "cpu")
+>           assert str(path) in Path("/proc/self/maps").read_text()
+E           AssertionError: assert '/tmp/pytest-of-aduy/pytest-2/test_full_training_restore_map0/first/resume_latest.pt' in '00400000-00420000 r--p 00000000 103:06 2379957                           /home/aduy/miniconda3/bin/python3.13\n004200...                        [stack]\nffffffffff600000-ffffffffff601000 --xp 00000000 00:00 0                  [vsyscall]\n'
+E            +  where '/tmp/pytest-of-aduy/pytest-2/test_full_training_restore_map0/first/resume_latest.pt' = str(PosixPath('/tmp/pytest-of-aduy/pytest-2/test_full_training_restore_map0/first/resume_latest.pt'))
+E            +  and   '00400000-00420000 r--p 00000000 103:06 2379957                           /home/aduy/miniconda3/bin/python3.13\n004200...                        [stack]\nffffffffff600000-ffffffffff601000 --xp 00000000 00:00 0                  [vsyscall]\n' = read_text()
+E            +    where read_text = PosixPath('/proc/self/maps').read_text
+E            +      where PosixPath('/proc/self/maps') = <class 'pathlib._local.Path'>('/proc/self/maps')
+
+tests/test_cpu_replay.py:232: AssertionError
+----------------------------- Captured stdout call -----------------------------
+{"algorithm": "matd3", "episode": 1, "global_step": 3, "return": -0.039, "search_rate_percent": 0.0, "delivery_rate_percent": 0.0, "updates": 2, "termination_reason": "time_limit", "minimum_battery_fraction": 0.998443608205142, "active_uavs": 2, "expired_reports": 0, "dropped_reports": 0, "regenerated_reports": 0, "motion": {"obstacle_blocks": 0, "peer_blocks": 0, "commanded_stalls": 0, "shield_interventions": 0, "shield_obstacle_interventions": 0, "shield_peer_interventions": 0, "shield_boundary_interventions": 0, "shield_infeasible": 0, "shield_correction": 0.0}, "routing": {}}
+{"algorithm": "matd3", "episode": 2, "global_step": 6, "return": -0.039, "search_rate_percent": 0.0, "delivery_rate_percent": 0.0, "updates": 5, "termination_reason": "time_limit", "minimum_battery_fraction": 0.9984433393611388, "active_uavs": 2, "expired_reports": 0, "dropped_reports": 0, "regenerated_reports": 0, "motion": {"obstacle_blocks": 0, "peer_blocks": 0, "commanded_stalls": 0, "shield_interventions": 0, "shield_obstacle_interventions": 0, "shield_peer_interventions": 0, "shield_boundary_interventions": 0, "shield_infeasible": 0, "shield_correction": 0.0}, "routing": {}}
+_ test_full_training_restore_maps_checkpoint_and_keeps_source_file_immutable[pql] _
+
+tmp_path = PosixPath('/tmp/pytest-of-aduy/pytest-2/test_full_training_restore_map1')
+trainer = 'pql'
+
+    @pytest.mark.skipif(not __import__("pathlib").Path("/proc/self/maps").is_file(),
+                        reason="Linux mmap introspection required")
+    @pytest.mark.parametrize("trainer", ["base", "pql"])
+    def test_full_training_restore_maps_checkpoint_and_keeps_source_file_immutable(tmp_path, trainer):
+        from hashlib import sha256
+        from pathlib import Path
+        if trainer == "base":
+            from test_baseline_resume import small_config
+            from uav_network.experiments.training import train
+            from uav_network.experiments.continuation import restore_learner
+            config = small_config(tmp_path / "first", "matd3")
+            result = train(config)
+            path = Path(result["resume_checkpoint"]).resolve()
+            config.runtime.warm_start_checkpoint = str(path)
+            config.runtime.episodes = 3
+            before = sha256(path.read_bytes()).hexdigest()
+            learner, progress = restore_learner(config, "cpu")
+            assert str(path) in Path("/proc/self/maps").read_text()
+            # Optimizer state is mapped privately: an actual resumed update must
+            # never write through into the checkpoint file.
+            learner.update(replay_batch(learner))
+            assert progress["_training"]["replay"]["size"] > 0
+        else:
+            config = pql_config("masac")
+            engine = PQLSystem(config)
+            path = (tmp_path / "pql-resume.pt").resolve()
+            try:
+                values = transition(replay_batch(engine.critic))
+                for _ in range(3):
+                    engine.submit(values)
+                engine.save(path, {"episodes": 0, "global_step": 12,
+                                   "collection_steps": 3, "next_seed": 48, "records": []})
+            finally:
+                engine.close()
+            before = sha256(path.read_bytes()).hexdigest()
+            restored = PQLSystem(config, checkpoint=path)
+            try:
+>               assert str(path) in Path("/proc/self/maps").read_text()
+E               AssertionError: assert '/tmp/pytest-of-aduy/pytest-2/test_full_training_restore_map1/pql-resume.pt' in '00400000-00420000 r--p 00000000 103:06 2379957                           /home/aduy/miniconda3/bin/python3.13\n004200...                        [stack]\nffffffffff600000-ffffffffff601000 --xp 00000000 00:00 0                  [vsyscall]\n'
+E                +  where '/tmp/pytest-of-aduy/pytest-2/test_full_training_restore_map1/pql-resume.pt' = str(PosixPath('/tmp/pytest-of-aduy/pytest-2/test_full_training_restore_map1/pql-resume.pt'))
+E                +  and   '00400000-00420000 r--p 00000000 103:06 2379957                           /home/aduy/miniconda3/bin/python3.13\n004200...                        [stack]\nffffffffff600000-ffffffffff601000 --xp 00000000 00:00 0                  [vsyscall]\n' = read_text()
+E                +    where read_text = PosixPath('/proc/self/maps').read_text
+E                +      where PosixPath('/proc/self/maps') = <class 'pathlib._local.Path'>('/proc/self/maps')
+
+tests/test_cpu_replay.py:252: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cpu_replay.py::test_full_cpu_replay_save_can_borrow_storage_without_changing_frozen_snapshots
+FAILED tests/test_cpu_replay.py::test_synchronous_fixed_save_borrows_full_cpu_storage_and_writes_immutable_file
+FAILED tests/test_cpu_replay.py::test_partial_cpu_pql_checkpoint_contains_only_occupied_storage
+FAILED tests/test_cpu_replay.py::test_full_training_restore_maps_checkpoint_and_keeps_source_file_immutable[base]
+FAILED tests/test_cpu_replay.py::test_full_training_restore_maps_checkpoint_and_keeps_source_file_immutable[pql]
+5 failed, 12 passed, 2 skipped in 6.41s
