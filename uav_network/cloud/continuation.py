@@ -5,12 +5,13 @@ import json
 import math
 import os
 from pathlib import Path
+from tempfile import TemporaryDirectory
 import re
 import time
 from uuid import uuid4
 
 from ..configuration import load_config
-from .client import account_quotas, private_dataset_file, pushed_kernel_ref, run_kaggle, verify_credential_dataset
+from .client import account_quotas, kernel_status, private_dataset_file, pushed_kernel_ref, run_kaggle, verify_credential_dataset
 from .credentials import Account, Credentials
 from .kernel import kernel_metadata, kernel_script
 
@@ -139,6 +140,46 @@ def write_failure(output, error, manifest=None):
     (output / "continuation-failure.json").write_text(json.dumps(failure, indent=2))
 
 
+
+def resume_waiting_continuation(kernel_ref, account, credentials, output):
+    """Retry a quota-paused continuation from verified control files only."""
+    state = kernel_status(kernel_ref, account)
+    if state in {"running", "pending", "queued"}:
+        raise RuntimeError("Continuation resume requires a terminal parent kernel")
+    with TemporaryDirectory() as directory:
+        folder = Path(directory)
+        pattern = r"(^|.*/)(job\.json|job-result\.json|continuation\.json)$"
+        run_kaggle(["kernels", "output", kernel_ref, "-p", str(folder),
+                    "--file-pattern", pattern, "-q"], account, timeout=120)
+        files = {}
+        for name in ("job.json", "job-result.json", "continuation.json"):
+            matches = list(folder.rglob(name))
+            if len(matches) != 1:
+                raise RuntimeError(f"Continuation resume needs exactly one {name}")
+            files[name] = matches[0]
+        parent = json.loads(files["job.json"].read_text())
+        results = json.loads(files["job-result.json"].read_text())
+        record = json.loads(files["continuation.json"].read_text())
+    if parent.get("kernel_ref") != kernel_ref or parent.get("account") != account.name:
+        raise ValueError("Continuation resume parent does not match the selected account/kernel")
+    waiting = record.get("status") == "waiting_for_quota" and record.get("wait_reason") in {
+        "quota_unavailable", "insufficient_quota"}
+    legacy_wait = record.get("status") == "failed" and record.get("failure_reason") in {
+        "quota_unavailable", "insufficient_quota"}
+    if not (waiting or legacy_wait):
+        raise RuntimeError("Continuation resume requires a quota-waiting lineage")
+    child_ref = kernel_ref_for_segment(parent.get("root_kernel_ref", kernel_ref),
+                                       parent.get("continuation_index", 0) + 1)
+    try:
+        child_state = kernel_status(child_ref, account)
+    except RuntimeError as error:
+        if "not found" not in str(error).lower():
+            raise
+    else:
+        if child_state not in {"error", "failed", "cancelled"}:
+            raise RuntimeError(f"Continuation child already exists with status {child_state}")
+    return submit_continuation(parent, results, output, account=account, credentials=credentials)
+
 def submit_continuation(parent, results, output, account=None, credentials=None):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
@@ -169,18 +210,25 @@ def submit_continuation(parent, results, output, account=None, credentials=None)
         quotas = account_quotas(credentials, requested=account.name)
         quota = next((q for q in quotas if q.get("name") == account.name and q.get("ok")), None)
         remaining = quota.get("remaining_hours") if quota else None
-        manifest["failure_reason"] = "quota_unavailable"
-        if (type(remaining) not in (float, int) or not math.isfinite(remaining)
-                or remaining < max(.25, credentials.min_gpu_hours)):
-            raise RuntimeError("Selected account GPU quota is unavailable or insufficient for continuation")
+        if type(remaining) not in (float, int) or not math.isfinite(remaining):
+            manifest = {**spec, "status": "waiting_for_quota", "wait_reason": "quota_unavailable"}
+            (output / "continuation.json").write_text(json.dumps(manifest, indent=2))
+            return manifest
+        if remaining < max(.25, credentials.min_gpu_hours):
+            manifest = {**spec, "status": "waiting_for_quota", "wait_reason": "insufficient_quota",
+                        "remaining_gpu_hours": remaining}
+            (output / "continuation.json").write_text(json.dumps(manifest, indent=2))
+            return manifest
         manifest["remaining_gpu_hours"] = remaining
-        manifest["failure_reason"] = "insufficient_quota"
         # Keep a quarter hour of verified quota as a scheduling/teardown cushion.
         seconds = min(spec.get("timeout_seconds", 39600), 39600, math.floor((remaining - .25) * 3600))
         config = load_config(spec["config"], spec["overrides"])
         reserve = max(600, config.tracking.artifact_timeout_seconds + 120)
         if seconds <= reserve:
-            raise RuntimeError("Selected account GPU quota cannot cover a safe training and upload segment")
+            manifest = {**spec, "status": "waiting_for_quota", "wait_reason": "insufficient_quota",
+                        "remaining_gpu_hours": remaining}
+            (output / "continuation.json").write_text(json.dumps(manifest, indent=2))
+            return manifest
         spec["timeout_seconds"] = seconds
         manifest = {**spec, "status": "pending", "remaining_gpu_hours": remaining,
                     "failure_reason": "credential_verification_failed"}

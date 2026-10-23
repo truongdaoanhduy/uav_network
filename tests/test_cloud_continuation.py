@@ -316,26 +316,110 @@ class CloudContinuationTests(unittest.TestCase):
             self.assertNotIn(account.token, serialized)
             self.assertNotIn(credentials.wandb_key, serialized)
 
-    def test_quota_failure_retains_manifest_and_explicit_failure_without_push(self):
+    def test_quota_exhaustion_waits_with_checkpoint_context_and_without_push(self):
         module = self.module()
         account = Account("selected", "synthetic-kaggle-token")
         credentials = Credentials([account], "synthetic-wandb-key", "owner", "project")
-        for quota in ([], [{"name": "selected", "ok": False}],
-                      [{"name": "selected", "ok": True, "remaining_hours": .24}]):
+        for quota, reason in (([], "quota_unavailable"),
+                              ([{"name": "selected", "ok": False}], "quota_unavailable"),
+                              ([{"name": "selected", "ok": True, "remaining_hours": .24}], "insufficient_quota")):
             with self.subTest(quota=quota), TemporaryDirectory() as directory:
                 output = Path(directory)
                 with patch.object(module, "account_quotas", return_value=quota), \
                      patch.object(module, "run_kaggle", side_effect=AssertionError("No GPU quota")):
-                    with self.assertRaisesRegex(RuntimeError, "quota"):
-                        module.submit_continuation(parent_spec(), learner_result(), output,
-                                                   account=account, credentials=credentials)
-                manifest = json.loads((output / "continuation.json").read_text())
-                self.assertEqual(manifest["status"], "failed")
+                    manifest = module.submit_continuation(parent_spec(), learner_result(), output,
+                                                          account=account, credentials=credentials)
+                self.assertEqual(manifest["status"], "waiting_for_quota")
+                self.assertEqual(manifest["wait_reason"], reason)
                 self.assertEqual(manifest["warm_start_artifacts"],
                                  {"masac": "owner/project/masac-base-original:v4"})
-                self.assertEqual(json.loads((output / "continuation-failure.json").read_text()),
-                                 {"error_type": "RuntimeError"})
+                self.assertFalse((output / "continuation-failure.json").exists())
                 self.assertNotIn(account.token, json.dumps(manifest))
+
+    def test_resume_waiting_kernel_downloads_only_control_files_and_reuses_same_account(self):
+        module = self.module()
+        account = Account("selected", "synthetic-kaggle-token")
+        credentials = Credentials([account], "synthetic-wandb-key", "owner", "project")
+        parent, results = parent_spec(), learner_result()
+        parent["kernel_ref"] = "owner/completed-root"
+        parent["root_kernel_ref"] = parent["kernel_ref"]
+        with TemporaryDirectory() as directory:
+            output = Path(directory) / "retry"
+            def download(args, selected, **kwargs):
+                self.assertIs(selected, account)
+                self.assertEqual(args[:3], ["kernels", "output", parent["kernel_ref"]])
+                pattern = args[args.index("--file-pattern") + 1]
+                self.assertIn("job", pattern)
+                self.assertIn("continuation", pattern)
+                destination = Path(args[args.index("-p") + 1])
+                destination.mkdir(parents=True, exist_ok=True)
+                (destination / "job.json").write_text(json.dumps(parent))
+                (destination / "job-result.json").write_text(json.dumps(results))
+                (destination / "continuation.json").write_text(json.dumps(
+                    {"status": "waiting_for_quota", "wait_reason": "insufficient_quota"}))
+                return ""
+            emitted = []
+            def submit(loaded_parent, loaded_results, destination, **kwargs):
+                emitted.append((loaded_parent, loaded_results, Path(destination), kwargs))
+                return {"status": "submitted", "kernel_ref": "owner/completed-root-c01"}
+            with patch.object(module, "kernel_status", side_effect=["complete", RuntimeError("Not found")]), \
+                 patch.object(module, "run_kaggle", side_effect=download), \
+                 patch.object(module, "submit_continuation", side_effect=submit):
+                result = module.resume_waiting_continuation(parent["kernel_ref"], account, credentials, output)
+            self.assertEqual(result["status"], "submitted")
+            self.assertEqual(len(emitted), 1)
+            self.assertEqual(emitted[0][0], parent)
+            self.assertEqual(emitted[0][1], results)
+            self.assertEqual(emitted[0][2], output)
+            self.assertIs(emitted[0][3]["account"], account)
+            self.assertIs(emitted[0][3]["credentials"], credentials)
+
+    def test_resume_waiting_kernel_rejects_active_or_already_submitted_lineage(self):
+        module = self.module()
+        account = Account("selected", "synthetic-kaggle-token")
+        credentials = Credentials([account], "synthetic-wandb-key", "owner", "project")
+        with TemporaryDirectory() as directory, \
+             patch.object(module, "kernel_status", return_value="running"), \
+             patch.object(module, "run_kaggle", side_effect=AssertionError("must not download")):
+            with self.assertRaisesRegex(RuntimeError, "terminal"):
+                module.resume_waiting_continuation("owner/root", account, credentials, Path(directory))
+
+    def test_resume_waiting_kernel_rejects_existing_child_before_submit(self):
+        module = self.module()
+        account = Account("selected", "synthetic-kaggle-token")
+        credentials = Credentials([account], "synthetic-wandb-key", "owner", "project")
+        parent, results = parent_spec(), learner_result()
+        parent["kernel_ref"] = "owner/completed-root"
+        parent["root_kernel_ref"] = parent["kernel_ref"]
+        with TemporaryDirectory() as directory:
+            def download(args, selected, **kwargs):
+                destination = Path(args[args.index("-p") + 1])
+                destination.mkdir(parents=True, exist_ok=True)
+                (destination / "job.json").write_text(json.dumps(parent))
+                (destination / "job-result.json").write_text(json.dumps(results))
+                (destination / "continuation.json").write_text(json.dumps(
+                    {"status": "waiting_for_quota", "wait_reason": "insufficient_quota"}))
+                return ""
+            with patch.object(module, "kernel_status", side_effect=["complete", "running"]), \
+                 patch.object(module, "run_kaggle", side_effect=download), \
+                 patch.object(module, "submit_continuation", side_effect=AssertionError("duplicate child")):
+                with self.assertRaisesRegex(RuntimeError, "already exists"):
+                    module.resume_waiting_continuation(parent["kernel_ref"], account, credentials,
+                                                       Path(directory) / "retry")
+
+    def test_cloud_cli_resume_uses_selected_same_account_and_destination(self):
+        from uav_network.cloud import cli
+        account = Account("selected", "synthetic-kaggle-token")
+        credentials = Credentials([account], "synthetic-wandb-key", "owner", "project")
+        with TemporaryDirectory() as directory:
+            destination = Path(directory) / "retry"
+            with patch.object(cli, "load_credentials", return_value=credentials), \
+                 patch("uav_network.cloud.continuation.resume_waiting_continuation",
+                       return_value={"status": "submitted", "kernel_ref": "owner/root-c01"}) as resume:
+                result = cli.main(["resume", "--account", "selected", "--kernel-ref", "owner/root",
+                                   "--output", str(destination)])
+            self.assertEqual(result["status"], "submitted")
+            resume.assert_called_once_with("owner/root", account, credentials, destination)
 
     def test_baseline_and_pql_auto_resume_download_v3_while_cpu_uses_light_policy(self):
         self.module()

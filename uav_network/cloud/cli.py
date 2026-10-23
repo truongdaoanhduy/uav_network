@@ -172,6 +172,10 @@ def main(argv=None):
                         help="Visible GPUs per BASE learner; PQL continues to own all visible GPUs")
     submit.add_argument("--accelerator", default="NvidiaTeslaT4")
     submit.add_argument("--timeout-seconds", type=int, default=39600)
+    resume = commands.add_parser("resume", help="Resume a quota-paused continuation from a completed kernel")
+    resume.add_argument("--account", required=True)
+    resume.add_argument("--kernel-ref", required=True)
+    resume.add_argument("--output", required=True)
     status = commands.add_parser("status")
     status.add_argument("--manifest", required=True)
     args = parser.parse_args(argv)
@@ -182,6 +186,12 @@ def main(argv=None):
         if not 1 <= args.timeout_seconds <= 39600 or args.credential_timeout_seconds < 1:
             raise ValueError("Kernel timeout must be 1..39600 seconds; credential timeout must be positive")
         return launch(args, credentials)
+    if args.action == "resume":
+        account = next((a for a in credentials.accounts if a.name == args.account and a.enabled), None)
+        if account is None:
+            raise RuntimeError("Resume account is missing or disabled in key.txt")
+        from .continuation import resume_waiting_continuation
+        return resume_waiting_continuation(args.kernel_ref, account, credentials, Path(args.output))
     manifest = json.loads(Path(args.manifest).read_text())
     account = next((a for a in credentials.accounts if a.name == manifest["account"]), None)
     if account is None:

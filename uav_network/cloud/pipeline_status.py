@@ -5,13 +5,18 @@ from pathlib import Path
 
 
 def publish_pipeline_status(spec, results, output, *, failed, next_stage):
-    payload = {"pipeline/status": "failed" if failed else "submitted",
+    path = Path(output) / "continuation.json"
+    record = json.loads(path.read_text()) if path.is_file() else {}
+    waiting = not failed and record.get("status") == "waiting_for_quota"
+    payload = {"pipeline/status": "failed" if failed else "waiting_for_quota" if waiting else "submitted",
                "pipeline/next_stage": next_stage,
                "pipeline/training_complete": all(
                    r.get("episode_budget_complete") is True for r in results.values()) and bool(results)}
-    path = Path(output) / "continuation.json"
-    if path.is_file():
-        record = json.loads(path.read_text())
+    if waiting:
+        reason = record.get("wait_reason")
+        if reason in {"quota_unavailable", "insufficient_quota"}:
+            payload["pipeline/wait_reason"] = reason
+    elif path.is_file():
         # These are internal reason codes; never copy arbitrary exception text.
         reason = record.get("failure_reason")
         if reason in {"quota_unavailable", "insufficient_quota", "credential_verification_failed", "submission_failed"}:
