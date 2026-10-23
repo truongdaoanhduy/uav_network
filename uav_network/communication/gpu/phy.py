@@ -2,6 +2,7 @@
 import warp as wp
 from ...environment.gpu.state import WorldParams, WorldState
 from .reports import active
+from .frame_free import (apply_reclaims_and_take_smallest, mark_reclaim_if_ready, set_free_bit)
 from . import diagnostics as diag
 
 PI = wp.constant(wp.float64(3.141592653589793))
@@ -180,6 +181,98 @@ def emit(s: WorldState, p: WorldParams, e: int, packet: int, source: int, destin
             s.tx_active[e,j] = 0
         if frame < 0 and s.tx_active[e,j] == 0:
             frame = j
+    if frame < 0:
+        s.errors[e] = 3
+        return -1
+    diag.emission(s,p,e,packet,destination,kind,power)
+    if kind == 0:
+        required = nominal_required_power(s,p,e,source,destination)
+        diag.sample(s,e,diag.STAT_DATA_REQUIRED_POWER_W,required)
+        diag.sample(s,e,diag.STAT_DATA_POWER_MARGIN_DB,wp.float64(10)*wp.log10(power/required))
+        if power < required:
+            s.diagnostic_counts[e,diag.DATA_BELOW_REQUIRED_POWER_ATTEMPTS] += wp.int64(1)
+    s.frame_order[e,s.frame_count[e]] = frame
+    s.frame_count[e] += 1
+    s.tx_active[e,frame] = 1
+    s.tx_kind[e,frame] = kind
+    s.tx_packet[e,frame] = packet
+    s.tx_generation[e,frame] = s.pkt_generation[e,packet]
+    s.tx_source[e,frame] = source
+    s.tx_destination[e,frame] = destination
+    s.tx_target[e,frame] = s.pkt_target[e,packet]
+    s.tx_fragment[e,frame] = s.pkt_fragment[e,packet]
+    s.tx_payload[e,frame] = wp.min(p.payload_bytes,p.report_bytes-s.pkt_fragment[e,packet]*p.payload_bytes)
+    s.tx_ttl[e,frame] = s.pkt_ttl[e,packet]
+    if kind == 1:
+        s.tx_ttl[e,frame] = 1
+    s.tx_origin[e,frame] = s.pkt_origin[e,packet]
+    s.tx_hops[e,frame] = s.pkt_hops[e,packet]
+    s.tx_session[e,frame] = s.pkt_session_id[e,packet]
+    s.tx_id[e,frame] = s.pkt_id[e,packet]
+    s.tx_power[e,frame] = power
+    s.tx_start[e,frame] = now
+    s.tx_end[e,frame] = now+bits/p.bit_rate*wp.float64(1e6)
+    if p.propagation_delay_enabled != 0:
+        for node in range(p.n+1):
+            s.tx_propagation_delay[e,frame,node] = link_distance(s,p,e,source,node)/C*wp.float64(1e6)
+    s.tx_created[e,frame] = s.pkt_created[e,packet]
+    s.tx_report_created[e,frame] = s.pkt_report_created[e,packet]
+    s.tx_receive[e,frame] = 0
+    if p.trace_enabled != 0:
+        trace = s.trace_count[e]
+        if trace >= p.trace_capacity:
+            s.errors[e] = 4
+        else:
+            s.trace_time[e,trace] = now
+            s.trace_source[e,trace] = source
+            s.trace_destination[e,trace] = destination
+            s.trace_kind[e,trace] = kind
+            s.trace_report[e,trace,4] = power
+            s.trace_count[e] += 1
+    return frame
+
+
+@wp.func
+def emit_framefree(s: WorldState, p: WorldParams, e: int, packet: int, source: int, destination: int,
+                   kind: int, now: wp.float64,
+                   free_words: wp.array2d(dtype=wp.uint64),
+                   reclaim_words: wp.array2d(dtype=wp.uint64)) -> int:
+    """Gen1 emission semantics with derived bitmap allocation only."""
+    power = s.pkt_power[e,packet]
+    bits = wp.float64(wp.min(p.payload_bytes,p.report_bytes-s.pkt_fragment[e,packet]*p.payload_bytes)*8)+p.header_bits
+    if kind == 1:
+        bits = p.ack_bits
+        if p.ack_uses_data_power == 0:
+            power = p.tx_power_min
+    airtime = bits/p.bit_rate
+    cost = airtime*(p.tx_circuit_power + power/p.pa_efficiency)
+    if not active(s,p,e,source) or (source < p.n and p.energy_enabled != 0 and cost > s.battery[e,source]):
+        s.packet_counts[e,5] += 1
+        s.diagnostic_counts[e,diag.ENERGY_DENIALS] += wp.int64(1)
+        count = diag.DATA_ENERGY_DENIALS
+        if kind == 1:
+            count = diag.ACK_ENERGY_DENIALS
+        s.diagnostic_counts[e,count] += wp.int64(1)
+        return -1
+    s.communication_energy[e,source] += cost
+    s.tx_energy[e,source] += cost
+    if source < p.n and p.energy_enabled != 0:
+        s.battery[e,source] = wp.max(wp.float64(0),s.battery[e,source]-cost)
+    retained = int(0)
+    for k in range(s.frame_count[e]):
+        j = s.frame_order[e,k]
+        if latest_arrival_end(s,p,e,j) >= now-p.retention:
+            s.frame_order[e,retained] = j
+            retained += 1
+        else:
+            s.tx_active[e,j] = 0
+            if s.tx_receive[e,j] == 1 or s.tx_receive[e,j] == 2:
+                s.tx_active[e,j] = 2
+                mark_reclaim_if_ready(s,e,j,reclaim_words)
+            else:
+                set_free_bit(free_words,e,j)
+    s.frame_count[e] = retained
+    frame = apply_reclaims_and_take_smallest(s,p,e,free_words,reclaim_words)
     if frame < 0:
         s.errors[e] = 3
         return -1

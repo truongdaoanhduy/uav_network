@@ -4,7 +4,8 @@ from ...environment.gpu.state import WorldParams, WorldState
 from .rng import randbelow
 from .reports import (active, bytes_used, can_receive, transfer, begin_step, sense_reports,
                       masked_sense_reports, end_step)
-from .phy import xy, busy, emit, evaluate, arrival_start, arrival_end, latest_arrival_end
+from .phy import xy, busy, emit, emit_framefree, evaluate, arrival_start, arrival_end, latest_arrival_end
+from .frame_free import mark_reclaim_if_ready
 from .events import push, pop, replace_root, next_time_after_root
 from .streaming import (fill_session, fragment_bit, window_count, window_mask)
 from . import diagnostics as diag
@@ -246,6 +247,37 @@ def event(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
         s.tx_receive[e,frame] = 3
         s.node_receiving[e,node] = 0
         next_receive(s,p,e,node,now)
+
+
+@wp.func
+def event_framefree(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
+                    generation: int, now: wp.float64,
+                    free_words: wp.array2d(dtype=wp.uint64),
+                    reclaim_words: wp.array2d(dtype=wp.uint64)):
+    """Intercept only emission events; delegate every other Gen1 event unchanged."""
+    if kind == TX_START:
+        packet = arg
+        source = s.pkt_source[e,packet]
+        dest = s.pkt_destination[e,packet]
+        s.pkt_ttl[e,packet] += 1
+        frame = emit_framefree(s,p,e,packet,source,dest,0,now,free_words,reclaim_words)
+        duration = (wp.float64(wp.min(p.payload_bytes,p.report_bytes-s.pkt_fragment[e,packet]*p.payload_bytes)*8)+p.header_bits)/p.bit_rate*wp.float64(1e6)
+        push(s,p,e,now+duration,DATA_END,packet,generation,1)
+        if frame >= 0:
+            push(s,p,e,arrival_end(s,p,e,frame,dest),DELIVER,frame,0,1)
+    elif kind == ACK_START:
+        frame = arg
+        packet = s.tx_packet[e,frame]
+        ack = emit_framefree(s,p,e,packet,s.tx_destination[e,frame],s.tx_source[e,frame],1,now,
+                             free_words,reclaim_words)
+        duration = p.ack_bits/p.bit_rate*wp.float64(1e6)
+        push(s,p,e,now+duration,RECEIVE_DONE,frame,0,1)
+        if ack >= 0:
+            push(s,p,e,arrival_end(s,p,e,ack,s.tx_source[e,frame]),DELIVER,ack,0,1)
+    else:
+        event(s,p,e,kind,arg,generation,now)
+        if kind == DELIVER or kind == RECEIVE or kind == RECEIVE_DONE:
+            mark_reclaim_if_ready(s,e,arg,reclaim_words)
 
 
 @wp.func
