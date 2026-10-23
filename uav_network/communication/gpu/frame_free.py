@@ -112,3 +112,12 @@ def apply_reclaims_and_take_smallest_kernel(s: WorldState, p: WorldParams,
                                             selected: wp.array(dtype=wp.int32)):
     e = wp.tid()
     selected[e] = apply_reclaims_and_take_smallest(s, p, e, free_words, reclaim_words)
+
+@wp.kernel
+def rebuild_frame_bitmaps_masked_kernel(s: WorldState, p: WorldParams,
+                                        mask: wp.array(dtype=wp.int32),
+                                        free_words: wp.array2d(dtype=wp.uint64),
+                                        reclaim_words: wp.array2d(dtype=wp.uint64)):
+    e = wp.tid()
+    if mask[e] != 0:
+        rebuild_frame_bitmaps(s, p, e, free_words, reclaim_words)

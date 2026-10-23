@@ -374,6 +374,20 @@ def run_event_loop_gen1(s: WorldState, p: WorldParams, e: int, end: wp.float64):
 
 
 @wp.func
+def run_event_loop_framefree(s: WorldState, p: WorldParams, e: int, end: wp.float64,
+                             free_words: wp.array2d(dtype=wp.uint64),
+                             reclaim_words: wp.array2d(dtype=wp.uint64)):
+    while s.event_count[e] > 0 and s.errors[e] == 0:
+        time=s.event_time[e,0]
+        if time >= end: break
+        kind=s.event_kind[e,0]; arg=s.event_arg[e,0]; generation=s.event_generation[e,0]
+        s.packet_time[e]=time
+        if handle_fast_root(s,p,e,end): continue
+        pop(s,e)
+        event_framefree(s,p,e,kind,arg,generation,time,free_words,reclaim_words)
+
+
+@wp.func
 def run_event_loop_gen2(s: WorldState, p: WorldParams, e: int, end: wp.float64,
                         counters: wp.array2d(dtype=wp.int64)):
     while s.event_count[e] > 0 and s.errors[e] == 0:
@@ -396,6 +410,17 @@ def packet_step_world(s: WorldState, p: WorldParams, continuous: wp.array3d(dtyp
 
 
 @wp.func
+def packet_step_world_framefree(s: WorldState, p: WorldParams,
+                                continuous: wp.array3d(dtype=wp.float32),
+                                destination: wp.array2d(dtype=wp.int64), e: int,
+                                free_words: wp.array2d(dtype=wp.uint64),
+                                reclaim_words: wp.array2d(dtype=wp.uint64)):
+    end = packet_step_preamble(s,p,continuous,destination,e)
+    run_event_loop_framefree(s,p,e,end,free_words,reclaim_words)
+    packet_step_finish(s,p,e,end)
+
+
+@wp.func
 def packet_step_world_gen2(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.float32),
                            destination: wp.array2d(dtype=wp.int64), e: int,
                            counters: wp.array2d(dtype=wp.int64)):
@@ -410,6 +435,16 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
                 destination: wp.array2d(dtype=wp.int64)):
     e = wp.tid()
     packet_step_world(s,p,continuous,destination,e)
+
+
+@wp.kernel
+def packet_step_framefree(s: WorldState, p: WorldParams,
+                          continuous: wp.array3d(dtype=wp.float32),
+                          destination: wp.array2d(dtype=wp.int64),
+                          free_words: wp.array2d(dtype=wp.uint64),
+                          reclaim_words: wp.array2d(dtype=wp.uint64)):
+    e = wp.tid()
+    packet_step_world_framefree(s,p,continuous,destination,e,free_words,reclaim_words)
 
 
 @wp.kernel

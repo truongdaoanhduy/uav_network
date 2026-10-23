@@ -297,3 +297,115 @@ class FrameFreeEventTests(FrameFreeEmitTests):
         self.assertEqual(int(right.tx_active.numpy()[0, 3]), 2)
         self.assertEqual(int(right.tx_receive.numpy()[0, 3]), 3)
         self.assertNotEqual(int(reclaim_words.numpy()[0, 0]) & (1 << 3), 0)
+
+@unittest.skipUnless(importlib.util.find_spec("warp"), "optional warp_packet dependency not installed")
+class FrameFreeVectorTests(unittest.TestCase):
+    def config(self, envs=2):
+        c = Config()
+        c.runtime.num_envs = envs
+        c.runtime.device = "cpu"
+        c.runtime.environment_backend = "warp_packet"
+        c.world.num_uavs = 6
+        c.world.num_targets = 2
+        c.world.num_obstacles = 0
+        c.world.max_steps = 20
+        c.energy.enabled = False
+        return c
+
+    def test_framefree_scheduler_allocates_expected_bitmap_shape_and_bytes(self):
+        from uav_network.environment.gpu.vector import WarpVectorEnv
+        from uav_network.communication.gpu.frame_free import bitmap_words
+        env = WarpVectorEnv(self.config(), device="cpu", packet_scheduler="framefree")
+        try:
+            words = bitmap_words(env.p.frame_capacity)
+            self.assertEqual(env.p.frame_capacity, 1632)
+            self.assertEqual(words, 26)
+            self.assertEqual(env._frame_free_words.shape, (2, 26))
+            self.assertEqual(env._frame_reclaim_words.shape, (2, 26))
+            derived = (env._frame_free_words.size + env._frame_reclaim_words.size) * 8
+            self.assertEqual(derived, 2 * 26 * 2 * 8)
+            self.assertEqual(2048 * 26 * 2 * 8, 851968)
+        finally:
+            env.close()
+
+    def test_framefree_partial_reset_rebuilds_only_selected_rows(self):
+        import warp as wp
+        from uav_network.environment.gpu.vector import WarpVectorEnv
+        env = WarpVectorEnv(self.config(), device="cpu", packet_scheduler="framefree")
+        try:
+            env.reset(seed=[44, 45])
+            # Poison row 1 derived state; a row-0-only reset must leave it untouched.
+            free = env._frame_free_words.numpy()
+            reclaim = env._frame_reclaim_words.numpy()
+            free[1, :] = np.uint64(0x1234)
+            reclaim[1, :] = np.uint64(0x55)
+            env._frame_free_words.assign(free)
+            env._frame_reclaim_words.assign(reclaim)
+            before_free = env._frame_free_words.numpy()[1].copy()
+            before_reclaim = env._frame_reclaim_words.numpy()[1].copy()
+            env.reset(seed=[46, None], options={"reset_mask": np.array([True, False])})
+            np.testing.assert_array_equal(env._frame_free_words.numpy()[1], before_free)
+            np.testing.assert_array_equal(env._frame_reclaim_words.numpy()[1], before_reclaim)
+            self.assertTrue(np.any(env._frame_free_words.numpy()[0] != 0))
+            self.assertTrue(np.all(env._frame_reclaim_words.numpy()[0] == 0))
+        finally:
+            env.close()
+
+    def test_framefree_derived_arrays_are_absent_from_snapshot_arrays(self):
+        from uav_network.environment.gpu.vector import WarpVectorEnv
+        env = WarpVectorEnv(self.config(), device="cpu", packet_scheduler="framefree")
+        try:
+            env.reset(seed=[44, 45])
+            snap = env.snapshot_state()
+            self.assertNotIn("_frame_free_words", snap["arrays"])
+            self.assertNotIn("_frame_reclaim_words", snap["arrays"])
+            self.assertEqual(snap["version"], 1)
+        finally:
+            env.close()
+
+    def _step_zeros(self, env, count=3):
+        actions = {"continuous": np.zeros((env.num_envs, env.p.n, 3), dtype=np.float32),
+                   "destination": np.zeros((env.num_envs, env.p.n), dtype=np.int64)}
+        for _ in range(count):
+            env.step(actions)
+
+    def _assert_snapshots_equal(self, left, right):
+        self.assertEqual(left["version"], right["version"])
+        self.assertEqual(left["config"], right["config"])
+        self.assertEqual(left["device_type"], right["device_type"])
+        self.assertEqual(left["arrays"].keys(), right["arrays"].keys())
+        for key in left["arrays"]:
+            np.testing.assert_allclose(left["arrays"][key].numpy(), right["arrays"][key].numpy(),
+                                       rtol=0, atol=0, equal_nan=True, err_msg=key)
+
+    def test_gen1_snapshot_restores_into_framefree_and_continues_exactly(self):
+        from uav_network.environment.gpu.vector import WarpVectorEnv
+        c = self.config()
+        gen1 = WarpVectorEnv(c, device="cpu", packet_scheduler="gen1")
+        ff = WarpVectorEnv(c, device="cpu", packet_scheduler="framefree")
+        try:
+            gen1.reset(seed=[44, 45])
+            self._step_zeros(gen1, 2)
+            snap = gen1.snapshot_state()
+            ff.restore_state(snap)
+            self._step_zeros(gen1, 3)
+            self._step_zeros(ff, 3)
+            self._assert_snapshots_equal(gen1.snapshot_state(), ff.snapshot_state())
+        finally:
+            gen1.close(); ff.close()
+
+    def test_framefree_snapshot_restores_into_gen1_and_continues_exactly(self):
+        from uav_network.environment.gpu.vector import WarpVectorEnv
+        c = self.config()
+        ff = WarpVectorEnv(c, device="cpu", packet_scheduler="framefree")
+        gen1 = WarpVectorEnv(c, device="cpu", packet_scheduler="gen1")
+        try:
+            ff.reset(seed=[44, 45])
+            self._step_zeros(ff, 2)
+            snap = ff.snapshot_state()
+            gen1.restore_state(snap)
+            self._step_zeros(ff, 3)
+            self._step_zeros(gen1, 3)
+            self._assert_snapshots_equal(ff.snapshot_state(), gen1.snapshot_state())
+        finally:
+            ff.close(); gen1.close()
