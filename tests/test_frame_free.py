@@ -300,10 +300,12 @@ class FrameFreeEventTests(FrameFreeEmitTests):
 
 @unittest.skipUnless(importlib.util.find_spec("warp"), "optional warp_packet dependency not installed")
 class FrameFreeVectorTests(unittest.TestCase):
+    device = "cpu"
+
     def config(self, envs=2):
         c = Config()
         c.runtime.num_envs = envs
-        c.runtime.device = "cpu"
+        c.runtime.device = self.device
         c.runtime.environment_backend = "warp_packet"
         c.world.num_uavs = 6
         c.world.num_targets = 2
@@ -315,7 +317,7 @@ class FrameFreeVectorTests(unittest.TestCase):
     def test_framefree_scheduler_allocates_expected_bitmap_shape_and_bytes(self):
         from uav_network.environment.gpu.vector import WarpVectorEnv
         from uav_network.communication.gpu.frame_free import bitmap_words
-        env = WarpVectorEnv(self.config(), device="cpu", packet_scheduler="framefree")
+        env = WarpVectorEnv(self.config(), device=self.device, packet_scheduler="framefree")
         try:
             words = bitmap_words(env.p.frame_capacity)
             self.assertEqual(env.p.frame_capacity, 1632)
@@ -331,7 +333,7 @@ class FrameFreeVectorTests(unittest.TestCase):
     def test_framefree_partial_reset_rebuilds_only_selected_rows(self):
         import warp as wp
         from uav_network.environment.gpu.vector import WarpVectorEnv
-        env = WarpVectorEnv(self.config(), device="cpu", packet_scheduler="framefree")
+        env = WarpVectorEnv(self.config(), device=self.device, packet_scheduler="framefree")
         try:
             env.reset(seed=[44, 45])
             # Poison row 1 derived state; a row-0-only reset must leave it untouched.
@@ -353,7 +355,7 @@ class FrameFreeVectorTests(unittest.TestCase):
 
     def test_framefree_derived_arrays_are_absent_from_snapshot_arrays(self):
         from uav_network.environment.gpu.vector import WarpVectorEnv
-        env = WarpVectorEnv(self.config(), device="cpu", packet_scheduler="framefree")
+        env = WarpVectorEnv(self.config(), device=self.device, packet_scheduler="framefree")
         try:
             env.reset(seed=[44, 45])
             snap = env.snapshot_state()
@@ -381,8 +383,8 @@ class FrameFreeVectorTests(unittest.TestCase):
     def test_gen1_snapshot_restores_into_framefree_and_continues_exactly(self):
         from uav_network.environment.gpu.vector import WarpVectorEnv
         c = self.config()
-        gen1 = WarpVectorEnv(c, device="cpu", packet_scheduler="gen1")
-        ff = WarpVectorEnv(c, device="cpu", packet_scheduler="framefree")
+        gen1 = WarpVectorEnv(c, device=self.device, packet_scheduler="gen1")
+        ff = WarpVectorEnv(c, device=self.device, packet_scheduler="framefree")
         try:
             gen1.reset(seed=[44, 45])
             self._step_zeros(gen1, 2)
@@ -397,8 +399,8 @@ class FrameFreeVectorTests(unittest.TestCase):
     def test_framefree_snapshot_restores_into_gen1_and_continues_exactly(self):
         from uav_network.environment.gpu.vector import WarpVectorEnv
         c = self.config()
-        ff = WarpVectorEnv(c, device="cpu", packet_scheduler="framefree")
-        gen1 = WarpVectorEnv(c, device="cpu", packet_scheduler="gen1")
+        ff = WarpVectorEnv(c, device=self.device, packet_scheduler="framefree")
+        gen1 = WarpVectorEnv(c, device=self.device, packet_scheduler="gen1")
         try:
             ff.reset(seed=[44, 45])
             self._step_zeros(ff, 2)
@@ -409,3 +411,47 @@ class FrameFreeVectorTests(unittest.TestCase):
             self._assert_snapshots_equal(ff.snapshot_state(), gen1.snapshot_state())
         finally:
             ff.close(); gen1.close()
+
+@unittest.skipUnless(importlib.util.find_spec("warp"), "optional warp_packet dependency not installed")
+class FrameFreeStreamingParityTests(FrameFreeVectorTests):
+    def test_framefree_1mb_streaming_relay_matches_gen1_at_every_boundary(self):
+        from uav_network.environment.gpu.vector import WarpVectorEnv
+        c = self.config(envs=1)
+        c.network.report_bytes = 1_000_000
+        c.network.buffer_bytes = 3_000_000
+        c.network.payload_bytes = 1024
+        c.network.max_queue_packets = 64
+        c.network.peer_range_m = c.network.gcs_range_m = 5000
+        c.world.max_steps = 30
+        gen1 = WarpVectorEnv(c, device=self.device, packet_scheduler="gen1")
+        ff = WarpVectorEnv(c, device=self.device, packet_scheduler="framefree")
+        try:
+            gen1.reset(seed=[44])
+            # Force one deterministic report at UAV0 and a short relay geometry.
+            positions = np.zeros((1, c.world.num_uavs, 2), dtype=np.float64)
+            positions[0, :, 0] = np.arange(c.world.num_uavs) * 10.0 + 100.0
+            gen1.s.positions.assign(positions)
+            gen1.s.gcs.assign(np.asarray([[0.0, 0.0]], dtype=np.float64))
+            present = gen1.s.report_present.numpy(); present[0, 0, 0] = 1; gen1.s.report_present.assign(present)
+            known = gen1.s.known.numpy(); known[0, 0, 0] = 1; gen1.s.known.assign(known)
+            origin = gen1.s.report_origin.numpy(); origin[0, 0, 0] = 0; gen1.s.report_origin.assign(origin)
+            created = gen1.s.report_created.numpy(); created[0, 0, 0] = 0.0; gen1.s.report_created.assign(created)
+            order = gen1.s.report_order.numpy(); order[0, 0, 0] = 1; gen1.s.report_order.assign(order)
+            gen1.s.report_sequence.assign(np.asarray([1], dtype=np.int64))
+            ff.restore_state(gen1.snapshot_state())
+
+            continuous = np.zeros((1, c.world.num_uavs, 3), dtype=np.float32)
+            destination = np.zeros((1, c.world.num_uavs), dtype=np.int64)
+            destination[0, 0] = 1  # UAV0 -> UAV1
+            for _ in range(6):
+                gen1.step({"continuous": continuous, "destination": destination})
+                ff.step({"continuous": continuous, "destination": destination})
+                self._assert_snapshots_equal(gen1.snapshot_state(), ff.snapshot_state())
+            destination[:] = 0
+            destination[0, 1] = c.world.num_uavs  # UAV1 -> GCS
+            for _ in range(6):
+                gen1.step({"continuous": continuous, "destination": destination})
+                ff.step({"continuous": continuous, "destination": destination})
+                self._assert_snapshots_equal(gen1.snapshot_state(), ff.snapshot_state())
+        finally:
+            gen1.close(); ff.close()
