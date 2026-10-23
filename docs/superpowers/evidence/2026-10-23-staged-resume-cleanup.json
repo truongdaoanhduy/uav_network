@@ -33,7 +33,19 @@
     "wandb_available": false,
     "wandb_lookup_error_type": "CommError",
     "interpretation": "Kaggle kernel exists and is running, but there is no evidence yet that the planned learner run has entered training; do not launch a duplicate solely because W&B is absent",
-    "continuation_risk": "the root kernel is pinned to the pre-hotfix commit, and automatic children inherit that commit; its first segment has no staged resume input, but a later auto-continuation would not contain this cleanup fix"
+    "continuation_risk": "the root kernel is pinned to the pre-hotfix commit, and automatic children inherit that commit; its first segment has no staged resume input, but a later auto-continuation would not contain this cleanup fix",
+    "preflight_wandb": {
+      "id": "9a716926",
+      "name": "MASAC-PQL-benchmark-E4096-B8192-seed44",
+      "state": "running",
+      "created_at_utc": "2026-10-23T05:18:28Z",
+      "verified_shape": {
+        "num_envs": 4096,
+        "replay_capacity": 1000000,
+        "pql_enabled": true
+      },
+      "interpretation": "the Kaggle root is actively executing the preflight benchmark; planned learner run fc14508c is spawned only after preflight passes"
+    }
   },
   "other_live_run": {
     "wandb_id": "b88d7df8",
