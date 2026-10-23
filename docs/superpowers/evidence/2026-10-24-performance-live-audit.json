@@ -1,0 +1,400 @@
+{
+  "observed_utc": "2026-10-23T17:30:24+00:00",
+  "observed_asia_ho_chi_minh": "2026-10-24T00:30:24+07:00",
+  "source": "fresh W&B Public API and Kaggle owned status; credentials loaded with project helper",
+  "candidate_commit": "cb7c5d6c0c0ba50640c75bea83238f422ea4d902",
+  "full_suite": "674 passed, 74 skipped, 8 warnings, 1221 subtests passed in 243.11s",
+  "eta_model": {
+    "mean_historical_episode_steps": 1710.259,
+    "budget_episodes": 20000,
+    "mean_workload_transitions": 34205180,
+    "horizon_ceiling_transitions": 36000000,
+    "rate_windows": [
+      "whole current segment excluding inherited transitions",
+      "50 sampled history points",
+      "200 sampled history points"
+    ],
+    "limits": "Workload projection, not a completion guarantee. Event workload and policy change throughput. Excludes preflight, transfer, queue and quota waiting."
+  },
+  "runs": [
+    {
+      "id": "b9d73bd3",
+      "name": "MASAC-BASE-uav-network-2d-seed44-20261023-051422-cbe381",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/b9d73bd3",
+      "state": "finished",
+      "episodes_completed": 4096,
+      "global_step": 10309632,
+      "segment_initial_step": 7041024,
+      "runtime_seconds": 36007.115356288996,
+      "stop_reason": "time_budget",
+      "episode_budget_complete": false,
+      "mean_transitions_s": 90.77672475723901,
+      "recent_rate_windows": {
+        "10": {
+          "transitions_per_s": 122.03293227900372,
+          "window_s": 1980.3178985118866,
+          "step_delta": 241664
+        },
+        "50": {
+          "transitions_per_s": 112.54578797129236,
+          "window_s": 7206.027116775513,
+          "step_delta": 811008
+        },
+        "200": {
+          "transitions_per_s": 105.16798002791664,
+          "window_s": 26367.265010356903,
+          "step_delta": 2772992
+        }
+      },
+      "last_points": [
+        {
+          "_runtime": 35217.750721839,
+          "global_step": 10211328,
+          "_timestamp": 1792769771.6633284
+        },
+        {
+          "_runtime": 35329.295921889,
+          "global_step": 10223616,
+          "_timestamp": 1792769883.2085264
+        },
+        {
+          "_runtime": 35629.085754863,
+          "global_step": 10260480,
+          "_timestamp": 1792770182.9984367
+        }
+      ],
+      "timing": {
+        "timing/collector_wait_seconds": 32746.57717993104,
+        "timing/learner_seconds": 3084.4357699819766
+      },
+      "gpu": {
+        "system.gpu.0.gpu": {
+          "last": 100,
+          "mean": 100
+        },
+        "system.gpu.1.gpu": {
+          "last": 94,
+          "mean": 8.78
+        },
+        "system.proc.memory.oomKills": {
+          "last": 0,
+          "mean": 0
+        }
+      },
+      "estimated_remaining_gpu_hours": {
+        "optimistic": 58.97734905828127,
+        "conservative": 78.61280909195014
+      }
+    },
+    {
+      "id": "63faeffb",
+      "name": "MASAC-BASE-uav-network-2d-seed44-20261023-073957-9c4cd8",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/63faeffb",
+      "state": "running",
+      "episodes_completed": 0,
+      "global_step": 5107712,
+      "segment_initial_step": 0,
+      "runtime_seconds": 33356.715994704,
+      "stop_reason": null,
+      "episode_budget_complete": null,
+      "mean_transitions_s": 153.12394663824054,
+      "recent_rate_windows": {
+        "10": {
+          "transitions_per_s": 741.3924910163914,
+          "window_s": 66.29686784744263,
+          "step_delta": 49152
+        },
+        "50": {
+          "transitions_per_s": 796.3229620120942,
+          "window_s": 432.0659034252167,
+          "step_delta": 344064
+        },
+        "200": {
+          "transitions_per_s": 804.1545140367281,
+          "window_s": 1548.4387369155884,
+          "step_delta": 1245184
+        }
+      },
+      "last_points": [
+        {
+          "_runtime": 33329.902577427,
+          "global_step": 5083136,
+          "_timestamp": 1792776590.0884538
+        },
+        {
+          "_runtime": 33340.096094991,
+          "global_step": 5091328,
+          "_timestamp": 1792776600.2816882
+        },
+        {
+          "_runtime": 33345.201603323,
+          "global_step": 5095424,
+          "_timestamp": 1792776605.387556
+        }
+      ],
+      "timing": {
+        "timing/collector_wait_seconds": 27535.67889583589,
+        "timing/learner_seconds": 5751.5773830899625
+      },
+      "gpu": {
+        "system.gpu.0.gpu": {
+          "last": 0,
+          "mean": 95.5
+        },
+        "system.gpu.1.gpu": {
+          "last": 67,
+          "mean": 17.16
+        },
+        "system.proc.memory.oomKills": {
+          "last": 0,
+          "mean": 0
+        }
+      },
+      "estimated_remaining_gpu_hours": {
+        "optimistic": 10.051090752977906,
+        "conservative": 56.04081725626108
+      }
+    },
+    {
+      "id": "fc14508c",
+      "name": "MASAC-PQL-uav-network-2d-seed44-20261023-051420-773792",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/fc14508c",
+      "state": "finished",
+      "episodes_completed": 1066,
+      "global_step": 7045120,
+      "segment_initial_step": 0,
+      "runtime_seconds": 35841.632709262,
+      "stop_reason": "time_budget",
+      "episode_budget_complete": false,
+      "mean_transitions_s": 196.56247406886234,
+      "recent_rate_windows": {
+        "10": {
+          "transitions_per_s": 84.97988144850231,
+          "window_s": 48.19964361190796,
+          "step_delta": 4096
+        },
+        "50": {
+          "transitions_per_s": 109.01116836807344,
+          "window_s": 225.44479036331177,
+          "step_delta": 24576
+        },
+        "200": {
+          "transitions_per_s": 167.78950328385977,
+          "window_s": 781.1692473888397,
+          "step_delta": 131072
+        }
+      },
+      "last_points": [
+        {
+          "_runtime": 35837.736630519,
+          "global_step": 7045120,
+          "_timestamp": 1792771149.1166584
+        },
+        {
+          "_runtime": 35837.819040469,
+          "global_step": 7045120,
+          "_timestamp": 1792771149.1986794
+        },
+        {
+          "pql/collector_seconds": 34244.901267109904,
+          "_runtime": 35837.822247854,
+          "global_step": 7045120,
+          "_timestamp": 1792771149.2020586
+        }
+      ],
+      "timing": {
+        "pql/actor_updates": 13512,
+        "pql/actor_updates_per_s": 0.3769146497189011,
+        "pql/collector_iterations_per_s": 0.04797907027209221,
+        "pql/collector_policy_lag": 8,
+        "pql/collector_seconds": 34244.901267109904,
+        "pql/collector_wait_seconds": 1480.9579761700916,
+        "pql/critic_collector_ratio": 8,
+        "pql/critic_seconds": 7020.099883185314,
+        "pql/critic_updates": 13512,
+        "pql/critic_updates_per_s": 0.3769146497189011,
+        "pql/critic_wait_for_policy_seconds": 0.4522190889319973,
+        "pql/policy_seconds": 6228.431031671371,
+        "pql/queued_policy_updates": 0
+      },
+      "gpu": {
+        "system.gpu.0.gpu": {
+          "last": 100,
+          "mean": 94
+        },
+        "system.gpu.1.gpu": {
+          "last": 0,
+          "mean": 24.34
+        },
+        "system.proc.memory.oomKills": {
+          "last": 0,
+          "mean": 0
+        }
+      },
+      "estimated_remaining_gpu_hours": {
+        "optimistic": 38.382001177234045,
+        "conservative": 73.78163487859484
+      }
+    },
+    {
+      "id": "2dcbf36c",
+      "name": "MATD3-BASE-uav-network-2d-seed44-20261023-074258-316e25",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/2dcbf36c",
+      "state": "running",
+      "episodes_completed": 0,
+      "global_step": 3297280,
+      "segment_initial_step": 0,
+      "runtime_seconds": 33171.292471089,
+      "stop_reason": null,
+      "episode_budget_complete": null,
+      "mean_transitions_s": 99.40161369575213,
+      "recent_rate_windows": {
+        "10": {
+          "transitions_per_s": 274.463969168547,
+          "window_s": 149.2363464832306,
+          "step_delta": 40960
+        },
+        "50": {
+          "transitions_per_s": 257.15502723942865,
+          "window_s": 844.1911571025848,
+          "step_delta": 217088
+        },
+        "200": {
+          "transitions_per_s": 230.64280676238636,
+          "window_s": 3427.4990453720093,
+          "step_delta": 790528
+        }
+      },
+      "last_points": [
+        {
+          "_runtime": 33139.178382605,
+          "global_step": 3289088,
+          "_timestamp": 1792776574.9009378
+        },
+        {
+          "_runtime": 33171.288983574,
+          "global_step": 3297280,
+          "_timestamp": 1792776607.0113943
+        },
+        {
+          "_runtime": 33171.290355691,
+          "global_step": 3297280,
+          "_timestamp": 1792776607.0129516
+        }
+      ],
+      "timing": {
+        "timing/collector_wait_seconds": 32186.348069799005,
+        "timing/learner_seconds": 947.4044855100228
+      },
+      "gpu": {
+        "system.gpu.0.gpu": {
+          "last": 100,
+          "mean": 99.82
+        },
+        "system.gpu.1.gpu": {
+          "last": 0,
+          "mean": 1.94
+        },
+        "system.proc.memory.oomKills": {
+          "last": 0,
+          "mean": 0
+        }
+      },
+      "estimated_remaining_gpu_hours": {
+        "optimistic": 33.386583454905875,
+        "conservative": 91.38774061247551
+      }
+    },
+    {
+      "id": "278634f6",
+      "name": "MATD3-PQL-uav-network-2d-seed44-20261023-074845-a0387e",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/278634f6",
+      "state": "running",
+      "episodes_completed": 0,
+      "global_step": 2723840,
+      "segment_initial_step": 0,
+      "runtime_seconds": 32036.507415813,
+      "stop_reason": null,
+      "episode_budget_complete": null,
+      "mean_transitions_s": 85.02300093597378,
+      "recent_rate_windows": {
+        "10": {
+          "transitions_per_s": 161.87512151365988,
+          "window_s": 303.64147090911865,
+          "step_delta": 49152
+        },
+        "50": {
+          "transitions_per_s": 136.2325649328861,
+          "window_s": 1232.7155411243439,
+          "step_delta": 167936
+        },
+        "200": {
+          "transitions_per_s": 92.13756889615878,
+          "window_s": 7468.484443902969,
+          "step_delta": 688128
+        }
+      },
+      "last_points": [
+        {
+          "_runtime": 31933.679090498,
+          "global_step": 2707456,
+          "_timestamp": 1792776516.5706856
+        },
+        {
+          "pql/collector_seconds": 31842.569765598964,
+          "_runtime": 32008.633688592,
+          "global_step": 2719744,
+          "_timestamp": 1792776591.5253208
+        },
+        {
+          "pql/collector_seconds": 31867.663812159968,
+          "_runtime": 32033.735993653,
+          "global_step": 2723840,
+          "_timestamp": 1792776616.6278098
+        }
+      ],
+      "timing": {
+        "pql/actor_updates": 2524,
+        "pql/actor_updates_per_s": 0.07876581550962478,
+        "pql/collector_iterations_per_s": 0.020658862863459432,
+        "pql/collector_policy_lag": 4,
+        "pql/collector_seconds": 31867.663812159968,
+        "pql/collector_wait_seconds": 155.8613669389506,
+        "pql/critic_collector_ratio": 8,
+        "pql/critic_seconds": 716.2825926739761,
+        "pql/critic_updates": 5048,
+        "pql/critic_updates_per_s": 0.15753163101924955,
+        "pql/critic_wait_for_policy_seconds": 0.09870821900040028,
+        "pql/policy_seconds": 211.7093672000783,
+        "pql/queued_policy_updates": 0
+      },
+      "gpu": {
+        "system.gpu.0.gpu": {
+          "last": 100,
+          "mean": 99.66
+        },
+        "system.gpu.1.gpu": {
+          "last": 0,
+          "mean": 1.6
+        },
+        "system.proc.memory.oomKills": {
+          "last": 0,
+          "mean": 0
+        }
+      },
+      "estimated_remaining_gpu_hours": {
+        "optimistic": 64.19035471419576,
+        "conservative": 108.71620239255569
+      }
+    }
+  ],
+  "task6": {
+    "status": "T4 A/B in progress",
+    "kernel_ref": "bjkjbhm/uav-receiver-cache-t4-comparison-20261024",
+    "kernel_version": 2,
+    "baseline": "4cd9358fe0d7cc851bc95ed1c6d5bd231666d310",
+    "candidate": "cb7c5d6c0c0ba50640c75bea83238f422ea4d902",
+    "preserved_production_jobs": true,
+    "harness_v1_failure": "Invalid diagnostic runtime.device=cuda:0; corrected to supported cuda and preflight-validated before v2."
+  }
+}
