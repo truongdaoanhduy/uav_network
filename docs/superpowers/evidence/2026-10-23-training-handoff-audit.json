@@ -1,5 +1,5 @@
 {
-  "observed_at_utc": "2026-10-23T04:28:08.412195+00:00",
+  "observed_at_utc": "2026-10-23T04:57:19.967600+00:00",
   "historical_snapshot": [
     {
       "run_id": "483a83a5",
@@ -138,10 +138,10 @@
   "focused_tests": "38 passed in 9.36s",
   "full_suite": "659 passed, 74 skipped, 8 warnings, 1218 subtests passed in 812.73s",
   "requested_config": "configs/comparison-20k-hybrid75-1m.yaml",
-  "production_gate_submitted": false,
+  "production_gate_submitted": true,
   "interim_cpu_validation": {
     "kernel": "vuliu123456/uavnet-validate-20261022-104625-33-cpu",
-    "state": "running",
+    "state": "finished",
     "runs": {
       "masac": {
         "id": "9a9895ea",
@@ -150,8 +150,43 @@
     },
     "episodes": 1,
     "source_checkpoint_run": "483a83a5",
-    "scope": "interim, not final 20k evaluation"
+    "scope": "interim, not final 20k evaluation",
+    "episodes_completed": 1,
+    "wandb_media_uploaded": true,
+    "hf_video_url": "https://huggingface.co/duy95/uav-search-checkpoints/resolve/aeb53ea3bce6b9eaeb7f440f90ed4e12f394973d/visualizations/base/masac/9a9895ea/final_episode.mp4"
   },
   "full_suite_log": "/tmp/uav-hybrid75-final-suite.log",
-  "media_test_isolation": "Final media-tracking test could reach actual HF credentials; external publisher boundary now mocked. Focused visualization suite: 9 passed in 8.61s."
+  "media_test_isolation": "Final media-tracking test could reach actual HF credentials; external publisher boundary now mocked. Focused visualization suite: 9 passed in 8.61s.",
+  "production_gate": {
+    "kernel": "ewkljfelweow/uavnet-benchmark-20261023-044345-84cefe",
+    "state": "complete",
+    "wandb_id": "31831ab2",
+    "commit": "9499964d643a7d00972c15046873cd90a179c749",
+    "num_envs": 4096,
+    "batch_size": 8192,
+    "replay_capacity": 1000000,
+    "cpu_fraction": 0.75,
+    "status": "passed",
+    "updates_after_resume": 32,
+    "rng_next_sample_matches": true,
+    "environment_restored": true,
+    "checkpoint_file_unchanged": true,
+    "result_file": "2026-10-23-hybrid75-4096-1m-kaggle-result.json",
+    "replay_cpu_bytes": 9831000000,
+    "replay_gpu_bytes": 3274000000,
+    "elapsed_s": 479.604270052
+  },
+  "production_launch_preflight": {
+    "at_utc": "2026-10-23T04:56:33Z",
+    "account": "account_21",
+    "active_kernels": [],
+    "remaining_gpu_hours": 19.47,
+    "action": "launch once after this evidence commit is pushed"
+  },
+  "preserved_active_runs_at_0456Z": {
+    "29e6add6": 7004160,
+    "b88d7df8": 126976,
+    "3070f38e": 5308416,
+    "bda3bccd": 6410240
+  }
 }

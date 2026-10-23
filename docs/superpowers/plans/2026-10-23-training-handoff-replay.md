@@ -33,8 +33,8 @@ Files: algorithms/replay.py or dedicated hybrid module, experiments/cpu_replay_p
 - [x] Full suite and focused regressions verified; commit follows.
 
 ### Task 3: Operational verification
-- [ ] Fresh-check current runs, quotas and idle accounts; keep existing jobs unchanged.
-- [ ] Run one bounded two-T4 gate for requested env/batch/full hybrid replay and exact resume.
+- [x] Fresh-check current runs, quotas and idle accounts; keep existing jobs unchanged.
+- [x] Run one bounded two-T4 gate for requested env/batch/full hybrid replay and exact resume.
 - [ ] Launch requested training only if gate passes, verify W&B steps advance.
 - [ ] Record live evidence, commit/push and GitHub read-back; retain unresolved blockers explicitly.
 

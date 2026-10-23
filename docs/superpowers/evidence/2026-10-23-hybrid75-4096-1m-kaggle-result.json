@@ -1,0 +1,737 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "scope": "memory_and_execution_only",
+  "data": "one real 4096-world transition batch repeated to fill replay; not training-quality evidence",
+  "config": {
+    "world": {
+      "map_size_m": 1000.0,
+      "num_uavs": 6,
+      "num_targets": 35,
+      "num_obstacles": 25,
+      "dt_s": 1.0,
+      "max_steps": 1800,
+      "max_speed_mps": 20.0,
+      "max_accel_mps2": 2.0,
+      "safety_distance_m": 15.0,
+      "obstacle_clearance_m": 10.0,
+      "motion_safety": "dynamic_window",
+      "obstacle_radius_min_m": 30.0,
+      "obstacle_radius_max_m": 70.0,
+      "launch_radius_m": 150.0,
+      "launch_min_spacing_m": 30.0,
+      "target_exclusion_radius_m": 200.0,
+      "gcs_position_m": null,
+      "placement_attempts": 5000
+    },
+    "sensor": {
+      "altitude_m": 100.0,
+      "full_fov_deg": 90.0,
+      "obstacle_occlusion": true,
+      "visible_target_slots": 4,
+      "visible_obstacle_slots": 3
+    },
+    "network": {
+      "enabled": true,
+      "receiver_admission_mask": true,
+      "rediscovery_recovery": true,
+      "ack_uses_data_power": true,
+      "upstream_path": "third_party/UavNetSim",
+      "peer_range_m": 500.0,
+      "gcs_range_m": 500.0,
+      "tx_power_min_w": 0.001,
+      "tx_power_max_w": 0.4,
+      "tx_power_mapping": "log",
+      "pa_efficiency": 0.35,
+      "tx_circuit_power_w": 0.1,
+      "rx_circuit_power_w": 0.1,
+      "power_limited_admission": true,
+      "link_state_observation": true,
+      "report_bytes": 1000000,
+      "buffer_bytes": 3000000,
+      "report_ttl_s": 300.0,
+      "payload_bytes": 1024,
+      "packet_lifetime_s": 10.0,
+      "max_queue_packets": 64,
+      "queue_poll_us": 1000.0,
+      "max_retries": 5,
+      "obstacle_polygon_sides": 16,
+      "bit_rate_bps": 2000000.0,
+      "carrier_frequency_hz": 2400000000.0,
+      "bandwidth_hz": 22000000.0,
+      "sinr_threshold_db": 6.0,
+      "cca_threshold_dbm": -82.0,
+      "noise_density_dbm_hz": -174.0,
+      "noise_figure_db": 7.0,
+      "nlos_model": "urban",
+      "propagation_delay_enabled": true,
+      "obstacle_extra_loss_db": 0.0
+    },
+    "energy": {
+      "enabled": true,
+      "battery_capacity_j": 277200.0,
+      "idle_power_w": 20.0,
+      "hover_power_w": 120.0,
+      "speed_squared_coefficient": 0.5,
+      "acceleration_squared_coefficient": 2.0
+    },
+    "reward": {
+      "discovery": 10.0,
+      "delivery": 50.0,
+      "blocked_motion": 0.2,
+      "expired_report": 10.0,
+      "dropped_report": 10.0,
+      "step_cost": 0.01,
+      "communication_energy": 0.01,
+      "propulsion_energy_per_kj": 0.01,
+      "communication_efficiency": 1.0,
+      "shield_correction": 0.1
+    },
+    "masac": {
+      "hidden_sizes": [
+        256,
+        256
+      ],
+      "replay_capacity": 1000000,
+      "batch_size": 8192,
+      "learning_starts": 131072,
+      "updates_per_step": 8,
+      "gamma": 0.99,
+      "tau": 0.005,
+      "learning_rate": 0.0003,
+      "grad_clip_norm": 10.0,
+      "initial_alpha": 0.2,
+      "target_continuous_entropy": -3.0,
+      "target_discrete_entropy_ratio": 0.9
+    },
+    "matd3": {
+      "hidden_sizes": [
+        256,
+        256
+      ],
+      "replay_capacity": 1000000,
+      "batch_size": 8192,
+      "learning_starts": 131072,
+      "updates_per_step": 8,
+      "gamma": 0.99,
+      "tau": 0.005,
+      "learning_rate": 0.0003,
+      "grad_clip_norm": 10.0,
+      "policy_delay": 2,
+      "target_noise_std": 0.2,
+      "target_noise_clip": 0.5,
+      "exploration_noise_std": 0.1,
+      "initial_epsilon": 1.0,
+      "final_epsilon": 0.05,
+      "epsilon_decay_steps": 14745600
+    },
+    "runtime": {
+      "algorithm": "masac",
+      "seed": 44,
+      "eval_seed": 2000000044,
+      "episodes": 20000,
+      "eval_episodes": 30,
+      "device": "cuda",
+      "torch_threads": 1,
+      "output_dir": "outputs/comparison-20k-steps1800-t35-o25-scenario-v3",
+      "checkpoint_interval": 128,
+      "num_envs": 4096,
+      "environment_backend": "warp_packet",
+      "shared_memory": true,
+      "collector_overlap": true,
+      "replay_device": "cpu",
+      "replay_cpu_fraction": 0.75,
+      "deterministic": true,
+      "compile_models": false,
+      "amp_mode": "off",
+      "coalesce_idle_polls": true,
+      "fused_optimizers": false,
+      "vectorize_critics": true,
+      "log_interval_steps": 4096,
+      "warm_start_checkpoint": "none",
+      "max_train_seconds": 36000
+    },
+    "tracking": {
+      "enabled": false,
+      "credentials_file": "key.txt",
+      "entity": "truongdaoanhduy-uit",
+      "project": "uav_search_target",
+      "run_name": "auto",
+      "group": "uav-v3-full20k-e4096-b8192-r1m-cpu75-20261023",
+      "tags": [
+        "uav-network",
+        "scenario-v3",
+        "full20k",
+        "replay1m",
+        "cpu75-gpu25",
+        "batch8192",
+        "env4096",
+        "steps1800",
+        "seed44",
+        "base-pql-comparison",
+        "report1mb",
+        "radio-energy",
+        "cpu-visualize",
+        "auto-continue"
+      ],
+      "log_checkpoint": true,
+      "checkpoint_upload_interval_seconds": 300.0,
+      "local_checkpoints_to_keep": 2,
+      "checkpoint_store": "huggingface",
+      "checkpoint_repo": "duy95/uav-search-checkpoints",
+      "checkpoint_repo_private": false,
+      "system_metrics": true,
+      "artifact_timeout_seconds": 900,
+      "evaluation_interval": 0,
+      "evaluation_interval_steps": 0,
+      "periodic_evaluation_episodes": 5,
+      "periodic_evaluation_seed": 1000000044,
+      "evaluation_timeout_seconds": 300,
+      "diagnostic_window": 20,
+      "delivery_gap_threshold_percent": 40.0,
+      "return_drop_threshold": 20.0,
+      "blocked_rate_threshold": 0.3
+    },
+    "pql": {
+      "enabled": true,
+      "mode": "async",
+      "critic_sample_ratio": 8,
+      "warmup_collection_steps": 2,
+      "max_pending_collections": 2,
+      "max_pending_policy_updates": 2,
+      "collector_device": "cuda:0",
+      "learner_device": "cuda:1",
+      "policy_device": "cuda:1",
+      "worker_timeout_s": 1200,
+      "checkpoint_replay": true
+    }
+  },
+  "commit": "9499964d643a7d00972c15046873cd90a179c749",
+  "layout": "hybrid75",
+  "hardware": [
+    {
+      "device": 0,
+      "name": "Tesla T4",
+      "total_bytes": 15636037632,
+      "compute_capability": [
+        7,
+        5
+      ]
+    },
+    {
+      "device": 1,
+      "name": "Tesla T4",
+      "total_bytes": 15636037632,
+      "compute_capability": [
+        7,
+        5
+      ]
+    }
+  ],
+  "compiler_threads": 1,
+  "events": [
+    {
+      "phase": "initializing",
+      "elapsed_s": 2.588000029390969e-06,
+      "host_rss_bytes": 739262464,
+      "host_hwm_bytes": 739262464,
+      "system_available_bytes": 31654395904,
+      "effective_available_bytes": 29746450432,
+      "cgroup_limit_bytes": 32212254720,
+      "cgroup_current_bytes": 2465804288,
+      "gpu": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 0,
+          "peak_allocated_bytes": 0,
+          "peak_reserved_bytes": 0
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 0,
+          "peak_allocated_bytes": 0,
+          "peak_reserved_bytes": 0
+        }
+      ]
+    },
+    {
+      "phase": "first_real_collection",
+      "elapsed_s": 72.69065347600002,
+      "host_rss_bytes": 12028276736,
+      "host_hwm_bytes": 12060422144,
+      "system_available_bytes": 20566728704,
+      "effective_available_bytes": 17971019776,
+      "cgroup_limit_bytes": 32212254720,
+      "cgroup_current_bytes": 14241234944,
+      "gpu": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 85685248,
+          "peak_allocated_bytes": 102495744,
+          "peak_reserved_bytes": 109051904
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 3332449280,
+          "peak_allocated_bytes": 3332449280,
+          "peak_reserved_bytes": 3338665984
+        }
+      ],
+      "collector_s": 22.64922378199998,
+      "updates": 0
+    },
+    {
+      "phase": "replay_full",
+      "elapsed_s": 78.18036129800004,
+      "host_rss_bytes": 12028276736,
+      "host_hwm_bytes": 12060422144,
+      "system_available_bytes": 20566544384,
+      "effective_available_bytes": 17886633984,
+      "cgroup_limit_bytes": 32212254720,
+      "cgroup_current_bytes": 14325620736,
+      "gpu": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 85685248,
+          "peak_allocated_bytes": 102495744,
+          "peak_reserved_bytes": 109051904
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 3332449280,
+          "peak_allocated_bytes": 3359761408,
+          "peak_reserved_bytes": 3372220416
+        }
+      ],
+      "duplicated_inserted_rows": 995904,
+      "replay_rows": 1000000,
+      "replay_bytes": 13105000000,
+      "replay_cpu_bytes": 9831000000,
+      "replay_hot_bytes": 3274000000,
+      "fill_s": 5.485791016999997
+    },
+    {
+      "phase": "batch_transfer",
+      "elapsed_s": 78.29237449600004,
+      "host_rss_bytes": 12079910912,
+      "host_hwm_bytes": 12079910912,
+      "system_available_bytes": 20509564928,
+      "effective_available_bytes": 17831411712,
+      "cgroup_limit_bytes": 32212254720,
+      "cgroup_current_bytes": 14380843008,
+      "gpu": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 85685248,
+          "peak_allocated_bytes": 102495744,
+          "peak_reserved_bytes": 109051904
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 3439731712,
+          "peak_allocated_bytes": 3460724224,
+          "peak_reserved_bytes": 3487563776
+        }
+      ],
+      "sample_s": 0.10842130900005031,
+      "transfer_s": 9.860000000116997e-05,
+      "batch_bytes": 107282432
+    },
+    {
+      "phase": "learning",
+      "elapsed_s": 104.63576363000004,
+      "host_rss_bytes": 12489936896,
+      "host_hwm_bytes": 12489936896,
+      "system_available_bytes": 20170293248,
+      "effective_available_bytes": 17398870016,
+      "cgroup_limit_bytes": 32212254720,
+      "cgroup_current_bytes": 14813384704,
+      "gpu": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 120783872,
+          "peak_allocated_bytes": 175920128,
+          "peak_reserved_bytes": 192937984
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 3631380480,
+          "peak_allocated_bytes": 6837957120,
+          "peak_reserved_bytes": 11802771456
+        }
+      ],
+      "cycle": 1,
+      "collector_s": 21.933660781000015,
+      "learner_s": 4.4066510170000015,
+      "updates": 8,
+      "actor_updates": 8,
+      "replay_rows": 1000000,
+      "metrics": {
+        "q_mean": 0.34700214862823486,
+        "q_abs_max": 0.46372470259666443,
+        "target_mean": 0.4046095609664917,
+        "target_abs_max": 20.804302215576172,
+        "td_error_abs_mean": 0.2148168385028839,
+        "td_error_abs_max": 20.41254425048828,
+        "twin_q_gap": 0.023495513945817947,
+        "batch_reward_mean": 0.07537665963172913,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_grad_norm": 0.15517480671405792,
+        "critic_gradient_clipped": 0.0,
+        "critic_loss": 2.4049479961395264,
+        "actor_grad_norm": 0.016949918121099472,
+        "alpha_grad_norm": 1.4148709774017334,
+        "actor_loss": -0.6868551969528198,
+        "continuous_entropy": 1.4063830375671387,
+        "discrete_entropy": 0.1279573142528534,
+        "alpha_continuous": 0.19856402277946472,
+        "alpha_discrete": 0.1985686719417572
+      }
+    },
+    {
+      "phase": "learning",
+      "elapsed_s": 134.872288948,
+      "host_rss_bytes": 12492214272,
+      "host_hwm_bytes": 12492214272,
+      "system_available_bytes": 20154761216,
+      "effective_available_bytes": 17393082368,
+      "cgroup_limit_bytes": 32212254720,
+      "cgroup_current_bytes": 14819172352,
+      "gpu": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 120783872,
+          "peak_allocated_bytes": 175920128,
+          "peak_reserved_bytes": 192937984
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 3631380480,
+          "peak_allocated_bytes": 6837957120,
+          "peak_reserved_bytes": 11802771456
+        }
+      ],
+      "cycle": 2,
+      "collector_s": 26.269702541000015,
+      "learner_s": 3.963674565999952,
+      "updates": 16,
+      "actor_updates": 16,
+      "replay_rows": 1000000,
+      "metrics": {
+        "q_mean": 0.34700214862823486,
+        "q_abs_max": 0.46372470259666443,
+        "target_mean": 0.4046095609664917,
+        "target_abs_max": 20.804302215576172,
+        "td_error_abs_mean": 0.2148168385028839,
+        "td_error_abs_max": 20.41254425048828,
+        "twin_q_gap": 0.023495513945817947,
+        "batch_reward_mean": 0.07537665963172913,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_grad_norm": 0.15517480671405792,
+        "critic_gradient_clipped": 0.0,
+        "critic_loss": 2.4049479961395264,
+        "actor_grad_norm": 0.016949918121099472,
+        "alpha_grad_norm": 1.4148709774017334,
+        "actor_loss": -0.6868551969528198,
+        "continuous_entropy": 1.4063830375671387,
+        "discrete_entropy": 0.1279573142528534,
+        "alpha_continuous": 0.19856402277946472,
+        "alpha_discrete": 0.1985686719417572
+      }
+    },
+    {
+      "phase": "learning",
+      "elapsed_s": 168.01898599500004,
+      "host_rss_bytes": 12496056320,
+      "host_hwm_bytes": 12499542016,
+      "system_available_bytes": 20151468032,
+      "effective_available_bytes": 17388773376,
+      "cgroup_limit_bytes": 32212254720,
+      "cgroup_current_bytes": 14823481344,
+      "gpu": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 120783872,
+          "peak_allocated_bytes": 175920128,
+          "peak_reserved_bytes": 192937984
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 3631380480,
+          "peak_allocated_bytes": 6837957120,
+          "peak_reserved_bytes": 11802771456
+        }
+      ],
+      "cycle": 3,
+      "collector_s": 29.164107140999988,
+      "learner_s": 3.9791443139999956,
+      "updates": 24,
+      "actor_updates": 24,
+      "replay_rows": 1000000,
+      "metrics": {
+        "q_mean": 0.34700214862823486,
+        "q_abs_max": 0.46372470259666443,
+        "target_mean": 0.4046095609664917,
+        "target_abs_max": 20.804302215576172,
+        "td_error_abs_mean": 0.2148168385028839,
+        "td_error_abs_max": 20.41254425048828,
+        "twin_q_gap": 0.023495513945817947,
+        "batch_reward_mean": 0.07537665963172913,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_grad_norm": 0.15517480671405792,
+        "critic_gradient_clipped": 0.0,
+        "critic_loss": 2.4049479961395264,
+        "actor_grad_norm": 0.016949918121099472,
+        "alpha_grad_norm": 1.4148709774017334,
+        "actor_loss": -0.6868551969528198,
+        "continuous_entropy": 1.4063830375671387,
+        "discrete_entropy": 0.1279573142528534,
+        "alpha_continuous": 0.19856402277946472,
+        "alpha_discrete": 0.1985686719417572
+      }
+    },
+    {
+      "phase": "before_save",
+      "elapsed_s": 168.0247331,
+      "host_rss_bytes": 12496056320,
+      "host_hwm_bytes": 12499542016,
+      "system_available_bytes": 20151468032,
+      "effective_available_bytes": 17387479040,
+      "cgroup_limit_bytes": 32212254720,
+      "cgroup_current_bytes": 14824775680,
+      "gpu": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 120783872,
+          "peak_allocated_bytes": 175920128,
+          "peak_reserved_bytes": 192937984
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 3631380480,
+          "peak_allocated_bytes": 6837957120,
+          "peak_reserved_bytes": 11802771456
+        }
+      ],
+      "disk_free_bytes": 20940513280
+    },
+    {
+      "phase": "saved",
+      "elapsed_s": 270.417681707,
+      "host_rss_bytes": 12409159680,
+      "host_hwm_bytes": 15609937920,
+      "system_available_bytes": 20256731136,
+      "effective_available_bytes": 2485649408,
+      "cgroup_limit_bytes": 32212254720,
+      "cgroup_current_bytes": 29726605312,
+      "gpu": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 120783872,
+          "peak_allocated_bytes": 175920128,
+          "peak_reserved_bytes": 192937984
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 3631380480,
+          "peak_allocated_bytes": 6837957120,
+          "peak_reserved_bytes": 11802771456
+        }
+      ],
+      "save_s": 38.26231832399998,
+      "checkpoint_bytes": 15514514885,
+      "checkpoint_sha256": "43e12513f4d0cf9674e4b38e76b31fe8eb522a3f0cab4cd8064948012bcb82c3"
+    },
+    {
+      "phase": "before_restore",
+      "elapsed_s": 271.3883665,
+      "host_rss_bytes": 2585100288,
+      "host_hwm_bytes": 15609937920,
+      "system_available_bytes": 30075953152,
+      "effective_available_bytes": 12329005056,
+      "cgroup_limit_bytes": 32212254720,
+      "cgroup_current_bytes": 19883249664,
+      "gpu": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 62971904,
+          "peak_allocated_bytes": 175920128,
+          "peak_reserved_bytes": 192937984
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 136314880,
+          "peak_allocated_bytes": 6837957120,
+          "peak_reserved_bytes": 11802771456
+        }
+      ]
+    },
+    {
+      "phase": "restored",
+      "elapsed_s": 400.904860906,
+      "host_rss_bytes": 26429874176,
+      "host_hwm_bytes": 26429874176,
+      "system_available_bytes": 20339224576,
+      "effective_available_bytes": 1064927232,
+      "cgroup_limit_bytes": 32212254720,
+      "cgroup_current_bytes": 31147327488,
+      "gpu": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 65647616,
+          "peak_allocated_bytes": 175920128,
+          "peak_reserved_bytes": 192937984
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 3497772032,
+          "peak_allocated_bytes": 6837957120,
+          "peak_reserved_bytes": 11802771456
+        }
+      ],
+      "restore_s": 129.50983812799996,
+      "rng_next_sample_matches": true,
+      "updates": 24,
+      "replay_rows": 1000000,
+      "environment_restored": true
+    },
+    {
+      "phase": "resumed_learning",
+      "elapsed_s": 479.59959001,
+      "host_rss_bytes": 26340814848,
+      "host_hwm_bytes": 26449035264,
+      "system_available_bytes": 20293025792,
+      "effective_available_bytes": 1018068992,
+      "cgroup_limit_bytes": 32212254720,
+      "cgroup_current_bytes": 31194185728,
+      "gpu": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 120030208,
+          "peak_allocated_bytes": 175920128,
+          "peak_reserved_bytes": 192937984
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 3767695360,
+          "peak_allocated_bytes": 6950934016,
+          "peak_reserved_bytes": 12851347456
+        }
+      ],
+      "learner_s": 47.19095216599999,
+      "collector_s": 31.49711919999993,
+      "updates": 32,
+      "checkpoint_file_unchanged": true,
+      "metrics": {
+        "q_mean": 0.3971374034881592,
+        "q_abs_max": 0.589044988155365,
+        "target_mean": 0.419999897480011,
+        "target_abs_max": 20.854652404785156,
+        "td_error_abs_mean": 0.23811165988445282,
+        "td_error_abs_max": 20.367834091186523,
+        "twin_q_gap": 0.03502502292394638,
+        "batch_reward_mean": 0.07362159341573715,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_grad_norm": 0.0930720716714859,
+        "critic_gradient_clipped": 0.0,
+        "critic_loss": 2.417440414428711,
+        "actor_grad_norm": 0.01793631538748741,
+        "alpha_grad_norm": 1.4159519672393799,
+        "actor_loss": -0.7203369140625,
+        "continuous_entropy": 1.40680730342865,
+        "discrete_entropy": 0.13131825625896454,
+        "alpha_continuous": 0.19808749854564667,
+        "alpha_discrete": 0.1980970799922943
+      }
+    },
+    {
+      "phase": "complete",
+      "elapsed_s": 479.604270052,
+      "host_rss_bytes": 26340814848,
+      "host_hwm_bytes": 26449035264,
+      "system_available_bytes": 20292800512,
+      "effective_available_bytes": 1017565184,
+      "cgroup_limit_bytes": 32212254720,
+      "cgroup_current_bytes": 31194689536,
+      "gpu": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 120030208,
+          "peak_allocated_bytes": 175920128,
+          "peak_reserved_bytes": 192937984
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "allocated_bytes": 3767695360,
+          "peak_allocated_bytes": 6950934016,
+          "peak_reserved_bytes": 12851347456
+        }
+      ]
+    }
+  ],
+  "host_peaks": {
+    "rss_peak_bytes": 26449379328,
+    "effective_available_min_bytes": 1018068992,
+    "cgroup_current_peak_bytes": 31194185728
+  },
+  "real_collections": 5,
+  "real_joint_transitions": 20480,
+  "duplicated_replay": true,
+  "checkpoint_removed_after_verified_restore": true
+}
