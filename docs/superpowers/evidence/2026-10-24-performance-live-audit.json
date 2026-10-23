@@ -8,13 +8,13 @@
     "mean_historical_episode_steps": 1710.259,
     "budget_episodes": 20000,
     "mean_workload_transitions": 34205180,
-    "horizon_ceiling_transitions": 36000000,
     "rate_windows": [
       "whole current segment excluding inherited transitions",
       "50 sampled history points",
       "200 sampled history points"
     ],
-    "limits": "Workload projection, not a completion guarantee. Event workload and policy change throughput. Excludes preflight, transfer, queue and quota waiting."
+    "limits": "Workload projection, not a completion guarantee. Event workload and policy change throughput. Excludes preflight, transfer, queue and quota waiting. The 36M reference counts only completed episodes; a vector collector can spend additional transitions on unfinished final-wave worlds, so it is not a hard ceiling on global_step.",
+    "completed_episode_horizon_workload_transitions": 36000000
   },
   "runs": [
     {
@@ -84,6 +84,11 @@
       "estimated_remaining_gpu_hours": {
         "optimistic": 58.97734905828127,
         "conservative": 78.61280909195014
+      },
+      "runtime_acceleration": {
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false
       }
     },
     {
@@ -153,6 +158,11 @@
       "estimated_remaining_gpu_hours": {
         "optimistic": 10.051090752977906,
         "conservative": 56.04081725626108
+      },
+      "runtime_acceleration": {
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false
       }
     },
     {
@@ -234,6 +244,11 @@
       "estimated_remaining_gpu_hours": {
         "optimistic": 38.382001177234045,
         "conservative": 73.78163487859484
+      },
+      "runtime_acceleration": {
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false
       }
     },
     {
@@ -303,6 +318,11 @@
       "estimated_remaining_gpu_hours": {
         "optimistic": 33.386583454905875,
         "conservative": 91.38774061247551
+      },
+      "runtime_acceleration": {
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false
       }
     },
     {
@@ -385,6 +405,11 @@
       "estimated_remaining_gpu_hours": {
         "optimistic": 64.19035471419576,
         "conservative": 108.71620239255569
+      },
+      "runtime_acceleration": {
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false
       }
     }
   ],
