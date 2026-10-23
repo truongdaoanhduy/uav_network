@@ -1,0 +1,255 @@
+{
+  "observed_utc": "2026-10-23T18:39:42.597629+00:00",
+  "runs": [
+    {
+      "label": "MASAC BASE 1M",
+      "id": "63faeffb",
+      "state": "finished",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/63faeffb",
+      "created_at": "2026-10-23T08:14:19Z",
+      "segment_initial_step_verified_from_parent": 0,
+      "summary": {
+        "_runtime": 36430,
+        "continuation_index": 0,
+        "episode_budget_complete": false,
+        "episodes_completed": 650,
+        "global_step": 6983680,
+        "progress/episode_step_max": 1705,
+        "progress/episode_step_mean": 1450.98046875,
+        "progress/episode_step_min": 1,
+        "run/elapsed_seconds": 36039.186695326,
+        "stop_reason": "time_budget",
+        "timing/collector_wait_seconds": 27813.46299929892,
+        "timing/learner_seconds": 8061.491567955984,
+        "train/episodes_completed": 650
+      },
+      "rate_window_method": "last 50/200 distinct global_step training logs, run/elapsed_seconds clock; excludes post-training checkpoint/upload idle",
+      "rate_windows": [
+        {
+          "sample_points": 50,
+          "window_seconds": 595.8983029090014,
+          "transitions_s": 336.80914850776
+        },
+        {
+          "sample_points": 200,
+          "window_seconds": 1362.389878613998,
+          "transitions_s": 598.28982348961
+        }
+      ],
+      "segment_mean_transitions_s": 193.78017764495578,
+      "estimated_remaining_gpu_hours": [
+        12.636164935571863,
+        41.593980286552274
+      ],
+      "acceleration_config": {
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false
+      }
+    },
+    {
+      "label": "MASAC PQL 1M c01",
+      "id": "bc18a145",
+      "state": "running",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/bc18a145",
+      "created_at": "2026-10-23T17:02:37Z",
+      "segment_initial_step_verified_from_parent": 7045120,
+      "summary": {
+        "_runtime": 5761.277227556,
+        "continuation_index": 1,
+        "global_step": 7331840,
+        "pql/collector_seconds": 5459.177952228996,
+        "pql/critic_seconds": 277.43273626998825,
+        "pql/policy_seconds": 230.86725010499595,
+        "progress/episode_step_max": 1790,
+        "progress/episode_step_mean": 124.72607421875,
+        "progress/episode_step_min": 1,
+        "run/elapsed_seconds": 5766.165121108001,
+        "train/episodes_completed": 3939
+      },
+      "rate_window_method": "last 50/200 distinct global_step training logs, run/elapsed_seconds clock; excludes post-training checkpoint/upload idle",
+      "rate_windows": [
+        {
+          "sample_points": 50,
+          "window_seconds": 4625.030302214001,
+          "transitions_s": 43.39517514164676
+        },
+        {
+          "sample_points": 70,
+          "window_seconds": 5714.726371142001,
+          "transitions_s": 49.45538625036948
+        }
+      ],
+      "segment_mean_transitions_s": 49.724555918527905,
+      "estimated_remaining_gpu_hours": [
+        150.09440788181766,
+        183.50836819495282
+      ],
+      "acceleration_config": {
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false
+      }
+    },
+    {
+      "label": "MATD3 BASE 1M",
+      "id": "2dcbf36c",
+      "state": "finished",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/2dcbf36c",
+      "created_at": "2026-10-23T08:17:15Z",
+      "segment_initial_step_verified_from_parent": 0,
+      "summary": {
+        "_runtime": 36665,
+        "continuation_index": 0,
+        "episode_budget_complete": false,
+        "episodes_completed": 0,
+        "global_step": 3825664,
+        "progress/episode_step_max": 934,
+        "progress/episode_step_mean": 934,
+        "progress/episode_step_min": 934,
+        "run/elapsed_seconds": 36016.198718432,
+        "stop_reason": "time_budget",
+        "timing/collector_wait_seconds": 34869.09069355197,
+        "timing/learner_seconds": 1102.5169679460023,
+        "train/episodes_completed": 0
+      },
+      "rate_window_method": "last 50/200 distinct global_step training logs, run/elapsed_seconds clock; excludes post-training checkpoint/upload idle",
+      "rate_windows": [
+        {
+          "sample_points": 50,
+          "window_seconds": 1089.443721511001,
+          "transitions_s": 184.22612938797255
+        },
+        {
+          "sample_points": 200,
+          "window_seconds": 3956.360296865005,
+          "transitions_s": 206.02370331283612
+        }
+      ],
+      "segment_mean_transitions_s": 106.22064893378491,
+      "estimated_remaining_gpu_hours": [
+        40.9531302461054,
+        84.13915415944066
+      ],
+      "acceleration_config": {
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false
+      }
+    },
+    {
+      "label": "MATD3 PQL 1M",
+      "id": "278634f6",
+      "state": "running",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/278634f6",
+      "created_at": "2026-10-23T08:36:21Z",
+      "segment_initial_step_verified_from_parent": 0,
+      "summary": {
+        "_runtime": 35801.093864252,
+        "continuation_index": 0,
+        "episode_budget_complete": false,
+        "episodes_completed": 0,
+        "global_step": 3465216,
+        "pql/collector_seconds": 35591.95747203391,
+        "pql/critic_seconds": 922.8488447021018,
+        "pql/policy_seconds": 274.82980105505067,
+        "progress/episode_step_max": 846,
+        "progress/episode_step_mean": 846,
+        "progress/episode_step_min": 846,
+        "run/elapsed_seconds": 35803.862372045,
+        "stop_reason": "time_budget",
+        "train/episodes_completed": 0
+      },
+      "rate_window_method": "last 50/200 distinct global_step training logs, run/elapsed_seconds clock; excludes post-training checkpoint/upload idle",
+      "rate_windows": [
+        {
+          "sample_points": 50,
+          "window_seconds": 1385.7528873170013,
+          "transitions_s": 144.83390353137867
+        },
+        {
+          "sample_points": 200,
+          "window_seconds": 4237.303690107001,
+          "transitions_s": 192.36383785827184
+        }
+      ],
+      "segment_mean_transitions_s": 96.78330130956981,
+      "estimated_remaining_gpu_hours": [
+        44.381730449202934,
+        93.37809185794315
+      ],
+      "acceleration_config": {
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false
+      }
+    },
+    {
+      "label": "MASAC BASE 500k c01",
+      "id": "30e43dda",
+      "state": "running",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/30e43dda",
+      "created_at": "2026-10-23T16:35:19Z",
+      "segment_initial_step_verified_from_parent": 10309632,
+      "summary": {
+        "_runtime": 7429.735768992,
+        "continuation_index": 1,
+        "global_step": 11210752,
+        "progress/episode_step_max": 1144,
+        "progress/episode_step_mean": 1000.26318359375,
+        "progress/episode_step_min": 937,
+        "run/elapsed_seconds": 7427.566756153999,
+        "timing/collector_wait_seconds": 6516.454786609006,
+        "timing/learner_seconds": 869.4957838409937,
+        "train/episodes_completed": 4096
+      },
+      "rate_window_method": "last 50/200 distinct global_step training logs, run/elapsed_seconds clock; excludes post-training checkpoint/upload idle",
+      "rate_windows": [
+        {
+          "sample_points": 50,
+          "window_seconds": 1650.6002493119995,
+          "transitions_s": 121.59455330487022
+        },
+        {
+          "sample_points": 200,
+          "window_seconds": 6733.592129481,
+          "transitions_s": 121.0503969242974
+        }
+      ],
+      "segment_mean_transitions_s": 121.3210233692468,
+      "estimated_remaining_gpu_hours": [
+        52.51799565570219,
+        56.88459019699484
+      ],
+      "acceleration_config": {
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false
+      }
+    }
+  ],
+  "new_runs_since_1740Z": [],
+  "kernels": [
+    {
+      "account": "account_35",
+      "ref": "bjkjbhm/uav-receiver-cache-t4-comparison-20261024",
+      "status": "bjkjbhm/uav-receiver-cache-t4-comparison-20261024 has status \"KernelWorkerStatus.COMPLETE\""
+    },
+    {
+      "account": "account_32",
+      "ref": "jwekfjjwoigjo/uavnet-train-20261023-073957-9c4cd8",
+      "status": "jwekfjjwoigjo/uavnet-train-20261023-073957-9c4cd8 has status \"KernelWorkerStatus.COMPLETE\""
+    },
+    {
+      "account": "account_33",
+      "ref": "lihuhi/uavnet-train-20261023-074258-316e25",
+      "status": "lihuhi/uavnet-train-20261023-074258-316e25 has status \"KernelWorkerStatus.COMPLETE\""
+    },
+    {
+      "account": "account_34",
+      "ref": "kjhiguyf/uavnet-train-20261023-074845-a0387e",
+      "status": "kjhiguyf/uavnet-train-20261023-074845-a0387e has status \"KernelWorkerStatus.RUNNING\""
+    }
+  ],
+  "eta_assumptions": "34.2-36M completed-episode transitions, final-wave overhead excluded; phase-dependent extrapolation, excludes queue/quota/checkpoint/preflight"
+}

@@ -1,0 +1,44 @@
+[
+  {
+    "account": "account_32",
+    "child_ref": "jwekfjjwoigjo/uavnet-train-20261023-073957-c01",
+    "child_status": "jwekfjjwoigjo/uavnet-train-20261023-073957-c01 has status \"KernelWorkerStatus.RUNNING\"",
+    "commit": "337608c2cffb02c0ec7d3cd0689069c1b596c1e0",
+    "expected_step": {
+      "masac": 6983680
+    },
+    "expected_episodes": {
+      "masac": 650
+    },
+    "submitted_at_utc": "2026-10-23T18:21:36.544572+00:00",
+    "job_summaries": {
+      "masac": {
+        "tracking_status": "finished",
+        "stop_reason": "time_budget",
+        "global_step": 6983680,
+        "episode_budget_complete": false
+      }
+    }
+  },
+  {
+    "account": "account_33",
+    "child_ref": "lihuhi/uavnet-train-20261023-074258-316e25-c01",
+    "child_status": "lihuhi/uavnet-train-20261023-074258-316e25-c01 has status \"KernelWorkerStatus.RUNNING\"",
+    "commit": "337608c2cffb02c0ec7d3cd0689069c1b596c1e0",
+    "expected_step": {
+      "matd3": 3825664
+    },
+    "expected_episodes": {
+      "matd3": 0
+    },
+    "submitted_at_utc": "2026-10-23T18:28:32.296094+00:00",
+    "job_summaries": {
+      "matd3": {
+        "tracking_status": "finished",
+        "stop_reason": "time_budget",
+        "global_step": 3825664,
+        "episode_budget_complete": false
+      }
+    }
+  }
+]

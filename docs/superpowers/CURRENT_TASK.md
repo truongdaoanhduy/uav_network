@@ -1,8 +1,21 @@
-# Current task: exact-network performance audit
+# Current task: full training-path audit and measured fixes
 
-Updated 2026-10-24 01:24 Asia/Ho_Chi_Minh.
+Updated 2026-10-24 01:45 Asia/Ho_Chi_Minh.
 
-## Resume here
+## Resume here — Task 7 IN PROGRESS
+
+New user instruction after Task 6: audit all owned scenario/algorithm/runtime/cloud code and fresh online W&B metrics/logs, explain why 20,000 episodes × <=1,800 steps cannot finish within 12h, and implement justified fixes. This authorizes investigation and minimal verified fixes; proceed sequentially, preserving healthy production training and scientific settings. Task 6 remains completed/reverted at commit6062744.
+
+- Worktree `/home/aduy/Documents/NCKH/uav_network-public-hf-20261022`, branch `feat/cpu-replay-20261022`, starting HEAD `6062744b6626fcc73f55fab8b7f321da74a5f1d9`.
+- Read-only audits split into scenario, algorithms/replay/runtime, native network, cloud/lifecycle; root owns GPU packet path and integration. No agents may edit or touch production jobs.
+- Fresh W&B 01:39 Oct24: BASE MASAC650/6,983,680 and MATD3 0/3,825,664 finished `time_budget`; both Kaggle parents COMPLETE. PQL1M child3939/7,331,840 running; MATPQL0/3,465,216 has time_budget recorded. Full20k completion conditions unchanged.
+- Downloaded actual root continuation control files under `/tmp/uav-task7-terminal/account_32` and `account_33`. Both children are **RUNNING** on their same accounts: `jwekfjjwoigjo/uavnet-train-20261023-073957-c01`, `lihuhi/uavnet-train-20261023-074258-316e25-c01`; both pin source337608c2, verified prefixes650/6,983,680 and0/3,825,664. No new child W&B run yet at snapshot: preflight/restore is plausible, do not duplicate or restart them.
+- Actual runtime budget: max_train_seconds36000 (10h), submitted ceiling39600 (11h), wrap-up reserve1020s for artifact_timeout900; a nominal12h allowance is not12h of training.
+- Native/GPU IDLE/LISTEN semantics reviewed. LISTEN already coalesces up to nearest other event; broad skipping changes insertion ties, diagnostics or link snapshots. Candidate hypothesis: retain all logical events and reuse already-valid pair gain inside frozen-geometry packet_step instead of repeated displacement/sqrt checks. Need CPU/native parity and matched T4 gain before retaining; no source changed yet.
+- Proven ancillary issues: final CPU-visualization builder currently accepts time_budget/unfinished episodes outsideauto_continue; compile/fused-only launches skip acceleration preflight. These do not explain primary collector slowdown. Fix one at a time with a failing test, not bundled speculative changes.
+- Next: finish minimal design/test/benchmark plan, write performance gate before candidate code, smoke CPU, benchmark pinned baseline/candidate on T4 account35 after quota check. Keep candidate only if measured gain exceeds noise and all initialized state hashes/native oracle match. Then address concrete lifecycle gates with test-first changes, full suite, review, commit/push and update audit coverage/evidence. Do not promise completion in12h without measured full-training throughput.
+
+## Previous Task 6 record
 
 **Task 6: receiver buffer cache — COMPLETE, NEGATIVE RESULT, REVERTED.**
 Worktree: `/home/aduy/Documents/NCKH/uav_network-public-hf-20261022`.
