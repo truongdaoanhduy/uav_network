@@ -15,7 +15,7 @@ from ..algorithms.precision import CompileStartupGate
 from ..algorithms.replay import resolve_replay_device
 from ..environment.observations import observation_dim, state_dim
 from .pql_checkpoints import validate_pql_checkpoint
-from .pql_replay import MeasuredReplay
+from .pql_replay import MeasuredReplay, make_replay
 from .pql_workers import (CriticWorker, PolicyWorker, SnapshotMailbox, cloned_state, freeze_transition,
                           inference_copy, install_policy, optimizer_states, policy_snapshot,
                           restore_optimizers, synchronize, worker_device)
@@ -102,12 +102,8 @@ class PQLSystem:
             self.credit, self.warmup_origin = training["credit"], training["warmup_origin"]
         if replay is not None and replay.capacity != config.algorithm_config.replay_capacity:
             raise ValueError("Replay override capacity differs from algorithm config")
-        self.replay = replay if replay is not None else MeasuredReplay(
-                                    config.algorithm_config.replay_capacity,
-                                    (config.world.num_uavs, observation_dim(config)), state_dim(config),
-                                    config.runtime.seed, device=self.replay_device,
-                                    pin_memory=self.replay_device.type == "cpu" and
-                                    (self.critic_device.type == "cuda" or self.policy_device.type == "cuda"))
+        self.replay = replay if replay is not None else make_replay(
+            config, (config.world.num_uavs, observation_dim(config)), state_dim(config), self.critic_device)
         if saved and saved["training"].get("replay") is not None:
             self.replay.load_state_dict(saved["training"]["replay"])
         elif saved:

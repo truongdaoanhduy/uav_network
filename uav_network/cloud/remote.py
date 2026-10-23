@@ -53,7 +53,7 @@ def learner_command(spec, algorithm, run, gpu_index, destination, max_seconds=No
     args = [sys.executable, "-m", "uav_network", "train", "--config", spec["config"],
             "--algorithm", algorithm]
     overrides = [*spec["overrides"], "tracking.enabled=true", "runtime.device=cuda",
-                 "runtime.replay_device=cuda", f"runtime.output_dir={destination}"]
+                 f"runtime.output_dir={destination}"]
     if spec.get("cpu_visualize"):
         overrides.append("tracking.evaluation_interval=0")
     if algorithm in spec.get("warm_start_paths", {}):
@@ -146,7 +146,7 @@ def base_benchmarks(spec, config, output):
                 "--env-counts", str(config.runtime.num_envs), "--steps", "2",
                 "--learner-updates", "2", "--output", str(path)]
         for override in [*spec["overrides"], f"runtime.algorithm={algorithm}",
-                         "runtime.device=cuda", "runtime.replay_device=cuda"]:
+                         "runtime.device=cuda"]:
             args += ["--set", override]
         subprocess.run(args, check=True)
         results[algorithm] = json.loads(path.read_text())
@@ -164,7 +164,7 @@ def pql_benchmarks(spec, config, output, require_pass=True):
                 "--algorithms", algorithm, "--envs", str(config.runtime.num_envs),
                 "--batches", str(batch), "--steps", str(rounds), "--output", str(path)]
         for override in [*spec["overrides"], "tracking.enabled=true",
-                         "runtime.device=cuda", "runtime.replay_device=cuda"]:
+                         "runtime.device=cuda"]:
             args += ["--set", override]
         benchmark_env = dict(os.environ)
         for name in ("WANDB_RUN_ID", "WANDB_NAME", "KAGGLE_API_TOKEN"):
@@ -188,7 +188,7 @@ def comparison_benchmarks(spec, config, output):
     path = output / "comparison-benchmark.json"
     args = [sys.executable, "scripts/compare_training_gpu.py", "--config", spec["config"],
             "--algorithms", *spec["runs"], "--steps", str(rounds), "--output", str(path)]
-    for override in [*spec["overrides"], "runtime.device=cuda", "runtime.replay_device=cuda"]:
+    for override in [*spec["overrides"], "runtime.device=cuda"]:
         args += ["--set", override]
     env = dict(os.environ)
     for key in ("KAGGLE_API_TOKEN", "WANDB_RUN_ID", "WANDB_NAME"):
@@ -222,7 +222,7 @@ def comparison_benchmarks(spec, config, output):
 
 def cpu_replay_diagnostic(spec, output):
     diagnostic = spec.get("diagnostic")
-    if diagnostic not in {"cpu-replay-1m", "gpu-replay-1m", "hybrid-replay-1m", "hybrid75-replay-1m"} or set(spec.get("runs", {})) != {"masac"}:
+    if diagnostic not in {"cpu-replay-1m", "gpu-replay-1m", "hybrid-replay-1m", "hybrid75-replay-1m", "hybrid75-4096-1m"} or set(spec.get("runs", {})) != {"masac"}:
         raise ValueError("Replay diagnostic requires exactly one supported MASAC 1M case")
     run = spec["runs"]["masac"]
     destination = Path(output) / "cpu-replay"
@@ -230,9 +230,12 @@ def cpu_replay_diagnostic(spec, output):
                PROBE_COMMIT=spec["commit"])
     env.pop("KAGGLE_API_TOKEN", None)
     layout = {"cpu-replay-1m": "cpu", "gpu-replay-1m": "gpu",
-              "hybrid-replay-1m": "hybrid50", "hybrid75-replay-1m": "hybrid75"}[diagnostic]
-    subprocess.run([sys.executable, "-m", "uav_network.experiments.cpu_replay_probe",
-                    "--output", str(destination), "--layout", layout], env=env, check=True)
+              "hybrid-replay-1m": "hybrid50", "hybrid75-replay-1m": "hybrid75", "hybrid75-4096-1m": "hybrid75"}[diagnostic]
+    args = [sys.executable, "-m", "uav_network.experiments.cpu_replay_probe",
+            "--output", str(destination), "--layout", layout]
+    if diagnostic == "hybrid75-4096-1m":
+        args.append("--production-shape")
+    subprocess.run(args, env=env, check=True)
     result_path = destination / "cpu-replay-result.json"
     if not result_path.is_file():
         raise RuntimeError("CPU replay diagnostic produced no result JSON")
@@ -246,7 +249,7 @@ def run_job(spec):
     output = Path("/kaggle/working")
     started = float(os.environ.get("UAV_JOB_STARTED_AT", time.monotonic()))
     (output / "hardware.json").write_text(json.dumps(hardware_info(), indent=2))
-    if spec.get("diagnostic") in {"cpu-replay-1m", "gpu-replay-1m", "hybrid-replay-1m", "hybrid75-replay-1m"}:
+    if spec.get("diagnostic") in {"cpu-replay-1m", "gpu-replay-1m", "hybrid-replay-1m", "hybrid75-replay-1m", "hybrid75-4096-1m"}:
         return cpu_replay_diagnostic(spec, output)
     config = load_config(spec["config"], spec["overrides"])
     spec["warm_start_paths"] = prepare_checkpoints(spec, output, config=config)
@@ -291,7 +294,7 @@ def run_job(spec):
                     "--env-counts", str(config.runtime.num_envs), "--steps", "32",
                     "--learner-updates", "20", "--output", str(output / f"{algorithm}-benchmark.json")]
             for override in [*spec["overrides"], f"runtime.algorithm={algorithm}",
-                             "runtime.device=cuda", "runtime.replay_device=cuda"]:
+                             "runtime.device=cuda"]:
                 args += ["--set", override]
             with (output / f"{algorithm}-benchmark.log").open("w") as log:
                 subprocess.run(args, stdout=log, stderr=subprocess.STDOUT, check=True)
@@ -368,6 +371,9 @@ def finalize_runs(spec, processes, output):
             write_failure(output, error)
             if action == "cpu":
                 (output / "cpu-visualization-failure.json").write_text(json.dumps(continuation_failure, indent=2))
+        from .pipeline_status import publish_pipeline_status
+        publish_pipeline_status(spec, results, output, failed=continuation_failure is not None,
+                                next_stage=action or "unknown")
     elif spec.get("cpu_visualize"):
         eligible = {a: result for a, result in results.items() if a not in failures}
         if eligible:

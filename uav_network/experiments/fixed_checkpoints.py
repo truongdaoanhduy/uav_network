@@ -12,6 +12,9 @@ from .pql_workers import optimizer_states, restore_optimizers
 
 def replay_state(replay, *, copy=True):
     """Freeze by default; borrow full CPU storage only during synchronous save."""
+    from ..algorithms.hybrid_replay import HybridMeasuredReplay
+    if isinstance(replay, HybridMeasuredReplay):
+        return replay.state_dict(copy=copy)
     def snapshot(value):
         result = value.detach().cpu()
         # Compact partial views so torch.save never writes unused ring storage.
@@ -29,6 +32,9 @@ def replay_state(replay, *, copy=True):
 
 
 def restore_replay(replay, saved):
+    from ..algorithms.hybrid_replay import HybridMeasuredReplay
+    if isinstance(replay, HybridMeasuredReplay):
+        return replay.load_state_dict(saved)
     if (saved["capacity"] != replay.capacity or not 0 <= saved["size"] <= replay.capacity
             or not 0 <= saved["index"] < replay.capacity):
         raise ValueError("Fixed-schedule replay checkpoint capacity/size/cursor mismatch")
@@ -86,6 +92,8 @@ def validate_fixed_checkpoint(saved, config):
     if saved.get("algorithm") != config.runtime.algorithm:
         raise ValueError("Fixed-schedule resume algorithm differs from checkpoint")
     before, current = saved["config"], config.to_dict()
+    if before["runtime"].get("replay_cpu_fraction", 0.0) != config.runtime.replay_cpu_fraction:
+        raise ValueError("Fixed-schedule resume runtime.replay_cpu_fraction differs from checkpoint")
     if before["pql"]["enabled"] or config.pql.enabled:
         raise ValueError("Fixed-schedule resume cannot change PQL scheduling")
     for group in ("world", "sensor", "network", "energy", "reward", config.runtime.algorithm):
@@ -129,7 +137,9 @@ def validate_fixed_checkpoint(saved, config):
                    for value in parameter.values()):
                 raise ValueError("Fixed-schedule checkpoint contains non-finite Adam tensors")
     replay = training["replay"]
-    replay_required = {"capacity", "size", "index", "device_type", "rng", "data"}
+    hybrid = config.runtime.replay_cpu_fraction > 0
+    replay_required = {"capacity", "size", "index", "rng"} | (
+        {"layout", "cpu_data", "hot_data"} if hybrid else {"device_type", "data"})
     if not isinstance(replay, dict) or not replay_required <= replay.keys():
         raise ValueError("Fixed-schedule checkpoint requires complete replay state")
     inserted = progress["global_step"] - training["warmup_origin"]
@@ -139,9 +149,13 @@ def validate_fixed_checkpoint(saved, config):
             or replay["index"] != inserted % capacity):
         raise ValueError("Fixed-schedule checkpoint replay cursor differs from verified progress")
     shapes = transition_shapes((config.world.num_uavs, saved["observation_dim"]), saved["state_dim"])
-    if not isinstance(replay["data"], dict) or replay["data"].keys() != shapes.keys():
+    if hybrid:
+        from ..algorithms.hybrid_replay import validate_hybrid_state
+        validate_hybrid_state(replay, capacity, (config.world.num_uavs, saved["observation_dim"]),
+                              saved["state_dim"], config.runtime.replay_cpu_fraction)
+    elif not isinstance(replay["data"], dict) or replay["data"].keys() != shapes.keys():
         raise ValueError("Fixed-schedule checkpoint replay fields are incomplete")
-    for name, shape in shapes.items():
+    for name, shape in (() if hybrid else shapes.items()):
         value = replay["data"][name]
         dtype = torch.int64 if name == "destination" else torch.float32
         if (not isinstance(value, torch.Tensor) or value.shape != (replay["size"], *shape)

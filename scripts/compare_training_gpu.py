@@ -49,7 +49,12 @@ def case_config(config, case, algorithm, output, *, allow_cpu=False):
         raise UnavailableCase("CUDA measurement required; use --allow-cpu with runtime.device=cpu for a CPU smoke test")
     if not cpu and not available:
         raise UnavailableCase("CUDA unavailable; no GPU measurement performed")
-    c.runtime.device = c.runtime.replay_device = "cpu" if cpu else "cuda"
+    if case == "legacy" and (c.runtime.replay_cpu_fraction or
+                             (not cpu and c.runtime.replay_device == "cpu")):
+        raise ValueError("Legacy comparison requires its original same-device replay layout")
+    c.runtime.device = "cpu" if cpu else "cuda"
+    if cpu:
+        c.runtime.replay_device = "cpu"
     collector = "cpu" if cpu else "cuda:0"
     learner = "cuda:1" if case == "pql-dual" else collector
     c.pql.collector_device, c.pql.learner_device, c.pql.policy_device = collector, learner, learner

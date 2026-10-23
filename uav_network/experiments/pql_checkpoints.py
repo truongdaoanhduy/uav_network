@@ -13,6 +13,8 @@ def validate_pql_checkpoint(saved, config):
     progress = validate_progress(saved.get("progress"), config.runtime.episodes)
     training = saved["training"]
     before, current = saved["config"]["runtime"], config.to_dict()["runtime"]
+    if before.get("replay_cpu_fraction", 0.0) != config.runtime.replay_cpu_fraction:
+        raise ValueError("PQL resume runtime.replay_cpu_fraction differs from checkpoint")
     for name in ("amp_mode", "compile_models", "fused_optimizers", "vectorize_critics", "deterministic"):
         if before.get(name, "off" if name == "amp_mode" else None) != current[name]:
             raise ValueError(f"PQL resume runtime.{name} differs from checkpoint")

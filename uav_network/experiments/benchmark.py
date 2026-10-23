@@ -9,6 +9,7 @@ import torch
 from ..algorithms.checkpoints import make_learner
 from ..algorithms.optimization import compile_models
 from ..algorithms.replay import TensorReplayBuffer
+from .pql_replay import make_replay
 from ..environment.observations import observation_dim, state_dim
 from ..environment.vector import make_vector, random_actions
 from .hardware import hardware_info, synchronize
@@ -52,9 +53,7 @@ def benchmark(config, env_counts=(1, 2, 4), steps=32, learner_updates=10):
             vector = make_vector(c, device=collector_device)
             obs, _ = vector.reset(seed=c.runtime.seed)
             startup = time.perf_counter() - started
-            replay = TensorReplayBuffer(settings.replay_capacity, obs["observation"].shape[1:],
-                                        state_dim(c), c.runtime.seed, replay_device,
-                                        pin_memory=learner_device.type == "cuda" and replay_device.type == "cpu")
+            replay = make_replay(c, obs["observation"].shape[1:], state_dim(c), learner_device, measured=False)
             rng = np.random.default_rng(c.runtime.seed + 1)
             next_seed = c.runtime.seed + count
             collector_s = reset_s = 0.0

@@ -146,3 +146,18 @@ def test_remote_replay_diagnostic_maps_all_layouts():
             with patch.object(remote.subprocess, "run", side_effect=child):
                 result = remote.cpu_replay_diagnostic(spec, root)
             assert result["layout"] == layout
+
+
+def test_remote_production_shape_gate_requests_exact_shape():
+    spec = {"commit": "d" * 40, "diagnostic": "hybrid75-4096-1m",
+            "runs": {"masac": {"id": "run-shape", "name": "GATE"}}}
+    with TemporaryDirectory() as folder:
+        root = Path(folder)
+        def child(args, **kwargs):
+            assert "--production-shape" in args
+            assert args[args.index("--layout") + 1] == "hybrid75"
+            out = Path(args[args.index("--output") + 1])
+            out.mkdir(parents=True, exist_ok=True)
+            (out / "cpu-replay-result.json").write_text(json.dumps({"status": "passed"}))
+        with patch.object(remote.subprocess, "run", side_effect=child):
+            assert remote.cpu_replay_diagnostic(spec, root)["status"] == "passed"

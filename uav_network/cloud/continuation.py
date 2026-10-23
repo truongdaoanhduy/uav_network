@@ -169,9 +169,12 @@ def submit_continuation(parent, results, output, account=None, credentials=None)
         quotas = account_quotas(credentials, requested=account.name)
         quota = next((q for q in quotas if q.get("name") == account.name and q.get("ok")), None)
         remaining = quota.get("remaining_hours") if quota else None
+        manifest["failure_reason"] = "quota_unavailable"
         if (type(remaining) not in (float, int) or not math.isfinite(remaining)
                 or remaining < max(.25, credentials.min_gpu_hours)):
             raise RuntimeError("Selected account GPU quota is unavailable or insufficient for continuation")
+        manifest["remaining_gpu_hours"] = remaining
+        manifest["failure_reason"] = "insufficient_quota"
         # Keep a quarter hour of verified quota as a scheduling/teardown cushion.
         seconds = min(spec.get("timeout_seconds", 39600), 39600, math.floor((remaining - .25) * 3600))
         config = load_config(spec["config"], spec["overrides"])
@@ -179,7 +182,8 @@ def submit_continuation(parent, results, output, account=None, credentials=None)
         if seconds <= reserve:
             raise RuntimeError("Selected account GPU quota cannot cover a safe training and upload segment")
         spec["timeout_seconds"] = seconds
-        manifest = {**spec, "status": "pending", "remaining_gpu_hours": remaining}
+        manifest = {**spec, "status": "pending", "remaining_gpu_hours": remaining,
+                    "failure_reason": "credential_verification_failed"}
         (output / "continuation.json").write_text(json.dumps(manifest, indent=2))
         username = spec["kernel_ref"].split("/", 1)[0]
         verify_credential_dataset(account, credentials, spec["credential_dataset"], username,
@@ -196,6 +200,7 @@ def submit_continuation(parent, results, output, account=None, credentials=None)
         (folder / "kernel.py").write_text(kernel_script(spec))
         (folder / "kernel-metadata.json").write_text(json.dumps(kernel_metadata(spec), indent=2))
         check_submission_deadline(parent)
+        manifest["failure_reason"] = "submission_failed"
         response = run_kaggle(["kernels", "push", "-p", str(folder), "--accelerator",
                                spec.get("accelerator", "NvidiaTeslaT4"), "--timeout", str(seconds)],
                               account, timeout=50)
@@ -206,6 +211,7 @@ def submit_continuation(parent, results, output, account=None, credentials=None)
                         kernel_url="https://www.kaggle.com/code/" + ref,
                         wandb_urls={a: f"https://wandb.ai/{spec['entity']}/{spec['project']}/runs/{r['id']}"
                                     for a, r in spec["runs"].items()})
+        manifest.pop("failure_reason", None)
         (output / "continuation.json").write_text(json.dumps(manifest, indent=2))
         print(json.dumps({"continuation_url": manifest["kernel_url"]}), flush=True)
         return manifest

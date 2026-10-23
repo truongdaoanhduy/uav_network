@@ -35,7 +35,8 @@ class VisualizationTrackingTests(unittest.TestCase):
                 with patch.dict(sys.modules,{'wandb':sdk}), \
                      patch('uav_network.experiments.tracking._authentication',return_value=('owner','main')), \
                      patch('uav_network.experiments.dashboard.ensure_project_workspace',return_value='https://wandb.ai/owner/main/workspace'), \
-                     patch('uav_network.cloud.remote.prepare_checkpoints',return_value={'matd3':checkpoint}):
+                     patch('uav_network.cloud.remote.prepare_checkpoints',return_value={'matd3':checkpoint}), \
+                     patch('uav_network.cloud.visualize.publish_visualization_media',return_value={}):
                     if failure:
                         with patch('uav_network.cloud.visualize.evaluate',side_effect=ValueError('render failed')):
                             with self.assertRaises(RuntimeError):run_visualization(spec,root/'failed')

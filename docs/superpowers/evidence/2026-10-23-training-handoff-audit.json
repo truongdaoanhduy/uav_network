@@ -1,0 +1,157 @@
+{
+  "observed_at_utc": "2026-10-23T04:28:08.412195+00:00",
+  "historical_snapshot": [
+    {
+      "run_id": "483a83a5",
+      "name": "MASAC-BASE-uav-network-2d-seed44-20261022-104625-33f02c-c01-483a83a5",
+      "state_at_2026_10_23_0404Z": "finished",
+      "num_envs": 2048,
+      "batch_size": 4096,
+      "replay_capacity": 500000,
+      "replay_device": "cuda",
+      "global_step": 6074368,
+      "episodes": 2048,
+      "episode_budget_complete": false,
+      "session_status": "session_time_budget_reached",
+      "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/483a83a5"
+    },
+    {
+      "run_id": "c77ded1d",
+      "name": "MASAC-PQL-uav-network-2d-seed44-20261022-104443-fe5080-c01-c77ded1d",
+      "state_at_2026_10_23_0404Z": "finished",
+      "num_envs": 2048,
+      "batch_size": 4096,
+      "replay_capacity": 500000,
+      "replay_device": "cuda",
+      "global_step": 6256640,
+      "episodes": 2048,
+      "episode_budget_complete": false,
+      "session_status": "session_time_budget_reached",
+      "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/c77ded1d"
+    },
+    {
+      "run_id": "bda3bccd",
+      "name": "MATD3-PQL-uav-network-2d-seed44-20261022-182108-0f3166",
+      "state_at_2026_10_23_0404Z": "running",
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 500000,
+      "replay_device": "cuda",
+      "global_step": 4714496,
+      "episodes": 0,
+      "episode_budget_complete": null,
+      "session_status": null,
+      "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/bda3bccd"
+    },
+    {
+      "run_id": "f5cfb3f9",
+      "name": "MASAC-PQL-uav-network-2d-seed44-20261022-181831-9edaa9",
+      "state_at_2026_10_23_0404Z": "crashed",
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 500000,
+      "replay_device": "cuda",
+      "global_step": 196608,
+      "episodes": 0,
+      "episode_budget_complete": null,
+      "session_status": null,
+      "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/f5cfb3f9"
+    },
+    {
+      "run_id": "29e6add6",
+      "name": "MASAC-BASE-uav-network-2d-seed44-20261022-181830-d84ca0",
+      "state_at_2026_10_23_0404Z": "running",
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 500000,
+      "replay_device": "cuda",
+      "global_step": 4612096,
+      "episodes": 0,
+      "episode_budget_complete": null,
+      "session_status": null,
+      "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/29e6add6"
+    },
+    {
+      "run_id": "3070f38e",
+      "name": "MATD3-BASE-uav-network-2d-seed44-20261022-181835-720ef9",
+      "state_at_2026_10_23_0404Z": "running",
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 500000,
+      "replay_device": "cuda",
+      "global_step": 3764224,
+      "episodes": 0,
+      "episode_budget_complete": null,
+      "session_status": null,
+      "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/3070f38e"
+    },
+    {
+      "run_id": "03a89c24",
+      "name": "DIAG-HYBRID75-REPLAY-1M-MASAC-PQL",
+      "state_at_2026_10_23_0404Z": "finished",
+      "num_envs": 2048,
+      "batch_size": 4096,
+      "replay_capacity": 1000000,
+      "replay_device": "cpu",
+      "global_step": null,
+      "episodes": null,
+      "episode_budget_complete": false,
+      "session_status": null,
+      "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/03a89c24"
+    },
+    {
+      "run_id": "47bd6da9",
+      "name": "MATD3-BASE-uav-network-2d-seed44-20261022-104752-461dfb",
+      "state_at_2026_10_23_0404Z": "finished",
+      "num_envs": 2048,
+      "batch_size": 4096,
+      "replay_capacity": 500000,
+      "replay_device": "cuda",
+      "global_step": 4382720,
+      "episodes": 2048,
+      "episode_budget_complete": false,
+      "session_status": "session_time_budget_reached",
+      "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/47bd6da9"
+    }
+  ],
+  "quota_reproductions": [
+    {
+      "account": "account_03",
+      "failure_reason": "insufficient_quota",
+      "remaining_hours": 0.45,
+      "submission_forbidden_in_audit": true
+    },
+    {
+      "account": "account_06",
+      "failure_reason": "insufficient_quota",
+      "remaining_hours": 0.46,
+      "submission_forbidden_in_audit": true
+    },
+    {
+      "account": "account_09",
+      "failure_reason": "insufficient_quota",
+      "remaining_hours": 0.46,
+      "submission_forbidden_in_audit": true
+    }
+  ],
+  "baseline_head": "94487fd",
+  "focused_tests": "38 passed in 9.36s",
+  "full_suite": "659 passed, 74 skipped, 8 warnings, 1218 subtests passed in 812.73s",
+  "requested_config": "configs/comparison-20k-hybrid75-1m.yaml",
+  "production_gate_submitted": false,
+  "interim_cpu_validation": {
+    "kernel": "vuliu123456/uavnet-validate-20261022-104625-33-cpu",
+    "state": "running",
+    "runs": {
+      "masac": {
+        "id": "9a9895ea",
+        "name": "MASAC-CPU-visualize-483a83a5-e3d8f4"
+      }
+    },
+    "episodes": 1,
+    "source_checkpoint_run": "483a83a5",
+    "scope": "interim, not final 20k evaluation"
+  },
+  "full_suite_log": "/tmp/uav-hybrid75-final-suite.log",
+  "media_test_isolation": "Final media-tracking test could reach actual HF credentials; external publisher boundary now mocked. Focused visualization suite: 9 passed in 8.61s."
+}

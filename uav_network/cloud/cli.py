@@ -49,8 +49,9 @@ def launch(args, credentials):
     compare_legacy = getattr(args, "compare_legacy", False)
     diagnostic = getattr(args, "diagnostic", None)
     if diagnostic:
-        expected = "configs/comparison-20k-steps1800-scenario-v3.yaml"
-        if (diagnostic not in {"cpu-replay-1m", "gpu-replay-1m", "hybrid-replay-1m", "hybrid75-replay-1m"} or args.stage != "benchmark" or args.algorithm != "masac"
+        expected = ("configs/comparison-20k-hybrid75-1m.yaml" if diagnostic == "hybrid75-4096-1m"
+                    else "configs/comparison-20k-steps1800-scenario-v3.yaml")
+        if (diagnostic not in {"cpu-replay-1m", "gpu-replay-1m", "hybrid-replay-1m", "hybrid75-replay-1m", "hybrid75-4096-1m"} or args.stage != "benchmark" or args.algorithm != "masac"
                 or compare_legacy or args.warm_start_artifact or args.overrides
                 or auto_continue or cpu_visualize or (args.config not in {None, expected})):
             raise ValueError("CPU replay diagnostic requires benchmark/MASAC, the pinned V3 config, and no extra overrides")
@@ -58,6 +59,8 @@ def launch(args, credentials):
         config = load_config(ROOT / config_file)
     if compare_legacy and (args.stage != "benchmark" or not config.pql.enabled):
         raise ValueError("Matched comparison requires --stage benchmark and pql.enabled=true")
+    if compare_legacy and (config.runtime.replay_cpu_fraction or config.runtime.replay_device == "cpu"):
+        raise ValueError("Legacy cloud comparison requires its original same-device replay layout")
     if auto_continue and (args.algorithm == "both" or args.stage == "benchmark"):
         raise ValueError("Automatic continuation requires one algorithm in a training/validate stage")
     if auto_continue and config.pql.enabled and not config.pql.checkpoint_replay:
@@ -151,7 +154,7 @@ def main(argv=None):
     submit.add_argument("--stage", choices=["validate", "train", "benchmark"], default="train")
     submit.add_argument("--compare-legacy", action="store_true",
                         help="Benchmark matched legacy, single-GPU PQL and dual-GPU PQL; no production training")
-    submit.add_argument("--diagnostic", choices=["cpu-replay-1m", "gpu-replay-1m", "hybrid-replay-1m", "hybrid75-replay-1m"],
+    submit.add_argument("--diagnostic", choices=["cpu-replay-1m", "gpu-replay-1m", "hybrid-replay-1m", "hybrid75-replay-1m", "hybrid75-4096-1m"],
                         help="Run one bounded reviewed diagnostic instead of a training/benchmark entrypoint")
     submit.add_argument("--account")
     submit.add_argument("--required-gpu-hours", type=float)

@@ -152,6 +152,7 @@ class RuntimeConfig:
     shared_memory: bool = True
     collector_overlap: bool = True
     replay_device: str = "auto"
+    replay_cpu_fraction: float = 0.0
     deterministic: bool = True
     compile_models: bool = False
     amp_mode: str = "off"
@@ -291,6 +292,10 @@ class Config:
             raise ValueError("hidden_sizes must contain positive integers")
         if r.device not in {"auto", "cpu", "cuda"} or r.replay_device not in {"auto", "cpu", "cuda"}:
             raise ValueError("device and replay_device must be auto, cpu or cuda")
+        if (type(r.replay_cpu_fraction) not in (int, float)
+                or not 0 <= r.replay_cpu_fraction < 1
+                or (r.replay_cpu_fraction > 0 and r.replay_device != "cpu")):
+            raise ValueError("runtime.replay_cpu_fraction must be in [0, 1) and hybrid replay requires replay_device=cpu")
         p = self.pql
         if (p.mode not in {"async", "synchronous"} or p.critic_sample_ratio <= 0
                 or min(p.max_pending_collections, p.max_pending_policy_updates) < 1

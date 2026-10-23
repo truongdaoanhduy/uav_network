@@ -11,7 +11,7 @@ import yaml
 
 from ..algorithms.optimization import compile_models
 from ..algorithms.replay import resolve_replay_device
-from .pql_replay import MeasuredReplay
+from .pql_replay import MeasuredReplay, make_replay
 from ..environment.observations import state_dim
 from ..environment.vector import make_vector, random_actions, unpack_info
 from .tracking import start_tracking, final_metrics
@@ -131,9 +131,7 @@ def _train(config):
         device_env = config.runtime.environment_backend == "warp_packet"
         if config.runtime.compile_models:
             compile_models(learner)
-        replay = MeasuredReplay(settings.replay_capacity, obs["observation"].shape[1:],
-                                    state_dim(config), config.runtime.seed, replay_device,
-                                    pin_memory=learner_device.type == "cuda" and replay_device.type == "cpu")
+        replay = make_replay(config, obs["observation"].shape[1:], state_dim(config), learner_device)
         rng = np.random.default_rng(config.runtime.seed + 1)
         if restored_training:
             restore_replay(replay, restored_training["replay"])

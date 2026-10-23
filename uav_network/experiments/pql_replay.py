@@ -122,3 +122,18 @@ class MeasuredReplay(TensorReplayBuffer):
         for name, value in self.data.items():
             value[:self.size].copy_(saved["data"][name])
         self.rng = restored_rng
+
+
+def make_replay(config, observation_shape, state_dim, learner_device, *, measured=True):
+    """Construct the explicitly configured layout; default storage stays unchanged."""
+    from ..algorithms.replay import resolve_replay_device
+    settings = config.algorithm_config
+    if config.runtime.replay_cpu_fraction:
+        from ..algorithms.hybrid_replay import HybridMeasuredReplay
+        return HybridMeasuredReplay(settings.replay_capacity, observation_shape, state_dim,
+                                    config.runtime.seed, hot_device=learner_device,
+                                    cpu_fraction=config.runtime.replay_cpu_fraction)
+    device = resolve_replay_device(config.runtime.replay_device, learner_device)
+    cls = MeasuredReplay if measured else TensorReplayBuffer
+    return cls(settings.replay_capacity, observation_shape, state_dim, config.runtime.seed, device,
+               pin_memory=device.type == "cpu" and torch.device(learner_device).type == "cuda")
