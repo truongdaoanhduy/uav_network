@@ -273,6 +273,8 @@ def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32))
         reset_reward_state(s,e)
         for j in range(diag.COUNTER_COUNT):
             s.diagnostic_counts[e,j] = wp.int64(0)
+        for j in range(17):
+            s.dispatch_counts[e,j] = wp.int64(0)
         for j in range(8):
             s.delivery_hop_histogram[e,j] = wp.int64(0)
         for j in range(diag.STAT_COUNT):
@@ -401,6 +403,7 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
         if time >= end:
             break
         kind = s.event_kind[e,0]
+        s.dispatch_counts[e,kind] += wp.int64(1)
         arg = s.event_arg[e,0]
         generation = s.event_generation[e,0]
         s.packet_time[e] = time

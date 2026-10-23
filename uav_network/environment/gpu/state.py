@@ -103,6 +103,7 @@ class WorldParams:
 @wp.struct
 class WorldState:
     diagnostic_counts: wp.array2d(dtype=wp.int64)
+    dispatch_counts: wp.array2d(dtype=wp.int64)
     diagnostic_stats: wp.array3d(dtype=wp.float64)
     power_histogram: wp.array3d(dtype=wp.int64)
     delivery_hop_histogram: wp.array2d(dtype=wp.int64)
@@ -341,6 +342,7 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False):
     s = WorldState()
     shapes = {
         "diagnostic_counts": ((e,len(COUNTERS)), wp.int64),
+        "dispatch_counts": ((e,17), wp.int64),
         "diagnostic_stats": ((e,len(STATS),4), wp.float64),
         "power_histogram": ((e,2,6), wp.int64),
         "delivery_hop_histogram": ((e,8), wp.int64),
