@@ -53,6 +53,7 @@ def base_config(folder):
     config.world.max_steps = 1
     config.network.enabled = False
     config.runtime.algorithm = "matd3"
+    config.pql.enabled = False
     config.runtime.device = config.runtime.replay_device = "cpu"
     config.runtime.environment_backend = "warp_packet"
     config.runtime.num_envs = config.runtime.episodes = 2
