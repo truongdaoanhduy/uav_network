@@ -475,3 +475,11 @@ git push origin perf/framefree-bitmap-20261023
 ```
 
 If the gate returns `KEEP GEN1`, stop this optimization task. If it returns `ADVANCE`, the next task is a separate approved production-shaped collector/learner probe; do not merge or promote `framefree` automatically.
+
+
+## Cloud CUDA gate audit — 2026-10-23
+
+- Local Framefree scientific/parity gate remains green: focused cloud+framefree suite 46 passed / 717 subtests; full branch suite 648 passed / 100 skipped / 1246 subtests. CUDA-only cases are skipped locally, so this is not a CUDA exactness claim.
+- The earlier CUDA kernel `bjkjbhm/uav-framefree-cuda-exact-20261023-090433` is private and was pinned to stale commit `5146efe`, while the Framefree branch advanced to `d7cf8bb` and later. The default Kaggle credential is not that private kernel owner, so `kaggle kernels status` reproduces `Permission 'kernels.get' was denied`.
+- Root-cause fix: `uav_network.experiments.framefree_cuda_gate` now generates a credential-free **public** GPU diagnostic kernel, rejects non-exact commit SHAs, records CUDA/GPU/pytest evidence, and validates the downloaded result. `scripts/framefree_cuda_gate.py` provides `prepare` and `verify`; it never reads `key.txt` or account-specific tokens. Production training kernels remain private and unchanged.
+- Do not promote Framefree or launch the benchmark until a public CUDA gate generated from the final pushed Framefree commit returns `torch_cuda=true`, `gpu_count>=1`, `pytest_returncode=0`, and the exact same commit SHA.
