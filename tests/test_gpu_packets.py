@@ -145,6 +145,12 @@ class GPUPacketTests(unittest.TestCase):
         source = inspect.getsource(mac.packet_step)
         self.assertIn("if s.event_kind[e,k] != POLL:", source)
 
+    def test_streaming_fill_session_uses_maintained_queue_count(self):
+        streaming = importlib.import_module("uav_network.communication.gpu.streaming")
+        source = inspect.getsource(streaming.fill_session)
+        self.assertIn("s.node_queue_count[e,source]", source)
+        self.assertNotIn("for j in range(p.packet_capacity):\n            if s.pkt_status[e,j] == 1 and s.pkt_source[e,j] == source", source)
+
     def test_state_schema_and_masked_reset(self):
         wp, state, mac = self.backend()
         c = config()

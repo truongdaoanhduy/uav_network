@@ -71,11 +71,7 @@ def fill_session(s: WorldState, p: WorldParams, e: int, session: int,
         if ((s.session_arrived_mask[e,session] & bit) != wp.uint64(0)
             or (s.session_pending_mask[e,session] & bit) != wp.uint64(0)):
             continue
-        queued = int(0)
-        for j in range(p.packet_capacity):
-            if s.pkt_status[e,j] == 1 and s.pkt_source[e,j] == source:
-                queued += 1
-        if queued >= p.max_queue_packets:
+        if s.node_queue_count[e,source] >= p.max_queue_packets:
             break
         remaining = s.report_created[e,source,target]+p.report_ttl-now/wp.float64(1e6)
         if remaining <= wp.float64(0):
