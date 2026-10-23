@@ -14,11 +14,11 @@ import warp as wp
 from ..configuration import load_config
 from ..environment.gpu.geometry import sense
 from ..environment.gpu.vector import WarpVectorEnv
-from ..communication.gpu.mac import packet_step, packet_step_gen2, sense_reports
+from ..communication.gpu.mac import packet_step, packet_step_gen2, packet_step_framefree, sense_reports
 
 
 CORPORA = {"low_contention", "active_streaming"}
-SCHEDULERS = {"gen1", "gen2"}
+SCHEDULERS = {"gen1", "gen2", "framefree"}
 
 
 def _commit():
@@ -84,12 +84,16 @@ def _scientific_metrics(vector):
 
 
 def _memory(vector):
+    derived = sum(a.size * wp.types.type_size_in_bytes(a.dtype)
+                  for a in (getattr(vector, "_frame_free_words", None),
+                            getattr(vector, "_frame_reclaim_words", None)) if a is not None)
     if vector.device.type != "cuda":
-        return {"allocated_bytes": int(vector.allocated_bytes), "peak_allocated_bytes": 0,
-                "peak_reserved_bytes": 0, "device_total_bytes": 0}
+        return {"allocated_bytes": int(vector.allocated_bytes), "derived_bitmap_bytes": int(derived),
+                "peak_allocated_bytes": 0, "peak_reserved_bytes": 0, "device_total_bytes": 0}
     props = torch.cuda.get_device_properties(vector.device)
     return {
         "allocated_bytes": int(vector.allocated_bytes),
+        "derived_bitmap_bytes": int(derived),
         "peak_allocated_bytes": int(torch.cuda.max_memory_allocated(vector.device)),
         "peak_reserved_bytes": int(torch.cuda.max_memory_reserved(vector.device)),
         "device_total_bytes": int(props.total_memory),
@@ -98,7 +102,7 @@ def _memory(vector):
 
 def benchmark_mac_scheduler(config, *, num_envs: int, steps: int, scheduler: str, corpus: str) -> dict:
     if scheduler not in SCHEDULERS:
-        raise ValueError("scheduler must be gen1 or gen2")
+        raise ValueError("scheduler must be gen1, gen2, or framefree")
     if corpus not in CORPORA:
         raise ValueError("corpus must be low_contention or active_streaming")
     if int(num_envs) < 1:
@@ -116,7 +120,8 @@ def benchmark_mac_scheduler(config, *, num_envs: int, steps: int, scheduler: str
     vector = WarpVectorEnv(selected, device=device, packet_scheduler=scheduler)
     packet_seconds = 0.0
     original_launch = vector._launch
-    selected_kernel = packet_step_gen2 if scheduler == "gen2" else packet_step
+    selected_kernel = (packet_step_gen2 if scheduler == "gen2" else
+                       packet_step_framefree if scheduler == "framefree" else packet_step)
 
     def measured_launch(kernel, dim, *args):
         nonlocal packet_seconds

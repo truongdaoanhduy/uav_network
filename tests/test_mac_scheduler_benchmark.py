@@ -75,3 +75,19 @@ class MacSchedulerBenchmarkTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class FrameFreeBenchmarkContractTests(unittest.TestCase):
+    def test_framefree_is_accepted_and_reports_derived_bitmap_memory(self):
+        row = benchmark_mac_scheduler(tiny_config(), num_envs=2, steps=1,
+                                      scheduler="framefree", corpus="active_streaming")
+        self.assertEqual(row["scheduler"], "framefree")
+        self.assertEqual(row["simulator_error_count"], 0)
+        self.assertIn("derived_bitmap_bytes", row["gpu_memory"])
+        # tiny_config uses two UAVs: frame_capacity=544 -> 9 uint64 words per bitmap.
+        self.assertEqual(row["gpu_memory"]["derived_bitmap_bytes"], 2 * 9 * 2 * 8)
+        self.assertEqual(set(row["scientific_metrics"]), {
+            "generated_packets", "received_packets", "phy_successes", "phy_failures",
+            "collisions", "energy_blocked_transmissions", "payload_bytes_received",
+            "expired_packets", "reports_delivered", "targets_delivered",
+            "communication_energy_j", "tx_energy_j", "rx_energy_j",
+        })
