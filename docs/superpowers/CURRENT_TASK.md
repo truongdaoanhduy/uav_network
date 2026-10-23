@@ -21,6 +21,9 @@ New user instruction after Task 6: audit all owned scenario/algorithm/runtime/cl
 - Task7B RED:6 unfinished/inconsistent-budget cases accepted beforefix; GREEN:37passed,35subtests in8.18s, exit0 (HF_HUB_OFFLINE=1 WANDB_MODE=offline). Legacy no-budget preview still passes.
 - Task7B Ruling: guard explicitly budgeted final handoffs, retain existing no-budget legacy partial previews — existing CPUHandoffTests deliberately require partial visualization; cost if wrong is legacy no-budget output still being mistaken for full training, so retain training_status labels and document scope. No production job changed.
 
+- Task7C RED: compile-only/fused-only skipped preflight; BASE preflight allocation ignored hybrid75 (actual allocation-expression CPU reproduction). GREEN:50passed,2skipped,12subtests in7.54s, exit0. Bootstrap now gates any requested acceleration; BASE uses production make_replay and reports cold/hot bytes. No flags enabled by this fix.
+- Task7C Ruling: align preflight replay with production while fixing independent-flag gating — otherwise expanded preflight could falsely OOM on all-GPU replay; cost if wrong is a misleading diagnostic, so bounded real two-T4 smoke remains required, not a claim of canonical accelerated1M success.
+
 ## Previous Task 6 record
 
 **Task 6: receiver buffer cache — COMPLETE, NEGATIVE RESULT, REVERTED.**

@@ -18,7 +18,7 @@ def check_execution(config, output):
         raise RuntimeError("Execution preflight requires exactly two T4 CUDA devices")
     from ..algorithms.checkpoints import make_learner
     from ..algorithms.optimization import compile_models
-    from ..experiments.pql_replay import MeasuredReplay
+    from ..experiments.pql_replay import make_replay
     from ..environment.observations import observation_dim, state_dim
     from ..environment.vector import make_vector
     from ..experiments.pql_system import PQLSystem
@@ -62,8 +62,8 @@ def check_execution(config, output):
             learner = make_learner(cfg, observation_dim(cfg), state_dim(cfg), device="cuda:1")
             policy = learner
             collector = inference_copy(learner, "cuda:0")
-            replay = MeasuredReplay(cfg.algorithm_config.replay_capacity,
-                (cfg.world.num_uavs, observation_dim(cfg)), state_dim(cfg), cfg.runtime.seed, device="cuda:1")
+            replay = make_replay(cfg, (cfg.world.num_uavs, observation_dim(cfg)),
+                                 state_dim(cfg), learner.device)
             if cfg.runtime.compile_models:
                 compile_models(learner)
         optimizers = [learner.critic_optimizer, *policy.actor_optimizers]
@@ -72,6 +72,11 @@ def check_execution(config, output):
         report["all_adam_groups_fused"] = all(group.get("fused") is True
             for optimizer in optimizers for group in optimizer.param_groups)
         report["replay_bytes"] = replay.allocated_bytes
+        report["replay_layout"] = "hybrid" if hasattr(replay, "cpu_data") else replay.device.type
+        report["replay_cpu_bytes"] = getattr(replay, "cpu_allocated_bytes",
+            replay.allocated_bytes if replay.device.type == "cpu" else 0)
+        report["replay_hot_bytes"] = getattr(replay, "hot_allocated_bytes",
+            replay.allocated_bytes if replay.device.type == "cuda" else 0)
         report["devices"] = dict(world=str(vector.device), collector=str(collector.device),
                                  learner=str(learner.device), replay=str(replay.device))
         collector.act_batch(obs["observation"], return_tensors=True)

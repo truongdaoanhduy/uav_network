@@ -265,7 +265,8 @@ def run_job(spec):
         with (output / log_name).open("w") as log:
             subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests",
                             "-p", pattern, "-v"], stdout=log, stderr=subprocess.STDOUT, check=True)
-    if config.runtime.amp_mode == "fp16":
+    if (config.runtime.amp_mode == "fp16" or config.runtime.compile_models
+            or config.runtime.fused_optimizers):
         for algorithm in spec["runs"]:
             args = [sys.executable, "-m", "uav_network.cloud.execution_check",
                     "--config", spec["config"], "--algorithm", algorithm,

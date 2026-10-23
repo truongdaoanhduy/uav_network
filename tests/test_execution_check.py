@@ -13,6 +13,63 @@ class ExecutionCheckTests(unittest.TestCase):
         self.assertEqual(_counter_total({"reason-a": 2, "reason-b": 3}), 5)
         self.assertEqual(_counter_total({}), 0)
 
+    def test_each_requested_acceleration_runs_execution_preflight(self):
+        from types import SimpleNamespace
+        from uav_network.cloud import remote
+        for flag in (None, "amp_mode", "compile_models", "fused_optimizers"):
+            c = Config()
+            if flag:
+                setattr(c.runtime, flag, "fp16" if flag == "amp_mode" else True)
+            commands = []
+            reports = {"masac": {"results": [{"status": "passed"}]}}
+            spec = {"config": "configs/example.yaml", "overrides": ["runtime.num_envs=2"],
+                    "runs": {"masac": {"id": "example"}}, "stage": "benchmark"}
+            with self.subTest(flag=flag), TemporaryDirectory() as directory, \
+                 patch.object(remote.torch.cuda, "is_available", return_value=True), \
+                 patch.object(remote, "hardware_info", return_value={}), \
+                 patch.object(remote, "load_config", return_value=c), \
+                 patch.object(remote, "prepare_checkpoints", return_value={}), \
+                 patch.object(remote, "base_benchmarks", return_value=reports), \
+                 patch.object(remote, "Path", return_value=Path(directory)), \
+                 patch.object(remote.subprocess, "run", side_effect=lambda args, **kwargs:
+                              commands.append(args) or SimpleNamespace(returncode=0)):
+                self.assertEqual(remote.run_job(spec), reports)
+                checks = [args for args in commands if "uav_network.cloud.execution_check" in args]
+                self.assertEqual(len(checks), int(flag is not None))
+                if checks:
+                    self.assertEqual(checks[0][checks[0].index("--algorithm")+1], "masac")
+                    self.assertIn("runtime.num_envs=2", checks[0])
+
+    def test_execution_preflight_builds_configured_hybrid_replay(self):
+        # Execute the actual allocation expression with CUDA storage mapped to
+        # CPU; the production two-T4 guard is tested separately.
+        import ast
+        import inspect
+        import torch
+        from types import SimpleNamespace
+        from uav_network.cloud import execution_check
+        from uav_network.environment.observations import observation_dim, state_dim
+        from uav_network.experiments.pql_replay import MeasuredReplay, make_replay
+        tree = ast.parse(inspect.getsource(execution_check.check_execution))
+        expression = next(node.value for node in ast.walk(tree)
+                          if isinstance(node, ast.Assign)
+                          and any(isinstance(t, ast.Name) and t.id == "replay" for t in node.targets))
+        class CPUStorage(ast.NodeTransformer):
+            def visit_Constant(self, node):
+                return ast.copy_location(ast.Constant("cpu"), node) if node.value == "cuda:1" else node
+        expression = CPUStorage().visit(expression)
+        c = Config(); c.masac.replay_capacity = 64
+        c.runtime.replay_device = "cpu"; c.runtime.replay_cpu_fraction = .75
+        replay = eval(compile(ast.fix_missing_locations(ast.Expression(expression)),
+                              execution_check.__file__, "eval"),
+                      dict(cfg=c, learner=SimpleNamespace(device=torch.device("cpu")),
+                           observation_dim=observation_dim, state_dim=state_dim,
+                           MeasuredReplay=MeasuredReplay, make_replay=make_replay))
+        saved = replay.state_dict()
+        self.assertEqual(saved.get("layout"), "hybrid")
+        self.assertEqual(saved["cpu_capacity"], 48)
+        self.assertEqual(replay.hot_capacity, 16)
+
     def test_cuda_guard_precedes_world_and_replay_allocation(self):
         from uav_network.cloud.execution_check import check_execution
         config = Config()

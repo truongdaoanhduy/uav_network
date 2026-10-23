@@ -50,7 +50,7 @@
 **Interfaces:** Existing generated execution_check invocation runs whenever supported AMP/compile/fused acceleration is requested; no runtime defaults changed.
 
 - [ ] Write/run failing compile-only and fused-only bootstrap tests, plus default-off control.
-- [ ] Change only bootstrap predicate with existing config API; run execution/cloud tests.
+- [ ] Change bootstrap predicate and use production make_replay in BASE preflight (old all-GPU allocation contradicts hybrid75); report cold/hot bytes. Run execution/cloud tests and bounded real two-T4 smoke.
 - [ ] Full suite, review whole change, refresh W&B, save audit findings/limits and final decision, commit/push all progress records.
 
 ## Execution
