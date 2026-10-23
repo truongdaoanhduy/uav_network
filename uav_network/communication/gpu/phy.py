@@ -123,20 +123,37 @@ def latest_arrival_end(s: WorldState, p: WorldParams, e: int, frame: int) -> wp.
 
 
 @wp.func
-def busy(s: WorldState, p: WorldParams, e: int, node: int, now: wp.float64) -> bool:
+def carrier_busy(s: WorldState, p: WorldParams, e: int, node: int, now: wp.float64,
+                 frozen_geometry: bool) -> bool:
     s.diagnostic_counts[e,diag.CCA_CHECKS] += wp.int64(1)
     power = wp.float64(0)
     for k in range(s.frame_count[e]):
         j = s.frame_order[e,k]
         if (s.tx_source[e,j] != node
             and arrival_start(s,p,e,j,node) <= now and now < arrival_end(s,p,e,j,node)):
-            power += s.tx_power[e,j]*gain(s,p,e,s.tx_source[e,j],node,now)
+            source = s.tx_source[e,j]
+            pair = source*(p.n+1)+node
+            link_gain = s.pair_gain[e,pair]
+            if not frozen_geometry or s.pair_time[e,pair] < wp.float64(0):
+                link_gain = gain(s,p,e,source,node,now)
+            power += s.tx_power[e,j]*link_gain
     if power <= wp.float64(0):
         return False
     result = wp.float64(10)*wp.log10(power*wp.float64(1000)) >= p.cca_threshold
     if result:
         s.diagnostic_counts[e,diag.CCA_BUSY] += wp.int64(1)
     return result
+
+
+@wp.func
+def busy(s: WorldState, p: WorldParams, e: int, node: int, now: wp.float64) -> bool:
+    return carrier_busy(s,p,e,node,now,False)
+
+
+@wp.func
+def busy_in_step(s: WorldState, p: WorldParams, e: int, node: int, now: wp.float64) -> bool:
+    # packet_step invalidates every pair before its frozen-geometry event loop.
+    return carrier_busy(s,p,e,node,now,True)
 
 
 @wp.func

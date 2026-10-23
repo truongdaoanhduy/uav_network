@@ -14,6 +14,7 @@ if HAS_WARP:
     import warp as wp
     from uav_network.environment.gpu.state import WorldState, WorldParams
     from uav_network.communication.gpu.phy import emit, busy, evaluate
+    from uav_network.communication.gpu import phy
 
     @wp.kernel
     def emit_probe(s: WorldState, p: WorldParams, packet: int, source: int, dest: int,
@@ -24,6 +25,11 @@ if HAS_WARP:
     def busy_probe(s: WorldState, p: WorldParams, node: int, now: wp.float64,
                    result: wp.array(dtype=wp.int32)):
         result[0] = int(busy(s,p,0,node,now))
+
+    @wp.kernel
+    def step_busy_probe(s: WorldState, p: WorldParams, node: int, now: wp.float64,
+                        result: wp.array(dtype=wp.int32)):
+        result[0] = int(phy.busy_in_step(s,p,0,node,now))
 
     @wp.kernel
     def evaluate_probe(s: WorldState, p: WorldParams, frame: int, now: wp.float64,
@@ -143,6 +149,42 @@ class PropagationTests(unittest.TestCase):
         self.assertTrue(interferers)
         wp.launch(evaluate_probe,dim=1,inputs=[s,p,target_frame,wp.float64(arrival_end),result],device="cpu")
         self.assertFalse(bool(result.numpy()[0]))
+
+    @unittest.skipUnless(HAS_WARP,"optional Warp dependency not installed")
+    def test_frozen_step_cca_matches_generic_state_across_arrivals_and_movement(self):
+        # Catches stale cached gains after step movement, altered CCA counters,
+        # or changes to half-open receiver-relative arrival intervals.
+        import hashlib
+        from uav_network.environment.gpu.state import allocate_state
+        device = getattr(self, "device", "cpu")
+        c = config(); c.world.num_uavs = 3; c.network.bit_rate_bps = 1e9
+        c.network.report_bytes = c.network.payload_bytes = 1
+        states = [allocate_state(c, device=device) for _ in range(2)]
+        positions = np.array([[[100.,100.],[980.,100.],[1000.,100.]]])
+        result = wp.zeros(1, dtype=wp.int32, device=device)
+        for s,p in states:
+            s.positions.assign(positions); s.gcs.assign(np.array([[500.,0.]]))
+            s.battery.fill_(c.energy.battery_capacity_j); s.pkt_power.fill_(.1)
+        for phase, times in enumerate(((.5,1.5,2.), (5.5,6.,6.5))):
+            for (s,p), probe in zip(states, (busy_probe, step_busy_probe)):
+                if phase:
+                    moved = positions.copy(); moved[0,0,0] += 200.
+                    s.positions.assign(moved)
+                # packet_step invalidates every pair before any CCA query.
+                s.pair_time.fill_(-1.)
+                wp.launch(emit_probe, dim=1,
+                          inputs=[s,p,0,0,2,wp.float64(phase*5),result], device=device)
+                self.assertGreaterEqual(int(result.numpy()[0]), 0)
+                for now, expected in zip(times, (False, True, False)):
+                    wp.launch(probe, dim=1,
+                              inputs=[s,p,3,wp.float64(now),result], device=device)
+                    self.assertEqual(bool(result.numpy()[0]), expected)
+            first, second = states[0][0], states[1][0]
+            for name,value in vars(first).items():
+                if isinstance(value, wp.array):
+                    self.assertEqual(hashlib.sha256(value.numpy().tobytes()).digest(),
+                                     hashlib.sha256(getattr(second,name).numpy().tobytes()).digest(),
+                                     name)
 
     @unittest.skipUnless(HAS_WARP,"optional Warp dependency not installed")
     def test_disabled_delay_table_has_no_payload_and_empty_medium_is_idle(self):
