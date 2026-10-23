@@ -141,6 +141,21 @@ def write_failure(output, error, manifest=None):
 
 
 
+def _owned_kernel_exists(ref, account):
+    """Resolve Kaggle's ambiguous missing-private-kernel permission error safely."""
+    owner, separator, slug = ref.partition("/")
+    if not separator or not slug:
+        raise ValueError("Owned kernel lookup requires an owner/slug reference")
+    text = run_kaggle(["kernels", "list", "--mine", "--search", slug,
+                       "--format", "json", "--page-size", "200"], account)
+    if not text.strip() or text.strip().lower().startswith("not found"):
+        return False
+    rows = json.loads(text)
+    if not isinstance(rows, list):
+        raise RuntimeError("Owned kernel lookup returned an invalid response")
+    return any(isinstance(row, dict) and row.get("ref") == ref for row in rows)
+
+
 def resume_waiting_continuation(kernel_ref, account, credentials, output):
     """Retry a quota-paused continuation from verified control files only."""
     state = kernel_status(kernel_ref, account)
@@ -173,7 +188,13 @@ def resume_waiting_continuation(kernel_ref, account, credentials, output):
     try:
         child_state = kernel_status(child_ref, account)
     except RuntimeError as error:
-        if "not found" not in str(error).lower():
+        message = str(error).lower()
+        if "not found" in message:
+            pass
+        elif "kernels.get" in message and "denied" in message:
+            if _owned_kernel_exists(child_ref, account):
+                raise RuntimeError("Continuation child already exists but its status is unavailable") from error
+        else:
             raise
     else:
         if child_state not in {"error", "failed", "cancelled"}:
