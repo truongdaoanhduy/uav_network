@@ -51,6 +51,16 @@ def check_learner_equivalence(device="cpu"):
 
 
 class PerformanceTests(unittest.TestCase):
+    def test_packet_selection_caches_receiver_buffer_usage(self):
+        import inspect
+        from uav_network.communication.gpu import mac
+
+        source = inspect.getsource(mac.packet_step)
+        selection = source.split("selected = int(-1)", 1)[1].split("if selected >= 0", 1)[0]
+        before_targets, target_loop = selection.split("for t in range(p.targets_count):", 1)
+        self.assertIn("bytes_used(s,p,e,dest)", before_targets)
+        self.assertNotIn("can_receive(s,p,e,dest,t)", target_loop)
+
     def test_unrequested_fusion_keeps_pytorch_adam_defaults(self):
         c = Config()
         c.masac.hidden_sizes = c.matd3.hidden_sizes = [16, 16]

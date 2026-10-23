@@ -367,10 +367,16 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
             continue
         selected = int(-1)
         can_forward = bool(False)
+        receiver_has_space = bool(True)
+        if dest < p.n:
+            receiver_has_space = bytes_used(s,p,e,dest)+p.report_bytes <= p.buffer_bytes
         for t in range(p.targets_count):
+            receivable = bool(True)
+            if dest < p.n:
+                receivable = s.known[e,dest,t] == 0 and receiver_has_space
             forward = (s.report_present[e,source,t] != 0
                        and now/wp.float64(1e6)-s.report_created[e,source,t] < p.report_ttl
-                       and can_receive(s,p,e,dest,t))
+                       and receivable)
             can_forward = can_forward or forward
             reach = p.peer_range
             if dest == p.n:
