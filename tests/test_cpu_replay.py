@@ -249,7 +249,9 @@ def test_full_training_restore_maps_checkpoint_and_keeps_source_file_immutable(t
         before = sha256(path.read_bytes()).hexdigest()
         restored = PQLSystem(config, checkpoint=path)
         try:
-            assert str(path) in Path("/proc/self/maps").read_text()
+            # PQL copies every live tensor it needs during construction, so the
+            # lazy checkpoint mapping can be released before the first update.
+            assert str(path) not in Path("/proc/self/maps").read_text()
             restored.submit(values)
             restored.flush()
         finally:

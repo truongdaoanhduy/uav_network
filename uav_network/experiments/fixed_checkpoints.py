@@ -182,7 +182,7 @@ def restore_fixed_learner(saved, learner):
     if training.get("precision") is not None:
         learner.precision.load_state_dict(training["precision"])
     if learner.algorithm == "matd3":
-        learner._last_actor_metrics = {name: value.to(learner.device) for name, value in training["last_actor_metrics"].items()}
+        learner._last_actor_metrics = {name: value.to(learner.device).clone() for name, value in training["last_actor_metrics"].items()}
 
 
 def save_fixed_checkpoint(learner, path, progress, replay, rng, *, warmup_origin, random_warmup,

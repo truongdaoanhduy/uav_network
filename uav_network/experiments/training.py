@@ -22,7 +22,7 @@ from .reproducibility import reproducibility_result
 from .environment_checkpoints import snapshot_environment, initialize_environment
 from .diagnostics import TrainingDiagnostics, failure_report
 from .async_evaluation import AsyncCheckpointEvaluator
-from .local_checkpoints import prune_episode_checkpoints, disk_metrics
+from .local_checkpoints import prune_episode_checkpoints, disk_metrics, release_staged_checkpoint
 from .pql_workers import cloned_state, inference_copy, synchronize as synchronize_worker
 
 
@@ -141,6 +141,7 @@ def _train(config):
         if restored_training:
             restore_runtime_rng(restored_training["rng"], rng, action_generator=getattr(vector, "action_generator", None))
         restored_training = None  # Release the CPU checkpoint copy after restoring replay.
+        warm_start_sha256 = release_staged_checkpoint(config.runtime.warm_start_checkpoint)
         startup_s = time.perf_counter() - start
 
         def learn(force_metrics=False):
@@ -329,7 +330,7 @@ def _train(config):
         result["periodic_evaluation"] = dict(evaluator.counts)
         result["storage"] = disk_metrics(output)
         result["replay"] = replay.stats()
-        result["reproducibility"] = reproducibility_result(learner, history)
+        result["reproducibility"] = reproducibility_result(learner, history, warm_start_sha256=warm_start_sha256)
         if history:
             result.update(final_metrics(history))
         if tracker:

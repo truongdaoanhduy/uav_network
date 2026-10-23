@@ -17,7 +17,7 @@ def scientific_record(record):
     return record
 
 
-def reproducibility_result(learner, records):
+def reproducibility_result(learner, records, *, warm_start_sha256=None):
     model_hash = sha256()
     for name, tensor in sorted(learner.state_dict().items()):
         value = tensor.detach().cpu().contiguous()
@@ -32,8 +32,8 @@ def reproducibility_result(learner, records):
     checkpoint = config["runtime"]["warm_start_checkpoint"]
     if config.get("pql", {}).get("enabled"):
         settings["pql"] = config["pql"]
-    settings["warm_start_sha256"] = None
-    if checkpoint != "none":
+    settings["warm_start_sha256"] = warm_start_sha256
+    if checkpoint != "none" and warm_start_sha256 is None:
         with Path(checkpoint).open("rb") as stream:
             settings["warm_start_sha256"] = file_digest(stream, "sha256").hexdigest()
     hardware = {"python": platform.python_version(), "numpy": np.__version__,

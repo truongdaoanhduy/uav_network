@@ -105,6 +105,8 @@ def optimizer_states(critic, policy):
 
 
 def restore_optimizers(critic, policy, states):
+    # Adam's CPU step tensors otherwise retain the entire mmap input checkpoint.
+    states = deepcopy(states)
     critic.critic_optimizer.load_state_dict(states["critic"])
     if len(states["actors"]) != len(policy.actor_optimizers):
         raise ValueError("PQL checkpoint actor optimizer count mismatch")

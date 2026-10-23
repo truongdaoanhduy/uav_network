@@ -11,7 +11,7 @@ import yaml
 from ..environment.vector import make_vector, random_actions, unpack_info
 from .diagnostics import TrainingDiagnostics, failure_report
 from .async_evaluation import AsyncCheckpointEvaluator
-from .local_checkpoints import prune_episode_checkpoints, disk_metrics
+from .local_checkpoints import prune_episode_checkpoints, disk_metrics, release_staged_checkpoint
 from .pql_system import PQLSystem
 from .reproducibility import reproducibility_result
 from .environment_checkpoints import snapshot_environment, initialize_environment
@@ -62,6 +62,8 @@ def train_pql(config):
             generator = getattr(vector, "action_generator", None)
             if generator is not None and engine.initial_collector_rng["torch"] is not None:
                 generator.set_state(engine.initial_collector_rng["torch"].cpu())
+        engine.initial_collector_rng = None
+        warm_start_sha256 = release_staged_checkpoint(checkpoint)
         next_log = global_step
         next_checkpoint = (completed // config.runtime.checkpoint_interval + 1) * config.runtime.checkpoint_interval
         latest = {}
@@ -227,7 +229,7 @@ def train_pql(config):
         result["periodic_evaluation"] = dict(evaluator.counts)
         result["storage"] = disk_metrics(output)
         result["replay"] = engine.replay.stats()
-        result["reproducibility"] = reproducibility_result(engine.critic, history)
+        result["reproducibility"] = reproducibility_result(engine.critic, history, warm_start_sha256=warm_start_sha256)
         result["reproducibility"].update(scheduling_deterministic=not engine.asynchronous,
             scope=("Synchronous schedule requires identical source/settings/platform; exact Warp state when available"
                    if not engine.asynchronous else "Seeded algorithms/environment; asynchronous scheduling is not bitwise deterministic"))

@@ -1,7 +1,23 @@
 """Keep only bounded generated episode policies; never delete resume or input files."""
 from pathlib import Path
+import os
+from hashlib import file_digest
 import re
 import shutil
+
+
+def release_staged_checkpoint(checkpoint):
+    """Release only the cloud-owned download, after a complete successful restore."""
+    staged = os.environ.get("UAV_STAGED_RESUME_CHECKPOINT")
+    if not staged:
+        return
+    path = Path(checkpoint)
+    if path.is_symlink() or path.resolve() != Path(staged).resolve():
+        raise ValueError("Staged resume path differs from the restored checkpoint")
+    with path.open("rb") as stream:
+        digest = file_digest(stream, "sha256").hexdigest()
+    path.unlink()
+    return digest
 
 
 def prune_episode_checkpoints(output, keep=2):
