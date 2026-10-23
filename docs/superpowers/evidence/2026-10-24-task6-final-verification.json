@@ -1,0 +1,93 @@
+{
+  "verified_utc": "2026-10-23T18:24:36.505581+00:00",
+  "decision": "Task 6 COMPLETE: no measurable T4 benefit; candidate reverted",
+  "baseline_commit": "4cd9358fe0d7cc851bc95ed1c6d5bd231666d310",
+  "candidate_commit": "cb7c5d6c0c0ba50640c75bea83238f422ea4d902",
+  "reverted_files_byte_equal_baseline": [
+    "uav_network/communication/gpu/mac.py",
+    "tests/test_performance.py"
+  ],
+  "post_revert_full_suite": {
+    "exit_code": 0,
+    "summary": "673 passed, 74 skipped, 8 warnings, 1222 subtests passed in 254.25s (0:04:14)",
+    "scope": "Local CPU full suite; optional CUDA-dependent cases remain skipped",
+    "log_path": "/tmp/uav-task6-after-revert-full-20261024.log"
+  },
+  "candidate_cuda_native_oracle": {
+    "exit_code": 0,
+    "tests": 38,
+    "seconds": 12.333,
+    "device": "Tesla T4 cuda:0",
+    "source_commit": "cb7c5d6c0c0ba50640c75bea83238f422ea4d902",
+    "artifact": "2026-10-24-t4-receiver-cache-cuda-oracle.log"
+  },
+  "control_ab": {
+    "kernel": "bjkjbhm/uav-receiver-cache-t4-comparison-20261024",
+    "version": 2,
+    "case_results": {
+      "active_1kb_peer": {
+        "baseline_median": 787.7424721838944,
+        "candidate_median": 787.5505723293945,
+        "speedup_percent": -0.02436073479291645,
+        "mismatched_arrays": [],
+        "baseline_rates": [
+          789.2353044033913,
+          787.7424721838944,
+          787.7182217661203
+        ],
+        "candidate_rates": [
+          787.5505723293945,
+          787.5398886468336,
+          787.5663724310857
+        ]
+      },
+      "active_1mb_gcs": {
+        "baseline_median": 38.499412715023055,
+        "candidate_median": 38.48308302274864,
+        "speedup_percent": -0.0424154321399417,
+        "mismatched_arrays": [],
+        "baseline_rates": [
+          38.50247179883956,
+          38.49605000119242,
+          38.499412715023055
+        ],
+        "candidate_rates": [
+          38.470380406842914,
+          38.48308302274864,
+          38.503820784287214
+        ]
+      }
+    },
+    "array_hashes_per_trial": 24
+  },
+  "primary_peer_1mb_ab": {
+    "kernel": "bjkjbhm/uav-receiver-cache-peer1m-20261024",
+    "version": 1,
+    "case_results": {
+      "active_1mb_peer": {
+        "baseline_median": 39.17247858170787,
+        "candidate_median": 39.16647574190668,
+        "speedup_percent": -0.01532412555582674,
+        "mismatched_arrays": [],
+        "baseline_rates": [
+          39.12020984124266,
+          39.17247858170787,
+          39.17332998095018
+        ],
+        "candidate_rates": [
+          39.16647574190668,
+          39.17159748980427,
+          39.16624000083398
+        ]
+      }
+    },
+    "array_hashes_per_trial": 140,
+    "trials": 6
+  },
+  "review": "Independent read-only reviewer confirmed negative-result/revert conclusion and baseline byte equality; no unresolved findings for sampled workload",
+  "limitations": [
+    "State equality covers measured fixtures, not a proof over every possible trajectory.",
+    "No performance fix has been promoted to healthy production training.",
+    "Next MAC polling candidate requires a separate task and exact scientific/native parity gates."
+  ]
+}

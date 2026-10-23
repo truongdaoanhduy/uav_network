@@ -1,0 +1,15 @@
+{
+  "id": "6adb1a0b96dc8191b26ad5ed86545aac",
+  "title": "UAV 1M Cohort Recovery",
+  "previous_is_enabled": false,
+  "previous_pause_reason": "Prior assistant paused after Sandbox Resource not found.",
+  "verified_prerequisites": "Connected Sandbox file/command access, W&B Public API, Kaggle owned status and GitHub read all succeeded in this session.",
+  "is_enabled": true,
+  "updated_at": "2026-10-23T18:10:32.370247+00:00",
+  "schedule": "BEGIN:VEVENT\nDTSTART:20261023T085144Z\nRRULE:FREQ=HOURLY\nEND:VEVENT",
+  "next_run_time": null,
+  "recovery_controller_commit": "4cd9358fe0d7cc851bc95ed1c6d5bd231666d310",
+  "same_account_only": true,
+  "performance_candidates_excluded": true,
+  "execution_verification": "Enabled configuration verified by update response; no new scheduled execution verified yet. No immediate run requested."
+}

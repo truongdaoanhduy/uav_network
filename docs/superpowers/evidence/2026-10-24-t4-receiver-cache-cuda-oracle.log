@@ -1,0 +1,18 @@
+Warp 1.18.0 initialized:
+   CUDA Toolkit 13.4, Driver 13.0
+   Devices:
+     "cpu"      : "x86_64"
+     "cuda:0"   : "Tesla T4" (15 GiB, sm_75, mempool enabled)
+     "cuda:1"   : "Tesla T4" (15 GiB, sm_75, mempool enabled)
+   CUDA peer access:
+     Supported fully (all-directional)
+   Kernel cache:
+     /root/.cache/warp/1.18.0
+Module uav_network.communication.gpu.mac a754422 load on device 'cuda:0' took 1.70 ms  (cached)
+Module uav_network.communication.gpu.reports 6a289b0 load on device 'cuda:0' took 0.51 ms  (cached)
+Module uav_network.communication.gpu.rng 3ecbff9 load on device 'cuda:0' took 879.25 ms  (compiled)
+......................................
+----------------------------------------------------------------------
+Ran 38 tests in 12.333s
+
+OK

@@ -1,26 +1,30 @@
 # Current task: exact-network performance audit
 
-Updated 2026-10-24 00:43 Asia/Ho_Chi_Minh (2026-10-23T17:43Z).
+Updated 2026-10-24 01:24 Asia/Ho_Chi_Minh.
 
 ## Resume here
 
-**Task 6: receiver buffer cache — IN PROGRESS, awaiting the T4 A/B gate.**
+**Task 6: receiver buffer cache — COMPLETE, NEGATIVE RESULT, REVERTED.**
 Worktree: `/home/aduy/Documents/NCKH/uav_network-public-hf-20261022`.
-Branch: `feat/cpu-replay-20261022`. Candidate commit: `cb7c5d6c0c0ba50640c75bea83238f422ea4d902`; baseline: `4cd9358fe0d7cc851bc95ed1c6d5bd231666d310`.
-The cache is already committed/pushed. Inspect the source before attempting to recreate it.
+Branch: `feat/cpu-replay-20261022`. Candidate: `cb7c5d6c0c0ba50640c75bea83238f422ea4d902`; baseline: `4cd9358fe0d7cc851bc95ed1c6d5bd231666d310`.
+Candidate is in history, but its two-file change has been reverted. Both files match 4cd9358 byte-for-byte. Do not recreate the cache. Primary peer-1MB gate: baseline median 39.17247858, candidate 39.16647574 transitions/s (-0.015324%, within variability); all 140 initialized arrays match across all six trials. No measured benefit, so reject this candidate. Reviewer confirmed the conclusion and byte equality.
 
-1. Check `bjkjbhm/uav-receiver-cache-t4-comparison-20261024`, **version 2**, account_35. Version 1 stopped before simulation because the diagnostic used invalid `runtime.device=cuda:0`; version 2 uses `cuda` and was preflight validated. An output/log download while a version runs can still return the previous version's output: verify version and artifact before interpreting a failure.
-2. On completion, download `receiver-cache-ab.json`, `receiver-cache-cuda-oracle.log`, and the kernel log. The job alternates baseline/candidate in B,C,C,B,B,C order, with 4096 worlds, seed44, one warmup step excluded, three repeats. Cases: active 1KB peer selection (32 timed steps, original active state restored on device before every step, restore outside timing); active 1MB GCS streaming (one timed step after warmup). Compare medians, spread, world errors, and the 24 array hashes. It then runs the existing native-vs-Warp packet oracle on CUDA.
-3. Also await the production-size peer gate `bjkjbhm/uav-receiver-cache-peer1m-20261024`, version 1, same account_35 and same B,C,C,B,B,C order. It uses active 1MB peer reports and hashes **all 140 initialized Warp arrays**, including `mt`/`mt_index`, pending packet/events, and TX/RX/flight energy. CPU fixture smoke passed. The GCS control does not exercise receiver-capacity caching and cannot alone establish a production peer benefit. Download its `receiver-cache-ab.json` into a distinct directory.
-4. Keep the cache only with measured benefit and exact-state/oracle agreement. If no reproducible gain, remove the candidate and its source-inspection-only regression, then rerun relevant tests/full suite. Preserve all scientific settings.
-5. Record the decision and evidence; commit/push this record and report Task 6 COMPLETE only when its gates finish. Work on the next candidate only after this decision and the user's next instruction.
+All Task 6 gates are complete:
+
+- Full suite after revert: **673 passed, 74 skipped, 8 warnings, 1222 subtests passed in 254.25s**, exit 0. `/tmp/uav-task6-after-revert-full-20261024.log` and `.exit`.
+- T4 peer-1MB version 1: `bjkjbhm/uav-receiver-cache-peer1m-20261024`; all 140 arrays/trial include MAC RNG, pending events/packets and energy; errors=0.
+- T4 control version 2: `bjkjbhm/uav-receiver-cache-t4-comparison-20261024`; active1KB peer medians 787.74247218 / 787.55057233 (-0.02436%); active1MB GCS 38.49941272 / 38.48308302 (-0.04242%); 24 array hashes/trial match, errors=0. The GCS control alone is not a peer-benefit test. V1 failed before simulation on invalid device config; only V2 was accepted.
+- Existing native-vs-Warp packet oracle on candidate/T4 `cuda:0`: **38 passed in 12.333s**, exit 0. CPU suite and CUDA oracle scopes differ; do not describe local CUDA skips as having run.
+- Evidence: `evidence/2026-10-24-task6-final-verification.json`, `evidence/2026-10-24-t4-receiver-cache-peer1m.json`, `evidence/2026-10-24-t4-receiver-cache-control.json`, `evidence/2026-10-24-t4-receiver-cache-cuda-oracle.log`.
+
+**Next action:** commit/push the final evidence/revert on this branch; the resulting HEAD is the final task commit (do not amend the record just to embed its own SHA). Then stop Task 6. Wait for the user's next task instruction before implementing another candidate. The leading next hypothesis is exact MAC IDLE/LISTEN polling; it requires profiling and native parity, not relaxed timing. Learner AMP/compile/fused is a separate controlled candidate. Preserve all healthy production jobs.
 
 ## Fresh verification and root-cause evidence
 
 - Full suite at candidate cb7c5d6: **674 passed, 74 skipped, 8 warnings, 1221 subtests passed in 243.11s**, exit 0. Log: `/tmp/uav-task6-full-20261024.log`.
 - Task 4 diagnostic is now COMPLETE: `bjkjbhm/uav-component-isolation-20261023-160905`, baseline 4cd9358, 4096 worlds, two T4 visible. Saved in `evidence/2026-10-24-t4-component-isolation.json`.
 - Matched T4 fixtures: active 1KB/dynamic 9726.67 transitions/s; active 1MB/dynamic 38.74995; active 1MB/reject 38.79999. Thus 1MB is ~251x slower in this diagnostic, while changing motion changes active-1MB throughput ~0.13%. Network-disabled dynamic is 15843.01 transitions/s. These are simulator diagnostics, not full-training rates.
-- Additional completed instrumented probe: `bjkjbhm/uav-task6-dispatch-probe-20261023-160547`, diagnostic commit cbc7253, wider sensor FOV, 4096 worlds, 2 warmup + 1 timed step. Cumulative dispatches across all 3 steps: 4,735,399,723; IDLE + LISTEN account for 97.814%. The timed third step is 118.12 s. This supports microsecond MAC polling as the dominant implementation cost; these counts are not a production-run measurement. See `evidence/2026-10-24-t4-dispatch-probe.json`.
+- Additional completed instrumented probe: `bjkjbhm/uav-task6-dispatch-probe-20261023-160547`, diagnostic commit cbc7253, wider sensor FOV, 4096 worlds, 2 warmup + 1 timed step. Cumulative dispatches across all 3 steps: 4,735,399,723; IDLE + LISTEN account for 97.814%. The timed third step is 118.12 s. This identifies microsecond MAC polling as a profiling target; dispatch-count share is not runtime share, and these counts are not a production-run measurement. See `evidence/2026-10-24-t4-dispatch-probe.json`.
 - GPU0 runs all 4096 environments, GPU1 runs learner/replay. Cumulative production timing supports a major collector bottleneck. **Phase-specific exception:** between 00:30 and 00:43, MASAC BASE 1M learner time grew 741.14 s while collector wait grew only 0.082 s over 750.18 s; it was learner-limited in that window. MATD3 BASE collector wait grew 723.76 s/765.18 s; MATD3 PQL collector grew 737.87 s/741.29 s. AMP/compile/fused Adam may help learner-limited phases, but do not remove packet-event cost.
 - Corrected cache-cost interpretation: installed Warp 1.18 BoolOp code generation short-circuits `and`/`or`. In production 1MB/3MB, each source holds at most three reports, so the old `bytes_used` call is guarded by report-present/nonexpired/unknown checks; a naive 35x35 target-loop count overstates actual production scans. Measure the real gain.
 - Fresh acceleration-config audit: all four canonical 1M W&B runtime configs explicitly show amp_mode=off, compile_models=false, fused_optimizers=false. Code supports them; do not claim they are enabled. Future learner acceleration needs a separate controlled numerical/performance gate; preserve active runs and BASE/PQL fairness.
@@ -28,17 +32,23 @@ The cache is already committed/pushed. Inspect the source before attempting to r
 
 ## Production cohort: read-only monitoring
 
-Live observations and ETA assumptions: `evidence/2026-10-24-performance-live-audit.json` and newer `evidence/2026-10-24-performance-latest-cohort.json`.
+Latest snapshot: **01:22 ngày 24/10/2026 UTC+7**, `evidence/2026-10-24-performance-latest-cohort.json`. Detailed diagnosis/ETA: `evidence/2026-10-24-runtime-root-cause-report.md`. Earlier timing-phase snapshot preserved in `evidence/2026-10-24-performance-cohort-0043.json`.
 
-| Case | Canonical root W&B | Current child if any | Root Kaggle |
+| Case | Canonical root W&B | Current child | Latest completed episodes / global step |
 | --- | --- | --- | --- |
-| MASAC BASE 1M | 63faeffb | none at 00:43 | jwekfjjwoigjo/uavnet-train-20261023-073957-9c4cd8 |
-| MASAC PQL 1M | fc14508c | bc18a145, c01 running | ewkljfelweow/uavnet-train-20261023-051420-773792 |
-| MATD3 BASE 1M | 2dcbf36c | none at 00:43 | lihuhi/uavnet-train-20261023-074258-316e25 |
-| MATD3 PQL 1M | 278634f6 | none at 00:43 | kjhiguyf/uavnet-train-20261023-074845-a0387e |
-| MASAC BASE 500k | b9d73bd3 | 30e43dda, c01 running | ekjfewflwejl/uavnet-train-20261023-051422-cbe381 |
+| MASAC BASE 1M | 63faeffb | not observed yet | 650 / 6,983,680; time_budget, W&B finished, Kaggle wrapping up |
+| MASAC PQL 1M | fc14508c | bc18a145 c01 running | 3815 / 7,294,976 |
+| MATD3 BASE 1M | 2dcbf36c | not observed yet | 0 / 3,825,664; time_budget, W&B/Kaggle wrapping up |
+| MATD3 PQL 1M | 278634f6 | none yet | 0 / 3,379,200; running |
+| MASAC BASE 500k | b9d73bd3 | 30e43dda c01 running | 4096 / 11,083,776 |
 
-The two children have meaningful verified progress beyond parent checkpoints; preserve them. fc14508c ended time_budget at 1066 episodes / 7,045,120 transitions; its child reached 3059 / 7,196,672 at 00:43. b9d73bd3 ended time_budget at 4096 / 10,309,632; its child reached 4096 / 10,797,056. Old roots/children inherit infrastructure commit 66f4d40; staged-resume cleanup recovery rules below still apply if a concrete failure appears.
+Root Kaggle refs: MASAC BASE `jwekfjjwoigjo/uavnet-train-20261023-073957-9c4cd8` (account_32); MASAC PQL `ewkljfelweow/uavnet-train-20261023-051420-773792` (account_21); MATD3 BASE `lihuhi/uavnet-train-20261023-074258-316e25` (account_33); MATD3 PQL `kjhiguyf/uavnet-train-20261023-074845-a0387e` (account_34). The 500k root/child use account_28, `ekjfewflwejl/uavnet-train-20261023-051422-cbe381` / `uavnet-train-20261023-051422-c01`.
+
+The two existing children have meaningful progress beyond verified parent prefixes; preserve them. PQL parent ended 1066 / 7,045,120; 500k parent ended 4096 / 10,309,632. Old roots/children inherit infrastructure commit 66f4d40. A finished W&B parent may still have a running Kaggle notebook saving/uploading a full checkpoint and scheduling its child. Recheck actual owned state and immutable manifest before recovery; do not duplicate a healthy wrap-up or child.
+
+## Recovery watch restored at 01:10 Asia/Ho_Chi_Minh
+
+Automation `6adb1a0b96dc8191b26ad5ed86545aac` (UAV 1M Cohort Recovery) was disabled by the prior assistant at 21:22 Oct 23 after Sandbox Resource not found. Current Sandbox, W&B/Kaggle and GitHub reads succeeded. Re-enabled the existing hourly watch with recovery controller/source pinned to tested 4cd9358 in an isolated checkout, preserving current healthy children and excluding experimental performance commits. The update response confirms is_enabled=true; next_run_time was null and no new scheduled execution has been verified. Do not describe it as successfully executing yet. Evidence: `evidence/2026-10-24-recovery-watch-restored.json`.
 
 ## Operating constraints
 
