@@ -36,3 +36,13 @@ Use credentials only through trusted helpers; never print tokens or raw secrets.
 - Original MASAC-PQL `f5cfb3f9` is different: W&B itself is `crashed` at global_step 196608 after ~0.99h, with no checkpoint. Its old account_22 token currently cannot authenticate, so exact Kaggle crash output cannot be retrieved from that account.
 - Current valid quota >12h: account_27 22.62h (active 500k PQL), account_21 17.78h (active 1M PQL), account_25 16.85h (verified idle), account_28 16.80h (active 500k BASE). Therefore only account_25 is presently both idle and suitable for another full ~10h segment without stopping a healthy job.
 - Do not claim the current 1M MASAC-PQL pilot is a complete four-way comparison. A true four-way 1M/hybrid75 comparison still needs MASAC BASE, MATD3 BASE and MATD3 PQL launches (and consistent infrastructure-fix provenance recorded), while preserving the active jobs.
+
+## 1M hybrid75 four-way cohort launch — 2026-10-23T07:50Z
+- Existing healthy MASAC PQL remains W&B `fc14508c`, root Kaggle `ewkljfelweow/uavnet-train-20261023-051420-773792`, account_21. Latest verified global_step during launch session: 282624. Do not duplicate or cancel it.
+- Newly launched MASAC BASE: account_32 (`jwekfjjwoigjo`), Kaggle `jwekfjjwoigjo/uavnet-train-20261023-074213-2adf7b`, planned W&B `031dfc93`.
+- Newly launched MATD3 BASE: account_33 (`lihuhi`), Kaggle `lihuhi/uavnet-train-20261023-074519-4a4f15`, planned W&B `99b0ab48`.
+- Newly launched MATD3 PQL: account_34 (`kjhiguyf`), Kaggle `kjhiguyf/uavnet-train-20261023-074845-a0387e`, planned W&B `278634f6`.
+- All three new roots are pinned to commit `337608c2cffb02c0ec7d3cd0689069c1b596c1e0`, config `configs/comparison-20k-hybrid75-1m.yaml`, env4096, batch8192, replay1M, CPU75/GPU25 hybrid replay, target 20k episodes, max_steps1800, seed44, 2xT4, auto_continue=true, cpu_visualize=true.
+- W&B group for all four is `uav-v3-full20k-e4096-b8192-r1m-cpu75-20261023`.
+- Fresh post-submit verification: all three new Kaggle kernels were `running`. Planned learner W&B IDs were not visible yet because jobs were still in CUDA tests/benchmark preflight; do not call that a failure while Kaggle kernels remain healthy.
+- account_34 first launch attempt failed before kernel push due transient DNS resolution of `api.kaggle.com` while verifying the HF credential dataset. Side-effect audit showed no kernel existed and all three private credential datasets existed; one safe retry then submitted the root above. No duplicate kernel was created.
