@@ -63,6 +63,7 @@ class CloudTests(unittest.TestCase):
             (package / "__init__.py").write_text("")
             (package / "__main__.py").write_text(
                 "import json,os,sys\n"
+                "print(\"Warning: Looks like you're using an outdated `kaggle` version (installed: 2.2.4), please consider upgrading to the latest version (2.2.5)\")\n"
                 "print(json.dumps({'args':sys.argv[1:],'selected':os.environ.get('KAGGLE_API_TOKEN')=='secret-a'}))\n")
             with patch.dict(os.environ, {"PATH": directory, "PYTHONPATH": directory}):
                 response = json.loads(run_kaggle(["kernels", "status", "owner/child"], self.credentials().accounts[0]))

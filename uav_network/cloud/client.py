@@ -39,6 +39,9 @@ def run_kaggle(args, account, timeout=45):
     process = subprocess.run([sys.executable, "-m", "kaggle", *args], env=env, text=True,
                              capture_output=True, timeout=timeout, check=False)
     stdout = process.stdout.replace(account.token, "[REDACTED]")
+    stdout = re.sub(
+        r"(?m)^Warning: Looks like you're using an outdated `kaggle` version[^\n]*(?:\n|$)",
+        "", stdout)
     stderr = process.stderr.replace(account.token, "[REDACTED]")
     if process.returncode:
         raise RuntimeError(f"Kaggle command failed ({process.returncode}): {(stderr or stdout)[-1000:]}")

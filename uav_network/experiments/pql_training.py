@@ -30,6 +30,8 @@ def train_pql(config):
     started = time.perf_counter()
     engine = vector = tracker = evaluator = None
     completed_ok = False
+    result = None
+    summary = output / "summary.json"
     completed = global_step = collection_steps = 0
     history = []
     diagnostics = TrainingDiagnostics(config, output)
@@ -234,13 +236,10 @@ def train_pql(config):
         if tracker:
             result.update(tracker.identity())
             result["tracking_status"] = "pending"
-        summary = output / "summary.json"
         summary.write_text(json.dumps(result, indent=2, allow_nan=False))
         if tracker:
             try:
                 result.update(tracker.complete(result))
-                tracker.close()
-                result["tracking_status"] = "finished"
             except Exception as error:
                 result["tracking_status"], result["tracking_error_type"] = "failed", type(error).__name__
                 summary.write_text(json.dumps(result, indent=2, allow_nan=False))
@@ -261,15 +260,29 @@ def train_pql(config):
             print(f"Failure reporting also failed: {type(reporting_error).__name__}", flush=True)
         raise
     finally:
-        if evaluator is not None:
-            evaluator.close(global_step, drain_seconds=0)
+        cleanup_ok = False
         try:
-            if engine:
-                engine.close()
-        finally:
             try:
-                if vector:
-                    vector.close()
+                if evaluator is not None:
+                    evaluator.close(global_step, drain_seconds=0)
             finally:
-                if tracker:
-                    tracker.close(failed=not completed_ok)
+                try:
+                    if engine:
+                        engine.close()
+                finally:
+                    if vector:
+                        vector.close()
+            cleanup_ok = True
+        finally:
+            if tracker:
+                failed = not completed_ok or not cleanup_ok
+                try:
+                    tracker.close(failed=failed)
+                except Exception as error:
+                    if result is not None:
+                        result["tracking_status"], result["tracking_error_type"] = "failed", type(error).__name__
+                        summary.write_text(json.dumps(result, indent=2, allow_nan=False))
+                    raise
+                if result is not None:
+                    result["tracking_status"] = "failed" if failed else "finished"
+                    summary.write_text(json.dumps(result, indent=2, allow_nan=False))
