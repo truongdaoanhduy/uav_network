@@ -112,6 +112,9 @@ def publish_visualization_media(config, spec, algorithm, run_id, result, run, fp
 
 
 def build_visualization_spec(parent, results):
+    target = parent.get("requested_episodes")
+    if target is not None and (type(target) is not int or target < 1):
+        raise ValueError("CPU visualization requires a valid requested episode budget")
     artifacts, statuses = {}, {}
     for algorithm, result in results.items():
         artifact = result.get("checkpoint_artifact")
@@ -120,6 +123,10 @@ def build_visualization_spec(parent, results):
                 or result.get("tracking_status") != "finished" or not isinstance(artifact, str)
                 or not re.fullmatch(prefix + r"[\w.-]+:v[0-9]+", artifact)):
             raise ValueError("CPU visualization requires each successful learner's uploaded immutable checkpoint version")
+        if target is not None and (type(result.get("episodes")) is not int
+                or result["episodes"] < target or result.get("episode_budget_complete") is not True
+                or result.get("stop_reason") != "episode_budget"):
+            raise ValueError("Final CPU visualization requires the completed episode budget")
         artifacts[algorithm] = artifact
         statuses[algorithm] = {key: result.get(key) for key in
                                ("episodes", "global_step", "episode_budget_complete", "stop_reason")}

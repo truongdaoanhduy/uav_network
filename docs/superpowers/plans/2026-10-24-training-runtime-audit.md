@@ -38,7 +38,7 @@
 ### Task 7B: Proven final visualization gate
 
 **Files:** cloud/visualize.py; tests/test_cpu_visualization.py or existing final-budget test file.
-**Interfaces:** build_visualization_spec(parent,results) retains shape; reject any learner without >=requested episodes, completion flag true, and stop_reason=episode_budget.
+**Interfaces:** build_visualization_spec(parent,results) retains shape; for explicitly budgeted parents, reject any learner without >=requested episodes, completion flag true, and stop_reason=episode_budget. Preserve the existing legacy partial-checkpoint preview path when no requested_episodes is declared.
 
 - [ ] Write/run failing tests for finished/time_budget, inconsistent completion and valid completed budget; reuse current continuation completion predicate if present.
 - [ ] Implement smallest shared gate fix, preserve immutable artifact validation and complete learner output.

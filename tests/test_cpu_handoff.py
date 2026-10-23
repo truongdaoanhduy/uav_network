@@ -180,6 +180,31 @@ class CPUHandoffTests(unittest.TestCase):
         self.assertTrue(metadata["is_private"])
         self.assertEqual(metadata["dataset_sources"], ["owner/wandb-private"])
 
+    def test_budgeted_cpu_handoff_requires_all_episode_completion_evidence(self):
+        parent = parent_spec(); parent["requested_episodes"] = 20000
+        cases = ((18, False, "time_budget"),
+                 (20000, False, "episode_budget"),
+                 (19999, True, "episode_budget"),
+                 (20000, True, "time_budget"),
+                 (True, True, "episode_budget"),
+                 (20000, 1, "episode_budget"))
+        for episodes, complete, reason in cases:
+            result = gpu_result()
+            result["masac"].update(episodes=episodes, episode_budget_complete=complete,
+                                   stop_reason=reason)
+            with self.subTest(episodes=episodes, complete=complete, reason=reason), \
+                 self.assertRaisesRegex(ValueError, "episode budget"):
+                self.module().build_visualization_spec(parent, result)
+
+    def test_budgeted_cpu_handoff_accepts_completed_target(self):
+        parent = parent_spec(); parent["requested_episodes"] = 20000
+        result = gpu_result()
+        result["masac"].update(episodes=20000, episode_budget_complete=True,
+                               stop_reason="episode_budget")
+        child = self.module().build_visualization_spec(parent, result)
+        self.assertEqual(child["requested_episodes"], 20000)
+        self.assertEqual(child["training_status"]["masac"]["episodes"], 20000)
+
     def test_missing_or_mutable_checkpoint_is_rejected_before_cpu_job(self):
         module = self.module()
         for artifact in (None, "owner/project/model:latest", "owner/project/model:final"):
