@@ -1,24 +1,28 @@
 # Current task: live W&B audit and requested hybrid training
 
-Observed 2026-10-23T04:56:33Z. User explicitly requested Kaggle for CUDA.
+Observed 2026-10-23T05:45:16Z. User explicitly requested Kaggle for CUDA.
 
 ## Verified state
-- Code fix commit `9499964d643a7d00972c15046873cd90a179c749`, published on `feat/cpu-replay-20261022`, GitHub read-back verified.
-- Full tests: 659 passed, 74 skipped, 8 warnings, 1218 subtests in 812.73s (`/tmp/uav-hybrid75-final-suite.log`). Focused visualization 9 passed. Three Important independent review findings reproduced RED and fixed GREEN.
+- Production hybrid fix is published on `feat/cpu-replay-20261022` at `b32d18ef1077371a3603664b974328744c031db5` (`fix: release staged resume checkpoint before save`). GitHub branch read-back confirmed the same SHA.
+- Fresh verification for this hotfix: focused `65 passed, 4 skipped, 48 subtests`; full suite `667 passed, 74 skipped, 8 warnings, 1219 subtests` in 556.59 s; `git diff --check` and `compileall` passed.
 - Requested config `configs/comparison-20k-hybrid75-1m.yaml`: replay 1M, CPU fraction .75, env4096, batch8192, 20k episodes, seed44, Scenario V3. Production hybrid constructor is connected to BASE/PQL; cloud no longer overrides placement. Keep all scientific settings unchanged.
-- Actual two-T4 gate PASSED: Kaggle `ewkljfelweow/uavnet-benchmark-20261023-044345-84cefe`, W&B `31831ab2`, source 9499964. Full replay CPU 9,831,000,000 bytes + GPU 3,274,000,000 bytes. 15.5GB checkpoint saved, exact RNG and environment restored, learning resumed to32 updates, checkpoint unchanged. Result in `evidence/2026-10-23-hybrid75-4096-1m-kaggle-result.json`. Scope is memory/execution with duplicated replay, not quality training. Minimum measured effective host headroom about1.02GB during restore; production should retain monitoring.
-- Account21 (`ewkljfelweow`) fresh idle, gate complete, 19.47 GPU hours remaining. No requested hybrid production job submitted yet.
-- Existing 500k production remains untouched and running: MASAC BASE `29e6add6` step7004160; MASAC PQL replacement `b88d7df8` step126976; MATD3 BASE `3070f38e` step5308416; MATD3 PQL `bda3bccd` step6410240. Never cancel or duplicate them.
-- Old 2048-env sessions stopped at2048/20000 episodes and failed continuation due insufficient quota (~.45h), rather than finishing final evaluation. Their checkpoints remain available. W&B summaries corrected to show failed GPU continuation. Key.txt W&B credential valid.
-- Interim CPU MASAC BASE evaluation FINISHED: Kaggle `vuliu123456/uavnet-validate-20261022-104625-33-cpu`, W&B `9a9895ea`; one episode fromcheckpoint483a83a5, media uploaded to HF/W&B. This is not final20k evaluation.
+- Actual two-T4 gate PASSED: Kaggle `ewkljfelweow/uavnet-benchmark-20261023-044345-84cefe`, W&B `31831ab2`. Full replay CPU 9,831,000,000 bytes + GPU 3,274,000,000 bytes. Checkpoint size 15,514,514,885 bytes; exact RNG/environment restore and resumed learning to 32 updates passed. Gate scope is memory/execution, not policy quality.
+- Root requested 1M MASAC PQL job exists: Kaggle `ewkljfelweow/uavnet-train-20261023-051420-773792`, account_21, planned W&B `fc14508c`. Fresh Kaggle state is `running`, but W&B lookup still returns no run, so it is not yet valid to claim learner training has begun.
+- Root 1M job is pinned to pre-hotfix commit `66f4d402be2648be8514b2ea0173e80e4cdce40e`. Its first segment has no staged resume input, so the cleanup bug does not affect initial startup. However automatic child continuation inherits the same old commit and therefore does not contain the staged-checkpoint cleanup fix.
+- Root cause fixed by `b32d18e`: cloud continuation marks only its downloaded resume input as disposable; after verified restore BASE/PQL release replay/environment/RNG/optimizer mmap references, preserve the source SHA for reproducibility, unlink the staged input before the next save, and never delete normal local/manual warm-start files.
+- Measured disk reason: the gate checkpoint is ~15.5 GB while free working disk before save was ~20.9 GB, so keeping both the downloaded input and a newly written full checkpoint cannot fit.
+- Existing MASAC PQL 500k replacement W&B `b88d7df8` remains running and reached global_step 225280 at the last fresh check. Do not stop or duplicate it.
+- Old 500k root W&B runs `29e6add6`, `3070f38e`, `bda3bccd` are finished with `time_budget`, not final 20k completion. Interim CPU MASAC BASE evaluation `9a9895ea` is finished and is not final 20k evaluation.
+- account_21 quota at last fresh check: 18.96 GPU hours remaining. account_25 was separately verified idle with sufficient quota if a bounded CUDA verification is later needed; do not use active accounts 21/27/28 for duplicate work.
+- Evidence: `docs/superpowers/evidence/2026-10-23-staged-resume-cleanup.json`.
 
 ## Next action
-1. Commit/push this gate evidence, then launch exactly one actual MASAC PQL training on idle account21 using the standard cloud CLI, requested config, auto-continuation and CPU visualization. Use Python `main([...])`; `python -m uav_network.cloud.cli` has no entrypoint and does nothing.
-2. Capture actual manifest/kernel/planned W&B ID, distinguish preflight from actual training; only claim training is active once W&B steps advance. Never launch a duplicate following a timeout.
-3. Recheck existing production at session end; do not assume continuation succeeded from W&B finished. Preserve checkpoint/config/algorithm identity for any recovery.
-4. Update this record, evidence and plan with actual live status, commit/push and read back GitHub before final response.
+1. Keep the existing root 1M Kaggle kernel; do not cancel/relaunch solely because planned W&B `fc14508c` is not visible. Fresh-check Kaggle first, then W&B.
+2. Only claim actual 1M learner training once `fc14508c` exists and `global_step` advances.
+3. If the root segment later creates a checkpoint but its old-code automatic continuation fails, recover from that immutable checkpoint using source `b32d18e` or newer; do not retry an unchanged old-commit child that can hit the disk-space bug.
+4. When a segment reaches the full 20k budget, allow the separate CPU-only visualization/evaluation stage; do not label interim evaluation as final.
+5. Preserve BASE/PQL scientific settings, RNG, environment state, checkpoint identity, and all currently active production jobs.
 
 ## Continuation rules
-Read `specs/2026-10-23-training-handoff-replay-design.md` and `plans/2026-10-23-training-handoff-replay.md` for this task. Audit evidence: `evidence/2026-10-23-training-handoff-audit.json`.
-Use existing credentials through trusted helpers; never print secrets or store arbitrary exception strings. Do not change quotas/accounts/keys. For account lookups use subprocess-backed `run_kaggle`; `resolve_username` mutates process environment and is unsafe concurrently.
-Frozen legacy comparison intentionally rejects hybrid; normal BASE/PQL supports hybrid. Existing500k cohort stays unchanged. Onlyone free account had sufficient quota for a new12h session; do not claim four new1M runs or guarantee20k completion within current quota.
+Read `specs/2026-10-23-training-handoff-replay-design.md`, `plans/2026-10-23-training-handoff-replay.md`, and the newest evidence JSON before acting.
+Use credentials only through trusted helpers; never print tokens or raw secrets. A W&B missing run is not proof that Kaggle failed. A Kaggle timeout is not proof no kernel was created. Always check side effects before retrying.

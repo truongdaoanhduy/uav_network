@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "observed_at_utc": "2026-10-23T05:45:16.535730+00:00",
+  "hotfix": {
+    "commit": "b32d18ef1077371a3603664b974328744c031db5",
+    "branch": "feat/cpu-replay-20261022",
+    "purpose": "release the cloud-owned downloaded full resume checkpoint and its mmap-backed references after verified restore, before the next atomic checkpoint save",
+    "scope": [
+      "BASE and PQL",
+      "MASAC and MATD3",
+      "preserve source checkpoint SHA for reproducibility",
+      "never delete local/manual warm-start files"
+    ]
+  },
+  "verification": {
+    "focused": "65 passed, 4 skipped, 48 subtests passed",
+    "full_suite": "667 passed, 74 skipped, 8 warnings, 1219 subtests passed",
+    "full_suite_seconds": 556.59,
+    "diff_check": "passed",
+    "compileall": "passed"
+  },
+  "disk_context": {
+    "gate_checkpoint_bytes": 15514514885,
+    "gate_disk_free_before_save_bytes": 20940513280,
+    "reason": "keeping both a downloaded ~15.5 GB resume input and a new ~15.5 GB checkpoint cannot fit the measured ~20.9 GB free working disk"
+  },
+  "live_requested_1m": {
+    "kernel_ref": "ewkljfelweow/uavnet-train-20261023-051420-773792",
+    "account": "account_21",
+    "kernel_state": "running",
+    "source_commit": "66f4d402be2648be8514b2ea0173e80e4cdce40e",
+    "planned_wandb_id": "fc14508c",
+    "wandb_available": false,
+    "wandb_lookup_error_type": "CommError",
+    "interpretation": "Kaggle kernel exists and is running, but there is no evidence yet that the planned learner run has entered training; do not launch a duplicate solely because W&B is absent",
+    "continuation_risk": "the root kernel is pinned to the pre-hotfix commit, and automatic children inherit that commit; its first segment has no staged resume input, but a later auto-continuation would not contain this cleanup fix"
+  },
+  "other_live_run": {
+    "wandb_id": "b88d7df8",
+    "state": "running",
+    "global_step": 225280,
+    "description": "existing MASAC PQL 500k replacement; keep untouched"
+  },
+  "account_21_quota": {
+    "used_hours": 11.04,
+    "remaining_hours": 18.96,
+    "total_hours": 30.0
+  },
+  "decision": "publish the hotfix and preserve the already-running root; do not cancel or duplicate it while it is still a valid running Kaggle kernel. If its old-code automatic continuation later fails, recover from the saved immutable checkpoint using the published hotfix commit rather than retrying the old child unchanged."
+}
