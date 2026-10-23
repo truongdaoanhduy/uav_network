@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "observed_at_utc": "2026-10-23T05:45:16.535730+00:00",
+  "observed_at_utc": "2026-10-23T06:46:03.512311+00:00",
   "hotfix": {
     "commit": "b32d18ef1077371a3603664b974328744c031db5",
     "branch": "feat/cpu-replay-20261022",
@@ -30,33 +30,61 @@
     "kernel_state": "running",
     "source_commit": "66f4d402be2648be8514b2ea0173e80e4cdce40e",
     "planned_wandb_id": "fc14508c",
-    "wandb_available": false,
-    "wandb_lookup_error_type": "CommError",
-    "interpretation": "Kaggle kernel exists and is running, but there is no evidence yet that the planned learner run has entered training; do not launch a duplicate solely because W&B is absent",
+    "wandb_available": true,
+    "wandb_lookup_error_type": null,
+    "interpretation": "preflight passed and the planned learner run is now actively training; no duplicate launch is permitted",
     "continuation_risk": "the root kernel is pinned to the pre-hotfix commit, and automatic children inherit that commit; its first segment has no staged resume input, but a later auto-continuation would not contain this cleanup fix",
     "preflight_wandb": {
       "id": "9a716926",
       "name": "MASAC-PQL-benchmark-E4096-B8192-seed44",
-      "state": "running",
+      "state": "finished",
       "created_at_utc": "2026-10-23T05:18:28Z",
       "verified_shape": {
         "num_envs": 4096,
         "replay_capacity": 1000000,
         "pql_enabled": true
       },
-      "interpretation": "the Kaggle root is actively executing the preflight benchmark; planned learner run fc14508c is spawned only after preflight passes"
+      "interpretation": "the Kaggle root is actively executing the preflight benchmark; planned learner run fc14508c is spawned only after preflight passes",
+      "status": "passed",
+      "global_step": 163840,
+      "cuda_pipeline_verified": true,
+      "joint_transitions_per_s": 63.7290674913278,
+      "ended_at_utc": "2026-10-23T06:01:29.910834+00:00"
+    },
+    "wandb_state": "running",
+    "global_step": 163840,
+    "train_episodes_completed": 0,
+    "verified_config": {
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 1000000,
+      "replay_cpu_fraction": 0.75,
+      "pql_enabled": true,
+      "critic_sample_ratio": 8
+    },
+    "runtime_health": {
+      "replay_cpu_bytes": 9831000000,
+      "replay_hot_bytes": 3274000000,
+      "replay_overwritten_rows": 0,
+      "oom_kills": 0,
+      "gpu0_memory_allocated_percent_max_observed": 17.92236328125,
+      "gpu1_memory_allocated_percent_max_observed": 73.70361328125,
+      "process_rss_mb_max_observed": 11541.0234375,
+      "process_available_mb_min_observed": 16954.7734375,
+      "disk_free_bytes": 20907536384,
+      "nonfinite_metrics_observed": false
     }
   },
   "other_live_run": {
     "wandb_id": "b88d7df8",
     "state": "running",
-    "global_step": 225280,
+    "global_step": 319488,
     "description": "existing MASAC PQL 500k replacement; keep untouched"
   },
   "account_21_quota": {
-    "used_hours": 11.04,
-    "remaining_hours": 18.96,
+    "used_hours": 11.92,
+    "remaining_hours": 18.08,
     "total_hours": 30.0
   },
-  "decision": "publish the hotfix and preserve the already-running root; do not cancel or duplicate it while it is still a valid running Kaggle kernel. If its old-code automatic continuation later fails, recover from the saved immutable checkpoint using the published hotfix commit rather than retrying the old child unchanged."
+  "decision": "keep the healthy 1M root running. Its first segment is valid, but automatic continuation from this root remains pinned to old commit 66f4d40. When the segment ends, inspect side effects first; if the inherited old child fails or is unsafe, recover exactly once from its immutable checkpoint using b32d18e or newer, preserving config/RNG/environment state."
 }

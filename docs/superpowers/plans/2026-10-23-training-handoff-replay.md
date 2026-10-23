@@ -37,7 +37,7 @@ Files: algorithms/replay.py or dedicated hybrid module, experiments/cpu_replay_p
 - [x] Run one bounded two-T4 gate for requested env/batch/full hybrid replay and exact resume.
 - [x] Submit exactly one requested 1M/75-25 MASAC-PQL production root after the gate: `ewkljfelweow/uavnet-train-20261023-051420-773792`, planned W&B `fc14508c`.
 - [x] Reproduce and fix the continuation disk lifecycle issue: staged 15.5GB resume input is unmapped/unlinked after verified restore and before the next full save; hotfix `b32d18e`, full suite 667 passed / 74 skipped.
-- [ ] Verify planned W&B `fc14508c` exists and `global_step` advances before calling the requested 1M learner training active. At 2026-10-23T05:45Z Kaggle was running but W&B was still unavailable.
+- [x] Verify planned W&B `fc14508c` exists and `global_step` advances before calling the requested 1M learner training active. At 2026-10-23T06:46Z W&B was running and had advanced to global_step 163840; preflight `9a716926` finished passed with CUDA verified.
 - [ ] Verify the next continuation/recovery uses `b32d18e` or newer. The already-running root is pinned to `66f4d40`, so an automatic child inherited from it would not contain the cleanup fix.
 - [x] Record the current blocker and live evidence in `evidence/2026-10-23-staged-resume-cleanup.json`; publish and GitHub-read-back the code hotfix before further recovery work.
 
