@@ -75,8 +75,16 @@ def run_episode(env, learner, *, seed, episode=1, action_control=None, trace=Fal
             return record, paths, frames, events
 
 
+class EvaluationPaused(RuntimeError):
+    """A bounded CPU session stopped between deterministic episodes."""
+    def __init__(self, records):
+        super().__init__("Evaluation session paused between episodes")
+        self.records = list(records)
+
+
 def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=False,
-             frame_stride=5, fps=10, video_format="auto", on_episode=None):
+             frame_stride=5, fps=10, video_format="auto", on_episode=None,
+             completed_records=None, should_pause=None, on_checkpoint=None):
     if type(frame_stride) is not int or frame_stride < 1 or type(fps) is not int or fps < 1:
         raise ValueError("frame_stride and fps must be positive integers")
     if video_format not in {"auto", "mp4", "gif"}:
@@ -88,19 +96,30 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=Fals
     seed = config.runtime.eval_seed if seed is None else seed
     if type(episodes) is not int or episodes < 1:
         raise ValueError("Evaluation episodes must be a positive integer")
+    records = list(completed_records or [])
+    if (len(records) > episodes or any(not isinstance(record, dict)
+            or record.get("episode") != i + 1 or record.get("seed") != seed + i
+            for i, record in enumerate(records))):
+        raise ValueError("Evaluation resume needs the exact episode/seed prefix")
+    # The final scene is recreated if a session ended during media rendering.
+    if len(records) == episodes:
+        records.pop()
     output = Path(output_dir) if output_dir else Path(checkpoint).parent / "evaluation"
     if output.exists() and any(output.iterdir()):
         raise FileExistsError(f"Evaluation folder is not empty: {output}")
     output.mkdir(parents=True, exist_ok=True)
     env = make_evaluation_env(config)
-    records = []
     try:
-        for episode in range(episodes):
+        for episode in range(len(records), episodes):
+            if should_pause is not None and should_pause():
+                raise EvaluationPaused(records)
             record, paths, frames, events = run_episode(
                 env, learner, seed=seed + episode, episode=episode + 1,
                 animate=animate and episode == episodes - 1, frame_stride=frame_stride,
                 capture_paths=True)
             records.append(record)
+            if on_checkpoint is not None:
+                on_checkpoint(records)
             if on_episode is not None:
                 on_episode(record)
         preview = render_episode(env, paths, output / "final_episode.png")

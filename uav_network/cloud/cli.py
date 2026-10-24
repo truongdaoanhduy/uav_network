@@ -142,6 +142,18 @@ def launch(args, credentials):
     if auto_continue:
         manifest["root_kernel_ref"] = actual_ref
     (folder / "launch.json").write_text(json.dumps(manifest, indent=2))
+    if auto_continue:
+        from .controller import build_controller_spec, submit_controller
+        manifest["unattended_ready"] = False
+        try:
+            watch = build_controller_spec(manifest, commit)
+            receipt = submit_controller(watch, folder, account, credentials)
+            manifest.update(controller_ref=receipt["kernel_ref"], controller_status=receipt["status"],
+                            controller_wandb_url=f"https://wandb.ai/{spec['entity']}/{spec['project']}/runs/{watch['run']['id']}",
+                            unattended_ready=True)
+        except Exception as error:
+            manifest["controller_error_type"] = type(error).__name__
+        (folder / "launch.json").write_text(json.dumps(manifest, indent=2))
     return manifest
 
 
@@ -166,7 +178,7 @@ def main(argv=None):
     submit.add_argument("--cpu-visualize", action="store_true",
                         help="After uploaded training checkpoints, submit a separate CPU-only visualization job")
     submit.add_argument("--auto-continue", action="store_true",
-                        help="Resume full GPU training across sessions to the episode target, then CPU visualization")
+                        help="Seed a cloud CPU supervisor, resume GPU sessions to the episode target, then CPU visualization")
     submit.add_argument("--set", dest="overrides", action="append", default=[])
     submit.add_argument("--gpus-per-run", type=int, choices=[1, 2], default=1,
                         help="Visible GPUs per BASE learner; PQL continues to own all visible GPUs")

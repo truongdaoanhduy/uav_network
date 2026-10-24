@@ -1,6 +1,12 @@
 # Current task: full training-path audit and measured fixes
 
-Updated 2026-10-24 01:45 Asia/Ho_Chi_Minh.
+Updated 2026-10-24 10:55 Asia/Ho_Chi_Minh.
+
+## Cloud independence implementation checkpoint
+
+Plan: plans/2026-10-24-sandbox-independent-flow.md. Added private CPU controller generation/state/heartbeat, terminal-only continuation/quota decisions, adoption/no-overwrite, independent session handoff. CLI auto_continue seeds it and retains GPU receipt if seed fails. CPU visualization timeout39600 and resume completed evaluation episode/seed records; publication-only recovery reads saved Kaggle assets. Keep all30configured evaluation episodes; require W&B and immutableHF delivery before pipeline complete. Test-first focused75passed28subtests plus hardening16passed. Fullsuite /tmp/uav-independent-flow-full.log running; code inspection/review and actual cloud smoke/deployment pending. Do not yet claim Sandbox can close.
+
+Fresh10:47 W&B: recoveredPQLaa859075 now actually trains global7,053,312 above restored7,045,120; recovered500k01763049 at14,049,280 above13,914,112. Three healthy1M children preserved and progressing: MASACBASE9,269,248, MATBASE9,527,296, MATPQL9,850,880. No new full-budget completion claim.
 
 ## Latest user priority: Sandbox-independent full flow — ACTIVE
 

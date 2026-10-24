@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+import time
 from tempfile import TemporaryDirectory
 from urllib.parse import quote
 from uuid import uuid4
@@ -150,7 +151,10 @@ def build_visualization_spec(parent, results):
             "training_mode": parent.get("training_mode", "unknown"), "artifacts": artifacts,
             "training_status": statuses, "cpu_eval": parent.get("cpu_eval", {
                 "episodes": 1, "seed": 10044, "frame_stride": 5, "fps": 10}),
-            "timeout_seconds": 3600}
+            "session_resumable": True,
+            "requires_kaggle_token": bool(parent.get("pipeline_credential_dataset")),
+            **{k: parent[k] for k in ("pipeline_credential_dataset",) if k in parent},
+            "timeout_seconds": 39600}
 
 
 def submit_visualization(parent, results, output, account=None, credentials=None):
@@ -162,18 +166,62 @@ def submit_visualization(parent, results, output, account=None, credentials=None
         account = Account(parent["account"], token)
     if credentials is None:
         credentials = Credentials([account], os.environ["WANDB_API_KEY"], parent["entity"], parent["project"])
-    username = parent["kernel_ref"].split("/", 1)[0]
+    return submit_visualization_spec(spec, output, account, credentials)
+
+
+def submit_visualization_spec(spec, output, account, credentials):
+    if account.name != spec["account"] or not account.enabled:
+        raise ValueError("CPU visualization must keep the selected enabled account")
+    if any(secret and secret in json.dumps(spec) for secret in
+           [credentials.wandb_key, *(a.token for a in credentials.accounts)]):
+        raise ValueError("Refusing a CPU manifest containing credentials")
+    username = spec["kernel_ref"].split("/", 1)[0]
     verify_credential_dataset(account, credentials, spec["credential_dataset"], username, only_selected=True)
     folder = Path(output) / "cpu-kernel"
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "kernel.py").write_text(kernel_script(spec))
     (folder / "kernel-metadata.json").write_text(json.dumps(kernel_metadata(spec), indent=2))
-    response = run_kaggle(["kernels", "push", "-p", str(folder), "--timeout", "3600"], account, timeout=50)
+    response = run_kaggle(["kernels", "push", "-p", str(folder), "--timeout", str(spec["timeout_seconds"])], account, timeout=50)
     ref = pushed_kernel_ref(response)
     manifest = {**spec, "kernel_ref": ref, "kernel_url": "https://www.kaggle.com/code/" + ref}
     (Path(output) / "cpu-visualization.json").write_text(json.dumps(manifest, indent=2))
     print(json.dumps({"cpu_visualization_url": manifest["kernel_url"]}), flush=True)
     return manifest
+
+
+def load_publication_assets(spec, algorithm, output):
+    """Recover only final evaluation media from an owned terminal CPU job."""
+    source = spec["publication_source_ref"]
+    if source.split("/")[0] != spec["kernel_ref"].split("/")[0]:
+        raise ValueError("Publication recovery must keep the original account")
+    account = Account(spec["account"], os.environ["KAGGLE_API_TOKEN"])
+    folder = Path(output) / "visualize" / algorithm
+    folder.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(prefix="uav-media-recovery-") as directory:
+        pattern = (r"(^|.*/)visualize/" + re.escape(algorithm)
+                   + r"/(metrics\.json|final_episode\.(png|mp4|gif|webm|ogg))$")
+        run_kaggle(["kernels", "output", source, "-p", directory,
+                    "--file-pattern", pattern, "-q"], account, timeout=180)
+        files = list(Path(directory).rglob("metrics.json"))
+        if len(files) != 1:
+            raise ValueError("Publication recovery requires one saved evaluation metrics file")
+        result = json.loads(files[0].read_text())
+        if (result.get("algorithm") != algorithm or result.get("episodes") != spec["cpu_eval"]["episodes"]
+                or result.get("checkpoint_artifact") != spec["artifacts"][algorithm]):
+            raise ValueError("Publication recovery policy/evaluation identity differs")
+        import shutil
+        for asset in files[0].parent.iterdir():
+            if asset.is_file() and asset.name in {"metrics.json", "final_episode.png",
+                                                  "final_episode.mp4", "final_episode.gif",
+                                                  "final_episode.webm", "final_episode.ogg"}:
+                shutil.copyfile(asset, folder / asset.name)
+    result["render_path"] = str(folder / "final_episode.png")
+    videos = [p for p in folder.glob("final_episode.*") if p.suffix in {".mp4", ".gif", ".webm", ".ogg"}]
+    if len(videos) != 1:
+        raise ValueError("Publication recovery requires one saved animation")
+    result["animation_path"] = str(videos[0])
+    _visualization_asset_files(result)
+    return result
 
 
 def run_visualization(spec, output=Path("/kaggle/working")):
@@ -184,7 +232,24 @@ def run_visualization(spec, output=Path("/kaggle/working")):
     output.mkdir(parents=True, exist_ok=True)
     (output / "hardware.json").write_text(json.dumps(hardware_info(), indent=2))
     settings = spec["cpu_eval"]
+    from ..experiments.evaluation import EvaluationPaused
+    from .controller import atomic_json
     results, failures = {}, {}
+    progress = {"artifacts": spec["artifacts"], "cpu_eval": settings,
+                "records": dict(spec.get("completed_records", {}))}
+    started = float(os.environ.get("UAV_JOB_STARTED_AT", time.monotonic()))
+    deadline = started + min(spec.get("timeout_seconds", 39600), 39600)
+    episode_started, last_episode_seconds = time.monotonic(), 0.0
+    def checkpoint_progress(algorithm, records):
+        nonlocal episode_started, last_episode_seconds
+        now = time.monotonic()
+        last_episode_seconds = now - episode_started
+        episode_started = now
+        progress["records"][algorithm] = list(records)
+        progress["last_episode_seconds"] = last_episode_seconds
+        atomic_json(output / "evaluation-progress.json", progress)
+    def should_pause():
+        return deadline - time.monotonic() < max(900, last_episode_seconds * 1.5 + 300)
     for algorithm, artifact in spec["artifacts"].items():
         tracker = None
         failed = True
@@ -225,14 +290,22 @@ def run_visualization(spec, output=Path("/kaggle/working")):
                     "evaluation/search_rate_percent": record["search_rate_percent"],
                     "evaluation/delivery_rate_percent": record["delivery_rate_percent"],
                     "evaluation/success": int(record["success"])})
-            inputs = {"warm_start_artifacts": {algorithm: artifact}}
-            checkpoint = prepare_checkpoints(inputs, output)[algorithm]
-            resolved = inputs.get("resolved_warm_start_artifacts", {}).get(algorithm, artifact)
-            tracker.run.use_artifact(resolved, type="model")
-            results[algorithm] = evaluate(checkpoint, episodes=settings["episodes"], seed=settings["seed"],
-                                          output_dir=output / "visualize" / algorithm, animate=True,
-                                          frame_stride=settings["frame_stride"], fps=settings["fps"],
-                                          on_episode=record_episode)
+            if spec.get("publication_source_ref"):
+                results[algorithm] = load_publication_assets(spec, algorithm, output)
+            else:
+                inputs = {"warm_start_artifacts": {algorithm: artifact}}
+                checkpoint = prepare_checkpoints(inputs, output)[algorithm]
+                resolved = inputs.get("resolved_warm_start_artifacts", {}).get(algorithm, artifact)
+                tracker.run.use_artifact(resolved, type="model")
+                options = {}
+                if spec.get("session_resumable"):
+                    options = {"completed_records": progress["records"].get(algorithm, []),
+                               "should_pause": should_pause,
+                               "on_checkpoint": lambda records: checkpoint_progress(algorithm, records)}
+                results[algorithm] = evaluate(checkpoint, episodes=settings["episodes"], seed=settings["seed"],
+                                              output_dir=output / "visualize" / algorithm, animate=True,
+                                              frame_stride=settings["frame_stride"], fps=settings["fps"],
+                                              on_episode=record_episode, **options)
             results[algorithm]["checkpoint_artifact"] = artifact
             results[algorithm]["training_status"] = spec["training_status"][algorithm]
             results[algorithm].update(tracker.identity())
@@ -246,6 +319,9 @@ def run_visualization(spec, output=Path("/kaggle/working")):
             tracker.run.summary["evaluation/episodes_completed"] = results[algorithm]["episodes"]
             tracker.run.save(str(output / "visualize" / algorithm / "metrics.json"),
                              base_path=str(output), policy="now")
+            failed = False
+        except EvaluationPaused:
+            tracker.run.summary["evaluation/session_status"] = "paused"
             failed = False
         except Exception as error:
             failures[algorithm] = {"error_type": type(error).__name__}

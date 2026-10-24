@@ -10,7 +10,7 @@ def kernel_metadata(spec):
         datasets.append(spec["pipeline_credential_dataset"])
     return {"id": spec["kernel_ref"], "title": spec["kernel_ref"].split("/")[-1].replace("-", " "),
             "code_file": "kernel.py", "language": "python", "kernel_type": "script",
-            "is_private": True, "enable_gpu": spec.get("stage") not in {"visualize", "archive"}, "enable_tpu": False,
+            "is_private": True, "enable_gpu": spec.get("stage") not in {"visualize", "archive", "continuation-watch"}, "enable_tpu": False,
             "enable_internet": True, "dataset_sources": datasets,
             "competition_sources": [], "kernel_sources": [], "model_sources": []}
 
@@ -25,7 +25,7 @@ import sys
 import time
 
 SPEC = __SPEC__
-if SPEC["stage"] in {"visualize", "archive"}:
+if SPEC["stage"] in {"visualize", "archive", "continuation-watch"}:
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
 os.environ["UAV_JOB_STARTED_AT"] = str(time.monotonic())
 os.environ["UAV_JOB_STARTED_AT_UTC"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -79,7 +79,7 @@ spec_file = Path("/kaggle/working/job.json")
 spec_file.write_text(json.dumps(SPEC, indent=2))
 python = root / ".venv/bin/python"
 # The remote runner uses CUDA_VISIBLE_DEVICES per independent learner.
-runner = {"visualize": "uav_network.cloud.visualize", "archive": "uav_network.cloud.archive"}.get(
+runner = {"continuation-watch": "uav_network.cloud.controller", "visualize": "uav_network.cloud.visualize", "archive": "uav_network.cloud.archive"}.get(
     SPEC["stage"], "uav_network.cloud.remote")
 subprocess.run([str(python), "-m", runner, "--spec", str(spec_file)], cwd=root, check=True)
 '''
