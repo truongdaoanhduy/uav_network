@@ -114,6 +114,17 @@ Automation `6adb1a0b96dc8191b26ad5ed86545aac` (UAV 1M Cohort Recovery) was disab
 - Existing T4 isolation evidence: active1KB 9726.67 transitions/s vs active1MB 38.75 transitions/s (~251x slower for 1 MB under forced active traffic). This is a simulator diagnostic, not a full-training ratio.
 - Evidence: `docs/superpowers/evidence/2026-10-24-harp-lawn-1kb-primary-profile.md`.
 
+
+## 2026-10-24 1 KiB learner acceleration benchmark — COMPLETE
+
+- Spare-account production-shape MASAC benchmark completed on Kaggle T4 x2: `bjkjbhm/uav-1kb-learner-accel-20261024` v7. Runner commit `89440b0`; production code under test is parent `fbbb556`.
+- Exact benchmark shape: report/payload 1024 B, env4096, batch8192, replay1M, CPU75/GPU25 hybrid replay filled to 1,000,000 rows. Timed `sample + update`, 20 updates, two interleaved repetitions/case.
+- Baseline median 566.02 ms/update. AMP-only 534.07 ms (1.060x), compile-only 534.69 ms (1.059x), fused-only 577.57 ms (0.980x), all-three 353.78 ms (**1.600x**, 37.50% learner-time reduction).
+- Combined cases had AMP critic/actor/alpha 23/23 applied, 0 skipped; 3 compiled graphs / 88 Inductor kernels; all Adam groups fused; parameters finite. Full-combination GPU1 peak allocated ~5.55 GB vs baseline ~6.62 GB.
+- Ruling: combined AMP+compile+fused passes the throughput/execution gate; fused-only does not. Do **not** mutate current non-AMP 1 KiB production lineages. Acceleration may be used only for a fresh matched cohort/future experiment from episode 0.
+- Evidence: `evidence/2026-10-24-1kb-learner-acceleration-result.json` and `.md`.
+- Next: fresh-check the four existing 1 KiB production lineages. Preserve them if healthy; only start an accelerated matched cohort if the user later chooses to replace/compare them rather than silently changing an in-flight experiment.
+
 ## Operating constraints
 
 - Keep healthy production jobs running. Apply performance changes only to controlled diagnostics/future launches.
