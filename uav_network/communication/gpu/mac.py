@@ -4,7 +4,7 @@ from ...environment.gpu.state import WorldParams, WorldState
 from .rng import seed_mt, randbelow
 from .reports import (active, bytes_used, can_receive, transfer, begin_step, sense_reports,
                       masked_sense_reports, end_step, reset_reward_state)
-from .phy import xy, busy_in_step as busy, emit, evaluate, arrival_start, arrival_end, latest_arrival_end
+from .phy import xy, busy, emit, evaluate, arrival_start, arrival_end, latest_arrival_end
 from .events import push, pop, replace_root, next_time_after_root
 from .telemetry import record_action
 from .power import power_from_action, link_power_feasible

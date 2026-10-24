@@ -8,6 +8,42 @@ import pytest
 import torch
 
 
+def probe_autocast(module, device_type="cuda", dtype=torch.float16):
+    # Execute the real script's context expression. CPU BF16 only substitutes
+    # hardware/precision; cache_enabled is taken unchanged from the callsite.
+    import ast
+    tree = ast.parse(Path(module.__file__).read_text())
+    contexts = [item.context_expr for node in ast.walk(tree) if isinstance(node, ast.With)
+                for item in node.items if isinstance(item.context_expr, ast.Call)
+                and isinstance(item.context_expr.func, ast.Attribute)
+                and isinstance(item.context_expr.func.value, ast.Name)
+                and item.context_expr.func.value.id == "torch"
+                and item.context_expr.func.attr == "autocast"
+                and item.context_expr.args
+                and isinstance(item.context_expr.args[0], ast.Constant)
+                and item.context_expr.args[0].value == "cuda"]
+    assert len(contexts) == 1
+    def adapted(requested_device, *, dtype, **kwargs):
+        assert requested_device == "cuda" and dtype == torch.float16
+        return torch.autocast(device_type, dtype=selected_dtype, **kwargs)
+    selected_dtype = dtype
+    return eval(compile(ast.fix_missing_locations(ast.Expression(contexts[0])),
+                        module.__file__, "eval"),
+                {"torch": SimpleNamespace(autocast=adapted, float16=torch.float16)})
+
+
+def test_base_probe_autocast_preserves_actor_gradients_after_target_pass():
+    from test_split_updates import small_learner, replay_batch
+    torch.manual_seed(44)
+    p = probe(); learner = small_learner(vectorized=True)
+    batch = replay_batch(learner)
+    amp = p.ProbeAMP(learner, device_type="cpu", init_scale=128)
+    with amp, probe_autocast(p, device_type="cpu", dtype=torch.bfloat16):
+        learner.update(batch)
+    assert learner.actor_updates == 1
+    assert amp.counts["actor"]["applied"] == 1
+
+
 def probe():
     assert Path("scripts/probe_masac_memory.py").is_file(), "Standalone memory probe is missing"
     return importlib.import_module("scripts.probe_masac_memory")
@@ -112,7 +148,7 @@ def test_cuda_probe_adapter_executes_fp16_compiled_critic_and_real_steps():
     batch = {key: value.to("cuda:1") for key, value in replay_batch(learner).items()}
     evidence = {}
     with p.ProbeCompiler(learner, evidence), p.ProbeAMP(learner, init_scale=16) as amp:
-        with torch.autocast("cuda", dtype=torch.float16):
+        with probe_autocast(p):
             learner.update(batch)
     assert all(amp.counts[group]["applied"] == 1 for group in ("critic", "actor", "alpha"))
     assert evidence["critic"]["fp16_outputs"] > 0

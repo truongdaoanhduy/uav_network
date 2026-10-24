@@ -136,3 +136,30 @@ def test_compile_startup_tracks_both_worker_warmups_without_serializing_steady_w
         for job in jobs:
             job.result()
     assert gate.warmed == {"critic","policy"}
+
+
+def test_probe_reports_both_hybrid_tiers_and_keeps_plain_storage_fields():
+    from uav_network.algorithms.hybrid_replay import HybridMeasuredReplay
+    from uav_network.algorithms.replay import TensorReplayBuffer
+    import ast
+    import inspect
+    from types import SimpleNamespace
+    module = probe()
+    tree = ast.parse(inspect.getsource(module.run_probe))
+    value = next(n.value for n in ast.walk(tree) if isinstance(n, ast.Assign)
+                 and any(isinstance(t, ast.Subscript) and isinstance(t.value, ast.Name)
+                         and t.value.id == "report" and isinstance(t.slice, ast.Constant)
+                         and t.slice.value == "replay" for t in n.targets))
+    def storage_for(replay):
+        report = eval(compile(ast.Expression(value), module.__file__, "eval"),
+                      dict(vars(module), engine=SimpleNamespace(replay=replay),
+                           args=SimpleNamespace(capacity=8)))
+        return report["storage"]
+    replay = HybridMeasuredReplay(8, (2,3), 4, hot_device="cpu", cpu_fraction=.75)
+    storage = storage_for(replay)
+    assert storage["cpu/observation"]["bytes"] == 144
+    assert storage["hot/observation"]["bytes"] == 48
+    assert sum(item["bytes"] for item in storage.values()) == 1024
+    plain = storage_for(TensorReplayBuffer(8, (2,3), 4))
+    assert "observation" in plain and "cpu/observation" not in plain
+    assert plain["destination"]["bytes"] == 128

@@ -143,6 +143,14 @@ def resolve_pql_config(args):
     return config.validate(), override
 
 
+def replay_storage(replay):
+    groups = {"": replay.data} if hasattr(replay, "data") else {
+        "cpu/": replay.cpu_data, "hot/": replay.hot_data}
+    return {prefix+key: {"dtype":str(value.dtype), "device":str(value.device),
+                        "bytes":value.numel()*value.element_size()}
+            for prefix,data in groups.items() for key,value in data.items()}
+
+
 def run_probe(args):
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
@@ -237,9 +245,7 @@ def run_probe(args):
         engine = PQLSystem(config)
         report["pql_workers"] = [{"name":thread.name,"alive":thread.is_alive()} for thread in engine.threads]
         report["replay"] = {"capacity":engine.replay.capacity,"allocated_bytes":engine.replay.allocated_bytes,
-                            "storage":{key:{"dtype":str(value.dtype),"device":str(value.device),
-                                            "bytes":value.numel()*value.element_size()}
-                                       for key,value in engine.replay.data.items()},
+                            "storage":replay_storage(engine.replay),
                             "pql_metadata_bytes":9*args.capacity}
         report["parameters"] = {"dtypes":sorted({str(p.dtype) for learner in (engine.critic,engine.policy)
                                                  for p in learner.parameters()})}

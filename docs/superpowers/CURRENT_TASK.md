@@ -15,6 +15,14 @@ New user instruction after Task 6: audit all owned scenario/algorithm/runtime/cl
 - Proven ancillary issue for explicitly budgeted jobs: CPU-visualization builder accepts time_budget/unfinished episodes outside auto_continue; legacy partial previews without a declared target are intentionally supported by existing tests, so keep that path; compile/fused-only launches skip acceleration preflight. These do not explain primary collector slowdown. Fix one at a time with a failing test, not bundled speculative changes.
 - Next: finish minimal design/test/benchmark plan, write performance gate before candidate code, smoke CPU, benchmark pinned baseline/candidate on T4 account35 after quota check. Keep candidate only if measured gain exceeds noise and all initialized state hashes/native oracle match. Then address concrete lifecycle gates with test-first changes, full suite, review, commit/push and update audit coverage/evidence. Do not promise completion in12h without measured full-training throughput.
 
+### New steering and live recovery at09:30
+
+- Healthy1M children: MASACBASEa8ac9ffc4096/8,630,272; MATBASE7a57e2a54096/8,818,688; MATPQLbdb9a5034096/9,162,752. Preserve all three.
+- MASACPQLc01bc18a145 failed4096/8,908,800 during final full-resume torch.save: basic_ios iostream error / unexpectedpos3030776896. Confirmed save I/O failure; disk pressure strongly supported by last5.11GBfree versus parent full-resume15.52GB and old66f4d40 retaining the staged input. No current CUDA-OOM evidence in that log. Top-level continuationValueError is secondary, job-result empty.
+- Rootfc14508c:v3 descriptor downloaded: immutableHF4672be4ad3ea3d13a419e7593960d3fb01955420, resume.pt15,522,939,889B SHA8d26e1e9671157180c4b048c0b95a515bded6ead06526d6c6c8a468b64fecbed, prefix1066/7,045,120. Need inspect child artifact descriptors/Kaggle output for any newer valid full state before rollback; never label policy-only4096 as exact resume. Failedc01 must remain preserved; recovery uses unusedc02 sameaccount21 and tested4cd9358 source/controller, explicitly override source because helper preserves parentcommit.
+- 500kchild30e43dda finishedtime_budget4745/13,914,112. Plannedc02failedonlyinsufficientquota0.41h; sameaccount28 waiting, artifactv3. Do not switch accounts. Verify immutablefullmanifest and ownedchildstate before future quota-resume.
+- /tmp from overnight session was cleared; committed/home worktree persisted at346632c plus D WIP. Recover records from git/evidence, do not rerun completed remote training or completed T4 AB.
+
 ### Task7 ledger
 
 - Task7A: RED missing scoped Warp CCA helper; GREEN79passed/1skipped, CPUfixture2worlds dt.01 errors0. Candidate5fcb272 unpromoted; T4same-account35 quota26.7h available, kernel bjkjbhm/uav-frozen-gain-t4-ab-20261024 v1 launched. B,C,C,B,B,C, full140arrays,39CUDAtests; wait for actual result.
@@ -23,6 +31,9 @@ New user instruction after Task 6: audit all owned scenario/algorithm/runtime/cl
 
 - Task7C RED: compile-only/fused-only skipped preflight; BASE preflight allocation ignored hybrid75 (actual allocation-expression CPU reproduction). GREEN:50passed,2skipped,12subtests in7.54s, exit0. Bootstrap now gates any requested acceleration; BASE uses production make_replay and reports cold/hot bytes. No flags enabled by this fix.
 - Task7C Ruling: align preflight replay with production while fixing independent-flag gating — otherwise expanded preflight could falsely OOM on all-GPU replay; cost if wrong is a misleading diagnostic, so bounded real two-T4 smoke remains required, not a claim of canonical accelerated1M success.
+
+- Task7A FINAL: T4v1 COMPLETE, baseline39.11293086 vs candidate39.62140881t/s, **+1.300025% reproducible**, all140arrays match6trials,39CUDAoracle tests passed37.222s. Below predeclared2% gate; REVERTED allthreecandidatefiles byte-equal6062744. Do not call it noise/no gain; it is too small for the acceptance gate. No further micro-cache candidate this task; event-loop architecture needs separate measured redesign.
+- Task7D RED actor-grad failure reproduced from actual BASEprobe context on CPU BF16; fixed cache_enabled=False. PQLprobe actual report expression failed on missing HybridMeasuredReplay.data; storage formatter now reports cold/hot tiers and preserves plain keys. GREEN65passed1skipped in8.44s, exit0. Real CUDA probe/preflight smoke pending; fullsuite after netrevert pending.
 
 ## Previous Task 6 record
 

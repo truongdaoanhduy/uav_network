@@ -56,3 +56,13 @@
 ## Execution
 
 User explicitly requests implementing found fixes. Execute inline; read-only domain audits already delegated. Root integrates sequentially and requests final independent review. Shared wrap-up deadline/terminal metric batching remain measured follow-ups, not speculative patches in this plan.
+
+### Task7D: Diagnostic probe defects discovered by full audit
+
+- [x] Actual BASE probe autocast context RED: actor loss lacks grad; one-line cache_enabled=False GREEN with real MASAC/ProbeAMP CPU BF16. Existing CUDA test consumes the actual script context, not copied kwargs.
+- [x] Actual PQL report expression RED: hybrid replay lacks .data; tiny storage formatter covers both tiers and plain legacy layout;65focusedtests passed,1CUDA skipped.
+- [ ] Bounded two-T4 preflight/probe smoke; fullsuite and final independent review.
+
+### Task7E: Latest W&B recovery steering
+
+Read latest completed/failed jobs at09:30. Preserve healthy three1M children. For failedPQLc01, verify available full states and prepare unusedc02 from best valid immutableprefix with source4cd9358; preserve failedattempt and disclose rollback. For500kc01finished/quota0.41, retain same-account waiting recovery with explicit hotfix source. Check ownedstate and currentquota before any submission. No account rotation or final evaluation before20k.

@@ -452,7 +452,7 @@ def run_probe(args):
                     persist()  # Preserve active phase even if the external time limit kills the process.
                     before = {name: value["applied"] for name, value in amp.counts.items()}
                     begin = time.perf_counter()
-                    with torch.autocast("cuda", dtype=torch.float16):
+                    with torch.autocast("cuda", dtype=torch.float16, cache_enabled=False):
                         losses = learner.update(replay.sample(args.batch), collect_metrics=True)
                     torch.cuda.synchronize(1)
                     row = {"round": round_index + 1, "update": update + 1,

@@ -1,0 +1,445 @@
+{
+  "observed_utc": "2026-10-24T02:30:17.223464+00:00",
+  "runs": [
+    {
+      "id": "bdb9a503",
+      "name": "MATD3-PQL-uav-network-2d-seed44-20261023-074845-a0387e-c01-bdb9a503",
+      "state": "running",
+      "created_at": "2026-10-23T19:34:14Z",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/bdb9a503",
+      "algorithm": "matd3",
+      "pql": true,
+      "group": "uav-v3-full20k-e4096-b8192-r1m-cpu75-20261023",
+      "runtime": {
+        "episodes": 20000,
+        "num_envs": 4096,
+        "replay_cpu_fraction": 0.75,
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false,
+        "max_train_seconds": 35518.042642717
+      },
+      "summary": {
+        "storage/disk_free_bytes": 20582187008,
+        "kaggle_account": "kjhiguyf",
+        "pql/collector_seconds": 24183.457017850025,
+        "_runtime": 24939.163763534,
+        "run/elapsed_seconds": 24943.816540886,
+        "continuation_index": 1,
+        "pql/critic_seconds": 1418.8509443439975,
+        "train/episodes_completed": 4096,
+        "progress/episode_step_max": 559,
+        "kaggle_url": "https://www.kaggle.com/code/kjhiguyf/uavnet-train-20261023-074845-a038-c01",
+        "pql/policy_seconds": 421.8112440369787,
+        "progress/episode_step_mean": 511.124755859375,
+        "progress/episode_step_min": 437,
+        "global_step": 9162752,
+        "storage/checkpoint_bytes": 119716918
+      },
+      "links": {
+        "kaggle_url": "https://www.kaggle.com/code/kjhiguyf/uavnet-train-20261023-074845-a038-c01"
+      }
+    },
+    {
+      "id": "7a57e2a5",
+      "name": "MATD3-BASE-uav-network-2d-seed44-20261023-074258-316e25-c01-7a57e2a5",
+      "state": "running",
+      "created_at": "2026-10-23T19:08:56Z",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/7a57e2a5",
+      "algorithm": "matd3",
+      "pql": false,
+      "group": "uav-v3-full20k-e4096-b8192-r1m-cpu75-20261023",
+      "runtime": {
+        "episodes": 20000,
+        "num_envs": 4096,
+        "replay_cpu_fraction": 0.75,
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false,
+        "max_train_seconds": 36000
+      },
+      "summary": {
+        "timing/learner_seconds": 1415.189874704974,
+        "storage/disk_free_bytes": 20547375104,
+        "kaggle_account": "lihuhi",
+        "_runtime": 26475.225909087,
+        "run/elapsed_seconds": 26475.822297602,
+        "continuation_index": 1,
+        "train/episodes_completed": 4096,
+        "progress/episode_step_max": 508,
+        "timing/collector_wait_seconds": 24719.198449472995,
+        "kaggle_url": "https://www.kaggle.com/code/lihuhi/uavnet-train-20261023-074258-316e25-c01",
+        "progress/episode_step_mean": 434.58056640625,
+        "progress/episode_step_min": 353,
+        "global_step": 8818688,
+        "storage/checkpoint_bytes": 181578049
+      },
+      "links": {
+        "kaggle_url": "https://www.kaggle.com/code/lihuhi/uavnet-train-20261023-074258-316e25-c01"
+      }
+    },
+    {
+      "id": "a8ac9ffc",
+      "name": "MASAC-BASE-uav-network-2d-seed44-20261023-073957-9c4cd8-c01-a8ac9ffc",
+      "state": "running",
+      "created_at": "2026-10-23T19:02:39Z",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/a8ac9ffc",
+      "algorithm": "masac",
+      "pql": false,
+      "group": "uav-v3-full20k-e4096-b8192-r1m-cpu75-20261023",
+      "runtime": {
+        "episodes": 20000,
+        "num_envs": 4096,
+        "replay_cpu_fraction": 0.75,
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false,
+        "max_train_seconds": 36000
+      },
+      "summary": {
+        "timing/learner_seconds": 1775.326496793056,
+        "storage/disk_free_bytes": 20587155456,
+        "kaggle_account": "jwekfjjwoigjo",
+        "_runtime": 26841.816367648,
+        "run/elapsed_seconds": 26838.086917800003,
+        "continuation_index": 1,
+        "train/episodes_completed": 4096,
+        "progress/episode_step_max": 487,
+        "timing/collector_wait_seconds": 24830.776755223975,
+        "kaggle_url": "https://www.kaggle.com/code/jwekfjjwoigjo/uavnet-train-20261023-073957-c01",
+        "progress/episode_step_mean": 371.66455078125,
+        "progress/episode_step_min": 307,
+        "global_step": 8630272,
+        "storage/checkpoint_bytes": 175293409
+      },
+      "links": {
+        "kaggle_url": "https://www.kaggle.com/code/jwekfjjwoigjo/uavnet-train-20261023-073957-c01"
+      }
+    },
+    {
+      "id": "0a68f59b",
+      "name": "MATD3-PQL-benchmark-E4096-B8192-seed44",
+      "state": "finished",
+      "created_at": "2026-10-23T18:49:28Z",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/0a68f59b",
+      "algorithm": "matd3",
+      "pql": true,
+      "group": "uav-v3-full20k-e4096-b8192-r1m-cpu75-20261023",
+      "runtime": {
+        "episodes": 20000,
+        "num_envs": 4096,
+        "replay_cpu_fraction": 0.75,
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false,
+        "max_train_seconds": 36000
+      },
+      "summary": {
+        "kaggle_account": "kjhiguyf",
+        "pql/collector_seconds": 2530.366095749001,
+        "_runtime": 2546,
+        "continuation_index": 1,
+        "pql/critic_seconds": 9.89910280499862,
+        "kaggle_url": "https://www.kaggle.com/code/kjhiguyf/uavnet-train-20261023-074845-a038-c01",
+        "pql/policy_seconds": 2.5924348479998116,
+        "global_step": 163840
+      },
+      "links": {
+        "kaggle_url": "https://www.kaggle.com/code/kjhiguyf/uavnet-train-20261023-074845-a038-c01",
+        "wandb_url": "https://forge.coreweave.com/wandb/truongdaoanhduy-uit/uav_search_target/runs/0a68f59b"
+      }
+    },
+    {
+      "id": "63faeffb",
+      "name": "MASAC-BASE-uav-network-2d-seed44-20261023-073957-9c4cd8",
+      "state": "finished",
+      "created_at": "2026-10-23T08:14:19Z",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/63faeffb",
+      "algorithm": "masac",
+      "pql": false,
+      "group": "uav-v3-full20k-e4096-b8192-r1m-cpu75-20261023",
+      "runtime": {
+        "episodes": 20000,
+        "num_envs": 4096,
+        "replay_cpu_fraction": 0.75,
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false,
+        "max_train_seconds": 36000
+      },
+      "summary": {
+        "timing/learner_seconds": 8061.491567955984,
+        "episodes_completed": 650,
+        "storage/disk_free_bytes": 20803248128,
+        "kaggle_account": "jwekfjjwoigjo",
+        "stop_reason": "time_budget",
+        "_runtime": 36430,
+        "run/elapsed_seconds": 36039.186695326,
+        "continuation_index": 0,
+        "train/episodes_completed": 650,
+        "progress/episode_step_max": 1705,
+        "episode_budget_complete": false,
+        "timing/collector_wait_seconds": 27813.46299929892,
+        "kaggle_url": "https://www.kaggle.com/code/jwekfjjwoigjo/uavnet-train-20261023-073957-9c4cd8",
+        "progress/episode_step_mean": 1450.98046875,
+        "progress/episode_step_min": 1,
+        "global_step": 6983680,
+        "storage/checkpoint_bytes": 90623585
+      },
+      "links": {
+        "kaggle_url": "https://www.kaggle.com/code/jwekfjjwoigjo/uavnet-train-20261023-073957-9c4cd8"
+      }
+    },
+    {
+      "id": "fc14508c",
+      "name": "MASAC-PQL-uav-network-2d-seed44-20261023-051420-773792",
+      "state": "finished",
+      "created_at": "2026-10-23T06:01:49Z",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/fc14508c",
+      "algorithm": "masac",
+      "pql": true,
+      "group": "uav-v3-full20k-e4096-b8192-r1m-cpu75-20261023",
+      "runtime": {
+        "episodes": 20000,
+        "num_envs": 4096,
+        "replay_cpu_fraction": 0.75,
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false,
+        "max_train_seconds": 35805.568785616
+      },
+      "summary": {
+        "episodes_completed": 1066,
+        "storage/disk_free_bytes": 20768583680,
+        "kaggle_account": "ewkljfelweow",
+        "stop_reason": "time_budget",
+        "pql/collector_seconds": 34244.901267109904,
+        "_runtime": 36360,
+        "run/elapsed_seconds": 35841.632709262,
+        "continuation_index": 0,
+        "pql/critic_seconds": 7020.099883185314,
+        "train/episodes_completed": 1066,
+        "progress/episode_step_max": 1720,
+        "episode_budget_complete": false,
+        "kaggle_url": "https://www.kaggle.com/code/ewkljfelweow/uavnet-train-20261023-051420-773792",
+        "pql/policy_seconds": 6228.431031671371,
+        "progress/episode_step_mean": 1290.8798828125,
+        "progress/episode_step_min": 1,
+        "global_step": 7045120,
+        "storage/checkpoint_bytes": 68049430
+      },
+      "links": {
+        "kaggle_url": "https://www.kaggle.com/code/ewkljfelweow/uavnet-train-20261023-051420-773792"
+      }
+    },
+    {
+      "id": "2dcbf36c",
+      "name": "MATD3-BASE-uav-network-2d-seed44-20261023-074258-316e25",
+      "state": "finished",
+      "created_at": "2026-10-23T08:17:15Z",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/2dcbf36c",
+      "algorithm": "matd3",
+      "pql": false,
+      "group": "uav-v3-full20k-e4096-b8192-r1m-cpu75-20261023",
+      "runtime": {
+        "episodes": 20000,
+        "num_envs": 4096,
+        "replay_cpu_fraction": 0.75,
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false,
+        "max_train_seconds": 36000
+      },
+      "summary": {
+        "timing/learner_seconds": 1102.5169679460023,
+        "episodes_completed": 0,
+        "storage/disk_free_bytes": 20927930368,
+        "kaggle_account": "lihuhi",
+        "stop_reason": "time_budget",
+        "_runtime": 36665,
+        "run/elapsed_seconds": 36016.198718432,
+        "continuation_index": 0,
+        "train/episodes_completed": 0,
+        "progress/episode_step_max": 934,
+        "episode_budget_complete": false,
+        "timing/collector_wait_seconds": 34869.09069355197,
+        "kaggle_url": "https://www.kaggle.com/code/lihuhi/uavnet-train-20261023-074258-316e25",
+        "progress/episode_step_mean": 934,
+        "progress/episode_step_min": 934,
+        "global_step": 3825664,
+        "storage/checkpoint_bytes": 0
+      },
+      "links": {
+        "kaggle_url": "https://www.kaggle.com/code/lihuhi/uavnet-train-20261023-074258-316e25"
+      }
+    },
+    {
+      "id": "278634f6",
+      "name": "MATD3-PQL-uav-network-2d-seed44-20261023-074845-a0387e",
+      "state": "finished",
+      "created_at": "2026-10-23T08:36:21Z",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/278634f6",
+      "algorithm": "matd3",
+      "pql": true,
+      "group": "uav-v3-full20k-e4096-b8192-r1m-cpu75-20261023",
+      "runtime": {
+        "episodes": 20000,
+        "num_envs": 4096,
+        "replay_cpu_fraction": 0.75,
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false,
+        "max_train_seconds": 35795.738626945
+      },
+      "summary": {
+        "episodes_completed": 0,
+        "storage/disk_free_bytes": 20893511680,
+        "kaggle_account": "kjhiguyf",
+        "stop_reason": "time_budget",
+        "pql/collector_seconds": 35591.95747203391,
+        "_runtime": 36255,
+        "run/elapsed_seconds": 35803.862372045,
+        "continuation_index": 0,
+        "pql/critic_seconds": 922.8488447021018,
+        "train/episodes_completed": 0,
+        "progress/episode_step_max": 846,
+        "episode_budget_complete": false,
+        "kaggle_url": "https://www.kaggle.com/code/kjhiguyf/uavnet-train-20261023-074845-a0387e",
+        "pql/policy_seconds": 274.82980105505067,
+        "progress/episode_step_mean": 846,
+        "progress/episode_step_min": 846,
+        "global_step": 3465216,
+        "storage/checkpoint_bytes": 0
+      },
+      "links": {
+        "kaggle_url": "https://www.kaggle.com/code/kjhiguyf/uavnet-train-20261023-074845-a0387e"
+      }
+    },
+    {
+      "id": "b9d73bd3",
+      "name": "MASAC-BASE-uav-network-2d-seed44-20261023-051422-cbe381",
+      "state": "finished",
+      "created_at": "2026-10-23T05:49:13Z",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/b9d73bd3",
+      "algorithm": "masac",
+      "pql": false,
+      "group": "uav-network-v3-full20k-env4096-steps1800-seed44-20261020",
+      "runtime": {
+        "episodes": 20000,
+        "num_envs": 4096,
+        "replay_cpu_fraction": 0,
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false,
+        "max_train_seconds": 36000
+      },
+      "summary": {
+        "timing/learner_seconds": 3084.4357699819766,
+        "episodes_completed": 4096,
+        "storage/disk_free_bytes": 11631624192,
+        "kaggle_account": "ekjfewflwejl",
+        "stop_reason": "time_budget",
+        "_runtime": 36654,
+        "run/elapsed_seconds": 36007.115356288996,
+        "continuation_index": 0,
+        "train/episodes_completed": 4096,
+        "progress/episode_step_max": 924,
+        "episode_budget_complete": false,
+        "timing/collector_wait_seconds": 32746.57717993104,
+        "kaggle_url": "https://www.kaggle.com/code/ekjfewflwejl/uavnet-train-20261023-051422-cbe381",
+        "progress/episode_step_mean": 780.26318359375,
+        "progress/episode_step_min": 717,
+        "global_step": 10309632,
+        "storage/checkpoint_bytes": 175482337
+      },
+      "links": {
+        "kaggle_url": "https://www.kaggle.com/code/ekjfewflwejl/uavnet-train-20261023-051422-cbe381"
+      }
+    },
+    {
+      "id": "bc18a145",
+      "name": "MASAC-PQL-uav-network-2d-seed44-20261023-051420-773792-c01-bc18a145",
+      "state": "failed",
+      "created_at": "2026-10-23T17:02:37Z",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/bc18a145",
+      "algorithm": "masac",
+      "pql": true,
+      "group": "uav-v3-full20k-e4096-b8192-r1m-cpu75-20261023",
+      "runtime": {
+        "episodes": 20000,
+        "num_envs": 4096,
+        "replay_cpu_fraction": 0.75,
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false,
+        "max_train_seconds": 25845.031985026
+      },
+      "summary": {
+        "storage/disk_free_bytes": 5112758272,
+        "kaggle_account": "ewkljfelweow",
+        "pql/collector_seconds": 24667.755930449992,
+        "_runtime": 25766,
+        "run/elapsed_seconds": 25761.469178156,
+        "continuation_index": 1,
+        "diagnostics/fatal_error": true,
+        "pql/critic_seconds": 1798.7828535449812,
+        "train/episodes_completed": 4096,
+        "progress/episode_step_max": 541,
+        "kaggle_url": "https://www.kaggle.com/code/ewkljfelweow/uavnet-train-20261023-051420-c01",
+        "pql/policy_seconds": 1357.540469553981,
+        "progress/episode_step_mean": 436.9033203125,
+        "progress/episode_step_min": 375,
+        "global_step": 8908800,
+        "storage/checkpoint_bytes": 116397846
+      },
+      "links": {
+        "kaggle_url": "https://www.kaggle.com/code/ewkljfelweow/uavnet-train-20261023-051420-c01"
+      }
+    },
+    {
+      "id": "30e43dda",
+      "name": "MASAC-BASE-uav-network-2d-seed44-20261023-051422-cbe381-c01-30e43dda",
+      "state": "finished",
+      "created_at": "2026-10-23T16:35:19Z",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/30e43dda",
+      "algorithm": "masac",
+      "pql": false,
+      "group": "uav-network-v3-full20k-env4096-steps1800-seed44-20261020",
+      "runtime": {
+        "episodes": 20000,
+        "num_envs": 4096,
+        "replay_cpu_fraction": 0,
+        "amp_mode": "off",
+        "compile_models": false,
+        "fused_optimizers": false,
+        "max_train_seconds": 23882.288496126
+      },
+      "summary": {
+        "timing/learner_seconds": 3487.9793666299593,
+        "episodes_completed": 4745,
+        "storage/disk_free_bytes": 11682537472,
+        "kaggle_account": "ekjfewflwejl",
+        "stop_reason": "time_budget",
+        "_runtime": 24263,
+        "run/elapsed_seconds": 23916.466716682,
+        "continuation_index": 1,
+        "train/episodes_completed": 4745,
+        "progress/episode_step_max": 1781,
+        "episode_budget_complete": false,
+        "timing/collector_wait_seconds": 20249.710423268974,
+        "kaggle_url": "https://www.kaggle.com/code/ekjfewflwejl/uavnet-train-20261023-051422-c01",
+        "progress/episode_step_mean": 1405.19189453125,
+        "progress/episode_step_min": 1,
+        "global_step": 13914112,
+        "storage/checkpoint_bytes": 187620577
+      },
+      "links": {
+        "kaggle_url": "https://www.kaggle.com/code/ekjfewflwejl/uavnet-train-20261023-051422-c01"
+      }
+    }
+  ],
+  "benchmark": {
+    "ref": "bjkjbhm/uav-frozen-gain-t4-ab-20261024",
+    "status": "bjkjbhm/uav-frozen-gain-t4-ab-20261024 has status \"KernelWorkerStatus.COMPLETE\""
+  }
+}
