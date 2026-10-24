@@ -2,6 +2,16 @@
 
 Updated 2026-10-24 01:45 Asia/Ho_Chi_Minh.
 
+## Latest user priority: Sandbox-independent full flow — ACTIVE
+
+User repeated that once W&B shows Running, Sandbox/their computer will be turned off; training continuation and final CPU visualization must still happen. Implement a CPU-only Kaggle controller per lineage; do not rely on the local ChatGPT/Sandbox watcher. Design: specs/2026-10-24-sandbox-independent-flow-design.md. Reuse existing GPU self-chain, act only after terminal parent, wait same-account quota, adopt actual children, chain bounded CPU controller sessions, and verify final CPU visualization. Preserve all five current GPU jobs. New design builder check, test-first implementation, full suite, real labelled end-to-end cloud smoke, and deployment to five lineages required before claiming unattended readiness.
+
+Previous Task7 source at0c80b7d: CPUfullsuite680passed74skip1235subtests; allcorefixescommitted. Acceleration smoke v2 bjkjbhm/uav-task7-acceleration-smoke-20261024 pinned0c80b7d is running; v1compile-only/fused-only passed, staleCUDAcritic-dtypeassertion corrected to existing AMP contract and rerun. Netcache5fcb272 rejected+1.30% below2% and reverted. Kernel-blockgeometry hypothesis (4096worlds/default256threads gives16blocks on40SM T4) is unimplemented backlog; current user priority is cloud independence.
+
+Current production: healthy1MBASE MASACa8ac9ffc/MATD3 7a57e2a5/PQLMATD3bdb9a503 preserved; same-account21PQLc02 aa859075 and account28BASE500kc02 01763049 submitted on source4cd9358, timeout39600, rootprefix1066/7045120 and4745/13914112. Their bootstrap is RUNNING; fresh training progress still needs verification. Recovery evidence: evidence/2026-10-24-task7-recovery-submissions.json.
+
+All99ownedPython modules,8scripts,20YAMLconfigs audited by root/read-only domain agents. Final Task7 report/verification consolidation remains; do not redo audits or restart production. Watcher6adb1a0b96dc8191b26ad5ed86545aac was paused02:19 for missingSandbox, resumed10:03 with latestlineages; only configuration enabled verified, no new scheduledrun. New cloud controllers replace this dependency.
+
 ## Resume here — Task 7 IN PROGRESS
 
 New user instruction after Task 6: audit all owned scenario/algorithm/runtime/cloud code and fresh online W&B metrics/logs, explain why 20,000 episodes × <=1,800 steps cannot finish within 12h, and implement justified fixes. This authorizes investigation and minimal verified fixes; proceed sequentially, preserving healthy production training and scientific settings. Task 6 remains completed/reverted at commit6062744.
