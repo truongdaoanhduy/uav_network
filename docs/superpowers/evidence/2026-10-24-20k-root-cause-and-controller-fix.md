@@ -85,8 +85,26 @@ Account 35 was checked for the isolated cloud smoke: about 29.92 GPU hours remai
 
 Full suite after the controller fixes: `707 passed, 74 skipped, 8 warnings, 1250 subtests passed in 702.57s`, exit 0.
 
+## Immutable source
+
+Controller fix committed and pushed as `7222fd47d763c88e1fc1e02655f340cb92419b6d` (`fix(cloud): verify autonomous continuation handoff`). Local and remote branch SHAs matched after push.
+
+## Real cloud smoke attempt
+
+The isolated smoke was prepared on `account_35` (`bjkjbhm`), with ~29.92 GPU-hours available and no active kernel. Its W&B and controller credential datasets were created/listable. The production launcher failed **before any kernel push** because Kaggle CLI `datasets download` for the private W&B credential timed out after 120 seconds.
+
+To distinguish an account/dataset-newness issue from a service-path issue, the same credential read was attempted on spare `account_27` (`ioeufwejewlfl`) using its older previously-used credential dataset. It also timed out in `kaggle datasets download` (60 seconds), while kernel listing still worked. Therefore the current blocker is the Kaggle private-dataset download path/service, not the controller fix or a specific account.
+
+Fresh post-failure reconciliation showed:
+
+- `account_35`: no active kernel and no new `uavnet-train`/`uav-flow` 20261024 ref;
+- `account_27`: no active kernel and no new flow ref;
+- all five production continuations remained `running` on their original accounts;
+- their W&B `global_step` values continued to advance and no fresh `fatal_error` was present.
+
+This real pre-submit failure also exercises the safety property behind Bug A: a credential failure occurs before push and does not leave a phantom Kaggle child.
+
 ## Pending before COMPLETE
 
-- immutable commit + push;
-- real isolated Kaggle cloud E2E smoke with controller heartbeat and final CPU/HF/W&B handoff;
+- re-run the isolated real Kaggle cloud E2E smoke once the private-dataset download path is responsive, requiring actual controller heartbeat and final CPU/HF/W&B handoff;
 - only after that, attach/adopt controllers for the production lineages without restarting healthy GPU jobs.
