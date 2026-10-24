@@ -11,7 +11,7 @@ import time
 from uuid import uuid4
 
 from ..configuration import load_config
-from .client import record_submission_phase, account_quotas, kernel_status, private_dataset_file, pushed_kernel_ref, run_kaggle, verify_credential_dataset
+from .client import record_submission_phase, account_quotas, kernel_status, pushed_kernel_ref, run_kaggle, verify_credential_dataset, verify_pipeline_credential_dataset
 from .credentials import Account, Credentials
 from .kernel import kernel_metadata, kernel_script
 
@@ -260,11 +260,9 @@ def submit_continuation(parent, results, output, account=None, credentials=None)
                                   timeout=check_submission_deadline(parent))
         verify_credential_dataset(account, credentials, spec["cpu_credential_dataset"], username,
                                   timeout=check_submission_deadline(parent), only_selected=True)
-        _, token = private_dataset_file(account, spec["pipeline_credential_dataset"], username,
-                                        {"uav_cpu_launch_token.txt"},
-                                        timeout=check_submission_deadline(parent), only_selected=True)
-        if token != account.token:
-            raise RuntimeError("Private continuation credential differs from the selected account")
+        verify_pipeline_credential_dataset(
+            account, spec["pipeline_credential_dataset"], username,
+            timeout=check_submission_deadline(parent))
         folder = output / "continuation-kernel"
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "kernel.py").write_text(kernel_script(spec))

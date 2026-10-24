@@ -280,11 +280,11 @@ class CloudContinuationTests(unittest.TestCase):
             self.assertIs(selected, account)
             self.assertEqual(username, "owner")
             verifications.append((ref, kwargs.get("only_selected", False)))
-        def launch_file(selected, ref, username, filenames, **kwargs):
+        def launch_credential(selected, ref, username, **kwargs):
+            self.assertIs(selected, account)
             self.assertEqual(ref, "owner/private-launch")
-            self.assertEqual(filenames, {"uav_cpu_launch_token.txt"})
-            self.assertTrue(kwargs["only_selected"])
-            return "uav_cpu_launch_token.txt", account.token
+            self.assertEqual(username, "owner")
+            return account.token
         with TemporaryDirectory() as directory:
             output = Path(directory)
             def push(args, selected, **kwargs):
@@ -303,7 +303,7 @@ class CloudContinuationTests(unittest.TestCase):
             with patch.object(module, "account_quotas", return_value=[
                     {"name": "selected", "ok": True, "remaining_hours": 1}]), \
                  patch.object(module, "verify_credential_dataset", side_effect=verify), \
-                 patch.object(module, "private_dataset_file", side_effect=launch_file), \
+                 patch.object(module, "verify_pipeline_credential_dataset", side_effect=launch_credential), \
                  patch.object(module, "run_kaggle", side_effect=push):
                 manifest = module.submit_continuation(parent_spec(), learner_result(), output,
                                                      account=account, credentials=credentials)

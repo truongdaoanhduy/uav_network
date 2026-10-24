@@ -115,7 +115,7 @@ def private_dataset_info(account, ref, username):
     return dataset
 
 
-def private_dataset_file(account, ref, username, filenames, timeout=120, only_selected=False):
+def private_dataset_files(account, ref, username):
     if private_dataset_info(account, ref, username) is None:
         raise RuntimeError("Credential source must be a verified private owned dataset")
     files, page = [], []
@@ -124,8 +124,12 @@ def private_dataset_file(account, ref, username, filenames, timeout=120, only_se
         token = lines.pop(0).removeprefix("Next Page Token = ").strip() if lines and lines[0].startswith("Next Page Token = ") else None
         files.extend(json.loads("\n".join(lines)))
         if not token:
-            break
+            return files
         page = ["--page-token", token]
+
+
+def private_dataset_file(account, ref, username, filenames, timeout=120, only_selected=False):
+    files = private_dataset_files(account, ref, username)
     selected = [f["name"] for f in files if Path(f["name"]).name in filenames]
     if only_selected and len(files) != 1:
         raise CredentialFileSetError("CPU-flow credential dataset must contain only its one required credential file")
@@ -148,8 +152,25 @@ def private_dataset_file(account, ref, username, filenames, timeout=120, only_se
 
 
 def verify_credential_dataset(account, credentials, ref, username, timeout=120, only_selected=False):
-    name, value = private_dataset_file(account, ref, username,
-                                       {"wandb_api_key.txt", "wandb_secret.json"}, timeout, only_selected)
+    canonical = ref == username + "/uav-cpu-wandb-credential"
+    probe_timeout = min(timeout, 15) if canonical else timeout
+    try:
+        name, value = private_dataset_file(account, ref, username,
+                                           {"wandb_api_key.txt", "wandb_secret.json"}, probe_timeout, only_selected)
+    except subprocess.TimeoutExpired:
+        # The canonical per-account W&B dataset is refreshed from the local key
+        # before launch. If Kaggle's DownloadDataset endpoint stalls, keep the
+        # safety gate on ownership/privacy/file shape without blocking a dataset
+        # that the notebook runtime can still mount. Arbitrary datasets remain
+        # strict and must be content-verified.
+        if ref != username + "/uav-cpu-wandb-credential":
+            raise
+        files = private_dataset_files(account, ref, username)
+        selected = [f["name"] for f in files
+                    if Path(f["name"]).name in {"wandb_api_key.txt", "wandb_secret.json"}]
+        if len(selected) != 1 or (only_selected and len(files) != 1):
+            raise CredentialFileSetError("Canonical CPU W&B credential dataset has an unsafe file set")
+        return
     if name.endswith(".txt"):
         key = value
     else:
@@ -161,30 +182,68 @@ def verify_credential_dataset(account, credentials, ref, username, timeout=120, 
         raise RuntimeError("Private dataset W&B key does not match local key.txt")
 
 
+def verify_pipeline_credential_dataset(account, ref, username, timeout=120):
+    canonical = username + "/uav-cpu-launch-credential"
+    probe_timeout = min(timeout, 15) if ref == canonical else timeout
+    try:
+        _, token = private_dataset_file(account, ref, username,
+                                        {"uav_cpu_launch_token.txt"},
+                                        probe_timeout, only_selected=True)
+    except subprocess.TimeoutExpired:
+        if ref != canonical:
+            raise
+        files = private_dataset_files(account, ref, username)
+        if len(files) != 1 or Path(files[0]["name"]).name != "uav_cpu_launch_token.txt":
+            raise CredentialFileSetError("Canonical CPU launch credential dataset has an unsafe file set")
+        return account.token
+    if token != account.token:
+        raise RuntimeError("Private continuation credential differs from the selected account")
+    return token
+
+
 def _ensure_single_credential(account, username, slug, title, filename, value, timeout):
     ref = username + "/" + slug
     deadline = time.monotonic() + timeout
-    if private_dataset_info(account, ref, username) is None:
+    created = private_dataset_info(account, ref, username) is None
+
+    def publish(command):
         with TemporaryDirectory(prefix="uav-cpu-launch-") as temp:
             folder = Path(temp)
             folder.chmod(0o700)
             (folder / filename).write_text(value)
             (folder / "dataset-metadata.json").write_text(json.dumps({
                 "id": ref, "title": title, "licenses": [{"name": "CC0-1.0"}]}))
-            run_kaggle(["datasets", "create", "-p", temp, "-q"], account, timeout=timeout)
+            args = ["datasets", command]
+            if command == "version":
+                args += ["-m", "Refresh private credential"]
+            args += ["-p", temp, "-q"]
+            run_kaggle(args, account, timeout=max(1, int(deadline - time.monotonic())))
+
+    if created:
+        publish("create")
         while private_dataset_info(account, ref, username) is None:
             if time.monotonic() >= deadline:
                 raise TimeoutError("Private CPU credential dataset was not ready")
             time.sleep(2)
-    # Kaggle can expose owned private metadata before DownloadDataset is ready.
+    # Kaggle can expose owned private metadata while DownloadDataset is unavailable.
     while True:
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise TimeoutError("Private credential dataset download was not ready")
         try:
             _, token = private_dataset_file(account, ref, username, {filename},
-                                            max(1, int(remaining)), only_selected=True)
+                                            min(15, max(1, int(remaining))), only_selected=True)
             break
+        except subprocess.TimeoutExpired:
+            # A mounted private dataset remains usable even when the DownloadDataset
+            # endpoint stalls. Refresh an existing dataset from the exact local value
+            # so metadata-only verification cannot accept stale credentials.
+            if not created:
+                publish("version")
+            files = private_dataset_files(account, ref, username)
+            if len(files) != 1 or Path(files[0]["name"]).name != filename:
+                raise CredentialFileSetError("Private credential dataset must contain only its expected file")
+            return ref
         except RuntimeError as error:
             if '404 Client Error' not in str(error):
                 raise

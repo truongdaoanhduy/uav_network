@@ -15,7 +15,7 @@ from tempfile import TemporaryDirectory
 import time
 from uuid import uuid4
 
-from .client import record_submission_phase, kernel_status, private_dataset_file, pushed_kernel_ref, run_kaggle, verify_credential_dataset
+from .client import record_submission_phase, kernel_status, pushed_kernel_ref, run_kaggle, verify_credential_dataset, verify_pipeline_credential_dataset
 from .continuation import _owned_kernel_exists, kernel_ref_for_segment, next_stage, submit_continuation
 from .credentials import Account, Credentials
 from .kernel import kernel_metadata, kernel_script
@@ -96,10 +96,7 @@ def submit_controller(spec, output, account, credentials):
         return {**spec, "status": "adopted", "kernel_url": "https://www.kaggle.com/code/" + spec["kernel_ref"]}
     record_submission_phase(output, "controller", spec["kernel_ref"], "preparing")
     verify_credential_dataset(account, credentials, spec["credential_dataset"], owner, only_selected=True)
-    _, token = private_dataset_file(account, spec["pipeline_credential_dataset"], owner,
-                                    {"uav_cpu_launch_token.txt"}, only_selected=True)
-    if token != account.token:
-        raise ValueError("Controller credential differs from the selected account")
+    verify_pipeline_credential_dataset(account, spec["pipeline_credential_dataset"], owner)
     folder = Path(output) / f"controller-{spec['generation']:04d}"
     folder.mkdir(parents=True, exist_ok=True)
     atomic_json(folder / "job.json", spec)

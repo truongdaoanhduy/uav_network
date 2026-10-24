@@ -232,6 +232,21 @@ class CloudTests(unittest.TestCase):
                     verify_credential_dataset(credentials.accounts[0], credentials, dataset.ref, "owner")
         self.assertEqual(call.call_count, 2)
 
+
+    def test_canonical_cpu_wandb_verification_survives_download_timeout_after_strict_file_check(self):
+        from uav_network.cloud.client import verify_credential_dataset
+        credentials = SimpleNamespace(wandb_key="test-wandb-key")
+        timeout = subprocess.TimeoutExpired(["kaggle", "datasets", "download"], 15)
+        with patch("uav_network.cloud.client.private_dataset_file", side_effect=timeout), \
+             patch("uav_network.cloud.client.private_dataset_files",
+                   return_value=[{"name": "wandb_api_key.txt"}]):
+            verify_credential_dataset(None, credentials,
+                                      "owner/uav-cpu-wandb-credential", "owner",
+                                      only_selected=True)
+        with patch("uav_network.cloud.client.private_dataset_file", side_effect=timeout):
+            with self.assertRaises(subprocess.TimeoutExpired):
+                verify_credential_dataset(None, credentials, "owner/arbitrary", "owner")
+
     def test_evaluation_failure_preserves_training_results_and_later_evaluations(self):
         from uav_network.cloud.remote import finalize_runs
         with TemporaryDirectory() as directory:

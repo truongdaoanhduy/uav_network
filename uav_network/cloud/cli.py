@@ -31,6 +31,10 @@ def launch(args, credentials):
     quotas = account_quotas(credentials, requested=args.account)
     account = select_account(credentials, quotas, args.required_gpu_hours, args.account)
     username = resolve_username(account)
+    canonical_wandb = f"{username}/uav-cpu-wandb-credential"
+    if args.credential_dataset == canonical_wandb:
+        args.credential_dataset = ensure_cpu_wandb_dataset(
+            account, credentials, username, args.credential_timeout_seconds)
     verify_credential_dataset(account, credentials, args.credential_dataset, username, args.credential_timeout_seconds)
     config_file = args.config or ("configs/kaggle-smoke.yaml" if args.stage == "validate" else "configs/kaggle.yaml")
     config = load_config(ROOT / config_file, args.overrides)

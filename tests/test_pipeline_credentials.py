@@ -1,5 +1,6 @@
 """Autonomous CPU launch credentials stay in an owned private dataset."""
 import json
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
@@ -22,6 +23,67 @@ class PipelineCredentialTests(unittest.TestCase):
             self.assertEqual(read.call_count, 2)
             pause.assert_called_once()
             self.assertTrue(read.call_args.kwargs['only_selected'])
+
+
+    def test_existing_private_credential_refreshes_after_download_timeout(self):
+        account = Account("one", "private-token")
+        dataset = SimpleNamespace(ref="owner/uav-cpu-launch-credential", is_private=True)
+        calls = []
+
+        def transport(args, selected, **kwargs):
+            calls.append(args[:2])
+            if args[:2] == ["datasets", "version"]:
+                folder = Path(args[args.index("-p") + 1])
+                self.assertEqual((folder / "uav_cpu_launch_token.txt").read_text(), account.token)
+                metadata = json.loads((folder / "dataset-metadata.json").read_text())
+                self.assertEqual(metadata["id"], dataset.ref)
+                return "versioned"
+            if args[:2] == ["datasets", "files"]:
+                return json.dumps([{"name": "uav_cpu_launch_token.txt"}])
+            raise AssertionError(args)
+
+        with patch.object(client, "private_dataset_info", return_value=dataset), \
+             patch.object(client, "private_dataset_file",
+                          side_effect=subprocess.TimeoutExpired(["kaggle", "datasets", "download"], 30)), \
+             patch.object(client, "run_kaggle", side_effect=transport):
+            self.assertEqual(client.ensure_pipeline_dataset(account, "owner", timeout=60), dataset.ref)
+        self.assertIn(["datasets", "version"], calls)
+        self.assertIn(["datasets", "files"], calls)
+
+
+    def test_download_probe_leaves_time_for_timeout_recovery(self):
+        account = Account("one", "private-token")
+        dataset = SimpleNamespace(ref="owner/uav-cpu-launch-credential", is_private=True)
+        observed = []
+
+        def read(*args, **kwargs):
+            observed.append(args[4])
+            raise subprocess.TimeoutExpired(["kaggle", "datasets", "download"], args[4])
+
+        def transport(args, selected, **kwargs):
+            if args[:2] == ["datasets", "version"]:
+                return "versioned"
+            if args[:2] == ["datasets", "files"]:
+                return json.dumps([{"name": "uav_cpu_launch_token.txt"}])
+            raise AssertionError(args)
+
+        with patch.object(client, "private_dataset_info", return_value=dataset), \
+             patch.object(client, "private_dataset_file", side_effect=read), \
+             patch.object(client, "run_kaggle", side_effect=transport):
+            self.assertEqual(client.ensure_pipeline_dataset(account, "owner", timeout=60), dataset.ref)
+        self.assertLessEqual(observed[0], 15)
+
+
+    def test_pipeline_token_verification_uses_strict_file_shape_when_download_stalls(self):
+        verify = getattr(client, "verify_pipeline_credential_dataset", None)
+        self.assertIsNotNone(verify, "Pipeline credential timeout fallback is missing")
+        account = Account("one", "private-token")
+        timeout = subprocess.TimeoutExpired(["kaggle", "datasets", "download"], 15)
+        with patch.object(client, "private_dataset_file", side_effect=timeout), \
+             patch.object(client, "private_dataset_files",
+                          return_value=[{"name": "uav_cpu_launch_token.txt"}]):
+            self.assertEqual(verify(account, "owner/uav-cpu-launch-credential", "owner", timeout=60),
+                             account.token)
 
     def test_download_readiness_retry_expires_and_never_retries_auth_failures(self):
         account = Account('one', 'private-token')
