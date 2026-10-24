@@ -156,6 +156,16 @@ Automation `6adb1a0b96dc8191b26ad5ed86545aac` (UAV 1M Cohort Recovery) was disab
 - Evidence: `evidence/2026-10-24-1kb-pql-amp-fused-combo-result.json` and `.md`.
 - Next operational task: fresh-check all four primary 1 KiB production lineages and advance completed 20k cases to validation/CPU visualization without restarting or mutating active training.
 
+
+## 2026-10-24 native vector null telemetry E2E blocker — FIXED LOCALLY
+
+- Real E2E smoke `bjkjbhm/uavnet-train-20261024-104832-b89da3` trained 4 requested episodes then failed strict JSON because Gymnasium mixed vector-info coerced schema `None` values to `NaN`; learner metrics/parameters were finite. The controller failure was secondary.
+- Root cause reproduced: mixed `[number, None]` becomes `[number, NaN]`; zero-count network stats and zero-delivery report conditionals reached `episodes.jsonl` as NaN.
+- Minimal fix in `environment/vector.py`: restore None only for zero-denominator stat fields, zero-delivery conditional report means, and known optional report timestamp/age lists. Positive-count NaN remains exposed; `allow_nan=False` stays strict.
+- TDD RED confirmed old failure; focused suite 50 passed +17 subtests; local 4-episode smoke completes; full suite **716 passed, 74 skipped, 1261 subtests**.
+- Evidence: `evidence/2026-10-24-native-vector-null-and-e2e-smoke-fix.md`.
+- Next: commit/push immutable fix, then run a new real GPU->controller->CPU visualize E2E smoke. Do not overwrite the failed smoke and do not mutate the four live 1 KiB production lineages.
+
 ## Operating constraints
 
 - Keep healthy production jobs running. Apply performance changes only to controlled diagnostics/future launches.

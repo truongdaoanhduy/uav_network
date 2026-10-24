@@ -64,6 +64,51 @@ class VectorTests(unittest.TestCase):
             vector.close()
         self.assertTrue(all(not p.is_alive() for p in vector.processes))
 
+    def test_unpack_info_restores_null_conditionals_after_mixed_vectorization(self):
+        # Gymnasium coerces mixed [number, None] values to float arrays with NaN.
+        # Restore only schema-defined undefined telemetry; real non-finite samples
+        # with a positive denominator must remain visible to strict JSON checks.
+        infos = {
+            "network": {
+                "diagnostics": {
+                    "data_tx_power_w": {
+                        "count": np.array([1, 0]),
+                        "sum": np.array([.2, 0.]),
+                        "mean": np.array([.2, np.nan]),
+                        "min": np.array([.2, np.nan]),
+                        "max": np.array([.2, np.nan]),
+                    }
+                }
+            },
+            "report_diagnostics": {
+                "delivery_count": np.array([1, 0]),
+                "delivery_hops_mean": np.array([1., np.nan]),
+                "delivered_report_age_mean_s": np.array([2., np.nan]),
+                "first_discovery_to_delivery_mean_s": np.array([3., np.nan]),
+                "first_discovery_s": np.array([[1., np.nan], [np.nan, np.nan]]),
+                "first_delivery_s": np.array([[2., np.nan], [np.nan, np.nan]]),
+                "first_discovery_to_delivery_s": np.array([[1., np.nan], [np.nan, np.nan]]),
+                "oldest_report_age_s": np.array([[4., np.nan], [np.nan, np.nan]]),
+            },
+        }
+        result = unpack_info(infos, 1)
+        stat = result["network"]["diagnostics"]["data_tx_power_w"]
+        self.assertEqual(stat["count"], 0)
+        self.assertIsNone(stat["mean"]); self.assertIsNone(stat["min"]); self.assertIsNone(stat["max"])
+        reports = result["report_diagnostics"]
+        for key in ("delivery_hops_mean", "delivered_report_age_mean_s",
+                    "first_discovery_to_delivery_mean_s"):
+            self.assertIsNone(reports[key])
+        for key in ("first_discovery_s", "first_delivery_s",
+                    "first_discovery_to_delivery_s", "oldest_report_age_s"):
+            self.assertEqual(reports[key], [None, None])
+
+        # A positive-count NaN is not an undefined conditional and must not be hidden.
+        bad = {"count": np.array([1]), "sum": np.array([0.]),
+               "mean": np.array([np.nan]), "min": np.array([np.nan]), "max": np.array([np.nan])}
+        exposed = unpack_info({"stat": bad}, 0)["stat"]
+        self.assertTrue(np.isnan(exposed["mean"]))
+
     def test_tensor_ring_batch_wrap_preserves_latest_joint_transitions(self):
         replay = TensorReplayBuffer(3, (2, 10), 5)
         from uav_network.environment.env import Action

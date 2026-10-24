@@ -70,6 +70,29 @@ def random_actions(observation, rng, destinations):
     return Action(continuous, destination)
 
 
+def _restore_optional_info(result):
+    # Gymnasium coerces mixed numeric/None vector-info values to NaN. Restore
+    # only fields whose schema has an explicit denominator or optional report
+    # timestamp; unrelated NaNs remain visible to strict serialization checks.
+    if result.get("count") == 0 and all(name in result for name in ("mean", "min", "max")):
+        for name in ("mean", "min", "max"):
+            if isinstance(result[name], float) and np.isnan(result[name]):
+                result[name] = None
+    if "delivery_count" in result:
+        if result["delivery_count"] == 0:
+            for name in ("delivery_hops_mean", "delivered_report_age_mean_s",
+                         "first_discovery_to_delivery_mean_s"):
+                if isinstance(result.get(name), float) and np.isnan(result[name]):
+                    result[name] = None
+        for name in ("first_discovery_s", "first_delivery_s",
+                     "first_discovery_to_delivery_s", "oldest_report_age_s"):
+            values = result.get(name)
+            if isinstance(values, list):
+                result[name] = [None if isinstance(value, float) and np.isnan(value) else value
+                                for value in values]
+    return result
+
+
 def unpack_info(infos, index):
     if "device_episode_infos" in infos:
         return infos["device_episode_infos"][index]
@@ -82,4 +105,4 @@ def unpack_info(infos, index):
         else:
             value = values[index]
             result[name] = value.tolist() if isinstance(value, np.ndarray) else value.item() if isinstance(value, np.generic) else value
-    return result
+    return _restore_optional_info(result)
