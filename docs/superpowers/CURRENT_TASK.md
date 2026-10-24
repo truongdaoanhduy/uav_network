@@ -177,6 +177,15 @@ Automation `6adb1a0b96dc8191b26ad5ed86545aac` (UAV 1M Cohort Recovery) was disab
 - Evidence: `evidence/2026-10-24-cloud-e2e-smoke-v3-pass.md`.
 - Next operational task: fresh-check all four primary 1 KiB production lineages; advance only cases that satisfy the 20k completion gate to validation/CPU visualization. Preserve active/incomplete lineages.
 
+
+## 2026-10-24 primary 1 KiB MATD3 finalization — COMPLETE
+
+- MATD3 BASE W&B `767cb8da`: 20000 episodes, `episode_budget_complete=true`, `stop_reason=episode_budget`; CPU eval 30 episodes complete; `_cpu_complete=true`; W&B/HF publication ok; HF revision `24dccbd57963e7eec1c434cf3de92f6ad4751ac3`.
+- MATD3 PQL W&B `30a40bf7`: 20000 episodes, `episode_budget_complete=true`, `stop_reason=episode_budget`; CPU eval 30 episodes complete; `_cpu_complete=true`; W&B/HF publication ok; HF revision `fee4f14953727d0be0d1da1c3c2c86d2c840da60`.
+- Existing controllers advanced both cases automatically; no duplicate validation job was submitted.
+- Evidence: `evidence/2026-10-24-1kb-matd3-20k-finalization.md`.
+- Next: preserve and monitor MASAC BASE/PQL until their 20k gate; reconcile any non-canonical duplicate lineages before spending more quota.
+
 ## Operating constraints
 
 - Keep healthy production jobs running. Apply performance changes only to controlled diagnostics/future launches.
