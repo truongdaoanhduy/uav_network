@@ -125,6 +125,17 @@ Automation `6adb1a0b96dc8191b26ad5ed86545aac` (UAV 1M Cohort Recovery) was disab
 - Evidence: `evidence/2026-10-24-1kb-learner-acceleration-result.json` and `.md`.
 - Next: fresh-check the four existing 1 KiB production lineages. Preserve them if healthy; only start an accelerated matched cohort if the user later chooses to replace/compare them rather than silently changing an in-flight experiment.
 
+
+## 2026-10-24 matched acceleration across BASE/PQL — COMPLETE
+
+- Kaggle T4x2 matched benchmark v8 completed from runner `b42a9a7`, no production mutation.
+- MATD3 BASE: 158.82 -> 139.29 ms/update, **1.140x**.
+- MASAC PQL: 2407.09 -> 2453.36 transitions/s, **1.019x** with meaningful run-to-run variation; not a robust promotion.
+- MATD3 PQL: 3509.38 -> 3272.39 transitions/s, **0.932x**; combined AMP+compile+fused is slower.
+- Ruling: do not globally enable the three acceleration flags. Keep current four 1 KiB production lineages unchanged. MASAC BASE's prior 1.600x result remains path-specific.
+- Evidence: `evidence/2026-10-24-1kb-matched-acceleration-result.json` and `.md`.
+- Next task: PQL-specific one-variable isolation (AMP-only, compile-only, fused-only; then only justified combinations) on spare T4x2, preserving production.
+
 ## Operating constraints
 
 - Keep healthy production jobs running. Apply performance changes only to controlled diagnostics/future launches.

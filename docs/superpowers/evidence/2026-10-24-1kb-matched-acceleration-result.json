@@ -1,0 +1,433 @@
+{
+  "scope": "1KiB matched acceleration benchmark; no production checkpoints",
+  "rows": [
+    {
+      "family": "base",
+      "algorithm": "matd3",
+      "label": "baseline",
+      "rep": 1,
+      "learner_update_ms": 157.7546616999996,
+      "learner_updates_per_s": 6.338956891820349,
+      "joint_transitions_per_s": 3325.00784393011,
+      "dual_gpu_verified": false,
+      "devices": {
+        "collector": "cuda:0",
+        "learner": "cuda:1",
+        "replay": "cpu"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 44626432,
+          "peak_reserved_bytes": 48234496
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 4046674944,
+          "peak_reserved_bytes": 4093640704
+        }
+      ],
+      "replay_bytes": 13105000000
+    },
+    {
+      "family": "base",
+      "algorithm": "matd3",
+      "label": "accelerated",
+      "rep": 1,
+      "learner_update_ms": 135.03375524999797,
+      "learner_updates_per_s": 7.405555730481065,
+      "joint_transitions_per_s": 4355.626330900463,
+      "dual_gpu_verified": false,
+      "devices": {
+        "collector": "cuda:0",
+        "learner": "cuda:1",
+        "replay": "cpu"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 44626432,
+          "peak_reserved_bytes": 48234496
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 3885325312,
+          "peak_reserved_bytes": 4032823296
+        }
+      ],
+      "replay_bytes": 13105000000
+    },
+    {
+      "family": "base",
+      "algorithm": "matd3",
+      "label": "accelerated",
+      "rep": 2,
+      "learner_update_ms": 143.55132465000224,
+      "learner_updates_per_s": 6.9661495805638625,
+      "joint_transitions_per_s": 4349.82901427206,
+      "dual_gpu_verified": false,
+      "devices": {
+        "collector": "cuda:0",
+        "learner": "cuda:1",
+        "replay": "cpu"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 44626432,
+          "peak_reserved_bytes": 48234496
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 3885325312,
+          "peak_reserved_bytes": 4032823296
+        }
+      ],
+      "replay_bytes": 13105000000
+    },
+    {
+      "family": "base",
+      "algorithm": "matd3",
+      "label": "baseline",
+      "rep": 2,
+      "learner_update_ms": 159.88370504999807,
+      "learner_updates_per_s": 6.25454607576979,
+      "joint_transitions_per_s": 4332.360360101823,
+      "dual_gpu_verified": false,
+      "devices": {
+        "collector": "cuda:0",
+        "learner": "cuda:1",
+        "replay": "cpu"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 44626432,
+          "peak_reserved_bytes": 48234496
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 4046674944,
+          "peak_reserved_bytes": 4093640704
+        }
+      ],
+      "replay_bytes": 13105000000
+    },
+    {
+      "family": "pql",
+      "algorithm": "masac",
+      "label": "baseline",
+      "rep": 1,
+      "joint_transitions_per_s": 2434.022380115858,
+      "critic_updates_per_s": 1.0696387412618518,
+      "actor_updates_per_s": 1.0696387412618518,
+      "critic_active_seconds": 35.61587877999841,
+      "policy_seconds": 31.21822968999959,
+      "elapsed_s": 67.31244599000001,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 285639680,
+          "peak_reserved_bytes": 339738624
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 6854081536,
+          "peak_reserved_bytes": 11618222080
+        }
+      ],
+      "replay_bytes": 13105000000
+    },
+    {
+      "family": "pql",
+      "algorithm": "matd3",
+      "label": "baseline",
+      "rep": 1,
+      "joint_transitions_per_s": 3547.4563634750098,
+      "critic_updates_per_s": 1.558940784730229,
+      "actor_updates_per_s": 0.7794703923651145,
+      "critic_active_seconds": 10.007587244999854,
+      "policy_seconds": 2.846812864999947,
+      "elapsed_s": 46.185205175999954,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 302428672,
+          "peak_reserved_bytes": 325058560
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 4413336576,
+          "peak_reserved_bytes": 5217714176
+        }
+      ],
+      "replay_bytes": 13105000000
+    },
+    {
+      "family": "pql",
+      "algorithm": "masac",
+      "label": "accelerated",
+      "rep": 1,
+      "joint_transitions_per_s": 2312.023765235046,
+      "critic_updates_per_s": 1.0160260687068072,
+      "actor_updates_per_s": 1.0160260687068072,
+      "critic_active_seconds": 38.09016175100055,
+      "policy_seconds": 24.05109982700003,
+      "elapsed_s": 70.86432348300002,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 285639680,
+          "peak_reserved_bytes": 339738624
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 5784203776,
+          "peak_reserved_bytes": 8629780480
+        }
+      ],
+      "replay_bytes": 13105000000
+    },
+    {
+      "family": "pql",
+      "algorithm": "matd3",
+      "label": "accelerated",
+      "rep": 1,
+      "joint_transitions_per_s": 3238.6646718004627,
+      "critic_updates_per_s": 1.4232413108498128,
+      "actor_updates_per_s": 0.7116206554249064,
+      "critic_active_seconds": 11.735798208999995,
+      "policy_seconds": 4.579066269000123,
+      "elapsed_s": 50.58875079799998,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 302428672,
+          "peak_reserved_bytes": 341835776
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 4262282240,
+          "peak_reserved_bytes": 5265948672
+        }
+      ],
+      "replay_bytes": 13105000000
+    },
+    {
+      "family": "pql",
+      "algorithm": "masac",
+      "label": "accelerated",
+      "rep": 2,
+      "joint_transitions_per_s": 2594.687558822933,
+      "critic_updates_per_s": 1.1402435561233593,
+      "actor_updates_per_s": 1.1402435561233593,
+      "critic_active_seconds": 30.408036945999584,
+      "policy_seconds": 19.918166706000193,
+      "elapsed_s": 63.144404205,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 285639680,
+          "peak_reserved_bytes": 339738624
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 5784203776,
+          "peak_reserved_bytes": 8629780480
+        }
+      ],
+      "replay_bytes": 13105000000
+    },
+    {
+      "family": "pql",
+      "algorithm": "matd3",
+      "label": "accelerated",
+      "rep": 2,
+      "joint_transitions_per_s": 3306.1054485598543,
+      "critic_updates_per_s": 1.4528783709491548,
+      "actor_updates_per_s": 0.7264391854745774,
+      "critic_active_seconds": 11.626571883000224,
+      "policy_seconds": 4.403984762999926,
+      "elapsed_s": 49.55679803600003,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 302428672,
+          "peak_reserved_bytes": 325058560
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 4262380544,
+          "peak_reserved_bytes": 5196742656
+        }
+      ],
+      "replay_bytes": 13105000000
+    },
+    {
+      "family": "pql",
+      "algorithm": "masac",
+      "label": "baseline",
+      "rep": 2,
+      "joint_transitions_per_s": 2380.1588249151023,
+      "critic_updates_per_s": 1.0459682336052696,
+      "actor_updates_per_s": 1.0459682336052696,
+      "critic_active_seconds": 35.97220600300079,
+      "policy_seconds": 30.61155309600008,
+      "elapsed_s": 68.83574250800007,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 285639680,
+          "peak_reserved_bytes": 339738624
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 6843666944,
+          "peak_reserved_bytes": 11618222080
+        }
+      ],
+      "replay_bytes": 13105000000
+    },
+    {
+      "family": "pql",
+      "algorithm": "matd3",
+      "label": "baseline",
+      "rep": 2,
+      "joint_transitions_per_s": 3471.3103963182652,
+      "critic_updates_per_s": 1.52547820150705,
+      "actor_updates_per_s": 0.762739100753525,
+      "critic_active_seconds": 9.972485208999615,
+      "policy_seconds": 2.7157497340006103,
+      "elapsed_s": 47.198314554000035,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 302428672,
+          "peak_reserved_bytes": 325058560
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 4413336576,
+          "peak_reserved_bytes": 5217714176
+        }
+      ],
+      "replay_bytes": 13105000000
+    }
+  ],
+  "aggregate": {
+    "matd3_base": {
+      "metric": "learner_update_ms",
+      "baseline_median": 158.81918337499883,
+      "accelerated_median": 139.2925399500001,
+      "speedup_x": 1.1401844164232193
+    },
+    "masac_pql": {
+      "metric": "joint_transitions_per_s",
+      "baseline_median": 2407.09060251548,
+      "accelerated_median": 2453.3556620289896,
+      "speedup_x": 1.019220323267085
+    },
+    "matd3_pql": {
+      "metric": "joint_transitions_per_s",
+      "baseline_median": 3509.3833798966375,
+      "accelerated_median": 3272.3850601801587,
+      "speedup_x": 0.9324672473591474
+    }
+  }
+}
