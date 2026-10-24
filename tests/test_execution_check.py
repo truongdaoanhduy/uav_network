@@ -89,6 +89,7 @@ class ExecutionCheckTests(unittest.TestCase):
              patch.object(torch.cuda, "is_available", return_value=True), \
              patch.object(torch.cuda, "device_count", return_value=1), \
              patch.object(torch.cuda, "get_device_name", return_value="Tesla P100"), \
+             patch.object(torch.cuda, "init"), \
              patch.object(torch.cuda, "reset_peak_memory_stats"), \
              patch("uav_network.environment.vector.make_vector", return_value=vector), \
              patch("uav_network.algorithms.checkpoints.make_learner", side_effect=learner_allocation):
@@ -105,3 +106,23 @@ class ExecutionCheckTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "CUDA"):
                 check_execution(config, Path(directory) / "evidence.json")
             allocate.assert_not_called()
+
+    def test_preflight_initializes_cuda_before_resetting_peak_memory_stats(self):
+        import torch
+        from uav_network.cloud.execution_check import check_execution
+        class ResetReached(RuntimeError):
+            pass
+        state = {"initialized": False}
+        def initialize():
+            state["initialized"] = True
+        def reset(device):
+            self.assertTrue(state["initialized"], "CUDA context must be initialized before resetting peak stats")
+            raise ResetReached(str(device))
+        config = Config(); config.runtime.device = "cuda"
+        with TemporaryDirectory() as directory, \
+             patch.object(torch.cuda, "is_available", return_value=True), \
+             patch.object(torch.cuda, "device_count", return_value=1), \
+             patch.object(torch.cuda, "init", side_effect=initialize), \
+             patch.object(torch.cuda, "reset_peak_memory_stats", side_effect=reset):
+            with self.assertRaisesRegex(ResetReached, "0"):
+                check_execution(config, Path(directory) / "evidence.json")

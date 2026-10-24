@@ -50,6 +50,7 @@ def check_execution(config, output):
     persist()
     try:
         seed_runtime(cfg)
+        torch.cuda.init()
         for i in range(device_count):
             torch.cuda.reset_peak_memory_stats(i)
         if cfg.pql.enabled:
