@@ -136,6 +136,16 @@ Automation `6adb1a0b96dc8191b26ad5ed86545aac` (UAV 1M Cohort Recovery) was disab
 - Evidence: `evidence/2026-10-24-1kb-matched-acceleration-result.json` and `.md`.
 - Next task: PQL-specific one-variable isolation (AMP-only, compile-only, fused-only; then only justified combinations) on spare T4x2, preserving production.
 
+
+## 2026-10-24 PQL one-variable acceleration isolation — COMPLETE
+
+- Kaggle T4x2 diagnostic `bjkjbhm/uav-1kb-learner-accel-20261024` completed from runner `1b2ddc9`; no production mutation.
+- MASAC PQL: AMP-only **1.074x**, compile-only **0.884x**, fused-only **1.011x** vs baseline.
+- MATD3 PQL: AMP-only **1.018x**, compile-only **0.919x**, fused-only **0.997x** vs baseline.
+- Ruling: reject compile for PQL; do not promote fused alone; AMP is the only single variable that improved both paths.
+- Evidence: `evidence/2026-10-24-1kb-pql-acceleration-isolation-result.json` and `.md`.
+- Next controlled task: compare **AMP+fused (compile off)** against AMP-only and baseline on spare T4x2. Preserve live production lineages.
+
 ## Operating constraints
 
 - Keep healthy production jobs running. Apply performance changes only to controlled diagnostics/future launches.

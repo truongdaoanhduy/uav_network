@@ -1,0 +1,1035 @@
+{
+  "scope": "PQL one-variable acceleration isolation; 1KiB/env4096/batch8192/replay1M; no checkpoints",
+  "rows": [
+    {
+      "label": "baseline",
+      "rep": 1,
+      "algorithm": "masac",
+      "amp_mode": "off",
+      "compile_models": false,
+      "fused_optimizers": false,
+      "joint_transitions_per_s": 2170.659927853769,
+      "critic_updates_per_s": 0.9539032886076134,
+      "actor_updates_per_s": 0.9539032886076134,
+      "critic_active_seconds": 36.38345752600026,
+      "policy_seconds": 33.84251656999993,
+      "elapsed_s": 75.47934980399998,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 285639680,
+          "peak_reserved_bytes": 339738624
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 6853759488,
+          "peak_reserved_bytes": 11618222080
+        }
+      ],
+      "replay_bytes": 13105000000,
+      "learning_metrics": {
+        "q_mean": 4.5292487144470215,
+        "q_abs_max": 13.248042106628418,
+        "target_mean": 4.5519304275512695,
+        "target_abs_max": 110.62340545654297,
+        "td_error_abs_mean": 6.733620643615723,
+        "td_error_abs_max": 104.2509994506836,
+        "twin_q_gap": 0.22906379401683807,
+        "batch_reward_mean": 3.8848166465759277,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_grad_norm": 9.805840492248535,
+        "critic_gradient_clipped": 0.0,
+        "critic_loss": 329.38006591796875,
+        "actor_grad_norm": 0.0195138081908226,
+        "alpha_grad_norm": 1.4006602764129639,
+        "actor_loss": -5.1881489753723145,
+        "continuous_entropy": 1.3830080032348633,
+        "discrete_entropy": 0.07892179489135742,
+        "alpha_continuous": 0.19572117924690247,
+        "alpha_discrete": 0.1958080530166626
+      }
+    },
+    {
+      "label": "baseline",
+      "rep": 1,
+      "algorithm": "matd3",
+      "amp_mode": "off",
+      "compile_models": false,
+      "fused_optimizers": false,
+      "joint_transitions_per_s": 3448.764888402875,
+      "critic_updates_per_s": 1.5155705075989196,
+      "actor_updates_per_s": 0.7577852537994598,
+      "critic_active_seconds": 9.309240725000336,
+      "policy_seconds": 2.646131658999934,
+      "elapsed_s": 47.50686268900006,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 302428672,
+          "peak_reserved_bytes": 325058560
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 4413336576,
+          "peak_reserved_bytes": 5217714176
+        }
+      ],
+      "replay_bytes": 13105000000,
+      "learning_metrics": {
+        "q_mean": 4.117575168609619,
+        "q_abs_max": 14.41048812866211,
+        "target_mean": 4.103878021240234,
+        "target_abs_max": 109.85762023925781,
+        "td_error_abs_mean": 6.889849662780762,
+        "td_error_abs_max": 103.74213409423828,
+        "twin_q_gap": 0.1657838672399521,
+        "batch_reward_mean": 3.994612216949463,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_loss": 341.59295654296875,
+        "critic_grad_norm": 11.366768836975098,
+        "critic_gradient_clipped": 1.0,
+        "policy_updated": 1.0,
+        "actor_loss": -4.928409576416016,
+        "actor_grad_norm": 0.07796042412519455,
+        "actor_update_step": 72.0
+      }
+    },
+    {
+      "label": "amp_only",
+      "rep": 1,
+      "algorithm": "masac",
+      "amp_mode": "fp16",
+      "compile_models": false,
+      "fused_optimizers": false,
+      "joint_transitions_per_s": 2408.9645563068307,
+      "critic_updates_per_s": 1.058627002283275,
+      "actor_updates_per_s": 1.058627002283275,
+      "critic_active_seconds": 35.221302625999556,
+      "policy_seconds": 34.105122993000236,
+      "elapsed_s": 68.01262375199997,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 285639680,
+          "peak_reserved_bytes": 339738624
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 6826212864,
+          "peak_reserved_bytes": 11005853696
+        }
+      ],
+      "replay_bytes": 13105000000,
+      "learning_metrics": {
+        "q_mean": 4.536016464233398,
+        "q_abs_max": 13.279256820678711,
+        "target_mean": 4.548150062561035,
+        "target_abs_max": 110.62416076660156,
+        "td_error_abs_mean": 6.740566253662109,
+        "td_error_abs_max": 104.23609161376953,
+        "twin_q_gap": 0.22722125053405762,
+        "batch_reward_mean": 3.8811099529266357,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_grad_norm": 9.655681610107422,
+        "critic_gradient_clipped": 0.0,
+        "critic_loss": 330.6737365722656,
+        "amp/enabled": 1,
+        "amp/critic/attempted": 65,
+        "amp/critic/applied": 65,
+        "amp/critic/skipped": 0,
+        "amp/critic/scale": 65536.0,
+        "amp/autocast_fp16": 1,
+        "actor_grad_norm": 0.019068285822868347,
+        "alpha_grad_norm": 1.4004985094070435,
+        "actor_loss": -5.191139221191406,
+        "continuous_entropy": 1.382582426071167,
+        "discrete_entropy": 0.0789875015616417,
+        "alpha_continuous": 0.19572123885154724,
+        "alpha_discrete": 0.19580857455730438,
+        "amp/actor/attempted": 72,
+        "amp/actor/applied": 72,
+        "amp/actor/skipped": 0,
+        "amp/actor/scale": 65536.0,
+        "amp/alpha/attempted": 72,
+        "amp/alpha/applied": 72,
+        "amp/alpha/skipped": 0,
+        "amp/alpha/scale": 65536.0
+      }
+    },
+    {
+      "label": "amp_only",
+      "rep": 1,
+      "algorithm": "matd3",
+      "amp_mode": "fp16",
+      "compile_models": false,
+      "fused_optimizers": false,
+      "joint_transitions_per_s": 3617.080089456158,
+      "critic_updates_per_s": 1.5895371486867882,
+      "actor_updates_per_s": 0.7947685743433941,
+      "critic_active_seconds": 9.378033408000647,
+      "policy_seconds": 3.0819442679995745,
+      "elapsed_s": 45.296204658999955,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 302428672,
+          "peak_reserved_bytes": 341835776
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 4392287744,
+          "peak_reserved_bytes": 5215617024
+        }
+      ],
+      "replay_bytes": 13105000000,
+      "learning_metrics": {
+        "q_mean": 4.1200056076049805,
+        "q_abs_max": 14.39542007446289,
+        "target_mean": 4.102666854858398,
+        "target_abs_max": 109.8576889038086,
+        "td_error_abs_mean": 6.8917388916015625,
+        "td_error_abs_max": 103.74272918701172,
+        "twin_q_gap": 0.1666385978460312,
+        "batch_reward_mean": 3.99338960647583,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_loss": 341.59326171875,
+        "critic_grad_norm": 11.329166412353516,
+        "critic_gradient_clipped": 1.0,
+        "policy_updated": 1.0,
+        "amp/enabled": 1,
+        "amp/critic/attempted": 65,
+        "amp/critic/applied": 65,
+        "amp/critic/skipped": 0,
+        "amp/critic/scale": 65536.0,
+        "amp/autocast_fp16": 1,
+        "actor_loss": -4.926823616027832,
+        "actor_grad_norm": 0.07812003791332245,
+        "actor_update_step": 72.0,
+        "amp/actor/attempted": 36,
+        "amp/actor/applied": 36,
+        "amp/actor/skipped": 0,
+        "amp/actor/scale": 65536.0
+      }
+    },
+    {
+      "label": "compile_only",
+      "rep": 1,
+      "algorithm": "masac",
+      "amp_mode": "off",
+      "compile_models": true,
+      "fused_optimizers": false,
+      "joint_transitions_per_s": 1767.3720613914786,
+      "critic_updates_per_s": 0.7766771754161771,
+      "actor_updates_per_s": 0.7766771754161771,
+      "critic_active_seconds": 59.94175481099887,
+      "policy_seconds": 39.281480277000355,
+      "elapsed_s": 92.70260834099997,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 285639680,
+          "peak_reserved_bytes": 339738624
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 6172465664,
+          "peak_reserved_bytes": 9240051712
+        }
+      ],
+      "replay_bytes": 13105000000,
+      "learning_metrics": {
+        "q_mean": 4.535867214202881,
+        "q_abs_max": 13.283405303955078,
+        "target_mean": 4.548163890838623,
+        "target_abs_max": 110.62371826171875,
+        "td_error_abs_mean": 6.740400314331055,
+        "td_error_abs_max": 104.23622131347656,
+        "twin_q_gap": 0.22798022627830505,
+        "batch_reward_mean": 3.8811111450195312,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_grad_norm": 9.657966613769531,
+        "critic_gradient_clipped": 0.0,
+        "critic_loss": 330.67108154296875,
+        "actor_grad_norm": 0.019184080883860588,
+        "alpha_grad_norm": 1.4005321264266968,
+        "actor_loss": -5.192250728607178,
+        "continuous_entropy": 1.3826640844345093,
+        "discrete_entropy": 0.0789802297949791,
+        "alpha_continuous": 0.19572120904922485,
+        "alpha_discrete": 0.19580833613872528
+      }
+    },
+    {
+      "label": "compile_only",
+      "rep": 1,
+      "algorithm": "matd3",
+      "amp_mode": "off",
+      "compile_models": true,
+      "fused_optimizers": false,
+      "joint_transitions_per_s": 2995.6077324708353,
+      "critic_updates_per_s": 1.3164291793084726,
+      "actor_updates_per_s": 0.6582145896542363,
+      "critic_active_seconds": 17.278058265999107,
+      "policy_seconds": 7.742281690000141,
+      "elapsed_s": 54.69340936200001,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 302428672,
+          "peak_reserved_bytes": 325058560
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 4340854784,
+          "peak_reserved_bytes": 5075107840
+        }
+      ],
+      "replay_bytes": 13105000000,
+      "learning_metrics": {
+        "q_mean": 4.117637634277344,
+        "q_abs_max": 14.4133882522583,
+        "target_mean": 4.1013946533203125,
+        "target_abs_max": 109.85762023925781,
+        "td_error_abs_mean": 6.890084266662598,
+        "td_error_abs_max": 103.73934936523438,
+        "twin_q_gap": 0.16583096981048584,
+        "batch_reward_mean": 3.9921276569366455,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_loss": 341.59832763671875,
+        "critic_grad_norm": 11.327919960021973,
+        "critic_gradient_clipped": 1.0,
+        "policy_updated": 1.0,
+        "actor_loss": -4.9294047355651855,
+        "actor_grad_norm": 0.07814046740531921,
+        "actor_update_step": 72.0
+      }
+    },
+    {
+      "label": "fused_only",
+      "rep": 1,
+      "algorithm": "masac",
+      "amp_mode": "off",
+      "compile_models": false,
+      "fused_optimizers": true,
+      "joint_transitions_per_s": 2230.5770310151015,
+      "critic_updates_per_s": 0.9802340468328083,
+      "actor_updates_per_s": 0.9802340468328083,
+      "critic_active_seconds": 39.214664404000246,
+      "policy_seconds": 35.26172432700048,
+      "elapsed_s": 73.45184574299992,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 285677056,
+          "peak_reserved_bytes": 339738624
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 6853828096,
+          "peak_reserved_bytes": 11620319232
+        }
+      ],
+      "replay_bytes": 13105000000,
+      "learning_metrics": {
+        "q_mean": 4.535821914672852,
+        "q_abs_max": 13.282915115356445,
+        "target_mean": 4.548163414001465,
+        "target_abs_max": 110.62389373779297,
+        "td_error_abs_mean": 6.740371227264404,
+        "td_error_abs_max": 104.23648071289062,
+        "twin_q_gap": 0.22794567048549652,
+        "batch_reward_mean": 3.8811113834381104,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_grad_norm": 9.658608436584473,
+        "critic_gradient_clipped": 0.0,
+        "critic_loss": 330.671142578125,
+        "actor_grad_norm": 0.018871556967496872,
+        "alpha_grad_norm": 1.4005626440048218,
+        "actor_loss": -5.192322731018066,
+        "continuous_entropy": 1.3827284574508667,
+        "discrete_entropy": 0.07896670699119568,
+        "alpha_continuous": 0.19572120904922485,
+        "alpha_discrete": 0.19580821692943573
+      }
+    },
+    {
+      "label": "fused_only",
+      "rep": 1,
+      "algorithm": "matd3",
+      "amp_mode": "off",
+      "compile_models": false,
+      "fused_optimizers": true,
+      "joint_transitions_per_s": 3446.310592240107,
+      "critic_updates_per_s": 1.5144919594805157,
+      "actor_updates_per_s": 0.7572459797402579,
+      "critic_active_seconds": 9.273500160002186,
+      "policy_seconds": 2.5361120439999922,
+      "elapsed_s": 47.54069478500014,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 302428672,
+          "peak_reserved_bytes": 325058560
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 4392393728,
+          "peak_reserved_bytes": 5217714176
+        }
+      ],
+      "replay_bytes": 13105000000,
+      "learning_metrics": {
+        "q_mean": 4.119306564331055,
+        "q_abs_max": 14.40487003326416,
+        "target_mean": 4.105085849761963,
+        "target_abs_max": 109.85762786865234,
+        "td_error_abs_mean": 6.8923797607421875,
+        "td_error_abs_max": 103.72034454345703,
+        "twin_q_gap": 0.16584457457065582,
+        "batch_reward_mean": 3.9958157539367676,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_loss": 341.834716796875,
+        "critic_grad_norm": 11.369786262512207,
+        "critic_gradient_clipped": 1.0,
+        "policy_updated": 1.0,
+        "actor_loss": -4.931714057922363,
+        "actor_grad_norm": 0.07839865982532501,
+        "actor_update_step": 72.0
+      }
+    },
+    {
+      "label": "fused_only",
+      "rep": 2,
+      "algorithm": "masac",
+      "amp_mode": "off",
+      "compile_models": false,
+      "fused_optimizers": true,
+      "joint_transitions_per_s": 2266.636489779257,
+      "critic_updates_per_s": 0.996080488672525,
+      "actor_updates_per_s": 0.996080488672525,
+      "critic_active_seconds": 39.586691714999915,
+      "policy_seconds": 36.10349621499972,
+      "elapsed_s": 72.28331527299997,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 285639680,
+          "peak_reserved_bytes": 339738624
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 6853828096,
+          "peak_reserved_bytes": 11620319232
+        }
+      ],
+      "replay_bytes": 13105000000,
+      "learning_metrics": {
+        "q_mean": 4.535892009735107,
+        "q_abs_max": 13.282958030700684,
+        "target_mean": 4.548165321350098,
+        "target_abs_max": 110.62396240234375,
+        "td_error_abs_mean": 6.740421295166016,
+        "td_error_abs_max": 104.23646545410156,
+        "twin_q_gap": 0.22793829441070557,
+        "batch_reward_mean": 3.8811113834381104,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_grad_norm": 9.657931327819824,
+        "critic_gradient_clipped": 0.0,
+        "critic_loss": 330.67108154296875,
+        "actor_grad_norm": 0.01892140507698059,
+        "alpha_grad_norm": 1.4005532264709473,
+        "actor_loss": -5.192299842834473,
+        "continuous_entropy": 1.3827089071273804,
+        "discrete_entropy": 0.07897402346134186,
+        "alpha_continuous": 0.19572120904922485,
+        "alpha_discrete": 0.19580820202827454
+      }
+    },
+    {
+      "label": "fused_only",
+      "rep": 2,
+      "algorithm": "matd3",
+      "amp_mode": "off",
+      "compile_models": false,
+      "fused_optimizers": true,
+      "joint_transitions_per_s": 3500.1912209111583,
+      "critic_updates_per_s": 1.5381699701269738,
+      "actor_updates_per_s": 0.7690849850634869,
+      "critic_active_seconds": 9.330915840999523,
+      "policy_seconds": 2.582777397999962,
+      "elapsed_s": 46.80887119000022,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 302428672,
+          "peak_reserved_bytes": 325058560
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 4413398016,
+          "peak_reserved_bytes": 5217714176
+        }
+      ],
+      "replay_bytes": 13105000000,
+      "learning_metrics": {
+        "q_mean": 4.1196088790893555,
+        "q_abs_max": 14.407918930053711,
+        "target_mean": 4.103871822357178,
+        "target_abs_max": 109.85762023925781,
+        "td_error_abs_mean": 6.892889976501465,
+        "td_error_abs_max": 103.74417877197266,
+        "twin_q_gap": 0.16578176617622375,
+        "batch_reward_mean": 3.994607448577881,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_loss": 341.83538818359375,
+        "critic_grad_norm": 11.347123146057129,
+        "critic_gradient_clipped": 1.0,
+        "policy_updated": 1.0,
+        "actor_loss": -4.916302680969238,
+        "actor_grad_norm": 0.07770250737667084,
+        "actor_update_step": 72.0
+      }
+    },
+    {
+      "label": "compile_only",
+      "rep": 2,
+      "algorithm": "masac",
+      "amp_mode": "off",
+      "compile_models": true,
+      "fused_optimizers": false,
+      "joint_transitions_per_s": 2162.286116435095,
+      "critic_updates_per_s": 0.9502233910115164,
+      "actor_updates_per_s": 0.9502233910115164,
+      "critic_active_seconds": 43.08388274100116,
+      "policy_seconds": 34.44087972399893,
+      "elapsed_s": 75.771656098,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 285639680,
+          "peak_reserved_bytes": 339738624
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 6172465664,
+          "peak_reserved_bytes": 9240051712
+        }
+      ],
+      "replay_bytes": 13105000000,
+      "learning_metrics": {
+        "q_mean": 4.535867214202881,
+        "q_abs_max": 13.283405303955078,
+        "target_mean": 4.548163890838623,
+        "target_abs_max": 110.62371826171875,
+        "td_error_abs_mean": 6.740400314331055,
+        "td_error_abs_max": 104.23622131347656,
+        "twin_q_gap": 0.22798022627830505,
+        "batch_reward_mean": 3.8811111450195312,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_grad_norm": 9.657966613769531,
+        "critic_gradient_clipped": 0.0,
+        "critic_loss": 330.67108154296875,
+        "actor_grad_norm": 0.019184080883860588,
+        "alpha_grad_norm": 1.4005321264266968,
+        "actor_loss": -5.192250728607178,
+        "continuous_entropy": 1.3826640844345093,
+        "discrete_entropy": 0.0789802297949791,
+        "alpha_continuous": 0.19572120904922485,
+        "alpha_discrete": 0.19580833613872528
+      }
+    },
+    {
+      "label": "compile_only",
+      "rep": 2,
+      "algorithm": "matd3",
+      "amp_mode": "off",
+      "compile_models": true,
+      "fused_optimizers": false,
+      "joint_transitions_per_s": 3402.7156545121184,
+      "critic_updates_per_s": 1.4953340278617708,
+      "actor_updates_per_s": 0.7476670139308854,
+      "critic_active_seconds": 11.774201339998854,
+      "policy_seconds": 4.282870101000299,
+      "elapsed_s": 48.14977701199996,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 302428672,
+          "peak_reserved_bytes": 325058560
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 4340854784,
+          "peak_reserved_bytes": 5075107840
+        }
+      ],
+      "replay_bytes": 13105000000,
+      "learning_metrics": {
+        "q_mean": 4.118937015533447,
+        "q_abs_max": 14.442803382873535,
+        "target_mean": 4.101352691650391,
+        "target_abs_max": 109.85762786865234,
+        "td_error_abs_mean": 6.890859127044678,
+        "td_error_abs_max": 103.71250915527344,
+        "twin_q_gap": 0.16593939065933228,
+        "batch_reward_mean": 3.992077350616455,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_loss": 341.5877685546875,
+        "critic_grad_norm": 11.318520545959473,
+        "critic_gradient_clipped": 1.0,
+        "policy_updated": 1.0,
+        "actor_loss": -4.945612907409668,
+        "actor_grad_norm": 0.07922834157943726,
+        "actor_update_step": 72.0
+      }
+    },
+    {
+      "label": "amp_only",
+      "rep": 2,
+      "algorithm": "masac",
+      "amp_mode": "fp16",
+      "compile_models": false,
+      "fused_optimizers": false,
+      "joint_transitions_per_s": 2368.1289304105676,
+      "critic_updates_per_s": 1.0406816588718315,
+      "actor_updates_per_s": 1.0406816588718315,
+      "critic_active_seconds": 35.13375646899931,
+      "policy_seconds": 34.210662725000475,
+      "elapsed_s": 69.18542225299984,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 285639680,
+          "peak_reserved_bytes": 339738624
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 6826212864,
+          "peak_reserved_bytes": 11005853696
+        }
+      ],
+      "replay_bytes": 13105000000,
+      "learning_metrics": {
+        "q_mean": 4.5360002517700195,
+        "q_abs_max": 13.279256820678711,
+        "target_mean": 4.548150539398193,
+        "target_abs_max": 110.62421417236328,
+        "td_error_abs_mean": 6.7405524253845215,
+        "td_error_abs_max": 104.23614501953125,
+        "twin_q_gap": 0.22717902064323425,
+        "batch_reward_mean": 3.8811097145080566,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_grad_norm": 9.655571937561035,
+        "critic_gradient_clipped": 0.0,
+        "critic_loss": 330.67364501953125,
+        "amp/enabled": 1,
+        "amp/critic/attempted": 65,
+        "amp/critic/applied": 65,
+        "amp/critic/skipped": 0,
+        "amp/critic/scale": 65536.0,
+        "amp/autocast_fp16": 1,
+        "actor_grad_norm": 0.01918254978954792,
+        "alpha_grad_norm": 1.4004958868026733,
+        "actor_loss": -5.1911139488220215,
+        "continuous_entropy": 1.3825747966766357,
+        "discrete_entropy": 0.07899048179388046,
+        "alpha_continuous": 0.19572123885154724,
+        "alpha_discrete": 0.19580864906311035,
+        "amp/actor/attempted": 72,
+        "amp/actor/applied": 72,
+        "amp/actor/skipped": 0,
+        "amp/actor/scale": 65536.0,
+        "amp/alpha/attempted": 72,
+        "amp/alpha/applied": 72,
+        "amp/alpha/skipped": 0,
+        "amp/alpha/scale": 65536.0
+      }
+    },
+    {
+      "label": "amp_only",
+      "rep": 2,
+      "algorithm": "matd3",
+      "amp_mode": "fp16",
+      "compile_models": false,
+      "fused_optimizers": false,
+      "joint_transitions_per_s": 3470.76176716564,
+      "critic_updates_per_s": 1.5252371047114628,
+      "actor_updates_per_s": 0.7626185523557314,
+      "critic_active_seconds": 8.848454093999408,
+      "policy_seconds": 3.104549374999806,
+      "elapsed_s": 47.20577527099999,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 302428672,
+          "peak_reserved_bytes": 325058560
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 4386512896,
+          "peak_reserved_bytes": 5215617024
+        }
+      ],
+      "replay_bytes": 13105000000,
+      "learning_metrics": {
+        "q_mean": 4.118607044219971,
+        "q_abs_max": 14.426669120788574,
+        "target_mean": 4.101401329040527,
+        "target_abs_max": 109.85762786865234,
+        "td_error_abs_mean": 6.890739440917969,
+        "td_error_abs_max": 103.74276733398438,
+        "twin_q_gap": 0.1666446030139923,
+        "batch_reward_mean": 3.9921274185180664,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_loss": 341.600830078125,
+        "critic_grad_norm": 11.323898315429688,
+        "critic_gradient_clipped": 1.0,
+        "policy_updated": 1.0,
+        "amp/enabled": 1,
+        "amp/critic/attempted": 65,
+        "amp/critic/applied": 65,
+        "amp/critic/skipped": 0,
+        "amp/critic/scale": 65536.0,
+        "amp/autocast_fp16": 1,
+        "actor_loss": -4.9282917976379395,
+        "actor_grad_norm": 0.07811826467514038,
+        "actor_update_step": 72.0,
+        "amp/actor/attempted": 36,
+        "amp/actor/applied": 36,
+        "amp/actor/skipped": 0,
+        "amp/actor/scale": 65536.0
+      }
+    },
+    {
+      "label": "baseline",
+      "rep": 2,
+      "algorithm": "masac",
+      "amp_mode": "off",
+      "compile_models": false,
+      "fused_optimizers": false,
+      "joint_transitions_per_s": 2276.0965324575345,
+      "critic_updates_per_s": 1.0002377339901274,
+      "actor_updates_per_s": 1.0002377339901274,
+      "critic_active_seconds": 39.251499583000395,
+      "policy_seconds": 35.96147384500091,
+      "elapsed_s": 71.98288722100006,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 285639680,
+          "peak_reserved_bytes": 327155712
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 6853759488,
+          "peak_reserved_bytes": 11618222080
+        }
+      ],
+      "replay_bytes": 13105000000,
+      "learning_metrics": {
+        "q_mean": 4.535865783691406,
+        "q_abs_max": 13.283404350280762,
+        "target_mean": 4.548162460327148,
+        "target_abs_max": 110.62383270263672,
+        "td_error_abs_mean": 6.7403998374938965,
+        "td_error_abs_max": 104.23633575439453,
+        "twin_q_gap": 0.22798137366771698,
+        "batch_reward_mean": 3.8811111450195312,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_grad_norm": 9.657965660095215,
+        "critic_gradient_clipped": 0.0,
+        "critic_loss": 330.67108154296875,
+        "actor_grad_norm": 0.019188180565834045,
+        "alpha_grad_norm": 1.400537371635437,
+        "actor_loss": -5.1922407150268555,
+        "continuous_entropy": 1.3826711177825928,
+        "discrete_entropy": 0.07896684855222702,
+        "alpha_continuous": 0.19572120904922485,
+        "alpha_discrete": 0.19580841064453125
+      }
+    },
+    {
+      "label": "baseline",
+      "rep": 2,
+      "algorithm": "matd3",
+      "amp_mode": "off",
+      "compile_models": false,
+      "fused_optimizers": false,
+      "joint_transitions_per_s": 3516.806373831158,
+      "critic_updates_per_s": 1.5454715510000205,
+      "actor_updates_per_s": 0.7727357755000103,
+      "critic_active_seconds": 9.454025925999986,
+      "policy_seconds": 2.6686532829999123,
+      "elapsed_s": 46.58772266200003,
+      "cuda_pipeline_verified": true,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "peak_memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 302428672,
+          "peak_reserved_bytes": 325058560
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "total_bytes": 15636037632,
+          "peak_allocated_bytes": 4392332288,
+          "peak_reserved_bytes": 5217714176
+        }
+      ],
+      "replay_bytes": 13105000000,
+      "learning_metrics": {
+        "q_mean": 4.11961555480957,
+        "q_abs_max": 14.407934188842773,
+        "target_mean": 4.1038713455200195,
+        "target_abs_max": 109.85762023925781,
+        "td_error_abs_mean": 6.8928961753845215,
+        "td_error_abs_max": 103.74417114257812,
+        "twin_q_gap": 0.16576313972473145,
+        "batch_reward_mean": 3.994607448577881,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_loss": 341.8351745605469,
+        "critic_grad_norm": 11.34665298461914,
+        "critic_gradient_clipped": 1.0,
+        "policy_updated": 1.0,
+        "actor_loss": -4.916275978088379,
+        "actor_grad_norm": 0.07770835608243942,
+        "actor_update_step": 72.0
+      }
+    }
+  ],
+  "aggregate": {
+    "masac": {
+      "baseline": {
+        "median_joint_transitions_per_s": 2223.378230155652,
+        "speedup_vs_baseline_x": 1.0,
+        "median_critic_active_seconds": 37.817478554500326,
+        "median_policy_seconds": 34.90199520750042,
+        "repetitions": 2
+      },
+      "amp_only": {
+        "median_joint_transitions_per_s": 2388.546743358699,
+        "speedup_vs_baseline_x": 1.074287186481755,
+        "median_critic_active_seconds": 35.17752954749943,
+        "median_policy_seconds": 34.157892859000356,
+        "repetitions": 2
+      },
+      "compile_only": {
+        "median_joint_transitions_per_s": 1964.8290889132868,
+        "speedup_vs_baseline_x": 0.8837133791562468,
+        "median_critic_active_seconds": 51.51281877600002,
+        "median_policy_seconds": 36.861180000499644,
+        "repetitions": 2
+      },
+      "fused_only": {
+        "median_joint_transitions_per_s": 2248.606760397179,
+        "speedup_vs_baseline_x": 1.011346935892127,
+        "median_critic_active_seconds": 39.40067805950008,
+        "median_policy_seconds": 35.6826102710001,
+        "repetitions": 2
+      }
+    },
+    "matd3": {
+      "baseline": {
+        "median_joint_transitions_per_s": 3482.7856311170162,
+        "speedup_vs_baseline_x": 1.0,
+        "median_critic_active_seconds": 9.381633325500161,
+        "median_policy_seconds": 2.6573924709999233,
+        "repetitions": 2
+      },
+      "amp_only": {
+        "median_joint_transitions_per_s": 3543.920928310899,
+        "speedup_vs_baseline_x": 1.0175535630581647,
+        "median_critic_active_seconds": 9.113243751000027,
+        "median_policy_seconds": 3.09324682149969,
+        "repetitions": 2
+      },
+      "compile_only": {
+        "median_joint_transitions_per_s": 3199.161693491477,
+        "speedup_vs_baseline_x": 0.9185640554240561,
+        "median_critic_active_seconds": 14.52612980299898,
+        "median_policy_seconds": 6.01257589550022,
+        "repetitions": 2
+      },
+      "fused_only": {
+        "median_joint_transitions_per_s": 3473.2509065756326,
+        "speedup_vs_baseline_x": 0.9972623280467808,
+        "median_critic_active_seconds": 9.302208000500855,
+        "median_policy_seconds": 2.559444720999977,
+        "repetitions": 2
+      }
+    }
+  }
+}
