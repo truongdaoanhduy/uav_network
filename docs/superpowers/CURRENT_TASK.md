@@ -122,3 +122,18 @@ Automation `6adb1a0b96dc8191b26ad5ed86545aac` (UAV 1M Cohort Recovery) was disab
 - Continuation stays on the same account/lineage. Verify immutable HF full-resume/checkpoint/prefix before recovery; inspect actual owned children before submitting. A private-kernel permission denial is ambiguous until same-account owned-list lookup. Preserve an old-code child with meaningful progress; use b32d18e-or-newer controller only for concrete failed/absent/unsafe recovery.
 - Credentials: trusted `load_credentials` helper, `/home/aduy/Documents/NCKH/uav_network/key.txt`; never print secrets. CUDA benchmarks use Kaggle because this host has no CUDA.
 - Earlier handoff/replay design and completed work remain in `specs/2026-10-23-training-handoff-replay-design.md`, `plans/2026-10-23-training-handoff-replay.md`, and Git history of this record. For operational recovery, read the applicable continuation code/tests and newest live evidence before acting.
+
+## 2026-10-24 1 KiB cohort launched and verified
+
+- Primary 1 KiB cohort is now live from episode 0 on source `0c9fbc5b93acfd3008f9802950570849bc42997c`:
+  - MASAC BASE account_01: Kaggle `duytrngoanh/uavnet-train-20261024-073119-a53a63`, W&B `7f985331`.
+  - MASAC PQL account_03: Kaggle `vuliu123456/uavnet-train-20261024-074226-5b2381`, W&B `e0bfbcaf`.
+  - MATD3 BASE account_06: Kaggle `libiu123/uavnet-train-20261024-074821-e57c46`, W&B `767cb8da`.
+  - MATD3 PQL account_09: Kaggle `nhtbrg/uavnet-train-20261024-080451-eda89d`, W&B `30a40bf7`.
+- All four GPU kernels and their four CPU cloud controllers were freshly health-checked running with `unattended_ready=true`.
+- One accidental newer MATD3 BASE duplicate caused by an ambiguous 502 submit response (`a379f8bd` + controller `libiu123/uav-flow-10ea62cf6a6c06-0000`) was deleted after confirming the older `767cb8da` had more progress. The retained lineage stayed running.
+- 62 s live W&B rates: MASAC BASE 792.45, MASAC PQL 1122.64, MATD3 BASE 3367.93, MATD3 PQL 2443.40 global steps/s. Versus canonical 1 MB root averages this is about 4.13x, 5.79x, 32.28x, 25.56x respectively.
+- BASE bottleneck has shifted to learner: MASAC learner 2223.96 s vs collector-wait 30.32 s; MATD3 learner 999.95 s vs collector-wait 83.17 s. Do not optimize packet path first now.
+- Rough early 20k ETA using historical 1 KiB episode/step relation: ~11.87 h MASAC BASE, 8.77 h MASAC PQL, 3.30 h MATD3 BASE, 4.53 h MATD3 PQL. Treat as early estimates, not guarantees.
+- Evidence: `docs/superpowers/evidence/2026-10-24-1kb-cohort-launch-and-live-throughput.md`.
+- Next controlled task: benchmark learner-side AMP/compile/fused on a spare account without mutating these four production lineages.
