@@ -105,10 +105,19 @@ The two existing children have meaningful progress beyond verified parent prefix
 
 Automation `6adb1a0b96dc8191b26ad5ed86545aac` (UAV 1M Cohort Recovery) was disabled by the prior assistant at 21:22 Oct 23 after Sandbox Resource not found. Current Sandbox, W&B/Kaggle and GitHub reads succeeded. Re-enabled the existing hourly watch with recovery controller/source pinned to tested 4cd9358 in an isolated checkout, preserving current healthy children and excluding experimental performance commits. The update response confirms is_enabled=true; next_run_time was null and no new scheduled execution has been verified. Do not describe it as successfully executing yet. Evidence: `evidence/2026-10-24-recovery-watch-restored.json`.
 
+## 2026-10-24 user-approved report-size decision
+
+- HARP-LAWN Table II uses UavNetSim-v1 with a 1024-byte data-packet payload; it does not define a separate 1 MB report.
+- User explicitly approved switching the primary future training workload to 1 KiB after this verification.
+- New primary config: `configs/comparison-20k-hybrid75-1kb.yaml` with report=1024 B, payload=1024 B, buffer=3072 B. Preserve env4096, 20k episodes, 1800 steps, replay1M, batch8192, CPU replay75, warp_packet.
+- Keep existing 1 MB runs/config immutable as historical/stress-test evidence. Do not continue a 1 MB lineage into a 1 KiB lineage; new 1 KiB training must start a fresh lineage from episode 0.
+- Existing T4 isolation evidence: active1KB 9726.67 transitions/s vs active1MB 38.75 transitions/s (~251x slower for 1 MB under forced active traffic). This is a simulator diagnostic, not a full-training ratio.
+- Evidence: `docs/superpowers/evidence/2026-10-24-harp-lawn-1kb-primary-profile.md`.
+
 ## Operating constraints
 
 - Keep healthy production jobs running. Apply performance changes only to controlled diagnostics/future launches.
-- Scientific invariants: seed/RNG, reward, motion, PHY, CSMA/backoff/collision/retry/ACK order and timestamps, report custody/TTL/admission, energy, observations/state, exact continuation. Keep 1MB reports, 35 targets, 25 obstacles, 1800-step horizon and 20k episode target.
+- Scientific invariants for the new primary 1 KiB line: seed/RNG, reward, motion, PHY, CSMA/backoff/collision/retry/ACK order and timestamps, report custody/TTL/admission, energy, observations/state, exact continuation, 35 targets, 25 obstacles, 1800-step horizon and 20k episode target. Report/payload are 1024 B and buffer is 3072 B. Existing 1 MB lineages remain immutable stress-test/history and must not be mixed with the new 1 KiB lineage.
 - Training completion requires episodes_completed >= 20000, episode_budget_complete=true, stop_reason=episode_budget. A time_budget segment is not final evaluation; zero completed episodes during a synchronized first wave is not a stuck counter.
 - Continuation stays on the same account/lineage. Verify immutable HF full-resume/checkpoint/prefix before recovery; inspect actual owned children before submitting. A private-kernel permission denial is ambiguous until same-account owned-list lookup. Preserve an old-code child with meaningful progress; use b32d18e-or-newer controller only for concrete failed/absent/unsafe recovery.
 - Credentials: trusted `load_credentials` helper, `/home/aduy/Documents/NCKH/uav_network/key.txt`; never print secrets. CUDA benchmarks use Kaggle because this host has no CUDA.

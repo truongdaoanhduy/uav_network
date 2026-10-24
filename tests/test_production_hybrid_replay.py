@@ -177,3 +177,14 @@ def test_comparison_pql_preserves_cpu_replay_and_legacy_rejects_it(tmp_path):
         assert selected.runtime.replay_cpu_fraction == .75
         with pytest.raises(ValueError, match="[Ll]egacy"):
             module["case_config"](c, "legacy", "masac", tmp_path)
+
+
+def test_harp_lawn_matched_profile_uses_one_kib_report():
+    from uav_network.configuration import load_config
+    c = load_config("configs/comparison-20k-hybrid75-1kb.yaml")
+    assert c.network.report_bytes == 1024
+    assert c.network.payload_bytes == 1024
+    assert c.network.buffer_bytes == 3072
+    assert c.runtime.num_envs == 4096
+    assert c.runtime.episodes == 20000
+    assert c.world.max_steps == 1800
