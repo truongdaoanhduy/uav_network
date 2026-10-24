@@ -262,7 +262,7 @@ class GPUPhysicsTests(unittest.TestCase):
         c.network.power_limited_admission = True
         c.network.link_state_observation = True
         c.network.buffer_bytes = 2048
-        positions = [[300,500],[500,500],[300,700]]
+        positions = [[300,500],[500,500],[900,900]]
         targets = [[900,900],[900,800]]
         obstacles = [[400,500,20]]
         env = SwarmSearchEnv(c)
@@ -281,6 +281,8 @@ class GPUPhysicsTests(unittest.TestCase):
         np.testing.assert_allclose(actual,expected,rtol=0,atol=1e-6)
         n=c.world.num_uavs
         np.testing.assert_array_equal(actual[0,-(n+1):],expected[0,-(n+1):])
+        link = actual[0, -(n + 1 + 3*n):-(n+1)].reshape(n, 3)
+        np.testing.assert_array_equal(link[1], [0.0, 0.0, 0.0])
 
     def test_recovery_ttl_receiver_admission_and_sorted_slots_match_native(self):
         c, env, s, p = self.layout(

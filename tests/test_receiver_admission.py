@@ -43,6 +43,25 @@ class ReceiverAdmissionTests(unittest.TestCase):
         finally:
             env.close()
 
+    def test_link_state_hides_destinations_outside_local_radio_range(self):
+        c = Config()
+        c.world.num_uavs, c.world.num_targets, c.world.num_obstacles = 2, 1, 0
+        c.sensor.altitude_m = 20
+        c.network.peer_range_m = c.network.gcs_range_m = 100
+        c.network.link_state_observation = True
+        env = SwarmSearchEnv(c)
+        try:
+            env.reset(seed=44, options={"positions": [[100,100],[400,100]],
+                                        "targets": [[900,900]], "obstacles": []})
+            env.reports.discover(0, 0, 0)
+            obs = local_observations(env)[0]
+            n = c.world.num_uavs
+            features = obs[-(n + 1 + 3*n):-(n+1)].reshape(n, 3)
+            np.testing.assert_array_equal(features, np.zeros_like(features))
+            np.testing.assert_array_equal(obs[-(n+1):], [1,0,0])
+        finally:
+            env.close()
+
     def test_power_limited_admission_can_be_disabled_without_changing_range_mask(self):
         c = Config()
         c.world.num_uavs, c.world.num_targets, c.world.num_obstacles = 1, 1, 0

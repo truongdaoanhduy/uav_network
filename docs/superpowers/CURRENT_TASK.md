@@ -1,3 +1,11 @@
+## 2026-10-24 Dec-POMDP local-observation leakage fix — VERIFIED
+
+- Root cause: `link_state_features` exposed required-power / progress-to-GCS / receiver-buffer features for peers and GCS outside the local radio range; GPU observation kernel mirrored the same behavior. Actor therefore received derived information about unreachable nodes even though peer position slots and destination masks were range-limited.
+- Fix: preserve the observation shape but zero all 3 link-state features unless the source is active and the destination is locally radio-observable (active peer within `peer_range_m`, or GCS within `gcs_range_m`). Centralized critic state remains unchanged. Policy-selected next-hop routing remains unchanged.
+- TDD RED: CPU regression failed with out-of-range features `[[0,0.1915,1],[0,0.2915,1]]`; detached pre-fix GPU worktree failed with `[0.370332,-0.315631,0.5]` for an unreachable peer.
+- GREEN: focused observation/native parity `24 passed, 1 skipped, 4 subtests`; full suite `717 passed, 74 skipped, 8 warnings, 1265 subtests` in 217.05s.
+- Scientific consequence: checkpoints trained before this fix used the old observation semantics. Do not resume them under the fixed observation and call the result a single canonical Dec-POMDP lineage; a clean canonical cohort must start from episode 0 after this fix.
+
 # Current task: full training-path audit and measured fixes
 
 Updated 2026-10-24 10:55 Asia/Ho_Chi_Minh.

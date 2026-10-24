@@ -37,6 +37,13 @@ def link_state_features(env, source):
     values = []
     for destination in [j for j in range(count) if j != source] + [count]:
         target = env.gcs if destination == count else env.positions[destination]
+        reach = n.gcs_range_m if destination == count else n.peer_range_m
+        observable = (env.active[source]
+                      and (destination == count or env.active[destination])
+                      and np.linalg.norm(target - env.positions[source]) <= reach)
+        if not observable:
+            values.extend((0.0, 0.0, 0.0))
+            continue
         required = _nominal_required(env, source, destination)
         destination_gcs = 0.0 if destination == count else float(np.linalg.norm(target - env.gcs))
         progress = np.clip((source_gcs - destination_gcs) / diagonal, -1.0, 1.0)
