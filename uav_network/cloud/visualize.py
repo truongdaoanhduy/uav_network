@@ -11,7 +11,7 @@ from uuid import uuid4
 
 import torch
 
-from .client import pushed_kernel_ref, run_kaggle, verify_credential_dataset
+from .client import record_submission_phase, pushed_kernel_ref, run_kaggle, verify_credential_dataset
 from .credentials import Account, Credentials
 from .kernel import kernel_metadata, kernel_script
 from ..experiments.evaluation import evaluate
@@ -170,6 +170,7 @@ def submit_visualization(parent, results, output, account=None, credentials=None
 
 
 def submit_visualization_spec(spec, output, account, credentials):
+    record_submission_phase(output, "cpu", spec["kernel_ref"], "preparing")
     if account.name != spec["account"] or not account.enabled:
         raise ValueError("CPU visualization must keep the selected enabled account")
     if any(secret and secret in json.dumps(spec) for secret in
@@ -181,6 +182,7 @@ def submit_visualization_spec(spec, output, account, credentials):
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "kernel.py").write_text(kernel_script(spec))
     (folder / "kernel-metadata.json").write_text(json.dumps(kernel_metadata(spec), indent=2))
+    record_submission_phase(output, "cpu", spec["kernel_ref"], "pushing")
     response = run_kaggle(["kernels", "push", "-p", str(folder), "--timeout", str(spec["timeout_seconds"])], account, timeout=50)
     ref = pushed_kernel_ref(response)
     manifest = {**spec, "kernel_ref": ref, "kernel_url": "https://www.kaggle.com/code/" + ref}

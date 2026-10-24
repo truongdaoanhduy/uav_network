@@ -11,7 +11,7 @@ import time
 from uuid import uuid4
 
 from ..configuration import load_config
-from .client import account_quotas, kernel_status, private_dataset_file, pushed_kernel_ref, run_kaggle, verify_credential_dataset
+from .client import record_submission_phase, account_quotas, kernel_status, private_dataset_file, pushed_kernel_ref, run_kaggle, verify_credential_dataset
 from .credentials import Account, Credentials
 from .kernel import kernel_metadata, kernel_script
 
@@ -209,6 +209,7 @@ def submit_continuation(parent, results, output, account=None, credentials=None)
                 "continuation_index": parent.get("continuation_index", 0) + 1, "status": "pending"}
     try:
         spec = build_continuation_spec(parent, results)
+        record_submission_phase(output, "gpu", spec["kernel_ref"], "preparing")
         if account is None:
             token = os.environ.get("KAGGLE_API_TOKEN")
             if not token:
@@ -270,6 +271,7 @@ def submit_continuation(parent, results, output, account=None, credentials=None)
         (folder / "kernel-metadata.json").write_text(json.dumps(kernel_metadata(spec), indent=2))
         check_submission_deadline(parent)
         manifest["failure_reason"] = "submission_failed"
+        record_submission_phase(output, "gpu", spec["kernel_ref"], "pushing")
         response = run_kaggle(["kernels", "push", "-p", str(folder), "--accelerator",
                                spec.get("accelerator", "NvidiaTeslaT4"), "--timeout", str(seconds)],
                               account, timeout=50)

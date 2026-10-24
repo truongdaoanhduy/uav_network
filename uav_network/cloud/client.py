@@ -48,6 +48,16 @@ def run_kaggle(args, account, timeout=45):
     return stdout
 
 
+
+def record_submission_phase(output, kind, ref, phase):
+    """A local receipt distinguishes a rejected preparation from a lost push response."""
+    path = Path(output) / (kind + "-submission.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(".json.tmp")
+    temporary.write_text(json.dumps({"ref": ref, "phase": phase}))
+    temporary.replace(path)
+
+
 def account_quotas(credentials, requested=None):
     def quota(account):
         if not account.enabled:

@@ -133,6 +133,7 @@ class ControllerTests(unittest.TestCase):
         self.assertLessEqual(len(next_spec["kernel_ref"]), 50)
         self.assertEqual(next_spec["state"], state)
         with TemporaryDirectory() as d, patch.object(m, "_owned_kernel_exists", return_value=True), \
+             patch.object(m, "kernel_status", return_value="running"), \
              patch.object(m, "run_kaggle", side_effect=AssertionError("overwrite controller")):
             adopted = m.submit_controller(next_spec, Path(d), account, credentials)
         self.assertEqual(adopted["status"], "adopted")
@@ -191,6 +192,7 @@ class ControllerTests(unittest.TestCase):
         with TemporaryDirectory() as d, patch.dict(sys.modules, {"wandb": sdk}), \
              patch.dict(os.environ, {"WANDB_API_KEY": credentials.wandb_key,
                                      "KAGGLE_API_TOKEN": account.token, "UAV_JOB_STARTED_AT": "0"}), \
+             patch.object(m, "_owned_kernel_exists", return_value=False), \
              patch.object(m.time, "monotonic", return_value=39001), \
              patch.object(m, "submit_controller", side_effect=submit):
             result = m.run_controller(spec, Path(d))
@@ -220,6 +222,7 @@ class ControllerTests(unittest.TestCase):
         with TemporaryDirectory() as d, patch.dict(sys.modules, {"wandb": sdk}), \
              patch.dict(os.environ, {"WANDB_API_KEY": credentials.wandb_key,
                                      "KAGGLE_API_TOKEN": account.token, "UAV_JOB_STARTED_AT": "0"}), \
+             patch.object(m, "_owned_kernel_exists", return_value=False), \
              patch.object(m.time, "monotonic", return_value=39001), patch.object(m.time, "sleep"), \
              patch.object(m, "submit_controller", side_effect=submit):
             result = m.run_controller(spec, Path(d))
@@ -236,3 +239,70 @@ class ControllerTests(unittest.TestCase):
              patch.object(m, "submit_continuation", side_effect=AssertionError("configuration drift")):
             result = m.controller_step(spec, deepcopy(spec["state"]), account, credentials, Path(d))
         self.assertEqual(result["phase"], "blocked")
+
+    def test_pre_push_credential_failure_retries_instead_of_waiting_for_nonexistent_child(self):
+        m, parent, account, credentials, spec = self.fixtures()
+        from uav_network.cloud import continuation
+        with TemporaryDirectory() as d, patch.object(m, "kernel_status", return_value="complete"), \
+             patch.object(m, "read_controls", return_value={"job.json": parent, "job-result.json": learner_result()}), \
+             patch.object(m, "_owned_kernel_exists", return_value=False), \
+             patch.object(continuation, "account_quotas", return_value=[{"name": account.name, "ok": True, "remaining_hours": 20}]), \
+             patch.object(continuation, "verify_credential_dataset", side_effect=TimeoutError("credentials offline")), \
+             patch.object(continuation, "run_kaggle", side_effect=AssertionError("must not push")):
+            state = deepcopy(spec["state"])
+            with self.assertRaises(TimeoutError):
+                m.controller_step(spec, state, account, credentials, Path(d))
+            self.assertNotIn("submission_intent", state)
+            with self.assertRaises(TimeoutError):
+                m.controller_step(spec, state, account, credentials, Path(d))
+
+    def test_existing_failed_controller_is_preserved_and_not_accepted_as_handoff(self):
+        m, parent, account, credentials, spec = self.fixtures()
+        with TemporaryDirectory() as d, patch.object(m, "_owned_kernel_exists", return_value=True), \
+             patch.object(m, "kernel_status", return_value="error"), \
+             patch.object(m, "run_kaggle", side_effect=AssertionError("overwrite failed successor")):
+            with self.assertRaisesRegex(RuntimeError, "terminal"):
+                m.submit_controller(spec, Path(d), account, credentials)
+
+    def test_malformed_control_shapes_are_blocked_instead_of_endless_service_retries(self):
+        m, parent, account, credentials, spec = self.fixtures()
+        bad_controls = [{"job.json": []}, {"job.json": parent, "job-result.json": []}]
+        cpu = {"stage": "visualize", "account": account.name, "kernel_ref": "owner/cpu",
+               "root_kernel_ref": parent["root_kernel_ref"], "cpu_eval": parent["cpu_eval"],
+               "artifacts": {"masac": "owner/project/model:v1"}}
+        bad_controls += [{"job.json": cpu, "visualization-result.json": {"masac": []}},
+                         {"job.json": cpu, "evaluation-progress.json": []},
+                         {"job.json": cpu, "visualization-result.json": {"masac": {"publication": []}}},
+                         {"job.json": cpu, "visualization-result.json": {"masac": {"publication": {
+                             "huggingface": {"files": {"video": []}}}}}}]
+        for controls in bad_controls:
+            with self.subTest(controls=controls):
+                state = deepcopy(spec["state"])
+                if controls.get("job.json") == cpu:
+                    state["current_cpu_ref"] = "owner/cpu"
+                with TemporaryDirectory() as d, patch.object(m, "kernel_status", return_value="complete"), \
+                     patch.object(m, "read_controls", return_value=controls):
+                    result = m.controller_step(spec, state, account, credentials, Path(d))
+                self.assertEqual(result["phase"], "blocked")
+
+    def test_uncertain_controller_push_is_not_repeated_when_listing_temporarily_lags(self):
+        m, parent, account, credentials, spec = self.fixtures()
+        import os, sys
+        run = SimpleNamespace(summary={}, log=lambda *a: None, finish=lambda **kw: None)
+        sdk = SimpleNamespace(init=lambda **kw: run, Settings=lambda **kw: kw)
+        pushes = []
+        clocks = iter([39001, 39002, 39003, 39004, 39005, 39500, 39501, 39502, 39503])
+        def push(successor, output, *args):
+            pushes.append(successor["kernel_ref"])
+            (Path(output)/"controller-submission.json").write_text(json.dumps(
+                {"ref": successor["kernel_ref"], "phase": "pushing"}))
+            raise TimeoutError("response lost")
+        with TemporaryDirectory() as d, patch.dict(sys.modules, {"wandb": sdk}), \
+             patch.dict(os.environ, {"WANDB_API_KEY": credentials.wandb_key,
+                                     "KAGGLE_API_TOKEN": account.token, "UAV_JOB_STARTED_AT": "0"}), \
+             patch.object(m.time, "monotonic", side_effect=lambda: next(clocks, 39599)), \
+             patch.object(m.time, "sleep"), patch.object(m, "_owned_kernel_exists", return_value=False), \
+             patch.object(m, "submit_controller", side_effect=push):
+            with self.assertRaises(RuntimeError):
+                m.run_controller(spec, Path(d))
+        self.assertEqual(len(pushes), 1, "An ambiguous controller push must be reconciled, never repeated")

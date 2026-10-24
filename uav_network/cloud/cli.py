@@ -143,14 +143,17 @@ def launch(args, credentials):
         manifest["root_kernel_ref"] = actual_ref
     (folder / "launch.json").write_text(json.dumps(manifest, indent=2))
     if auto_continue:
-        from .controller import build_controller_spec, submit_controller
+        from .controller import build_controller_spec, submit_controller, wait_controller_ready
         manifest["unattended_ready"] = False
         try:
             watch = build_controller_spec(manifest, commit)
             receipt = submit_controller(watch, folder, account, credentials)
-            manifest.update(controller_ref=receipt["kernel_ref"], controller_status=receipt["status"],
-                            controller_wandb_url=f"https://wandb.ai/{spec['entity']}/{spec['project']}/runs/{watch['run']['id']}",
-                            unattended_ready=True)
+            manifest.update(controller_ref=receipt["kernel_ref"], controller_status=receipt["status"])
+            health = wait_controller_ready(receipt, account, credentials)
+            manifest["controller_health"] = health
+            manifest["unattended_ready"] = health.get("ready") is True
+            if health.get("wandb_url"):
+                manifest["controller_wandb_url"] = health["wandb_url"]
         except Exception as error:
             manifest["controller_error_type"] = type(error).__name__
         (folder / "launch.json").write_text(json.dumps(manifest, indent=2))

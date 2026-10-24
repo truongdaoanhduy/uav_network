@@ -12,7 +12,7 @@ from uav_network.configuration import Config
 
 
 class ControllerLaunchTests(unittest.TestCase):
-    def launch(self, folder, fail=False):
+    def launch(self, folder, fail=False, ready=True):
         account = Account("selected", "test-launch-token")
         credentials = Credentials([account], "test-wandb-secret", "owner", "main")
         config = Config()
@@ -39,7 +39,9 @@ class ControllerLaunchTests(unittest.TestCase):
              patch.object(cli, "ensure_pipeline_dataset", return_value="owner/pipeline"), \
              patch.object(cli, "load_config", return_value=config), \
              patch.object(cli, "run_kaggle", return_value="https://www.kaggle.com/code/owner/actual-gpu"), \
-             patch.object(controller, "submit_controller", side_effect=submit):
+             patch.object(controller, "submit_controller", side_effect=submit), \
+             patch.object(controller, "wait_controller_ready", return_value={
+                 "ready": ready, "wandb_url": "https://wandb.ai/owner/main/runs/actual-controller"}):
             return cli.launch(args, credentials)
 
     def test_auto_continue_seeds_cloud_controller_before_reporting_readiness(self):
@@ -55,3 +57,8 @@ class ControllerLaunchTests(unittest.TestCase):
         self.assertFalse(manifest.get("unattended_ready", True))
         self.assertEqual(saved["kernel_ref"], "owner/actual-gpu")
         self.assertEqual(saved["controller_error_type"], "RuntimeError")
+
+    def test_controller_receipt_alone_does_not_claim_unattended_readiness(self):
+        with TemporaryDirectory() as directory:
+            result = self.launch(directory, ready=False)
+        self.assertFalse(result["unattended_ready"])

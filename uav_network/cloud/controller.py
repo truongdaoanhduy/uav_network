@@ -15,7 +15,7 @@ from tempfile import TemporaryDirectory
 import time
 from uuid import uuid4
 
-from .client import kernel_status, private_dataset_file, pushed_kernel_ref, run_kaggle, verify_credential_dataset
+from .client import record_submission_phase, kernel_status, private_dataset_file, pushed_kernel_ref, run_kaggle, verify_credential_dataset
 from .continuation import _owned_kernel_exists, kernel_ref_for_segment, next_stage, submit_continuation
 from .credentials import Account, Credentials
 from .kernel import kernel_metadata, kernel_script
@@ -88,7 +88,13 @@ def _check_identity(spec, account, credentials):
 def submit_controller(spec, output, account, credentials):
     owner = _check_identity(spec, account, credentials)
     if _owned_kernel_exists(spec["kernel_ref"], account):
+        status = kernel_status(spec["kernel_ref"], account)
+        if status in TERMINAL:
+            raise RuntimeError("Existing controller is terminal; preserve it and use a new generation")
+        if status not in ACTIVE:
+            raise RuntimeError("Existing controller status is unavailable")
         return {**spec, "status": "adopted", "kernel_url": "https://www.kaggle.com/code/" + spec["kernel_ref"]}
+    record_submission_phase(output, "controller", spec["kernel_ref"], "preparing")
     verify_credential_dataset(account, credentials, spec["credential_dataset"], owner, only_selected=True)
     _, token = private_dataset_file(account, spec["pipeline_credential_dataset"], owner,
                                     {"uav_cpu_launch_token.txt"}, only_selected=True)
@@ -99,6 +105,7 @@ def submit_controller(spec, output, account, credentials):
     atomic_json(folder / "job.json", spec)
     (folder / "kernel.py").write_text(kernel_script(spec))
     atomic_json(folder / "kernel-metadata.json", kernel_metadata(spec))
+    record_submission_phase(output, "controller", spec["kernel_ref"], "pushing")
     response = run_kaggle(["kernels", "push", "-p", str(folder), "--timeout",
                            str(spec["timeout_seconds"])], account, timeout=50)
     ref = pushed_kernel_ref(response)
@@ -128,7 +135,14 @@ def read_controls(ref, account):
         return result
 
 
+def _object(value):
+    if not isinstance(value, dict):
+        raise ValueError("Cloud control receipt must be a JSON object")
+    return value
+
+
 def _validate_job(job, ref, spec, account):
+    _object(job)
     if (job.get("kernel_ref") != ref or job.get("account") != account.name
             or job.get("root_kernel_ref", ref) != spec["root_kernel_ref"]
             or ref.split("/")[0] != spec["root_kernel_ref"].split("/")[0]):
@@ -146,13 +160,21 @@ def submit_cpu_attempt(cpu, output, account, credentials):
 
 
 def _cpu_complete(cpu, results):
+    _object(results)
     if set(results) != set(cpu.get("artifacts", {})):
         return False
     settings = cpu["cpu_eval"]
     for algorithm, result in results.items():
+        _object(result)
         records = result.get("records", [])
-        publication = result.get("publication", {})
-        hf = publication.get("huggingface", {})
+        if not isinstance(records, list) or any(not isinstance(r, dict) for r in records):
+            raise ValueError("CPU evaluation records must be objects")
+        publication = _object(result.get("publication", {}))
+        hf = _object(publication.get("huggingface", {}))
+        files = _object(hf.get("files", {}))
+        for role in ("video", "image", "metrics"):
+            _object(files.get(role, {}))
+        _object(publication.get("wandb", {}))
         if (result.get("device") != "cpu" or result.get("episodes") != settings["episodes"]
                 or result.get("checkpoint_artifact") != cpu["artifacts"][algorithm]
                 or len(records) != settings["episodes"]
@@ -175,7 +197,7 @@ def _cpu_step(spec, state, account, credentials, output):
     if status not in TERMINAL:
         state.update(phase="service_unavailable", remote_status=status)
         return state
-    controls = read_controls(ref, account)
+    controls = _object(read_controls(ref, account))
     cpu = controls.get("job.json", {})
     _validate_job(cpu, ref, spec, account)
     if cpu.get("stage") != "visualize" or not cpu.get("artifacts"):
@@ -205,14 +227,14 @@ def _cpu_step(spec, state, account, credentials, output):
         recovery["publication_source_ref"] = ref
         recovery.pop("completed_records", None)
     else:
-        progress = controls.get("evaluation-progress.json", {})
+        progress = _object(controls.get("evaluation-progress.json", {}))
         if progress:
             if progress.get("artifacts") != cpu["artifacts"] or progress.get("cpu_eval") != cpu["cpu_eval"]:
                 raise ValueError("CPU progress differs from its immutable policy/protocol")
             recovery["completed_records"] = progress.get("records", {})
         # A failed publication-only attempt retains its original asset source.
     completed = 0
-    for records in recovery.get("completed_records", {}).values():
+    for records in _object(recovery.get("completed_records", {})).values():
         if (not isinstance(records, list) or len(records) > cpu["cpu_eval"]["episodes"]
                 or any(not isinstance(r, dict) or r.get("episode") != i+1
                        or r.get("seed") != cpu["cpu_eval"]["seed"]+i for i, r in enumerate(records))):
@@ -229,12 +251,39 @@ def _cpu_step(spec, state, account, credentials, output):
     if _owned_kernel_exists(target, account):
         state.update(current_cpu_ref=target, cpu_attempt=attempt, phase="visualizing")
         return state
-    state["submission_intent"] = {"ref": target, "kind": "cpu", "attempt": attempt}
-    atomic_json(output / "controller-state.json", state)
-    manifest = submit_cpu_attempt(recovery, output, account, credentials)
-    state.pop("submission_intent", None)
+    manifest = _submit_with_intent(state, "cpu", target, output,
+        lambda: submit_cpu_attempt(recovery, output, account, credentials), attempt=attempt)
     state.update(current_cpu_ref=manifest["kernel_ref"], cpu_attempt=attempt, phase="visualizing")
     return state
+
+
+
+def _submission_phase(output, kind, ref):
+    try:
+        receipt = json.loads((Path(output) / f"{kind}-submission.json").read_text())
+        if receipt.get("ref") == ref and receipt.get("phase") == "preparing":
+            return "preparing"
+    except (OSError, ValueError, AttributeError):
+        pass
+    return "pushing"
+
+
+def _submit_with_intent(state, kind, ref, output, action, **details):
+    state["submission_intent"] = {"ref": ref, "kind": kind, "phase": "preparing", **details}
+    record_submission_phase(output, kind, ref, "preparing")
+    atomic_json(output / "controller-state.json", state)
+    try:
+        manifest = action()
+    except Exception:
+        phase = _submission_phase(output, kind, ref)
+        if phase == "preparing":
+            state.pop("submission_intent", None)
+        else:
+            state["submission_intent"]["phase"] = phase
+        atomic_json(output / "controller-state.json", state)
+        raise
+    state.pop("submission_intent", None)
+    return manifest
 
 
 def controller_step(spec, state, account, credentials, output):
@@ -262,10 +311,12 @@ def controller_step(spec, state, account, credentials, output):
         if status not in TERMINAL:
             state.update(phase="service_unavailable", remote_status=status)
             return state
-        controls = read_controls(ref, account)
+        controls = _object(read_controls(ref, account))
         parent = controls.get("job.json", {})
         _validate_job(parent, ref, spec, account)
-        results = controls.get("job-result.json", {})
+        results = _object(controls.get("job-result.json", {}))
+        for result in results.values():
+            _object(result)
         stage = next_stage(parent, results)
         state["verified_prefix"] = {a: {k: r[k] for k in ("episodes", "global_step")} for a, r in results.items()}
         recovery = {**parent, "timeout_seconds": 39600}
@@ -275,10 +326,8 @@ def controller_step(spec, state, account, credentials, output):
                 state.update(current_gpu_ref=target, phase="training")
                 return state
             recovery["commit"] = spec["gpu_commit"]
-            state["submission_intent"] = {"ref": target, "kind": "gpu"}
-            atomic_json(output / "controller-state.json", state)
-            manifest = submit_continuation(recovery, results, output, account=account, credentials=credentials)
-            state.pop("submission_intent", None)
+            manifest = _submit_with_intent(state, "gpu", target, output,
+                lambda: submit_continuation(recovery, results, output, account=account, credentials=credentials))
             if manifest.get("status") == "waiting_for_quota":
                 state.update(phase="waiting_for_quota", wait_reason=manifest.get("wait_reason"))
             elif manifest.get("status") == "submitted":
@@ -292,15 +341,95 @@ def controller_step(spec, state, account, credentials, output):
                 state.update(current_cpu_ref=target, phase="visualizing")
                 return state
             recovery["commit"] = spec["commit"]
-            state["submission_intent"] = {"ref": target, "kind": "cpu"}
-            atomic_json(output / "controller-state.json", state)
-            manifest = submit_visualization(recovery, results, output, account=account, credentials=credentials)
-            state.pop("submission_intent", None)
+            manifest = _submit_with_intent(state, "cpu", target, output,
+                lambda: submit_visualization(recovery, results, output, account=account, credentials=credentials))
             state.update(current_cpu_ref=manifest["kernel_ref"], phase="visualizing")
         return state
     except (ValueError, KeyError, TypeError) as error:
         state.update(phase="blocked", error_type=type(error).__name__)
         return state
+
+
+
+def wait_controller_ready(spec, account, credentials, timeout=600):
+    """A push receipt is scheduled; only a fresh actual heartbeat means ready."""
+    import wandb
+    api = wandb.Api(api_key=credentials.wandb_key, timeout=20)
+    deadline = time.monotonic() + timeout
+    observation = {"ready": False}
+    while True:
+        try:
+            status = kernel_status(spec["kernel_ref"], account)
+            if status in TERMINAL:
+                return {"ready": False, "remote_status": status}
+            runs = api.runs(f"{spec['entity']}/{spec['project']}",
+                filters={"config.kernel_ref": spec["kernel_ref"]}, order="-created_at", per_page=3)
+            for run in runs:
+                summary, config = dict(run.summary), run.config
+                heartbeat = datetime.fromisoformat(summary.get("heartbeat_utc", "").replace("Z", "+00:00"))
+                age = (datetime.now(timezone.utc) - heartbeat).total_seconds()
+                ready = (status in ACTIVE and run.state == "running" and 0 <= age <= 1800
+                    and config.get("root_kernel_ref") == spec["root_kernel_ref"]
+                    and config.get("commit") == spec["commit"]
+                    and summary.get("phase") in {"training", "waiting_for_quota", "visualizing"}
+                    and summary.get("current_gpu_ref", "").split("/")[0] == spec["root_kernel_ref"].split("/")[0])
+                observation = {"ready": ready, "remote_status": status,
+                    "wandb_url": run.url, "run_id": run.id,
+                    "heartbeat_utc": summary.get("heartbeat_utc"), "phase": summary.get("phase")}
+                if ready:
+                    return observation
+        except Exception as error:
+            observation["error_type"] = type(error).__name__
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return observation
+        time.sleep(min(15, remaining))
+
+
+def _next_controller(spec, state, account):
+    portable = {k: deepcopy(v) for k, v in state.items()
+                if k not in {"controller_handoff", "next_controller_ref", "controller_status"}}
+    for generation in range(spec["generation"] + 1, spec["generation"] + 101):
+        candidate = build_controller_spec(spec["parent"], spec["commit"], gpu_commit=spec["gpu_commit"],
+                                         state=portable, generation=generation)
+        candidate["poll_seconds"] = spec.get("poll_seconds", 900)
+        if _owned_kernel_exists(candidate["kernel_ref"], account):
+            status = kernel_status(candidate["kernel_ref"], account)
+            if status in TERMINAL:
+                continue  # Preserve failed/finished attempts; a fresh generation re-reconciles the lineage.
+            if status not in ACTIVE:
+                raise RuntimeError("Controller successor status is unavailable")
+        return candidate
+    raise RuntimeError("No unused controller generation within the safe lookup bound")
+
+
+def _handoff_controller(spec, state, account, credentials, output):
+    handoff = state.get("controller_handoff")
+    if handoff is None:
+        successor = _next_controller(spec, state, account)
+        handoff = {"spec": successor, "phase": "preparing"}
+        state["controller_handoff"] = handoff
+        atomic_json(output / "controller-state.json", state)
+    successor = handoff["spec"]
+    if handoff["phase"] == "pushing":
+        if not _owned_kernel_exists(successor["kernel_ref"], account):
+            raise RuntimeError("Controller submission remains unconfirmed; do not repeat the push")
+        status = kernel_status(successor["kernel_ref"], account)
+        if status in TERMINAL:
+            # A failed successor is not a live supervisor. Preserve it and use a new generation.
+            spec = {**spec, "generation": successor["generation"]}
+            state.pop("controller_handoff")
+            return _handoff_controller(spec, state, account, credentials, output)
+        if status not in ACTIVE:
+            raise RuntimeError("Controller successor status is unavailable")
+        return {**successor, "status": "adopted"}
+    record_submission_phase(output, "controller", successor["kernel_ref"], "preparing")
+    try:
+        return submit_controller(successor, output, account, credentials)
+    except Exception:
+        handoff["phase"] = _submission_phase(output, "controller", successor["kernel_ref"])
+        atomic_json(output / "controller-state.json", state)
+        raise
 
 
 def run_controller(spec, output=Path("/kaggle/working")):
@@ -322,10 +451,8 @@ def run_controller(spec, output=Path("/kaggle/working")):
     try:
         while True:
             if time.monotonic() >= deadline:
-                successor = build_controller_spec(spec["parent"], spec["commit"], gpu_commit=spec["gpu_commit"],
-                    state=state, generation=spec["generation"] + 1)
                 try:
-                    manifest = submit_controller(successor, output, account, credentials)
+                    manifest = _handoff_controller(spec, state, account, credentials, output)
                 except Exception as error:
                     state.update(controller_status="handoff_pending", error_type=type(error).__name__)
                     atomic_json(output / "controller-state.json", state)
