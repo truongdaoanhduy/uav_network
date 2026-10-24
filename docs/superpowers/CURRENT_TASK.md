@@ -166,6 +166,17 @@ Automation `6adb1a0b96dc8191b26ad5ed86545aac` (UAV 1M Cohort Recovery) was disab
 - Evidence: `evidence/2026-10-24-native-vector-null-and-e2e-smoke-fix.md`.
 - Next: commit/push immutable fix, then run a new real GPU->controller->CPU visualize E2E smoke. Do not overwrite the failed smoke and do not mutate the four live 1 KiB production lineages.
 
+
+## 2026-10-24 cloud E2E smoke v3 — PASS
+
+- Fresh smoke from fixed source `fa4b7ec`: GPU `kjhihgiugy/uavnet-train-20261024-112613-05bf43`, W&B `710c151e`, controller `kjhihgiugy/uav-flow-99b4b012fb3b7e-0000`, CPU `...-cpu`.
+- GPU completed 4/4 episodes with `episode_budget_complete=true`, `stop_reason=episode_budget`.
+- CPU evaluation completed on CPU for seed 10044; production `_cpu_complete()` returned true.
+- W&B publication `ok`; HF publication `ok` at immutable revision `cf1c73e5b9eb621d5f0e197155ef36d594e04bdb`; video/image/metrics all have hashes and immutable URLs.
+- The NaN blocker is gone: schema-defined undefined telemetry is JSON null in the real CPU result.
+- Evidence: `evidence/2026-10-24-cloud-e2e-smoke-v3-pass.md`.
+- Next operational task: fresh-check all four primary 1 KiB production lineages; advance only cases that satisfy the 20k completion gate to validation/CPU visualization. Preserve active/incomplete lineages.
+
 ## Operating constraints
 
 - Keep healthy production jobs running. Apply performance changes only to controlled diagnostics/future launches.
