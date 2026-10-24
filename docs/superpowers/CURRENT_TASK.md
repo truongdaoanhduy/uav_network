@@ -39,6 +39,8 @@ New user instruction after Task 6: audit all owned scenario/algorithm/runtime/cl
 - Fullsuite before topologyfix:679passed74skipped8warnings1234subtests498.67s, exit0. Postfix suite pending.
 - Recovery submissions actual at09:50: PQL1Maccount21c02 aa859075 and BASE500kaccount28c02 01763049, sameaccounts, source/controller4cd9358, both timeout39600 after freshquota30h. Prefixes1066/7,045,120 and4745/13,914,112; immutableHFsize/SHA verified. See evidence/2026-10-24-task7-recovery-submissions.json. Submitted is not yet verified training progress; checkKaggle/W&B.
 
+- Post-review fullsuite:680passed74skipped8warnings1235subtests486.84s, exit0. Actual T4smokev1: compile-onlyhybrid and fused-onlyhybrid both PASSED (6collections,4critic/4actorupdates;3compiledgraphs/54kernels andactualfusedAdam). CUDAprobe applied critic/actor/alpha updates successfully, then a stale test assertion incorrectly required FP16criticoutputs; existing production evidence gate/tests explicitly allow FP32critic reductions with FP16actors/completedcriticcalls. Corrected that CUDA-only assertion to the existing contract; no productionprecision change. Preservev1error/evidence; rerunv2 pinnedsource beforecompletion. CPUfocused40passed1skip4subtests6.27s.
+
 ## Previous Task 6 record
 
 **Task 6: receiver buffer cache — COMPLETE, NEGATIVE RESULT, REVERTED.**

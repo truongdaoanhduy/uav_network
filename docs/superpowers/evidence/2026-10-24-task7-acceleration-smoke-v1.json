@@ -1,0 +1,208 @@
+{
+  "source_commit": "8da562e51f1ec86845abc579f7412e66e2217737",
+  "scope": "Bounded correctness smoke; not canonical 4096-world memory, speed or quality evidence",
+  "versions": {
+    "torch": "2.11.0+cu128",
+    "warp": "1.18.0"
+  },
+  "cuda_devices": [
+    "Tesla T4",
+    "Tesla T4"
+  ],
+  "cases": {
+    "compile_models": {
+      "status": "passed",
+      "scope": "execution preflight; zero production episodes",
+      "algorithm": "masac",
+      "pql": false,
+      "num_envs": 4,
+      "batch_size": 8,
+      "replay_capacity": 64,
+      "diagnostic_pql_warmup": 3,
+      "production_pql_warmup": 32,
+      "amp_mode": "off",
+      "compile": true,
+      "fused": false,
+      "seconds": 69.07456264200002,
+      "all_adam_groups_fused": false,
+      "replay_bytes": 70720,
+      "replay_layout": "hybrid",
+      "replay_cpu_bytes": 53184,
+      "replay_hot_bytes": 17536,
+      "devices": {
+        "world": "cuda:0",
+        "collector": "cuda:0",
+        "learner": "cuda:1",
+        "replay": "cuda:1"
+      },
+      "collections": 6,
+      "critic_updates": 4,
+      "actor_updates": 4,
+      "precision": {
+        "critic": {
+          "mode": "off",
+          "scalers": {},
+          "counts": {
+            "critic": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "actor": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "alpha": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            }
+          }
+        },
+        "policy": {
+          "mode": "off",
+          "scalers": {},
+          "counts": {
+            "critic": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "actor": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "alpha": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            }
+          }
+        }
+      },
+      "amp_autocast_fp16": 0,
+      "compiled_unique_graphs": 3,
+      "inductor_generated_kernels": 54,
+      "dynamo_graph_breaks": 0,
+      "dynamo_frames_total": 3,
+      "dynamo_frames_ok": 3,
+      "dynamo_frames_fallback": 0,
+      "memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "peak_allocated_bytes": 34634240,
+          "peak_reserved_bytes": 35651584,
+          "total_bytes": 15636037632
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "peak_allocated_bytes": 72582144,
+          "peak_reserved_bytes": 90177536,
+          "total_bytes": 15636037632
+        }
+      ]
+    },
+    "fused_optimizers": {
+      "status": "passed",
+      "scope": "execution preflight; zero production episodes",
+      "algorithm": "masac",
+      "pql": false,
+      "num_envs": 4,
+      "batch_size": 8,
+      "replay_capacity": 64,
+      "diagnostic_pql_warmup": 3,
+      "production_pql_warmup": 32,
+      "amp_mode": "off",
+      "compile": false,
+      "fused": true,
+      "seconds": 0.31850173699996276,
+      "all_adam_groups_fused": true,
+      "replay_bytes": 70720,
+      "replay_layout": "hybrid",
+      "replay_cpu_bytes": 53184,
+      "replay_hot_bytes": 17536,
+      "devices": {
+        "world": "cuda:0",
+        "collector": "cuda:0",
+        "learner": "cuda:1",
+        "replay": "cuda:1"
+      },
+      "collections": 6,
+      "critic_updates": 4,
+      "actor_updates": 4,
+      "precision": {
+        "critic": {
+          "mode": "off",
+          "scalers": {},
+          "counts": {
+            "critic": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "actor": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "alpha": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            }
+          }
+        },
+        "policy": {
+          "mode": "off",
+          "scalers": {},
+          "counts": {
+            "critic": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "actor": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "alpha": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            }
+          }
+        }
+      },
+      "amp_autocast_fp16": 0,
+      "compiled_unique_graphs": 0,
+      "inductor_generated_kernels": 54,
+      "dynamo_graph_breaks": 0,
+      "dynamo_frames_total": 0,
+      "dynamo_frames_ok": 0,
+      "dynamo_frames_fallback": 0,
+      "memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "peak_allocated_bytes": 34634240,
+          "peak_reserved_bytes": 35651584,
+          "total_bytes": 15636037632
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "peak_allocated_bytes": 68502528,
+          "peak_reserved_bytes": 90177536,
+          "total_bytes": 15636037632
+        }
+      ]
+    }
+  },
+  "base_probe_cuda_exit_code": 1,
+  "base_probe_cuda_tail": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_____ test_cuda_probe_adapter_executes_fp16_compiled_critic_and_real_steps _____\n\n    @pytest.mark.skipif(not torch.cuda.is_available() or torch.cuda.device_count() != 2,\n                        reason=\"Requires real dual CUDA; CPU tests do not verify FP16/Inductor\")\n    def test_cuda_probe_adapter_executes_fp16_compiled_critic_and_real_steps():\n        p = probe()\n        from test_split_updates import small_learner, replay_batch\n        learner = small_learner(vectorized=True).to(\"cuda:1\")\n        learner.device = torch.device(\"cuda:1\")\n        batch = {key: value.to(\"cuda:1\") for key, value in replay_batch(learner).items()}\n        evidence = {}\n        with p.ProbeCompiler(learner, evidence), p.ProbeAMP(learner, init_scale=16) as amp:\n            with probe_autocast(p):\n                learner.update(batch)\n        assert all(amp.counts[group][\"applied\"] == 1 for group in (\"critic\", \"actor\", \"alpha\"))\n>       assert evidence[\"critic\"][\"fp16_outputs\"] > 0\nE       assert 0 > 0\n\ntests/test_memory_probe.py:154: AssertionError\n----------------------------- Captured stderr call -----------------------------\nW1024 02:58:05.802000 194 torch/_inductor/utils.py:1731] [1/0] Not enough SMs to use max_autotune_gemm mode\n=============================== warnings summary ===============================\ntests/test_memory_probe.py: 14 warnings\n  /usr/local/lib/python3.13/dist-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED tests/test_memory_probe.py::test_cuda_probe_adapter_executes_fp16_compiled_critic_and_real_steps\n1 failed, 14 warnings in 21.91s\n"
+}

@@ -1,0 +1,32 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____ test_cuda_probe_adapter_executes_fp16_compiled_critic_and_real_steps _____
+
+    @pytest.mark.skipif(not torch.cuda.is_available() or torch.cuda.device_count() != 2,
+                        reason="Requires real dual CUDA; CPU tests do not verify FP16/Inductor")
+    def test_cuda_probe_adapter_executes_fp16_compiled_critic_and_real_steps():
+        p = probe()
+        from test_split_updates import small_learner, replay_batch
+        learner = small_learner(vectorized=True).to("cuda:1")
+        learner.device = torch.device("cuda:1")
+        batch = {key: value.to("cuda:1") for key, value in replay_batch(learner).items()}
+        evidence = {}
+        with p.ProbeCompiler(learner, evidence), p.ProbeAMP(learner, init_scale=16) as amp:
+            with probe_autocast(p):
+                learner.update(batch)
+        assert all(amp.counts[group]["applied"] == 1 for group in ("critic", "actor", "alpha"))
+>       assert evidence["critic"]["fp16_outputs"] > 0
+E       assert 0 > 0
+
+tests/test_memory_probe.py:154: AssertionError
+----------------------------- Captured stderr call -----------------------------
+W1024 02:58:05.802000 194 torch/_inductor/utils.py:1731] [1/0] Not enough SMs to use max_autotune_gemm mode
+=============================== warnings summary ===============================
+tests/test_memory_probe.py: 14 warnings
+  /usr/local/lib/python3.13/dist-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_memory_probe.py::test_cuda_probe_adapter_executes_fp16_compiled_critic_and_real_steps
+1 failed, 14 warnings in 21.91s
