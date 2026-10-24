@@ -51,6 +51,24 @@ class PipelineCredentialTests(unittest.TestCase):
         self.assertIn(["datasets", "files"], calls)
 
 
+
+    def test_existing_private_credential_accepts_ambiguous_version_timeout_with_strict_shape(self):
+        account = Account("one", "private-token")
+        dataset = SimpleNamespace(ref="owner/uav-cpu-launch-credential", is_private=True)
+
+        def transport(args, selected, **kwargs):
+            if args[:2] == ["datasets", "version"]:
+                raise subprocess.TimeoutExpired(["kaggle", "datasets", "version"], kwargs.get("timeout", 15))
+            if args[:2] == ["datasets", "files"]:
+                return json.dumps([{"name": "uav_cpu_launch_token.txt"}])
+            raise AssertionError(args)
+
+        with patch.object(client, "private_dataset_info", return_value=dataset), \
+             patch.object(client, "private_dataset_file",
+                          side_effect=subprocess.TimeoutExpired(["kaggle", "datasets", "download"], 15)), \
+             patch.object(client, "run_kaggle", side_effect=transport):
+            self.assertEqual(client.ensure_pipeline_dataset(account, "owner", timeout=60), dataset.ref)
+
     def test_download_probe_leaves_time_for_timeout_recovery(self):
         account = Account("one", "private-token")
         dataset = SimpleNamespace(ref="owner/uav-cpu-launch-credential", is_private=True)

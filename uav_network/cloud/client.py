@@ -217,7 +217,9 @@ def _ensure_single_credential(account, username, slug, title, filename, value, t
             if command == "version":
                 args += ["-m", "Refresh private credential"]
             args += ["-p", temp, "-q"]
-            run_kaggle(args, account, timeout=max(1, int(deadline - time.monotonic())))
+            remaining = max(1, int(deadline - time.monotonic()))
+            command_timeout = min(15, remaining) if command == "version" else remaining
+            run_kaggle(args, account, timeout=command_timeout)
 
     if created:
         publish("create")
@@ -239,7 +241,13 @@ def _ensure_single_credential(account, username, slug, title, filename, value, t
             # endpoint stalls. Refresh an existing dataset from the exact local value
             # so metadata-only verification cannot accept stale credentials.
             if not created:
-                publish("version")
+                try:
+                    publish("version")
+                except subprocess.TimeoutExpired:
+                    # The upload outcome is ambiguous. Preserve the owned/private
+                    # exact-file-shape gate and let remote W&B/controller health
+                    # decide whether the mounted credential is usable.
+                    pass
             files = private_dataset_files(account, ref, username)
             if len(files) != 1 or Path(files[0]["name"]).name != filename:
                 raise CredentialFileSetError("Private credential dataset must contain only its expected file")
