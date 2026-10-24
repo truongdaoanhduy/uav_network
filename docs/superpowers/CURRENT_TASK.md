@@ -1,3 +1,11 @@
+## 2026-10-24 pre-fix cloud cleanup — COMPLETE
+
+- After Dec-POMDP observation fix `6263156`, all pre-fix active cloud compute was stopped controller-first. Removed 9 RUNNING Kaggle refs: 2 1KB controllers, 2 1KB MASAC roots, and 5 old 1MB continuations. Post-delete status checks return removed/inaccessible for all 9.
+- W&B cleanup preserves history: 10 stale/running pre-fix runs were tagged `obsolete-pre-decpomdp-fix` and closed as failed; project query now returns zero running runs.
+- Finished 1KB MATD3 BASE `767cb8da` and PQL `30a40bf7` remain finished but are tagged `historical-1kb-prefix` + `obsolete-pre-decpomdp-fix`.
+- Evidence: `docs/superpowers/evidence/2026-10-24-pre-decpomdp-cloud-cleanup.json`.
+- Next: launch a clean four-case 1KB cohort from episode 0 pinned to `6263156` (MASAC/MATD3 × BASE/PQL). Never resume pre-fix checkpoints into this cohort.
+
 ## 2026-10-24 Dec-POMDP local-observation leakage fix — VERIFIED
 
 - Root cause: `link_state_features` exposed required-power / progress-to-GCS / receiver-buffer features for peers and GCS outside the local radio range; GPU observation kernel mirrored the same behavior. Actor therefore received derived information about unreachable nodes even though peer position slots and destination masks were range-limited.

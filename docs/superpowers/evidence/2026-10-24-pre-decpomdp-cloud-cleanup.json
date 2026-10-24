@@ -1,0 +1,181 @@
+{
+  "kernels": [
+    {
+      "alias": "account_01",
+      "before": "duytrngoanh/uav-flow-22c9acce21eef2-0000 has status \"KernelWorkerStatus.RUNNING\"",
+      "delete_output": "Kernel duytrngoanh/uav-flow-22c9acce21eef2-0000 deleted successfully",
+      "owner": "duytrngoanh",
+      "ref": "duytrngoanh/uav-flow-22c9acce21eef2-0000",
+      "result": "delete_requested"
+    },
+    {
+      "alias": "account_02",
+      "before": "vuliu123456/uav-flow-7dbb76c688e6f5-0000 has status \"KernelWorkerStatus.RUNNING\"",
+      "delete_output": "Kernel vuliu123456/uav-flow-7dbb76c688e6f5-0000 deleted successfully",
+      "owner": "vuliu123456",
+      "ref": "vuliu123456/uav-flow-7dbb76c688e6f5-0000",
+      "result": "delete_requested"
+    },
+    {
+      "alias": "account_01",
+      "before": "duytrngoanh/uavnet-train-20261024-073119-a53a63 has status \"KernelWorkerStatus.RUNNING\"",
+      "delete_output": "Kernel duytrngoanh/uavnet-train-20261024-073119-a53a63 deleted successfully",
+      "owner": "duytrngoanh",
+      "ref": "duytrngoanh/uavnet-train-20261024-073119-a53a63",
+      "result": "delete_requested"
+    },
+    {
+      "alias": "account_02",
+      "before": "vuliu123456/uavnet-train-20261024-074226-5b2381 has status \"KernelWorkerStatus.RUNNING\"",
+      "delete_output": "Kernel vuliu123456/uavnet-train-20261024-074226-5b2381 deleted successfully",
+      "owner": "vuliu123456",
+      "ref": "vuliu123456/uavnet-train-20261024-074226-5b2381",
+      "result": "delete_requested"
+    },
+    {
+      "alias": "account_05",
+      "before": "ewkljfelweow/uavnet-train-20261023-051420-c02 has status \"KernelWorkerStatus.RUNNING\"",
+      "delete_output": "Kernel ewkljfelweow/uavnet-train-20261023-051420-c02 deleted successfully",
+      "owner": "ewkljfelweow",
+      "ref": "ewkljfelweow/uavnet-train-20261023-051420-c02",
+      "result": "delete_requested"
+    },
+    {
+      "alias": "account_09",
+      "before": "ekjfewflwejl/uavnet-train-20261023-051422-c02 has status \"KernelWorkerStatus.RUNNING\"",
+      "delete_output": "Kernel ekjfewflwejl/uavnet-train-20261023-051422-c02 deleted successfully",
+      "owner": "ekjfewflwejl",
+      "ref": "ekjfewflwejl/uavnet-train-20261023-051422-c02",
+      "result": "delete_requested"
+    },
+    {
+      "alias": "account_10",
+      "before": "jwekfjjwoigjo/uavnet-train-20261023-073957-c02 has status \"KernelWorkerStatus.RUNNING\"",
+      "delete_output": "Kernel jwekfjjwoigjo/uavnet-train-20261023-073957-c02 deleted successfully",
+      "owner": "jwekfjjwoigjo",
+      "ref": "jwekfjjwoigjo/uavnet-train-20261023-073957-c02",
+      "result": "delete_requested"
+    },
+    {
+      "alias": "account_11",
+      "before": "lihuhi/uavnet-train-20261023-074258-316e25-c02 has status \"KernelWorkerStatus.RUNNING\"",
+      "delete_output": "Kernel lihuhi/uavnet-train-20261023-074258-316e25-c02 deleted successfully",
+      "owner": "lihuhi",
+      "ref": "lihuhi/uavnet-train-20261023-074258-316e25-c02",
+      "result": "delete_requested"
+    },
+    {
+      "alias": "account_12",
+      "before": "kjhiguyf/uavnet-train-20261023-074845-a038-c02 has status \"KernelWorkerStatus.RUNNING\"",
+      "delete_output": "Kernel kjhiguyf/uavnet-train-20261023-074845-a038-c02 deleted successfully",
+      "owner": "kjhiguyf",
+      "ref": "kjhiguyf/uavnet-train-20261023-074845-a038-c02",
+      "result": "delete_requested"
+    }
+  ],
+  "reason": "pre-6263156 local-observation semantics; stop obsolete cloud compute before clean canonical relaunch",
+  "time_utc": "2026-10-24T12:42:38.970419+00:00",
+  "verification": {
+    "completed_1kb_tagged_historical": [
+      "767cb8da",
+      "30a40bf7"
+    ],
+    "fix_commit": "6263156e9e64ed27911236fd849475b742453ea5",
+    "kaggle_removed_refs": 9,
+    "wandb_failed_and_tagged": [
+      "02f7c9bb",
+      "2159fb7d",
+      "7f985331",
+      "eaff5063",
+      "e0bfbcaf",
+      "01763049",
+      "aa859075",
+      "34febb18",
+      "bf1bbfa2",
+      "80b2eea2"
+    ],
+    "wandb_running_after_cleanup": 0
+  },
+  "wandb_running": [
+    {
+      "episodes_completed": null,
+      "global_step": 15900672,
+      "group": "uav-network-v3-full20k-env4096-steps1800-seed44-20261020",
+      "id": "01763049",
+      "name": "MASAC-BASE-uav-network-2d-seed44-20261023-051422-cbe381-c02-01763049",
+      "report_bytes": 1000000
+    },
+    {
+      "episodes_completed": null,
+      "global_step": 9572352,
+      "group": "uav-v3-full20k-e4096-b8192-r1m-cpu75-20261023",
+      "id": "aa859075",
+      "name": "MASAC-PQL-uav-network-2d-seed44-20261023-051420-773792-c02-recover-aa859075",
+      "report_bytes": 1000000
+    },
+    {
+      "episodes_completed": null,
+      "global_step": 14589952,
+      "group": "uav-v3-full20k-e4096-b8192-r1m-cpu75-20261023",
+      "id": "34febb18",
+      "name": "MASAC-BASE-uav-network-2d-seed44-20261023-073957-9c4cd8-c02-34febb18",
+      "report_bytes": 1000000
+    },
+    {
+      "episodes_completed": null,
+      "global_step": 17481728,
+      "group": "uav-v3-full20k-e4096-b8192-r1m-cpu75-20261023",
+      "id": "bf1bbfa2",
+      "name": "MATD3-BASE-uav-network-2d-seed44-20261023-074258-316e25-c02-bf1bbfa2",
+      "report_bytes": 1000000
+    },
+    {
+      "episodes_completed": null,
+      "global_step": 15683584,
+      "group": "uav-v3-full20k-e4096-b8192-r1m-cpu75-20261023",
+      "id": "80b2eea2",
+      "name": "MATD3-PQL-uav-network-2d-seed44-20261023-074845-a0387e-c02-80b2eea2",
+      "report_bytes": 1000000
+    },
+    {
+      "episodes_completed": null,
+      "global_step": null,
+      "group": null,
+      "id": "02f7c9bb",
+      "name": "FLOW-base-uavnet-train-20261024-073119-a53a63-g0",
+      "report_bytes": null
+    },
+    {
+      "episodes_completed": null,
+      "global_step": null,
+      "group": null,
+      "id": "2159fb7d",
+      "name": "FLOW-base-uavnet-train-20261024-073119-a53a63-g0",
+      "report_bytes": null
+    },
+    {
+      "episodes_completed": null,
+      "global_step": 14630912,
+      "group": "uav-v3-full20k-e4096-b8192-r1kb-cpu75-20261024",
+      "id": "7f985331",
+      "name": "MASAC-BASE-uav-network-2d-seed44-20261024-073119-a53a63",
+      "report_bytes": 1024
+    },
+    {
+      "episodes_completed": null,
+      "global_step": null,
+      "group": null,
+      "id": "eaff5063",
+      "name": "FLOW-pql-uavnet-train-20261024-074226-5b2381-g0",
+      "report_bytes": null
+    },
+    {
+      "episodes_completed": null,
+      "global_step": 16060416,
+      "group": "uav-v3-full20k-e4096-b8192-r1kb-cpu75-20261024",
+      "id": "e0bfbcaf",
+      "name": "MASAC-PQL-uav-network-2d-seed44-20261024-074226-5b2381",
+      "report_bytes": 1024
+    }
+  ]
+}
