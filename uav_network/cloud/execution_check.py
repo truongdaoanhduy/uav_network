@@ -12,10 +12,9 @@ def _counter_total(counter):
     return sum(counter.values())
 
 def check_execution(config, output):
-    if not torch.cuda.is_available() or torch.cuda.device_count() != 2:
-        raise RuntimeError("Execution preflight requires exactly two T4 CUDA devices")
-    if any("t4" not in torch.cuda.get_device_name(i).lower() for i in range(2)):
-        raise RuntimeError("Execution preflight requires exactly two T4 CUDA devices")
+    if not torch.cuda.is_available() or torch.cuda.device_count() < 1:
+        raise RuntimeError("Execution preflight requires a usable CUDA device")
+    device_count = torch.cuda.device_count()
     from ..algorithms.checkpoints import make_learner
     from ..algorithms.optimization import compile_models
     from ..experiments.pql_replay import make_replay
@@ -23,7 +22,7 @@ def check_execution(config, output):
     from ..environment.vector import make_vector
     from ..experiments.pql_system import PQLSystem
     from ..experiments.pql_workers import inference_copy
-    from ..experiments.training import seed_runtime, refresh_base_collector
+    from ..experiments.training import seed_runtime, refresh_base_collector, resolve_base_devices
     from torch._dynamo.utils import counters
     from torch._inductor import metrics as inductor_metrics
 
@@ -51,17 +50,20 @@ def check_execution(config, output):
     persist()
     try:
         seed_runtime(cfg)
-        for i in range(2):
+        for i in range(device_count):
             torch.cuda.reset_peak_memory_stats(i)
-        vector = make_vector(cfg, device="cuda:0")
-        obs, _ = vector.reset(seed=cfg.runtime.seed)
         if cfg.pql.enabled:
             engine = PQLSystem(cfg)
             learner, policy, collector, replay = engine.critic, engine.policy, engine.collector, engine.replay
+            collector_device = engine.collector_device
         else:
-            learner = make_learner(cfg, observation_dim(cfg), state_dim(cfg), device="cuda:1")
+            collector_device, learner_device, _ = resolve_base_devices(cfg)
+        vector = make_vector(cfg, device=collector_device)
+        obs, _ = vector.reset(seed=cfg.runtime.seed)
+        if not cfg.pql.enabled:
+            learner = make_learner(cfg, observation_dim(cfg), state_dim(cfg), device=learner_device)
             policy = learner
-            collector = inference_copy(learner, "cuda:0")
+            collector = inference_copy(learner, collector_device)
             replay = make_replay(cfg, (cfg.world.num_uavs, observation_dim(cfg)),
                                  state_dim(cfg), learner.device)
             if cfg.runtime.compile_models:
@@ -113,7 +115,7 @@ def check_execution(config, output):
         if engine:
             engine.flush()
             latest = dict(engine.latest)
-        for i in range(2):
+        for i in range(device_count):
             torch.cuda.synchronize(i)
         report.update(critic_updates=learner.updates, actor_updates=policy.actor_updates,
             precision=dict(critic=learner.precision.state_dict(), policy=policy.precision.state_dict()),
@@ -127,7 +129,7 @@ def check_execution(config, output):
         report["memory"] = [dict(device=i, name=torch.cuda.get_device_name(i),
             peak_allocated_bytes=torch.cuda.max_memory_allocated(i),
             peak_reserved_bytes=torch.cuda.max_memory_reserved(i),
-            total_bytes=torch.cuda.get_device_properties(i).total_memory) for i in range(2)]
+            total_bytes=torch.cuda.get_device_properties(i).total_memory) for i in range(device_count)]
         if not all(torch.isfinite(p).all() for owned in (learner, policy) for p in owned.parameters()):
             raise FloatingPointError("Non-finite production parameters")
         if cfg.runtime.fused_optimizers and not report["all_adam_groups_fused"]:

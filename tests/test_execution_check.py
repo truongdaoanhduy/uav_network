@@ -70,6 +70,31 @@ class ExecutionCheckTests(unittest.TestCase):
         self.assertEqual(saved["cpu_capacity"], 48)
         self.assertEqual(replay.hot_capacity, 16)
 
+    def test_preflight_accepts_one_supported_cuda_board_and_uses_its_device(self):
+        import torch
+        from types import SimpleNamespace
+        from uav_network.cloud.execution_check import check_execution
+        # Load consumers before patching constructors; imports must not retain
+        # these test doubles in the real trainer or worker modules.
+        from uav_network.experiments import training, pql_system
+        class AllocationReached(RuntimeError):
+            pass
+        config = Config(); config.runtime.device = "cuda"
+        vector = SimpleNamespace(reset=lambda **kwargs: ({}, {}), close=lambda: None,
+                                 device=torch.device("cuda:0"))
+        def learner_allocation(config, observation_dim, state_dim, device):
+            self.assertEqual(str(device), "cuda:0")
+            raise AllocationReached("selected single CUDA device")
+        with TemporaryDirectory() as directory, \
+             patch.object(torch.cuda, "is_available", return_value=True), \
+             patch.object(torch.cuda, "device_count", return_value=1), \
+             patch.object(torch.cuda, "get_device_name", return_value="Tesla P100"), \
+             patch.object(torch.cuda, "reset_peak_memory_stats"), \
+             patch("uav_network.environment.vector.make_vector", return_value=vector), \
+             patch("uav_network.algorithms.checkpoints.make_learner", side_effect=learner_allocation):
+            with self.assertRaisesRegex(AllocationReached, "selected single CUDA device"):
+                check_execution(config, Path(directory) / "evidence.json")
+
     def test_cuda_guard_precedes_world_and_replay_allocation(self):
         from uav_network.cloud.execution_check import check_execution
         config = Config()
@@ -77,6 +102,6 @@ class ExecutionCheckTests(unittest.TestCase):
         config.runtime.compile_models = config.runtime.fused_optimizers = True
         with TemporaryDirectory() as directory, patch("torch.cuda.is_available", return_value=False), patch(
                 "uav_network.environment.vector.make_vector") as allocate:
-            with self.assertRaisesRegex(RuntimeError, "two T4"):
+            with self.assertRaisesRegex(RuntimeError, "CUDA"):
                 check_execution(config, Path(directory) / "evidence.json")
             allocate.assert_not_called()

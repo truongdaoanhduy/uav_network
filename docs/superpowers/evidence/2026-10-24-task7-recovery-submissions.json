@@ -1,0 +1,145 @@
+{
+  "records": [
+    {
+      "account": "account_21",
+      "source": "4cd9358fe0d7cc851bc95ed1c6d5bd231666d310",
+      "controller": "4cd9358fe0d7cc851bc95ed1c6d5bd231666d310",
+      "ref": "ewkljfelweow/uavnet-train-20261023-051420-c02",
+      "run_id": "aa859075",
+      "prefix_episodes": {
+        "masac": 1066
+      },
+      "prefix_global_step": {
+        "masac": 7045120
+      },
+      "artifact": {
+        "masac": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-fc14508c:v3"
+      },
+      "manifest": {
+        "schema": 1,
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "4672be4ad3ea3d13a419e7593960d3fb01955420",
+        "files": {
+          "checkpoint.pt": {
+            "path": "uav-network/fc14508c/step-7045120-episodes-1066/checkpoint.pt",
+            "size": 34817335,
+            "sha256": "e99a8b2ca1447c9cfc5078eca3290ada60450dc2b0ddd4506cdb49d9a516a197"
+          },
+          "resume.pt": {
+            "path": "uav-network/fc14508c/step-7045120-episodes-1066/resume.pt",
+            "size": 15522939889,
+            "sha256": "8d26e1e9671157180c4b048c0b95a515bded6ead06526d6c6c8a468b64fecbed"
+          }
+        }
+      },
+      "verification": {
+        "owned_child_exists": false,
+        "files": {
+          "checkpoint.pt": {
+            "status": 302,
+            "size": 34817335,
+            "sha256": "e99a8b2ca1447c9cfc5078eca3290ada60450dc2b0ddd4506cdb49d9a516a197",
+            "revision": "4672be4ad3ea3d13a419e7593960d3fb01955420"
+          },
+          "resume.pt": {
+            "status": 302,
+            "size": 15522939889,
+            "sha256": "8d26e1e9671157180c4b048c0b95a515bded6ead06526d6c6c8a468b64fecbed",
+            "revision": "4672be4ad3ea3d13a419e7593960d3fb01955420"
+          }
+        },
+        "verified_utc": "2026-10-24T02:47:01.063132+00:00",
+        "note": "Immutable artifact descriptor agrees with HF LFS size/SHA; cloud will download and revalidate full payload and exact prefixes before training."
+      },
+      "quota": {
+        "name": "account_21",
+        "ok": true,
+        "used_hours": 0.0,
+        "remaining_hours": 30.0,
+        "total_hours": 30.0
+      },
+      "timeout_seconds": 39600,
+      "recovery_provenance": {
+        "failed_kernel": "ewkljfelweow/uavnet-train-20261023-051420-c01",
+        "failed_wandb_run": "bc18a145",
+        "failed_observed_episodes": 4096,
+        "failed_observed_global_step": 8908800,
+        "reason": "final full-checkpoint save I/O failure; retained staged input exceeded available output space",
+        "checkpoint_producer": "ewkljfelweow/uavnet-train-20261023-051420-773792",
+        "restored_episodes": 1066,
+        "restored_global_step": 7045120,
+        "unsaved_episode_difference": 3030,
+        "unsaved_global_step_difference": 1863680
+      },
+      "submitted_at_utc": "2026-10-24T02:51:26.900008+00:00",
+      "status": "submitted",
+      "url": "https://www.kaggle.com/code/ewkljfelweow/uavnet-train-20261023-051420-c02"
+    },
+    {
+      "account": "account_28",
+      "source": "4cd9358fe0d7cc851bc95ed1c6d5bd231666d310",
+      "controller": "4cd9358fe0d7cc851bc95ed1c6d5bd231666d310",
+      "ref": "ekjfewflwejl/uavnet-train-20261023-051422-c02",
+      "run_id": "01763049",
+      "prefix_episodes": {
+        "masac": 4745
+      },
+      "prefix_global_step": {
+        "masac": 13914112
+      },
+      "artifact": {
+        "masac": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-30e43dda:v3"
+      },
+      "manifest": {
+        "schema": 1,
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "fe00f4161ece47283c4f7e4b7440f74dabc5f7b5",
+        "files": {
+          "checkpoint.pt": {
+            "path": "uav-network/30e43dda/step-13914112-episodes-4745/checkpoint.pt",
+            "size": 63900535,
+            "sha256": "e0dbd6bd848d0ca15a82528ccb29f58791f5c99d2f99cd6dc891c761f5639207"
+          },
+          "resume.pt": {
+            "path": "uav-network/30e43dda/step-13914112-episodes-4745/resume.pt",
+            "size": 8999517930,
+            "sha256": "a4826feeb09482a7248e5ad879b1752833d8fd169e4114c959a9d75736bd52e4"
+          }
+        }
+      },
+      "verification": {
+        "owned_child_exists": false,
+        "files": {
+          "checkpoint.pt": {
+            "status": 302,
+            "size": 63900535,
+            "sha256": "e0dbd6bd848d0ca15a82528ccb29f58791f5c99d2f99cd6dc891c761f5639207",
+            "revision": "fe00f4161ece47283c4f7e4b7440f74dabc5f7b5"
+          },
+          "resume.pt": {
+            "status": 302,
+            "size": 8999517930,
+            "sha256": "a4826feeb09482a7248e5ad879b1752833d8fd169e4114c959a9d75736bd52e4",
+            "revision": "fe00f4161ece47283c4f7e4b7440f74dabc5f7b5"
+          }
+        },
+        "verified_utc": "2026-10-24T02:47:06.162925+00:00",
+        "note": "Immutable artifact descriptor agrees with HF LFS size/SHA; cloud will download and revalidate full payload and exact prefixes before training."
+      },
+      "quota": {
+        "name": "account_28",
+        "ok": true,
+        "used_hours": 0.0,
+        "remaining_hours": 30.0,
+        "total_hours": 30.0
+      },
+      "timeout_seconds": 39600,
+      "recovery_provenance": null,
+      "submitted_at_utc": "2026-10-24T02:51:38.587419+00:00",
+      "status": "submitted",
+      "url": "https://www.kaggle.com/code/ekjfewflwejl/uavnet-train-20261023-051422-c02"
+    }
+  ]
+}

@@ -35,6 +35,10 @@ New user instruction after Task 6: audit all owned scenario/algorithm/runtime/cl
 - Task7A FINAL: T4v1 COMPLETE, baseline39.11293086 vs candidate39.62140881t/s, **+1.300025% reproducible**, all140arrays match6trials,39CUDAoracle tests passed37.222s. Below predeclared2% gate; REVERTED allthreecandidatefiles byte-equal6062744. Do not call it noise/no gain; it is too small for the acceptance gate. No further micro-cache candidate this task; event-loop architecture needs separate measured redesign.
 - Task7D RED actor-grad failure reproduced from actual BASEprobe context on CPU BF16; fixed cache_enabled=False. PQLprobe actual report expression failed on missing HybridMeasuredReplay.data; storage formatter now reports cold/hot tiers and preserves plain keys. GREEN65passed1skipped in8.44s, exit0. Real CUDA probe/preflight smoke pending; fullsuite after netrevert pending.
 
+- Final review Important topology finding FIXED: expanded acceleration guard must support non-dual-T4 CUDA. RED one-board P100 facade failed oldguard; GREEN34passed16subtests9.97s after generic usable-CUDA guard, BASE/PQL role resolution and device_count loops. Load real test consumers before patching constructors to avoid import-time mock capture. No re-review; fresh fullsuite and2T4smoke next.
+- Fullsuite before topologyfix:679passed74skipped8warnings1234subtests498.67s, exit0. Postfix suite pending.
+- Recovery submissions actual at09:50: PQL1Maccount21c02 aa859075 and BASE500kaccount28c02 01763049, sameaccounts, source/controller4cd9358, both timeout39600 after freshquota30h. Prefixes1066/7,045,120 and4745/13,914,112; immutableHFsize/SHA verified. See evidence/2026-10-24-task7-recovery-submissions.json. Submitted is not yet verified training progress; checkKaggle/W&B.
+
 ## Previous Task 6 record
 
 **Task 6: receiver buffer cache — COMPLETE, NEGATIVE RESULT, REVERTED.**
