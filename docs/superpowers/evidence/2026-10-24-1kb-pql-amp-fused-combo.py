@@ -13,7 +13,7 @@ OUT = Path('/kaggle/working')
 CONFIG = 'configs/comparison-20k-hybrid75-1kb.yaml'
 PYTHON = sys.executable
 CASES = {
-    'baseline': ('off', False),
+    'baseline': ('"off"', False),
     'amp_only': ('fp16', False),
     'amp_fused': ('fp16', True),
 }
