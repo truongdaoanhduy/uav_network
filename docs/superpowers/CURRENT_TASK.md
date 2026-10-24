@@ -186,6 +186,17 @@ Automation `6adb1a0b96dc8191b26ad5ed86545aac` (UAV 1M Cohort Recovery) was disab
 - Evidence: `evidence/2026-10-24-1kb-matd3-20k-finalization.md`.
 - Next: preserve and monitor MASAC BASE/PQL until their 20k gate; reconcile any non-canonical duplicate lineages before spending more quota.
 
+
+## 2026-10-24 MASAC live state + duplicate cleanup
+
+- MASAC BASE `7f985331`: root/controller running, global_step 12,181,504; 1 KiB/env4096/20k target; not yet at completion gate.
+- MASAC PQL `e0bfbcaf`: root/controller running, global_step 13,352,960; 1 KiB/env4096/20k target; not yet at completion gate.
+- Preserve both; do not restart, change precision flags, or submit early validation. Existing controllers own final handoff.
+- New Sandbox alias remap: resolve owner before mutation. Current: duytrngoanh->account_01, vuliu123456->account_02, libiu123->account_03, nhtbrg->account_04.
+- Removed redundant MATD3 PQL root `bbfb7e35` (`nhtbrg/...085710-ecbd3f`) and its controller after proving it duplicated the already-finalized seed44 canonical experiment; source difference was only cloud preflight `torch.cuda.init()`.
+- Evidence: `evidence/2026-10-24-1kb-masac-live-and-duplicate-cleanup.md`.
+- Current operational action: let the two canonical MASAC GPU roots/controllers continue; only advance after the strict 20k completion gate.
+
 ## Operating constraints
 
 - Keep healthy production jobs running. Apply performance changes only to controlled diagnostics/future launches.
