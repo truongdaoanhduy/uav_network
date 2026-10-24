@@ -146,6 +146,16 @@ Automation `6adb1a0b96dc8191b26ad5ed86545aac` (UAV 1M Cohort Recovery) was disab
 - Evidence: `evidence/2026-10-24-1kb-pql-acceleration-isolation-result.json` and `.md`.
 - Next controlled task: compare **AMP+fused (compile off)** against AMP-only and baseline on spare T4x2. Preserve live production lineages.
 
+
+## 2026-10-24 PQL AMP+fused combination check — COMPLETE
+
+- Kaggle T4x2 diagnostic `bjkjbhm/uav-1kb-learner-accel-20261024` v11 completed from runner `c8ca18a`; no production mutation; compile stayed off.
+- MASAC PQL: baseline 2219.19, AMP-only 2439.91 (**1.099x**), AMP+fused 2356.10 (**1.062x**, only **0.966x** vs AMP-only).
+- MATD3 PQL: baseline 3509.02, AMP-only 3457.48 (**0.985x**), AMP+fused 3500.10 (**0.997x**).
+- Ruling: reject fused addition for MASAC PQL; no robust PQL-wide acceleration policy. Preserve current non-AMP production lineages. MASAC PQL AMP-only remains the only path-specific candidate for a future fresh cohort.
+- Evidence: `evidence/2026-10-24-1kb-pql-amp-fused-combo-result.json` and `.md`.
+- Next operational task: fresh-check all four primary 1 KiB production lineages and advance completed 20k cases to validation/CPU visualization without restarting or mutating active training.
+
 ## Operating constraints
 
 - Keep healthy production jobs running. Apply performance changes only to controlled diagnostics/future launches.
