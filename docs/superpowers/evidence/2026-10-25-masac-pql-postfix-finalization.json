@@ -1,0 +1,184 @@
+{
+  "observed_at_utc": "2026-10-25T08:33:05.606820+00:00",
+  "case": "MASAC PQL",
+  "training_run": "12582cc7",
+  "training_state": "finished",
+  "training": {
+    "episodes_completed": 20000,
+    "global_step": 35139584,
+    "episode_budget_complete": true,
+    "stop_reason": "episode_budget"
+  },
+  "source_commit": "4eb45ed9dd28567f8e1aeb8545570453b02d0927",
+  "cpu_kernel": "ioeufwejewlfl/uavnet-train-20261024-125621-351-cpu",
+  "cpu_status": "complete",
+  "cpu_complete": true,
+  "cpu_eval": {
+    "episodes": 30,
+    "seed": 2000000044,
+    "frame_stride": 5,
+    "fps": 10
+  },
+  "checkpoint": {
+    "masac": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-12582cc7:v12"
+  },
+  "cpu_run": {
+    "masac": {
+      "id": "831a115e",
+      "name": "MASAC-CPU-visualize-12582cc7-e38201"
+    }
+  },
+  "config": {
+    "world": {
+      "dt_s": 1,
+      "num_uavs": 6,
+      "max_steps": 1800,
+      "map_size_m": 1000,
+      "num_targets": 35,
+      "max_speed_mps": 20,
+      "motion_safety": "dynamic_window",
+      "num_obstacles": 25,
+      "gcs_position_m": null,
+      "max_accel_mps2": 2,
+      "launch_radius_m": 150,
+      "safety_distance_m": 15,
+      "placement_attempts": 5000,
+      "launch_min_spacing_m": 30,
+      "obstacle_clearance_m": 10,
+      "obstacle_radius_max_m": 70,
+      "obstacle_radius_min_m": 30,
+      "target_exclusion_radius_m": 200
+    },
+    "network": {
+      "enabled": true,
+      "nlos_model": "urban",
+      "gcs_range_m": 500,
+      "max_retries": 5,
+      "bandwidth_hz": 22000000,
+      "bit_rate_bps": 2000000,
+      "buffer_bytes": 3072,
+      "peer_range_m": 500,
+      "report_bytes": 1024,
+      "report_ttl_s": 300,
+      "pa_efficiency": 0.35,
+      "payload_bytes": 1024,
+      "queue_poll_us": 1000,
+      "upstream_path": "third_party/UavNetSim",
+      "tx_power_max_w": 0.4,
+      "tx_power_min_w": 0.001,
+      "noise_figure_db": 7,
+      "tx_power_mapping": "log",
+      "cca_threshold_dbm": -82,
+      "max_queue_packets": 64,
+      "packet_lifetime_s": 10,
+      "sinr_threshold_db": 6,
+      "rx_circuit_power_w": 0.1,
+      "tx_circuit_power_w": 0.1,
+      "ack_uses_data_power": true,
+      "carrier_frequency_hz": 2400000000,
+      "noise_density_dbm_hz": -174,
+      "rediscovery_recovery": true,
+      "link_state_observation": true,
+      "obstacle_extra_loss_db": 0,
+      "obstacle_polygon_sides": 16,
+      "power_limited_admission": true,
+      "receiver_admission_mask": true,
+      "propagation_delay_enabled": true
+    },
+    "runtime": {
+      "seed": 44,
+      "device": "cuda",
+      "amp_mode": "off",
+      "episodes": 20000,
+      "num_envs": 4096,
+      "algorithm": "masac",
+      "eval_seed": 2000000044,
+      "output_dir": "/kaggle/working/train/masac",
+      "deterministic": true,
+      "eval_episodes": 30,
+      "replay_device": "cpu",
+      "shared_memory": true,
+      "torch_threads": 1,
+      "compile_models": false,
+      "fused_optimizers": false,
+      "collector_overlap": true,
+      "max_train_seconds": 36000,
+      "vectorize_critics": true,
+      "log_interval_steps": 4096,
+      "checkpoint_interval": 128,
+      "coalesce_idle_polls": true,
+      "environment_backend": "warp_packet",
+      "replay_cpu_fraction": 0.75,
+      "warm_start_checkpoint": "/kaggle/working/inputs/masac/uav-network/0ba5c526/step-28368896-episodes-16355/resume.pt"
+    },
+    "pql": {
+      "mode": "async",
+      "enabled": true,
+      "policy_device": "auto",
+      "learner_device": "auto",
+      "collector_device": "auto",
+      "worker_timeout_s": 600,
+      "checkpoint_replay": true,
+      "critic_sample_ratio": 8,
+      "max_pending_collections": 2,
+      "warmup_collection_steps": 32,
+      "max_pending_policy_updates": 2
+    }
+  },
+  "publication": {
+    "huggingface": {
+      "status": "ok",
+      "repo_id": "duy95/uav-search-checkpoints",
+      "revision": "e85a4454a54606a96c02d4152e5b7f0343d0f594",
+      "files": {
+        "video": {
+          "path": "visualizations/pql/masac/831a115e/final_episode.mp4",
+          "size": 1054757,
+          "sha256": "538c928d5f06e8207d6ec343e976ac0094dcb14ecce723839209bad923704fb0",
+          "url": "https://huggingface.co/duy95/uav-search-checkpoints/resolve/e85a4454a54606a96c02d4152e5b7f0343d0f594/visualizations/pql/masac/831a115e/final_episode.mp4"
+        },
+        "image": {
+          "path": "visualizations/pql/masac/831a115e/final_episode.png",
+          "size": 350753,
+          "sha256": "d6958c1e986d749b3d725355a17f5becea3b192c7792c1e65ec3d8114641e21c",
+          "url": "https://huggingface.co/duy95/uav-search-checkpoints/resolve/e85a4454a54606a96c02d4152e5b7f0343d0f594/visualizations/pql/masac/831a115e/final_episode.png"
+        },
+        "metrics": {
+          "path": "visualizations/pql/masac/831a115e/metrics.json",
+          "size": 479161,
+          "sha256": "6b736172ac2ac4eb1b6bf4525a977bb9e8cc356724f8f0728f0c9936630ff65f",
+          "url": "https://huggingface.co/duy95/uav-search-checkpoints/resolve/e85a4454a54606a96c02d4152e5b7f0343d0f594/visualizations/pql/masac/831a115e/metrics.json"
+        }
+      }
+    },
+    "wandb": {
+      "status": "ok"
+    }
+  },
+  "fresh_asset_checks": {
+    "video": {
+      "size": 1054757,
+      "sha256": "538c928d5f06e8207d6ec343e976ac0094dcb14ecce723839209bad923704fb0",
+      "matches": true,
+      "url": "https://huggingface.co/duy95/uav-search-checkpoints/resolve/e85a4454a54606a96c02d4152e5b7f0343d0f594/visualizations/pql/masac/831a115e/final_episode.mp4"
+    },
+    "image": {
+      "size": 350753,
+      "sha256": "d6958c1e986d749b3d725355a17f5becea3b192c7792c1e65ec3d8114641e21c",
+      "matches": true,
+      "url": "https://huggingface.co/duy95/uav-search-checkpoints/resolve/e85a4454a54606a96c02d4152e5b7f0343d0f594/visualizations/pql/masac/831a115e/final_episode.png"
+    },
+    "metrics": {
+      "size": 479161,
+      "sha256": "6b736172ac2ac4eb1b6bf4525a977bb9e8cc356724f8f0728f0c9936630ff65f",
+      "matches": true,
+      "url": "https://huggingface.co/duy95/uav-search-checkpoints/resolve/e85a4454a54606a96c02d4152e5b7f0343d0f594/visualizations/pql/masac/831a115e/metrics.json"
+    }
+  },
+  "eval": {
+    "mean_return": -452.48147495950883,
+    "success_rate": 0.0,
+    "mean_search_rate_percent": 77.71428571428572,
+    "mean_delivery_rate_percent": 33.61904761904762
+  }
+}

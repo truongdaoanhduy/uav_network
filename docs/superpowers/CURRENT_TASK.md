@@ -1,4 +1,4 @@
-## 2026-10-25 current audit — Task 1 verified
+## 2026-10-25 current audit — Tasks 1–2 verified
 
 Latest user request: fresh W&B status, verify primary 1 KiB workload, audit Dec-POMDP/CTDE and owned code, reproduce and fix confirmed defects sequentially. Preserve healthy cloud jobs and lineage semantics.
 
@@ -7,7 +7,9 @@ Latest user request: fresh W&B status, verify primary 1 KiB workload, audit Dec-
 - CPU `44656f8c` / `fewfijlwejfl/uavnet-train-20261024-125030-ce72-cpu`: Kaggle complete, 30 records, production `_cpu_complete=true`; W&B/HF publication ok. Fresh public downloads of video/image/metrics match receipt sizes and SHA256.
 - Actual report/payload=1024 bytes, buffer=3072. Actual final evaluation seed=2000000044, as pinned in config/job; the handoff's seed10044 is stale.
 - Evidence: `evidence/2026-10-25-masac-base-postfix-finalization.json` (timestamped).
-- Next task: verify MASAC PQL by the same gate. Then reconcile MATD3 live status and audit code before any new launch. Current user prioritizes correctness audit.
+- Task 2: MASAC PQL `12582cc7` completed 20,000 episodes / 35,139,584 transitions, strict budget gate true. CPU `831a115e` has 30 episodes; Kaggle complete; `_cpu_complete=true`; W&B/HF publication ok and fresh media hashes match. Evidence: `evidence/2026-10-25-masac-pql-postfix-finalization.json`.
+- Final CPU evaluation: BASE search74.095%, delivery25.238%, success0/30; PQL search77.714%, delivery33.619%, success0/30. Completion is not mission success.
+- Next: reconcile MATD3 online status, then sequential Dec-POMDP and full owned-code audit before new training. Current user prioritizes correctness audit.
 
 ## 2026-10-24 pre-fix cloud cleanup — COMPLETE
 
