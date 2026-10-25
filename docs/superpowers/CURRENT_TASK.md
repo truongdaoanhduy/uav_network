@@ -1,3 +1,18 @@
+# Current task: Kaggle CUDA scenario-first audit and joint storage cleanup — IN PROGRESS
+
+Updated 2026-10-25T23:43:10.030922+07:00. User explicitly requested real Kaggle CUDA testing, W&B/HF cleanup, scenario logic/modeling before algorithms, and minimal verified fixes.
+
+- Plan: `plans/2026-10-25-cuda-scenario-storage-audit.md`. Existing linked worktree and branch `feat/cpu-replay-20261022` retained; source under test is `dc63f27c12e298c3f495fff8e1c4e84e7f191369`.
+- Kaggle diagnostic `duytrngoanh/uav-cuda-scenario-algorithm-audit-20261025`, version 1, account `account_01`, quota 24.88 h before launch; actual latest status `running`. Submission is not test completion or hardware proof. Fetch `/kaggle/working/cuda-audit-receipt.json`, stage logs/XML and probe results before claims. Runner has no account/W&B/HF credentials and does not modify production jobs/stores.
+- Required order: scenario regressions -> primary 8-world1800-step and4096-world16-step probes plus privileged feasibility controls -> four production-shape CUDA execution and small train/save/load/eval probes -> full repository CUDA suite. Failures stop subsequent stages. Timeout10800s; no production training budget was launched.
+- Evidence runner/launch files: `evidence/2026-10-25-cuda-scenario-*` and `2026-10-25-cuda-learner-probe.py`. Check actual hardware from receipt (requested T4x2 is not proof).
+- Storage inventories are read-only so far. HF main checkpoint repo is about426GB and live manifests also use a second public checkpoint repo about203GB. All retained immutable revision/path/hash references must survive cleanup; never globally squash/rewrite history.
+- W&B proposed first batch:42 old raw episodes.jsonl/diagnostics.jsonl/output.log files,1,619,600,956B,from14 pre-Oct18 successfully full-budget-complete sources. Before any removal, losslessly compress to a private HF archive, force-download/decompress/hash, persist source mappings and recheck terminal state. Retain W&B history/events/metrics/config/summary and protected failed/crashed/final.pt artifacts.
+- Additional obsolete intermediate policy and historical completed-lineage resume retirement is still being proved jointly. Do not treat inventory candidate lists as approved deletion receipts. Five standalone HF test objects are being checked separately.
+- Local diagnostic progress/inventories: `/tmp/uav-cuda-audit-20261025/`; recover remote job and committed runner if scratch vanishes. Next: retrieve CUDA stage results, investigate scenario findings first, then algorithms, perform only verified cleanup batches, update evidence and commit/push actual state.
+
+---
+
 # Current task: W&B cleanup and runtime re-verification — COMPLETE
 
 Updated 2026-10-25 23:22 +0700. Tested source: `c4d5225eb34104cfa8e13444ae4f5fac0963f75d`; local HEAD and a fresh remote ref matched. The commit containing this record changes docs/evidence only.

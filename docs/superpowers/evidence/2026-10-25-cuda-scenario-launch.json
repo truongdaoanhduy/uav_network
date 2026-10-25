@@ -1,0 +1,103 @@
+{
+  "source_commit": "dc63f27c12e298c3f495fff8e1c4e84e7f191369",
+  "account": "account_01",
+  "owner": "duytrngoanh",
+  "kernel_ref": "duytrngoanh/uav-cuda-scenario-algorithm-audit-20261025",
+  "quota": [
+    {
+      "name": "account_01",
+      "ok": true,
+      "used_hours": 5.12,
+      "remaining_hours": 24.88,
+      "total_hours": 30.0
+    }
+  ],
+  "prior_kernel_states": [
+    {
+      "ref": "duytrngoanh/uav-credential-mount-smoke-20261024",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-framefree-t4-benchmark-final",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-framefree-cuda-exact-final",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-framefree-public-cuda-exact-20261023-101529",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-validate-20261020-10363-c01",
+      "state": "error"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-validate-20261020-103631-39e2ac",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-resume-1800-cuda-check-20261020-da6cc466",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-train-20261017-194510-8-c01",
+      "state": "error"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-train-20261017-194510-82e5cf",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-train-20261016-064448-e-c01",
+      "state": "error"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-train-20261016-064448-e0a990",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-gpu-capacity-20261014-085653",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-gpu-capacity-20261014-084800",
+      "state": "error"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-gpuenv-20261014-0742-673b",
+      "state": "error"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-envscale-20261014-0149-9b7c",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-masac20k-b512-u16-20261012-cpu",
+      "state": "cancelled"
+    },
+    {
+      "ref": "duytrngoanh/uav-masac20k-b512-u16-20261012",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-masac4096-b512-u128-smoke-20261011",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-masac4096-b512-u16-trial1000-v1",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-masac4096-b512-u16-trial500-v1",
+      "state": "complete"
+    }
+  ],
+  "runner_sha256": "f7317c074ceeb536a7ca51a7dd9932d1eb0c191a97927abc261a6c653f4b3831",
+  "phase": "submitted",
+  "checked_utc": "2026-10-25T16:42:21.998463+00:00",
+  "response": "Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/duytrngoanh/uav-cuda-scenario-algorithm-audit-20261025\n",
+  "observed_status": "running",
+  "status_checked_at": "2026-10-25T23:43:10.030922+07:00"
+}
