@@ -134,6 +134,25 @@ class TrackingTests(unittest.TestCase):
             self.assertEqual(run.summary["global_step"], 8)
             self.assertTrue(run.summary["environment_state_saved"])
 
+    def test_missing_completion_metadata_fails_closed_in_tracking_summary(self):
+        run = OnlineRun()
+        sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs, Artifact=StoredArtifact)
+        with TemporaryDirectory() as directory:
+            c = Config()
+            c.tracking.checkpoint_store = "wandb"
+            c.tracking.credentials_file = str(Path(directory) / "absent.txt")
+            policy = Path(directory) / "policy.pt"
+            policy.write_bytes(b"policy")
+            with patch.dict(sys.modules, {"wandb": sdk}), patch.dict(os.environ, {
+                    "WANDB_API_KEY": "test-key", "WANDB_ENTITY": "owner", "WANDB_PROJECT": "project"}):
+                tracker = OnlineTracker(c, directory)
+                tracker.complete({"checkpoint": str(policy), "episodes": 0,
+                                  "global_step": 8, "updates": 0})
+                tracker.close()
+        self.assertFalse(run.summary["episode_budget_complete"])
+        self.assertEqual(run.summary["stop_reason"], "unknown")
+        self.assertEqual(run.summary["session_status"], "session_completion_unknown")
+
     def test_checkpoint_upload_interval_must_be_finite_and_nonnegative(self):
         for value in (-1, float('nan'), float('inf')):
             config = Config(); config.tracking.checkpoint_upload_interval_seconds = value

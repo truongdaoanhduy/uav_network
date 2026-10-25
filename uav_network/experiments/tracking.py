@@ -290,12 +290,15 @@ class OnlineTracker:
 
     def complete(self, result):
         metrics = final_metrics(self.records) if self.records else {}
+        completion = result.get("episode_budget_complete")
+        session_status = ("episode_budget_complete" if completion is True else
+                          "session_time_budget_reached" if completion is False else
+                          "session_completion_unknown")
         self.run.summary.update({**metrics, "global_step": result["global_step"],
                                  "episodes_completed": result["episodes"], "learner_updates": result["updates"],
-                                 "episode_budget_complete": result.get("episode_budget_complete", True),
-                                 "stop_reason": result.get("stop_reason", "episode_budget"),
-                                 "session_status": ("episode_budget_complete" if result.get("episode_budget_complete", True)
-                                                    else "session_time_budget_reached"),
+                                 "episode_budget_complete": completion is True,
+                                 "stop_reason": result.get("stop_reason", "unknown"),
+                                 "session_status": session_status,
                                  "initial_global_step": result.get("initial_global_step", self.initial_step),
                                  "environment_state_saved": result.get("environment_state_saved", False)})
         if "reproducibility" in result:
