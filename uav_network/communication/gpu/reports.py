@@ -173,9 +173,8 @@ def sense_reports_at(s: WorldState, p: WorldParams, e: int):
                 s.known[e,i,t] = 1
                 if s.first_discovery[e,t] < wp.float64(0):
                     s.first_discovery[e,t] = now
-                if s.delivered[e,t] != 0:
-                    s.recovery[e,i,t] = 0
-                elif bytes_used(s,p,e,i)+p.report_bytes <= p.buffer_bytes:
+                # Remote GCS delivery does not acknowledge this local sighting.
+                if bytes_used(s,p,e,i)+p.report_bytes <= p.buffer_bytes:
                     insert(s,p,e,i,t,i,now,0)
                     s.recovery[e,i,t] = 0
                     if not fresh:

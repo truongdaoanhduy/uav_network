@@ -1,0 +1,21 @@
+{
+  "observed_at": "2026-10-25T15:44:33.198748+07:00",
+  "starting_commit": "e25ffcc",
+  "baseline": "717 passed, 74 skipped, 1266 subtests, exit0",
+  "defect": "ReportStore.discover and Warp sense_reports_at used global GCS delivery to suppress local report creation/recovery without an acknowledgment channel",
+  "reproduction": {
+    "remote_delivered_false": {
+      "own_buffer_bytes": 1024,
+      "buffer_obs": 0.3333333333333333
+    },
+    "remote_delivered_true": {
+      "own_buffer_bytes": 0,
+      "buffer_obs": 0
+    }
+  },
+  "red": "7 failed, 3 skipped; native/Warp fresh, recovery, full buffer, and sequential duplicate GCS report test",
+  "focused_green": "80 passed, 4 skipped, 14 subtests, exit0",
+  "full_suite": "724 passed, 77 skipped, 8 warnings, 1267 subtests, exit0, 227.04s",
+  "cuda": "not yet run; local host has no CUDA",
+  "lineage": "All checkpoints trained before this local-report fix retain the global suppression semantics; historical evidence only under the declared bounded local-observation model. Start corrected experiments from episode0."
+}

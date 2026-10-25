@@ -46,9 +46,8 @@ class ReportStore:
         self.known[uav_id, target_id] = True
         if self.first_discovery[target_id] < 0:
             self.first_discovery[target_id] = time_s
-        if self.delivered[target_id]:
-            self.recovery_pending[uav_id, target_id] = False
-        elif self.bytes_used(uav_id) + self.config.report_bytes <= self.config.buffer_bytes:
+        # A remote GCS receipt is not a local acknowledgment of this sighting.
+        if self.bytes_used(uav_id) + self.config.report_bytes <= self.config.buffer_bytes:
             # Called only after a fresh camera observation. Relay never refreshes TTL.
             self.buffers[uav_id][target_id] = Report(target_id, uav_id, time_s,
                                                   self.config.report_bytes)
