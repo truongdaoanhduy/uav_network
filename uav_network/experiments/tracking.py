@@ -12,6 +12,10 @@ from .hardware import hardware_info
 from .telemetry import episode_telemetry
 from ..environment.observations import OBSERVATION_VERSION
 
+CPU_EPISODE_METRICS = ("evaluation/return", "evaluation/search_rate_percent",
+                       "evaluation/delivery_rate_percent", "evaluation/success",
+                       "evaluation/episodes_completed")
+
 
 def progress_metrics(observations, config):
     local, state = observations["observation"], observations["state"]
@@ -136,7 +140,7 @@ class OnlineTracker:
         name = config.tracking.run_name
         if name == "auto":
             name = os.environ.get("WANDB_NAME") or f"{config.runtime.algorithm.upper()}-uav-network-2d-seed{config.runtime.seed}-{run_id}"
-        metadata = {"observation_version": OBSERVATION_VERSION, "source_git_commit": os.environ.get("UAV_GIT_COMMIT", "local"),
+        metadata = {"observation_version": initial.get("observation_version", OBSERVATION_VERSION), "source_git_commit": os.environ.get("UAV_GIT_COMMIT", "local"),
                     "kaggle_account": os.environ.get("UAV_KAGGLE_ACCOUNT", "local"),
                     "kaggle_kernel": os.environ.get("UAV_KAGGLE_KERNEL", "local"),
                     "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES", "all"),
@@ -191,6 +195,8 @@ class OnlineTracker:
             self.run.define_metric("evaluation/checkpoint_global_step")
             for prefix in ("evaluation/*", "eval/*"):
                 self.run.define_metric(prefix, step_metric="evaluation/checkpoint_global_step", step_sync=True)
+            for metric in CPU_EPISODE_METRICS:
+                self.run.define_metric(metric, step_metric="evaluation/episodes_completed", step_sync=True)
             (self.output / "wandb_run.json").write_text(json.dumps(self.identity(), indent=2))
             print(f"W&B Personal Workspace: {self.identity()['wandb_workspace_url']}", flush=True)
         except BaseException:

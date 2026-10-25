@@ -1,0 +1,292 @@
+{
+  "observed_at_utc": "2026-10-25T09:14:18.283657+00:00",
+  "scope": "Historical labels and verified CPU checkpoint-axis summary only; policy/config/source/outcome/history untouched",
+  "changes": [
+    {
+      "id": "2c8de52b",
+      "before": {
+        "tags": [
+          "auto-continue",
+          "base-pql-comparison",
+          "batch8192",
+          "cpu-visualize",
+          "cpu75-gpu25",
+          "env4096",
+          "full20k",
+          "radio-energy",
+          "replay1m",
+          "report1kb",
+          "scenario-v3",
+          "seed44",
+          "steps1800",
+          "uav-network"
+        ],
+        "state": "finished",
+        "source_commit": "4eb45ed9dd28567f8e1aeb8545570453b02d0927",
+        "global_step": 27619328,
+        "episodes_completed": 12300,
+        "checkpoint_axis": null
+      },
+      "added_summary": {
+        "audit/observation_semantics": "historical-before-local-report-fix",
+        "audit/local_report_fix_commit": "c05806a4a1ff772d7062a0850342df4853f686b0"
+      },
+      "tags_after": [
+        "auto-continue",
+        "base-pql-comparison",
+        "batch8192",
+        "cpu-visualize",
+        "cpu75-gpu25",
+        "env4096",
+        "full20k",
+        "historical-pre-local-report-fix",
+        "radio-energy",
+        "replay1m",
+        "report1kb",
+        "scenario-v3",
+        "seed44",
+        "steps1800",
+        "uav-network"
+      ]
+    },
+    {
+      "id": "bb1adf51",
+      "before": {
+        "tags": [
+          "auto-continue",
+          "base-pql-comparison",
+          "batch8192",
+          "cpu-visualize",
+          "cpu75-gpu25",
+          "env4096",
+          "full20k",
+          "radio-energy",
+          "replay1m",
+          "report1kb",
+          "scenario-v3",
+          "seed44",
+          "steps1800",
+          "uav-network"
+        ],
+        "state": "finished",
+        "source_commit": "4eb45ed9dd28567f8e1aeb8545570453b02d0927",
+        "global_step": 35840000,
+        "episodes_completed": 20000,
+        "checkpoint_axis": null
+      },
+      "added_summary": {
+        "audit/observation_semantics": "historical-before-local-report-fix",
+        "audit/local_report_fix_commit": "c05806a4a1ff772d7062a0850342df4853f686b0"
+      },
+      "tags_after": [
+        "auto-continue",
+        "base-pql-comparison",
+        "batch8192",
+        "cpu-visualize",
+        "cpu75-gpu25",
+        "env4096",
+        "full20k",
+        "historical-pre-local-report-fix",
+        "radio-energy",
+        "replay1m",
+        "report1kb",
+        "scenario-v3",
+        "seed44",
+        "steps1800",
+        "uav-network"
+      ]
+    },
+    {
+      "id": "44656f8c",
+      "before": {
+        "tags": [
+          "auto-continue",
+          "base-pql-comparison",
+          "batch8192",
+          "cpu-visualize",
+          "cpu75-gpu25",
+          "env4096",
+          "full20k",
+          "radio-energy",
+          "replay1m",
+          "report1kb",
+          "scenario-v3",
+          "seed44",
+          "steps1800",
+          "uav-network"
+        ],
+        "state": "finished",
+        "source_commit": "4eb45ed9dd28567f8e1aeb8545570453b02d0927",
+        "global_step": 30,
+        "episodes_completed": null,
+        "checkpoint_axis": 0
+      },
+      "added_summary": {
+        "audit/observation_semantics": "historical-before-local-report-fix",
+        "audit/local_report_fix_commit": "c05806a4a1ff772d7062a0850342df4853f686b0",
+        "evaluation/checkpoint_global_step": 35840000,
+        "audit/evaluation_observation_version": "unversioned-before-local-report-fix"
+      },
+      "tags_after": [
+        "auto-continue",
+        "base-pql-comparison",
+        "batch8192",
+        "cpu-visualize",
+        "cpu75-gpu25",
+        "env4096",
+        "full20k",
+        "historical-pre-local-report-fix",
+        "radio-energy",
+        "replay1m",
+        "report1kb",
+        "scenario-v3",
+        "seed44",
+        "steps1800",
+        "uav-network"
+      ]
+    },
+    {
+      "id": "0ba5c526",
+      "before": {
+        "tags": [
+          "auto-continue",
+          "base-pql-comparison",
+          "batch8192",
+          "cpu-visualize",
+          "cpu75-gpu25",
+          "env4096",
+          "full20k",
+          "radio-energy",
+          "replay1m",
+          "report1kb",
+          "scenario-v3",
+          "seed44",
+          "steps1800",
+          "uav-network"
+        ],
+        "state": "finished",
+        "source_commit": "4eb45ed9dd28567f8e1aeb8545570453b02d0927",
+        "global_step": 28368896,
+        "episodes_completed": 16355,
+        "checkpoint_axis": null
+      },
+      "added_summary": {
+        "audit/observation_semantics": "historical-before-local-report-fix",
+        "audit/local_report_fix_commit": "c05806a4a1ff772d7062a0850342df4853f686b0"
+      },
+      "tags_after": [
+        "auto-continue",
+        "base-pql-comparison",
+        "batch8192",
+        "cpu-visualize",
+        "cpu75-gpu25",
+        "env4096",
+        "full20k",
+        "historical-pre-local-report-fix",
+        "radio-energy",
+        "replay1m",
+        "report1kb",
+        "scenario-v3",
+        "seed44",
+        "steps1800",
+        "uav-network"
+      ]
+    },
+    {
+      "id": "12582cc7",
+      "before": {
+        "tags": [
+          "auto-continue",
+          "base-pql-comparison",
+          "batch8192",
+          "cpu-visualize",
+          "cpu75-gpu25",
+          "env4096",
+          "full20k",
+          "radio-energy",
+          "replay1m",
+          "report1kb",
+          "scenario-v3",
+          "seed44",
+          "steps1800",
+          "uav-network"
+        ],
+        "state": "finished",
+        "source_commit": "4eb45ed9dd28567f8e1aeb8545570453b02d0927",
+        "global_step": 35139584,
+        "episodes_completed": 20000,
+        "checkpoint_axis": null
+      },
+      "added_summary": {
+        "audit/observation_semantics": "historical-before-local-report-fix",
+        "audit/local_report_fix_commit": "c05806a4a1ff772d7062a0850342df4853f686b0"
+      },
+      "tags_after": [
+        "auto-continue",
+        "base-pql-comparison",
+        "batch8192",
+        "cpu-visualize",
+        "cpu75-gpu25",
+        "env4096",
+        "full20k",
+        "historical-pre-local-report-fix",
+        "radio-energy",
+        "replay1m",
+        "report1kb",
+        "scenario-v3",
+        "seed44",
+        "steps1800",
+        "uav-network"
+      ]
+    },
+    {
+      "id": "831a115e",
+      "before": {
+        "tags": [
+          "auto-continue",
+          "base-pql-comparison",
+          "batch8192",
+          "cpu-visualize",
+          "cpu75-gpu25",
+          "env4096",
+          "full20k",
+          "radio-energy",
+          "replay1m",
+          "report1kb",
+          "scenario-v3",
+          "seed44",
+          "steps1800",
+          "uav-network"
+        ],
+        "state": "finished",
+        "source_commit": "4eb45ed9dd28567f8e1aeb8545570453b02d0927",
+        "global_step": 30,
+        "episodes_completed": null,
+        "checkpoint_axis": null
+      },
+      "added_summary": {
+        "audit/observation_semantics": "historical-before-local-report-fix",
+        "audit/local_report_fix_commit": "c05806a4a1ff772d7062a0850342df4853f686b0",
+        "evaluation/checkpoint_global_step": 35139584,
+        "audit/evaluation_observation_version": "unversioned-before-local-report-fix"
+      },
+      "tags_after": [
+        "auto-continue",
+        "base-pql-comparison",
+        "batch8192",
+        "cpu-visualize",
+        "cpu75-gpu25",
+        "env4096",
+        "full20k",
+        "historical-pre-local-report-fix",
+        "radio-energy",
+        "replay1m",
+        "report1kb",
+        "scenario-v3",
+        "seed44",
+        "steps1800",
+        "uav-network"
+      ]
+    }
+  ]
+}

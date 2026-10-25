@@ -1,0 +1,8 @@
+{
+  "offline_sdk_metric_check": "passed",
+  "wandb_version": "0.30.0",
+  "episode_axis_last": 2,
+  "checkpoint_step": 12345,
+  "online_tracking_guard": "unchanged; production tracker correctly refuses offline mode",
+  "public_run_created": false
+}

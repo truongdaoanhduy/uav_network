@@ -7,7 +7,7 @@ from urllib.error import HTTPError
 from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
 
-from .tracking import _authentication, default_workspace_url
+from .tracking import CPU_EPISODE_METRICS, _authentication, default_workspace_url
 from .dashboard_columns import VISIBLE_COLUMNS, save_with_visible_columns
 
 
@@ -108,6 +108,8 @@ DIAGNOSTIC_PANELS = {
 
 
 def panel_axis(metric):
+    if metric in CPU_EPISODE_METRICS:
+        return "evaluation/episodes_completed"
     return "evaluation/checkpoint_global_step" if metric.startswith(("evaluation/", "eval/")) else "global_step"
 
 

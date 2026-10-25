@@ -274,7 +274,7 @@ def run_visualization(spec, output=Path("/kaggle/working")):
             previous_id = os.environ.get("WANDB_RUN_ID")
             os.environ["WANDB_RUN_ID"] = identity["id"]
             try:
-                tracker = start_tracking(config, tracking_output)
+                tracker = start_tracking(config, tracking_output, {"observation_version": None})
             finally:
                 if previous_id is None:
                     os.environ.pop("WANDB_RUN_ID", None)
@@ -284,7 +284,12 @@ def run_visualization(spec, output=Path("/kaggle/working")):
                 "parent_kernel_ref": spec.get("parent_kernel_ref"),
                 "checkpoint_artifact": artifact,
                 "visualization_output_url": "https://www.kaggle.com/code/" + spec["kernel_ref"] + "/output"})
-            tracker.run.log({"global_step": 0, "evaluation/episodes_completed": 0})
+            checkpoint_step = spec.get("training_status", {}).get(algorithm, {}).get("global_step")
+            initial_metrics = {"global_step": 0, "evaluation/episodes_completed": 0}
+            if type(checkpoint_step) is int and checkpoint_step >= 0:
+                tracker.run.summary["evaluation/checkpoint_global_step"] = checkpoint_step
+                initial_metrics["evaluation/checkpoint_global_step"] = checkpoint_step
+            tracker.run.log(initial_metrics)
             def record_episode(record):
                 tracker.run.log({"global_step": record["episode"],
                     "evaluation/episodes_completed": record["episode"],
@@ -308,6 +313,14 @@ def run_visualization(spec, output=Path("/kaggle/working")):
                                               output_dir=output / "visualize" / algorithm, animate=True,
                                               frame_stride=settings["frame_stride"], fps=settings["fps"],
                                               on_episode=record_episode, **options)
+            # Publication recovery preserves the saved policy protocol, not this runtime's semantics.
+            protocol = results[algorithm].get("protocol", {})
+            source_version = protocol.get("scenario", {}).get("observation_version")
+            tracker.run.summary["evaluation/observation_version"] = (source_version
+                if type(source_version) is int else None)
+            source_step = protocol.get("training_global_step", checkpoint_step)
+            if type(source_step) is int and source_step >= 0:
+                tracker.run.summary["evaluation/checkpoint_global_step"] = source_step
             results[algorithm]["checkpoint_artifact"] = artifact
             results[algorithm]["training_status"] = spec["training_status"][algorithm]
             results[algorithm].update(tracker.identity())

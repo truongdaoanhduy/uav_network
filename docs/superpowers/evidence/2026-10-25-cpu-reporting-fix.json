@@ -1,0 +1,32 @@
+{
+  "observed_at_utc": "2026-10-25T09:15:30.693128+00:00",
+  "confirmed_defects": [
+    "CPU per-episode logs inherited an absent/wrong checkpoint x axis in SDK and authored panels",
+    "CPU checkpoint provenance defaulted to0 despite verified saved training step",
+    "Publication-only recovery could label historical observation semantics as current runtime version"
+  ],
+  "red": "CPU reporting3failed4passed; historical publication3failed",
+  "focused_green": "36passed,0skipped,exit0; real CPU evaluate path plus publication recovery and async axis regression",
+  "full_suite": "739 passed,77 skipped,8 warnings,1270 subtests,exit0,203.25s",
+  "ruling": "Regraded historical publication provenance as Important: wrong semantic labels can mix scientific cohorts. Source version stays unknown at CPU init and comes from saved protocol when available.",
+  "limits": "Existing historical W&B history is retained. Its verified checkpoint-step summary was corrected via PublicAPI, and historical observation labels added. New source fixes subsequent metric axes; no new20k training or new full cloud E2E training lineage was launched.",
+  "additional_root_detailed_reads": [
+    "configuration.py",
+    "algorithms/optimization.py",
+    "algorithms/parallel_critics.py",
+    "algorithms/precision.py",
+    "communication/gpu/phy.py",
+    "communication/gpu/streaming.py",
+    "environment/gpu/motion.py",
+    "environment/motion.py",
+    "environment/avoidance.py",
+    "environment/energy.py",
+    "environment/sensing.py",
+    "environment/world.py",
+    "experiments/rendering.py",
+    "cloud/kernel.py",
+    "cloud/client.py (selected functions)",
+    "cloud/credentials.py"
+  ],
+  "offline_sdk_check": "real W&B0.30 SDK accepts the metric definitions and preserves episode2 vs checkpoint12345; no public run created"
+}

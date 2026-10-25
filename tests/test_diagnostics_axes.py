@@ -93,3 +93,29 @@ def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source()
     assert panel_axis("eval/mean_return") == "evaluation/checkpoint_global_step"
     assert panel_axis("evaluation_status/failed") == "global_step"
     assert any(metric.startswith("cohort/") for panels in PANELS.values() for _, metric in panels)
+
+
+def test_cpu_episode_metrics_define_episode_axis_without_changing_periodic_axis(tmp_path):
+    run = OnlineRun()
+    definitions = []
+    run.define_metric = lambda name, **kwargs: definitions.append((name, kwargs))
+    sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs)
+    c = Config()
+    c.tracking.credentials_file = str(tmp_path / 'absent.txt')
+    with patch.dict(sys.modules, {'wandb': sdk}), patch.dict(os.environ, {
+            'WANDB_API_KEY':'test-key','WANDB_ENTITY':'owner','WANDB_PROJECT':'project'}):
+        tracker = OnlineTracker(c,tmp_path)
+        tracker.close()
+    for metric in ('evaluation/return','evaluation/search_rate_percent',
+                   'evaluation/delivery_rate_percent','evaluation/success','evaluation/episodes_completed'):
+        assert (metric, {'step_metric':'evaluation/episodes_completed','step_sync':True}) in definitions
+    assert ('evaluation/*', {'step_metric':'evaluation/checkpoint_global_step','step_sync':True}) in definitions
+
+
+def test_authored_cpu_episode_panels_use_episode_axis():
+    from uav_network.experiments.dashboard import panel_axis
+    for metric in ('evaluation/return','evaluation/search_rate_percent',
+                   'evaluation/delivery_rate_percent','evaluation/success','evaluation/episodes_completed'):
+        assert panel_axis(metric) == 'evaluation/episodes_completed'
+    assert panel_axis('evaluation/mean_return') == 'evaluation/checkpoint_global_step'
+    assert panel_axis('eval/mean_delivery_rate_percent') == 'evaluation/checkpoint_global_step'

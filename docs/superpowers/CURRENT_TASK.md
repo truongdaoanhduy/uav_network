@@ -1,3 +1,13 @@
+## 2026-10-25 final correctness fixes — VERIFIED
+
+- Final review finding fixed: CPU per-episode metrics now use evaluation/episodes_completed in both W&B definitions and authored panel mapping. Periodic aggregate validation keeps its checkpoint-global-step axis.
+- CPU summary publishes actual checkpoint step and saved source observation version. Initial CPU source version is unknown until policy/protocol loading; publication-only recovery preserves historical protocol without re-evaluating old policies.
+- TDD3reporting failures +3publication failures -> focused36passed. Final full suite739passed77skipped8warnings1270subtests,exit0,203.25s. Actual W&B0.30 offline SDK metric-definition/log check also passed; production online guard retained.
+- W&B historical labels added and freshly verified for six MASAC root/child/CPU runs. CPU summary checkpoint steps corrected to35,840,000 and35,139,584; original outcomes/config/source/history retained.
+- Independent review and explicit coverage limits: `evidence/2026-10-25-independent-correctness-review.md`; supplemental root PHY/motion/config/precision/rendering reads recorded in `evidence/2026-10-25-cpu-reporting-fix.json`.
+- Local report locality fix: c05806a; observation compatibility guard:2f4b5a8. Final CPU-reporting source is this commit. Keep the current worktree/branch; no merge or replacement20k job requested during this audit.
+- Next: publish final audit summary with these verified source commits and current cloud state. Any future corrected cohort starts from episode0 and must retain report1024,payload1024,buffer3072 and observation_version3.
+
 ## 2026-10-25 checkpoint semantics guard — VERIFIED; final review active
 
 - Added observation_version3 to new policies and actor-only snapshots; native/Warp report-locality fix is its semantic contract. Missing/older versions now fail policy/evaluation/BASE/PQL resume loading before accepting weights/progress. Historical analysis uses the pinned old source.

@@ -53,3 +53,17 @@ After Task1 verification, review actors/critics/replay/continuation/evaluation/c
 - [x] Save version3 in both policy formats, validate through all loading/preflight paths, and include it in scenario provenance.
 - [x] Run focused checkpoint/resume/evaluation tests, then full pytest. Existing exact-resume tests must still pass.
 - [x] Record evidence, update current-task status, commit and push.
+
+## Task 3: final review corrections to CPU reporting
+
+**Files:** `experiments/tracking.py`, `experiments/dashboard.py`, `cloud/visualize.py`; tests `test_diagnostics_axes.py`, `test_visualization_tracking.py`, `test_visualization_provenance.py`.
+
+**Interfaces:** Reuse `start_tracking(config, output, initial_progress)` to mark source observation version unknown until a checkpoint/protocol is loaded. Keep aggregate validation checkpoint-axis behavior. Define the five CPU episode metric names once, use the episode-count axis in SDK definitions and authored panels, and publish actual checkpoint step plus saved observation version as evaluation provenance.
+
+- [x] Review source and reproduce CPU axis defect:3failed4passed; historical publication provenance:3failed.
+- [x] Add exact CPU metric overrides and matching panel mapping; preserve periodic aggregate axes.
+- [x] Keep CPU initial source version unknown; derive result version from saved protocol, not the recovery runtime; log true checkpoint step.
+- [x] Focused real CPU evaluation/publication resume tests and full pytest must pass.
+- [x] Record independent review boundaries/rulings, evidence, and final commit; update historical W&B source labels without changing measured outcomes.
+
+Ruling: Treat historical publication provenance as an Important correction, because labeling older observations as current can contaminate scientific comparisons; retaining current labeling would risk mixing incompatible results. Preserve historical media publication without policy re-evaluation.

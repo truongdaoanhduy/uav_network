@@ -30,7 +30,7 @@ class VisualizationTrackingTests(unittest.TestCase):
                 spec={'entity':'owner','project':'main','config':str(root/'train/resolved_config.yaml'),'overrides':[],
                     'kernel_ref':'owner/cpu','parent_kernel_ref':'owner/gpu','training_mode':'base',
                     'runs':{'matd3':{'id':'cpu1','name':'MATD3-CPU-visualize'}},
-                    'artifacts':{'matd3':'owner/main/model:v1'},'training_status':{'matd3':{'episodes':1}},
+                    'artifacts':{'matd3':'owner/main/model:v1'},'training_status':{'matd3':{'episodes':1,'global_step':trained['global_step']}},
                     'cpu_eval':{'episodes':1,'seed':10044,'frame_stride':2,'fps':5}}
                 with patch.dict(sys.modules,{'wandb':sdk}), \
                      patch('uav_network.experiments.tracking._authentication',return_value=('owner','main')), \
@@ -47,4 +47,8 @@ class VisualizationTrackingTests(unittest.TestCase):
                 self.assertEqual(initializations[0]['mode'],'online')
                 self.assertEqual(initializations[0]['project'],'main')
                 self.assertEqual(finished,[1 if failure else 0])
-                if not failure:self.assertTrue(any(v.get('evaluation/episodes_completed')==1 for v in logs))
+                self.assertIsNone(initializations[0]['config']['observation_version'])
+                if not failure:
+                    self.assertTrue(any(v.get('evaluation/episodes_completed')==1 for v in logs))
+                    self.assertEqual(run.summary['evaluation/checkpoint_global_step'],trained['global_step'])
+                    self.assertEqual(run.summary['evaluation/observation_version'],3)
