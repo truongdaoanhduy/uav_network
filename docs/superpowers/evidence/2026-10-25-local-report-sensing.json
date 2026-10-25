@@ -16,6 +16,7 @@
   "red": "7 failed, 3 skipped; native/Warp fresh, recovery, full buffer, and sequential duplicate GCS report test",
   "focused_green": "80 passed, 4 skipped, 14 subtests, exit0",
   "full_suite": "724 passed, 77 skipped, 8 warnings, 1267 subtests, exit0, 227.04s",
-  "cuda": "not yet run; local host has no CUDA",
-  "lineage": "All checkpoints trained before this local-report fix retain the global suppression semantics; historical evidence only under the declared bounded local-observation model. Start corrected experiments from episode0."
+  "cuda": "78 passed, 0 skipped, 14 dependency warnings, 12 subtests on Kaggle T4; exit0",
+  "lineage": "All checkpoints trained before this local-report fix retain the global suppression semantics; historical evidence only under the declared bounded local-observation model. Start corrected experiments from episode0.",
+  "cuda_evidence": "2026-10-25-local-report-cuda-result.json"
 }

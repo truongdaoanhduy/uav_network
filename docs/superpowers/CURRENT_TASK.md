@@ -1,8 +1,8 @@
-## 2026-10-25 local report sensing correction — CPU verified, CUDA pending
+## 2026-10-25 local report sensing correction — VERIFIED
 
 - New confirmed leakage beyond `6263156`: native `ReportStore.discover` and Warp `sense_reports_at` suppressed local report creation/recovery using global `delivered[target]`. A distant UAV inferred a GCS receipt through buffer/TTL/recovery changes without receiving any acknowledgment.
 - Removed only that global suppression; local camera/capacity/TTL and GCS unique-delivery accounting remain. Both native/Warp implementations fixed, actor layout unchanged.
-- Baseline717passed74skipped; TDD RED7failed3skipped; focused80passed4skipped14subtests; full724passed77skipped8warnings1267subtests, exit0. CUDA is not available locally; run a bounded spare-account T4 diagnostic next.
+- Baseline717passed74skipped; TDD RED7failed3skipped; focused80passed4skipped14subtests; full724passed77skipped8warnings1267subtests, exit0. T4 diagnostic `kjhihgiugy/uav-local-report-cuda-correctness-20261025` COMPLETE:78passed0skipped14warnings12subtests, exit0, two T4 visible; no training launched. Source `c05806a`.
 - All existing checkpoints, including completed MASAC `bb1adf51`/`12582cc7`, predate this second locality fix. Their 20k training and publication completion are verified, but they are historical under the corrected local-sensing model. New corrected canonical experiments require episode0.
 - MATD3 fresh status: no post-6263156 W&B run exists; account14 ownerweofjwelf and account15 ownernkjkhkhk both have no owned kernels. Evidence: `evidence/2026-10-25-matd3-postfix-status.json`.
 - Plan/evidence: `plans/2026-10-25-local-report-sensing.md`, `evidence/2026-10-25-local-report-sensing.json`.

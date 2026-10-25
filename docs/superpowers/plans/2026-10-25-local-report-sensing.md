@@ -36,8 +36,8 @@
 - [x] Add real native/Warp tests comparing observations and custody when only hidden `delivered[target]` changes, for fresh/recovery/full-buffer sightings; assert report presence/TTL with hand-derived expected values. Add duplicate GCS delivery assertion.
 - [x] Run new tests and record expected failures on the existing global suppression branches.
 - [x] Remove global delivery checks from local sighting branches in native and Warp code; retain local capacity checks and unique GCS delivery logic.
-- [ ] Run focused sensing/report/observation/native-Warp parity tests, then full pytest suite. Run the CUDA tests on Kaggle T4 if available; report CPU-only skips accurately.
-- [ ] Document evidence and source-lineage consequence, update CURRENT_TASK, commit and push after verification.
+- [x] Run focused sensing/report/observation/native-Warp parity tests, then full pytest suite. Run the CUDA tests on Kaggle T4 if available; report CPU-only skips accurately.
+- [x] Document evidence and source-lineage consequence, update CURRENT_TASK, commit and push after verification.
 
 ## Follow-up audit
 

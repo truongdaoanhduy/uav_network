@@ -1,0 +1,22 @@
+{
+  "source_commit": "c05806a4a1ff772d7062a0850342df4853f686b0",
+  "scope": "native/Warp sensing locality and physics/packet/vector regression; no production training",
+  "hardware": {
+    "devices": [
+      "Tesla T4",
+      "Tesla T4"
+    ],
+    "torch": "2.11.0+cu128"
+  },
+  "tests": [
+    "tests/test_decentralized_observations.py",
+    "tests/test_gpu_physics.py",
+    "tests/test_gpu_packets.py",
+    "tests/test_gpu_vector.py"
+  ],
+  "exit_code": 0,
+  "tail": ".............................................................. [ 79%]\n................                                                       [100%]\n=============================== warnings summary ===============================\ntests/test_gpu_physics.py::GPUPhysicsTests::test_radio_hardware_tx_rx_energy_matches_native_on_failed_decode\n  /usr/local/lib/python3.13/dist-packages/matplotlib/_fontconfig_pattern.py:64: PyparsingDeprecationWarning: 'oneOf' deprecated - use 'one_of'\n    prop = Group((name + Suppress(\"=\") + comma_separated(value)) | oneOf(_CONSTANTS))\n\ntests/test_gpu_physics.py::GPUPhysicsTests::test_radio_hardware_tx_rx_energy_matches_native_on_failed_decode\ntests/test_gpu_physics.py::GPUPhysicsTests::test_radio_hardware_tx_rx_energy_matches_native_on_failed_decode\ntests/test_gpu_physics.py::GPUPhysicsTests::test_radio_hardware_tx_rx_energy_matches_native_on_failed_decode\ntests/test_gpu_physics.py::GPUPhysicsTests::test_radio_hardware_tx_rx_energy_matches_native_on_failed_decode\ntests/test_gpu_physics.py::GPUPhysicsTests::test_radio_hardware_tx_rx_energy_matches_native_on_failed_decode\ntests/test_gpu_physics.py::GPUPhysicsTests::test_radio_hardware_tx_rx_energy_matches_native_on_failed_decode\n  /usr/local/lib/python3.13/dist-packages/matplotlib/_fontconfig_pattern.py:85: PyparsingDeprecationWarning: 'parseString' deprecated - use 'parse_string'\n    parse = parser.parseString(pattern)\n\ntests/test_gpu_physics.py::GPUPhysicsTests::test_radio_hardware_tx_rx_energy_matches_native_on_failed_decode\ntests/test_gpu_physics.py::GPUPhysicsTests::test_radio_hardware_tx_rx_energy_matches_native_on_failed_decode\ntests/test_gpu_physics.py::GPUPhysicsTests::test_radio_hardware_tx_rx_energy_matches_native_on_failed_decode\ntests/test_gpu_physics.py::GPUPhysicsTests::test_radio_hardware_tx_rx_energy_matches_native_on_failed_decode\ntests/test_gpu_physics.py::GPUPhysicsTests::test_radio_hardware_tx_rx_energy_matches_native_on_failed_decode\ntests/test_gpu_physics.py::GPUPhysicsTests::test_radio_hardware_tx_rx_energy_matches_native_on_failed_decode\n  /usr/local/lib/python3.13/dist-packages/matplotlib/_fontconfig_pattern.py:89: PyparsingDeprecationWarning: 'resetCache' deprecated - use 'reset_cache'\n    parser.resetCache()\n\ntests/test_gpu_physics.py::GPUPhysicsTests::test_radio_hardware_tx_rx_energy_matches_native_on_failed_decode\n  /usr/local/lib/python3.13/dist-packages/matplotlib/_mathtext.py:45: PyparsingDeprecationWarning: 'enablePackrat' deprecated - use 'enable_packrat'\n    ParserElement.enablePackrat()\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n78 passed, 14 warnings, 12 subtests passed in 52.82s\n",
+  "kernel_ref": "kjhihgiugy/uav-local-report-cuda-correctness-20261025",
+  "kaggle_status": "complete",
+  "observed_at_utc": "2026-10-25T08:50:00.403020+00:00"
+}
