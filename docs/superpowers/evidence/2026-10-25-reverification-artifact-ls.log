@@ -1,0 +1,134 @@
+wandb: [wandb.Api()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: WARNING Api.artifact_versions(type_name, name) is deprecated, use Api.artifacts(type_name, name) instead.
+wandb: model          2026-10-25T01:59:58Z         597.0B uav-network-masac-12582cc7:v12
+wandb: model          2026-10-25T02:19:54Z         597.0B uav-network-masac-bb1adf51:v11
+wandb: model          2026-10-24T23:01:05Z         597.0B uav-network-masac-2c8de52b:v14
+wandb: model          2026-10-24T23:13:28Z         597.0B uav-network-masac-0ba5c526:v39
+wandb: model          2026-10-24T11:29:57Z         572.0B uav-network-masac-710c151e:v0
+wandb: model          2026-10-24T11:15:33Z         572.0B uav-network-masac-1cda710a:v0
+wandb: model          2026-10-24T11:13:15Z         572.0B uav-network-masac-25c8b10a:v0
+wandb: model          2026-10-24T12:38:05Z         382.0B uav-network-masac-34febb18:v16
+wandb: model          2026-10-24T11:01:04Z         382.0B uav-network-matd3-bbfb7e35:v3
+wandb: model          2026-10-24T12:42:48Z         382.0B uav-network-masac-7f985331:v7
+wandb: model          2026-10-24T12:15:52Z         382.0B uav-network-masac-e0bfbcaf:v8
+wandb: model          2026-10-24T11:31:33Z         597.0B uav-network-matd3-30a40bf7:v11
+wandb: model          2026-10-24T10:47:20Z         382.0B uav-network-matd3-80b2eea2:v14
+wandb: model          2026-10-24T11:28:31Z         597.0B uav-network-matd3-767cb8da:v11
+wandb: model          2026-10-24T09:11:39Z         382.0B uav-network-matd3-bf1bbfa2:v16
+wandb: model          2026-10-24T05:38:06Z         381.0B uav-network-masac-aa859075:v12
+wandb: model          2026-10-24T07:28:39Z         382.0B uav-network-masac-01763049:v19
+wandb: model          2026-10-23T23:19:43Z         593.0B uav-network-masac-30e43dda:v3
+wandb: model          2026-10-24T05:36:17Z         594.0B uav-network-matd3-bdb9a503:v13
+wandb: model          2026-10-24T05:18:04Z         594.0B uav-network-matd3-7a57e2a5:v16
+wandb: model          2026-10-24T05:07:40Z         592.0B uav-network-masac-a8ac9ffc:v14
+wandb: model          2026-10-23T18:40:38Z         586.0B uav-network-matd3-278634f6:v0
+wandb: model          2026-10-23T18:28:21Z         586.0B uav-network-matd3-2dcbf36c:v0
+wandb: model          2026-10-23T18:21:30Z         590.0B uav-network-masac-63faeffb:v2
+wandb: model          2026-10-23T18:57:02Z         381.0B uav-network-masac-bc18a145:v12
+wandb: model          2026-10-23T16:07:51Z         592.0B uav-network-masac-fc14508c:v3
+wandb: model          2026-10-23T14:30:05Z         585.0B uav-network-masac-b88d7df8:v0
+wandb: model          2026-10-23T16:00:08Z         593.0B uav-network-masac-b9d73bd3:v13
+wandb: model          2026-10-23T05:12:07Z         587.0B uav-network-matd3-bda3bccd:v0
+wandb: model          2026-10-23T05:01:47Z         585.0B uav-network-matd3-3070f38e:v0
+wandb: model          2026-10-23T05:04:52Z         591.0B uav-network-masac-29e6add6:v3
+wandb: model          2026-10-23T03:26:53Z         591.0B uav-network-masac-c77ded1d:v0
+wandb: model          2026-10-23T01:44:43Z         591.0B uav-network-masac-483a83a5:v0
+wandb: model          2026-10-22T19:38:58Z         591.0B uav-network-matd3-47bd6da9:v11
+wandb: model          2026-10-22T15:15:41Z         381.0B uav-network-matd3-18e2823f:v9
+wandb: model          2026-10-22T20:54:49Z         591.0B uav-network-masac-143c7acc:v14
+wandb: model          2026-10-22T20:53:34Z         591.0B uav-network-masac-b55009f1:v6
+wandb: model          2026-10-21T14:30:27Z         585.0B uav-network-masac-3efe3a0b:v0
+wandb: model          2026-10-21T14:30:16Z         585.0B uav-network-matd3-925d10c4:v0
+wandb: model          2026-10-21T14:28:47Z         585.0B uav-network-matd3-dc16b47e:v0
+wandb: model          2026-10-21T14:32:04Z         591.0B uav-network-masac-1e0c6017:v5
+wandb: model          2026-10-20T21:18:09Z         585.0B uav-network-masac-0a296462:v0
+wandb: model          2026-10-19T12:17:46Z         585.0B uav-network-matd3-89f59c30:v0
+wandb: model          2026-10-19T12:17:14Z         585.0B uav-network-masac-11869744:v0
+wandb: model          2026-10-19T12:16:31Z         585.0B uav-network-matd3-3e97c782:v0
+wandb: model          2026-10-19T12:14:40Z         585.0B uav-network-masac-1b6cacd3:v0
+wandb: model          2026-10-19T02:53:18Z         603.0B uav-network-masac-d53a7376:v2
+wandb: model          2026-10-18T23:33:28Z         603.0B uav-network-masac-fa731e13:v18
+wandb: model          2026-10-18T13:09:06Z         391.0B uav-network-masac-2ef683fc:v1
+wandb: model          2026-10-18T17:16:52Z         603.0B uav-network-matd3-bfa7637e:v20
+wandb: model          2026-10-18T11:34:45Z         387.0B uav-network-matd3-8db7e392:v0
+wandb: model          2026-10-18T08:56:52Z         391.0B uav-network-masac-065d67fe:v5
+wandb: model          2026-10-18T10:10:21Z         391.0B uav-network-masac-df8f34af:v6
+wandb: model          2026-10-18T05:33:24Z         603.0B uav-network-masac-c3e1ff72:v26
+wandb: model          2026-10-18T05:15:00Z         603.0B uav-network-masac-e2828bb1:v41
+wandb: model          2026-10-18T02:55:43Z         603.0B uav-network-masac-46667e56:v42
+wandb: model          2026-10-18T02:44:18Z         603.0B uav-network-matd3-52757b20:v34
+wandb: model          2026-10-17T20:14:03Z         586.0B uav-network-matd3-5e98bb0f:v0
+wandb: model          2026-10-17T20:12:58Z         586.0B uav-network-masac-ad5eaa5e:v0
+wandb: model          2026-10-17T23:51:23Z         603.0B uav-network-matd3-5a18bbf4:v25
+wandb: model          2026-10-18T00:14:38Z         603.0B uav-network-masac-01c9edab:v32
+wandb: model          2026-10-17T20:27:18Z         603.0B uav-network-masac-2224eec0:v36
+wandb: model          2026-10-17T18:54:40Z         603.0B uav-network-masac-516f2948:v40
+wandb: model          2026-10-17T14:24:19Z         603.0B uav-network-matd3-79517805:v18
+wandb: model          2026-10-17T14:43:16Z         603.0B uav-network-matd3-8ee34d57:v22
+wandb: model          2026-10-16T21:04:35Z         390.0B uav-network-masac-f87daae2:v13
+wandb: model          2026-10-16T19:40:55Z         390.0B uav-network-masac-aa4d003f:v13
+wandb: model          2026-10-16T18:16:34Z         602.0B uav-network-masac-e289af8a:v37
+wandb: model          2026-10-16T16:57:26Z         602.0B uav-network-masac-9256c01d:v31
+wandb: model          2026-10-16T12:28:06Z         390.0B uav-network-matd3-0fabc33f:v11
+wandb: model          2026-10-16T12:09:20Z         390.0B uav-network-matd3-8d6a18c6:v11
+wandb: model          2026-10-16T11:33:21Z         390.0B uav-network-matd3-50725e1c:v13
+wandb: model          2026-10-16T16:11:16Z         390.0B uav-network-masac-f001256f:v41
+wandb: model          2026-10-16T15:38:11Z         390.0B uav-network-masac-1b370984:v29
+wandb: model          2026-10-16T15:05:34Z         390.0B uav-network-masac-5fface00:v28
+wandb: model          2026-10-16T15:07:48Z         602.0B uav-network-masac-cc86a2ac:v24
+wandb: model          2026-10-16T08:11:17Z         390.0B uav-network-matd3-955077d2:v3
+wandb: model          2026-10-16T08:11:59Z         602.0B uav-network-matd3-90690601:v4
+wandb: model          2026-10-15T17:36:58Z         602.0B uav-network-masac-5d3b334f:v33
+wandb: model          2026-10-15T17:10:05Z         602.0B uav-network-masac-54de8ded:v42
+wandb: model          2026-10-15T12:15:06Z         602.0B uav-network-matd3-78928740:v5
+wandb: model          2026-10-15T11:40:14Z         602.0B uav-network-matd3-7f79f516:v4
+wandb: model          2026-10-25T11:48:06Z         567.0B uav-network-masac-310b26a2:v1
+wandb: model          2026-10-25T11:48:29Z         567.0B uav-network-masac-810696da:v1
+wandb: model          2026-10-25T11:48:53Z         567.0B uav-network-masac-95a603dd:v1
+wandb: model          2026-10-25T11:49:22Z         567.0B uav-network-masac-e7c777eb:v1
+wandb: model          2026-10-25T11:49:48Z         567.0B uav-network-masac-36e302b5:v1
+wandb: model          2026-10-25T11:50:13Z         567.0B uav-network-masac-12e6f041:v1
+wandb: model          2026-10-25T11:50:38Z         567.0B uav-network-masac-dba7ae91:v1
+wandb: model          2026-10-25T11:51:02Z         567.0B uav-network-masac-1ce55082:v1
+wandb: model          2026-10-25T11:51:27Z         567.0B uav-network-masac-ccf696c2:v1
+wandb: model          2026-10-25T11:51:51Z         567.0B uav-network-matd3-eb8e5713:v1
+wandb: model          2026-10-25T11:52:18Z         567.0B uav-network-matd3-506127e1:v1
+wandb: model          2026-10-25T11:52:40Z         567.0B uav-network-matd3-adb9d9ff:v1
+wandb: model          2026-10-25T11:53:08Z         567.0B uav-network-masac-35dc7e61:v1
+wandb: model          2026-10-14T04:42:49Z         16.4MB uav-network-masac-da90a417:v28
+wandb: model          2026-10-25T11:53:31Z         372.0B uav-network-matd3-a71cc165:v51
+wandb: model          2026-10-25T11:53:51Z         369.0B uav-network-matd3-58934c30:v1
+wandb: model          2026-10-25T11:46:51Z         369.0B uav-network-masac-7648f497:v1
+wandb: model          2026-10-25T11:54:12Z         369.0B uav-network-matd3-6a4d551b:v1
+wandb: model          2026-10-25T11:54:33Z         369.0B uav-network-masac-0f147eb5:v1
+wandb: model          2026-10-25T11:54:53Z         369.0B uav-network-matd3-71983e7f:v1
+wandb: model          2026-10-25T11:55:13Z         369.0B uav-network-matd3-f8c44aac:v1
+wandb: model          2026-10-25T11:55:39Z         372.0B uav-network-masac-119fc307:v11
+wandb: model          2026-10-25T11:56:06Z         372.0B uav-network-matd3-35837919:v11
+wandb: model          2026-10-25T11:56:33Z         372.0B uav-network-masac-ffb90702:v11
+wandb: model          2026-10-25T11:56:59Z         372.0B uav-network-matd3-f2706cb2:v11
+wandb: model          2026-10-25T11:57:21Z         372.0B uav-network-masac-2fdea1f8:v11
+wandb: model          2026-10-25T11:58:25Z         372.0B uav-network-masac-5630eb8f:v11
+wandb: model          2026-10-25T11:58:49Z         372.0B uav-network-matd3-cb9cd52b:v11
+wandb: model          2026-10-25T11:59:15Z         372.0B uav-network-matd3-463fe9f0:v11
+wandb: model          2026-10-25T11:59:33Z         369.0B uav-network-matd3-7802a58f:v1
+wandb: model          2026-10-25T11:59:52Z         369.0B uav-network-masac-ff3a027e:v5
+wandb: model          2026-10-25T12:00:11Z         369.0B uav-network-matd3-9f1c79f7:v5
+wandb: model          2026-10-25T12:00:36Z         372.0B uav-network-masac-9c9309b3:v51
+wandb: model          2026-10-25T12:01:01Z         371.0B uav-network-matd3-afdad4a9:v7
+wandb: model          2026-10-25T12:01:22Z         369.0B uav-network-masac-9f591334:v5
+wandb: model          2026-10-25T12:01:40Z         369.0B uav-network-matd3-154e2ae9:v5
+wandb: model          2026-10-13T05:33:39Z         19.3MB uav-network-matd3-971920c8-recovered:v0
+wandb: model          2026-10-13T05:33:32Z         16.4MB uav-network-masac-f8524504-recovered:v0
+wandb: model          2026-10-12T16:13:16Z        861.8KB uav-network-matd3-315da96d:v0
+wandb: model          2026-10-12T12:15:32Z        861.8KB uav-network-matd3-480bb79c:v0
+wandb: model          N/A                        0 B masac-seed44-f1fa4c42-checkpoint (no versions)
+wandb: model          N/A                        0 B masac-seed44-a9542e80-checkpoint (no versions)
+wandb: model          N/A                        0 B masac-seed44-1e9c0833-checkpoint (no versions)
+wandb: model          N/A                        0 B masac-seed44-0b67697e-checkpoint (no versions)
+wandb: model          N/A                        0 B masac-seed44-03db0105-checkpoint (no versions)
+wandb: model          N/A                        0 B masac-seed44-887d9588-checkpoint (no versions)
+wandb: model          N/A                        0 B masac-seed44-981b9284-checkpoint (no versions)
+wandb: model          N/A                        0 B masac-seed44-e545d836-checkpoint (no versions)
+wandb: model          N/A                        0 B masac-seed44-806d03ea-checkpoint (no versions)
+wandb: model          N/A                        0 B masac-seed44-0b62f069-checkpoint (no versions)

@@ -1,3 +1,19 @@
+# Current task: W&B cleanup and runtime re-verification — COMPLETE
+
+Updated 2026-10-25 23:22 +0700. Tested source: `c4d5225eb34104cfa8e13444ae4f5fac0963f75d`; local HEAD and a fresh remote ref matched. The commit containing this record changes docs/evidence only.
+
+- Resolved the handoff uncertainty: bulk `zlh6haz3` finished 34/34 with zero errors; canary `vxc2hc2e` finished 1/1. All 35 originals are absent, all replacements and producer mappings exist, and all immutable HF size/SHA256 metadata match. Three sampled old refs resolved and passed forced fresh-download checksum checks. No duplicate archive or deletion was performed.
+- Complete model inventory: 132 collections / 1,149 versions. Archived binaries: 313,266,608 B; replacement manifests: 15,521 B; net logical decrease: 313,251,087 B. Current model logical total: 54,219,565 B. Five protected heavy artifacts remain (one failed source, two crashed sources, two final.pt schemas); no remaining heavy version is in scope.
+- Fresh W&B at 2026-10-25T23:20:42+07:00: 315 runs (228 finished, 65 failed, 22 crashed), zero active. Project storageBytes=3,482,532,950; entity=3,485,826,151. Model storage of 54.22 MB is distinct from total project storage of about 3.48 GB. Run/history/event/metric/config data were retained.
+- No source changes since the prior owned-code audit. Re-read critical actor/critic and native/Warp locality/report paths; no new confirmed leakage or source defect. AST: 100 source / 97 test / 8 script modules; 21 YAML profiles validate; compileall passes.
+- Fresh full suite: **740 passed, 77 skipped, 8 warnings, 1,274 subtests passed in 532.46 s; exit 0**.
+- Fresh runtime smoke: 4/4 pass. MASAC/MATD3 BASE/PQL each trained two episodes / 80 steps with networking, then saved, loaded, checked finite parameters and evaluated one episode using seed 2000000044. BASE: 73 updates; PQL: 392 critic updates; MATD3 PQL: 196 actor updates. This checks runtime wiring, not learning quality.
+- CUDA is unavailable here; the 77 skips were not executed. The prior 78-pass T4 diagnostic is historical, limited-scope evidence. No production run/controller was started, restarted, cancelled or deleted. Primary 1 KiB scientific config and acceleration flags are unchanged.
+- Evidence: `evidence/2026-10-25-cleanup-runtime-reverification.md` and its linked JSON/full-suite/CLI logs.
+- Next action: no cleanup or source fix remains under this verified scope. If requested, do a bounded real-T4 smoke or a fresh corrected four-way episode-0 cohort after live checks. Historical scientific policies are not corrected canonical results. Keep the five protected artifacts and histories.
+
+---
+
 # Current task: full owned-code correctness audit — COMPLETE
 
 Updated 2026-10-25 17:50 Asia/Ho_Chi_Minh. User requested a fresh start-to-finish audit of config, scenario/environment, Dec-POMDP/CTDE, communication, MASAC/MATD3/PQL, replay/checkpoint, training/evaluation/tracking and cloud lifecycle. Plan: `plans/2026-10-25-full-code-correctness-audit.md`; evidence: `evidence/2026-10-25-full-code-correctness-audit.md`.
