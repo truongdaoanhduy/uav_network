@@ -2,6 +2,13 @@
 
 Updated 2026-10-25, Asia/Ho_Chi_Minh. Latest user request was to verify live runs and report size, audit V3 Dec-POMDP and owned code, then fix confirmed defects. Full report with explicit coverage limits: [2026-10-25 audit](evidence/2026-10-25-wandb-decpomdp-audit.md).
 
+### 17:24 Dec-POMDP re-verification after user request
+
+- Re-read the actor-observation, report-custody and native/Warp observation paths from the connected worktree and independently checked the pushed branch via GitHub. MASAC/MATD3 execution still feeds each actor only `observation[:, i]`; privileged `state` remains critic-only during CTDE training.
+- Confirmed the two previously identified leakage classes remain fixed: out-of-range peer/GCS link metadata are zeroed, and local report sensing/recovery does not consult remote GCS `delivered` state. GCS delivery dedup remains only in transfer/accounting.
+- Focused verification with the active repo on this host: `PYTHONPATH=.:tests python3 -m pytest -q tests/test_decentralized_observations.py tests/test_receiver_admission.py tests/test_checkpoint_observation_version.py tests/test_training_audit_regressions.py` -> **31 passed, 3 skipped, 6 subtests passed**. The skips are CUDA-only on this host; the earlier real-T4 evidence remains the hardware check.
+- No new confirmed Dec-POMDP violation was found, so no production source change was justified. Keep the minimal existing fixes and do not invent a new observation/control model. Next scientific step remains a fresh episode-0 four-way cohort only when explicitly requested.
+
 ## Verified code and tests
 
 - Worktree `/home/aduy/Documents/NCKH/uav_network-public-hf-20261022`, branch `feat/cpu-replay-20261022`.
