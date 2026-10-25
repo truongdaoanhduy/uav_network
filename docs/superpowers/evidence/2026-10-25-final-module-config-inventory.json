@@ -1,0 +1,1100 @@
+{
+  "source_modules": 100,
+  "test_modules": 97,
+  "yaml_configs_validated": 21,
+  "scope": "AST syntax/module inventory and pure config validation; not a proof of all behavior",
+  "files": [
+    {
+      "path": "tests/exact_resume_helpers.py",
+      "sha256": "89145710532a5f99b0ac47d850368561b9da5c33777c1ac1a866931a27f48f82",
+      "lines": 29
+    },
+    {
+      "path": "tests/legacy_updates.py",
+      "sha256": "8a61a9c78d5953f709a8c6ae14738073e41cd619d1a0bdfec96d14c1c9282561",
+      "lines": 145
+    },
+    {
+      "path": "tests/test_20k_audit.py",
+      "sha256": "96bf1acf5d1541f4b4c9045206d2c7c32235590c7340d89085634f8db34bdb37",
+      "lines": 73
+    },
+    {
+      "path": "tests/test_action_opportunities.py",
+      "sha256": "9a86ae26d0ce6cd8ab9bdbe2425a66b8d6428bc4a4506d2d50390cc883c0484b",
+      "lines": 70
+    },
+    {
+      "path": "tests/test_async_evaluation.py",
+      "sha256": "ab3ee1f7c47cd0b9f958b606934d9c0cbafb54ae9cc0f119d802c49cdb4aa27e",
+      "lines": 270
+    },
+    {
+      "path": "tests/test_avoidance.py",
+      "sha256": "987cf9b6b0327cddd6e54aedff2e7688e7a02d0cdec2ced127ff2b6cb99de98f",
+      "lines": 216
+    },
+    {
+      "path": "tests/test_base_multi_gpu.py",
+      "sha256": "b8eb561d343326687fe59835d1f418ba4c7f56b4e833042b7c9a9a160685196a",
+      "lines": 54
+    },
+    {
+      "path": "tests/test_baseline_resume.py",
+      "sha256": "7a3b46194e449d1650862bc1b99d9340290354f42c063a52f4a38d3b60d3cbde",
+      "lines": 243
+    },
+    {
+      "path": "tests/test_benchmark_devices.py",
+      "sha256": "4122a85a9d7c9b7079235e22905cd71a4cacf0530a029ac411ccdbab4d35ea70",
+      "lines": 54
+    },
+    {
+      "path": "tests/test_boundary_escape.py",
+      "sha256": "7f4cdc0b2738422cc000dd9fd2c49046ccb3c59fbbbaaaae3db34a73c15c458b",
+      "lines": 217
+    },
+    {
+      "path": "tests/test_channel_models.py",
+      "sha256": "1d3542760eee2b358c94db680a05263914289d57b777adfff11a6bbdf4bea092",
+      "lines": 186
+    },
+    {
+      "path": "tests/test_checkpoint_archive.py",
+      "sha256": "bf8a35ce544e30f035dd6c9a12ec0c2546149dde1abbaf7b3577c46292edeb5c",
+      "lines": 283
+    },
+    {
+      "path": "tests/test_checkpoint_observation_version.py",
+      "sha256": "1c0081012b0112122be20ecf353c97df58e9b61f18629260eb7e248a78c4303b",
+      "lines": 85
+    },
+    {
+      "path": "tests/test_checkpoint_retention.py",
+      "sha256": "808ddf2e2f3562d3cd03d092aeab6a7af533ca5cc8b91aafd65de43b4c636705",
+      "lines": 79
+    },
+    {
+      "path": "tests/test_checkpoint_store.py",
+      "sha256": "da1702cd234f5849b4ec52d3655fe6eba522b25514ca30b0ef09f53437a995e3",
+      "lines": 160
+    },
+    {
+      "path": "tests/test_cloud.py",
+      "sha256": "f0c01f92fe31f380007382dc33a5f73ddc12821cb8cdd86b75cc4a466a4efb3c",
+      "lines": 350
+    },
+    {
+      "path": "tests/test_cloud_cleanup.py",
+      "sha256": "2166428a6f64980e68d7a4c9d47e2ffe27a30009b70a085a531111742273e696",
+      "lines": 74
+    },
+    {
+      "path": "tests/test_cloud_continuation.py",
+      "sha256": "997c2c94a9888a3b13028b7c535a74791000969dc9656152369f86ec203784a5",
+      "lines": 493
+    },
+    {
+      "path": "tests/test_cloud_continuation_dedupe.py",
+      "sha256": "fd0e269557d0cf89b8219084b577ca3082c722a619a0fcd0fe7facfcd264e98c",
+      "lines": 65
+    },
+    {
+      "path": "tests/test_cloud_controller.py",
+      "sha256": "eb3b1f1c4c60af2469c8e64569275b79f901a2f468717b171d9e3fdef737cf64",
+      "lines": 308
+    },
+    {
+      "path": "tests/test_cloud_handoff_failures.py",
+      "sha256": "5436414036626655678e1237e0a7ff0ef6be9dae5032784b3f2ae1d03e6a0968",
+      "lines": 83
+    },
+    {
+      "path": "tests/test_cloud_storage.py",
+      "sha256": "de6c30ae2f7a3514a519b14975007d7ef0244e6abd8d6d60e6ee219f2783556e",
+      "lines": 22
+    },
+    {
+      "path": "tests/test_communication.py",
+      "sha256": "9254b5eda6ba03166e4d7d3d6ad0a2c630879b6698c294792d6ec7f5b0af98d9",
+      "lines": 233
+    },
+    {
+      "path": "tests/test_communication_rendering.py",
+      "sha256": "c798267a66ca26f902f124f31ed5d6c5548872914ddcf6f3bd6161d45bf2386c",
+      "lines": 74
+    },
+    {
+      "path": "tests/test_communication_trace.py",
+      "sha256": "dcfcf8385331370265018a02ba13cee16276aea8623ba1b4f73456257e491878",
+      "lines": 145
+    },
+    {
+      "path": "tests/test_comparison_cloud.py",
+      "sha256": "b903b050352069c8d51147976e2a33f7ceb8027a0f8e72d48543fcd014b2954f",
+      "lines": 81
+    },
+    {
+      "path": "tests/test_comparison_evaluation.py",
+      "sha256": "f9a9d2ce08e981788921da63e2ce4ec7c70568fb3acae77a2c73c89d3845b176",
+      "lines": 63
+    },
+    {
+      "path": "tests/test_comparison_metrics.py",
+      "sha256": "db957d8601451323c46b6f202f5dec4a951eddf07e3a80b86eedfee2bb757b14",
+      "lines": 181
+    },
+    {
+      "path": "tests/test_continuation.py",
+      "sha256": "dc7efe7545516e1779f739ba42fc40e18e74f6abb70ad7988e22b6f8eec3de02",
+      "lines": 119
+    },
+    {
+      "path": "tests/test_controller_health.py",
+      "sha256": "c528a9f3aecd0de0667b04a5ceebefd25e6e8ccf0eed3aff8f3b6248158e3e4a",
+      "lines": 35
+    },
+    {
+      "path": "tests/test_controller_launch.py",
+      "sha256": "65a2731231e61f779190ff8741a03dde4bd96bde4a757ae06751fb3104779c68",
+      "lines": 94
+    },
+    {
+      "path": "tests/test_cpu_handoff.py",
+      "sha256": "950956707fd76fde0166b8d4344400fe4fc7f6ba18beaa7f1625bd4101ed0c10",
+      "lines": 272
+    },
+    {
+      "path": "tests/test_cpu_handoff_comparison.py",
+      "sha256": "c78216e4d9657bca2849b0ff1ea4b1bea9fa51f0759cdb5cb97d7c5e89b203fa",
+      "lines": 72
+    },
+    {
+      "path": "tests/test_cpu_replay.py",
+      "sha256": "acda2bf983b0a321023f091a34d97bc4b6132e32123e4c9387cbca3187659713",
+      "lines": 259
+    },
+    {
+      "path": "tests/test_cpu_replay_cloud.py",
+      "sha256": "1ed4cddd26142101ba66401640e9d188fd003f65191999d04b12de433d1f7774",
+      "lines": 163
+    },
+    {
+      "path": "tests/test_cpu_replay_probe.py",
+      "sha256": "27374b1a26104106dc8f256d3e846c90bf3f12f95e9c2660a5003520868d1408",
+      "lines": 154
+    },
+    {
+      "path": "tests/test_cpu_visualization.py",
+      "sha256": "8e221872d7829deade7603c01c52a21422283f0cf2a34b7999913d1e87d1197a",
+      "lines": 58
+    },
+    {
+      "path": "tests/test_cuda.py",
+      "sha256": "e220b5ce3cd341abfa576286a45d910e6cb7634bbd65c71aab2748e922ef41b0",
+      "lines": 189
+    },
+    {
+      "path": "tests/test_cuda_exact_resume.py",
+      "sha256": "bb33b2c554c5d204b5e34529c15f8102a54f0c678e1c1153e0fbf47e05576109",
+      "lines": 303
+    },
+    {
+      "path": "tests/test_cuda_scenario_v2.py",
+      "sha256": "81c410d239d915111aa3fcf5b6058b248c1dffa9e70c84d2ffe55edb69653499",
+      "lines": 118
+    },
+    {
+      "path": "tests/test_dashboard.py",
+      "sha256": "42fd28a206d3e794a15d3bfc9bab233294755c22c7da7ba9d4f83a8b6c8db0c5",
+      "lines": 126
+    },
+    {
+      "path": "tests/test_decentralized_observations.py",
+      "sha256": "7ffb2a2018947d4c165e1e4b588a44c61f3d5b1fa3249a8a43e0f27c39d95f71",
+      "lines": 102
+    },
+    {
+      "path": "tests/test_diagnostics.py",
+      "sha256": "6d23a28a4c9eea31330fd168ecb6c03972f7229990e6cbe2f7ebed52bb86718e",
+      "lines": 119
+    },
+    {
+      "path": "tests/test_diagnostics_axes.py",
+      "sha256": "e66b9048ba4e2a55dbc18f5e63ce324824437a71d8cdc4699ba42612c054b44c",
+      "lines": 121
+    },
+    {
+      "path": "tests/test_diagnostics_training.py",
+      "sha256": "126cbb58b4386951b417a91522f2fe9041f8ef6ae759e4c2dfa4abbf6d94edaa",
+      "lines": 139
+    },
+    {
+      "path": "tests/test_diagnostics_v1.py",
+      "sha256": "7013a3ab7ce1be52b1b8e43f29d89c8c04d1fb5b191b6b2c48c83f3713e6fd2c",
+      "lines": 256
+    },
+    {
+      "path": "tests/test_energy.py",
+      "sha256": "ec9611bcbc80f0fc830170d680f3f211c63ba84602100c83ea577fe4dcecdbfc",
+      "lines": 229
+    },
+    {
+      "path": "tests/test_env_scale.py",
+      "sha256": "301784fb1204062b22ca424792f031633350959ca0d3a25cfcd57c367bffc753",
+      "lines": 150
+    },
+    {
+      "path": "tests/test_environment.py",
+      "sha256": "a74719950cc5e1bf28f49c949a57843d49a8cfc1f0ebec46767611c2f2f9ccfb",
+      "lines": 120
+    },
+    {
+      "path": "tests/test_evaluation_resume.py",
+      "sha256": "4aad9dc26aa5b8fca8af67b590ce16ad42b320023c5ffa0694264a009a70ad0e",
+      "lines": 61
+    },
+    {
+      "path": "tests/test_exact_environment_resume.py",
+      "sha256": "289dc6ab757315234fa2f1d427340e8adf951925e067ea9415983e312c059ddc",
+      "lines": 281
+    },
+    {
+      "path": "tests/test_execution_check.py",
+      "sha256": "309fdf256036300f9ea7ca58ee47dae2c5ec78df572b0236b5f9d33df05eaced",
+      "lines": 128
+    },
+    {
+      "path": "tests/test_feasibility.py",
+      "sha256": "dacf5998b6610592647af602e21759074a431ac2f6243ed0937e0c457ec826fd",
+      "lines": 122
+    },
+    {
+      "path": "tests/test_gpu_comparison.py",
+      "sha256": "8a4f5ec8d57c2bcd70ea574b27ebd5ded7ce47f0b9d61e76d0d47733077cbbcf",
+      "lines": 265
+    },
+    {
+      "path": "tests/test_gpu_cuda.py",
+      "sha256": "dd028056f6b251f3a53fc9f0fd0432bc03edf5c2358f275c8e3a66d8480c0c42",
+      "lines": 170
+    },
+    {
+      "path": "tests/test_gpu_packets.py",
+      "sha256": "2b066189babfaf5617526923109995b8a5fef4ba676c5cdcad2b481295f831f9",
+      "lines": 401
+    },
+    {
+      "path": "tests/test_gpu_physics.py",
+      "sha256": "212e8d03b17a77e99b09cbed5a302a4dde269ecc7543c070cfbfd09699d48bc6",
+      "lines": 448
+    },
+    {
+      "path": "tests/test_gpu_vector.py",
+      "sha256": "4887497e5a636edca845e7ec99ae02e4d5a5a8114d823d1e038db614e044e9d3",
+      "lines": 227
+    },
+    {
+      "path": "tests/test_masac.py",
+      "sha256": "defe121fca904b2ddbb93f0275642610450bbd3ccf9f3d295980931eb64d1e34",
+      "lines": 176
+    },
+    {
+      "path": "tests/test_matched_10k.py",
+      "sha256": "5a8ac747f95e74399ca4a797567aac922c64591f567cd9eb5f604bdd5c90c2aa",
+      "lines": 236
+    },
+    {
+      "path": "tests/test_matd3.py",
+      "sha256": "432bcf321438fce7a690ea5e28fffc1e4b38136edb7613c06a0ae1c3f1e409cd",
+      "lines": 101
+    },
+    {
+      "path": "tests/test_measured_replay.py",
+      "sha256": "1cc1ea9d0afb226b93f3429c0be498a4cb751273a53e4bf79b5ff638b8b4cb18",
+      "lines": 56
+    },
+    {
+      "path": "tests/test_memory_probe.py",
+      "sha256": "290269b066d3dc5e98a859ca445900787a0512605d4ccef0bcde3edf46b032ec",
+      "lines": 380
+    },
+    {
+      "path": "tests/test_mission.py",
+      "sha256": "c69de4241ce78ee28fee66ea514d2e1aef92cde286e3c983427e005201ad7f34",
+      "lines": 52
+    },
+    {
+      "path": "tests/test_network_telemetry.py",
+      "sha256": "07b8f45c6b3fb234dee81935e1c5df048184d8019bd443e05d979591f05c65a0",
+      "lines": 320
+    },
+    {
+      "path": "tests/test_obstacle_links.py",
+      "sha256": "d4ad3af9e2d7e0dc864014db18e2f8a9a0a7d55f60ff961f139b462b314bbac9",
+      "lines": 38
+    },
+    {
+      "path": "tests/test_optimization.py",
+      "sha256": "7d48ae2df21a44b6789871f8db768967ea1755a692f075a5b28f6148d3630468",
+      "lines": 19
+    },
+    {
+      "path": "tests/test_performance.py",
+      "sha256": "f082defe89281d4f0260d20f0ac5004aeb6f3cd5bfd5fe75968b402b430f93f3",
+      "lines": 190
+    },
+    {
+      "path": "tests/test_pipeline_credentials.py",
+      "sha256": "b3faac19237eaa3bdbf60cf7aaf4fb13f3f1af76960778203601afb083051ed9",
+      "lines": 178
+    },
+    {
+      "path": "tests/test_pipeline_status.py",
+      "sha256": "fe541ce5ad060001c9d6bd4bfe5eea7876dc5004535032d497974ed2765ef674",
+      "lines": 55
+    },
+    {
+      "path": "tests/test_pql_artifacts.py",
+      "sha256": "1aefad41d606949a4372a3620191cdd19a08ead76294f27217b14b6168c5dd89",
+      "lines": 80
+    },
+    {
+      "path": "tests/test_pql_cloud.py",
+      "sha256": "dacbf1f865964f0259d9b1d02063c8a71ca709f09832a7d7bbc011a8d1ebd335",
+      "lines": 92
+    },
+    {
+      "path": "tests/test_pql_memory_probe.py",
+      "sha256": "fd58afa42f278f95c47776b289642067ae4ab0490a4ad3c020c983b1acc4d0cb",
+      "lines": 165
+    },
+    {
+      "path": "tests/test_pql_system.py",
+      "sha256": "8b6848c86372ccbe4c00899f56c8ba6a09526133c62ea08451c159d562f96d1d",
+      "lines": 203
+    },
+    {
+      "path": "tests/test_pql_training.py",
+      "sha256": "c587606f212abac99247585e0798add6ab3d75aa32d0df488fc66dedb45eb470",
+      "lines": 221
+    },
+    {
+      "path": "tests/test_precision.py",
+      "sha256": "2729c1e904eff4c018b874d341e9129d609b2fc25d3a9c28e46848532d9e541c",
+      "lines": 353
+    },
+    {
+      "path": "tests/test_production_execution.py",
+      "sha256": "702ead3841cb54f99795e1ec5a565fb90e94e2c9c27c2fc1d8b59766e6d4bfa1",
+      "lines": 194
+    },
+    {
+      "path": "tests/test_production_hybrid_replay.py",
+      "sha256": "b1910dbb0f86f97aed5048ba8e0961b941ebabc9c29ff44e3ab878bd468be84f",
+      "lines": 190
+    },
+    {
+      "path": "tests/test_project_structure.py",
+      "sha256": "a002ad0d046f5af090a2fbecb19aec699bb37be305186c0472ff055e96317318",
+      "lines": 30
+    },
+    {
+      "path": "tests/test_propagation.py",
+      "sha256": "2b2feec7378e949cf7cf082f72f5363914a708398a1122590988939c88fb9d93",
+      "lines": 161
+    },
+    {
+      "path": "tests/test_receiver_admission.py",
+      "sha256": "81ba74623e813323a44ebc915120f42602ed8840efa3269d5a6a4983b6cfc3a9",
+      "lines": 127
+    },
+    {
+      "path": "tests/test_relay_audit.py",
+      "sha256": "5956a0dc2a545367f7d679c047040b7940a4757276c6133457082cd93ed6c74e",
+      "lines": 385
+    },
+    {
+      "path": "tests/test_retry_recovery.py",
+      "sha256": "e1a26a676bbd1f4442f088af8beabf1a6d3cb8639329237d37cd0fabd783fe9f",
+      "lines": 165
+    },
+    {
+      "path": "tests/test_runtime.py",
+      "sha256": "21c03e20da01c41998138577fda6ed94b504bc23c0fc12c70edadf8b0ae61867",
+      "lines": 58
+    },
+    {
+      "path": "tests/test_scenario_v3.py",
+      "sha256": "e051d7c6ce774bf35542ebea28c8b93a0f4505e77382b7d57e6bd21894cb054f",
+      "lines": 71
+    },
+    {
+      "path": "tests/test_scenario_v3_integration.py",
+      "sha256": "6cfd9d6b5f7cb11cd11d62d852ad7b1b065287f094c81ea7f16c43ca77d061d7",
+      "lines": 136
+    },
+    {
+      "path": "tests/test_split_updates.py",
+      "sha256": "7d011a4207b00a3ea00498b70d4b54c61ea3685fed2e8e26bd81c2df891b3986",
+      "lines": 103
+    },
+    {
+      "path": "tests/test_staged_checkpoint.py",
+      "sha256": "b30e0bebd0a0a75f2301dc202e840eb80733bdf9e389a412f596fe6d3cad2801",
+      "lines": 84
+    },
+    {
+      "path": "tests/test_tracking.py",
+      "sha256": "086dd55b5e28cee44cb00e16313db13f1abfbd327f95c73de0878cfd2a3e9e1c",
+      "lines": 400
+    },
+    {
+      "path": "tests/test_tracking_cleanup_order.py",
+      "sha256": "d507024d58d1ca0fcf769613c6ff31472a17fc47c55950d5580bfa22e61ba48a",
+      "lines": 180
+    },
+    {
+      "path": "tests/test_training_audit_regressions.py",
+      "sha256": "6f9c78fcca8516ec870ace62e93f747a198ca9d41cb6d5a73df891947018b843",
+      "lines": 173
+    },
+    {
+      "path": "tests/test_vector.py",
+      "sha256": "6de643d7672c42d0b76c61cf9466cc2e41c14bb5e7f5a5fb1e853adb88650723",
+      "lines": 157
+    },
+    {
+      "path": "tests/test_vectorized_critics.py",
+      "sha256": "37f066d41d47dac40a7b37a7906d07ce9e2b66cc5234cef22cf4c1a6d8021c49",
+      "lines": 93
+    },
+    {
+      "path": "tests/test_visualization_provenance.py",
+      "sha256": "a7743c1866978cc8105201082a663f85880098ed0595a4877adeb112da0c77a0",
+      "lines": 54
+    },
+    {
+      "path": "tests/test_visualization_publish.py",
+      "sha256": "404a081c7d1d5d75643b0d023f39e5383211c485e1d370241ad3ed65fb3e5787",
+      "lines": 270
+    },
+    {
+      "path": "tests/test_visualization_resume.py",
+      "sha256": "03563aada7fbc6ec261a1ed18f099e7afe10b791356f5bdf915341e4fc108923",
+      "lines": 95
+    },
+    {
+      "path": "tests/test_visualization_tracking.py",
+      "sha256": "715023413f3660a030501d8f1af65b4a779511e44959a4b1c1ebea87cd86c142",
+      "lines": 54
+    },
+    {
+      "path": "uav_network/__init__.py",
+      "sha256": "be03237ae7c0855ffa2e8112a22553a8b71e729fe6ffece75dcfc7fca7ad8533",
+      "lines": 1
+    },
+    {
+      "path": "uav_network/__main__.py",
+      "sha256": "d45742ec339880a81452772deaf5b9aa78f804789b1adce183096bcb42cbe460",
+      "lines": 5
+    },
+    {
+      "path": "uav_network/algorithms/__init__.py",
+      "sha256": "08de6f8f884e786cc4fb43a953f9c2f2ffd4a11a122087a5d58521cff0804a2c",
+      "lines": 1
+    },
+    {
+      "path": "uav_network/algorithms/action_utils.py",
+      "sha256": "7f535399b98ed86f4b923d9d64f1ddd616f1c5e2b8b1048e7e15688831505289",
+      "lines": 26
+    },
+    {
+      "path": "uav_network/algorithms/checkpoints.py",
+      "sha256": "acb4a57871c566c562451b6fbbc2c6c1e0f8a8566a7875758daac661c6f34851",
+      "lines": 77
+    },
+    {
+      "path": "uav_network/algorithms/hybrid_replay.py",
+      "sha256": "95e5174fb54cc5a3819837ab436a0c30a5c404007d1f7e00056f6af347a8ac2e",
+      "lines": 221
+    },
+    {
+      "path": "uav_network/algorithms/masac.py",
+      "sha256": "466d62095ee4c5e8e92681fc72c2e230c5c4e5b8fc0d9412c157fbecb9995b51",
+      "lines": 223
+    },
+    {
+      "path": "uav_network/algorithms/matd3.py",
+      "sha256": "0a25fc4966596242f474f68a9289b367672781d08e2a8a9beee937fd1bce962c",
+      "lines": 196
+    },
+    {
+      "path": "uav_network/algorithms/models.py",
+      "sha256": "89c91cd3e2ca037f592d3cbd47c724b244b65504b73192676ab3568d59858b9c",
+      "lines": 63
+    },
+    {
+      "path": "uav_network/algorithms/optimization.py",
+      "sha256": "48f07e62fa3511735fcb07220785c65b09c0d13eb0cbf246dc46bfe7f9eda901",
+      "lines": 76
+    },
+    {
+      "path": "uav_network/algorithms/parallel_critics.py",
+      "sha256": "16df2ac028f0961618d8a8ca93becc96829e0376793967a6ab08e34a6f5aee92",
+      "lines": 21
+    },
+    {
+      "path": "uav_network/algorithms/precision.py",
+      "sha256": "271f0ef09ba0a3d5b9184266bb55541e6dce22d429c26a7f524e33851c6038b0",
+      "lines": 195
+    },
+    {
+      "path": "uav_network/algorithms/replay.py",
+      "sha256": "32de56303f40136e5359cced63f7d5f46ca16351fcdf1ef55ca321a5d896c441",
+      "lines": 99
+    },
+    {
+      "path": "uav_network/cloud/__init__.py",
+      "sha256": "b137ed721b088448e51d6bf9819919d62f8ac55e00835f748dd6c13743606079",
+      "lines": 1
+    },
+    {
+      "path": "uav_network/cloud/archive.py",
+      "sha256": "e8038aa89affc4c818daf62cba971340ff57e71a705b3db3d4d96e771c9d5a3e",
+      "lines": 292
+    },
+    {
+      "path": "uav_network/cloud/cli.py",
+      "sha256": "81baa7c106b00ea52a3df8e46294f88940c741edd73fd79b2bafad061d67b097",
+      "lines": 219
+    },
+    {
+      "path": "uav_network/cloud/client.py",
+      "sha256": "67a2200e6bfe572ee525e29adb15207cf3dd0a9913d38a92b0b584e7bab9da2d",
+      "lines": 294
+    },
+    {
+      "path": "uav_network/cloud/continuation.py",
+      "sha256": "741087fe5bad53d44e3e9a008282f360430889c94d1d8e8b51278c75e0f33772",
+      "lines": 289
+    },
+    {
+      "path": "uav_network/cloud/controller.py",
+      "sha256": "f2cc68d48036d2b08b383bcccad6702b3a07d0d007e61c5e91f6676438fb3aff",
+      "lines": 494
+    },
+    {
+      "path": "uav_network/cloud/credentials.py",
+      "sha256": "35f46889e3f64d7f2f43ee670f23f8775238054ceb4f3acb4ca1892b180d9778",
+      "lines": 84
+    },
+    {
+      "path": "uav_network/cloud/execution_check.py",
+      "sha256": "d45a163ea934b4fae36aa833b265145d62ed490cea1c106f0473b6c956c567ef",
+      "lines": 176
+    },
+    {
+      "path": "uav_network/cloud/kernel.py",
+      "sha256": "1878b4e76ebd89d12bd086bcb462b6f5d4abdf42cfe2223a5753e54b5c635ab2",
+      "lines": 86
+    },
+    {
+      "path": "uav_network/cloud/media_publish.py",
+      "sha256": "d3a6f7b9a3c9a73dc27dcfe32726a5b97224b7cda1dd2a4101b3cd0c50d20dcf",
+      "lines": 139
+    },
+    {
+      "path": "uav_network/cloud/pipeline_status.py",
+      "sha256": "5dea3c58fbd5ae3507c1156b60c110d02ef4049c95244e3690c1c9c4d9d69526",
+      "lines": 38
+    },
+    {
+      "path": "uav_network/cloud/remote.py",
+      "sha256": "05398a2d534f66bc1b20dffb0b3981e537057b544f3c1838943b4cda91d178c1",
+      "lines": 421
+    },
+    {
+      "path": "uav_network/cloud/visualize.py",
+      "sha256": "4313eaba3c7c678633987ce299036ea439dbaea08fc8f385b9565e579911ed55",
+      "lines": 368
+    },
+    {
+      "path": "uav_network/communication/__init__.py",
+      "sha256": "9e22a04579091de3b4bd4d079119aa9265c552c383ddf357a2c63df59e5715e9",
+      "lines": 1
+    },
+    {
+      "path": "uav_network/communication/backend.py",
+      "sha256": "13fdcef969e062eef806684565edd4230c9679d6f76260c887dae17a45f6a8eb",
+      "lines": 337
+    },
+    {
+      "path": "uav_network/communication/diagnostics.py",
+      "sha256": "c083b6fec0dc609232d3b255a9ef5af3080fc38053ece297f0ab848280afc269",
+      "lines": 74
+    },
+    {
+      "path": "uav_network/communication/energy.py",
+      "sha256": "b9b907fa018af83318049458b17ea1ef898f32d47ef4e2fed7ccfdd11033bf24",
+      "lines": 109
+    },
+    {
+      "path": "uav_network/communication/gpu/__init__.py",
+      "sha256": "f1c00ee57e57da289c4945aeff7aa00dc41fe7fc5f06ff1cfbf492899234c9c2",
+      "lines": 1
+    },
+    {
+      "path": "uav_network/communication/gpu/diagnostics.py",
+      "sha256": "cfadacf3cd15a93b851f7cd9da3038b8f23e8e7e7119c7217a5f4bc1a511f1c1",
+      "lines": 159
+    },
+    {
+      "path": "uav_network/communication/gpu/events.py",
+      "sha256": "eba4b99b94d2927ce95f777b68e64c9983f3142367804410564e95bcdcf318fb",
+      "lines": 113
+    },
+    {
+      "path": "uav_network/communication/gpu/mac.py",
+      "sha256": "07e53f342b337b5f4b38e873bd8b2c765114b812a26b1b57bbb2fb0e7402a022",
+      "lines": 457
+    },
+    {
+      "path": "uav_network/communication/gpu/metrics.py",
+      "sha256": "9c9b0443231b8434d79b4d5a386d6b3a4da8779e11579f6904b24cb3c512322f",
+      "lines": 96
+    },
+    {
+      "path": "uav_network/communication/gpu/phy.py",
+      "sha256": "639cbc1a2dcbb2baf3dcb9998d10cb8b0f0b8675e4d1af681d95bbec89f0ce19",
+      "lines": 284
+    },
+    {
+      "path": "uav_network/communication/gpu/power.py",
+      "sha256": "a4ba02c88c66f3900e3bee12be5cf6abfe4d7ed87d73d6a023563f9a38a97300",
+      "lines": 29
+    },
+    {
+      "path": "uav_network/communication/gpu/reports.py",
+      "sha256": "6fb573983e674651d723d4bea97c1381b9561056fabb737b7b48c82afe744438",
+      "lines": 250
+    },
+    {
+      "path": "uav_network/communication/gpu/rng.py",
+      "sha256": "be4913ef7abf48ab4c2e5a517354b7f9d85fda4ff18f57f5c284f058969eadf4",
+      "lines": 100
+    },
+    {
+      "path": "uav_network/communication/gpu/streaming.py",
+      "sha256": "cae16c6683e1ae52ea1a9fd9529ac61bf8ff31dca8050ceb77631958b848ae0d",
+      "lines": 140
+    },
+    {
+      "path": "uav_network/communication/gpu/telemetry.py",
+      "sha256": "c0dd78cf74eea045879ff801e4a8f95691439ddab81c21a699b288da401a3b96",
+      "lines": 64
+    },
+    {
+      "path": "uav_network/communication/link_budget.py",
+      "sha256": "7d3133f0bf6c5420b33353d3eefec01a6846dc9bb0555253a704e95d2f6ed11a",
+      "lines": 116
+    },
+    {
+      "path": "uav_network/communication/reports.py",
+      "sha256": "fc7642688ff69d3743a1897c698cb10dde0dcb06830467982e441e64d87e0898",
+      "lines": 114
+    },
+    {
+      "path": "uav_network/communication/routing.py",
+      "sha256": "18003e8f54d2d5ecc3163eb126b2f68e6e7d29d40bb6c8e2f3efb7ef7a40b2f6",
+      "lines": 60
+    },
+    {
+      "path": "uav_network/communication/telemetry.py",
+      "sha256": "047a6358c7001688182216157f1d813282c7cf563739b144241725c4aa0176ac",
+      "lines": 90
+    },
+    {
+      "path": "uav_network/communication/upstream.py",
+      "sha256": "298ca1c01b8ff47e42cbd2adce7d2e864f6393578f04d9e55dcb8c418a6cc1db",
+      "lines": 272
+    },
+    {
+      "path": "uav_network/configuration.py",
+      "sha256": "ce41f177dd79cb0d9c1b983fe9395de5b4ad847bd6ca4fe96c06f754bd58eee5",
+      "lines": 400
+    },
+    {
+      "path": "uav_network/environment/__init__.py",
+      "sha256": "c9fd7f8a6fcb61a5d51bd5eb3a17950149541f92fd4aac3c2db894e2cdc6729a",
+      "lines": 1
+    },
+    {
+      "path": "uav_network/environment/avoidance.py",
+      "sha256": "6c22e5af9c456b012b76e519ac052893baa10894aa5c65aa420070fe44ea1f97",
+      "lines": 226
+    },
+    {
+      "path": "uav_network/environment/energy.py",
+      "sha256": "767b162886b5841b41a64e2280167bb56040e868d71b90c50c99173da1eecaa8",
+      "lines": 36
+    },
+    {
+      "path": "uav_network/environment/env.py",
+      "sha256": "62e5bb5cac3570525388399d0f3af39dba336958546607f3f49230d14ac00de7",
+      "lines": 200
+    },
+    {
+      "path": "uav_network/environment/geometry.py",
+      "sha256": "0958aed881ae42ede0b35733b7b535e937a46373b839dc730cea2cdb41d755eb",
+      "lines": 18
+    },
+    {
+      "path": "uav_network/environment/gpu/geometry.py",
+      "sha256": "3aec13dc9f56e5cf8d1c92aa3700ed52c9bd9318478f5f9104acccaeaa447105",
+      "lines": 103
+    },
+    {
+      "path": "uav_network/environment/gpu/motion.py",
+      "sha256": "5eb9ca9d956b775601cb077a1fe6a343210d5c89856953fe7501ab66ec0c5ab7",
+      "lines": 342
+    },
+    {
+      "path": "uav_network/environment/gpu/observations.py",
+      "sha256": "c6e45d26579b14a617599b97d6722f6074fcfed5a4a228b08fbaaa3fe6b60762",
+      "lines": 193
+    },
+    {
+      "path": "uav_network/environment/gpu/state.py",
+      "sha256": "0ff8397d992ccaf30543543632b8c37af63c671182a744d1e51e1cf111bf9164",
+      "lines": 410
+    },
+    {
+      "path": "uav_network/environment/gpu/validation.py",
+      "sha256": "e45476aed365d2ef0e43936cec911d5b8d209de0cb316a31b7201534e619f9b0",
+      "lines": 18
+    },
+    {
+      "path": "uav_network/environment/gpu/vector.py",
+      "sha256": "067c0fb3a7e38ec71e01b18bb63bd3a73d2f23e46779757cc64135af3003d18c",
+      "lines": 343
+    },
+    {
+      "path": "uav_network/environment/gpu/world.py",
+      "sha256": "9cb5174588c45369af3221200bee0aedcdd415796b2301ddcfdc5428c01f0a7c",
+      "lines": 128
+    },
+    {
+      "path": "uav_network/environment/motion.py",
+      "sha256": "a1305b4c02a57d36eedb9292e748a2c58ba6069fe49591a0f5d19bc04d5423d2",
+      "lines": 57
+    },
+    {
+      "path": "uav_network/environment/observations.py",
+      "sha256": "856be674feb9f8cca3141bb277c7861ca109ba77f2d1b03fab68e1d71db29ff8",
+      "lines": 142
+    },
+    {
+      "path": "uav_network/environment/sensing.py",
+      "sha256": "a3283af9a6096cd3de932cd3da4c7b0dbfb88dbad5d6f87af0807524c93611ca",
+      "lines": 12
+    },
+    {
+      "path": "uav_network/environment/vector.py",
+      "sha256": "c58708cf7fcfc774d37801946e10a639c14b7f712248997fcb475f81067cf6e5",
+      "lines": 108
+    },
+    {
+      "path": "uav_network/environment/world.py",
+      "sha256": "f95ed763c5288c1fe4d8244f66df354b19f322baf9af1478ee3238c78a3b86e6",
+      "lines": 89
+    },
+    {
+      "path": "uav_network/experiments/__init__.py",
+      "sha256": "9a95b5e81f3742269a840f931c499cf8a4ca9aa0de17db1f827165cc24048664",
+      "lines": 1
+    },
+    {
+      "path": "uav_network/experiments/async_evaluation.py",
+      "sha256": "d84fcadf2aef0530c8e544ea12d796c54cfcbfaa4955492073e3e9da09610c2d",
+      "lines": 234
+    },
+    {
+      "path": "uav_network/experiments/benchmark.py",
+      "sha256": "c44d93cc0163bc893dda64c90104d6a1fc35283ad2d71f534c97d03699b91331",
+      "lines": 132
+    },
+    {
+      "path": "uav_network/experiments/checkpoint_store.py",
+      "sha256": "ea533d7ef9342a10f97dc68d7b046d1ff3fac7621533c45e278168c63af3aa55",
+      "lines": 181
+    },
+    {
+      "path": "uav_network/experiments/cli.py",
+      "sha256": "f9f67a8cbc47d6225fef4bd0dd90e658c87b55dad4ce432cde4915500c67911e",
+      "lines": 98
+    },
+    {
+      "path": "uav_network/experiments/comparison.py",
+      "sha256": "78407e327b1fe9b7be7cd2f9dfb4938f9660ef96b4aa94f8d2ad8d11abc1f154",
+      "lines": 118
+    },
+    {
+      "path": "uav_network/experiments/comparison_metrics.py",
+      "sha256": "18049f4c700a23b1835d5291ba59072f69ebb3674f187bf9f26ba8e1e4abec52",
+      "lines": 222
+    },
+    {
+      "path": "uav_network/experiments/continuation.py",
+      "sha256": "200b77e5efd5d671622351a3546a49389a22c4392b1b85ef07e4e71bae0fa26a",
+      "lines": 71
+    },
+    {
+      "path": "uav_network/experiments/cpu_replay_probe.py",
+      "sha256": "3fabba3d38e18d6d56709d46a9edf0683f685ce585f6d177bd4390a9b35f0bef",
+      "lines": 347
+    },
+    {
+      "path": "uav_network/experiments/dashboard.py",
+      "sha256": "304f61bdf8bc1ce0060d337b6a15a94dc66d4d70a37572150d2b840c7d6016d6",
+      "lines": 276
+    },
+    {
+      "path": "uav_network/experiments/dashboard_columns.py",
+      "sha256": "b19838c96088e36e7f29260da7d2014ac2757bbdd9b317d31a42a1d71d984bfd",
+      "lines": 52
+    },
+    {
+      "path": "uav_network/experiments/diagnostics.py",
+      "sha256": "ffef12dab19cfc184ce5b06d169b40c53ea49c58a2b84426e2992eb37e92f8cc",
+      "lines": 154
+    },
+    {
+      "path": "uav_network/experiments/env_scale.py",
+      "sha256": "4a82ea0b630bd31f4d5ea7b77a6617e95e80bfb08cb39cf9074366faf83fd87c",
+      "lines": 373
+    },
+    {
+      "path": "uav_network/experiments/environment_checkpoints.py",
+      "sha256": "e364183e89d16a1b2f28e9a8ec3ad8f3119f9345f8481b2d1b1e788ad7102c62",
+      "lines": 69
+    },
+    {
+      "path": "uav_network/experiments/evaluation.py",
+      "sha256": "2f585ed2be148b34919152c78eef1f3dfd5127684d05326e0d6139951291e473",
+      "lines": 157
+    },
+    {
+      "path": "uav_network/experiments/evaluation_snapshots.py",
+      "sha256": "ee6c6e274981d69b2a6d8318c61c614666b2df25cd78d4fa3dd6bac3c372be7f",
+      "lines": 58
+    },
+    {
+      "path": "uav_network/experiments/feasibility.py",
+      "sha256": "1257a24c83e8231339adb6b4db8e707b06c4d6a59de5faafaa9aec91d0483d66",
+      "lines": 310
+    },
+    {
+      "path": "uav_network/experiments/fixed_checkpoints.py",
+      "sha256": "7b1e8678dc2f070dbcff50bb61bc07ec0624a53d1f89136cb3c833d9b70ae2a3",
+      "lines": 200
+    },
+    {
+      "path": "uav_network/experiments/gpu_resources.py",
+      "sha256": "8941e7e60ba8fa531193f9f313a0b2001ef2c8948b53be9b15d4cd463c54f650",
+      "lines": 143
+    },
+    {
+      "path": "uav_network/experiments/hardware.py",
+      "sha256": "9ecad62a51b8e7caa1c94baa906972a55bf9d2077374e1d93ac34b64b47cbc75",
+      "lines": 24
+    },
+    {
+      "path": "uav_network/experiments/legacy_benchmark.py",
+      "sha256": "b2ba5978e19c8387790a4a6c7aa7ac4573fd755996d1ad214fcd68ca5e13dcf0",
+      "lines": 212
+    },
+    {
+      "path": "uav_network/experiments/lifecycle.py",
+      "sha256": "9d6874c1943cb0ef7b1822e70b04bcbdcb6c5b1986671cee14bb271c1d93021e",
+      "lines": 20
+    },
+    {
+      "path": "uav_network/experiments/local_checkpoints.py",
+      "sha256": "6f37af1f3440ebe632cd3e32dd48cb08d8c6206db4c558f2b2e60dcac6382d31",
+      "lines": 36
+    },
+    {
+      "path": "uav_network/experiments/pql_benchmark.py",
+      "sha256": "63e4cb7d10d9f07b0aeae306b0e5e4d22d8081b1b6b2f4e732b501feca2e07c1",
+      "lines": 178
+    },
+    {
+      "path": "uav_network/experiments/pql_checkpoints.py",
+      "sha256": "8d9f48a2f668d38da415f8f4b67f67486b14a39c2d6f59b73b3651474e3e2834",
+      "lines": 67
+    },
+    {
+      "path": "uav_network/experiments/pql_replay.py",
+      "sha256": "4c38cae02276a949fdebfa7b51a215ad1487935c4715c295358c375a14f6b0fe",
+      "lines": 139
+    },
+    {
+      "path": "uav_network/experiments/pql_system.py",
+      "sha256": "957433b9c176f67928ebf8e156bfc27cb8c2a11a779a917edb42c522270fad3f",
+      "lines": 374
+    },
+    {
+      "path": "uav_network/experiments/pql_training.py",
+      "sha256": "4c10c719a1d441a6e888c99ff0a3ae62d88b39409ea1d41fda068ece2cf6c074",
+      "lines": 290
+    },
+    {
+      "path": "uav_network/experiments/pql_workers.py",
+      "sha256": "19fdcb32d0365e30385869fd3e98ee5d0f6a2e162e8a28e0e6da22c091d6c6f7",
+      "lines": 155
+    },
+    {
+      "path": "uav_network/experiments/relay_audit.py",
+      "sha256": "30105339b1f171a202db5647a03b3bf0c031176eef2fa84bffd5dea41b181483",
+      "lines": 309
+    },
+    {
+      "path": "uav_network/experiments/rendering.py",
+      "sha256": "cf74593b058207a45189957a97ba0839b059e21b6a203fc3f69f6d145708179c",
+      "lines": 140
+    },
+    {
+      "path": "uav_network/experiments/reproducibility.py",
+      "sha256": "7c4797696611acd9b46f4c3bd596279a1dac1650db7d2319dfa386ec3e09fc47",
+      "lines": 48
+    },
+    {
+      "path": "uav_network/experiments/state_resources.py",
+      "sha256": "72bff3ac7052f20c3ab6fef6cd40861f553dadccf2e5dc39295387d36f740b09",
+      "lines": 20
+    },
+    {
+      "path": "uav_network/experiments/telemetry.py",
+      "sha256": "7cbaa48f5d0a1cbe4093cfd8c5091e19e02a1e81fdd2e0e21072d291c1bf9e8a",
+      "lines": 179
+    },
+    {
+      "path": "uav_network/experiments/tracking.py",
+      "sha256": "86cc8019cdf918499a012e04159aed005250a8669f6a09b0d5c2837602131315",
+      "lines": 315
+    },
+    {
+      "path": "uav_network/experiments/training.py",
+      "sha256": "d5ac3e443a53de83eec5ab9814c46fb0b515e3b2b4f0c0df0785ae955431f000",
+      "lines": 395
+    }
+  ],
+  "configs": [
+    {
+      "path": "configs/comparison-10k.yaml",
+      "report_bytes": 1024,
+      "valid": true
+    },
+    {
+      "path": "configs/comparison-20k-hybrid75-1kb.yaml",
+      "report_bytes": 1024,
+      "valid": true
+    },
+    {
+      "path": "configs/comparison-20k-hybrid75-1m.yaml",
+      "report_bytes": 1000000,
+      "valid": true
+    },
+    {
+      "path": "configs/comparison-20k-steps1800-scenario-v3.yaml",
+      "report_bytes": 1000000,
+      "valid": true
+    },
+    {
+      "path": "configs/comparison-20k-steps2000-scenario-v3.yaml",
+      "report_bytes": 1000000,
+      "valid": true
+    },
+    {
+      "path": "configs/comparison-20k.yaml",
+      "report_bytes": 1024,
+      "valid": true
+    },
+    {
+      "path": "configs/comparison-25k-diagnostics.yaml",
+      "report_bytes": 1024,
+      "valid": true
+    },
+    {
+      "path": "configs/comparison-25k-scenario-v2.yaml",
+      "report_bytes": 1024,
+      "valid": true
+    },
+    {
+      "path": "configs/comparison-25k-scenario-v3.yaml",
+      "report_bytes": 1000000,
+      "valid": true
+    },
+    {
+      "path": "configs/comparison-25k.yaml",
+      "report_bytes": 1024,
+      "valid": true
+    },
+    {
+      "path": "configs/default.yaml",
+      "report_bytes": 1024,
+      "valid": true
+    },
+    {
+      "path": "configs/kaggle-smoke.yaml",
+      "report_bytes": 1024,
+      "valid": true
+    },
+    {
+      "path": "configs/kaggle.yaml",
+      "report_bytes": 1024,
+      "valid": true
+    },
+    {
+      "path": "configs/motion-gpu.yaml",
+      "report_bytes": 1024,
+      "valid": true
+    },
+    {
+      "path": "configs/motion-long.yaml",
+      "report_bytes": 1024,
+      "valid": true
+    },
+    {
+      "path": "configs/motion-pql.yaml",
+      "report_bytes": 1024,
+      "valid": true
+    },
+    {
+      "path": "configs/motion-study-fast.yaml",
+      "report_bytes": 1024,
+      "valid": true
+    },
+    {
+      "path": "configs/motion-study.yaml",
+      "report_bytes": 1024,
+      "valid": true
+    },
+    {
+      "path": "configs/smoke-parallel.yaml",
+      "report_bytes": 1024,
+      "valid": true
+    },
+    {
+      "path": "configs/smoke.yaml",
+      "report_bytes": 1024,
+      "valid": true
+    },
+    {
+      "path": "configs/workstation.yaml",
+      "report_bytes": 1024,
+      "valid": true
+    }
+  ]
+}

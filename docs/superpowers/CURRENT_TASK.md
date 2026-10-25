@@ -1,51 +1,36 @@
-## 2026-10-25 final correctness fixes — VERIFIED
+# Current task: W&B / 1 KiB / Dec-POMDP correctness audit — COMPLETE
 
-- Final review finding fixed: CPU per-episode metrics now use evaluation/episodes_completed in both W&B definitions and authored panel mapping. Periodic aggregate validation keeps its checkpoint-global-step axis.
-- CPU summary publishes actual checkpoint step and saved source observation version. Initial CPU source version is unknown until policy/protocol loading; publication-only recovery preserves historical protocol without re-evaluating old policies.
-- TDD3reporting failures +3publication failures -> focused36passed. Final full suite739passed77skipped8warnings1270subtests,exit0,203.25s. Actual W&B0.30 offline SDK metric-definition/log check also passed; production online guard retained.
-- W&B historical labels added and freshly verified for six MASAC root/child/CPU runs. CPU summary checkpoint steps corrected to35,840,000 and35,139,584; original outcomes/config/source/history retained.
-- Independent review and explicit coverage limits: `evidence/2026-10-25-independent-correctness-review.md`; supplemental root PHY/motion/config/precision/rendering reads recorded in `evidence/2026-10-25-cpu-reporting-fix.json`.
-- Local report locality fix: c05806a; observation compatibility guard:2f4b5a8. Final CPU-reporting source is this commit. Keep the current worktree/branch; no merge or replacement20k job requested during this audit.
-- Next: publish final audit summary with these verified source commits and current cloud state. Any future corrected cohort starts from episode0 and must retain report1024,payload1024,buffer3072 and observation_version3.
+Updated 2026-10-25, Asia/Ho_Chi_Minh. Latest user request was to verify live runs and report size, audit V3 Dec-POMDP and owned code, then fix confirmed defects. Full report with explicit coverage limits: [2026-10-25 audit](evidence/2026-10-25-wandb-decpomdp-audit.md).
 
-## 2026-10-25 checkpoint semantics guard — VERIFIED; final review active
+## Verified code and tests
 
-- Added observation_version3 to new policies and actor-only snapshots; native/Warp report-locality fix is its semantic contract. Missing/older versions now fail policy/evaluation/BASE/PQL resume loading before accepting weights/progress. Historical analysis uses the pinned old source.
-- Scenario hashes and future W&B config metadata now include observation_version. The frozen legacyV2 physical hash remains verified separately; corrected observation semantics require a different protocol identity.
-- TDD RED10failed, focused48passed2skipped6subtests; full rerun734passed77skipped8warnings1269subtests,exit0. First full run's one frozen-hash assertion was corrected to test both unchanged physics and changed observation identity.
-- Evidence: `evidence/2026-10-25-observation-version-guard.json`. Fresh 08:59:56Z W&B snapshot has zero Running runs; both historical MATD3 cases are strict20k/1KiB and already obsolete-pre-decpomdp-fix.
-- One read-only fresh-context Superpowers reviewer is checking source/restore/radio/cloud correctness. Confirmed final-pass item: CPU visualization evaluation-axis definition does not match per-episode logs; evaluation model/protocol itself is correct. Source remains stable until review finishes; then fix with RED/GREEN/full suite.
+- Worktree `/home/aduy/Documents/NCKH/uav_network-public-hf-20261022`, branch `feat/cpu-replay-20261022`.
+- Final tested source: `66a4b7025a46c8249ff79760a3211b0e02075b4d`, pushed and independently read via GitHub. This final record commit changes docs only.
+- `c05806a4a1ff772d7062a0850342df4853f686b0`: native/Warp camera sensing no longer consults remote GCS delivered flags to create/recover local report custody. Unique GCS delivery dedup remains.
+- `2f4b5a8`: persist/validate observation_version3 in policy, actor snapshot, BASE/PQL resume; old/missing semantics rejected. Scenario protocol identity includes observation version.
+- `66a4b70`: CPU per-episode SDK/panel axes fixed; actual checkpoint-step and saved observation provenance recorded. Historical publication-only recovery retains unknown/older source versions instead of relabeling them as current.
+- Final full pytest: **739 passed, 77 skipped, 8 existing dependency/cleanup warnings, 1270 subtests, exit0**, 203.25s. Real T4x2 diagnostic at c05806a: **78 passed, 0 skipped, 12 subtests, exit0**. CPU reporting focused36passed. Real W&B0.30 offline metric-definition check passed; production online guard unchanged.
+- Final structural/config check:100 source modules,97 test modules AST-parsed and inventoried;21 YAML profiles loaded/validated. Detailed review of scientific/training/cloud paths plus root PHY/motion/config/precision reads; do not describe this as a proof of every utility/dependency or universal simulator equivalence.
+- MASAC/MATD3 learner files and primary1KiB profile are unchanged from initial4eb45ed source. No acceleration flags/reward/hyperparameter retuning.
 
-## 2026-10-25 local report sensing correction — VERIFIED
+## Live result and scientific status
 
-- New confirmed leakage beyond `6263156`: native `ReportStore.discover` and Warp `sense_reports_at` suppressed local report creation/recovery using global `delivered[target]`. A distant UAV inferred a GCS receipt through buffer/TTL/recovery changes without receiving any acknowledgment.
-- Removed only that global suppression; local camera/capacity/TTL and GCS unique-delivery accounting remain. Both native/Warp implementations fixed, actor layout unchanged.
-- Baseline717passed74skipped; TDD RED7failed3skipped; focused80passed4skipped14subtests; full724passed77skipped8warnings1267subtests, exit0. T4 diagnostic `kjhihgiugy/uav-local-report-cuda-correctness-20261025` COMPLETE:78passed0skipped14warnings12subtests, exit0, two T4 visible; no training launched. Source `c05806a`.
-- All existing checkpoints, including completed MASAC `bb1adf51`/`12582cc7`, predate this second locality fix. Their 20k training and publication completion are verified, but they are historical under the corrected local-sensing model. New corrected canonical experiments require episode0.
-- MATD3 fresh status: no post-6263156 W&B run exists; account14 ownerweofjwelf and account15 ownernkjkhkhk both have no owned kernels. Evidence: `evidence/2026-10-25-matd3-postfix-status.json`.
-- Plan/evidence: `plans/2026-10-25-local-report-sensing.md`, `evidence/2026-10-25-local-report-sensing.json`.
-- Next after CUDA: enforce checkpoint observation-semantics compatibility (dimensions alone currently accept old checkpoints), then finish owned-code audit/review. Preserve historical artifacts; no automatic replacement training during correctness audit.
+- Latest W&B snapshot16:21:55 Vietnam time25/10/2026: **zero Running runs**.
+- MASAC BASE `bb1adf51`:20,000 episodes,35,840,000 transitions, episode_budget_complete=true, stop_reason=episode_budget. CPU `44656f8c`:30/30; Kaggle complete; production _cpu_complete=true; W&B/HF publication ok; fresh media sizes/hashes match.
+- MASAC PQL `12582cc7`:20,000 episodes,35,139,584 transitions, same strict completion/publication gates. CPU `831a115e`:30/30 with fresh asset hashes verified.
+- BASE/PQL CPU final evaluation seed is **2000000044**, matching config/job; old handoff seed10044 was stale. BASE search74.095%,delivery25.238%,success0/30; PQL search77.714%,delivery33.619%,success0/30.
+- Historical MATD3 BASE `767cb8da` and PQL `30a40bf7`: strict20k completed, report/payload1024 B,buffer3072 B; already tagged obsolete-pre-decpomdp-fix (pre6263156). New MATD3 cases were not launched; fresh account14/15 owned lists empty.
+- **All existing trained policies predate the new c05806a local-report fix**, including completed MASAC cases. They are historical, not a canonical corrected local-sensing cohort. Six MASAC root/child/CPU runs now have historical-pre-local-report-fix tags; original scientific outcomes/source/config/history retained. CPU summary checkpoint steps corrected from0 to verified35,840,000 /35,139,584.
+- Primary report/payload1024 B,buffer3072 B. Config `configs/comparison-20k-hybrid75-1kb.yaml`; env4096,batch8192,replay1M,CPU75%,targets35,obstacles25,horizon1800,seed44. Map1000m XY and fixed altitude100m in this repo. Legacy1MB profiles retained as history/stress tests.
+- Legacy local automation6adb1a0b96dc8191b26ad5ed86545aac was privately checked and is disabled; no automation mutation performed. Existing cloud controllers/data were preserved. Only a bounded T4 correctness diagnostic was submitted today; it completed.
 
-## 2026-10-25 current audit — Tasks 1–2 verified
+## Next authorized work
 
-Latest user request: fresh W&B status, verify primary 1 KiB workload, audit Dec-POMDP/CTDE and owned code, reproduce and fix confirmed defects sequentially. Preserve healthy cloud jobs and lineage semantics.
+No replacement20k cohort or merge was requested during this correctness audit. Worktree and feature branch are preserved and synchronized. If the user requests training next, reconcile live jobs/accounts again, use the published corrected source and observation_version3, and launch a matched four-way cohort from **episode0**. Never warm-start the corrected cohort from any historical checkpoint above. Retain 1KiB shape, auto-continuation and final30-episode CPU protocol unless the user changes the spec.
 
-- Source at audit start: `4eb45ed9dd28567f8e1aeb8545570453b02d0927`, local equals remote; contains observation fix `6263156`.
-- MASAC BASE post-fix training `bb1adf51`: 20,000 episodes, episode_budget_complete=true, stop_reason=episode_budget, 35,840,000 transitions.
-- CPU `44656f8c` / `fewfijlwejfl/uavnet-train-20261024-125030-ce72-cpu`: Kaggle complete, 30 records, production `_cpu_complete=true`; W&B/HF publication ok. Fresh public downloads of video/image/metrics match receipt sizes and SHA256.
-- Actual report/payload=1024 bytes, buffer=3072. Actual final evaluation seed=2000000044, as pinned in config/job; the handoff's seed10044 is stale.
-- Evidence: `evidence/2026-10-25-masac-base-postfix-finalization.json` (timestamped).
-- Task 2: MASAC PQL `12582cc7` completed 20,000 episodes / 35,139,584 transitions, strict budget gate true. CPU `831a115e` has 30 episodes; Kaggle complete; `_cpu_complete=true`; W&B/HF publication ok and fresh media hashes match. Evidence: `evidence/2026-10-25-masac-pql-postfix-finalization.json`.
-- Final CPU evaluation: BASE search74.095%, delivery25.238%, success0/30; PQL search77.714%, delivery33.619%, success0/30. Completion is not mission success.
-- Next: reconcile MATD3 online status, then sequential Dec-POMDP and full owned-code audit before new training. Current user prioritizes correctness audit.
+Independent review findings were fixed in one TDD pass; no confirmed minor left deferred. Historical media remain publishable with their original/unknown protocol version, while old policies need pinned historical code for evaluation. Detailed evidence and limitations are linked in the report. Older sections below are historical context, superseded by this record.
 
-## 2026-10-24 pre-fix cloud cleanup — COMPLETE
-
-- After Dec-POMDP observation fix `6263156`, all pre-fix active cloud compute was stopped controller-first. Removed 9 RUNNING Kaggle refs: 2 1KB controllers, 2 1KB MASAC roots, and 5 old 1MB continuations. Post-delete status checks return removed/inaccessible for all 9.
-- W&B cleanup preserves history: 10 stale/running pre-fix runs were tagged `obsolete-pre-decpomdp-fix` and closed as failed; project query now returns zero running runs.
-- Finished 1KB MATD3 BASE `767cb8da` and PQL `30a40bf7` remain finished but are tagged `historical-1kb-prefix` + `obsolete-pre-decpomdp-fix`.
-- Evidence: `docs/superpowers/evidence/2026-10-24-pre-decpomdp-cloud-cleanup.json`.
-- Next: launch a clean four-case 1KB cohort from episode 0 pinned to `6263156` (MASAC/MATD3 × BASE/PQL). Never resume pre-fix checkpoints into this cohort.
+---
 
 ## 2026-10-24 Dec-POMDP local-observation leakage fix — VERIFIED
 
