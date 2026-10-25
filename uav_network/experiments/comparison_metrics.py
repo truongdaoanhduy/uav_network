@@ -4,6 +4,7 @@ import json
 import numpy as np
 
 from ..environment.geometry import segment_distance
+from ..environment.observations import OBSERVATION_VERSION
 
 
 # Units and preferred direction are explicit; no aggregate 'best algorithm' score.
@@ -53,6 +54,7 @@ def evaluation_protocol(config, seeds, progress):
         for key in ("pa_efficiency", "tx_circuit_power_w", "rx_circuit_power_w"):
             network.pop(key, None)
     scenario["environment_backend"] = config.runtime.environment_backend
+    scenario["observation_version"] = OBSERVATION_VERSION
     digest = hashlib.sha256(json.dumps(scenario, sort_keys=True, allow_nan=False).encode()).hexdigest()
     next_seed = progress.get("next_seed")
     history_seeds = [r["seed"] for r in progress.get("records", []) if type(r.get("seed")) is int]

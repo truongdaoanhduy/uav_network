@@ -1,0 +1,72 @@
+{
+  "observed_at_utc": "2026-10-25T08:59:56.355955+00:00",
+  "historical_matd3": [
+    {
+      "id": "767cb8da",
+      "name": "MATD3-BASE-uav-network-2d-seed44-20261024-074821-e57c46",
+      "state": "finished",
+      "tags": [
+        "auto-continue",
+        "base-pql-comparison",
+        "batch8192",
+        "cpu-visualize",
+        "cpu75-gpu25",
+        "env4096",
+        "full20k",
+        "historical-1kb-prefix",
+        "obsolete-pre-decpomdp-fix",
+        "radio-energy",
+        "replay1m",
+        "report1kb",
+        "scenario-v3",
+        "seed44",
+        "steps1800",
+        "uav-network"
+      ],
+      "source": "0c9fbc5b93acfd3008f9802950570849bc42997c",
+      "report_bytes": 1024,
+      "payload_bytes": 1024,
+      "buffer_bytes": 3072,
+      "training": {
+        "episodes_completed": 20000,
+        "global_step": 35827712,
+        "episode_budget_complete": true,
+        "stop_reason": "episode_budget"
+      }
+    },
+    {
+      "id": "30a40bf7",
+      "name": "MATD3-PQL-uav-network-2d-seed44-20261024-080451-eda89d",
+      "state": "finished",
+      "tags": [
+        "auto-continue",
+        "base-pql-comparison",
+        "batch8192",
+        "cpu-visualize",
+        "cpu75-gpu25",
+        "env4096",
+        "full20k",
+        "historical-1kb-prefix",
+        "obsolete-pre-decpomdp-fix",
+        "radio-energy",
+        "replay1m",
+        "report1kb",
+        "scenario-v3",
+        "seed44",
+        "steps1800",
+        "uav-network"
+      ],
+      "source": "0c9fbc5b93acfd3008f9802950570849bc42997c",
+      "report_bytes": 1024,
+      "payload_bytes": 1024,
+      "buffer_bytes": 3072,
+      "training": {
+        "episodes_completed": 20000,
+        "global_step": 35430400,
+        "episode_budget_complete": true,
+        "stop_reason": "episode_budget"
+      }
+    }
+  ],
+  "wandb_running": []
+}

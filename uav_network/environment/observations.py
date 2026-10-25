@@ -4,6 +4,9 @@ import numpy as np
 from .sensing import visible_target_ids
 from ..communication.link_budget import nominal_required_power_w, power_fraction
 
+# Local-radio link metadata and report sensing without remote GCS receipts.
+OBSERVATION_VERSION = 3
+
 
 def observation_dim(config):
     w, s, n = config.world, config.sensor, config.network

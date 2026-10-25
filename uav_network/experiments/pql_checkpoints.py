@@ -5,11 +5,13 @@ import torch
 
 from .continuation import validate_progress
 from ..algorithms.precision import validate_precision_state
+from ..algorithms.checkpoints import validate_observation_version
 
 
 def validate_pql_checkpoint(saved, config):
     if saved.get("version") != 3 or not isinstance(saved.get("training"), dict):
         raise ValueError("PQL resume requires a complete version-3 training checkpoint")
+    validate_observation_version(saved)
     progress = validate_progress(saved.get("progress"), config.runtime.episodes)
     training = saved["training"]
     before, current = saved["config"]["runtime"], config.to_dict()["runtime"]

@@ -4,7 +4,7 @@ from pathlib import Path
 import torch
 
 from ..configuration import Config, _apply
-from ..environment.observations import observation_dim, state_dim
+from ..environment.observations import OBSERVATION_VERSION, observation_dim, state_dim
 
 
 def make_learner(config, obs_dim, critic_dim, device="cpu"):
@@ -12,6 +12,13 @@ def make_learner(config, obs_dim, critic_dim, device="cpu"):
     from .matd3 import MATD3
     cls = {"masac": MASAC, "matd3": MATD3}[config.runtime.algorithm]
     return cls(config, obs_dim, critic_dim, device)
+
+
+def validate_observation_version(saved):
+    version = saved.get("observation_version")
+    if type(version) is not int or version != OBSERVATION_VERSION:
+        raise ValueError("Checkpoint observation semantics differ; use its pinned historical source "
+                         "or retrain from episode 0")
 
 
 def save_policy(learner, path, progress=None, *, training=None):
@@ -23,7 +30,8 @@ def save_policy(learner, path, progress=None, *, training=None):
     temporary = path.with_suffix(path.suffix + ".tmp")
     saved = {"version": 3 if training is not None else 2, "algorithm": learner.algorithm,
                 "config": learner.config.to_dict(), "observation_dim": learner.observation_dim,
-                "state_dim": learner.state_dim, "model": learner.state_dict(),
+                "state_dim": learner.state_dim, "observation_version": OBSERVATION_VERSION,
+                "model": learner.state_dict(),
                 "updates": learner.updates}
     if training is not None:
         saved["training"] = training
@@ -42,6 +50,7 @@ def load_policy(path, device="cpu", expected_algorithm=None, *, payload=None):
     saved = payload if payload is not None else torch.load(path, map_location=device, weights_only=True)
     if saved.get("version") not in {2, 3}:
         raise ValueError("Battery/mask observations require a version-2 checkpoint; retrain old policies")
+    validate_observation_version(saved)
     algorithm = saved.get("algorithm")
     if algorithm not in {"masac", "matd3"} or (expected_algorithm and algorithm != expected_algorithm):
         raise ValueError(f"Checkpoint algorithm {algorithm!r} does not match {expected_algorithm!r}")

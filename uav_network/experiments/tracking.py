@@ -10,6 +10,7 @@ import numpy as np
 
 from .hardware import hardware_info
 from .telemetry import episode_telemetry
+from ..environment.observations import OBSERVATION_VERSION
 
 
 def progress_metrics(observations, config):
@@ -135,7 +136,7 @@ class OnlineTracker:
         name = config.tracking.run_name
         if name == "auto":
             name = os.environ.get("WANDB_NAME") or f"{config.runtime.algorithm.upper()}-uav-network-2d-seed{config.runtime.seed}-{run_id}"
-        metadata = {"source_git_commit": os.environ.get("UAV_GIT_COMMIT", "local"),
+        metadata = {"observation_version": OBSERVATION_VERSION, "source_git_commit": os.environ.get("UAV_GIT_COMMIT", "local"),
                     "kaggle_account": os.environ.get("UAV_KAGGLE_ACCOUNT", "local"),
                     "kaggle_kernel": os.environ.get("UAV_KAGGLE_KERNEL", "local"),
                     "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES", "all"),

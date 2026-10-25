@@ -42,3 +42,14 @@
 ## Follow-up audit
 
 After Task1 verification, review actors/critics/replay/continuation/evaluation/cloud publication sequentially. Reproduce each confirmed defect before changing its owning function. Preserve a file/module inventory and list audit limits instead of claiming exhaustive proof of correctness.
+
+## Task 2: checkpoint observation compatibility
+
+**Files:** `environment/observations.py` owns observation version3; `algorithms/checkpoints.py` saves and validates it; `experiments/evaluation_snapshots.py`, `fixed_checkpoints.py`, `pql_checkpoints.py` reuse the validator; `comparison_metrics.py` includes it in scenario hashes; `tracking.py` publishes it in future run configs. Paths are under `uav_network/`.
+
+**Interfaces:** Add `validate_observation_version(saved)` and constant `OBSERVATION_VERSION=3`. Missing or older metadata is rejected before accepting a policy, evaluation snapshot, or resume checkpoint. Historical policies remain usable with their pinned historical source.
+
+- [x] Add real policy/snapshot/full BASE and PQL resume tests with missing/old version but identical dimensions; watch all fail for lack of rejection.
+- [x] Save version3 in both policy formats, validate through all loading/preflight paths, and include it in scenario provenance.
+- [x] Run focused checkpoint/resume/evaluation tests, then full pytest. Existing exact-resume tests must still pass.
+- [x] Record evidence, update current-task status, commit and push.

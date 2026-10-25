@@ -1,0 +1,10 @@
+{
+  "observed_at_utc": "2026-10-25T09:00:53.979612+00:00",
+  "defect": "Policy dimensions matched even when actor observation semantics differed; old policy, evaluation-only snapshot and full BASE/PQL resume preflight were accepted",
+  "reproduction": "10 tests expected ValueError on missing/older observation version; all failed before guard",
+  "fix": "Persist observation_version3, reject missing/older semantics across policy/snapshot/resume load paths; include observation version in scenario hash and W&B metadata",
+  "focused": "48 passed,2 skipped,6 subtests; followup checkpoint+frozenV2physics12 passed",
+  "first_full": "733 passed,1 failed,77 skipped: old V2 scenario hash assertion expected original observation identity",
+  "resolution": "Preserve the original literal V2 physical scenario hash, explicitly verify that adding corrected observation semantics changes protocol identity",
+  "final_full": "734 passed,77 skipped,8 warnings,1269 subtests,exit0,222.91s"
+}

@@ -1,3 +1,11 @@
+## 2026-10-25 checkpoint semantics guard — VERIFIED; final review active
+
+- Added observation_version3 to new policies and actor-only snapshots; native/Warp report-locality fix is its semantic contract. Missing/older versions now fail policy/evaluation/BASE/PQL resume loading before accepting weights/progress. Historical analysis uses the pinned old source.
+- Scenario hashes and future W&B config metadata now include observation_version. The frozen legacyV2 physical hash remains verified separately; corrected observation semantics require a different protocol identity.
+- TDD RED10failed, focused48passed2skipped6subtests; full rerun734passed77skipped8warnings1269subtests,exit0. First full run's one frozen-hash assertion was corrected to test both unchanged physics and changed observation identity.
+- Evidence: `evidence/2026-10-25-observation-version-guard.json`. Fresh 08:59:56Z W&B snapshot has zero Running runs; both historical MATD3 cases are strict20k/1KiB and already obsolete-pre-decpomdp-fix.
+- One read-only fresh-context Superpowers reviewer is checking source/restore/radio/cloud correctness. Confirmed final-pass item: CPU visualization evaluation-axis definition does not match per-episode logs; evaluation model/protocol itself is correct. Source remains stable until review finishes; then fix with RED/GREEN/full suite.
+
 ## 2026-10-25 local report sensing correction — VERIFIED
 
 - New confirmed leakage beyond `6263156`: native `ReportStore.discover` and Warp `sense_reports_at` suppressed local report creation/recovery using global `delivered[target]`. A distant UAV inferred a GCS receipt through buffer/TTL/recovery changes without receiving any acknowledgment.

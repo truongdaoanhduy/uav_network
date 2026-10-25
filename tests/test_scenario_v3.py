@@ -1,5 +1,7 @@
 """Scenario V3 freezes the large-report radio-energy study without mutating V2."""
 from pathlib import Path
+import hashlib
+import json
 import unittest
 
 from uav_network.configuration import load_config
@@ -16,8 +18,14 @@ class ScenarioV3Tests(unittest.TestCase):
         self.assertEqual((v2.network.report_bytes, v2.network.buffer_bytes), (1024, 3072))
         self.assertEqual((v2.network.pa_efficiency, v2.network.tx_circuit_power_w,
                           v2.network.rx_circuit_power_w), (1.0, 0.0, 0.0))
-        self.assertEqual(evaluation_protocol(v2, [2000000044], {"next_seed": 50000})["scenario_hash"],
-                         V2_HASH)
+        protocol = evaluation_protocol(v2, [2000000044], {"next_seed": 50000})
+        # Physics is still frozen, but corrected observations need a new identity.
+        physical_scenario = dict(protocol["scenario"])
+        self.assertEqual(physical_scenario.pop("observation_version"), 3)
+        physical_hash = hashlib.sha256(json.dumps(physical_scenario, sort_keys=True,
+                                                  allow_nan=False).encode()).hexdigest()
+        self.assertEqual(physical_hash, V2_HASH)
+        self.assertNotEqual(protocol["scenario_hash"], V2_HASH)
 
         v3 = load_config(ROOT / "configs/comparison-25k-scenario-v3.yaml")
         self.assertEqual((v3.world.num_uavs, v3.world.num_targets, v3.world.num_obstacles,

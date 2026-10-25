@@ -4,7 +4,7 @@ import random
 import numpy as np
 import torch
 
-from ..algorithms.checkpoints import save_policy
+from ..algorithms.checkpoints import save_policy, validate_observation_version
 from ..algorithms.precision import validate_precision_state
 from ..algorithms.replay import transition_shapes
 from .pql_workers import optimizer_states, restore_optimizers
@@ -84,6 +84,7 @@ def validate_fixed_checkpoint(saved, config):
     from .continuation import validate_progress
     if saved.get("version") != 3 or not isinstance(saved.get("training"), dict):
         raise ValueError("Fixed-schedule resume requires a complete version-3 training checkpoint")
+    validate_observation_version(saved)
     training = saved["training"]
     required = {"trainer", "optimizers", "replay", "rng", "collections", "warmup_origin",
                 "random_warmup", "next_metrics_at", "latest", "last_actor_metrics", "learner_device_type", "pending_learning"}
