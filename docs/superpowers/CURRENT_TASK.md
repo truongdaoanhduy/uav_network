@@ -1,3 +1,14 @@
+## 2026-10-25 current audit — Task 1 verified
+
+Latest user request: fresh W&B status, verify primary 1 KiB workload, audit Dec-POMDP/CTDE and owned code, reproduce and fix confirmed defects sequentially. Preserve healthy cloud jobs and lineage semantics.
+
+- Source at audit start: `4eb45ed9dd28567f8e1aeb8545570453b02d0927`, local equals remote; contains observation fix `6263156`.
+- MASAC BASE post-fix training `bb1adf51`: 20,000 episodes, episode_budget_complete=true, stop_reason=episode_budget, 35,840,000 transitions.
+- CPU `44656f8c` / `fewfijlwejfl/uavnet-train-20261024-125030-ce72-cpu`: Kaggle complete, 30 records, production `_cpu_complete=true`; W&B/HF publication ok. Fresh public downloads of video/image/metrics match receipt sizes and SHA256.
+- Actual report/payload=1024 bytes, buffer=3072. Actual final evaluation seed=2000000044, as pinned in config/job; the handoff's seed10044 is stale.
+- Evidence: `evidence/2026-10-25-masac-base-postfix-finalization.json` (timestamped).
+- Next task: verify MASAC PQL by the same gate. Then reconcile MATD3 live status and audit code before any new launch. Current user prioritizes correctness audit.
+
 ## 2026-10-24 pre-fix cloud cleanup — COMPLETE
 
 - After Dec-POMDP observation fix `6263156`, all pre-fix active cloud compute was stopped controller-first. Removed 9 RUNNING Kaggle refs: 2 1KB controllers, 2 1KB MASAC roots, and 5 old 1MB continuations. Post-delete status checks return removed/inaccessible for all 9.
