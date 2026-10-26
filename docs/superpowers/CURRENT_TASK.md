@@ -1,12 +1,12 @@
-# Current task: AMP + torch.compile Task 5 MATD3 PQL repeat — COMPLETE
+# Current task: Task 6 measured acceleration policy — COMPLETE
 
-Updated 2026-10-27. Task4 r1 + two Task5 repeats per mode give n=3 FP16/off vs n=3 FP16/compile at identical MATD3 PQL E4096/B8192/R1M/hybrid75/2xT4 shape.
+Updated 2026-10-27. Source commits `b9d660a` + `8bedf4c`; canonical cloud train/validate now materializes the measured T4/G3 acceleration policy into manifest overrides.
 
-- FP16/off mean:3464.35 transitions/s,1.5224 critic updates/s,47.308s elapsed,3.966GiB GPU1 allocated.
-- FP16/compile mean:3065.44 transitions/s,1.3471 critic updates/s,53.486s elapsed,3.843GiB allocated. Compile changes throughput **-11.51%**, elapsed +13.06%, allocated VRAM -3.11%, reserved -8.84%.
-- All 3 compile runs are slower than all 3 compile-off runs. All new reports passed, CUDA pipeline true, FP16 no skips; compile has3 graphs/88kernels/0breaks/0fallback. CUDA11/11 + scenario4/4 + mission8/8 + PQL smoke11/11 each.
-- Measured candidate policy: MASAC BASE on/on; MATD3 BASE on/on; MASAC PQL on/on; **MATD3 PQL FP16 ON / compile OFF**; fused remains OFF. Only MATD3-PQL compile decision has n=3 confirmation.
-- Evidence: `docs/superpowers/evidence/2026-10-27-amp-compile-task5-matd3-pql-repeat.md`. Next Task6: encode policy safely in production launch/config path.
+- Policy: MASAC BASE FP16+compile; MATD3 BASE FP16+compile; MASAC PQL FP16+compile; **MATD3 PQL FP16 + compile OFF**; fused Adam OFF everywhere. Explicit acceleration `--set` values win; benchmark stage and noncanonical configs are untouched.
+- Canonical PQL `--algorithm both` is refused because the algorithms require different compile settings; BASE both remains valid. Effective overrides persist through normal continuation/resume.
+- W&B group is acceleration-neutral (`...accel-policy-20261027`); authoritative tags are regenerated as amp/compile/fused ON/OFF from resolved runtime, preventing stale `torch-compile` on MATD3 PQL.
+- Verification: integration20pass; focused cloud/resume76pass+2skip+770subtests; full offline **820pass,95skip,8warnings,1359subtests,RC0**; diff-check/compileall clean. Existing `wandb/` preserved; no historical run/checkpoint changed and no new20k cohort launched.
+- Evidence: `docs/superpowers/evidence/2026-10-27-measured-acceleration-policy.md`. Next Task7: bounded real 2xT4 smoke proving MASAC-PQL compile ON and MATD3-PQL compile OFF from the new launcher before any new production cohort.
 
 ---
 
