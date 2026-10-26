@@ -41,18 +41,6 @@ Updated 2026-10-26T23:43+07:00. Implementation commit `19ffcac` on `feat/cpu-rep
 
 ---
 
-# Current task: reusable new-chat handoff — COMPLETE
-
-Updated 2026-10-26T23:15:19.356541+07:00. User requested a comprehensive pasteable context prompt. Production source remains77a1d0f; documentation parent14a1f39.
-
-- Rechecked actual branch/HEAD/status and all referenced robust/config-comparison evidence files. Existing untracked wandb/ preserved.
-- Prepared Vietnamese handoff covering code map, scientific config, certified scene recovery, MASAC memory fix, CUDA/CPU evidence, eight G3 run/controller identities, cloud continuation, historical snapshot timestamp and AMP/compile advice-only boundary.
-- Handoff temporary path: /tmp/uav_network_handoff_20261026_g3.md. This prompt references canonical repo artifacts; source code is not duplicated into another repository. No credentials are included.
-- Latest recorded service snapshot remains20:15:10Vietnam26October; no fresh W&B/Kaggle state claim. No new benchmark, retuning, restart, launch, cancellation, cleanup or store mutation.
-- Verification: repo/evidence path checks, source/config/run identity cross-check and documentation whitespace checks. Next action is the user's next request; fresh service checks are required for operational questions.
-
----
-
 # Current task: AMP / torch.compile advice — COMPLETE; BENCHMARK NOT RUN
 
 Updated 2026-10-26T21:14:42.250690+07:00. Production source77a1d0f; documentation parent3d3c644. User asked whether these options should be enabled.
