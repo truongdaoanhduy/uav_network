@@ -303,14 +303,14 @@ class NetworkTelemetryTests(unittest.TestCase):
                      "delivery_hop_histogram", "first_discovery", "first_delivery", "buffer_peak"):
             value = getattr(s, name)
             value.fill_(7)
-        wp.launch(reset_network, dim=2, inputs=[s, p, wp.array([1, 0], dtype=wp.int32)], device="cpu")
+        wp.launch(reset_network, dim=2, inputs=[s, p, wp.array([1, 0], dtype=wp.int32, device="cpu")], device="cpu")
         for name in ("diagnostic_counts", "diagnostic_stats", "power_histogram",
                      "delivery_hop_histogram", "buffer_peak"):
             self.assertTrue(np.all(getattr(s, name).numpy()[0] == 0), name)
             self.assertTrue(np.all(getattr(s, name).numpy()[1] == 7), name)
         self.assertTrue(np.all(s.first_discovery.numpy()[0] == -1))
         self.assertTrue(np.all(s.first_delivery.numpy()[0] == -1))
-        wp.launch(reset_network, dim=2, inputs=[s, p, wp.array([1, 1], dtype=wp.int32)], device="cpu")
+        wp.launch(reset_network, dim=2, inputs=[s, p, wp.array([1, 1], dtype=wp.int32, device="cpu")], device="cpu")
         self.assertTrue(np.all(s.diagnostic_counts.numpy() == 0))
         self.assertTrue(np.all(s.first_discovery.numpy() == -1))
         self.assertTrue(np.all(s.first_delivery.numpy() == -1))

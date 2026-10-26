@@ -61,7 +61,7 @@ class ScenarioV3IntegrationTests(unittest.TestCase):
             s, p = env.vector.s, env.vector.p
             s.positions.assign(positions[None])
             s.targets.assign(targets[None])
-            wp.launch(reset_network, dim=1, inputs=[s, p, wp.array([1], dtype=wp.int32)], device="cpu")
+            wp.launch(reset_network, dim=1, inputs=[s, p, wp.array([1], dtype=wp.int32, device="cpu")], device="cpu")
             wp.launch(sense, dim=(1, len(positions), 1), inputs=[s, p], device="cpu")
             wp.launch(sense_reports, dim=1, inputs=[s, p], device="cpu")
             env._refresh()
