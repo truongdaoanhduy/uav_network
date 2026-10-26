@@ -8,11 +8,14 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+import torch
+
 import test_evaluation_resume as evaluation_tests
 from uav_network.cloud import visualize
 from uav_network.experiments import evaluation
 
 
+@unittest.skipIf(torch.cuda.is_available(), reason="requires a CPU-only host")
 class VisualizationResumeTests(unittest.TestCase):
     def spec(self, config):
         return {"entity": "owner", "project": "main", "account": "selected",

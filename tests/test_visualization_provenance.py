@@ -6,11 +6,13 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+import torch
 
 from test_tracking import OnlineRun
 from uav_network.cloud import visualize
 
 
+@pytest.mark.skipif(torch.cuda.is_available(), reason="requires a CPU-only host")
 @pytest.mark.parametrize("version", [None,2,3])
 @pytest.mark.parametrize("generation", [None,1,2])
 def test_publication_recovery_uses_saved_observation_provenance(tmp_path,version,generation):

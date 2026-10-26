@@ -7,11 +7,14 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+import torch
+
 from uav_network.configuration import Config
 from uav_network.experiments.training import train
 from uav_network.cloud.visualize import run_visualization
 
 
+@unittest.skipIf(torch.cuda.is_available(), reason="requires a CPU-only host")
 class VisualizationTrackingTests(unittest.TestCase):
     def test_cpu_job_logs_online_in_main_project_and_finishes_failures(self):
         with TemporaryDirectory() as directory:

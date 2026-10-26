@@ -8,6 +8,8 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
+import torch
+
 from uav_network.configuration import Config
 
 
@@ -139,6 +141,7 @@ class CheckpointArchiveTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'not completed'):
                 verify_completed_source(api, spec, '12345678', object())
 
+    @unittest.skipIf(torch.cuda.is_available(), reason="requires a CPU-only host")
     def test_archive_requires_bound_completion_proof_before_online_side_effects(self):
         from uav_network.cloud import archive as module
         spec = {'entity': 'owner', 'project': 'main', 'checkpoint_repo': 'owner/private',
@@ -265,6 +268,7 @@ class CheckpointArchiveTests(unittest.TestCase):
         self.assertEqual(by_ref[external.qualified_name]['status'],'already_external')
         self.assertEqual(by_ref[protected.qualified_name]['status'],'protected')
 
+    @unittest.skipIf(torch.cuda.is_available(), reason="requires a CPU-only host")
     def test_archive_runner_refuses_requested_ref_not_safe_in_fresh_inventory(self):
         from uav_network.cloud import archive as module
         ref='owner/main/uav-network-matd3-12345678:v0'
