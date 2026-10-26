@@ -53,7 +53,8 @@ runtime:
   coalesce_idle_polls: true
   vectorize_critics: true
   critic_chunk_size: 1024
-  compile_models: false
+  amp_mode: fp16
+  compile_models: true
   fused_optimizers: false
   episodes: 20000
   device: cuda
@@ -88,9 +89,11 @@ tracking:
   project: uav_search_target
   checkpoint_repo: duy95/uav-search-checkpoints
   checkpoint_repo_private: false
-  group: uav-v3-full20k-e4096-b8192-r1kb-cpu75-20261024
+  group: uav-v3-full20k-e4096-b8192-r1kb-cpu75-ampfp16-compile-20261026
   tags:
   - uav-network
+  - amp-fp16
+  - torch-compile
   - scenario-v3
   - full20k
   - replay1m
