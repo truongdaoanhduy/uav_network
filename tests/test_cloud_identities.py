@@ -112,3 +112,18 @@ def test_mandatory_preflight_keeps_reserved_training_id_and_marks_benchmark(tmp_
     assert seen[0]["UAV_STAGE"] == "benchmark"
     assert "WANDB_RUN_ID" not in seen[0]
     assert os.environ["WANDB_RUN_ID"] == "reserved-training"
+
+
+def test_authoritative_tags_replace_stale_acceleration_tags_with_resolved_runtime():
+    from uav_network.cloud.identities import authoritative_tags
+    c = load_config("configs/comparison-20k-hybrid75-1kb.yaml")
+    c.tracking.tags = ["uav-network", "amp-fp16", "torch-compile", "fused-adam"]
+    c.runtime.amp_mode = "fp16"
+    c.runtime.compile_models = False
+    c.runtime.fused_optimizers = False
+    tags = authoritative_tags(c)
+    assert "amp-fp16" in tags
+    assert "compile-off" in tags
+    assert "fused-off" in tags
+    assert "torch-compile" not in tags
+    assert "fused-adam" not in tags

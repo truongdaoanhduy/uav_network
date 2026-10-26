@@ -37,8 +37,18 @@ def kernel_slug(owner, config, algorithm, mode, stage, stamp, token):
 
 def authoritative_tags(config):
     tags = [tag for tag in config.tracking.tags
-            if not re.fullmatch(r"cpu\d+[-_]gpu\d+|replay-(?:fullgpu|cpu|auto|hybrid-c\d+-g\d+)", tag, re.I)]
-    return list(dict.fromkeys([*tags, "replay-" + replay_layout(config).lower(),
+            if not re.fullmatch(
+                r"cpu\d+[-_]gpu\d+|replay-(?:fullgpu|cpu|auto|hybrid-c\d+-g\d+)|"
+                r"amp-(?:fp16|off)|torch-compile|compile-off|fused-adam|fused-off",
+                tag, re.I)]
+    runtime = config.runtime
+    acceleration = [
+        "amp-fp16" if runtime.amp_mode == "fp16" else "amp-off",
+        "torch-compile" if runtime.compile_models else "compile-off",
+        "fused-adam" if runtime.fused_optimizers else "fused-off",
+    ]
+    return list(dict.fromkeys([*tags, *acceleration,
+                               "replay-" + replay_layout(config).lower(),
                                f"generation{config.world.generation_version}"]))
 
 

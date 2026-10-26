@@ -12,6 +12,7 @@ from .client import CredentialFileSetError, account_quotas, ensure_cpu_wandb_dat
 from .credentials import load_credentials, select_account
 from .kernel import kernel_metadata, kernel_script
 from .identities import authoritative_tags, kernel_slug, run_name
+from .acceleration import apply_measured_acceleration_policy
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -62,6 +63,11 @@ def launch(args, credentials):
             raise ValueError("CPU replay diagnostic requires benchmark/MASAC, the pinned V3 config, and no extra overrides")
         config_file = expected
         config = load_config(ROOT / config_file)
+    effective_overrides = apply_measured_acceleration_policy(
+        ROOT / config_file, args.stage, args.algorithm, config, list(args.overrides),
+        ROOT / "configs/comparison-20k-hybrid75-1kb.yaml")
+    if effective_overrides != list(args.overrides):
+        config = load_config(ROOT / config_file, effective_overrides)
     if compare_legacy and (args.stage != "benchmark" or not config.pql.enabled):
         raise ValueError("Matched comparison requires --stage benchmark and pql.enabled=true")
     if compare_legacy and (config.runtime.replay_cpu_fraction or config.runtime.replay_device == "cpu"):
@@ -84,7 +90,7 @@ def launch(args, credentials):
     runs = {a: {"id": uuid4().hex[:8],
                 "name": run_name(config, a, training_mode, args.stage, stamp + "-" + token)}
             for a in algorithms}
-    overrides = list(args.overrides)
+    overrides = list(effective_overrides)
     if not diagnostic:
         config.tracking.tags = authoritative_tags(config)
         overrides = [item for item in overrides if not item.startswith("tracking.tags=")]

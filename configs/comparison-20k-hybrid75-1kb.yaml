@@ -89,7 +89,7 @@ tracking:
   project: uav_search_target
   checkpoint_repo: duy95/uav-search-checkpoints
   checkpoint_repo_private: false
-  group: uav-v3-full20k-e4096-b8192-r1kb-cpu75-ampfp16-compile-20261026
+  group: uav-v3-full20k-e4096-b8192-r1kb-cpu75-accel-policy-20261027
   tags:
   - uav-network
   - amp-fp16
