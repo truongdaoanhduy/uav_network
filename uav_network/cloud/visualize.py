@@ -9,6 +9,8 @@ from tempfile import TemporaryDirectory
 from urllib.parse import quote
 from uuid import uuid4
 
+from .identities import related_run_name
+
 import torch
 
 from .client import record_submission_phase, pushed_kernel_ref, run_kaggle, verify_credential_dataset
@@ -136,7 +138,7 @@ def build_visualization_spec(parent, results):
     from .continuation import kernel_ref_for_segment
     cpu_ref = kernel_ref_for_segment(parent.get("root_kernel_ref", parent["kernel_ref"]), 0, cpu=True)
     runs = {a: {"id": uuid4().hex[:8],
-                "name": f"{a.upper()}-CPU-visualize-{parent['runs'][a]['id']}-{uuid4().hex[:6]}"}
+                "name": related_run_name(parent["runs"][a]["name"], "EVALCPU", uuid4().hex[:6])}
             for a in artifacts}
     return {"stage": "visualize", "runs": runs,
             "config": parent.get("config"), "overrides": parent.get("overrides", []),

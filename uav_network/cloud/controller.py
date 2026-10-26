@@ -18,6 +18,7 @@ from uuid import uuid4
 from .client import record_submission_phase, kernel_status, pushed_kernel_ref, run_kaggle, verify_credential_dataset, verify_pipeline_credential_dataset
 from .continuation import _owned_kernel_exists, kernel_ref_for_segment, next_stage, submit_continuation
 from .credentials import Account, Credentials
+from .identities import related_run_name
 from .kernel import kernel_metadata, kernel_script
 from .visualize import build_visualization_spec, submit_visualization
 
@@ -68,7 +69,7 @@ def build_controller_spec(parent, commit, *, gpu_commit=None, state=None, genera
             "pipeline_credential_dataset": parent["pipeline_credential_dataset"],
             "requires_kaggle_token": True, "timeout_seconds": 39600, "generation": generation,
             "poll_seconds": 900, "parent": deepcopy(parent), "state": state,
-            "run": {"id": identity, "name": f"FLOW-{parent.get('training_mode', 'train')}-{root.split('/')[-1]}-g{generation}"},
+            "run": {"id": identity, "name": related_run_name(next(iter(parent["runs"].values()))["name"], "CTRL", f"C{generation}")},
             "submitted_at_utc": datetime.now(timezone.utc).isoformat()}
 
 

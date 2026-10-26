@@ -11,6 +11,7 @@ from ..configuration import load_config
 from .client import CredentialFileSetError, account_quotas, ensure_cpu_wandb_dataset, ensure_pipeline_dataset, kernel_status, pushed_kernel_ref, resolve_username, run_kaggle, verify_credential_dataset
 from .credentials import load_credentials, select_account
 from .kernel import kernel_metadata, kernel_script
+from .identities import authoritative_tags, kernel_slug, run_name
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -76,18 +77,24 @@ def launch(args, credentials):
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     token = uuid4().hex[:6]
-    slug = f"uavnet-{args.stage}-{stamp}-{token}"
     algorithms = ("masac", "matd3") if args.algorithm == "both" else (args.algorithm,)
     inputs = parse_warm_start_artifacts(args.warm_start_artifact, algorithms)
     training_mode = "pql" if diagnostic or config.pql.enabled else "base"
-    runs = {a: {"id": uuid4().hex[:8], "name": f"{a.upper()}-{training_mode.upper()}-uav-network-2d-seed{config.runtime.seed}-{stamp}-{token}"}
+    slug = kernel_slug(username, config, args.algorithm, training_mode, args.stage, stamp, token)
+    runs = {a: {"id": uuid4().hex[:8],
+                "name": run_name(config, a, training_mode, args.stage, stamp + "-" + token)}
             for a in algorithms}
+    overrides = list(args.overrides)
+    if not diagnostic:
+        config.tracking.tags = authoritative_tags(config)
+        overrides = [item for item in overrides if not item.startswith("tracking.tags=")]
+        overrides.append("tracking.tags=" + json.dumps(config.tracking.tags))
     spec = {"submitted_at_utc": datetime.now(timezone.utc).isoformat(), "commit": commit, "kernel_ref": f"{username}/{slug}", "account": account.name,
             "timeout_seconds": timeout_seconds, "warm_start_artifacts": inputs,
             "credential_dataset": args.credential_dataset,
             "entity": credentials.entity if config.tracking.entity == "auto" else config.tracking.entity,
             "project": credentials.project if config.tracking.project == "auto" else config.tracking.project,
-            "stage": args.stage, "config": config_file, "overrides": args.overrides, "runs": runs}
+            "stage": args.stage, "config": config_file, "overrides": overrides, "runs": runs}
     spec.update({"training_mode": training_mode,
                  "accelerator": args.accelerator, "gpus_per_run": args.gpus_per_run})
     if diagnostic:

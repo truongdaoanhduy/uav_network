@@ -139,7 +139,10 @@ class OnlineTracker:
         run_id = os.environ.get("WANDB_RUN_ID") or uuid4().hex[:8]
         name = config.tracking.run_name
         if name == "auto":
-            name = os.environ.get("WANDB_NAME") or f"{config.runtime.algorithm.upper()}-uav-network-2d-seed{config.runtime.seed}-{run_id}"
+            from ..cloud.identities import run_name
+            name = os.environ.get("WANDB_NAME") or run_name(
+                config, config.runtime.algorithm, "PQL" if config.pql.enabled else "BASE",
+                os.environ.get("UAV_STAGE", "train"), run_id)
         metadata = {"observation_version": initial.get("observation_version", OBSERVATION_VERSION), "source_git_commit": os.environ.get("UAV_GIT_COMMIT", "local"),
                     "kaggle_account": os.environ.get("UAV_KAGGLE_ACCOUNT", "local"),
                     "kaggle_kernel": os.environ.get("UAV_KAGGLE_KERNEL", "local"),
