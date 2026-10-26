@@ -68,7 +68,7 @@ class ScenarioV3Tests(unittest.TestCase):
         self.assertEqual(old["fragments_per_report"], 1)
         self.assertEqual(new["session_fragment_dense_bytes"], 0)
         for count in counts:
-            self.assertEqual(new["estimated_bytes"][str(count)], new["bytes_per_env"] * count)
+            self.assertEqual(new["estimated_bytes"][str(count)], new["shared_bytes"] + new["bytes_per_env"] * count)
 
 
 if __name__ == "__main__":

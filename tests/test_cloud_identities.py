@@ -65,3 +65,50 @@ def test_launch_names_and_tags_are_authoritative(algorithm, pql, full_gpu):
         assert "replay-fullgpu" in actual_tags
     else:
         assert "replay-hybrid-c75-g25" in actual_tags
+
+
+def test_actual_benchmark_entrypoint_uses_complete_unique_identity_and_stage(tmp_path, monkeypatch):
+    import os
+    import runpy
+    import sys
+    entry = runpy.run_path("scripts/benchmark_pql.py")
+    c = load_config("configs/comparison-20k-hybrid75-1kb.yaml")
+    c.runtime.device = "cpu"
+    c.runtime.replay_device = "cuda"
+    c.runtime.replay_cpu_fraction = 0
+    seen = []
+    def benchmark(config, steps):
+        seen.append((config.tracking.run_name, os.environ.get("UAV_STAGE")))
+        return {"status": "passed"}
+    monkeypatch.setitem(entry["main"].__globals__, "load_config", lambda *args: c)
+    monkeypatch.setitem(entry["main"].__globals__, "benchmark_pql", benchmark)
+    monkeypatch.setenv("UAV_STAGE", "train")
+    monkeypatch.setattr(sys, "argv", ["benchmark_pql.py", "--algorithms", "masac",
+                                    "--output", str(tmp_path / "benchmark.json")])
+    assert entry["main"]() == 0
+    assert entry["main"]() == 0
+    for name, stage in seen:
+        assert stage == "benchmark"
+        for required in ["BENCH", "MASAC", "PQL", "FULLGPU", "R1M", "G3", "E4096", "B8192"]:
+            assert required in name
+    assert seen[0][0] != seen[1][0]
+
+
+def test_mandatory_preflight_keeps_reserved_training_id_and_marks_benchmark(tmp_path, monkeypatch):
+    import os
+    from uav_network.cloud import remote
+    c = load_config("configs/comparison-20k-hybrid75-1kb.yaml")
+    spec = {"stage": "train", "config": "configs/comparison-20k-hybrid75-1kb.yaml",
+            "overrides": [], "runs": {"masac": {"id": "reserved-training"}}}
+    seen = []
+    def child(arguments, **kwargs):
+        seen.append(kwargs["env"])
+        Path(arguments[arguments.index("--output") + 1]).write_text(json.dumps(
+            {"results": [{"status": "passed", "cuda_pipeline_verified": True}]}))
+    monkeypatch.setenv("UAV_STAGE", "train")
+    monkeypatch.setenv("WANDB_RUN_ID", "reserved-training")
+    monkeypatch.setattr(remote.subprocess, "run", child)
+    remote.pql_benchmarks(spec, c, tmp_path)
+    assert seen[0]["UAV_STAGE"] == "benchmark"
+    assert "WANDB_RUN_ID" not in seen[0]
+    assert os.environ["WANDB_RUN_ID"] == "reserved-training"

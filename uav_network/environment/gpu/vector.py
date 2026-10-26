@@ -40,7 +40,7 @@ class WarpVectorEnv:
         self.stream = wp.stream_from_torch(self._torch_stream) if self._torch_stream is not None else None
         scope = wp.ScopedStream(self.stream) if self.stream is not None else nullcontext()
         with scope:
-            self.s, self.p = allocate_state(config, self.num_envs, device=self.wp_device)
+            self.s, self.p = allocate_state(config, self.num_envs, device=self.wp_device, certify=True)
             self._buffers = [
                 {"observation":wp.to_torch(self.s.observation),"state":wp.to_torch(self.s.state)},
                 {"observation":torch.empty((self.num_envs,config.world.num_uavs,observation_dim(config)),

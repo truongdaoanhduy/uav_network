@@ -2,16 +2,20 @@
 import argparse
 from copy import deepcopy
 import json
+import os
+from uuid import uuid4
 from pathlib import Path
 
 import torch
 
 from uav_network.configuration import load_config
+from uav_network.cloud.identities import run_name
 from uav_network.experiments.hardware import hardware_info
 from uav_network.experiments.pql_benchmark import benchmark_pql
 
 
 def main():
+    os.environ["UAV_STAGE"] = "benchmark"
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="configs/motion-pql.yaml")
     parser.add_argument("--algorithms", nargs="+", choices=["masac", "matd3"], default=["masac", "matd3"])
@@ -42,7 +46,7 @@ def main():
                 case.runtime.output_dir = str(output.parent / f"{algorithm}-E{count}-B{batch}")
                 if args.single_gpu:
                     case.pql.collector_device = case.pql.learner_device = case.pql.policy_device = "cuda:0"
-                case.tracking.run_name = f"{algorithm.upper()}-PQL-benchmark-E{count}-B{batch}-seed{case.runtime.seed}"
+                case.tracking.run_name = run_name(case, algorithm, "pql", "benchmark", uuid4().hex[:8])
                 result = benchmark_pql(case, args.steps)
                 results.append(result)
                 output.write_text(json.dumps({"hardware": hardware_info(), "results": results}, indent=2))

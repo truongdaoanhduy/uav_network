@@ -67,8 +67,15 @@ def test_native_warp_recovery_and_masked_reset_match(device, attempts):
         env.reset(seed=seeds)
         fields = ("positions", "targets", "obstacles", "gcs")
         for i, seed in enumerate(seeds):
-            scene = generate_scenario(c, np.random.default_rng(seed))
+            generator = np.random.default_rng(seed)
+            scene = generate_scenario(c, generator)
             assert_scene(scene, c)
+            pcg = generator.bit_generator.state["state"]
+            words = np.array([pcg["state"] & ((1 << 64) - 1), pcg["state"] >> 64,
+                              pcg["inc"] & ((1 << 64) - 1), pcg["inc"] >> 64],
+                             dtype=np.uint64)
+            np.testing.assert_array_equal(wp.to_torch(env.s.pcg_state)[i].cpu().numpy(), words)
+            assert int(wp.to_torch(env.s.generation_attempts)[i]) == scene.generation_attempts
             for field in fields:
                 np.testing.assert_allclose(wp.to_torch(getattr(env.s, field))[i].cpu().numpy(),
                                            getattr(scene, field), rtol=0, atol=2e-10)
@@ -92,3 +99,37 @@ def test_uncertifiable_configuration_is_rejected_at_device_startup():
     c.world.target_exclusion_radius_m = 2000
     with pytest.raises(ValueError, match="certif|fit|generation"):
         WarpVectorEnv(c, device="cpu")
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda:0"])
+def test_forced_fallback_snapshot_restores_future_world_and_rng(device):
+    if device.startswith("cuda") and not torch.cuda.is_available():
+        pytest.skip("Real CUDA device required")
+    import warp as wp
+    c = primary()
+    c.runtime.num_envs = 2
+    c.world.placement_attempts = 1
+    reference = WarpVectorEnv(c, device=device)
+    restored = WarpVectorEnv(c, device=device)
+    try:
+        observation, _ = reference.reset(seed=[9642, 44])
+        assert bool(wp.to_torch(reference.s.generation_fallback).all())
+        snapshot = reference.snapshot_state()
+        action = reference.random_actions(observation["observation"])
+        expected_action = {name: value.cpu().clone() for name, value in vars(action).items()}
+        reference.step(vars(action))
+        expected = reference.snapshot_state()
+        restored.reset(seed=[9000, 9001])
+        observation = restored.restore_state(snapshot)
+        action = restored.random_actions(observation["observation"])
+        for name, value in vars(action).items():
+            assert torch.equal(value.cpu(), expected_action[name])
+        restored.step(vars(action))
+        actual = restored.snapshot_state()
+        assert actual["arrays"].keys() == expected["arrays"].keys()
+        for name, value in expected["arrays"].items():
+            assert torch.equal(actual["arrays"][name], value), name
+        assert torch.equal(actual["action_generator"], expected["action_generator"])
+    finally:
+        reference.close()
+        restored.close()

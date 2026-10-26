@@ -111,18 +111,14 @@ class DeviceVectorTests(unittest.TestCase):
         finally:
             vector.close()
 
-    def test_vector_reset_propagates_impossible_geometry_placement(self):
+    def test_vector_startup_rejects_uncertifiable_geometry_placement(self):
         from uav_network.environment.vector import make_vector
         c = small_config()
         c.world.num_uavs, c.world.num_targets, c.world.num_obstacles = 2,1,0
         c.world.launch_min_spacing_m = 1000
         c.world.placement_attempts = 10
-        vector = make_vector(c)
-        try:
-            with self.assertRaisesRegex(RuntimeError,"103"):
-                vector.reset(seed=44)
-        finally:
-            vector.close()
+        with self.assertRaisesRegex(ValueError, "certified"):
+            make_vector(c)
 
     def test_fractional_destination_is_rejected_without_advancing_world(self):
         from uav_network.environment.vector import make_vector

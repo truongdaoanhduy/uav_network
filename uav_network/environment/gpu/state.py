@@ -335,10 +335,10 @@ def seed_rows(seeds):
     return np.asarray(rows, dtype=np.uint64)
 
 
-def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False):
+def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False, certify=False):
     """Allocate one independent world per row; no native simulator or worker."""
     p = params_from_config(config)
-    bank = certified_scenes(config)
+    bank = certified_scenes(config) if certify else ()
     p.fallback_count = len(bank)
     if not trace:
         p.trace_enabled = 0
@@ -351,10 +351,12 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False):
         raise ValueError("seeds must contain one integer per world")
     s = WorldState()
     for name, dtype in (("positions", wp.vec2d), ("targets", wp.vec2d), ("obstacles", wp.vec3d)):
-        values = np.stack([getattr(scene, name) for scene in bank])
-        # Warp retains a one-element obstacle allocation even for zero obstacles.
+        count = {"positions": n, "targets": t, "obstacles": o}[name]
+        width = 3 if name == "obstacles" else 2
+        values = (np.stack([getattr(scene, name) for scene in bank]) if bank
+                  else np.zeros((1, count, width)))
         if name == "obstacles" and p.obstacles_count == 0:
-            values = np.zeros((len(bank), 1, 3))
+            values = np.zeros((max(1, len(bank)), 1, 3))
         setattr(s, "fallback_" + name, wp.array(values, dtype=dtype, device=device))
     shapes = {
         "generation_fallback": ((e,), wp.int32),

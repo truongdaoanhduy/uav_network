@@ -170,6 +170,8 @@ def pql_benchmarks(spec, config, output, require_pass=True):
                          "runtime.device=cuda"]:
             args += ["--set", override]
         benchmark_env = dict(os.environ)
+        benchmark_env["UAV_STAGE"] = "benchmark"
+        benchmark_env["UAV_TRAINING_MODE"] = "PQL"
         for name in ("WANDB_RUN_ID", "WANDB_NAME", "KAGGLE_API_TOKEN"):
             benchmark_env.pop(name, None)
         if spec.get("stage") == "benchmark":

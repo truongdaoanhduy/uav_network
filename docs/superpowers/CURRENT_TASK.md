@@ -1,6 +1,16 @@
 # Current task: robust scenario generation, MASAC memory and recognizable runs — IN PROGRESS
 
-User authorized2026-10-26 implementation and corrected failed-case reruns. Plan: plans/2026-10-26-robust-training.md; spec: specs/2026-10-26-robust-training-design.md. Preserve active jobs and all HF/W&B data. Task1writingRED; no production source changed yet. Ledger/receipts outputs/robust-training-20261026/.
+User authorized2026-10-26 fixes and corrected reruns; preserve active jobs/HF/W&B data. Plan plans/2026-10-26-robust-training.md; spec specs/2026-10-26-robust-training-design.md. Existing linked branch feat/cpu-replay-20261022 retained.
+
+- Source commits2c224bc certificate-backed generation3,5a2cacd checkpointed critic chunks (primary1024/logical8192),9faf67a meaningful TRAIN/CTRL/EVALCPU names and authoritative replay tags.
+- RED scenario6fail5pass2skip; focusedGREEN35pass4CUDA-skipped. CriticRED3fail1pass; GREEN39pass376subtests proves outputs/gradients/RNG/optimizer update and lower retainedstorage. NamesRED4fail; focusedGREEN90pass31subtests.
+- Frozen-config native scan **74126/74126 seeds PASS**, no failures, one recovered full-layout retry, zero certified fallbacks in this natural cohort. Includes full potentially consumed train schedule44..24139,30finaleval seeds2000000044..73,extra50000seeds100000..149999. Forcedfallback is separately tested. Initial interruptedscan is not coverage (worker schema/YAML race, diagnostic fixed).
+- FullCPUv1 exposed real low-level allocation seam:5fail800pass94skip1340subtests; three boundary subtests/manualphysics error test need allocation without random-generation certification, production vector must certify at startup. Existing invalid-vector fixture expects rejection earlier now.
+- Independent whole-change review:0critical2important1minor. Actualbenchmark entrypoint bypassed meaningful name/stage; fixed in single wave along with rawallocation vs productioncertification and sharedmemory estimate counting bank once. Review-wave RED3fail4pass; focusedGREEN **61pass4skip46subtests**. Added exact PCG comparisons and forcedfallback snapshot/future-array/RNG oracle.
+- Raw allocate_state defaults certify=False for explicit physics; WarpVectorEnv always certify=True. Generation3 rejects older checkpoint semantics; scientific geometry/reward/network/budget unchanged. No production job restarted/cancelled.
+- Network issue: systemDNS intermittently cannot resolve GitHub/KaggleAPI/W&B. TLS-preserving process-local DNS mapping and git curloptResolve restored publication/preflight; no system resolver edits. account01preflight ownerduytrngoanh23.69GPUhours available.
+- Next: commit/publish review fixes, rerun fullCPU final and submit credential-free real2T4 diagnostic (focused/74126CUDAseeds/MASACFULLGPU BASE+PQL90s segments+exact continuation/fullCUDA suite). Diagnostic launcher outputs/robust-training-20261026/launch-diagnostic.py has no submission receipt yet. Do not blindretry if launch receipt exists. Source HEAD at diagnostic submission is authoritative.
+- Ledger, rawlogs, review, fixed scan and futureGPU receipts: outputs/robust-training-20261026/. No fullGPU fit claim until actualGREEN. Afterverification fresh-reconcile lineages/accounts and launch corrected requested cases with automatic exact continuation/finalCPU30eval; keep originalactiveG2 jobs.
 
 ---
 
