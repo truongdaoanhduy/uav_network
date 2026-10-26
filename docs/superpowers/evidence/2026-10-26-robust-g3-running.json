@@ -1,0 +1,992 @@
+{
+  "utc": "2026-10-26T13:15:10.902765+00:00",
+  "all_eight_verified": true,
+  "source_commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+  "runs": [
+    {
+      "case": "fullgpu-masac-base",
+      "account": "account_18",
+      "kernel_ref": "fowieofweoi/tra-g3-masac-base-fullgpu-10261-381dcf",
+      "source_commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "run_id": "25eecfd1",
+      "name": "TRAIN-MASAC-BASE-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130436-381dcf",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/25eecfd1",
+      "controller_ref": "fowieofweoi/uav-flow-16c53ed1643cc9-0000",
+      "controller_run_id": "45ff19d1",
+      "kaggle_state": "running",
+      "controller_kaggle_state": "running",
+      "wandb_state": "running",
+      "display_name": "TRAIN-MASAC-BASE-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130436-381dcf",
+      "global_step": 344064,
+      "updates": 416,
+      "episodes": 0,
+      "hardware": {
+        "torch": "2.11.0+cu128",
+        "python": "3.13.15",
+        "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+        "cuda_devices": [
+          {
+            "name": "Tesla T4",
+            "index": 0,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          },
+          {
+            "name": "Tesla T4",
+            "index": 1,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          }
+        ],
+        "logical_cpus": 4,
+        "available_cpus": 4,
+        "cuda_available": true,
+        "torch_cuda_build": "12.8"
+      },
+      "config_commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "generation": 3,
+      "runtime": {
+        "replay_device": "cuda",
+        "replay_cpu_fraction": 0,
+        "critic_chunk_size": 1024,
+        "num_envs": 4096,
+        "episodes": 20000
+      },
+      "stage": "train",
+      "initial_global_step": null,
+      "observation_version": 3,
+      "learner_config": {
+        "tau": 0.005,
+        "gamma": 0.99,
+        "batch_size": 8192,
+        "hidden_sizes": [
+          256,
+          256
+        ],
+        "initial_alpha": 0.2,
+        "learning_rate": 0.0003,
+        "grad_clip_norm": 10,
+        "learning_starts": 131072,
+        "replay_capacity": 1000000,
+        "updates_per_step": 8,
+        "target_continuous_entropy": -3,
+        "target_discrete_entropy_ratio": 0.9
+      },
+      "pql": {
+        "mode": "async",
+        "enabled": false,
+        "policy_device": "auto",
+        "learner_device": "auto",
+        "collector_device": "auto",
+        "worker_timeout_s": 600,
+        "checkpoint_replay": true,
+        "critic_sample_ratio": 8,
+        "max_pending_collections": 2,
+        "warmup_collection_steps": 32,
+        "max_pending_policy_updates": 2
+      },
+      "network": {
+        "report_bytes": 1024,
+        "payload_bytes": 1024,
+        "buffer_bytes": 3072
+      },
+      "controller_ready": true,
+      "controller": {
+        "id": "45ff19d1",
+        "state": "running",
+        "phase": "training",
+        "heartbeat_utc": "2026-10-26T13:06:34.698245+00:00",
+        "age_seconds": 516.20452,
+        "current_gpu_ref": "fowieofweoi/tra-g3-masac-base-fullgpu-10261-381dcf",
+        "root_kernel_ref": "fowieofweoi/tra-g3-masac-base-fullgpu-10261-381dcf",
+        "commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+      }
+    },
+    {
+      "case": "hybrid-masac-base",
+      "account": "account_16",
+      "kernel_ref": "mjhres/tra-g3-masac-base-h75-10261304-bab1fa",
+      "source_commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "run_id": "63202ad9",
+      "name": "TRAIN-MASAC-BASE-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130437-bab1fa",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/63202ad9",
+      "controller_ref": "mjhres/uav-flow-5705ba6ef88583-0000",
+      "controller_run_id": "8e3786a8",
+      "kaggle_state": "running",
+      "controller_kaggle_state": "running",
+      "wandb_state": "running",
+      "display_name": "TRAIN-MASAC-BASE-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130437-bab1fa",
+      "global_step": 364544,
+      "updates": 456,
+      "episodes": 0,
+      "hardware": {
+        "torch": "2.11.0+cu128",
+        "python": "3.13.15",
+        "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+        "cuda_devices": [
+          {
+            "name": "Tesla T4",
+            "index": 0,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          },
+          {
+            "name": "Tesla T4",
+            "index": 1,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          }
+        ],
+        "logical_cpus": 4,
+        "available_cpus": 4,
+        "cuda_available": true,
+        "torch_cuda_build": "12.8"
+      },
+      "config_commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "generation": 3,
+      "runtime": {
+        "replay_device": "cpu",
+        "replay_cpu_fraction": 0.75,
+        "critic_chunk_size": 1024,
+        "num_envs": 4096,
+        "episodes": 20000
+      },
+      "stage": "train",
+      "initial_global_step": null,
+      "observation_version": 3,
+      "learner_config": {
+        "tau": 0.005,
+        "gamma": 0.99,
+        "batch_size": 8192,
+        "hidden_sizes": [
+          256,
+          256
+        ],
+        "initial_alpha": 0.2,
+        "learning_rate": 0.0003,
+        "grad_clip_norm": 10,
+        "learning_starts": 131072,
+        "replay_capacity": 1000000,
+        "updates_per_step": 8,
+        "target_continuous_entropy": -3,
+        "target_discrete_entropy_ratio": 0.9
+      },
+      "pql": {
+        "mode": "async",
+        "enabled": false,
+        "policy_device": "auto",
+        "learner_device": "auto",
+        "collector_device": "auto",
+        "worker_timeout_s": 600,
+        "checkpoint_replay": true,
+        "critic_sample_ratio": 8,
+        "max_pending_collections": 2,
+        "warmup_collection_steps": 32,
+        "max_pending_policy_updates": 2
+      },
+      "network": {
+        "report_bytes": 1024,
+        "payload_bytes": 1024,
+        "buffer_bytes": 3072
+      },
+      "controller_ready": true,
+      "controller": {
+        "id": "8e3786a8",
+        "state": "running",
+        "phase": "training",
+        "heartbeat_utc": "2026-10-26T13:06:49.121086+00:00",
+        "age_seconds": 501.781679,
+        "current_gpu_ref": "mjhres/tra-g3-masac-base-h75-10261304-bab1fa",
+        "root_kernel_ref": "mjhres/tra-g3-masac-base-h75-10261304-bab1fa",
+        "commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+      }
+    },
+    {
+      "case": "fullgpu-masac-pql",
+      "account": "account_19",
+      "kernel_ref": "kjkjhhfghjjkn/tra-g3-masac-pql-fullgpu-1026-fbe033",
+      "source_commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "run_id": "3b39b0c8",
+      "name": "TRAIN-MASAC-PQL-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130435-fbe033",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/3b39b0c8",
+      "controller_ref": "kjkjhhfghjjkn/uav-flow-21df7ca10aeab1-0000",
+      "controller_run_id": "16f5a5f3",
+      "kaggle_state": "running",
+      "controller_kaggle_state": "running",
+      "wandb_state": "running",
+      "display_name": "TRAIN-MASAC-PQL-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130435-fbe033",
+      "global_step": 327680,
+      "updates": 368,
+      "episodes": 0,
+      "hardware": {
+        "torch": "2.11.0+cu128",
+        "python": "3.13.15",
+        "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+        "cuda_devices": [
+          {
+            "name": "Tesla T4",
+            "index": 0,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          },
+          {
+            "name": "Tesla T4",
+            "index": 1,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          }
+        ],
+        "logical_cpus": 4,
+        "available_cpus": 4,
+        "cuda_available": true,
+        "torch_cuda_build": "12.8"
+      },
+      "config_commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "generation": 3,
+      "runtime": {
+        "replay_device": "cuda",
+        "replay_cpu_fraction": 0,
+        "critic_chunk_size": 1024,
+        "num_envs": 4096,
+        "episodes": 20000
+      },
+      "stage": "train",
+      "initial_global_step": null,
+      "observation_version": 3,
+      "learner_config": {
+        "tau": 0.005,
+        "gamma": 0.99,
+        "batch_size": 8192,
+        "hidden_sizes": [
+          256,
+          256
+        ],
+        "initial_alpha": 0.2,
+        "learning_rate": 0.0003,
+        "grad_clip_norm": 10,
+        "learning_starts": 131072,
+        "replay_capacity": 1000000,
+        "updates_per_step": 8,
+        "target_continuous_entropy": -3,
+        "target_discrete_entropy_ratio": 0.9
+      },
+      "pql": {
+        "mode": "async",
+        "enabled": true,
+        "policy_device": "auto",
+        "learner_device": "auto",
+        "collector_device": "auto",
+        "worker_timeout_s": 600,
+        "checkpoint_replay": true,
+        "critic_sample_ratio": 8,
+        "max_pending_collections": 2,
+        "warmup_collection_steps": 32,
+        "max_pending_policy_updates": 2
+      },
+      "network": {
+        "report_bytes": 1024,
+        "payload_bytes": 1024,
+        "buffer_bytes": 3072
+      },
+      "controller_ready": true,
+      "controller": {
+        "id": "16f5a5f3",
+        "state": "running",
+        "phase": "training",
+        "heartbeat_utc": "2026-10-26T13:06:34.631432+00:00",
+        "age_seconds": 516.271333,
+        "current_gpu_ref": "kjkjhhfghjjkn/tra-g3-masac-pql-fullgpu-1026-fbe033",
+        "root_kernel_ref": "kjkjhhfghjjkn/tra-g3-masac-pql-fullgpu-1026-fbe033",
+        "commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+      }
+    },
+    {
+      "case": "hybrid-masac-pql",
+      "account": "account_17",
+      "kernel_ref": "njbiugyry/tra-g3-masac-pql-h75-10261304-ab625d",
+      "source_commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "run_id": "6f0bcde3",
+      "name": "TRAIN-MASAC-PQL-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130438-ab625d",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/6f0bcde3",
+      "controller_ref": "njbiugyry/uav-flow-47f49eee593560-0000",
+      "controller_run_id": "4f61b7cd",
+      "kaggle_state": "running",
+      "controller_kaggle_state": "running",
+      "wandb_state": "running",
+      "display_name": "TRAIN-MASAC-PQL-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130438-ab625d",
+      "global_step": 311296,
+      "updates": 336,
+      "episodes": 0,
+      "hardware": {
+        "torch": "2.11.0+cu128",
+        "python": "3.13.15",
+        "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+        "cuda_devices": [
+          {
+            "name": "Tesla T4",
+            "index": 0,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          },
+          {
+            "name": "Tesla T4",
+            "index": 1,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          }
+        ],
+        "logical_cpus": 4,
+        "available_cpus": 4,
+        "cuda_available": true,
+        "torch_cuda_build": "12.8"
+      },
+      "config_commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "generation": 3,
+      "runtime": {
+        "replay_device": "cpu",
+        "replay_cpu_fraction": 0.75,
+        "critic_chunk_size": 1024,
+        "num_envs": 4096,
+        "episodes": 20000
+      },
+      "stage": "train",
+      "initial_global_step": null,
+      "observation_version": 3,
+      "learner_config": {
+        "tau": 0.005,
+        "gamma": 0.99,
+        "batch_size": 8192,
+        "hidden_sizes": [
+          256,
+          256
+        ],
+        "initial_alpha": 0.2,
+        "learning_rate": 0.0003,
+        "grad_clip_norm": 10,
+        "learning_starts": 131072,
+        "replay_capacity": 1000000,
+        "updates_per_step": 8,
+        "target_continuous_entropy": -3,
+        "target_discrete_entropy_ratio": 0.9
+      },
+      "pql": {
+        "mode": "async",
+        "enabled": true,
+        "policy_device": "auto",
+        "learner_device": "auto",
+        "collector_device": "auto",
+        "worker_timeout_s": 600,
+        "checkpoint_replay": true,
+        "critic_sample_ratio": 8,
+        "max_pending_collections": 2,
+        "warmup_collection_steps": 32,
+        "max_pending_policy_updates": 2
+      },
+      "network": {
+        "report_bytes": 1024,
+        "payload_bytes": 1024,
+        "buffer_bytes": 3072
+      },
+      "controller_ready": true,
+      "controller": {
+        "id": "4f61b7cd",
+        "state": "running",
+        "phase": "training",
+        "heartbeat_utc": "2026-10-26T13:06:39.311216+00:00",
+        "age_seconds": 511.591549,
+        "current_gpu_ref": "njbiugyry/tra-g3-masac-pql-h75-10261304-ab625d",
+        "root_kernel_ref": "njbiugyry/tra-g3-masac-pql-h75-10261304-ab625d",
+        "commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+      }
+    },
+    {
+      "case": "fullgpu-matd3-base",
+      "account": "account_20",
+      "kernel_ref": "kjhjvnvjgyu/tra-g3-matd3-base-fullgpu-10261-ee1a73",
+      "source_commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "run_id": "93fdf127",
+      "name": "TRAIN-MATD3-BASE-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130438-ee1a73",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/93fdf127",
+      "controller_ref": "kjhjvnvjgyu/uav-flow-cdb81b40051653-0000",
+      "controller_run_id": "c83a8c86",
+      "kaggle_state": "running",
+      "controller_kaggle_state": "running",
+      "wandb_state": "running",
+      "display_name": "TRAIN-MATD3-BASE-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130438-ee1a73",
+      "global_step": 1032192,
+      "updates": 1760,
+      "episodes": 0,
+      "hardware": {
+        "torch": "2.11.0+cu128",
+        "python": "3.13.15",
+        "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+        "cuda_devices": [
+          {
+            "name": "Tesla T4",
+            "index": 0,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          },
+          {
+            "name": "Tesla T4",
+            "index": 1,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          }
+        ],
+        "logical_cpus": 4,
+        "available_cpus": 4,
+        "cuda_available": true,
+        "torch_cuda_build": "12.8"
+      },
+      "config_commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "generation": 3,
+      "runtime": {
+        "replay_device": "cuda",
+        "replay_cpu_fraction": 0,
+        "critic_chunk_size": 1024,
+        "num_envs": 4096,
+        "episodes": 20000
+      },
+      "stage": "train",
+      "initial_global_step": null,
+      "observation_version": 3,
+      "learner_config": {
+        "tau": 0.005,
+        "gamma": 0.99,
+        "batch_size": 8192,
+        "hidden_sizes": [
+          256,
+          256
+        ],
+        "policy_delay": 2,
+        "final_epsilon": 0.05,
+        "learning_rate": 0.0003,
+        "grad_clip_norm": 10,
+        "initial_epsilon": 1,
+        "learning_starts": 131072,
+        "replay_capacity": 1000000,
+        "target_noise_std": 0.2,
+        "updates_per_step": 8,
+        "target_noise_clip": 0.5,
+        "epsilon_decay_steps": 14745600,
+        "exploration_noise_std": 0.1
+      },
+      "pql": {
+        "mode": "async",
+        "enabled": false,
+        "policy_device": "auto",
+        "learner_device": "auto",
+        "collector_device": "auto",
+        "worker_timeout_s": 600,
+        "checkpoint_replay": true,
+        "critic_sample_ratio": 8,
+        "max_pending_collections": 2,
+        "warmup_collection_steps": 32,
+        "max_pending_policy_updates": 2
+      },
+      "network": {
+        "report_bytes": 1024,
+        "payload_bytes": 1024,
+        "buffer_bytes": 3072
+      },
+      "controller_ready": true,
+      "controller": {
+        "id": "c83a8c86",
+        "state": "running",
+        "phase": "training",
+        "heartbeat_utc": "2026-10-26T13:06:34.706315+00:00",
+        "age_seconds": 516.19645,
+        "current_gpu_ref": "kjhjvnvjgyu/tra-g3-matd3-base-fullgpu-10261-ee1a73",
+        "root_kernel_ref": "kjhjvnvjgyu/tra-g3-matd3-base-fullgpu-10261-ee1a73",
+        "commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+      }
+    },
+    {
+      "case": "hybrid-matd3-base",
+      "account": "account_22",
+      "kernel_ref": "kdhqkfhekw/tra-g3-matd3-base-h75-10261304-a1d316",
+      "source_commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "run_id": "ce8f3be6",
+      "name": "TRAIN-MATD3-BASE-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130451-a1d316",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/ce8f3be6",
+      "controller_ref": "kdhqkfhekw/uav-flow-1158f670d405f9-0000",
+      "controller_run_id": "83978304",
+      "kaggle_state": "running",
+      "controller_kaggle_state": "running",
+      "wandb_state": "running",
+      "display_name": "TRAIN-MATD3-BASE-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130451-a1d316",
+      "global_step": 806912,
+      "updates": 1320,
+      "episodes": 0,
+      "hardware": {
+        "torch": "2.11.0+cu128",
+        "python": "3.13.15",
+        "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+        "cuda_devices": [
+          {
+            "name": "Tesla T4",
+            "index": 0,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          },
+          {
+            "name": "Tesla T4",
+            "index": 1,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          }
+        ],
+        "logical_cpus": 4,
+        "available_cpus": 4,
+        "cuda_available": true,
+        "torch_cuda_build": "12.8"
+      },
+      "config_commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "generation": 3,
+      "runtime": {
+        "replay_device": "cpu",
+        "replay_cpu_fraction": 0.75,
+        "critic_chunk_size": 1024,
+        "num_envs": 4096,
+        "episodes": 20000
+      },
+      "stage": "train",
+      "initial_global_step": null,
+      "observation_version": 3,
+      "learner_config": {
+        "tau": 0.005,
+        "gamma": 0.99,
+        "batch_size": 8192,
+        "hidden_sizes": [
+          256,
+          256
+        ],
+        "policy_delay": 2,
+        "final_epsilon": 0.05,
+        "learning_rate": 0.0003,
+        "grad_clip_norm": 10,
+        "initial_epsilon": 1,
+        "learning_starts": 131072,
+        "replay_capacity": 1000000,
+        "target_noise_std": 0.2,
+        "updates_per_step": 8,
+        "target_noise_clip": 0.5,
+        "epsilon_decay_steps": 14745600,
+        "exploration_noise_std": 0.1
+      },
+      "pql": {
+        "mode": "async",
+        "enabled": false,
+        "policy_device": "auto",
+        "learner_device": "auto",
+        "collector_device": "auto",
+        "worker_timeout_s": 600,
+        "checkpoint_replay": true,
+        "critic_sample_ratio": 8,
+        "max_pending_collections": 2,
+        "warmup_collection_steps": 32,
+        "max_pending_policy_updates": 2
+      },
+      "network": {
+        "report_bytes": 1024,
+        "payload_bytes": 1024,
+        "buffer_bytes": 3072
+      },
+      "controller_ready": true,
+      "controller": {
+        "id": "83978304",
+        "state": "running",
+        "phase": "training",
+        "heartbeat_utc": "2026-10-26T13:07:10.573318+00:00",
+        "age_seconds": 480.329447,
+        "current_gpu_ref": "kdhqkfhekw/tra-g3-matd3-base-h75-10261304-a1d316",
+        "root_kernel_ref": "kdhqkfhekw/tra-g3-matd3-base-h75-10261304-a1d316",
+        "commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+      }
+    },
+    {
+      "case": "fullgpu-matd3-pql",
+      "account": "account_21",
+      "kernel_ref": "bhbjbnmku/tra-g3-matd3-pql-fullgpu-10261304-41e6ab",
+      "source_commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "run_id": "76b73021",
+      "name": "TRAIN-MATD3-PQL-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130436-41e6ab",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/76b73021",
+      "controller_ref": "bhbjbnmku/uav-flow-551e89a06f7e91-0000",
+      "controller_run_id": "87d472b1",
+      "kaggle_state": "running",
+      "controller_kaggle_state": "running",
+      "wandb_state": "running",
+      "display_name": "TRAIN-MATD3-PQL-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130436-41e6ab",
+      "global_step": 1007616,
+      "updates": 1712,
+      "episodes": 0,
+      "hardware": {
+        "torch": "2.11.0+cu128",
+        "python": "3.13.15",
+        "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+        "cuda_devices": [
+          {
+            "name": "Tesla T4",
+            "index": 0,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          },
+          {
+            "name": "Tesla T4",
+            "index": 1,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          }
+        ],
+        "logical_cpus": 4,
+        "available_cpus": 4,
+        "cuda_available": true,
+        "torch_cuda_build": "12.8"
+      },
+      "config_commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "generation": 3,
+      "runtime": {
+        "replay_device": "cuda",
+        "replay_cpu_fraction": 0,
+        "critic_chunk_size": 1024,
+        "num_envs": 4096,
+        "episodes": 20000
+      },
+      "stage": "train",
+      "initial_global_step": null,
+      "observation_version": 3,
+      "learner_config": {
+        "tau": 0.005,
+        "gamma": 0.99,
+        "batch_size": 8192,
+        "hidden_sizes": [
+          256,
+          256
+        ],
+        "policy_delay": 2,
+        "final_epsilon": 0.05,
+        "learning_rate": 0.0003,
+        "grad_clip_norm": 10,
+        "initial_epsilon": 1,
+        "learning_starts": 131072,
+        "replay_capacity": 1000000,
+        "target_noise_std": 0.2,
+        "updates_per_step": 8,
+        "target_noise_clip": 0.5,
+        "epsilon_decay_steps": 14745600,
+        "exploration_noise_std": 0.1
+      },
+      "pql": {
+        "mode": "async",
+        "enabled": true,
+        "policy_device": "auto",
+        "learner_device": "auto",
+        "collector_device": "auto",
+        "worker_timeout_s": 600,
+        "checkpoint_replay": true,
+        "critic_sample_ratio": 8,
+        "max_pending_collections": 2,
+        "warmup_collection_steps": 32,
+        "max_pending_policy_updates": 2
+      },
+      "network": {
+        "report_bytes": 1024,
+        "payload_bytes": 1024,
+        "buffer_bytes": 3072
+      },
+      "controller_ready": true,
+      "controller": {
+        "id": "87d472b1",
+        "state": "running",
+        "phase": "training",
+        "heartbeat_utc": "2026-10-26T13:06:28.393677+00:00",
+        "age_seconds": 522.509088,
+        "current_gpu_ref": "bhbjbnmku/tra-g3-matd3-pql-fullgpu-10261304-41e6ab",
+        "root_kernel_ref": "bhbjbnmku/tra-g3-matd3-pql-fullgpu-10261304-41e6ab",
+        "commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+      }
+    },
+    {
+      "case": "hybrid-matd3-pql",
+      "account": "account_23",
+      "kernel_ref": "bjhvbnm/tra-g3-matd3-pql-h75-10261304-aa4bf3",
+      "source_commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "run_id": "3fcf25c7",
+      "name": "TRAIN-MATD3-PQL-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130451-aa4bf3",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/3fcf25c7",
+      "controller_ref": "bjhvbnm/uav-flow-02e879d833bf14-0000",
+      "controller_run_id": "fef515be",
+      "kaggle_state": "running",
+      "controller_kaggle_state": "running",
+      "wandb_state": "running",
+      "display_name": "TRAIN-MATD3-PQL-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130451-aa4bf3",
+      "global_step": 659456,
+      "updates": 1016,
+      "episodes": 0,
+      "hardware": {
+        "torch": "2.11.0+cu128",
+        "python": "3.13.15",
+        "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+        "cuda_devices": [
+          {
+            "name": "Tesla T4",
+            "index": 0,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          },
+          {
+            "name": "Tesla T4",
+            "index": 1,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          }
+        ],
+        "logical_cpus": 4,
+        "available_cpus": 4,
+        "cuda_available": true,
+        "torch_cuda_build": "12.8"
+      },
+      "config_commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "generation": 3,
+      "runtime": {
+        "replay_device": "cpu",
+        "replay_cpu_fraction": 0.75,
+        "critic_chunk_size": 1024,
+        "num_envs": 4096,
+        "episodes": 20000
+      },
+      "stage": "train",
+      "initial_global_step": null,
+      "observation_version": 3,
+      "learner_config": {
+        "tau": 0.005,
+        "gamma": 0.99,
+        "batch_size": 8192,
+        "hidden_sizes": [
+          256,
+          256
+        ],
+        "policy_delay": 2,
+        "final_epsilon": 0.05,
+        "learning_rate": 0.0003,
+        "grad_clip_norm": 10,
+        "initial_epsilon": 1,
+        "learning_starts": 131072,
+        "replay_capacity": 1000000,
+        "target_noise_std": 0.2,
+        "updates_per_step": 8,
+        "target_noise_clip": 0.5,
+        "epsilon_decay_steps": 14745600,
+        "exploration_noise_std": 0.1
+      },
+      "pql": {
+        "mode": "async",
+        "enabled": true,
+        "policy_device": "auto",
+        "learner_device": "auto",
+        "collector_device": "auto",
+        "worker_timeout_s": 600,
+        "checkpoint_replay": true,
+        "critic_sample_ratio": 8,
+        "max_pending_collections": 2,
+        "warmup_collection_steps": 32,
+        "max_pending_policy_updates": 2
+      },
+      "network": {
+        "report_bytes": 1024,
+        "payload_bytes": 1024,
+        "buffer_bytes": 3072
+      },
+      "controller_ready": true,
+      "controller": {
+        "id": "fef515be",
+        "state": "running",
+        "phase": "training",
+        "heartbeat_utc": "2026-10-26T13:07:44.922705+00:00",
+        "age_seconds": 445.98006,
+        "current_gpu_ref": "bjhvbnm/tra-g3-matd3-pql-h75-10261304-aa4bf3",
+        "root_kernel_ref": "bjhvbnm/tra-g3-matd3-pql-h75-10261304-aa4bf3",
+        "commit": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+      }
+    }
+  ],
+  "active_project_count": 18,
+  "all_active": [
+    {
+      "id": "3fcf25c7",
+      "name": "TRAIN-MATD3-PQL-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130451-aa4bf3",
+      "state": "running",
+      "stage": "train",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+    },
+    {
+      "id": "6f0bcde3",
+      "name": "TRAIN-MASAC-PQL-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130438-ab625d",
+      "state": "running",
+      "stage": "train",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+    },
+    {
+      "id": "3b39b0c8",
+      "name": "TRAIN-MASAC-PQL-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130435-fbe033",
+      "state": "running",
+      "stage": "train",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+    },
+    {
+      "id": "ce8f3be6",
+      "name": "TRAIN-MATD3-BASE-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130451-a1d316",
+      "state": "running",
+      "stage": "train",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+    },
+    {
+      "id": "76b73021",
+      "name": "TRAIN-MATD3-PQL-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130436-41e6ab",
+      "state": "running",
+      "stage": "train",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+    },
+    {
+      "id": "63202ad9",
+      "name": "TRAIN-MASAC-BASE-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130437-bab1fa",
+      "state": "running",
+      "stage": "train",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+    },
+    {
+      "id": "25eecfd1",
+      "name": "TRAIN-MASAC-BASE-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130436-381dcf",
+      "state": "running",
+      "stage": "train",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+    },
+    {
+      "id": "93fdf127",
+      "name": "TRAIN-MATD3-BASE-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130438-ee1a73",
+      "state": "running",
+      "stage": "train",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+    },
+    {
+      "id": "fef515be",
+      "name": "CTRL-MATD3-PQL-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130451-aa4bf3-C0",
+      "state": "running",
+      "stage": "continuation-watch",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+    },
+    {
+      "id": "83978304",
+      "name": "CTRL-MATD3-BASE-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130451-a1d316-C0",
+      "state": "running",
+      "stage": "continuation-watch",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+    },
+    {
+      "id": "8e3786a8",
+      "name": "CTRL-MASAC-BASE-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130437-bab1fa-C0",
+      "state": "running",
+      "stage": "continuation-watch",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+    },
+    {
+      "id": "4f61b7cd",
+      "name": "CTRL-MASAC-PQL-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130438-ab625d-C0",
+      "state": "running",
+      "stage": "continuation-watch",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+    },
+    {
+      "id": "c83a8c86",
+      "name": "CTRL-MATD3-BASE-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130438-ee1a73-C0",
+      "state": "running",
+      "stage": "continuation-watch",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+    },
+    {
+      "id": "45ff19d1",
+      "name": "CTRL-MASAC-BASE-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130436-381dcf-C0",
+      "state": "running",
+      "stage": "continuation-watch",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+    },
+    {
+      "id": "16f5a5f3",
+      "name": "CTRL-MASAC-PQL-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130435-fbe033-C0",
+      "state": "running",
+      "stage": "continuation-watch",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+    },
+    {
+      "id": "87d472b1",
+      "name": "CTRL-MATD3-PQL-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130436-41e6ab-C0",
+      "state": "running",
+      "stage": "continuation-watch",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+    },
+    {
+      "id": "d17a279d",
+      "name": "TRAIN-MASAC-BASE-HYBRID-C75-G25-E4096-B8192-R1M-G2-S44-d17a279d",
+      "state": "running",
+      "stage": "train",
+      "source": "f39f45682b0b8a387cf8d95906c6730bf4337742"
+    },
+    {
+      "id": "e9b9df73",
+      "name": "CTRL-MASAC-BASE-HYBRID-C75-G25-G2-e9b9df73",
+      "state": "running",
+      "stage": "continuation-watch",
+      "source": "f39f45682b0b8a387cf8d95906c6730bf4337742"
+    }
+  ]
+}

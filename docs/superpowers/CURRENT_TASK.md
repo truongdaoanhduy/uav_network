@@ -1,16 +1,18 @@
-# Current task: robust scenario generation, MASAC memory and recognizable runs — IN PROGRESS
+# Current task: robust scenario/MASAC fixes — VERIFIED; EIGHT G3 RUNS LEARNING
 
-User authorized2026-10-26 fixes and corrected reruns; preserve active jobs/HF/W&B data. Plan plans/2026-10-26-robust-training.md; spec specs/2026-10-26-robust-training-design.md. Existing linked branch feat/cpu-replay-20261022 retained.
+Updated20:15Vietnam26October2026. Production source77a1d0f52ed4e78bc2823c3ada03d661568cd923. Existing feature branch preserved; subsequent records are docs-only.
 
-- Source commits2c224bc certificate-backed generation3,5a2cacd checkpointed critic chunks (primary1024/logical8192),9faf67a meaningful TRAIN/CTRL/EVALCPU names and authoritative replay tags.
-- RED scenario6fail5pass2skip; focusedGREEN35pass4CUDA-skipped. CriticRED3fail1pass; GREEN39pass376subtests proves outputs/gradients/RNG/optimizer update and lower retainedstorage. NamesRED4fail; focusedGREEN90pass31subtests.
-- Frozen-config native scan **74126/74126 seeds PASS**, no failures, one recovered full-layout retry, zero certified fallbacks in this natural cohort. Includes full potentially consumed train schedule44..24139,30finaleval seeds2000000044..73,extra50000seeds100000..149999. Forcedfallback is separately tested. Initial interruptedscan is not coverage (worker schema/YAML race, diagnostic fixed).
-- FullCPUv1 exposed real low-level allocation seam:5fail800pass94skip1340subtests; three boundary subtests/manualphysics error test need allocation without random-generation certification, production vector must certify at startup. Existing invalid-vector fixture expects rejection earlier now.
-- Independent whole-change review:0critical2important1minor. Actualbenchmark entrypoint bypassed meaningful name/stage; fixed in single wave along with rawallocation vs productioncertification and sharedmemory estimate counting bank once. Review-wave RED3fail4pass; focusedGREEN **61pass4skip46subtests**. Added exact PCG comparisons and forcedfallback snapshot/future-array/RNG oracle.
-- Raw allocate_state defaults certify=False for explicit physics; WarpVectorEnv always certify=True. Generation3 rejects older checkpoint semantics; scientific geometry/reward/network/budget unchanged. No production job restarted/cancelled.
-- Network issue: systemDNS intermittently cannot resolve GitHub/KaggleAPI/W&B. TLS-preserving process-local DNS mapping and git curloptResolve restored publication/preflight; no system resolver edits. account01preflight ownerduytrngoanh23.69GPUhours available.
-- Next: commit/publish review fixes, rerun fullCPU final and submit credential-free real2T4 diagnostic (focused/74126CUDAseeds/MASACFULLGPU BASE+PQL90s segments+exact continuation/fullCUDA suite). Diagnostic launcher outputs/robust-training-20261026/launch-diagnostic.py has no submission receipt yet. Do not blindretry if launch receipt exists. Source HEAD at diagnostic submission is authoritative.
-- Ledger, rawlogs, review, fixed scan and futureGPU receipts: outputs/robust-training-20261026/. No fullGPU fit claim until actualGREEN. Afterverification fresh-reconcile lineages/accounts and launch corrected requested cases with automatic exact continuation/finalCPU30eval; keep originalactiveG2 jobs.
+- Implemented certified fallback scene bank + bounded whole-layout retries on native/Warp, generation3 guards, exact PCG/masked-reset/fallback snapshot tests; raw physics allocation is separate from production certification.
+- MASAC critic chunks1024 with activation recomputation preserve logicalbatch8192/replay1M; output/gradient/RNG/optimizer CPU parity verified. Meaningful TRAIN/BENCH/CTRL/EVALCPU names and authoritative replay tags implemented; benchmark stage fixed.
+- FullCPU806pass95skip8warnings1344subtests. Native74126seedscan passes,1retry/0natural fallback; forcedfallback separately verified.
+- Actual2T4 diagnosticduytrngoanh/uav-g3-robust-memory-check-20261026 terminalPASS:43focused;3production including74126CUDAseeds and FULLGPU BASE/PQL updates+exactcontinuation; fullCUDA877pass24skip37warnings2530subtests. Receipt evidence/2026-10-26-robust-cuda-receipt.json.
+- Independent review0critical2important1minor; all confirmed findings fixed with RED/GREEN, final full suites pass. No open finding.
+- At13:15:10UTC all8G3 runs actually learning beyondwarmup,2T4each,8healthycontrollers: HYBRID MASACBASE63202ad9/MASACPQL6f0bcde3/MATD3BASEce8f3be6/MATD3PQL3fcf25c7; FULLGPU MASACBASE25eecfd1/MASACPQL3b39b0c8/MATD3BASE93fdf127/MATD3PQL76b73021.
+- HYBRID accounts16/17/22/23;FULLGPU18/19/20/21. Clean launch worktree /home/aduy/Documents/NCKH/uav_network-robust-g3-20261026 at77a1d0f. Preserve it and originalG2worktree. No duplicate launch; exclusive intents and manifests under outputs/robust-training-20261026/cohort and launchworktree outputs/kaggle.
+- Same20kepisodes/1800steps/E4096/B8192/R1M/1KiB/seed44; AMP/compile/fusedoff. Auto-continuation and finalCPU30eval seed2000000044 configured. Training/final evaluation completion is pending, not claimed.
+- Project snapshot18Running=9training+9controllers, includes preservedG2MASACBASEd17a279d/e9b9df73. Old G2PQL has left active set. G2names clarified; no existing job cancelled/restarted; no HF/W&B deletion.
+- Reports evidence/2026-10-26-robust-training-fix.md and adjacent native/CUDA/running/reviewJSON/MD. All rawlogs/ledger/launch receipts outputs/robust-training-20261026/.
+- Next: fresh-monitor G3lineages and controller heartbeat; do not blindretry or mix G2/G3. SystemDNS sometimes fails; process-local TLS-preserving DNS map in outputs/.../dns-fallback and git curloptResolve restored access without systemchanges. Do not print credentials.
 
 ---
 
