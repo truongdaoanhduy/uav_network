@@ -1,0 +1,25 @@
+{
+  "phase": "red",
+  "source_commit": "6e0ed9bd5c45dfa2d7a7af86a8042a9966122468",
+  "started_utc": "2026-10-26T07:51:55.025792+00:00",
+  "stages": [
+    {
+      "name": "sparse-regression",
+      "exit_code": 1,
+      "seconds": 6.280910439999957,
+      "tail": "0\\x00\\x00\\x10\\x00\\x12\\x00ar...x00\\x00\\x00\\x00\\x00\\x00\\x01\\x00\\x00\\x00PK\\x05\\x06\\x00\\x00\\x00\\x00\\x18\\x00\\x18\\x00\\xd3\\x05\\x00\\x00\\xb8m\\x00\\x00\\x00\\x00')\nE        +  and   11373 = len(b'PK\\x03\\x04\\x00\\x00\\x08\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x10\\x00\\x12\\x00ar...b,\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x00\\x00\\x00PK\\x05\\x06\\x00\\x00\\x00\\x00\\x18\\x00\\x18\\x00\\xd3\\x05\\x00\\x008&\\x00\\x00\\x00\\x00')\n\ntests/test_pql_replay_serialization.py:45: AssertionError\n___ test_sparse_checkpoint_size_does_not_grow_with_unused_capacity[3-cuda:0] ___\n\ndevice = 'cuda:0', rows = 3\n\n    @pytest.mark.parametrize(\"device\", [\"cpu\", \"cuda:0\", \"cuda:1\"])\n    @pytest.mark.parametrize(\"rows\", [0, 3])\n    def test_sparse_checkpoint_size_does_not_grow_with_unused_capacity(device, rows):\n        available(device)\n        small = serialize(replay_with_rows(16, device, rows))\n        large = serialize(replay_with_rows(2048, device, rows))\n        # Both contain the same 0/3 valid transitions; capacity metadata needs only bytes.\n>       assert len(large) <= len(small) + 2048, (len(small), len(large))\nE       AssertionError: (8365, 286829)\nE       assert 286829 <= (8365 + 2048)\nE        +  where 286829 = len(b'PK\\x03\\x04\\x00\\x00\\x08\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x10\\x00\\x12\\x00ar...b`\\x04\\x00\\x00\\x00\\x00\\x00\\x01\\x00\\x00\\x00PK\\x05\\x06\\x00\\x00\\x00\\x00\\x18\\x00\\x18\\x00\\xd3\\x05\\x00\\x008Z\\x04\\x00\\x00\\x00')\nE        +  and   8365 = len(b'PK\\x03\\x04\\x00\\x00\\x08\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x10\\x00\\x12\\x00ar...x00\\x00\\x00\\x00\\x00\\x00\\x01\\x00\\x00\\x00PK\\x05\\x06\\x00\\x00\\x00\\x00\\x18\\x00\\x18\\x00\\xd3\\x05\\x00\\x00x\\x1a\\x00\\x00\\x00\\x00')\n\ntests/test_pql_replay_serialization.py:45: AssertionError\n___ test_sparse_checkpoint_size_does_not_grow_with_unused_capacity[3-cuda:1] ___\n\ndevice = 'cuda:1', rows = 3\n\n    @pytest.mark.parametrize(\"device\", [\"cpu\", \"cuda:0\", \"cuda:1\"])\n    @pytest.mark.parametrize(\"rows\", [0, 3])\n    def test_sparse_checkpoint_size_does_not_grow_with_unused_capacity(device, rows):\n        available(device)\n        small = serialize(replay_with_rows(16, device, rows))\n        large = serialize(replay_with_rows(2048, device, rows))\n        # Both contain the same 0/3 valid transitions; capacity metadata needs only bytes.\n>       assert len(large) <= len(small) + 2048, (len(small), len(large))\nE       AssertionError: (8365, 286829)\nE       assert 286829 <= (8365 + 2048)\nE        +  where 286829 = len(b'PK\\x03\\x04\\x00\\x00\\x08\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x10\\x00\\x12\\x00ar...b`\\x04\\x00\\x00\\x00\\x00\\x00\\x01\\x00\\x00\\x00PK\\x05\\x06\\x00\\x00\\x00\\x00\\x18\\x00\\x18\\x00\\xd3\\x05\\x00\\x008Z\\x04\\x00\\x00\\x00')\nE        +  and   8365 = len(b'PK\\x03\\x04\\x00\\x00\\x08\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x10\\x00\\x12\\x00ar...x00\\x00\\x00\\x00\\x00\\x00\\x01\\x00\\x00\\x00PK\\x05\\x06\\x00\\x00\\x00\\x00\\x18\\x00\\x18\\x00\\xd3\\x05\\x00\\x00x\\x1a\\x00\\x00\\x00\\x00')\n\ntests/test_pql_replay_serialization.py:45: AssertionError\n---------------- generated xml file: /kaggle/working/sparse.xml ----------------\n=========================== short test summary info ============================\nFAILED tests/test_pql_replay_serialization.py::test_sparse_checkpoint_size_does_not_grow_with_unused_capacity[0-cpu]\nFAILED tests/test_pql_replay_serialization.py::test_sparse_checkpoint_size_does_not_grow_with_unused_capacity[0-cuda:0]\nFAILED tests/test_pql_replay_serialization.py::test_sparse_checkpoint_size_does_not_grow_with_unused_capacity[0-cuda:1]\nFAILED tests/test_pql_replay_serialization.py::test_sparse_checkpoint_size_does_not_grow_with_unused_capacity[3-cpu]\nFAILED tests/test_pql_replay_serialization.py::test_sparse_checkpoint_size_does_not_grow_with_unused_capacity[3-cuda:0]\nFAILED tests/test_pql_replay_serialization.py::test_sparse_checkpoint_size_does_not_grow_with_unused_capacity[3-cuda:1]\n6 failed, 6 passed in 3.30s\n"
+    }
+  ],
+  "status": "expected_red",
+  "scope": "No W&B/HF writes or deletion; bounded CUDA verification only",
+  "hardware": {
+    "devices": [
+      "Tesla T4",
+      "Tesla T4"
+    ],
+    "torch": "2.11.0+cu128",
+    "cuda": "12.8"
+  },
+  "active_stage": "sparse-regression",
+  "completed_utc": "2026-10-26T07:52:18.238265+00:00"
+}

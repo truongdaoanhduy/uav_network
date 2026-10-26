@@ -87,12 +87,20 @@ class MeasuredReplay(TensorReplayBuffer):
             getattr(self, name).copy_(torch.as_tensor(saved.get(name, fallback), device=self.device))
 
     def state_dict(self):
+        def compact(value):
+            result = value.detach().cpu()
+            if result.untyped_storage().nbytes() != result.numel() * result.element_size():
+                result = result.clone()
+            return result
+
+        measurement = self.measurement_state()
+        for name in ("born", "seen"):
+            measurement[name] = compact(measurement[name])
         return {"capacity": self.capacity, "index": self.index, "size": self.size,
-                "device_type": self.device.type, "rng": self.rng.get_state(), **self.measurement_state(),
-                # save() drains workers and serializes synchronously. Full CPU
-                # storage may be borrowed; partial rings must not expose unused rows.
-                "data": {name: value[:self.size].clone() if self.device.type == "cpu" and self.size < self.capacity
-                         else value[:self.size] for name, value in self.data.items()}}
+                "device_type": self.device.type, "rng": self.rng.get_state(), **measurement,
+                # save() drains workers and serializes synchronously. Borrow full
+                # CPU storage, compact partial views, and avoid extra CUDA replay copies.
+                "data": {name: compact(value[:self.size]) for name, value in self.data.items()}}
 
     def load_state_dict(self, saved):
         if saved["capacity"] != self.capacity or not 0 <= saved["size"] <= self.capacity:

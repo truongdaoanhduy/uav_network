@@ -1,3 +1,17 @@
+# Current task: fix PQL sparse checkpoint storage — ACTIVE
+
+Updated 2026-10-26T07:53:09.436135+00:00. User explicitly authorized fixing the reported PQL GPU-only checkpoint bloat. HF/W&B deletion and data mutation remain prohibited. No training/reward/scenario retuning or production20k cohort is authorized.
+
+- Starting source6e0ed9bd5c45dfa2d7a7af86a8042a9966122468, feature branch synchronized; pre-existing untrackedwandb/ preserved.
+- Root cause: MeasuredReplay.state_dict returns CUDA transition slices and CPU/CUDA born/seen slices backed by full ring storage; torch.save persists unused capacity. BASE compacts populated views. Prior real2T4test measured8.94GBvs2.49GB with8192/500000populated rows, predicted6.445GBexcess matches within2.2KB.
+- New regression tests/test_pql_replay_serialization.py exercises actual serialized size independent of unused capacity (empty/sparseCPU+bothCUDAdevices), and exact next-sample/measurement/RNG roundtrip for sparse/wrapped rings. CPU RED observed2fail2pass8skip; no production edit yet. Real2T4RED diagnostic duytrngoanh/uav-pql-sparse-red-20261026 is submitted against6e0ed9b, embeds the new tests only. Observed actual2TeslaT4RED6fail6pass0skip receipt; minimal fix now applied.
+- Minimal intended fix: compact populated transition and born/seen tensors ontoCPU for serialization; preserve original device_type/RNG/schema and fullCPUborrowed-storage behavior. Avoid allocating a second nearly-full replay onVRAM. PQL save flushes workers and serializes synchronously; no other state_dict consumer needs liveCUDAdata.
+- Minimal sourcefix applied in MeasuredReplay.state_dict: populated transition/born/seen storage is detached ontoCPU and compacted if it still references unused capacity. No loader/schema/scientific-setting change. FocusedCPU13pass8skip12subtests, independent review found no blockers; reviewer minor addressed with direct RNG/all-populated-field checks (4pass8skip).
+- Initial wholeCPU run found only a prior evidence-artifact policy failure:934linepipfreeze.txt exceeded repo500line limit;778tests passed/89skipped. Preserved identical raw content in two467lineparts; focusedstructure+replay6pass8skip363subtests. Final fullCPU rerun under outputs/.../cpu-final.* is active. Do not claim whole-suite success from the initial failing run.
+- Next: finish finalCPU -> commit/push -> realCUDAregression/fullsuite and two full4096PQLresume cases with serialized-size comparison -> final evidence/continuity. Durable files outputs/pql-sparse-fix-20261026/. No cleanup actions.
+
+---
+
 # Current task: scenario and algorithm verification — COMPLETE / CHECKS ONLY
 
 Updated 2026-10-26T07:34:16.289962+00:00. User explicitly prohibited deletion on HF/W&B and requested checks only. **Keep cleanup/remote repair stopped; do not resume the303remaining candidates from historical records below.** No source/test/scientific config changes were made in this phase.

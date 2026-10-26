@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="12" time="3.299" timestamp="2026-10-26T07:52:13.811232+00:00" hostname="67d8553d2c38"><testcase classname="tests.test_pql_replay_serialization" name="test_sparse_checkpoint_size_does_not_grow_with_unused_capacity[0-cpu]" time="0.063"><failure message="AssertionError: (10669, 28973)&#10;assert 28973 &lt;= (10669 + 2048)&#10; +  where 28973 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...x00\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x00\xf8j\x00\x00\x00\x00')&#10; +  and   10669 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...K)\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x00x#\x00\x00\x00\x00')">device = 'cpu', rows = 0
+
+    @pytest.mark.parametrize("device", ["cpu", "cuda:0", "cuda:1"])
+    @pytest.mark.parametrize("rows", [0, 3])
+    def test_sparse_checkpoint_size_does_not_grow_with_unused_capacity(device, rows):
+        available(device)
+        small = serialize(replay_with_rows(16, device, rows))
+        large = serialize(replay_with_rows(2048, device, rows))
+        # Both contain the same 0/3 valid transitions; capacity metadata needs only bytes.
+&gt;       assert len(large) &lt;= len(small) + 2048, (len(small), len(large))
+E       AssertionError: (10669, 28973)
+E       assert 28973 &lt;= (10669 + 2048)
+E        +  where 28973 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...x00\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x00\xf8j\x00\x00\x00\x00')
+E        +  and   10669 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...K)\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x00x#\x00\x00\x00\x00')
+
+tests/test_pql_replay_serialization.py:45: AssertionError</failure></testcase><testcase classname="tests.test_pql_replay_serialization" name="test_sparse_checkpoint_size_does_not_grow_with_unused_capacity[0-cuda:0]" time="0.565"><failure message="AssertionError: (8365, 286829)&#10;assert 286829 &lt;= (8365 + 2048)&#10; +  where 286829 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...b`\x04\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x008Z\x04\x00\x00\x00')&#10; +  and   8365 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...x00\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x00x\x1a\x00\x00\x00\x00')">device = 'cuda:0', rows = 0
+
+    @pytest.mark.parametrize("device", ["cpu", "cuda:0", "cuda:1"])
+    @pytest.mark.parametrize("rows", [0, 3])
+    def test_sparse_checkpoint_size_does_not_grow_with_unused_capacity(device, rows):
+        available(device)
+        small = serialize(replay_with_rows(16, device, rows))
+        large = serialize(replay_with_rows(2048, device, rows))
+        # Both contain the same 0/3 valid transitions; capacity metadata needs only bytes.
+&gt;       assert len(large) &lt;= len(small) + 2048, (len(small), len(large))
+E       AssertionError: (8365, 286829)
+E       assert 286829 &lt;= (8365 + 2048)
+E        +  where 286829 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...b`\x04\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x008Z\x04\x00\x00\x00')
+E        +  and   8365 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...x00\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x00x\x1a\x00\x00\x00\x00')
+
+tests/test_pql_replay_serialization.py:45: AssertionError</failure></testcase><testcase classname="tests.test_pql_replay_serialization" name="test_sparse_checkpoint_size_does_not_grow_with_unused_capacity[0-cuda:1]" time="0.201"><failure message="AssertionError: (8365, 286829)&#10;assert 286829 &lt;= (8365 + 2048)&#10; +  where 286829 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...b`\x04\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x008Z\x04\x00\x00\x00')&#10; +  and   8365 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...x00\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x00x\x1a\x00\x00\x00\x00')">device = 'cuda:1', rows = 0
+
+    @pytest.mark.parametrize("device", ["cpu", "cuda:0", "cuda:1"])
+    @pytest.mark.parametrize("rows", [0, 3])
+    def test_sparse_checkpoint_size_does_not_grow_with_unused_capacity(device, rows):
+        available(device)
+        small = serialize(replay_with_rows(16, device, rows))
+        large = serialize(replay_with_rows(2048, device, rows))
+        # Both contain the same 0/3 valid transitions; capacity metadata needs only bytes.
+&gt;       assert len(large) &lt;= len(small) + 2048, (len(small), len(large))
+E       AssertionError: (8365, 286829)
+E       assert 286829 &lt;= (8365 + 2048)
+E        +  where 286829 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...b`\x04\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x008Z\x04\x00\x00\x00')
+E        +  and   8365 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...x00\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x00x\x1a\x00\x00\x00\x00')
+
+tests/test_pql_replay_serialization.py:45: AssertionError</failure></testcase><testcase classname="tests.test_pql_replay_serialization" name="test_sparse_checkpoint_size_does_not_grow_with_unused_capacity[3-cpu]" time="0.107"><failure message="AssertionError: (11373, 29677)&#10;assert 29677 &lt;= (11373 + 2048)&#10; +  where 29677 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...x00\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x00\xb8m\x00\x00\x00\x00')&#10; +  and   11373 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...b,\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x008&amp;\x00\x00\x00\x00')">device = 'cpu', rows = 3
+
+    @pytest.mark.parametrize("device", ["cpu", "cuda:0", "cuda:1"])
+    @pytest.mark.parametrize("rows", [0, 3])
+    def test_sparse_checkpoint_size_does_not_grow_with_unused_capacity(device, rows):
+        available(device)
+        small = serialize(replay_with_rows(16, device, rows))
+        large = serialize(replay_with_rows(2048, device, rows))
+        # Both contain the same 0/3 valid transitions; capacity metadata needs only bytes.
+&gt;       assert len(large) &lt;= len(small) + 2048, (len(small), len(large))
+E       AssertionError: (11373, 29677)
+E       assert 29677 &lt;= (11373 + 2048)
+E        +  where 29677 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...x00\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x00\xb8m\x00\x00\x00\x00')
+E        +  and   11373 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...b,\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x008&amp;\x00\x00\x00\x00')
+
+tests/test_pql_replay_serialization.py:45: AssertionError</failure></testcase><testcase classname="tests.test_pql_replay_serialization" name="test_sparse_checkpoint_size_does_not_grow_with_unused_capacity[3-cuda:0]" time="0.448"><failure message="AssertionError: (8365, 286829)&#10;assert 286829 &lt;= (8365 + 2048)&#10; +  where 286829 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...b`\x04\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x008Z\x04\x00\x00\x00')&#10; +  and   8365 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...x00\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x00x\x1a\x00\x00\x00\x00')">device = 'cuda:0', rows = 3
+
+    @pytest.mark.parametrize("device", ["cpu", "cuda:0", "cuda:1"])
+    @pytest.mark.parametrize("rows", [0, 3])
+    def test_sparse_checkpoint_size_does_not_grow_with_unused_capacity(device, rows):
+        available(device)
+        small = serialize(replay_with_rows(16, device, rows))
+        large = serialize(replay_with_rows(2048, device, rows))
+        # Both contain the same 0/3 valid transitions; capacity metadata needs only bytes.
+&gt;       assert len(large) &lt;= len(small) + 2048, (len(small), len(large))
+E       AssertionError: (8365, 286829)
+E       assert 286829 &lt;= (8365 + 2048)
+E        +  where 286829 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...b`\x04\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x008Z\x04\x00\x00\x00')
+E        +  and   8365 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...x00\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x00x\x1a\x00\x00\x00\x00')
+
+tests/test_pql_replay_serialization.py:45: AssertionError</failure></testcase><testcase classname="tests.test_pql_replay_serialization" name="test_sparse_checkpoint_size_does_not_grow_with_unused_capacity[3-cuda:1]" time="0.041"><failure message="AssertionError: (8365, 286829)&#10;assert 286829 &lt;= (8365 + 2048)&#10; +  where 286829 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...b`\x04\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x008Z\x04\x00\x00\x00')&#10; +  and   8365 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...x00\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x00x\x1a\x00\x00\x00\x00')">device = 'cuda:1', rows = 3
+
+    @pytest.mark.parametrize("device", ["cpu", "cuda:0", "cuda:1"])
+    @pytest.mark.parametrize("rows", [0, 3])
+    def test_sparse_checkpoint_size_does_not_grow_with_unused_capacity(device, rows):
+        available(device)
+        small = serialize(replay_with_rows(16, device, rows))
+        large = serialize(replay_with_rows(2048, device, rows))
+        # Both contain the same 0/3 valid transitions; capacity metadata needs only bytes.
+&gt;       assert len(large) &lt;= len(small) + 2048, (len(small), len(large))
+E       AssertionError: (8365, 286829)
+E       assert 286829 &lt;= (8365 + 2048)
+E        +  where 286829 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...b`\x04\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x008Z\x04\x00\x00\x00')
+E        +  and   8365 = len(b'PK\x03\x04\x00\x00\x08\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x10\x00\x12\x00ar...x00\x00\x00\x00\x00\x00\x01\x00\x00\x00PK\x05\x06\x00\x00\x00\x00\x18\x00\x18\x00\xd3\x05\x00\x00x\x1a\x00\x00\x00\x00')
+
+tests/test_pql_replay_serialization.py:45: AssertionError</failure></testcase><testcase classname="tests.test_pql_replay_serialization" name="test_serialized_replay_preserves_next_samples_and_measurements[3-cpu]" time="0.018" /><testcase classname="tests.test_pql_replay_serialization" name="test_serialized_replay_preserves_next_samples_and_measurements[3-cuda:0]" time="0.090" /><testcase classname="tests.test_pql_replay_serialization" name="test_serialized_replay_preserves_next_samples_and_measurements[3-cuda:1]" time="0.017" /><testcase classname="tests.test_pql_replay_serialization" name="test_serialized_replay_preserves_next_samples_and_measurements[20-cpu]" time="0.007" /><testcase classname="tests.test_pql_replay_serialization" name="test_serialized_replay_preserves_next_samples_and_measurements[20-cuda:0]" time="0.012" /><testcase classname="tests.test_pql_replay_serialization" name="test_serialized_replay_preserves_next_samples_and_measurements[20-cuda:1]" time="0.012" /></testsuite></testsuites>
