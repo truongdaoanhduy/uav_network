@@ -1,0 +1,1130 @@
+{
+  "wandb": {
+    "utc": "2026-10-26T11:55:13.536500+00:00",
+    "all_pages_complete": true,
+    "active_count": 4,
+    "active_training_count": 2,
+    "active_controller_count": 2,
+    "runs": [
+      {
+        "id": "cfad2583",
+        "name": "MATD3-PQL-uav-network-2d-seed44-20261026-093209-a779b5",
+        "state": "failed",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-fullgpu-20261026",
+        "stage": "train",
+        "training_mode": "pql",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": "matd3",
+          "num_envs": 4096,
+          "replay_device": "cuda",
+          "replay_cpu_fraction": 0
+        },
+        "kernel_ref": null,
+        "root_kernel_ref": "bhbjbnmku/uavnet-train-20261026-093209-a779b5",
+        "summary": {
+          "global_step": 13750272,
+          "train/episodes_completed": 5562,
+          "train/updates": 26602,
+          "diagnostics/fatal_error": true,
+          "phase": null,
+          "heartbeat_utc": null,
+          "current_gpu_ref": null,
+          "error_type": null,
+          "status": null,
+          "_timestamp": 1793010651.0146928
+        }
+      },
+      {
+        "id": "8c599ca4",
+        "name": "MATD3-BASE-uav-network-2d-seed44-20261026-093210-d2dbd8",
+        "state": "failed",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-fullgpu-20261026",
+        "stage": "train",
+        "training_mode": "base",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": "matd3",
+          "num_envs": 4096,
+          "replay_device": "cuda",
+          "replay_cpu_fraction": 0
+        },
+        "kernel_ref": null,
+        "root_kernel_ref": "kjhjvnvjgyu/uavnet-train-20261026-093210-d2dbd8",
+        "summary": {
+          "global_step": 13783040,
+          "train/episodes_completed": 5551,
+          "train/updates": 26664,
+          "diagnostics/fatal_error": true,
+          "phase": null,
+          "heartbeat_utc": null,
+          "current_gpu_ref": null,
+          "error_type": null,
+          "status": null,
+          "_timestamp": 1793010780.3126435
+        }
+      },
+      {
+        "id": "b18d6a0d",
+        "name": "MASAC-BASE-uav-network-2d-seed44-20261026-093208-d80760",
+        "state": "failed",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-fullgpu-20261026",
+        "stage": "train",
+        "training_mode": "base",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": "masac",
+          "num_envs": 4096,
+          "replay_device": "cuda",
+          "replay_cpu_fraction": 0
+        },
+        "kernel_ref": null,
+        "root_kernel_ref": "fowieofweoi/uavnet-train-20261026-093208-d80760",
+        "summary": {
+          "global_step": 131072,
+          "train/episodes_completed": 0,
+          "train/updates": 0,
+          "diagnostics/fatal_error": true,
+          "phase": null,
+          "heartbeat_utc": null,
+          "current_gpu_ref": null,
+          "error_type": null,
+          "status": null,
+          "_timestamp": 1793007423.792934
+        }
+      },
+      {
+        "id": "253fb29f",
+        "name": "MATD3-PQL-benchmark-E4096-B8192-seed44",
+        "state": "finished",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-fullgpu-20261026",
+        "stage": "train",
+        "training_mode": "pql",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": "matd3",
+          "num_envs": 4096,
+          "replay_device": "cuda",
+          "replay_cpu_fraction": 0
+        },
+        "kernel_ref": null,
+        "root_kernel_ref": "bhbjbnmku/uavnet-train-20261026-093209-a779b5",
+        "summary": {
+          "global_step": 163840,
+          "train/episodes_completed": null,
+          "train/updates": null,
+          "diagnostics/fatal_error": null,
+          "phase": null,
+          "heartbeat_utc": null,
+          "current_gpu_ref": null,
+          "error_type": null,
+          "status": "passed",
+          "_timestamp": 1793007436.6674893
+        }
+      },
+      {
+        "id": "8b988c64",
+        "name": "MASAC-PQL-benchmark-E4096-B8192-seed44",
+        "state": "failed",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-fullgpu-20261026",
+        "stage": "train",
+        "training_mode": "pql",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": "masac",
+          "num_envs": 4096,
+          "replay_device": "cuda",
+          "replay_cpu_fraction": 0
+        },
+        "kernel_ref": null,
+        "root_kernel_ref": "kjkjhhfghjjkn/uavnet-train-20261026-093213-22e669",
+        "summary": {
+          "global_step": null,
+          "train/episodes_completed": null,
+          "train/updates": null,
+          "diagnostics/fatal_error": null,
+          "phase": null,
+          "heartbeat_utc": null,
+          "current_gpu_ref": null,
+          "error_type": "OutOfMemoryError",
+          "status": "oom",
+          "_timestamp": null
+        }
+      },
+      {
+        "id": "2206e5d5",
+        "name": "FLOW-pql-uavnet-train-20261026-093213-22e669-g0",
+        "state": "failed",
+        "group": null,
+        "stage": "continuation-watch",
+        "training_mode": null,
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": null,
+          "num_envs": null,
+          "replay_device": null,
+          "replay_cpu_fraction": null
+        },
+        "kernel_ref": "kjkjhhfghjjkn/uav-flow-4f74eeda2c7bd0-0000",
+        "root_kernel_ref": "kjkjhhfghjjkn/uavnet-train-20261026-093213-22e669",
+        "summary": {
+          "global_step": null,
+          "train/episodes_completed": null,
+          "train/updates": null,
+          "diagnostics/fatal_error": null,
+          "phase": "blocked",
+          "heartbeat_utc": "2026-10-26T09:50:43.515919+00:00",
+          "current_gpu_ref": "kjkjhhfghjjkn/uavnet-train-20261026-093213-22e669",
+          "error_type": "ValueError",
+          "status": null,
+          "_timestamp": 1793008243.5171905
+        }
+      },
+      {
+        "id": "673843cb",
+        "name": "FLOW-base-uavnet-train-20261026-093210-d2dbd8-g0",
+        "state": "failed",
+        "group": null,
+        "stage": "continuation-watch",
+        "training_mode": null,
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": null,
+          "num_envs": null,
+          "replay_device": null,
+          "replay_cpu_fraction": null
+        },
+        "kernel_ref": "kjhjvnvjgyu/uav-flow-56bbb97875589b-0000",
+        "root_kernel_ref": "kjhjvnvjgyu/uavnet-train-20261026-093210-d2dbd8",
+        "summary": {
+          "global_step": null,
+          "train/episodes_completed": null,
+          "train/updates": null,
+          "diagnostics/fatal_error": null,
+          "phase": "blocked",
+          "heartbeat_utc": "2026-10-26T10:35:21.422044+00:00",
+          "current_gpu_ref": "kjhjvnvjgyu/uavnet-train-20261026-093210-d2dbd8",
+          "error_type": "ValueError",
+          "status": null,
+          "_timestamp": 1793010921.4236472
+        }
+      },
+      {
+        "id": "09739af6",
+        "name": "FLOW-base-uavnet-train-20261026-093208-d80760-g0",
+        "state": "failed",
+        "group": null,
+        "stage": "continuation-watch",
+        "training_mode": null,
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": null,
+          "num_envs": null,
+          "replay_device": null,
+          "replay_cpu_fraction": null
+        },
+        "kernel_ref": "fowieofweoi/uav-flow-a55f34c7eeeae6-0000",
+        "root_kernel_ref": "fowieofweoi/uavnet-train-20261026-093208-d80760",
+        "summary": {
+          "global_step": null,
+          "train/episodes_completed": null,
+          "train/updates": null,
+          "diagnostics/fatal_error": null,
+          "phase": "blocked",
+          "heartbeat_utc": "2026-10-26T09:50:12.869019+00:00",
+          "current_gpu_ref": "fowieofweoi/uavnet-train-20261026-093208-d80760",
+          "error_type": "ValueError",
+          "status": null,
+          "_timestamp": 1793008212.8709197
+        }
+      },
+      {
+        "id": "ba572cdf",
+        "name": "FLOW-pql-uavnet-train-20261026-093209-a779b5-g0",
+        "state": "failed",
+        "group": null,
+        "stage": "continuation-watch",
+        "training_mode": null,
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": null,
+          "num_envs": null,
+          "replay_device": null,
+          "replay_cpu_fraction": null
+        },
+        "kernel_ref": "bhbjbnmku/uav-flow-30aecece46735a-0000",
+        "root_kernel_ref": "bhbjbnmku/uavnet-train-20261026-093209-a779b5",
+        "summary": {
+          "global_step": null,
+          "train/episodes_completed": null,
+          "train/updates": null,
+          "diagnostics/fatal_error": null,
+          "phase": "blocked",
+          "heartbeat_utc": "2026-10-26T10:35:07.600461+00:00",
+          "current_gpu_ref": "bhbjbnmku/uavnet-train-20261026-093209-a779b5",
+          "error_type": "ValueError",
+          "status": null,
+          "_timestamp": 1793010907.601779
+        }
+      },
+      {
+        "id": "6f538a33",
+        "name": "MATD3-PQL-uav-network-2d-seed44-20261026-084909-08ae22",
+        "state": "failed",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-cpu75-20261026",
+        "stage": "train",
+        "training_mode": "pql",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": "matd3",
+          "num_envs": 4096,
+          "replay_device": "cpu",
+          "replay_cpu_fraction": 0.75
+        },
+        "kernel_ref": null,
+        "root_kernel_ref": "njbiugyry/uavnet-train-20261026-084909-08ae22",
+        "summary": {
+          "global_step": 13787136,
+          "train/episodes_completed": 5512,
+          "train/updates": 26672,
+          "diagnostics/fatal_error": true,
+          "phase": null,
+          "heartbeat_utc": null,
+          "current_gpu_ref": null,
+          "error_type": null,
+          "status": null,
+          "_timestamp": 1793009370.0721433
+        }
+      },
+      {
+        "id": "60fc6245",
+        "name": "MASAC-PQL-uav-network-2d-seed44-20261026-084907-cd531f",
+        "state": "running",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-cpu75-20261026",
+        "stage": "train",
+        "training_mode": "pql",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": "masac",
+          "num_envs": 4096,
+          "replay_device": "cpu",
+          "replay_cpu_fraction": 0.75
+        },
+        "kernel_ref": null,
+        "root_kernel_ref": "nkjkhkhk/uavnet-train-20261026-084907-cd531f",
+        "summary": {
+          "global_step": 10878976,
+          "train/episodes_completed": 4096,
+          "train/updates": 20976,
+          "diagnostics/fatal_error": null,
+          "phase": null,
+          "heartbeat_utc": null,
+          "current_gpu_ref": null,
+          "error_type": null,
+          "status": null,
+          "_timestamp": 1793015705.6442378
+        }
+      },
+      {
+        "id": "43dc79e5",
+        "name": "MATD3-PQL-benchmark-E4096-B8192-seed44",
+        "state": "finished",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-cpu75-20261026",
+        "stage": "train",
+        "training_mode": "pql",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": "matd3",
+          "num_envs": 4096,
+          "replay_device": "cpu",
+          "replay_cpu_fraction": 0.75
+        },
+        "kernel_ref": null,
+        "root_kernel_ref": "njbiugyry/uavnet-train-20261026-084909-08ae22",
+        "summary": {
+          "global_step": 163840,
+          "train/episodes_completed": null,
+          "train/updates": null,
+          "diagnostics/fatal_error": null,
+          "phase": null,
+          "heartbeat_utc": null,
+          "current_gpu_ref": null,
+          "error_type": null,
+          "status": "passed",
+          "_timestamp": 1793004937.3888388
+        }
+      },
+      {
+        "id": "d17a279d",
+        "name": "MASAC-BASE-uav-network-2d-seed44-20261026-084830-d5be04",
+        "state": "running",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-cpu75-20261026",
+        "stage": "train",
+        "training_mode": "base",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": "masac",
+          "num_envs": 4096,
+          "replay_device": "cpu",
+          "replay_cpu_fraction": 0.75
+        },
+        "kernel_ref": null,
+        "root_kernel_ref": "weofjwelf/uavnet-train-20261026-084830-d5be04",
+        "summary": {
+          "global_step": 8769536,
+          "train/episodes_completed": 4096,
+          "train/updates": 16872,
+          "diagnostics/fatal_error": null,
+          "phase": null,
+          "heartbeat_utc": null,
+          "current_gpu_ref": null,
+          "error_type": null,
+          "status": null,
+          "_timestamp": 1793015709.7576282
+        }
+      },
+      {
+        "id": "c010de29",
+        "name": "MASAC-PQL-benchmark-E4096-B8192-seed44",
+        "state": "finished",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-cpu75-20261026",
+        "stage": "train",
+        "training_mode": "pql",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": "masac",
+          "num_envs": 4096,
+          "replay_device": "cpu",
+          "replay_cpu_fraction": 0.75
+        },
+        "kernel_ref": null,
+        "root_kernel_ref": "nkjkhkhk/uavnet-train-20261026-084907-cd531f",
+        "summary": {
+          "global_step": 163840,
+          "train/episodes_completed": null,
+          "train/updates": null,
+          "diagnostics/fatal_error": null,
+          "phase": null,
+          "heartbeat_utc": null,
+          "current_gpu_ref": null,
+          "error_type": null,
+          "status": "passed",
+          "_timestamp": 1793004894.7843158
+        }
+      },
+      {
+        "id": "da65a1ba",
+        "name": "MATD3-BASE-uav-network-2d-seed44-20261026-084904-c37220",
+        "state": "failed",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-cpu75-20261026",
+        "stage": "train",
+        "training_mode": "base",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": "matd3",
+          "num_envs": 4096,
+          "replay_device": "cpu",
+          "replay_cpu_fraction": 0.75
+        },
+        "kernel_ref": null,
+        "root_kernel_ref": "mjhres/uavnet-train-20261026-084904-c37220",
+        "summary": {
+          "global_step": 13967360,
+          "train/episodes_completed": 5519,
+          "train/updates": 27024,
+          "diagnostics/fatal_error": true,
+          "phase": null,
+          "heartbeat_utc": null,
+          "current_gpu_ref": null,
+          "error_type": null,
+          "status": null,
+          "_timestamp": 1793009596.2419393
+        }
+      },
+      {
+        "id": "769adc59",
+        "name": "FLOW-pql-uavnet-train-20261026-084909-08ae22-g0",
+        "state": "failed",
+        "group": null,
+        "stage": "continuation-watch",
+        "training_mode": null,
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": null,
+          "num_envs": null,
+          "replay_device": null,
+          "replay_cpu_fraction": null
+        },
+        "kernel_ref": "njbiugyry/uav-flow-6543108840dee2-0000",
+        "root_kernel_ref": "njbiugyry/uavnet-train-20261026-084909-08ae22",
+        "summary": {
+          "global_step": null,
+          "train/episodes_completed": null,
+          "train/updates": null,
+          "diagnostics/fatal_error": null,
+          "phase": "blocked",
+          "heartbeat_utc": "2026-10-26T10:21:38.038424+00:00",
+          "current_gpu_ref": "njbiugyry/uavnet-train-20261026-084909-08ae22",
+          "error_type": "ValueError",
+          "status": null,
+          "_timestamp": 1793010098.0395749
+        }
+      },
+      {
+        "id": "e9b9df73",
+        "name": "FLOW-base-uavnet-train-20261026-084830-d5be04-g0",
+        "state": "running",
+        "group": null,
+        "stage": "continuation-watch",
+        "training_mode": null,
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": null,
+          "num_envs": null,
+          "replay_device": null,
+          "replay_cpu_fraction": null
+        },
+        "kernel_ref": "weofjwelf/uav-flow-9c9a3e88b290e0-0000",
+        "root_kernel_ref": "weofjwelf/uavnet-train-20261026-084830-d5be04",
+        "summary": {
+          "global_step": null,
+          "train/episodes_completed": null,
+          "train/updates": null,
+          "diagnostics/fatal_error": null,
+          "phase": "training",
+          "heartbeat_utc": "2026-10-26T11:51:43.122183+00:00",
+          "current_gpu_ref": "weofjwelf/uavnet-train-20261026-084830-d5be04",
+          "error_type": null,
+          "status": null,
+          "_timestamp": 1793015503.123522
+        }
+      },
+      {
+        "id": "db402158",
+        "name": "FLOW-pql-uavnet-train-20261026-084907-cd531f-g0",
+        "state": "running",
+        "group": null,
+        "stage": "continuation-watch",
+        "training_mode": null,
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": null,
+          "num_envs": null,
+          "replay_device": null,
+          "replay_cpu_fraction": null
+        },
+        "kernel_ref": "nkjkhkhk/uav-flow-96d46e4df77a3b-0000",
+        "root_kernel_ref": "nkjkhkhk/uavnet-train-20261026-084907-cd531f",
+        "summary": {
+          "global_step": null,
+          "train/episodes_completed": null,
+          "train/updates": null,
+          "diagnostics/fatal_error": null,
+          "phase": "training",
+          "heartbeat_utc": "2026-10-26T11:51:39.603066+00:00",
+          "current_gpu_ref": "nkjkhkhk/uavnet-train-20261026-084907-cd531f",
+          "error_type": null,
+          "status": null,
+          "_timestamp": 1793015499.604303
+        }
+      },
+      {
+        "id": "8ac3d295",
+        "name": "FLOW-base-uavnet-train-20261026-084904-c37220-g0",
+        "state": "failed",
+        "group": null,
+        "stage": "continuation-watch",
+        "training_mode": null,
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "algorithm": null,
+          "num_envs": null,
+          "replay_device": null,
+          "replay_cpu_fraction": null
+        },
+        "kernel_ref": "mjhres/uav-flow-23a569703ab3f9-0000",
+        "root_kernel_ref": "mjhres/uavnet-train-20261026-084904-c37220",
+        "summary": {
+          "global_step": null,
+          "train/episodes_completed": null,
+          "train/updates": null,
+          "diagnostics/fatal_error": null,
+          "phase": "blocked",
+          "heartbeat_utc": "2026-10-26T10:21:27.053037+00:00",
+          "current_gpu_ref": "mjhres/uavnet-train-20261026-084904-c37220",
+          "error_type": "ValueError",
+          "status": null,
+          "_timestamp": 1793010087.0547175
+        }
+      }
+    ]
+  },
+  "kaggle": {
+    "utc": "2026-10-26T11:50:06.487151+00:00",
+    "kaggle": [
+      {
+        "account": "account_14",
+        "ref": "weofjwelf/uavnet-train-20261026-084830-d5be04",
+        "kind": "training",
+        "run_id": "d17a279d",
+        "state": "running"
+      },
+      {
+        "account": "account_14",
+        "ref": "weofjwelf/uav-flow-9c9a3e88b290e0-0000",
+        "kind": "controller",
+        "run_id": null,
+        "state": "running"
+      },
+      {
+        "account": "account_16",
+        "ref": "mjhres/uavnet-train-20261026-084904-c37220",
+        "kind": "training",
+        "run_id": "da65a1ba",
+        "state": "error"
+      },
+      {
+        "account": "account_16",
+        "ref": "mjhres/uav-flow-23a569703ab3f9-0000",
+        "kind": "controller",
+        "run_id": null,
+        "state": "complete"
+      },
+      {
+        "account": "account_15",
+        "ref": "nkjkhkhk/uavnet-train-20261026-084907-cd531f",
+        "kind": "training",
+        "run_id": "60fc6245",
+        "state": "running"
+      },
+      {
+        "account": "account_15",
+        "ref": "nkjkhkhk/uav-flow-96d46e4df77a3b-0000",
+        "kind": "controller",
+        "run_id": null,
+        "state": "running"
+      },
+      {
+        "account": "account_17",
+        "ref": "njbiugyry/uavnet-train-20261026-084909-08ae22",
+        "kind": "training",
+        "run_id": "6f538a33",
+        "state": "error"
+      },
+      {
+        "account": "account_17",
+        "ref": "njbiugyry/uav-flow-6543108840dee2-0000",
+        "kind": "controller",
+        "run_id": null,
+        "state": "complete"
+      },
+      {
+        "account": "account_18",
+        "ref": "fowieofweoi/uavnet-train-20261026-093208-d80760",
+        "kind": "training",
+        "run_id": "b18d6a0d",
+        "state": "error"
+      },
+      {
+        "account": "account_18",
+        "ref": "fowieofweoi/uav-flow-a55f34c7eeeae6-0000",
+        "kind": "controller",
+        "run_id": null,
+        "state": "complete"
+      },
+      {
+        "account": "account_21",
+        "ref": "bhbjbnmku/uavnet-train-20261026-093209-a779b5",
+        "kind": "training",
+        "run_id": "cfad2583",
+        "state": "error"
+      },
+      {
+        "account": "account_21",
+        "ref": "bhbjbnmku/uav-flow-30aecece46735a-0000",
+        "kind": "controller",
+        "run_id": null,
+        "state": "complete"
+      },
+      {
+        "account": "account_20",
+        "ref": "kjhjvnvjgyu/uavnet-train-20261026-093210-d2dbd8",
+        "kind": "training",
+        "run_id": "8c599ca4",
+        "state": "error"
+      },
+      {
+        "account": "account_20",
+        "ref": "kjhjvnvjgyu/uav-flow-56bbb97875589b-0000",
+        "kind": "controller",
+        "run_id": null,
+        "state": "complete"
+      },
+      {
+        "account": "account_19",
+        "ref": "kjkjhhfghjjkn/uavnet-train-20261026-093213-22e669",
+        "kind": "training",
+        "run_id": "003e327e",
+        "state": "error"
+      },
+      {
+        "account": "account_19",
+        "ref": "kjkjhhfghjjkn/uav-flow-4f74eeda2c7bd0-0000",
+        "kind": "controller",
+        "run_id": null,
+        "state": "complete"
+      }
+    ]
+  },
+  "controllers": [
+    {
+      "account": "account_17",
+      "ref": "njbiugyry/uav-flow-6543108840dee2-0000",
+      "root": "njbiugyry/uavnet-train-20261026-084909-08ae22",
+      "id": "769adc59",
+      "state": "failed",
+      "summary": {
+        "_runtime": 5408,
+        "_step": 6,
+        "_timestamp": 1793010098.0395749,
+        "_wandb.runtime": 5408,
+        "controller/heartbeat": 1,
+        "controller/phase": "blocked",
+        "current_gpu_ref": "njbiugyry/uavnet-train-20261026-084909-08ae22",
+        "error_type": "ValueError",
+        "heartbeat_utc": "2026-10-26T10:21:38.038424+00:00",
+        "phase": "blocked",
+        "remote_status": "running",
+        "root_kernel_ref": "njbiugyry/uavnet-train-20261026-084909-08ae22"
+      }
+    },
+    {
+      "account": "account_20",
+      "ref": "kjhjvnvjgyu/uav-flow-56bbb97875589b-0000",
+      "root": "kjhjvnvjgyu/uavnet-train-20261026-093210-d2dbd8",
+      "id": "673843cb",
+      "state": "failed",
+      "summary": {
+        "_runtime": 3609,
+        "_step": 4,
+        "_timestamp": 1793010921.4236472,
+        "_wandb.runtime": 3609,
+        "controller/heartbeat": 1,
+        "controller/phase": "blocked",
+        "current_gpu_ref": "kjhjvnvjgyu/uavnet-train-20261026-093210-d2dbd8",
+        "error_type": "ValueError",
+        "heartbeat_utc": "2026-10-26T10:35:21.422044+00:00",
+        "phase": "blocked",
+        "remote_status": "running",
+        "root_kernel_ref": "kjhjvnvjgyu/uavnet-train-20261026-093210-d2dbd8"
+      }
+    },
+    {
+      "account": "account_21",
+      "ref": "bhbjbnmku/uav-flow-30aecece46735a-0000",
+      "root": "bhbjbnmku/uavnet-train-20261026-093209-a779b5",
+      "id": "ba572cdf",
+      "state": "failed",
+      "summary": {
+        "_runtime": 3607,
+        "_step": 4,
+        "_timestamp": 1793010907.601779,
+        "_wandb.runtime": 3607,
+        "controller/heartbeat": 1,
+        "controller/phase": "blocked",
+        "current_gpu_ref": "bhbjbnmku/uavnet-train-20261026-093209-a779b5",
+        "error_type": "ValueError",
+        "heartbeat_utc": "2026-10-26T10:35:07.600461+00:00",
+        "phase": "blocked",
+        "remote_status": "running",
+        "root_kernel_ref": "bhbjbnmku/uavnet-train-20261026-093209-a779b5"
+      }
+    },
+    {
+      "account": "account_18",
+      "ref": "fowieofweoi/uav-flow-a55f34c7eeeae6-0000",
+      "root": "fowieofweoi/uavnet-train-20261026-093208-d80760",
+      "id": "09739af6",
+      "state": "failed",
+      "summary": {
+        "_runtime": 906,
+        "_step": 1,
+        "_timestamp": 1793008212.8709197,
+        "_wandb.runtime": 906,
+        "controller/heartbeat": 1,
+        "controller/phase": "blocked",
+        "current_gpu_ref": "fowieofweoi/uavnet-train-20261026-093208-d80760",
+        "error_type": "ValueError",
+        "heartbeat_utc": "2026-10-26T09:50:12.869019+00:00",
+        "phase": "blocked",
+        "remote_status": "running",
+        "root_kernel_ref": "fowieofweoi/uavnet-train-20261026-093208-d80760"
+      }
+    },
+    {
+      "account": "account_14",
+      "ref": "weofjwelf/uav-flow-9c9a3e88b290e0-0000",
+      "root": "weofjwelf/uavnet-train-20261026-084830-d5be04",
+      "id": "e9b9df73",
+      "state": "running",
+      "summary": {
+        "_runtime": 10815.425620906,
+        "_step": 12,
+        "_timestamp": 1793015503.123522,
+        "_wandb.runtime": 10815,
+        "controller/heartbeat": 1,
+        "controller/phase": "training",
+        "current_gpu_ref": "weofjwelf/uavnet-train-20261026-084830-d5be04",
+        "heartbeat_utc": "2026-10-26T11:51:43.122183+00:00",
+        "phase": "training",
+        "remote_status": "running",
+        "root_kernel_ref": "weofjwelf/uavnet-train-20261026-084830-d5be04"
+      }
+    },
+    {
+      "account": "account_16",
+      "ref": "mjhres/uav-flow-23a569703ab3f9-0000",
+      "root": "mjhres/uavnet-train-20261026-084904-c37220",
+      "id": "8ac3d295",
+      "state": "failed",
+      "summary": {
+        "_runtime": 5410,
+        "_step": 6,
+        "_timestamp": 1793010087.0547175,
+        "_wandb.runtime": 5410,
+        "controller/heartbeat": 1,
+        "controller/phase": "blocked",
+        "current_gpu_ref": "mjhres/uavnet-train-20261026-084904-c37220",
+        "error_type": "ValueError",
+        "heartbeat_utc": "2026-10-26T10:21:27.053037+00:00",
+        "phase": "blocked",
+        "remote_status": "running",
+        "root_kernel_ref": "mjhres/uavnet-train-20261026-084904-c37220"
+      }
+    },
+    {
+      "account": "account_19",
+      "ref": "kjkjhhfghjjkn/uav-flow-4f74eeda2c7bd0-0000",
+      "root": "kjkjhhfghjjkn/uavnet-train-20261026-093213-22e669",
+      "id": "2206e5d5",
+      "state": "failed",
+      "summary": {
+        "_runtime": 905,
+        "_step": 1,
+        "_timestamp": 1793008243.5171905,
+        "_wandb.runtime": 905,
+        "controller/heartbeat": 1,
+        "controller/phase": "blocked",
+        "current_gpu_ref": "kjkjhhfghjjkn/uavnet-train-20261026-093213-22e669",
+        "error_type": "ValueError",
+        "heartbeat_utc": "2026-10-26T09:50:43.515919+00:00",
+        "phase": "blocked",
+        "remote_status": "running",
+        "root_kernel_ref": "kjkjhhfghjjkn/uavnet-train-20261026-093213-22e669"
+      }
+    },
+    {
+      "account": "account_15",
+      "ref": "nkjkhkhk/uav-flow-96d46e4df77a3b-0000",
+      "root": "nkjkhkhk/uavnet-train-20261026-084907-cd531f",
+      "id": "db402158",
+      "state": "running",
+      "summary": {
+        "_runtime": 10811.522961653,
+        "_step": 12,
+        "_timestamp": 1793015499.604303,
+        "_wandb.runtime": 10811,
+        "controller/heartbeat": 1,
+        "controller/phase": "training",
+        "current_gpu_ref": "nkjkhkhk/uavnet-train-20261026-084907-cd531f",
+        "heartbeat_utc": "2026-10-26T11:51:39.603066+00:00",
+        "phase": "training",
+        "remote_status": "running",
+        "root_kernel_ref": "nkjkhkhk/uavnet-train-20261026-084907-cd531f"
+      }
+    }
+  ],
+  "native_reproduction": {
+    "world": {
+      "generation_version": 2,
+      "map_size_m": 1000.0,
+      "num_uavs": 6,
+      "num_targets": 35,
+      "num_obstacles": 25,
+      "dt_s": 1.0,
+      "max_steps": 1800,
+      "max_speed_mps": 20.0,
+      "max_accel_mps2": 2.0,
+      "safety_distance_m": 15.0,
+      "obstacle_clearance_m": 10.0,
+      "motion_safety": "dynamic_window",
+      "obstacle_radius_min_m": 30.0,
+      "obstacle_radius_max_m": 70.0,
+      "launch_radius_m": 150.0,
+      "launch_min_spacing_m": 30.0,
+      "target_exclusion_radius_m": 200.0,
+      "gcs_position_m": null,
+      "placement_attempts": 5000
+    },
+    "native_reset_reproduction": [
+      {
+        "seed": 44,
+        "ok": true,
+        "obstacles": 25,
+        "elapsed_seconds": 0.015092450001247926
+      },
+      {
+        "seed": 302,
+        "ok": true,
+        "obstacles": 25,
+        "elapsed_seconds": 0.01662734400088084
+      },
+      {
+        "seed": 9641,
+        "ok": true,
+        "obstacles": 25,
+        "elapsed_seconds": 0.00704613399648224
+      },
+      {
+        "seed": 9642,
+        "ok": false,
+        "error_type": "ValueError",
+        "error": "Cannot place obstacles: reduce their count/radius or increase the map",
+        "elapsed_seconds": 0.10848462400099379
+      },
+      {
+        "seed": 9643,
+        "ok": true,
+        "obstacles": 25,
+        "elapsed_seconds": 0.00781614999868907
+      }
+    ]
+  },
+  "reset_root_cause": {
+    "native_failure_details": {
+      "seed": 9642,
+      "placed_obstacles": 24,
+      "failed_radius_m": 67.92984974735757,
+      "placement_attempts": 5000,
+      "obstacles": [
+        [
+          591.364060362748,
+          395.6495300738634,
+          66.27779215678567
+        ],
+        [
+          141.5516124879269,
+          816.7235994755716,
+          48.8195549850694
+        ],
+        [
+          108.08731635885236,
+          181.57028222163476,
+          65.24666230072557
+        ],
+        [
+          253.07820879136847,
+          611.7721079438776,
+          30.880986430522253
+        ],
+        [
+          144.62866844513206,
+          344.05071441386815,
+          62.701943116962
+        ],
+        [
+          592.9272818476826,
+          735.4173506961712,
+          46.84191080272922
+        ],
+        [
+          910.8352675826518,
+          636.5354437797345,
+          69.09639985468785
+        ],
+        [
+          909.1080702833243,
+          919.3109569079105,
+          67.60073900210719
+        ],
+        [
+          854.5535578792187,
+          421.99344274664526,
+          67.92652209950033
+        ],
+        [
+          323.51847230247176,
+          804.393411054143,
+          43.69397304503813
+        ],
+        [
+          296.29680755498345,
+          156.29050245897713,
+          69.71030706793363
+        ],
+        [
+          458.3555728628785,
+          277.72316499031865,
+          61.0094619465963
+        ],
+        [
+          171.15377368078984,
+          516.2191942133909,
+          34.10943708824027
+        ],
+        [
+          713.9293512601804,
+          719.4296853682922,
+          33.79450884544003
+        ],
+        [
+          344.81565652734395,
+          398.65332113185303,
+          68.67065269734576
+        ],
+        [
+          458.85348730876063,
+          825.7975203879847,
+          68.88320929643862
+        ],
+        [
+          772.8799536029829,
+          209.03270496792976,
+          52.46538813507882
+        ],
+        [
+          471.683801928938,
+          617.763614561261,
+          53.62646757219333
+        ],
+        [
+          901.151777394193,
+          181.50778563617527,
+          45.08545399202188
+        ],
+        [
+          729.9900348397408,
+          598.113403823133,
+          54.35203451613475
+        ],
+        [
+          824.6737023073447,
+          762.6415388647083,
+          58.43546473256066
+        ],
+        [
+          684.2040282924623,
+          876.284741699138,
+          45.30274327536259
+        ],
+        [
+          136.4853582210684,
+          657.9954985635312,
+          57.14413326675323
+        ],
+        [
+          566.6229738224076,
+          191.83448775370329,
+          36.52722365382311
+        ]
+      ]
+    },
+    "warp_cpu": {
+      "ok": false,
+      "error_type": "RuntimeError",
+      "error": "Warp world capacity/configuration error: [(0, 102)]"
+    }
+  },
+  "failures": [
+    {
+      "run": "6f538a33",
+      "sha256": "947f0f142424f1ad1b4ece39030db199785c87bb79fcec0f0988d7bd239c3ea2",
+      "timestamp": "2026-10-26T10:09:30.070537+00:00",
+      "error_type": "RuntimeError",
+      "traceback": "Traceback (most recent call last):\n  File \"/tmp/uav_network/uav_network/experiments/pql_training.py\", line 200, in train_pql\n    obs, _ = vector.reset(seed=reset_seeds, options={\"reset_mask\": reset_mask})\n             ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/uav_network/uav_network/environment/gpu/vector.py\", line 120, in reset\n    self._check_errors()\n    ~~~~~~~~~~~~~~~~~~^^\n  File \"/tmp/uav_network/uav_network/environment/gpu/vector.py\", line 79, in _check_errors\n    raise RuntimeError(f\"Warp world capacity/configuration error: {bad[:8]}\")\nRuntimeError: Warp world capacity/configuration error: [(3007, 102)]\n",
+      "context": {
+        "global_step": 13787136,
+        "episodes": 5512,
+        "updates": 26680,
+        "training_architecture": "pql-inspired"
+      },
+      "nonfinite_parameter_count": null,
+      "error_world_index": 3007,
+      "error_seed": null
+    },
+    {
+      "run": "8c599ca4",
+      "sha256": "3108845ab789b4928bc94258ac19fda8ed8890aa3a95f4b700fc2a89b6647892",
+      "timestamp": "2026-10-26T10:33:00.267753+00:00",
+      "error_type": "RuntimeError",
+      "traceback": "Traceback (most recent call last):\n  File \"/tmp/uav_network/uav_network/experiments/training.py\", line 302, in _train\n    obs, _ = vector.reset(seed=seeds, options={\"reset_mask\": reset_mask})\n             ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/uav_network/uav_network/environment/gpu/vector.py\", line 120, in reset\n    self._check_errors()\n    ~~~~~~~~~~~~~~~~~~^^\n  File \"/tmp/uav_network/uav_network/environment/gpu/vector.py\", line 79, in _check_errors\n    raise RuntimeError(f\"Warp world capacity/configuration error: {bad[:8]}\")\nRuntimeError: Warp world capacity/configuration error: [(50, 102)]\n",
+      "context": {
+        "algorithm": "matd3",
+        "global_step": 13783040,
+        "episodes": 5551,
+        "updates": 26664,
+        "device": "cuda:1"
+      },
+      "nonfinite_parameter_count": 0,
+      "error_world_index": 50,
+      "error_seed": 9642
+    },
+    {
+      "run": "b18d6a0d",
+      "sha256": "fa916e08f9a0986071794333a1388942c76d1c3df2da4c4057e656785c8f9374",
+      "timestamp": "2026-10-26T09:37:03.749099+00:00",
+      "error_type": "OutOfMemoryError",
+      "traceback": "Traceback (most recent call last):\n  File \"/tmp/uav_network/uav_network/experiments/training.py\", line 213, in _train\n    learn()  # Use previously stored transitions while CPU workers advance.\n    ~~~~~^^\n  File \"/tmp/uav_network/uav_network/experiments/training.py\", line 159, in learn\n    metrics = learner.update(batch,\n                             collect_metrics=checked and update == settings.updates_per_step - 1)\n  File \"/tmp/uav_network/uav_network/algorithms/masac.py\", line 213, in update\n    critic = self.update_critic(batch, collect_metrics)\n  File \"/tmp/uav_network/uav_network/algorithms/precision.py\", line 188, in update\n    result = method(self, *args, **kwargs)\n  File \"/tmp/uav_network/uav_network/algorithms/masac.py\", line 130, in update_critic\n    qs = (self._expected_q_all(self.target_critics, data[\"next_state\"], joint, continuous)\n          ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/uav_network/uav_network/algorithms/masac.py\", line 115, in _expected_q_all\n    q1, q2 = self._critic_values(critics, repeated_state, alternatives.reshape(n, b * k, n, -1), True, True)\n             ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/uav_network/uav_network/algorithms/masac.py\", line 119, in _critic_values\n    return getattr(self, \"_compiled_critic_values\", critic_values)(*args)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^\n  File \"/tmp/uav_network/uav_network/algorithms/parallel_critics.py\", line 20, in critic_values\n    values = torch.vmap(evaluate, in_dims=(0, 0 if per_critic else None))(parameters, actions)\n  File \"/usr/local/lib/python3.13/dist-packages/torch/_functorch/apis.py\", line 220, in wrapped\n    return vmap_impl(\n        # pyrefly: ignore[bad-argument-type]\n    ...<6 lines>...\n        **kwargs,\n    )\n  File \"/usr/local/lib/python3.13/dist-packages/torch/_functorch/vmap.py\", line 316, in vmap_impl\n    return _flat_vmap(\n        func,\n    ...<6 lines>...\n        **kwargs,\n    )\n  File \"/usr/local/lib/python3.13/dist-packages/torch/_functorch/vmap.py\", line 507, in _flat_vmap\n    batched_outputs = func(*batched_inputs, **kwargs)\n  File \"/tmp/uav_network/uav_network/algorithms/parallel_critics.py\", line 18, in evaluate\n    return functional_call(critics[0], params, (state, local_actions), strict=True)\n  File \"/usr/local/lib/python3.13/dist-packages/torch/_functorch/functional_call.py\", line 154, in functional_call\n    return nn.utils.stateless._functional_call(\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n        module,\n        ^^^^^^^\n    ...<4 lines>...\n        strict=strict,\n        ^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/utils/stateless.py\", line 279, in _functional_call\n    return module(*args, **kwargs)\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/modules/module.py\", line 1779, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/modules/module.py\", line 1790, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/tmp/uav_network/uav_network/algorithms/models.py\", line 63, in forward\n    return self.q1(inputs).squeeze(-1), self.q2(inputs).squeeze(-1)\n           ~~~~~~~^^^^^^^^\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/modules/module.py\", line 1779, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/modules/module.py\", line 1790, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/modules/container.py\", line 253, in forward\n    input = module(input)\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/modules/module.py\", line 1779, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/modules/module.py\", line 1790, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/modules/linear.py\", line 134, in forward\n    return F.linear(input, self.weight, self.bias)\n           ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntorch.OutOfMemoryError: CUDA out of memory. Tried to allocate 336.00 MiB. GPU 1 has a total capacity of 14.56 GiB of which 244.81 MiB is free. Including non-PyTorch memory, this process has 14.32 GiB memory in use. Of the allocated memory 14.15 GiB is allocated by PyTorch, and 17.49 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)\n",
+      "context": {
+        "algorithm": "masac",
+        "global_step": 131072,
+        "episodes": 0,
+        "updates": 0,
+        "device": "cuda:1"
+      },
+      "nonfinite_parameter_count": 0,
+      "error_world_index": null,
+      "error_seed": null
+    },
+    {
+      "run": "cfad2583",
+      "sha256": "4d4ceb1cfbefb2e3563018bbddc593b76ab7655e291c16c6056b6a32b6bec412",
+      "timestamp": "2026-10-26T10:30:51.013266+00:00",
+      "error_type": "RuntimeError",
+      "traceback": "Traceback (most recent call last):\n  File \"/tmp/uav_network/uav_network/experiments/pql_training.py\", line 200, in train_pql\n    obs, _ = vector.reset(seed=reset_seeds, options={\"reset_mask\": reset_mask})\n             ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/uav_network/uav_network/environment/gpu/vector.py\", line 120, in reset\n    self._check_errors()\n    ~~~~~~~~~~~~~~~~~~^^\n  File \"/tmp/uav_network/uav_network/environment/gpu/vector.py\", line 79, in _check_errors\n    raise RuntimeError(f\"Warp world capacity/configuration error: {bad[:8]}\")\nRuntimeError: Warp world capacity/configuration error: [(958, 102)]\n",
+      "context": {
+        "global_step": 13750272,
+        "episodes": 5562,
+        "updates": 26608,
+        "training_architecture": "pql-inspired"
+      },
+      "nonfinite_parameter_count": null,
+      "error_world_index": 958,
+      "error_seed": null
+    },
+    {
+      "run": "da65a1ba",
+      "sha256": "244c82fe489d2b3b34d57c59f995005a8d10148935b10902164e0d8e89ef5a78",
+      "timestamp": "2026-10-26T10:13:16.197658+00:00",
+      "error_type": "RuntimeError",
+      "traceback": "Traceback (most recent call last):\n  File \"/tmp/uav_network/uav_network/experiments/training.py\", line 302, in _train\n    obs, _ = vector.reset(seed=seeds, options={\"reset_mask\": reset_mask})\n             ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/uav_network/uav_network/environment/gpu/vector.py\", line 120, in reset\n    self._check_errors()\n    ~~~~~~~~~~~~~~~~~~^^\n  File \"/tmp/uav_network/uav_network/environment/gpu/vector.py\", line 79, in _check_errors\n    raise RuntimeError(f\"Warp world capacity/configuration error: {bad[:8]}\")\nRuntimeError: Warp world capacity/configuration error: [(3256, 102)]\n",
+      "context": {
+        "algorithm": "matd3",
+        "global_step": 13967360,
+        "episodes": 5519,
+        "updates": 27024,
+        "device": "cuda:1"
+      },
+      "nonfinite_parameter_count": 0,
+      "error_world_index": 3256,
+      "error_seed": 9642
+    }
+  ],
+  "record_verification": {
+    "project_structure": "2 passed, 370 subtests",
+    "diff_whitespace": "clean",
+    "evidence_consistency": "pass",
+    "credential_leak_check": "pass",
+    "production_changes": false
+  }
+}

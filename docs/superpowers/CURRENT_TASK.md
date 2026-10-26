@@ -1,3 +1,17 @@
+# Current task: live W&B/Kaggle failure diagnosis — COMPLETE / FIXES PROPOSED
+
+Updated 2026-10-26 18:55:13 +07:00. User requested current Running counts, causes and fix proposals. This supersedes the older six-training snapshot. No production source/config changes, cloud launches/restarts/cancellations, or HF/W&B mutations.
+
+- Fresh complete W&B active query: **2 training + 2 controllers = 4 Running rows**. Kaggle independently agrees. Remaining learners: hybrid CPU75/GPU25 MASAC BASE d17a279d (4,096episodes/8,769,536transitions/16,872updates) and MASAC PQL60fc6245 (4,096episodes/10,878,976transitions/20,976updates). Both progressed across reads. Controllers e9b9df73/db402158 running/phase training, correct root/source/currentGPU, heartbeat11:51UTC.
+- **NEW confirmed shared environment failure:** all4MATD3 hybrid/FULLGPU BASE/PQL failed at reset_geometry error102, which means obstacle placement exhausted5,000attempts. Completed episodes: da65a1ba5519;6f538a335512;8c599ca45551;cfad25835562. BothBASEfailurecontexts identify seed9642. Native seed9642 reproducibly fails after24of25obstacles (next radius67.92984974735757m); WarpCPUreset9642 also errors102. Seeds44/302/9641/9643 succeed. PQL seed arrays absent; do not claim their exactseed was directly recovered.
+- Remaining MASAChybrid shares the same generator/monotonicseed schedule; expected to hit the same defect if it advances far enough. Preserve active jobs under the user's instruction; do not promise eventual20k/finalvisualization.
+- Independent existing MASACFULLGPUOOM persists: b18d6a0d fails at131072/0updates; mandatoryPQLbenchmark8b988c64oom and reservedproduction003e327e notstarted. Replay~12.2GiB onGPU1 vs14.56GiB/device; critic allocation336MiB exceeds free244.81/176.81MiB. TwoT4 VRAM is not pooled.
+- Six failed-lineage controllers are W&Bfailed/phaseblocked/ValueError; Kagglecontrollercomplete is container termination, not successful pipeline. next_stage correctly requires successful summary/checkpoint/budget metadata; fatal parent cannot proceed to finalCPUeval. No final completion proven.
+- Proposed order: bounded deterministic whole-layout retry/backtracking in shared native/Warp generator, preserving scenario constraints; regression9642+fullseed schedule+realCUDA+protocolprovenance. Then validate chunked/sequential/microbatched MASACcritic execution on2T4 with unchanged logicalbatch8192/replay1M/env4096. Do not retune scientific budget, blindretry, skipbadseed, or mix old/newgeneratorcohorts.
+- Report: evidence/2026-10-26-live-running-diagnosis.md + adjacentJSON. Raw ignored receipts outputs/status-audit-20261026-1849/. Productionpin remainsf39f456; pre-recordlocalHEAD773c484. Verification: structure check2passed/370subtests, diff whitespace clean, evidence consistency and credential leak checks passed. Next authorized step is reporting proposals; implementation has not been requested in this turn.
+
+---
+
 # Current task: additional FULL GPU replay cohort — TWO RUNNING / TWO OOM
 
 Updated 2026-10-26T09:42:52.981766+00:00. User authorized four OTHER accounts for fullGPUreplay; all four launched once. **Four healthy runs were not achieved.** Preserve original four hybrid runs and both active fullGPU MATD3 runs. HF/W&B cleanup/deletion remains prohibited.
