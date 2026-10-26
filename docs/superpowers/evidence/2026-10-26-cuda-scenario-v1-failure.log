@@ -1,0 +1,46 @@
+.............................................Fatal Python error: Segmentation fault
+
+Thread 0x00007a32dabf56c0 (most recent call first):
+  <no Python frame>
+
+Thread 0x00007a32ee1166c0 (most recent call first):
+  <no Python frame>
+
+Current thread 0x00007a3431935140 (most recent call first):
+  File "/tmp/uav-cuda-audit-source/.venv/lib/python3.13/site-packages/warp/_src/context.py", line 10931 in invoke
+  File "/tmp/uav-cuda-audit-source/.venv/lib/python3.13/site-packages/warp/_src/context.py", line 11882 in launch
+  File "/tmp/uav-cuda-audit-source/tests/test_scenario_v3_integration.py", line 64 in prepare
+  File "/tmp/uav-cuda-audit-source/tests/test_scenario_v3_integration.py", line 122 in test_failed_low_power_attempt_costs_energy_then_high_power_recovers
+  File "/usr/lib/python3.13/unittest/case.py", line 606 in _callTestMethod
+  File "/usr/lib/python3.13/unittest/case.py", line 651 in run
+  File "/usr/lib/python3.13/unittest/case.py", line 707 in __call__
+  File "/usr/local/lib/python3.13/dist-packages/_pytest/unittest.py", line 351 in runtest
+  File "/usr/local/lib/python3.13/dist-packages/_pytest/runner.py", line 178 in pytest_runtest_call
+  File "/usr/local/lib/python3.13/dist-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/usr/local/lib/python3.13/dist-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/usr/local/lib/python3.13/dist-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/usr/local/lib/python3.13/dist-packages/_pytest/runner.py", line 246 in <lambda>
+  File "/usr/local/lib/python3.13/dist-packages/_pytest/runner.py", line 344 in from_call
+  File "/usr/local/lib/python3.13/dist-packages/_pytest/runner.py", line 245 in call_and_report
+  File "/usr/local/lib/python3.13/dist-packages/_pytest/runner.py", line 136 in runtestprotocol
+  File "/usr/local/lib/python3.13/dist-packages/_pytest/runner.py", line 117 in pytest_runtest_protocol
+  File "/usr/local/lib/python3.13/dist-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/usr/local/lib/python3.13/dist-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/usr/local/lib/python3.13/dist-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/usr/local/lib/python3.13/dist-packages/_pytest/main.py", line 367 in pytest_runtestloop
+  File "/usr/local/lib/python3.13/dist-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/usr/local/lib/python3.13/dist-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/usr/local/lib/python3.13/dist-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/usr/local/lib/python3.13/dist-packages/_pytest/main.py", line 343 in _main
+  File "/usr/local/lib/python3.13/dist-packages/_pytest/main.py", line 289 in wrap_session
+  File "/usr/local/lib/python3.13/dist-packages/_pytest/main.py", line 336 in pytest_cmdline_main
+  File "/usr/local/lib/python3.13/dist-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/usr/local/lib/python3.13/dist-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/usr/local/lib/python3.13/dist-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/usr/local/lib/python3.13/dist-packages/_pytest/config/__init__.py", line 175 in main
+  File "/usr/local/lib/python3.13/dist-packages/_pytest/config/__init__.py", line 201 in console_main
+  File "/usr/local/lib/python3.13/dist-packages/pytest/__main__.py", line 9 in <module>
+  File "<frozen runpy>", line 88 in _run_code
+  File "<frozen runpy>", line 203 in _run_module_as_main
+
+Extension modules: _brotli, simplejson._speedups, charset_normalizer.md, charset_normalizer.cd, psutil._psutil_linux, psutil._psutil_posix, zstandard.backend_c, xxhash._xxhash, numpy._core._multiarray_umath, numpy.linalg._umath_linalg, torch._C, torch._C._dynamo.autograd_compiler, torch._C._dynamo.eval_frame, torch._C._dynamo.guards, torch._C._dynamo.utils, torch._C._fft, torch._C._linalg, torch._C._nested, torch._C._nn, torch._C._sparse, torch._C._special, yaml._yaml, PIL._imaging, kiwisolver._cext, numpy.random._common, numpy.random.bit_generator, numpy.random._bounded_integers, numpy.random._pcg64, numpy.random._generator, numpy.random._mt19937, numpy.random._philox, numpy.random._sfc64, numpy.random.mtrand, cython.cimports.libc.math, scipy._lib._ccallback_c, _cyutility, scipy._cyutility, scipy.sparse._sparsetools, _csparsetools, scipy.sparse._csparsetools, scipy.spatial._ckdtree, scipy._lib.messagestream, scipy.linalg._fblas, scipy.linalg._flapack, scipy.linalg.cython_lapack, scipy.linalg._cythonized_array_utils, scipy.linalg._solve_toeplitz, scipy.linalg._decomp_lu_cython, scipy.linalg._matfuncs_schur_sqrtm, scipy.linalg._matfuncs_expm, scipy.linalg._linalg_pythran, scipy.linalg.cython_blas, scipy.linalg._decomp_update, scipy.spatial._qhull, scipy.spatial._voronoi, scipy.special._ufuncs_cxx, scipy.special._ellip_harm_2, scipy.special._special_ufuncs, scipy.special._gufuncs, scipy.special._ufuncs, scipy.special._specfun, scipy.special._comb, scipy.spatial._hausdorff, scipy.spatial._distance_wrap, scipy.spatial.transform._rotation, scipy.spatial.transform._rigid_transform, scipy.sparse.linalg._dsolve._superlu, scipy.sparse.linalg._eigen.arpack._arpack, scipy.sparse.linalg._propack._spropack, scipy.sparse.linalg._propack._dpropack, scipy.sparse.linalg._propack._cpropack, scipy.sparse.linalg._propack._zpropack, scipy.optimize._group_columns, scipy.optimize._trlib._trlib, scipy.optimize._lbfgsb, _moduleTNC, scipy.optimize._moduleTNC, scipy.optimize._slsqplib, scipy.optimize._minpack, scipy.optimize._lsq.givens_elimination, scipy.optimize._zeros, scipy._lib._uarray._uarray, scipy.linalg._decomp_interpolative, scipy.optimize._bglu_dense, scipy.optimize._lsap, scipy.optimize._direct, scipy.sparse.csgraph._tools, scipy.sparse.csgraph._shortest_path, scipy.sparse.csgraph._traversal, scipy.sparse.csgraph._min_spanning_tree, scipy.sparse.csgraph._flow, scipy.sparse.csgraph._matching, scipy.sparse.csgraph._reordering, PIL._imagingft, lxml._elementpath, lxml.etree, shapely.lib, shapely._geos, shapely._geometry_helpers, scipy.ndimage._nd_image, scipy.ndimage._rank_filter_1d, _ni_label, scipy.ndimage._ni_label (total: 103)

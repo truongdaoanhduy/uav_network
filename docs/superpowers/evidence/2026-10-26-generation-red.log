@@ -1,0 +1,281 @@
+FFFsFFF..F.FFFFFF                                                        [100%]
+=================================== FAILURES ===================================
+_______ test_native_obstacle_clearance_regions_preserve_free_routes[44] ________
+
+seed = 44
+
+    @pytest.mark.parametrize("seed", [44, 302])
+    def test_native_obstacle_clearance_regions_preserve_free_routes(seed):
+        c = primary()
+        scene = generate_scenario(c, np.random.default_rng(seed))
+>       assert_free_routes(scene.obstacles, c)
+
+tests/test_scenario_generation.py:35: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obstacles = array([[274.99804983, 412.34842485,  34.90262039],
+       [208.76024308, 808.15338969,  68.76735793],
+       [349.7977...,  64.61522657],
+       [607.70461333, 350.1291087 ,  52.62936404],
+       [713.48962997,  85.99215248,  54.44149486]])
+config = Config(world=WorldConfig(map_size_m=1000.0, num_uavs=6, num_targets=35, num_obstacles=25, dt_s=1.0, max_steps=1800, ma...2, collector_device='auto', learner_device='auto', policy_device='auto', worker_timeout_s=600, checkpoint_replay=True))
+
+    def assert_free_routes(obstacles, config):
+        w = config.world
+        expanded = obstacles[:, 2] + w.obstacle_clearance_m
+        assert np.all(obstacles[:, :2] > expanded[:, None] + 1e-9)
+>       assert np.all(obstacles[:, :2] < w.map_size_m - expanded[:, None] - 1e-9)
+E       assert np.False_
+E        +  where np.False_ = <function all at 0x7192806a75b0>(array([[274.99804983, 412.34842485],\n       [208.76024308, 808.15338969],\n       [349.79779506, 664.74129914],\n       ...7538 ],\n       [782.19800469, 337.63097849],\n       [607.70461333, 350.1291087 ],\n       [713.48962997,  85.99215248]]) < ((1000.0 - array([[44.90262039],\n       [78.76735793],\n       [46.52181084],\n       [64.66136686],\n       [77.58567248],\n       [...248985],\n       [43.11238897],\n       [72.09302743],\n       [74.61522657],\n       [62.62936404],\n       [64.44149486]])) - 1e-09))
+E        +    where <function all at 0x7192806a75b0> = np.all
+E        +    and   1000.0 = WorldConfig(map_size_m=1000.0, num_uavs=6, num_targets=35, num_obstacles=25, dt_s=1.0, max_steps=1800, max_speed_mps=2...dius_m=150.0, launch_min_spacing_m=30.0, target_exclusion_radius_m=200.0, gcs_position_m=None, placement_attempts=5000).map_size_m
+
+tests/test_scenario_generation.py:25: AssertionError
+_______ test_native_obstacle_clearance_regions_preserve_free_routes[302] _______
+
+seed = 302
+
+    @pytest.mark.parametrize("seed", [44, 302])
+    def test_native_obstacle_clearance_regions_preserve_free_routes(seed):
+        c = primary()
+        scene = generate_scenario(c, np.random.default_rng(seed))
+>       assert_free_routes(scene.obstacles, c)
+
+tests/test_scenario_generation.py:35: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obstacles = array([[681.07942444, 938.08891979,  60.38985174],
+       [223.62596361, 272.56937309,  52.25622574],
+       [932.4852...,  55.13737408],
+       [198.37045346, 561.20592266,  45.46205105],
+       [468.66515902, 843.32866216,  44.76756917]])
+config = Config(world=WorldConfig(map_size_m=1000.0, num_uavs=6, num_targets=35, num_obstacles=25, dt_s=1.0, max_steps=1800, ma...2, collector_device='auto', learner_device='auto', policy_device='auto', worker_timeout_s=600, checkpoint_replay=True))
+
+    def assert_free_routes(obstacles, config):
+        w = config.world
+        expanded = obstacles[:, 2] + w.obstacle_clearance_m
+>       assert np.all(obstacles[:, :2] > expanded[:, None] + 1e-9)
+E       assert np.False_
+E        +  where np.False_ = <function all at 0x7192806a75b0>(array([[681.07942444, 938.08891979],\n       [223.62596361, 272.56937309],\n       [932.48525534, 156.87355905],\n       ...02198],\n       [248.22671302,  55.4481484 ],\n       [198.37045346, 561.20592266],\n       [468.66515902, 843.32866216]]) > (array([[70.38985174],\n       [62.25622574],\n       [68.21915889],\n       [78.50478747],\n       [58.41020123],\n       [...024127],\n       [67.44670395],\n       [76.06808742],\n       [65.13737408],\n       [55.46205105],\n       [54.76756917]]) + 1e-09))
+E        +    where <function all at 0x7192806a75b0> = np.all
+
+tests/test_scenario_generation.py:24: AssertionError
+________ test_warp_obstacle_clearance_regions_preserve_free_routes[cpu] ________
+
+device = 'cpu'
+
+    @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
+    def test_warp_obstacle_clearance_regions_preserve_free_routes(device):
+        wp = pytest.importorskip("warp")
+        if device.startswith("cuda") and not torch.cuda.is_available():
+            pytest.skip("CUDA hardware required")
+        from uav_network.environment.gpu.state import allocate_state
+        from uav_network.environment.gpu.world import reset_geometry
+        c = primary()
+        s, p = allocate_state(c, num_envs=4, device=device)
+        mask = wp.array([1] * 4, dtype=wp.int32, device=device)
+        wp.launch(reset_geometry, dim=4, inputs=[s, p, mask], device=device)
+        assert not s.errors.numpy().any()
+        for obstacles in s.obstacles.numpy():
+>           assert_free_routes(obstacles, c)
+
+tests/test_scenario_generation.py:51: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obstacles = array([[274.99804983, 412.34842485,  34.90262039],
+       [208.76024308, 808.15338969,  68.76735793],
+       [349.7977...,  64.61522657],
+       [607.70461333, 350.1291087 ,  52.62936404],
+       [713.48962997,  85.99215248,  54.44149486]])
+config = Config(world=WorldConfig(map_size_m=1000.0, num_uavs=6, num_targets=35, num_obstacles=25, dt_s=1.0, max_steps=1800, ma...2, collector_device='auto', learner_device='auto', policy_device='auto', worker_timeout_s=600, checkpoint_replay=True))
+
+    def assert_free_routes(obstacles, config):
+        w = config.world
+        expanded = obstacles[:, 2] + w.obstacle_clearance_m
+        assert np.all(obstacles[:, :2] > expanded[:, None] + 1e-9)
+>       assert np.all(obstacles[:, :2] < w.map_size_m - expanded[:, None] - 1e-9)
+E       assert np.False_
+E        +  where np.False_ = <function all at 0x7192806a75b0>(array([[274.99804983, 412.34842485],\n       [208.76024308, 808.15338969],\n       [349.79779506, 664.74129914],\n       ...7538 ],\n       [782.19800469, 337.63097849],\n       [607.70461333, 350.1291087 ],\n       [713.48962997,  85.99215248]]) < ((1000.0 - array([[44.90262039],\n       [78.76735793],\n       [46.52181084],\n       [64.66136686],\n       [77.58567248],\n       [...248985],\n       [43.11238897],\n       [72.09302743],\n       [74.61522657],\n       [62.62936404],\n       [64.44149486]])) - 1e-09))
+E        +    where <function all at 0x7192806a75b0> = np.all
+E        +    and   1000.0 = WorldConfig(map_size_m=1000.0, num_uavs=6, num_targets=35, num_obstacles=25, dt_s=1.0, max_steps=1800, max_speed_mps=2...dius_m=150.0, launch_min_spacing_m=30.0, target_exclusion_radius_m=200.0, gcs_position_m=None, placement_attempts=5000).map_size_m
+
+tests/test_scenario_generation.py:25: AssertionError
+----------------------------- Captured stdout call -----------------------------
+Warp 1.18.0 initialized:
+   CUDA Toolkit 13.4, CUDA driver not available (NVRTC compilation available)
+   Devices:
+     "cpu"      : "x86_64"
+   Kernel cache:
+     /home/aduy/.cache/warp/1.18.0
+Module uav_network.environment.gpu.world eb3588f load on device 'cpu' took 24.38 ms  (cached)
+----------------------------- Captured stderr call -----------------------------
+Warp CUDA warning: Could not find or load the NVIDIA CUDA driver. GPU execution will not be available.
+___ test_small_camera_does_not_leave_generated_targets_in_forbidden_annulus ____
+
+    def test_small_camera_does_not_leave_generated_targets_in_forbidden_annulus():
+        c = primary()
+        c.sensor.altitude_m = 1.0
+        scene = generate_scenario(c, np.random.default_rng(302))
+        extra = max(0.0, c.world.obstacle_clearance_m - c.sensor.footprint_radius_m)
+        distance = np.linalg.norm(scene.targets[:, None] - scene.obstacles[None, :, :2], axis=2)
+>       assert np.all(distance > scene.obstacles[None, :, 2] + extra + 1e-9)
+E       assert np.False_
+E        +  where np.False_ = <function all at 0x7192806a75b0>(array([[ 369.95570288,  485.89426313,  533.72897132,  473.29646228,\n         136.98066768,   71.59311744,  531.1498198...4.1160229 ,  417.75685884,\n         545.00082656,  503.53124745,  537.15354499,  282.81315236,\n         303.70907792]]) > ((array([[60.38985174, 52.25622574, 58.21915889, 68.50478747, 48.41020123,\n        56.01301922, 59.62122097, 67.59075738...1139, 47.45510486, 31.13722818, 61.98024127,\n        57.44670395, 66.06808742, 55.13737408, 45.46205105, 44.76756917]]) + 9.0) + 1e-09))
+E        +    where <function all at 0x7192806a75b0> = np.all
+
+tests/test_scenario_generation.py:60: AssertionError
+_____________ test_policy_rejects_old_scene_generation[None-masac] _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-aduy/pytest-0/test_policy_rejects_old_scene_0')
+algorithm = 'masac', version = None
+
+    @pytest.mark.parametrize("algorithm", ["masac", "matd3"])
+    @pytest.mark.parametrize("version", [None, 1])
+    def test_policy_rejects_old_scene_generation(tmp_path, algorithm, version):
+        c = settings(algorithm)
+        learner = make_learner(c, observation_dim(c), state_dim(c))
+        path = tmp_path / "policy.pt"
+        learner.save(path)
+        assert load_policy(path).algorithm == algorithm
+        saved = torch.load(path, weights_only=True)
+>       with pytest.raises(ValueError, match="generation"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_scenario_generation.py:81: Failed
+_____________ test_policy_rejects_old_scene_generation[None-matd3] _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-aduy/pytest-0/test_policy_rejects_old_scene_1')
+algorithm = 'matd3', version = None
+
+    @pytest.mark.parametrize("algorithm", ["masac", "matd3"])
+    @pytest.mark.parametrize("version", [None, 1])
+    def test_policy_rejects_old_scene_generation(tmp_path, algorithm, version):
+        c = settings(algorithm)
+        learner = make_learner(c, observation_dim(c), state_dim(c))
+        path = tmp_path / "policy.pt"
+        learner.save(path)
+        assert load_policy(path).algorithm == algorithm
+        saved = torch.load(path, weights_only=True)
+>       with pytest.raises(ValueError, match="generation"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_scenario_generation.py:81: Failed
+_________ test_evaluation_snapshot_rejects_old_scene_generation[None] __________
+
+tmp_path = PosixPath('/tmp/pytest-of-aduy/pytest-0/test_evaluation_snapshot_rejec0')
+version = None
+
+    @pytest.mark.parametrize("version", [None, 1])
+    def test_evaluation_snapshot_rejects_old_scene_generation(tmp_path, version):
+        c = settings()
+        learner = make_learner(c, observation_dim(c), state_dim(c))
+        path = save_evaluation_snapshot(c, tmp_path, learner.actors.state_dict(), 0,
+                                        {"episodes": 0, "global_step": 4})
+        saved = torch.load(path, weights_only=True)
+        assert load_evaluation_snapshot(saved).algorithm == "masac"
+>       with pytest.raises(ValueError, match="generation"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_scenario_generation.py:93: Failed
+_____________ test_resume_rejects_old_scene_generation[base-None] ______________
+
+real_resume = (Config(world=WorldConfig(map_size_m=1000.0, num_uavs=2, num_targets=2, num_obstacles=0, dt_s=1.0, max_steps=1, max_sp...hover_power_w': 120.0, ...}, ...}, 'observation_dim': 51, ...}, <function validate_fixed_checkpoint at 0x7191a2110860>)
+version = None
+
+    @pytest.mark.parametrize("version", [None, 1])
+    def test_resume_rejects_old_scene_generation(real_resume, version):
+        c, saved, validate = real_resume
+>       with pytest.raises(ValueError, match="generation"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_scenario_generation.py:100: Failed
+---------------------------- Captured stdout setup -----------------------------
+{"algorithm": "masac", "episode": 1, "global_step": 2, "return": -0.013, "search_rate_percent": 0.0, "delivery_rate_percent": 0.0, "updates": 1, "termination_reason": "time_limit", "minimum_battery_fraction": 0.999480915293646, "active_uavs": 2, "expired_reports": 0, "dropped_reports": 0, "regenerated_reports": 0, "motion": {"obstacle_blocks": 0, "peer_blocks": 0, "commanded_stalls": 0, "shield_interventions": 0, "shield_obstacle_interventions": 0, "shield_peer_interventions": 0, "shield_boundary_interventions": 0, "shield_infeasible": 0, "shield_correction": 0.0}, "routing": {}}
+{"algorithm": "masac", "episode": 2, "global_step": 2, "return": -0.013, "search_rate_percent": 0.0, "delivery_rate_percent": 0.0, "updates": 1, "termination_reason": "time_limit", "minimum_battery_fraction": 0.999481001211548, "active_uavs": 2, "expired_reports": 0, "dropped_reports": 0, "regenerated_reports": 0, "motion": {"obstacle_blocks": 0, "peer_blocks": 0, "commanded_stalls": 0, "shield_interventions": 0, "shield_obstacle_interventions": 0, "shield_peer_interventions": 0, "shield_boundary_interventions": 0, "shield_infeasible": 0, "shield_correction": 0.0}, "routing": {}}
+_______________ test_resume_rejects_old_scene_generation[base-1] _______________
+
+real_resume = (Config(world=WorldConfig(map_size_m=1000.0, num_uavs=2, num_targets=2, num_obstacles=0, dt_s=1.0, max_steps=1, max_sp...hover_power_w': 120.0, ...}, ...}, 'observation_dim': 51, ...}, <function validate_fixed_checkpoint at 0x7191a2110860>)
+version = 1
+
+    @pytest.mark.parametrize("version", [None, 1])
+    def test_resume_rejects_old_scene_generation(real_resume, version):
+        c, saved, validate = real_resume
+>       with pytest.raises(ValueError, match="generation"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'generation'
+E         Actual message: 'Fixed-schedule resume world differs from checkpoint'
+
+tests/test_scenario_generation.py:100: AssertionError
+---------------------------- Captured stdout setup -----------------------------
+{"algorithm": "masac", "episode": 1, "global_step": 2, "return": -0.013, "search_rate_percent": 0.0, "delivery_rate_percent": 0.0, "updates": 1, "termination_reason": "time_limit", "minimum_battery_fraction": 0.999480915293646, "active_uavs": 2, "expired_reports": 0, "dropped_reports": 0, "regenerated_reports": 0, "motion": {"obstacle_blocks": 0, "peer_blocks": 0, "commanded_stalls": 0, "shield_interventions": 0, "shield_obstacle_interventions": 0, "shield_peer_interventions": 0, "shield_boundary_interventions": 0, "shield_infeasible": 0, "shield_correction": 0.0}, "routing": {}}
+{"algorithm": "masac", "episode": 2, "global_step": 2, "return": -0.013, "search_rate_percent": 0.0, "delivery_rate_percent": 0.0, "updates": 1, "termination_reason": "time_limit", "minimum_battery_fraction": 0.999481001211548, "active_uavs": 2, "expired_reports": 0, "dropped_reports": 0, "regenerated_reports": 0, "motion": {"obstacle_blocks": 0, "peer_blocks": 0, "commanded_stalls": 0, "shield_interventions": 0, "shield_obstacle_interventions": 0, "shield_peer_interventions": 0, "shield_boundary_interventions": 0, "shield_infeasible": 0, "shield_correction": 0.0}, "routing": {}}
+______________ test_resume_rejects_old_scene_generation[pql-None] ______________
+
+real_resume = (Config(world=WorldConfig(map_size_m=1000.0, num_uavs=2, num_targets=2, num_obstacles=0, dt_s=1.0, max_steps=1, max_sp... 'hover_power_w': 120.0, ...}, ...}, 'observation_dim': 51, ...}, <function validate_pql_checkpoint at 0x7191a2112480>)
+version = None
+
+    @pytest.mark.parametrize("version", [None, 1])
+    def test_resume_rejects_old_scene_generation(real_resume, version):
+        c, saved, validate = real_resume
+>       with pytest.raises(ValueError, match="generation"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_scenario_generation.py:100: Failed
+---------------------------- Captured stdout setup -----------------------------
+{"algorithm": "masac", "architecture": "pql-inspired", "episodes": 2, "global_step": 2, "critic_updates": 8, "actor_updates": 8, "progress/search_rate_percent": 0.0, "progress/delivery_rate_percent": 0.0, "progress/mean_battery_fraction": 0.9994860887527466, "progress/mean_active_uavs": 2.0, "pql/transitions_per_s": 3.0928356497259863, "pql/critic_updates_per_s": 12.371342598903945, "pql/actor_updates_per_s": 12.371342598903945, "pql/critic_collector_ratio": 8.0, "pql/sample_uses_per_new_transition": 8.0, "pql/queued_collections": 0, "pql/collector_wait_seconds": 0.0, "replay/evicted_unsampled_fraction": null}
+_______________ test_resume_rejects_old_scene_generation[pql-1] ________________
+
+real_resume = (Config(world=WorldConfig(map_size_m=1000.0, num_uavs=2, num_targets=2, num_obstacles=0, dt_s=1.0, max_steps=1, max_sp... 'hover_power_w': 120.0, ...}, ...}, 'observation_dim': 51, ...}, <function validate_pql_checkpoint at 0x7191a2112480>)
+version = 1
+
+    @pytest.mark.parametrize("version", [None, 1])
+    def test_resume_rejects_old_scene_generation(real_resume, version):
+        c, saved, validate = real_resume
+>       with pytest.raises(ValueError, match="generation"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_scenario_generation.py:100: Failed
+---------------------------- Captured stdout setup -----------------------------
+{"algorithm": "masac", "architecture": "pql-inspired", "episodes": 2, "global_step": 2, "critic_updates": 8, "actor_updates": 8, "progress/search_rate_percent": 0.0, "progress/delivery_rate_percent": 0.0, "progress/mean_battery_fraction": 0.9994860887527466, "progress/mean_active_uavs": 2.0, "pql/transitions_per_s": 3.3689574473976345, "pql/critic_updates_per_s": 13.475829789590538, "pql/actor_updates_per_s": 13.475829789590538, "pql/critic_collector_ratio": 8.0, "pql/sample_uses_per_new_transition": 8.0, "pql/queued_collections": 0, "pql/collector_wait_seconds": 0.0, "replay/evicted_unsampled_fraction": null}
+____________ test_scenario_protocol_identifies_generator_semantics _____________
+
+    def test_scenario_protocol_identifies_generator_semantics():
+        protocol = evaluation_protocol(primary(), [2000000044], {})
+>       assert protocol["scenario"]["world"].get("generation_version") == 2
+E       AssertionError: assert None == 2
+E        +  where None = <built-in method get of dict object at 0x71917ea54d40>('generation_version')
+E        +    where <built-in method get of dict object at 0x71917ea54d40> = {'map_size_m': 1000.0, 'num_uavs': 6, 'num_targets': 35, 'num_obstacles': 25, ...}.get
+
+tests/test_scenario_generation.py:106: AssertionError
+_______________ test_unsupported_generation_version_is_rejected ________________
+
+    def test_unsupported_generation_version_is_rejected():
+        c = Config()
+        c.world.generation_version = 1
+>       with pytest.raises(ValueError, match="generation"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests/test_scenario_generation.py:112: Failed
+=========================== short test summary info ============================
+FAILED tests/test_scenario_generation.py::test_native_obstacle_clearance_regions_preserve_free_routes[44]
+FAILED tests/test_scenario_generation.py::test_native_obstacle_clearance_regions_preserve_free_routes[302]
+FAILED tests/test_scenario_generation.py::test_warp_obstacle_clearance_regions_preserve_free_routes[cpu]
+FAILED tests/test_scenario_generation.py::test_small_camera_does_not_leave_generated_targets_in_forbidden_annulus
+FAILED tests/test_scenario_generation.py::test_policy_rejects_old_scene_generation[None-masac]
+FAILED tests/test_scenario_generation.py::test_policy_rejects_old_scene_generation[None-matd3]
+FAILED tests/test_scenario_generation.py::test_evaluation_snapshot_rejects_old_scene_generation[None]
+FAILED tests/test_scenario_generation.py::test_resume_rejects_old_scene_generation[base-None]
+FAILED tests/test_scenario_generation.py::test_resume_rejects_old_scene_generation[base-1]
+FAILED tests/test_scenario_generation.py::test_resume_rejects_old_scene_generation[pql-None]
+FAILED tests/test_scenario_generation.py::test_resume_rejects_old_scene_generation[pql-1]
+FAILED tests/test_scenario_generation.py::test_scenario_protocol_identifies_generator_semantics
+FAILED tests/test_scenario_generation.py::test_unsupported_generation_version_is_rejected
+13 failed, 3 passed, 1 skipped in 11.95s
