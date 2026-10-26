@@ -1,3 +1,17 @@
+# Current task: AMP + torch.compile Task 1 BASE CUDA — COMPLETE
+
+Updated 2026-10-26. Task 1 only; Task 2 intentionally not started.
+
+- Pinned source `eab048f94f5c85d5a1a1cb60b4f0fcd772ccfef4`; Kaggle `kjhihgiugy/ben-g3-both-base-h75-10261650-bbce3e`, account_07, actual 2xTesla T4.
+- Scope: BASE MASAC + BASE MATD3, E4096/B8192/R1M/hybrid CPU75-GPU25, AMP FP16 ON, torch.compile ON, fused Adam OFF. No 20k training and no PQL.
+- Both dedicated execution checks PASS. MASAC: FP16=1, 32 critic/actor/alpha applied, 0 skipped, 3 compiled graphs, 88 kernels, 0 graph breaks/fallback. MATD3: FP16=1, 32 critic +16 actor applied, 0 skipped, 3 graphs,88 kernels,0 graph breaks/fallback.
+- Peak allocated GPU1: MASAC3.590GiB, MATD33.618GiB; GPU0 about0.076GiB. Bounded benchmark: MASAC4260.47 transitions/s &2.141 updates/s; MATD34276.99 transitions/s &5.533 updates/s. These are not matched speedup claims.
+- Additional gates: CUDA11/11, scenario CUDA4/4, mission regressions8/8. Kernel terminal `complete`; downloaded reports hashed.
+- Generic benchmark `cuda_pipeline_verified/dual_gpu_verified=false` is a hybrid-replay heuristic artifact because that helper requires replay=cuda:1; dedicated execution-check is authoritative and passed.
+- Evidence: `docs/superpowers/evidence/2026-10-26-amp-compile-task1-base-cuda.md`. Task 2 (PQL verification) remains untouched pending the next step.
+
+---
+
 # Current task: enable AMP FP16 + torch.compile — COMPLETE / CODE ACTIVATED
 
 Updated 2026-10-26T23:43+07:00. Implementation commit `19ffcac` on `feat/cpu-replay-20261022`; this record follows it.
