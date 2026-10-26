@@ -1,3 +1,14 @@
+# Current task: AMP / torch.compile advice — COMPLETE; BENCHMARK NOT RUN
+
+Updated 2026-10-26T21:14:42.250690+07:00. Production source77a1d0f; documentation parent3d3c644. User asked whether these options should be enabled.
+
+- Inspected precision/compile/chunk and fixed/PQL resume guards; checked official PyTorch2.11 and NVIDIA T4 docs through Context7/web. AMP FP16+GradScaler and Inductor default/dynamic compile paths already exist. Replay stays FP32.
+- Recommendation: prioritize an isolated FP16 experiment; enable compile only after matched G3-shape end-to-end timing/memory/numerical/resume evidence. Proposed off/off,FP16/off,off/on,FP16/on matrix; no assumed speedup or quality equivalence.
+- Existing G3 continuation rejects changed amp/compile flags. No production config edit, job launch/restart/cancellation, or checkpoint/store mutation occurred. No new performance benchmark was run.
+- Evidence appended to evidence/2026-10-26-training-config-upstream-comparison.md. Verification: source/official-doc inspection and documentation diff checks. Next implementation/benchmark action awaits a user request; existing cohort continuation rules remain operative.
+
+---
+
 # Current task: compare G3 training with FlashSAC/FastTD3 — COMPLETE
 
 Updated 2026-10-26T20:58:24.667097+07:00. Read-only training comparison; no source/config/job mutations.

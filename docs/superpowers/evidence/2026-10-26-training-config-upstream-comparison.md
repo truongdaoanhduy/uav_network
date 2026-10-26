@@ -58,3 +58,18 @@ The eight G3 cases are algorithm/scheduler/replay-layout comparisons, not eight 
 - [FastTD3 training loop](https://github.com/younggyoseo/FastTD3/blob/229ed59bbf43ea2f7a2d5d90d1076314839944d7/fast_td3/train.py)
 
 Validation: primary configs and effective G3 receipts inspected; replay allocation dimensions and step/update loop units checked in source. No new source-code tests were needed for this documentation-only comparison. Existing G3 training and continuation remain unchanged. Next action requires a new user request; no retuning, cancellation or duplicate launch is queued.
+
+## AMP / torch.compile recommendation
+
+Follow-up 2026-10-26: both are supported experiment options, not measured G3 production improvements. Prioritize an isolated AMP FP16 comparison on T4; retain torch.compile only if a matched benchmark improves end-to-end performance without unacceptable memory or numerical changes. No benchmark or job mutation was requested or performed for this advice.
+
+- Source inspection: algorithms/precision.py already uses autocast FP16 and learner-owned GradScaler groups; models, optimizer state and replay stay FP32. AMP can reduce selected activation/computation costs, but does not halve the existing replay allocation or guarantee equal FP32 learning trajectories.
+- algorithms/optimization.py::compile_models compiles the whole vmap critic boundary plus actor encoders with Inductor/dynamic=True and the default mode. It does not compile the Warp packet environment or the entire pipeline. G3 critic activation recomputation/chunking must be included in any new benchmark.
+- PyTorch2.11 documentation: reduce-overhead mode uses CUDA graphs and can cache extra workspace memory; max-autotune enables CUDA graphs by default. Start by measuring the existing default-mode implementation rather than copying another repository's compile mode. Compilation/warmup time and steady-state speed must be reported separately.
+- Proposed matched matrix: off/off, FP16/off, off/compile, FP16/compile. Preserve env4096/batch8192/replay1M and scientific configuration; cover MASAC/MATD3 BASE/PQL and the relevant replay layouts. Measure successful applied optimizer updates per second, aggregate collection throughput, CPU/GPU peaks, numerical health/overflow-skip rate and complete checkpoint+GradScaler resume. Compare learning evaluation on matched training seeds separately from short throughput tests.
+- Current fixed/PQL resume guards compare amp_mode and compile_models against the saved configuration. An off/off G3 checkpoint is not an authorized or compatible exact continuation with changed flags; use a separately named experiment. Existing G3 cohort/controller settings remain intact.
+
+Official references checked with Context7 and primary documentation:
+- https://docs.pytorch.org/docs/2.11/amp.html
+- https://docs.pytorch.org/docs/2.11/generated/torch.compile.html
+- https://www.nvidia.com/en-us/data-center/tesla-t4/
