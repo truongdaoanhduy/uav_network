@@ -1,3 +1,15 @@
+# Current task: accelerated cohort operational preflight — COMPLETE / NOT READY
+
+Updated 2026-10-27. Read-only fresh W&B+Kaggle audit completed; no new20k submission.
+
+- Existing robust G3: all4 MATD3 lineages + controllers are terminal complete/finished at20k; all4 MASAC lineages + controllers remain genuinely running and progressing. Accounts16–19 therefore remain reserved and untouched.
+- Canonical E4096/B8192/R1M/CPU75-GPU25/1KiB/20k config and measured acceleration policy resolve correctly; checkpoint/HF/PQL continuation prerequisites are enabled.
+- Account gate requires current auth + quota + idle kernels + private W&B credential access. Only account_01 (~23.42h) and account_02 (~25.03h) pass all gates now. account_24/07/13 and many others have fresh auth failures; accounts20–23 completed old MATD3 but current tokens also fail.
+- Result: **NOT READY for four simultaneous fresh production lineages**. The blocker is Kaggle credential capacity, not code/CUDA/config. Do not launch two-only, do not reuse active16–19, and never resume old off/off checkpoints with new flags.
+- Evidence: `docs/superpowers/evidence/2026-10-27-accelerated-cohort-readiness-preflight.md`. Next safe task requires refreshing/replacing at least two invalid Kaggle API tokens, then rerunning this preflight before launch.
+
+---
+
 # Current task: AMP + torch.compile Task 6 production policy — COMPLETE
 
 Updated 2026-10-27. Source commits `b9d660a` + `8bedf4c`; measured T4/G3 acceleration policy is now encoded only in the canonical cloud train/validate path.
