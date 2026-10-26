@@ -1,13 +1,12 @@
-# Current task: AMP + torch.compile Task 3 BASE matched benchmark — COMPLETE
+# Current task: AMP + torch.compile Task 4 PQL matched benchmark — COMPLETE
 
-Updated 2026-10-27. Source `a26a67f`; harness commit `e718305`. Four 2xT4 BASE cells at identical E4096/B8192/R1M/hybrid75 shape all completed and all eight algorithm results passed.
+Updated 2026-10-27. Source `d12dae5`. Four async-PQL 2xT4 cells at identical E4096/B8192/R1M/hybrid75 shape all completed; all eight algorithm reports passed and `cuda_pipeline_verified=true`.
 
-- MASAC learner updates/s: off/off1.4644; FP16/off1.5141 (+3.39%); off/compile1.4499 (-0.99%); FP16/compile2.2682 (**+54.89%**). GPU1 allocated 3.752 -> 3.591GiB for on/on.
-- MATD3: off/off6.4011; FP16/off7.1200 (+11.23%); off/compile6.4070 (+0.09%); FP16/compile7.4457 (**+16.32%**). GPU1 allocated 3.769 -> 3.618GiB for on/on.
-- Collector throughput stayed within about0.5%; compile-alone adds ~6s warmup and no warmed speed gain. FP16+compile execution checks passed with FP16 marker1,3 graphs,0 breaks/fallback.
-- Every cell CUDA11/11 + scenario4/4 + mission8/8. Full offline suite before launch:806pass/95skip/1352subtests/exit0.
-- One run/cell only: use as candidate-selection evidence, not confidence intervals or long-horizon learning-quality proof. Existing production lineages untouched.
-- Evidence: `docs/superpowers/evidence/2026-10-27-amp-compile-task3-base-matched.md`. Next: Task4 matched async-PQL four-cell benchmark.
+- MASAC PQL critic updates/s: off/off0.8118; FP16/off0.9242 (+13.85%); off/compile0.9178 (+13.06%); FP16/compile1.0806 (**+33.12%**). On/on GPU1 allocated 3.961GiB vs4.458GiB baseline.
+- MATD3 PQL: off/off1.4644; FP16/off1.5266 (**+4.24%**); off/compile1.3367 (-8.72%); FP16/compile1.3718 (-6.32%). On/on saves memory but is slower in this single async run.
+- All accelerated execution checks passed; FP16 cells had no AMP skips; compile cells had3 graphs,0 breaks/fallback. Every cell CUDA11/11 + scenario4/4 + mission8/8 + PQL smoke11/11.
+- Do not make a global compile recommendation yet: MASAC PQL benefits, MATD3 PQL does not in this single run. Task5 will repeat MATD3 FP16/off vs FP16/compile before production policy changes.
+- Evidence: `docs/superpowers/evidence/2026-10-27-amp-compile-task4-pql-matched.md`. Existing production lineages remain untouched.
 
 ---
 
