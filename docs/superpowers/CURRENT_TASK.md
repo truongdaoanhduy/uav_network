@@ -1,28 +1,13 @@
-# Current task: AMP + torch.compile Task 2 PQL CUDA — COMPLETE
+# Current task: AMP + torch.compile Task 3 BASE matched benchmark — COMPLETE
 
-Updated 2026-10-27. Task 2 complete; next task is matched BASE acceleration benchmarking.
+Updated 2026-10-27. Source `a26a67f`; harness commit `e718305`. Four 2xT4 BASE cells at identical E4096/B8192/R1M/hybrid75 shape all completed and all eight algorithm results passed.
 
-- Pinned source `0b73806cc9b97e1addf0b1b8faa78dff0cbb9bd8`; Kaggle `kjhihgiugy/ben-g3-both-pql-h75-10261706-4de452`, actual 2xTesla T4. W&B MASAC `ca285f70`, MATD3 `905012a9`.
-- PQL async scope: E4096/B8192/R1M/hybrid CPU75-GPU25, AMP FP16 ON, torch.compile ON, fused Adam OFF. No 20k production training.
-- Dedicated execution checks PASS: MASAC PQL 32 critic+32 actor+32 alpha applied,0 skip; MATD3 PQL32critic+16actor applied,0skip. Both FP16 marker1,3 compiled graphs,88 kernels,0 graph breaks/fallback.
-- Actual async PQL benchmarks PASS and `cuda_pipeline_verified=true`: MASAC40steps/72critic/72actor,2459.41 transitions/s; MATD340steps/72critic/36actor,3127.85 transitions/s. Final AMP metrics have no skipped steps and finite losses/Q metrics.
-- Peak allocated GPU1: MASAC3.954GiB, MATD33.843GiB (benchmark). CUDA11/11, scenario4/4, mission regressions8/8, PQL smoke11/11.
-- `target_t4_scenario_verified=false` is a stale old-shape helper tuple, not a CUDA failure; current G3 is35targets/25obstacles/1800steps/R1M while the helper expects25/15/1000/R500k.
-- Evidence: `docs/superpowers/evidence/2026-10-27-amp-compile-task2-pql-cuda.md`. No speedup claim yet; Task3 must use matched BASE acceleration cells.
-
----
-
-# Current task: AMP + torch.compile Task 1 BASE CUDA — COMPLETE
-
-Updated 2026-10-26. Task 1 only; Task 2 intentionally not started.
-
-- Pinned source `eab048f94f5c85d5a1a1cb60b4f0fcd772ccfef4`; Kaggle `kjhihgiugy/ben-g3-both-base-h75-10261650-bbce3e`, account_07, actual 2xTesla T4.
-- Scope: BASE MASAC + BASE MATD3, E4096/B8192/R1M/hybrid CPU75-GPU25, AMP FP16 ON, torch.compile ON, fused Adam OFF. No 20k training and no PQL.
-- Both dedicated execution checks PASS. MASAC: FP16=1, 32 critic/actor/alpha applied, 0 skipped, 3 compiled graphs, 88 kernels, 0 graph breaks/fallback. MATD3: FP16=1, 32 critic +16 actor applied, 0 skipped, 3 graphs,88 kernels,0 graph breaks/fallback.
-- Peak allocated GPU1: MASAC3.590GiB, MATD33.618GiB; GPU0 about0.076GiB. Bounded benchmark: MASAC4260.47 transitions/s &2.141 updates/s; MATD34276.99 transitions/s &5.533 updates/s. These are not matched speedup claims.
-- Additional gates: CUDA11/11, scenario CUDA4/4, mission regressions8/8. Kernel terminal `complete`; downloaded reports hashed.
-- Generic benchmark `cuda_pipeline_verified/dual_gpu_verified=false` is a hybrid-replay heuristic artifact because that helper requires replay=cuda:1; dedicated execution-check is authoritative and passed.
-- Evidence: `docs/superpowers/evidence/2026-10-26-amp-compile-task1-base-cuda.md`. Task 2 (PQL verification) remains untouched pending the next step.
+- MASAC learner updates/s: off/off1.4644; FP16/off1.5141 (+3.39%); off/compile1.4499 (-0.99%); FP16/compile2.2682 (**+54.89%**). GPU1 allocated 3.752 -> 3.591GiB for on/on.
+- MATD3: off/off6.4011; FP16/off7.1200 (+11.23%); off/compile6.4070 (+0.09%); FP16/compile7.4457 (**+16.32%**). GPU1 allocated 3.769 -> 3.618GiB for on/on.
+- Collector throughput stayed within about0.5%; compile-alone adds ~6s warmup and no warmed speed gain. FP16+compile execution checks passed with FP16 marker1,3 graphs,0 breaks/fallback.
+- Every cell CUDA11/11 + scenario4/4 + mission8/8. Full offline suite before launch:806pass/95skip/1352subtests/exit0.
+- One run/cell only: use as candidate-selection evidence, not confidence intervals or long-horizon learning-quality proof. Existing production lineages untouched.
+- Evidence: `docs/superpowers/evidence/2026-10-27-amp-compile-task3-base-matched.md`. Next: Task4 matched async-PQL four-cell benchmark.
 
 ---
 
