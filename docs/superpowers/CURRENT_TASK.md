@@ -1,3 +1,17 @@
+# Current task: AMP + torch.compile Task 2 PQL CUDA — COMPLETE
+
+Updated 2026-10-27. Task 2 complete; next task is matched BASE acceleration benchmarking.
+
+- Pinned source `0b73806cc9b97e1addf0b1b8faa78dff0cbb9bd8`; Kaggle `kjhihgiugy/ben-g3-both-pql-h75-10261706-4de452`, actual 2xTesla T4. W&B MASAC `ca285f70`, MATD3 `905012a9`.
+- PQL async scope: E4096/B8192/R1M/hybrid CPU75-GPU25, AMP FP16 ON, torch.compile ON, fused Adam OFF. No 20k production training.
+- Dedicated execution checks PASS: MASAC PQL 32 critic+32 actor+32 alpha applied,0 skip; MATD3 PQL32critic+16actor applied,0skip. Both FP16 marker1,3 compiled graphs,88 kernels,0 graph breaks/fallback.
+- Actual async PQL benchmarks PASS and `cuda_pipeline_verified=true`: MASAC40steps/72critic/72actor,2459.41 transitions/s; MATD340steps/72critic/36actor,3127.85 transitions/s. Final AMP metrics have no skipped steps and finite losses/Q metrics.
+- Peak allocated GPU1: MASAC3.954GiB, MATD33.843GiB (benchmark). CUDA11/11, scenario4/4, mission regressions8/8, PQL smoke11/11.
+- `target_t4_scenario_verified=false` is a stale old-shape helper tuple, not a CUDA failure; current G3 is35targets/25obstacles/1800steps/R1M while the helper expects25/15/1000/R500k.
+- Evidence: `docs/superpowers/evidence/2026-10-27-amp-compile-task2-pql-cuda.md`. No speedup claim yet; Task3 must use matched BASE acceleration cells.
+
+---
+
 # Current task: AMP + torch.compile Task 1 BASE CUDA — COMPLETE
 
 Updated 2026-10-26. Task 1 only; Task 2 intentionally not started.
