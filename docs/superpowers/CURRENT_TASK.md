@@ -1,3 +1,17 @@
+# Current task: corrected four-way production cohort — RUNNING
+
+Updated 2026-10-26T09:04:03.422566+00:00. User authorized four Kaggle accounts for MASAC/MATD3 BASE/PQL. **HF/W&B cleanup/deletion remains prohibited.** Normal training metrics/checkpoint publication authorized. No active job was cancelled/restarted.
+
+- Pinned source `f39f45682b0b8a387cf8d95906c6730bf4337742`; clean detached launch worktree `/home/aduy/Documents/NCKH/uav_network-cohort-g2-20261026`. Main branch receives evidence-only updates. Primary config unchanged, SHA503cc6fb34133b7ffb0a43e3c9238b07a5e587958a49d68c45d3f491f711e952.
+- Fresh observation 2026-10-26T09:02:48.190713+00:00: all four GPU/W&B runs RUNNING, actual2TeslaT4 each, increasing global_step beyond131072warmup. Fromepisode0/no warmstart; observation3/generation2. New group `uav-g2-o3-full20k-e4096-b8192-r1kb-cpu75-20261026`.
+- MASAC BASE account14 `d17a279d`, MASAC PQL account15 `60fc6245`, MATD3 BASE account16 `da65a1ba`, MATD3 PQL account17 `6f538a33`. Exact kernels/controllers in evidence/2026-10-26-corrected-four-way-launch.md and adjacent statusJSON.
+- All four cloud CPU controllers independently observed running/phase training, matching source/root/current GPU and heartbeat<=1800s. PQL initial readiness true; BASE initial ValueError/false receipts preserved, subsequent independent readiness passes. Controller poll900s; future platform/quota success is not guaranteed.
+- Same20kepisodes/env4096/batch8192/replay1M/CPU75%/1KiB/1800steps/seed44; AMP/compile/fusedoff. Auto-continue and finalCPUeval30episodes seed2000000044 configured. Training/evaluation completion remains pending.
+- Prior validation CPU778pass89skip; real2T4full846pass21skip plus12regressions/two4096PQLresume checks. No zero-bug claim; see completed sparsefix report below.
+- Next: fresh-check exact lineages/controller heartbeats, immutable HF checkpoint manifests, exact continuation and final budget/evaluation proof. Never launch duplicates. Historical cleanup next actions remain cancelled. Launch/preflight receipts outputs/cohort-g2-20261026/. No source change for launch.
+
+---
+
 # Current task: PQL sparse checkpoint storage fix — COMPLETE
 
 Updated 2026-10-26T15:27:18.788932+07:00. User authorized the fix. **HF/W&B deletion/data migration remains prohibited; do not resume303historical cleanup candidates.** No scientific tuning or production20kcohort.
