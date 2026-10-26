@@ -1,0 +1,124 @@
+................................................................................................................................................................................ [ 20%]
+.................................................... [ 26%]
+......ss................................ssssssssssssssssssssssssss... [ 34%]
+.....s.s.s........................................................ [ 41%]
+......................................................sssssssssssssssssss [ 50%]
+sssssssssssssssssssssss....................................... [ 57%]
+.s................................................................s [ 65%]
+.............................................................. [ 72%]
+.........ss.ss.ss.ss.........s.s........................ [ 78%]
+..........................................................................................s.s...s.s........................................................................... [ 98%]
+..........                                                               [100%]
+=============================== warnings summary ===============================
+tests/test_dashboard.py::DashboardTests::test_first_setup_and_repeated_setup_reuse_the_same_personal_workspace
+  /home/aduy/miniconda3/lib/python3.13/site-packages/wandb_workspaces/reports/v2/internal.py:258: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("panels", pre=True, each_item=True)
+
+tests/test_dashboard.py::DashboardTests::test_first_setup_and_repeated_setup_reuse_the_same_personal_workspace
+  /home/aduy/miniconda3/lib/python3.13/site-packages/wandb_workspaces/reports/v2/internal.py:287: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("panels", pre=True, each_item=True)
+
+tests/test_dashboard.py::DashboardTests::test_first_setup_and_repeated_setup_reuse_the_same_personal_workspace
+  /home/aduy/miniconda3/lib/python3.13/site-packages/wandb_workspaces/reports/v2/internal.py:422: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("children", pre=True, each_item=True)
+
+tests/test_dashboard.py::DashboardTests::test_first_setup_and_repeated_setup_reuse_the_same_personal_workspace
+  /home/aduy/miniconda3/lib/python3.13/site-packages/wandb_workspaces/reports/v2/internal.py:563: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("blocks", pre=True, each_item=True)
+
+tests/test_dashboard.py::DashboardTests::test_first_setup_and_repeated_setup_reuse_the_same_personal_workspace
+  /home/aduy/miniconda3/lib/python3.13/site-packages/wandb_workspaces/reports/v2/internal.py:601: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("spec", pre=True)
+
+tests/test_dashboard.py::DashboardTests::test_first_setup_and_repeated_setup_reuse_the_same_personal_workspace
+  /home/aduy/miniconda3/lib/python3.13/site-packages/wandb_workspaces/reports/v2/interface.py:1419: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("panels")
+
+tests/test_dashboard.py::DashboardTests::test_first_setup_and_repeated_setup_reuse_the_same_personal_workspace
+  /home/aduy/miniconda3/lib/python3.13/site-packages/wandb_workspaces/reports/v2/interface.py:1424: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("runsets")
+
+tests/test_diagnostics.py::DiagnosticsTests::test_real_nonfinite_model_preserves_failed_replay_batch_and_traceback
+  /home/aduy/miniconda3/lib/python3.13/site-packages/gymnasium/vector/async_vector_env.py:615: UserWarning: [33mWARN: Calling `close` while waiting for a pending call to `step` to complete.[0m
+    logger.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [2] tests/test_cpu_replay.py:76: requires two CUDA GPUs
+SKIPPED [1] tests/test_cuda.py:163: CUDA is unavailable on this host
+SKIPPED [1] tests/test_cuda.py:145: CUDA is unavailable on this host
+SKIPPED [1] tests/test_cuda.py:74: CUDA is unavailable on this host
+SKIPPED [1] tests/test_cuda.py:47: CUDA is unavailable on this host
+SKIPPED [1] tests/test_cuda.py:126: CUDA is unavailable on this host
+SKIPPED [1] tests/test_cuda.py:42: CUDA is unavailable on this host
+SKIPPED [1] tests/test_cuda.py:98: CUDA is unavailable on this host
+SKIPPED [1] tests/test_cuda.py:134: CUDA is unavailable on this host
+SKIPPED [1] tests/test_cuda.py:60: CUDA is unavailable on this host
+SKIPPED [1] tests/test_cuda.py:23: CUDA is unavailable on this host
+SKIPPED [1] tests/test_cuda.py:19: CUDA is unavailable on this host
+SKIPPED [1] tests/test_cuda_exact_resume.py:271: requires real CUDA and optional Warp; no CPU world allocated
+SKIPPED [1] tests/test_cuda_exact_resume.py:277: requires real CUDA and optional Warp; no CPU world allocated
+SKIPPED [1] tests/test_cuda_exact_resume.py:274: requires real CUDA and optional Warp; no CPU world allocated
+SKIPPED [1] tests/test_cuda_exact_resume.py:280: requires real CUDA and optional Warp; no CPU world allocated
+SKIPPED [1] tests/test_cuda_exact_resume.py:266: requires real CUDA and optional Warp; no CPU world allocated
+SKIPPED [1] tests/test_cuda_exact_resume.py:261: requires real CUDA and optional Warp; no CPU world allocated
+SKIPPED [1] tests/test_cuda_exact_resume.py:289: requires UAV_CUDA_FULL4096=1, real Warp CUDA and two visible GPUs
+SKIPPED [1] tests/test_cuda_exact_resume.py:295: requires UAV_CUDA_FULL4096=1, real Warp CUDA and two visible GPUs
+SKIPPED [1] tests/test_cuda_exact_resume.py:292: requires UAV_CUDA_FULL4096=1, real Warp CUDA and two visible GPUs
+SKIPPED [1] tests/test_cuda_exact_resume.py:298: requires UAV_CUDA_FULL4096=1, real Warp CUDA and two visible GPUs
+SKIPPED [1] tests/test_cuda_exact_resume.py:286: requires UAV_CUDA_FULL4096=1, real Warp CUDA and two visible GPUs
+SKIPPED [1] tests/test_cuda_scenario_v2.py:74: requires real CUDA
+SKIPPED [1] tests/test_cuda_scenario_v2.py:31: requires real CUDA
+SKIPPED [1] tests/test_cuda_scenario_v2.py:48: requires real CUDA
+SKIPPED [1] tests/test_cuda_scenario_v2.py:16: requires real CUDA
+SKIPPED [3] tests/test_decentralized_observations.py:59: CUDA hardware required
+SKIPPED [1] tests/test_gpu_packets.py:325: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:303: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:143: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:183: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:194: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:170: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:271: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:138: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:396: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:358: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:264: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:308: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:279: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:329: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:205: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:225: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:214: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:176: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:366: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:390: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:292: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:299: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:333: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:200: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:161: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:255: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:351: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:285: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:173: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:238: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:379: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:314: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:191: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:148: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:249: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:374: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:186: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_packets.py:345: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_cuda.py:130: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_cuda.py:27: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_cuda.py:101: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_cuda.py:73: requires real CUDA and optional Warp dependency
+SKIPPED [1] tests/test_gpu_physics.py:409: CUDA device required for parity
+SKIPPED [1] tests/test_memory_probe.py:141: Requires real dual CUDA; CPU tests do not verify FP16/Inductor
+SKIPPED [8] tests/test_pql_replay_serialization.py:29: requested real CUDA device unavailable
+SKIPPED [1] tests/test_pql_training.py:208: CUDA unavailable
+SKIPPED [1] tests/test_pql_training.py:189: CUDA unavailable
+SKIPPED [2] tests/test_scenario_clearance.py:69: CUDA hardware required
+SKIPPED [2] tests/test_scenario_generation.py:43: CUDA hardware required
+778 passed, 89 skipped, 8 warnings, 1303 subtests passed in 526.35s (0:08:46)

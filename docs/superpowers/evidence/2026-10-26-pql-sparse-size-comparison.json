@@ -1,0 +1,22 @@
+[
+  {
+    "algorithm": "masac",
+    "before_bytes": 8932913600,
+    "after_bytes": 2487767720,
+    "removed_unused_bytes": 6445145880,
+    "reduction_percent": 72.15054537189299,
+    "global_step_before": 4096,
+    "global_step_after": 8192,
+    "scope": "same legacy1MB/GPU500k warmup test; not fully populated replay"
+  },
+  {
+    "algorithm": "matd3",
+    "before_bytes": 8935556142,
+    "after_bytes": 2490410262,
+    "removed_unused_bytes": 6445145880,
+    "reduction_percent": 72.12920804901816,
+    "global_step_before": 4096,
+    "global_step_after": 8192,
+    "scope": "same legacy1MB/GPU500k warmup test; not fully populated replay"
+  }
+]

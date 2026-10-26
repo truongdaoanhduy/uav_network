@@ -1,0 +1,28 @@
+{"cuda_exact_resume": "full4096-warmup-start", "host_memory": {"MemTotal": "32869296 kB", "MemAvailable": "31409168 kB"}, "host_peak_rss_kib": 784476, "devices": [{"index": 0, "name": "Tesla T4", "free_bytes": 15526068224, "total_bytes": 15636037632}, {"index": 1, "name": "Tesla T4", "free_bytes": 15526068224, "total_bytes": 15636037632}], "algorithm": "masac", "pql": true}
+Warp 1.18.0 initialized:
+   CUDA Toolkit 13.4, Driver 13.0
+   Devices:
+     "cpu"      : "x86_64"
+     "cuda:0"   : "Tesla T4" (15 GiB, sm_75, mempool enabled)
+     "cuda:1"   : "Tesla T4" (15 GiB, sm_75, mempool enabled)
+   CUDA peer access:
+     Supported fully (all-directional)
+   Kernel cache:
+     /root/.cache/warp/1.18.0
+Module uav_network.communication.gpu.mac 27aebac load on device 'cuda:0' took 1.65 ms  (cached)
+Module uav_network.environment.gpu.world 4406595 load on device 'cuda:0' took 60.27 ms  (cached)
+Module uav_network.environment.gpu.geometry ce25b9b load on device 'cuda:0' took 0.60 ms  (cached)
+Module uav_network.communication.gpu.reports f9a97d6 load on device 'cuda:0' took 11.89 ms  (cached)
+Module uav_network.environment.gpu.observations 338af30 load on device 'cuda:0' took 0.93 ms  (cached)
+Module uav_network.environment.gpu.validation e74644b load on device 'cuda:0' took 0.73 ms  (cached)
+Module uav_network.environment.gpu.motion a746912 load on device 'cuda:0' took 1.52 ms  (cached)
+{"algorithm": "masac", "architecture": "pql-inspired", "episodes": 0, "global_step": 4096, "critic_updates": 0, "actor_updates": 0, "progress/search_rate_percent": 1.1021205357142856, "progress/delivery_rate_percent": 0.0, "progress/mean_battery_fraction": 0.9994708895683289, "progress/mean_active_uavs": 6.0, "pql/transitions_per_s": 276.11744312291944, "pql/critic_updates_per_s": 0.0, "pql/actor_updates_per_s": 0.0, "pql/critic_collector_ratio": 0.0, "pql/sample_uses_per_new_transition": 0.0, "pql/queued_collections": 0, "pql/collector_wait_seconds": 3.7310000038814906e-05, "replay/evicted_unsampled_fraction": null}
+{"algorithm": "masac", "architecture": "pql-inspired", "episodes": 0, "global_step": 8192, "critic_updates": 0, "actor_updates": 0, "progress/search_rate_percent": 1.1369977678571428, "progress/delivery_rate_percent": 0.0, "progress/mean_battery_fraction": 0.9989370107650757, "progress/mean_active_uavs": 6.0, "pql/transitions_per_s": 195.64362688888622, "pql/critic_updates_per_s": 0.0, "pql/actor_updates_per_s": 0.0, "pql/critic_collector_ratio": 0.0, "pql/sample_uses_per_new_transition": 0.0, "pql/queued_collections": 0, "pql/collector_wait_seconds": 5.422000003818539e-05, "replay/evicted_unsampled_fraction": null}
+{"cuda_exact_resume": "full4096-warmup", "host_memory": {"MemTotal": "32869296 kB", "MemAvailable": "28739904 kB"}, "host_peak_rss_kib": 4020532, "devices": [{"index": 0, "name": "Tesla T4", "free_bytes": 13030457344, "total_bytes": 15636037632}, {"index": 1, "name": "Tesla T4", "free_bytes": 8823570432, "total_bytes": 15636037632}], "algorithm": "masac", "pql": true, "world_array_bytes": 2353823744, "initial_global_step": 4096, "global_step": 8192, "updates_before": 0, "updates_after": 0, "first_elapsed_s": 18.48997661699991, "second_elapsed_s": 24.72527681100007, "checkpoint_bytes": 2487767720}
+.{"cuda_exact_resume": "full4096-warmup-start", "host_memory": {"MemTotal": "32869296 kB", "MemAvailable": "28758600 kB"}, "host_peak_rss_kib": 4020532, "devices": [{"index": 0, "name": "Tesla T4", "free_bytes": 13124829184, "total_bytes": 15636037632}, {"index": 1, "name": "Tesla T4", "free_bytes": 15488319488, "total_bytes": 15636037632}], "algorithm": "matd3", "pql": true}
+{"algorithm": "matd3", "architecture": "pql-inspired", "episodes": 0, "global_step": 4096, "critic_updates": 0, "actor_updates": 0, "progress/search_rate_percent": 1.1021205357142856, "progress/delivery_rate_percent": 0.0, "progress/mean_battery_fraction": 0.9994708895683289, "progress/mean_active_uavs": 6.0, "pql/transitions_per_s": 290.872138062317, "pql/critic_updates_per_s": 0.0, "pql/actor_updates_per_s": 0.0, "pql/critic_collector_ratio": 0.0, "pql/sample_uses_per_new_transition": 0.0, "pql/queued_collections": 0, "pql/collector_wait_seconds": 2.4701000029381248e-05, "replay/evicted_unsampled_fraction": null}
+{"algorithm": "matd3", "architecture": "pql-inspired", "episodes": 0, "global_step": 8192, "critic_updates": 0, "actor_updates": 0, "progress/search_rate_percent": 1.1369977678571428, "progress/delivery_rate_percent": 0.0, "progress/mean_battery_fraction": 0.9989370107650757, "progress/mean_active_uavs": 6.0, "pql/transitions_per_s": 195.41919624481213, "pql/critic_updates_per_s": 0.0, "pql/actor_updates_per_s": 0.0, "pql/critic_collector_ratio": 0.0, "pql/sample_uses_per_new_transition": 0.0, "pql/queued_collections": 0, "pql/collector_wait_seconds": 1.8973999999616353e-05, "replay/evicted_unsampled_fraction": null}
+{"cuda_exact_resume": "full4096-warmup", "host_memory": {"MemTotal": "32869296 kB", "MemAvailable": "29505788 kB"}, "host_peak_rss_kib": 4781320, "devices": [{"index": 0, "name": "Tesla T4", "free_bytes": 13030457344, "total_bytes": 15636037632}, {"index": 1, "name": "Tesla T4", "free_bytes": 8815181824, "total_bytes": 15636037632}], "algorithm": "matd3", "pql": true, "world_array_bytes": 2353823744, "initial_global_step": 4096, "global_step": 8192, "updates_before": 0, "updates_after": 0, "first_elapsed_s": 17.25775890400007, "second_elapsed_s": 24.30217794400005, "checkpoint_bytes": 2490410262}
+.
+--------------- generated xml file: /kaggle/working/full4096.xml ---------------
+2 passed in 115.01s (0:01:55)

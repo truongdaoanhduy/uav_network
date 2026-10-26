@@ -1,0 +1,101 @@
+{
+  "phase": "green",
+  "source_commit": "457ddb316d9111572f46486338f3d10e2cf14d9d",
+  "kernel_ref": "duytrngoanh/uav-pql-sparse-green-20261026",
+  "utc": "2026-10-26T08:10:18.767634+00:00",
+  "quota": [
+    {
+      "name": "account_01",
+      "ok": true,
+      "used_hours": 6.13,
+      "remaining_hours": 23.87,
+      "total_hours": 30.0
+    }
+  ],
+  "prior_states": [
+    {
+      "ref": "duytrngoanh/uav-pql-sparse-red-20261026",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-full4096-checks-only-20261026",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-cuda-scenario-algorithm-audit-20261025",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-credential-mount-smoke-20261024",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-framefree-t4-benchmark-final",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-framefree-cuda-exact-final",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-framefree-public-cuda-exact-20261023-101529",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-validate-20261020-10363-c01",
+      "state": "error"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-validate-20261020-103631-39e2ac",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-resume-1800-cuda-check-20261020-da6cc466",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-train-20261017-194510-8-c01",
+      "state": "error"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-train-20261017-194510-82e5cf",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-train-20261016-064448-e-c01",
+      "state": "error"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-train-20261016-064448-e0a990",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-gpu-capacity-20261014-085653",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-gpu-capacity-20261014-084800",
+      "state": "error"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-gpuenv-20261014-0742-673b",
+      "state": "error"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-envscale-20261014-0149-9b7c",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-masac20k-b512-u16-20261012-cpu",
+      "state": "cancelled"
+    },
+    {
+      "ref": "duytrngoanh/uav-masac20k-b512-u16-20261012",
+      "state": "complete"
+    }
+  ],
+  "kernel_sha256": "459bffdd8efc7540e732ac0ce0061077753581262d5b63054d4e8a160f6f6880",
+  "test_sha256": "d67f5aa7adecab2e87a8788e7a5dd832974cf4891ff46f5bf75edf095ddb1dce",
+  "status": "submitted",
+  "response": "Kernel version 1 successfully pushed.  Please check progress at https://www.kaggle.com/code/duytrngoanh/uav-pql-sparse-green-20261026\n"
+}
