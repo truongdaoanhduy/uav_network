@@ -1,12 +1,12 @@
-# Current task: AMP + torch.compile Task 4 PQL matched benchmark — COMPLETE
+# Current task: AMP + torch.compile Task 5 MATD3 PQL repeat — COMPLETE
 
-Updated 2026-10-27. Source `d12dae5`. Four async-PQL 2xT4 cells at identical E4096/B8192/R1M/hybrid75 shape all completed; all eight algorithm reports passed and `cuda_pipeline_verified=true`.
+Updated 2026-10-27. Task4 r1 + two Task5 repeats per mode give n=3 FP16/off vs n=3 FP16/compile at identical MATD3 PQL E4096/B8192/R1M/hybrid75/2xT4 shape.
 
-- MASAC PQL critic updates/s: off/off0.8118; FP16/off0.9242 (+13.85%); off/compile0.9178 (+13.06%); FP16/compile1.0806 (**+33.12%**). On/on GPU1 allocated 3.961GiB vs4.458GiB baseline.
-- MATD3 PQL: off/off1.4644; FP16/off1.5266 (**+4.24%**); off/compile1.3367 (-8.72%); FP16/compile1.3718 (-6.32%). On/on saves memory but is slower in this single async run.
-- All accelerated execution checks passed; FP16 cells had no AMP skips; compile cells had3 graphs,0 breaks/fallback. Every cell CUDA11/11 + scenario4/4 + mission8/8 + PQL smoke11/11.
-- Do not make a global compile recommendation yet: MASAC PQL benefits, MATD3 PQL does not in this single run. Task5 will repeat MATD3 FP16/off vs FP16/compile before production policy changes.
-- Evidence: `docs/superpowers/evidence/2026-10-27-amp-compile-task4-pql-matched.md`. Existing production lineages remain untouched.
+- FP16/off mean:3464.35 transitions/s,1.5224 critic updates/s,47.308s elapsed,3.966GiB GPU1 allocated.
+- FP16/compile mean:3065.44 transitions/s,1.3471 critic updates/s,53.486s elapsed,3.843GiB allocated. Compile changes throughput **-11.51%**, elapsed +13.06%, allocated VRAM -3.11%, reserved -8.84%.
+- All 3 compile runs are slower than all 3 compile-off runs. All new reports passed, CUDA pipeline true, FP16 no skips; compile has3 graphs/88kernels/0breaks/0fallback. CUDA11/11 + scenario4/4 + mission8/8 + PQL smoke11/11 each.
+- Measured candidate policy: MASAC BASE on/on; MATD3 BASE on/on; MASAC PQL on/on; **MATD3 PQL FP16 ON / compile OFF**; fused remains OFF. Only MATD3-PQL compile decision has n=3 confirmation.
+- Evidence: `docs/superpowers/evidence/2026-10-27-amp-compile-task5-matd3-pql-repeat.md`. Next Task6: encode policy safely in production launch/config path.
 
 ---
 
