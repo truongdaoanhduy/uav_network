@@ -12,7 +12,7 @@ class Scenario:
 
 
 def _outside(point, obstacles, clearance=0):
-    return all(np.linalg.norm(point - o[:2]) >= o[2] + clearance for o in obstacles)
+    return all(np.linalg.norm(point - o[:2]) >= o[2] + clearance + 1e-9 for o in obstacles)
 
 
 def generate_scenario(config, rng, options=None):
@@ -28,14 +28,16 @@ def generate_scenario(config, rng, options=None):
         validate_scenario(config, scenario)
         return scenario
     obstacles = []
-    if w.num_obstacles and 2 * (w.obstacle_radius_max_m + w.obstacle_clearance_m) >= w.map_size_m:
+    if w.num_obstacles and 2 * (w.obstacle_radius_max_m + w.obstacle_clearance_m + 1e-6) >= w.map_size_m:
         raise ValueError("Obstacles cannot fit inside this map")
+    # Disjoint clearance disks inside the map keep the free flight region connected.
     for _ in range(w.num_obstacles):
         radius = rng.uniform(w.obstacle_radius_min_m, w.obstacle_radius_max_m)
         for _ in range(w.placement_attempts):
-            center = rng.uniform(radius, w.map_size_m - radius, 2)
-            if (np.linalg.norm(center - gcs) > w.launch_radius_m + radius + w.obstacle_clearance_m
-                    and _outside(center, obstacles, radius + w.obstacle_clearance_m)):
+            padding = radius + w.obstacle_clearance_m + 1e-6
+            center = rng.uniform(padding, w.map_size_m - padding, 2)
+            if (np.linalg.norm(center - gcs) > w.launch_radius_m + padding
+                    and _outside(center, obstacles, radius + 2 * w.obstacle_clearance_m + 1e-6)):
                 obstacles.append(np.r_[center, radius])
                 break
         else:
@@ -53,10 +55,11 @@ def generate_scenario(config, rng, options=None):
         else:
             raise ValueError("Cannot place UAVs with the configured launch spacing")
     targets = []
+    target_clearance = max(0, w.obstacle_clearance_m - config.sensor.footprint_radius_m) + 1e-6
     for _ in range(w.num_targets):
         for _ in range(w.placement_attempts):
             point = rng.uniform(0, w.map_size_m, 2)
-            if np.linalg.norm(point - gcs) >= w.target_exclusion_radius_m and _outside(point, obstacles):
+            if np.linalg.norm(point - gcs) >= w.target_exclusion_radius_m and _outside(point, obstacles, target_clearance):
                 targets.append(point)
                 break
         else:
@@ -83,7 +86,8 @@ def validate_scenario(config, scene):
             raise ValueError("UAV starts inside a forbidden obstacle clearance")
         if any(np.linalg.norm(p - q) < w.safety_distance_m for q in scene.positions[:i]):
             raise ValueError("Initial UAVs violate the safety distance")
-    if any(not _outside(p, scene.obstacles) for p in scene.targets):
-        raise ValueError("Target lies inside an obstacle")
+    target_clearance = max(0, w.obstacle_clearance_m - config.sensor.footprint_radius_m)
+    if any(not _outside(p, scene.obstacles, target_clearance) for p in scene.targets):
+        raise ValueError("Target lies inside an obstacle or outside camera reach of its clearance")
     if not _outside(scene.gcs, scene.obstacles):
         raise ValueError("GCS lies inside an obstacle")

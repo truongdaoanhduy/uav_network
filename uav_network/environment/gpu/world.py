@@ -53,7 +53,7 @@ def _outside(s: WorldState, e: int, point: wp.vec2d, count: int, clearance: wp.f
     valid = bool(True)
     for o in range(count):
         circle = s.obstacles[e, o]
-        if wp.length(point - wp.vec2d(circle[0], circle[1])) < circle[2] + clearance:
+        if wp.length(point - wp.vec2d(circle[0], circle[1])) < circle[2] + clearance + wp.float64(1e-9):
             valid = bool(False)
     return valid
 
@@ -75,18 +75,20 @@ def reset_geometry(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32)
         s.velocities[e, i] = wp.vec2d(0.0, 0.0)
         s.battery[e, i] = p.capacity
         s.flight_energy[e, i] = wp.float64(0.0)
-    if p.obstacles_count > 0 and wp.float64(2.0) * (p.obstacle_max_radius + p.obstacle_clearance) >= p.map_size:
+    if p.obstacles_count > 0 and wp.float64(2.0) * (p.obstacle_max_radius + p.obstacle_clearance + wp.float64(1e-6)) >= p.map_size:
         s.errors[e] = 101
         return
+    # Disjoint clearance disks inside the map keep the free flight region connected.
     for o in range(p.obstacles_count):
         radius = _uniform(s, e, p.obstacle_min_radius, p.obstacle_max_radius)
         placed = bool(False)
         for attempt in range(p.placement_attempts):
-            x = _uniform(s, e, radius, p.map_size - radius)
-            y = _uniform(s, e, radius, p.map_size - radius)
+            padding = radius + p.obstacle_clearance + wp.float64(1e-6)
+            x = _uniform(s, e, padding, p.map_size - padding)
+            y = _uniform(s, e, padding, p.map_size - padding)
             center = wp.vec2d(x, y)
-            if (wp.length(center - s.gcs[e]) > p.launch_radius + radius + p.obstacle_clearance
-                    and _outside(s, e, center, o, radius + p.obstacle_clearance)):
+            if (wp.length(center - s.gcs[e]) > p.launch_radius + padding
+                    and _outside(s, e, center, o, radius + wp.float64(2.0) * p.obstacle_clearance + wp.float64(1e-6))):
                 s.obstacles[e, o] = wp.vec3d(x, y, radius)
                 placed = bool(True)
                 break
@@ -113,13 +115,14 @@ def reset_geometry(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32)
         if not placed:
             s.errors[e] = 103
             return
+    target_clearance = wp.max(wp.float64(0.0), p.obstacle_clearance - p.footprint) + wp.float64(1e-6)
     for t in range(p.targets_count):
         placed = bool(False)
         for attempt in range(p.placement_attempts):
             x = _uniform(s, e, wp.float64(0.0), p.map_size)
             y = _uniform(s, e, wp.float64(0.0), p.map_size)
             point = wp.vec2d(x, y)
-            if wp.length(point - s.gcs[e]) >= p.target_exclusion and _outside(s, e, point, p.obstacles_count, wp.float64(0.0)):
+            if wp.length(point - s.gcs[e]) >= p.target_exclusion and _outside(s, e, point, p.obstacles_count, target_clearance):
                 s.targets[e, t] = point
                 placed = bool(True)
                 break

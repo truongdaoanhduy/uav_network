@@ -12,7 +12,8 @@ from uav_network.cloud import visualize
 
 
 @pytest.mark.parametrize("version", [None,2,3])
-def test_publication_recovery_uses_saved_observation_provenance(tmp_path,version):
+@pytest.mark.parametrize("generation", [None,1,2])
+def test_publication_recovery_uses_saved_observation_provenance(tmp_path,version,generation):
     run = OnlineRun()
     initialized = []
     def initialize(**kwargs):
@@ -31,6 +32,8 @@ def test_publication_recovery_uses_saved_observation_provenance(tmp_path,version
         folder = Path(output)/'visualize'/algorithm
         folder.mkdir(parents=True)
         scenario = {} if version is None else {'observation_version':version}
+        if generation is not None:
+            scenario['world'] = {'generation_version':generation}
         result = {'algorithm':algorithm,'episodes':3,'device':'cpu','records':[],
                   'render_path':str(folder/'final_episode.png'),
                   'animation_path':str(folder/'final_episode.mp4'),
@@ -49,6 +52,8 @@ def test_publication_recovery_uses_saved_observation_provenance(tmp_path,version
          patch.object(visualize,'publish_visualization_media',return_value={'wandb':{'status':'ok'}}):
         result = visualize.run_visualization(spec,tmp_path/'cpu')
     assert initialized[0]['config']['observation_version'] is None
+    assert initialized[0]['config']['world']['generation_version'] is None
+    assert run.summary.get('evaluation/generation_version') == generation
     assert run.summary.get('evaluation/observation_version') == version
     assert run.summary.get('evaluation/checkpoint_global_step') == 12345
     assert result['matd3']['protocol']['scenario'].get('observation_version') == version

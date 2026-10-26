@@ -9,6 +9,7 @@ import yaml
 
 @dataclass
 class WorldConfig:
+    generation_version: int = 2
     map_size_m: float = 1000.0
     num_uavs: int = 6
     num_targets: int = 10
@@ -244,6 +245,8 @@ class Config:
                 if not valid:
                     raise ValueError(f"Invalid {name}: {value!r}")
         w, s, n, a, r = self.world, self.sensor, self.network, self.masac, self.runtime
+        if w.generation_version != 2:
+            raise ValueError("Unsupported scene generation version; use its pinned historical source")
         positive = [w.map_size_m, w.num_uavs, w.num_targets, w.dt_s, w.max_steps,
                     w.max_speed_mps, w.max_accel_mps2, w.safety_distance_m,
                     w.launch_radius_m, w.launch_min_spacing_m, w.placement_attempts,

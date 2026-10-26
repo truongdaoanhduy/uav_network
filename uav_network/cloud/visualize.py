@@ -274,7 +274,8 @@ def run_visualization(spec, output=Path("/kaggle/working")):
             previous_id = os.environ.get("WANDB_RUN_ID")
             os.environ["WANDB_RUN_ID"] = identity["id"]
             try:
-                tracker = start_tracking(config, tracking_output, {"observation_version": None})
+                tracker = start_tracking(config, tracking_output,
+                                         {"observation_version": None, "generation_version": None})
             finally:
                 if previous_id is None:
                     os.environ.pop("WANDB_RUN_ID", None)
@@ -318,6 +319,9 @@ def run_visualization(spec, output=Path("/kaggle/working")):
             source_version = protocol.get("scenario", {}).get("observation_version")
             tracker.run.summary["evaluation/observation_version"] = (source_version
                 if type(source_version) is int else None)
+            generation = protocol.get("scenario", {}).get("world", {}).get("generation_version")
+            tracker.run.summary["evaluation/generation_version"] = (generation
+                if type(generation) is int else None)
             source_step = protocol.get("training_global_step", checkpoint_step)
             if type(source_step) is int and source_step >= 0:
                 tracker.run.summary["evaluation/checkpoint_global_step"] = source_step

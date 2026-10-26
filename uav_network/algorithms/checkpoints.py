@@ -3,7 +3,7 @@ from contextlib import suppress
 from pathlib import Path
 import torch
 
-from ..configuration import Config, _apply
+from ..configuration import Config, WorldConfig, _apply
 from ..environment.observations import OBSERVATION_VERSION, observation_dim, state_dim
 
 
@@ -15,9 +15,14 @@ def make_learner(config, obs_dim, critic_dim, device="cpu"):
 
 
 def validate_observation_version(saved):
+    """Guard observation and seeded scene-generator semantics at every load path."""
     version = saved.get("observation_version")
     if type(version) is not int or version != OBSERVATION_VERSION:
         raise ValueError("Checkpoint observation semantics differ; use its pinned historical source "
+                         "or retrain from episode 0")
+    generation = saved.get("config", {}).get("world", {}).get("generation_version")
+    if type(generation) is not int or generation != WorldConfig().generation_version:
+        raise ValueError("Checkpoint scenario generation semantics differ; use its pinned historical source "
                          "or retrain from episode 0")
 
 

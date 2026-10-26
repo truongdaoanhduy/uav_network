@@ -168,9 +168,12 @@ class OnlineTracker:
         benchmark_file = os.environ.get("UAV_BENCHMARK_FILE")
         if benchmark_file:
             metadata["benchmark"] = json.loads(Path(benchmark_file).read_text())["results"]
+        tracked_config = config.to_dict()
+        if "generation_version" in initial:
+            tracked_config["world"]["generation_version"] = initial["generation_version"]
         self.run = wandb.init(entity=entity, project=project, id=run_id, name=name,
                               group=config.tracking.group, tags=list(config.tracking.tags),
-                              config={**config.to_dict(), **metadata}, dir=str(output), mode="online",
+                              config={**tracked_config, **metadata}, dir=str(output), mode="online",
                               resume="never", reinit="finish_previous", save_code=False,
                               settings=wandb.Settings(x_disable_stats=not config.tracking.system_metrics,
                                                      disable_code=True, console="wrap"))

@@ -19,9 +19,13 @@ class ScenarioV3Tests(unittest.TestCase):
         self.assertEqual((v2.network.pa_efficiency, v2.network.tx_circuit_power_w,
                           v2.network.rx_circuit_power_w), (1.0, 0.0, 0.0))
         protocol = evaluation_protocol(v2, [2000000044], {"next_seed": 50000})
-        # Physics is still frozen, but corrected observations need a new identity.
-        physical_scenario = dict(protocol["scenario"])
+        # Physical parameters remain frozen; observation and generator semantics
+        # have separate version markers and intentionally change scenario identity.
+        physical_scenario = {**protocol["scenario"],
+                             "world": dict(protocol["scenario"]["world"])}
         self.assertEqual(physical_scenario.pop("observation_version"), 3)
+        self.assertEqual(physical_scenario["world"].pop("generation_version"), 2)
+        self.assertNotEqual(protocol["scenario_hash"], V2_HASH)
         physical_hash = hashlib.sha256(json.dumps(physical_scenario, sort_keys=True,
                                                   allow_nan=False).encode()).hexdigest()
         self.assertEqual(physical_hash, V2_HASH)
