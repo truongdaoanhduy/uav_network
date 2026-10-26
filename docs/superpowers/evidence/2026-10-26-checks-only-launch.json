@@ -1,0 +1,102 @@
+{
+  "phase": "submitted",
+  "source_commit": "b77a96a0b7bc7f5c8063098234f3dd8f33da9ea7",
+  "kernel_ref": "duytrngoanh/uav-full4096-checks-only-20261026",
+  "created_utc": "2026-10-26T07:09:11.244385+00:00",
+  "account": "account_01",
+  "quota": [
+    {
+      "name": "account_01",
+      "ok": true,
+      "used_hours": 5.84,
+      "remaining_hours": 24.16,
+      "total_hours": 30.0
+    }
+  ],
+  "prior_kernel_states": [
+    {
+      "ref": "duytrngoanh/uav-full4096-checks-only-20261026",
+      "state": "error"
+    },
+    {
+      "ref": "duytrngoanh/uav-cuda-scenario-algorithm-audit-20261025",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-credential-mount-smoke-20261024",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-framefree-t4-benchmark-final",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-framefree-cuda-exact-final",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-framefree-public-cuda-exact-20261023-101529",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-validate-20261020-10363-c01",
+      "state": "error"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-validate-20261020-103631-39e2ac",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-resume-1800-cuda-check-20261020-da6cc466",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-train-20261017-194510-8-c01",
+      "state": "error"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-train-20261017-194510-82e5cf",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-train-20261016-064448-e-c01",
+      "state": "error"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-train-20261016-064448-e0a990",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-gpu-capacity-20261014-085653",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-gpu-capacity-20261014-084800",
+      "state": "error"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-gpuenv-20261014-0742-673b",
+      "state": "error"
+    },
+    {
+      "ref": "duytrngoanh/uavnet-envscale-20261014-0149-9b7c",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-masac20k-b512-u16-20261012-cpu",
+      "state": "cancelled"
+    },
+    {
+      "ref": "duytrngoanh/uav-masac20k-b512-u16-20261012",
+      "state": "complete"
+    },
+    {
+      "ref": "duytrngoanh/uav-masac4096-b512-u128-smoke-20261011",
+      "state": "complete"
+    }
+  ],
+  "kernel_sha256": "c50f851d7beb2f52c09c91fbe6de2d1c618068fceb1d5a0a7ffb033b84252607",
+  "primary_script_sha256": "db8c8a13d33893f2c659b4186b0399490e3e2375722c0a1e137c2837b1621dcb",
+  "scope": "checks only; no production training or W&B/HF mutations",
+  "response": "Kernel version 2 successfully pushed.  Please check progress at https://www.kaggle.com/code/duytrngoanh/uav-full4096-checks-only-20261026\n"
+}

@@ -1,0 +1,76 @@
+{
+  "started_utc": "2026-10-26T06:44:44.581306+00:00",
+  "scope": "checks only; no remote writes or deletes",
+  "head": "5663f5dd38758607db4c18c8119f1e72ad9cb142",
+  "steps": {
+    "kaggle": {
+      "ref": "duytrngoanh/uav-cuda-scenario-algorithm-audit-20261025",
+      "status": "complete",
+      "utc": "2026-10-26T06:44:46.247284+00:00",
+      "downloaded_receipt_status": "passed",
+      "source_commit": "4c5b8862b2c71e6dc7ead6b9b99e1402ca2fd137",
+      "completed_utc": "2026-10-26T02:07:28.437259+00:00",
+      "hardware": {
+        "torch": "2.11.0+cu128",
+        "cuda": "12.8",
+        "devices": [
+          "Tesla T4",
+          "Tesla T4"
+        ],
+        "device_count": 2,
+        "warp": "1.18.0",
+        "warp_default_device": "cuda:0",
+        "python": "3.13.15 (main, Aug  6 2026, 11:06:22) [GCC 13.3.0]"
+      },
+      "stages": [
+        {
+          "name": "scenario-tests",
+          "exit_code": 0,
+          "seconds": 254.76847742800004
+        },
+        {
+          "name": "scenario-primary-probes",
+          "exit_code": 0,
+          "seconds": 228.29772447599998
+        },
+        {
+          "name": "algorithm-cuda-probes",
+          "exit_code": 0,
+          "seconds": 200.34969171000012
+        },
+        {
+          "name": "full-suite",
+          "exit_code": 0,
+          "seconds": 424.11855017200014
+        }
+      ]
+    },
+    "wandb": {
+      "utc": "2026-10-26T06:45:46.948790+00:00",
+      "runs": 321,
+      "states": {
+        "finished": 234,
+        "crashed": 22,
+        "failed": 65
+      },
+      "active": []
+    },
+    "huggingface": {
+      "duy95/uav-search-checkpoints": {
+        "head": "5fc83edb4ea962d640ae77647468871e82b6bec5",
+        "private": false,
+        "lfs_objects": 679,
+        "lfs_bytes": 426218971693,
+        "utc": "2026-10-26T06:45:48.030292+00:00"
+      },
+      "duy95/uav-search-checkpoints-public": {
+        "head": "2c68392e5ccc500a2fc13d4d8a2f4b444175bcb8",
+        "private": false,
+        "lfs_objects": 766,
+        "lfs_bytes": 196201625877,
+        "utc": "2026-10-26T06:45:48.829806+00:00"
+      }
+    }
+  },
+  "completed_utc": "2026-10-26T06:45:48.829847+00:00"
+}

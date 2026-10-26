@@ -1,0 +1,33 @@
+{
+  "scope": "Observed PQL GPU-only sparse replay serialization cost; resume correctness passes",
+  "profile": "configs/comparison-20k-steps1800-scenario-v3.yaml",
+  "replay_capacity": 500000,
+  "populated_rows": 8192,
+  "allocated_bytes_per_row_including_born_seen": 13105,
+  "comparisons": [
+    {
+      "algorithm": "masac",
+      "base_bytes": 2487767592,
+      "pql_bytes": 8932913600,
+      "observed_extra_bytes": 6445146008,
+      "unused_replay_storage_bytes": 6445143840,
+      "difference_after_prediction_bytes": 2168
+    },
+    {
+      "algorithm": "matd3",
+      "base_bytes": 2490410198,
+      "pql_bytes": 8935556142,
+      "observed_extra_bytes": 6445145944,
+      "unused_replay_storage_bytes": 6445143840,
+      "difference_after_prediction_bytes": 2104
+    }
+  ],
+  "source_locations": [
+    "uav_network/experiments/pql_replay.py:89",
+    "uav_network/experiments/fixed_checkpoints.py:13"
+  ],
+  "cause": "PQL CUDA state_dict returns partial tensor views backed by full storage; torch.save preserves storage. BASE snapshots compact partial views.",
+  "official_pytorch_2_11_docs": "https://github.com/pytorch/pytorch/blob/v2.11.0/docs/source/notes/serialization.rst",
+  "user_scope": "Checks only; no source fix applied; no remote data deleted",
+  "limits": "Major excess measured on legacy GPU-only profile; primary hybrid four cases passed with2.497-2.499GB warmup checkpoints. This does not estimate fully populated production checkpoint size."
+}

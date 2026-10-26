@@ -1,0 +1,28 @@
+{
+  "utc": "2026-10-26T07:27:55.748056+00:00",
+  "scope": "read-only final verification; no mutations",
+  "wandb": {
+    "runs": 321,
+    "states": {
+      "finished": 234,
+      "crashed": 22,
+      "failed": 65
+    },
+    "counts_unchanged": true
+  },
+  "huggingface": {
+    "duy95/uav-search-checkpoints": {
+      "head": "5fc83edb4ea962d640ae77647468871e82b6bec5",
+      "lfs_objects": 679,
+      "lfs_bytes": 426218971693,
+      "unchanged_since_checks_started": true
+    },
+    "duy95/uav-search-checkpoints-public": {
+      "head": "2c68392e5ccc500a2fc13d4d8a2f4b444175bcb8",
+      "lfs_objects": 766,
+      "lfs_bytes": 196201625877,
+      "unchanged_since_checks_started": true
+    }
+  },
+  "all_unchanged": true
+}

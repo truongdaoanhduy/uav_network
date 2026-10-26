@@ -1,0 +1,50 @@
+[
+  {
+    "algorithm": "masac",
+    "pql": false,
+    "world_array_bytes": 2353823744,
+    "initial_global_step": 4096,
+    "global_step": 8192,
+    "updates_before": 0,
+    "updates_after": 0,
+    "checkpoint_bytes": 2487767592,
+    "first_elapsed_s": 18.39691721700001,
+    "second_elapsed_s": 26.782859699000028
+  },
+  {
+    "algorithm": "masac",
+    "pql": true,
+    "world_array_bytes": 2353823744,
+    "initial_global_step": 4096,
+    "global_step": 8192,
+    "updates_before": 0,
+    "updates_after": 0,
+    "checkpoint_bytes": 8932913600,
+    "first_elapsed_s": 56.39439409400006,
+    "second_elapsed_s": 62.61269371699996
+  },
+  {
+    "algorithm": "matd3",
+    "pql": false,
+    "world_array_bytes": 2353823744,
+    "initial_global_step": 4096,
+    "global_step": 8192,
+    "updates_before": 0,
+    "updates_after": 0,
+    "checkpoint_bytes": 2490410198,
+    "first_elapsed_s": 17.12268642800018,
+    "second_elapsed_s": 24.493745463999858
+  },
+  {
+    "algorithm": "matd3",
+    "pql": true,
+    "world_array_bytes": 2353823744,
+    "initial_global_step": 4096,
+    "global_step": 8192,
+    "updates_before": 0,
+    "updates_after": 0,
+    "checkpoint_bytes": 8935556142,
+    "first_elapsed_s": 47.71674000999997,
+    "second_elapsed_s": 57.865175963999945
+  }
+]

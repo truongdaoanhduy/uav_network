@@ -1,5 +1,7 @@
 # CUDA scenario-first and storage audit plan
 
+> Latest scope override (26/10/2026): verification completed; user revoked HF/W&B deletion. Cleanup tasks below are historical and must not be resumed. See CURRENT_TASK and evidence/2026-10-26-checks-only-reverification.md.
+
 > **For agentic workers:** Use superpowers:executing-plans; storage inventories may run as independent read-only domain tasks. Follow checklist order for scenario and algorithms.
 
 **Goal:** Use Kaggle CUDA to verify the scenario before the algorithms, fix confirmed defects with RED/GREEN evidence, and remove demonstrably obsolete W&B/HF data without losing required scientific results or exact-resume state.

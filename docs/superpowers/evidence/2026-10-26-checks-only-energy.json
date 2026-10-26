@@ -1,0 +1,13 @@
+{
+  "assumptions": "Surrogate propulsion only; excludes radio and acceleration; mission duration1800s",
+  "battery_j": 277200.0,
+  "idle_plus_hover_w": 140.0,
+  "stationary_endurance_s": 1980.0,
+  "endurance_s_by_speed_mps": {
+    "10": 1458.9473684210527,
+    "15": 1097.8217821782177,
+    "20": 815.2941176470588
+  },
+  "rms_speed_limit_for_1800s_mps": 5.291502622129181,
+  "ruling": "Calibration/design constraint; not proof of arithmetic bug or infeasible early completion; no tuning performed"
+}

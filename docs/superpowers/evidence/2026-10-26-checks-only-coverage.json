@@ -1,0 +1,28 @@
+{
+  "cuda_v3_xml": {
+    "testcases": 855,
+    "failures": 0,
+    "errors": 0,
+    "skipped": {
+      "requires a CPU-only host": 15,
+      "two GPUs available": 1,
+      "requires UAV_CUDA_FULL4096=1, real Warp CUDA and two visible GPUs": 5
+    }
+  },
+  "warning_breakdown": {
+    "matplotlib_pyparsing_deprecation": 14,
+    "wandb_workspaces_pydantic_deprecation": 7,
+    "torch_jit_deprecation_memory_probe": 14,
+    "deliberate_failure_diagnostic_async_close": 1,
+    "test_only_tensor_scalar_conversion": 1
+  },
+  "coverage_limits": [
+    "The5opt-in full4096 cases subsequently passed on2T4; see checks-only CUDA receipt and legacy XML",
+    "Production-sized warmup resume checks do not establish20k learning quality",
+    "Privileged feasibility oracle is not a decentralized actor baseline",
+    "Asynchronous PQL scheduling is not guaranteed bitwise-identical across wall-clock runs"
+  ],
+  "remote_mutations_allowed": false,
+  "additional_primary_checks_passed": 6,
+  "additional_existing_optin_tests_passed": 5
+}

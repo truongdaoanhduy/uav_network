@@ -1,0 +1,29 @@
+Warp 1.18.0 initialized:
+   CUDA Toolkit 13.4, Driver 13.0
+   Devices:
+     "cpu"      : "x86_64"
+     "cuda:0"   : "Tesla T4" (15 GiB, sm_75, mempool enabled)
+     "cuda:1"   : "Tesla T4" (15 GiB, sm_75, mempool enabled)
+   CUDA peer access:
+     Supported fully (all-directional)
+   Kernel cache:
+     /root/.cache/warp/1.18.0
+Module uav_network.communication.gpu.mac 27aebac load on device 'cuda:0' took 35280.99 ms  (compiled)
+Module uav_network.environment.gpu.world 4406595 load on device 'cuda:0' took 1051.34 ms  (compiled)
+Module uav_network.environment.gpu.geometry ce25b9b load on device 'cuda:0' took 262.75 ms  (compiled)
+Module uav_network.communication.gpu.reports f9a97d6 load on device 'cuda:0' took 952.19 ms  (compiled)
+Module uav_network.environment.gpu.observations 338af30 load on device 'cuda:0' took 3484.10 ms  (compiled)
+Module uav_network.environment.gpu.validation e74644b load on device 'cuda:0' took 316.49 ms  (compiled)
+Module uav_network.environment.gpu.motion a746912 load on device 'cuda:0' took 7188.84 ms  (compiled)
+Module uav_network.communication.gpu.mac 27aebac load on device 'cuda:1' took 0.87 ms  (cached)
+Module uav_network.environment.gpu.world 4406595 load on device 'cuda:1' took 60.11 ms  (cached)
+Module uav_network.environment.gpu.geometry ce25b9b load on device 'cuda:1' took 0.48 ms  (cached)
+Module uav_network.communication.gpu.reports f9a97d6 load on device 'cuda:1' took 18.73 ms  (cached)
+Module uav_network.environment.gpu.observations 338af30 load on device 'cuda:1' took 0.59 ms  (cached)
+Module uav_network.environment.gpu.validation e74644b load on device 'cuda:1' took 0.49 ms  (cached)
+Module uav_network.environment.gpu.motion a746912 load on device 'cuda:1' took 0.60 ms  (cached)
+{"algorithm": "masac", "architecture": "pql-inspired", "episodes": 0, "global_step": 4096, "critic_updates": 0, "actor_updates": 0, "progress/search_rate_percent": 1.1021205357142856, "progress/delivery_rate_percent": 0.15625, "progress/mean_battery_fraction": 0.9994709491729736, "progress/mean_active_uavs": 6.0, "pql/transitions_per_s": 535.8403558614397, "pql/critic_updates_per_s": 0.0, "pql/actor_updates_per_s": 0.0, "pql/critic_collector_ratio": 0.0, "pql/sample_uses_per_new_transition": 0.0, "pql/queued_collections": 0, "pql/collector_wait_seconds": 4.687099999500788e-05, "replay/evicted_unsampled_fraction": null}
+{"algorithm": "masac", "architecture": "pql-inspired", "episodes": 0, "global_step": 8192, "critic_updates": 0, "actor_updates": 0, "progress/search_rate_percent": 1.1369977678571428, "progress/delivery_rate_percent": 0.33203125, "progress/mean_battery_fraction": 0.9989371299743652, "progress/mean_active_uavs": 6.0, "pql/transitions_per_s": 517.893414854215, "pql/critic_updates_per_s": 0.0, "pql/actor_updates_per_s": 0.0, "pql/critic_collector_ratio": 0.0, "pql/sample_uses_per_new_transition": 0.0, "pql/queued_collections": 0, "pql/collector_wait_seconds": 2.967099999295897e-05, "replay/evicted_unsampled_fraction": null}
+{"algorithm": "matd3", "architecture": "pql-inspired", "episodes": 0, "global_step": 4096, "critic_updates": 0, "actor_updates": 0, "progress/search_rate_percent": 1.1021205357142856, "progress/delivery_rate_percent": 0.15625, "progress/mean_battery_fraction": 0.9994709491729736, "progress/mean_active_uavs": 6.0, "pql/transitions_per_s": 535.3010318987539, "pql/critic_updates_per_s": 0.0, "pql/actor_updates_per_s": 0.0, "pql/critic_collector_ratio": 0.0, "pql/sample_uses_per_new_transition": 0.0, "pql/queued_collections": 0, "pql/collector_wait_seconds": 2.3270000042430183e-05, "replay/evicted_unsampled_fraction": null}
+{"algorithm": "matd3", "architecture": "pql-inspired", "episodes": 0, "global_step": 8192, "critic_updates": 0, "actor_updates": 0, "progress/search_rate_percent": 1.1369977678571428, "progress/delivery_rate_percent": 0.33203125, "progress/mean_battery_fraction": 0.9989371299743652, "progress/mean_active_uavs": 6.0, "pql/transitions_per_s": 513.3585652619236, "pql/critic_updates_per_s": 0.0, "pql/actor_updates_per_s": 0.0, "pql/critic_collector_ratio": 0.0, "pql/sample_uses_per_new_transition": 0.0, "pql/queued_collections": 0, "pql/collector_wait_seconds": 5.4158000011739205e-05, "replay/evicted_unsampled_fraction": null}
+PRIMARY_FULL4096_SIX_CHECKS_PASS

@@ -1,0 +1,31 @@
+{
+  "source_commit": "b77a96a0b7bc7f5c8063098234f3dd8f33da9ea7",
+  "started_utc": "2026-10-26T06:55:23.417897+00:00",
+  "scope": "checks only; no W&B/HF credentials, writes, or deletion",
+  "status": "failed",
+  "stages": [
+    {
+      "name": "primary-full4096",
+      "exit_code": 1,
+      "seconds": 3.9277500290000944,
+      "tail": "{\"cuda_exact_resume\": \"full4096-world-start\", \"host_memory\": {\"MemTotal\": \"32869296 kB\", \"MemAvailable\": \"31308856 kB\"}, \"host_peak_rss_kib\": 773520, \"devices\": [{\"index\": 0, \"name\": \"Tesla T4\", \"free_bytes\": 15526068224, \"total_bytes\": 15636037632}, {\"index\": 1, \"name\": \"Tesla T4\", \"free_bytes\": 15526068224, \"total_bytes\": 15636037632}], \"device\": \"cuda:0\"}\nTraceback (most recent call last):\n  File \"/kaggle/working/primary_full4096_checks.py\", line 41, in <module>\n    WorldChecks().roundtrip(device,full=True)\n    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^\n  File \"/tmp/uav-full4096-source/tests/test_cuda_exact_resume.py\", line 182, in roundtrip\n    vector = WarpVectorEnv(config, device=device)\n  File \"/tmp/uav-full4096-source/uav_network/environment/gpu/vector.py\", line 27, in __init__\n    self.config = config.validate()\n                  ~~~~~~~~~~~~~~~^^\n  File \"/tmp/uav-full4096-source/uav_network/configuration.py\", line 301, in validate\n    raise ValueError(\"runtime.replay_cpu_fraction must be in [0, 1) and hybrid replay requires replay_device=cpu\")\nValueError: runtime.replay_cpu_fraction must be in [0, 1) and hybrid replay requires replay_device=cpu\n"
+    }
+  ],
+  "primary_script_sha256": "9d8ed923c36d08a67deb0e7209c55631f9630d7ad4ffea287da2bef2fc50a900",
+  "hardware": {
+    "devices": [
+      "Tesla T4",
+      "Tesla T4"
+    ],
+    "torch": "2.11.0+cu128",
+    "cuda": "12.8",
+    "warp": "1.18.0",
+    "warp_default_device": "cuda:0",
+    "python": "3.13.15 (main, Aug  6 2026, 11:06:22) [GCC 13.3.0]"
+  },
+  "disk_free_bytes": 1125375807488,
+  "active_stage": "primary-full4096",
+  "error_type": "RuntimeError",
+  "error": "Stage failed: primary-full4096",
+  "traceback": "Traceback (most recent call last):\n  File \"/kaggle/src/script.py\", line 29, in <module>\n    if p.returncode:raise RuntimeError('Stage failed: '+name)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: Stage failed: primary-full4096\n"
+}

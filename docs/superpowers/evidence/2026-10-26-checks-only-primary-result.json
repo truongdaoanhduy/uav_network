@@ -1,0 +1,96 @@
+{
+  "scope": "Primary1KiB unchanged env4096/batch8192/replay1M/CPU75%; warmup two bounded segments, not20k learning",
+  "profile_sha256": "503cc6fb34133b7ffb0a43e3c9238b07a5e587958a49d68c45d3f491f711e952",
+  "utc": "2026-10-26T07:15:00.549270+00:00",
+  "checks": [
+    {
+      "kind": "serialized4096world-and-next-step",
+      "device": "cuda:0",
+      "status": "pass",
+      "seconds": 84.45495688699998
+    },
+    {
+      "kind": "serialized4096world-and-next-step",
+      "device": "cuda:1",
+      "status": "pass",
+      "seconds": 33.297191099999964
+    },
+    {
+      "kind": "primary-hybrid-exact-resume",
+      "algorithm": "masac",
+      "pql": false,
+      "status": "pass",
+      "seconds": 49.00275947900002,
+      "global_step_before": 4096,
+      "global_step_after": 8192,
+      "replay_rows_preserved": 4096,
+      "checkpoint_bytes": 2496699055,
+      "world_array_bytes": 2353823744,
+      "devices": {
+        "collector": "cuda:0",
+        "learner": "cuda:1",
+        "replay": "cpu"
+      },
+      "replay_cpu_bytes": 9831000000,
+      "replay_hot_bytes": 3274000000
+    },
+    {
+      "kind": "primary-hybrid-exact-resume",
+      "algorithm": "masac",
+      "pql": true,
+      "status": "pass",
+      "seconds": 40.815682536000054,
+      "global_step_before": 4096,
+      "global_step_after": 8192,
+      "replay_rows_preserved": 4096,
+      "checkpoint_bytes": 2496699119,
+      "world_array_bytes": 2353823744,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "replay_cpu_bytes": 9831000000,
+      "replay_hot_bytes": 3274000000
+    },
+    {
+      "kind": "primary-hybrid-exact-resume",
+      "algorithm": "matd3",
+      "pql": false,
+      "status": "pass",
+      "seconds": 43.065347250999935,
+      "global_step_before": 4096,
+      "global_step_after": 8192,
+      "replay_rows_preserved": 4096,
+      "checkpoint_bytes": 2499341661,
+      "world_array_bytes": 2353823744,
+      "devices": {
+        "collector": "cuda:0",
+        "learner": "cuda:1",
+        "replay": "cpu"
+      },
+      "replay_cpu_bytes": 9831000000,
+      "replay_hot_bytes": 3274000000
+    },
+    {
+      "kind": "primary-hybrid-exact-resume",
+      "algorithm": "matd3",
+      "pql": true,
+      "status": "pass",
+      "seconds": 43.36858251499996,
+      "global_step_before": 4096,
+      "global_step_after": 8192,
+      "replay_rows_preserved": 4096,
+      "checkpoint_bytes": 2499341725,
+      "world_array_bytes": 2353823744,
+      "devices": {
+        "collector": "cuda:0",
+        "critic": "cuda:1",
+        "policy": "cuda:1"
+      },
+      "replay_cpu_bytes": 9831000000,
+      "replay_hot_bytes": 3274000000
+    }
+  ],
+  "status": "pass"
+}
