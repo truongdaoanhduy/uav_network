@@ -1,3 +1,18 @@
+# Current task: enable AMP FP16 + torch.compile — COMPLETE / CODE ACTIVATED
+
+Updated 2026-10-26T23:43+07:00. Implementation commit `19ffcac` on `feat/cpu-replay-20261022`; this record follows it.
+
+- User requested AMP + `torch.compile`. The production machinery already existed (learner-owned FP16 autocast/GradScaler for MASAC/MATD3 BASE/PQL, Inductor compile wiring, cloud execution preflight and exact-resume guards), so the minimal implementation activates it instead of duplicating learner logic.
+- Primary `configs/comparison-20k-hybrid75-1kb.yaml` now resolves `runtime.amp_mode=fp16`, `runtime.compile_models=true`, while `runtime.fused_optimizers=false` remains unchanged. Tracking group/tags now identify `ampfp16-compile` / `amp-fp16` / `torch-compile`.
+- Structured config diff proved only acceleration/provenance fields changed. Scientific settings remain E4096/B8192/R1M, CPU75/GPU25 default replay, 1KiB report/payload, G3, seed44, 20k episodes; no reward/network/geometry/model/budget retune.
+- TDD RED observed old `amp_mode=off`; GREEN focused profile test passes. Focused regression: **65 passed +17 subtests**. Full offline CPU suite: **806 passed,95 skipped,8 warnings,1350 subtests,exit0,509.72s**. `git diff --check` + `compileall` pass.
+- Direct exact-resume checks prove off/off -> on/on is rejected for both fixed BASE and PQL checkpoints (`runtime.compile_models` / `runtime.amp_mode` mismatch). Existing eight G3 lineages/controllers remain pinned to source `77a1d0f`; none was restarted/cancelled/mutated.
+- Final self-review (no separate reviewer subagent available): 0 Critical,0 Important,0 Minor. Changed-file credential scan clean; existing untracked `wandb/` preserved.
+- Evidence: `docs/superpowers/evidence/2026-10-26-amp-compile-activation.md`; design/plan adjacent under `specs/` and `plans/`.
+- Limitation: no new Kaggle/T4 matched performance benchmark was launched in this task, so no throughput/VRAM/learning-quality improvement is claimed. Future accelerated runs must use a new source commit/lineage; never exact-resume an old off/off G3 checkpoint as on/on.
+
+---
+
 # Current task: reusable new-chat handoff — COMPLETE
 
 Updated 2026-10-26T23:15:19.356541+07:00. User requested a comprehensive pasteable context prompt. Production source remains77a1d0f; documentation parent14a1f39.
