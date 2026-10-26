@@ -160,6 +160,7 @@ class RuntimeConfig:
     coalesce_idle_polls: bool = True
     fused_optimizers: bool = False
     vectorize_critics: bool = False
+    critic_chunk_size: int = 0
     log_interval_steps: int = 100
     warm_start_checkpoint: str = "none"
     max_train_seconds: float = 0.0
@@ -313,6 +314,8 @@ class Config:
             raise ValueError("algorithm must be masac or matd3")
         if r.num_envs < 1 or r.log_interval_steps < 1:
             raise ValueError("num_envs and log_interval_steps must be positive")
+        if r.critic_chunk_size < 0:
+            raise ValueError("runtime.critic_chunk_size must be nonnegative; zero disables chunking")
         if r.amp_mode not in {"off", "fp16"}:
             raise ValueError("runtime.amp_mode must be off or fp16")
         if r.max_train_seconds < 0:

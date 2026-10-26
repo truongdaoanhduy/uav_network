@@ -13,6 +13,7 @@ from .action_utils import canonical_continuous, joint_action, valid_destinations
 from .checkpoints import load_policy, save_policy
 from .models import HybridActor, TwinCritic
 from .parallel_critics import critic_values
+from .critic_chunks import chunked_call
 from .precision import MixedPrecision, autocast_update
 from .optimization import scalar_metrics, step_optimizer, step_actor_optimizers, tensor_batch, critic_metrics
 
@@ -91,6 +92,11 @@ class MASAC(nn.Module):
         return Action(action.continuous[0], action.destination[0])
 
     def _expected_q(self, critic, state, joint, continuous, index):
+        return chunked_call(
+            lambda s, j, a: self._expected_q_full(critic, s, j, a, index),
+            state, joint, continuous, self.config.runtime.critic_chunk_size)
+
+    def _expected_q_full(self, critic, state, joint, continuous, index):
         """Enumerate own destination; sample and detach all other agents."""
         b, k = len(state), self.destinations
         alternatives = joint.detach()[:, None].expand(-1, k, -1, -1).clone()
@@ -103,6 +109,11 @@ class MASAC(nn.Module):
         return torch.minimum(q1, q2).reshape(b, k)
 
     def _expected_q_all(self, critics, state, joint, continuous):
+        return chunked_call(
+            lambda s, j, a: self._expected_q_all_full(critics, s, j, a),
+            state, joint, continuous, self.config.runtime.critic_chunk_size)
+
+    def _expected_q_all_full(self, critics, state, joint, continuous):
         """Enumerate each critic's own destination, keeping peer actions detached."""
         b, n, k = len(state), self.num_uavs, self.destinations
         alternatives = joint.detach()[None, :, None].expand(n, -1, k, -1, -1).clone()

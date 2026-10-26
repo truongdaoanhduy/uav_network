@@ -52,6 +52,7 @@ runtime:
   num_envs: 4096
   coalesce_idle_polls: true
   vectorize_critics: true
+  critic_chunk_size: 1024
   compile_models: false
   fused_optimizers: false
   episodes: 20000
