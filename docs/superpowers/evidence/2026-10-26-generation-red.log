@@ -10,8 +10,8 @@ seed = 44
         scene = generate_scenario(c, np.random.default_rng(seed))
 >       assert_free_routes(scene.obstacles, c)
 
-tests/test_scenario_generation.py:35: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_scenario_generation.py:35:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 obstacles = array([[274.99804983, 412.34842485,  34.90262039],
        [208.76024308, 808.15338969,  68.76735793],
@@ -41,8 +41,8 @@ seed = 302
         scene = generate_scenario(c, np.random.default_rng(seed))
 >       assert_free_routes(scene.obstacles, c)
 
-tests/test_scenario_generation.py:35: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_scenario_generation.py:35:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 obstacles = array([[681.07942444, 938.08891979,  60.38985174],
        [223.62596361, 272.56937309,  52.25622574],
@@ -79,8 +79,8 @@ device = 'cpu'
         for obstacles in s.obstacles.numpy():
 >           assert_free_routes(obstacles, c)
 
-tests/test_scenario_generation.py:51: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_scenario_generation.py:51:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 obstacles = array([[274.99804983, 412.34842485,  34.90262039],
        [208.76024308, 808.15338969,  68.76735793],

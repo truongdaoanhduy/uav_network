@@ -1,0 +1,721 @@
+{
+  "utc": "2026-10-26T01:23:10.152562+00:00",
+  "seconds": 1.07338573800007,
+  "profiles": [
+    {
+      "profile": "configs/comparison-10k.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/comparison-20k-hybrid75-1kb.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/comparison-20k-hybrid75-1m.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/comparison-20k-steps1800-scenario-v3.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/comparison-20k-steps2000-scenario-v3.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/comparison-20k.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/comparison-25k-diagnostics.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/comparison-25k-scenario-v2.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/comparison-25k-scenario-v3.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/comparison-25k.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/default.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/kaggle-smoke.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/kaggle.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/motion-gpu.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/motion-long.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/motion-pql.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/motion-study-fast.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/motion-study.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/smoke-parallel.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/smoke.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    },
+    {
+      "profile": "configs/workstation.yaml",
+      "seeds": [
+        44,
+        45,
+        46,
+        2000000044,
+        2000000045
+      ],
+      "native": [
+        {
+          "seed": 44,
+          "ok": true
+        },
+        {
+          "seed": 45,
+          "ok": true
+        },
+        {
+          "seed": 46,
+          "ok": true
+        },
+        {
+          "seed": 2000000044,
+          "ok": true
+        },
+        {
+          "seed": 2000000045,
+          "ok": true
+        }
+      ],
+      "warp_cpu_worlds": 2,
+      "ok": true
+    }
+  ],
+  "all_passed": true
+}

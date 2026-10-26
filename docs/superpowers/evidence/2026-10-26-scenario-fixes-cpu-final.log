@@ -1,0 +1,47 @@
+................................................................................................................................................................................ [ 20%]
+.................................................... [ 26%]
+......ss................................ssssssssssssssssssssssssss... [ 34%]
+.....s.s.s........................................................ [ 42%]
+......................................................sssssssssssssssssss [ 50%]
+sssssssssssssssssssssss....................................... [ 58%]
+.s................................................................s [ 66%]
+.............................................................. [ 73%]
+.................s.s.................................... [ 79%]
+....................................................................... [ 88%]
+.......s.s...s.s.......................................... [ 94%]
+...........................................                        [100%]
+=============================== warnings summary ===============================
+tests/test_dashboard.py::DashboardTests::test_first_setup_and_repeated_setup_reuse_the_same_personal_workspace
+  /home/aduy/miniconda3/lib/python3.13/site-packages/wandb_workspaces/reports/v2/internal.py:258: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("panels", pre=True, each_item=True)
+
+tests/test_dashboard.py::DashboardTests::test_first_setup_and_repeated_setup_reuse_the_same_personal_workspace
+  /home/aduy/miniconda3/lib/python3.13/site-packages/wandb_workspaces/reports/v2/internal.py:287: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("panels", pre=True, each_item=True)
+
+tests/test_dashboard.py::DashboardTests::test_first_setup_and_repeated_setup_reuse_the_same_personal_workspace
+  /home/aduy/miniconda3/lib/python3.13/site-packages/wandb_workspaces/reports/v2/internal.py:422: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("children", pre=True, each_item=True)
+
+tests/test_dashboard.py::DashboardTests::test_first_setup_and_repeated_setup_reuse_the_same_personal_workspace
+  /home/aduy/miniconda3/lib/python3.13/site-packages/wandb_workspaces/reports/v2/internal.py:563: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("blocks", pre=True, each_item=True)
+
+tests/test_dashboard.py::DashboardTests::test_first_setup_and_repeated_setup_reuse_the_same_personal_workspace
+  /home/aduy/miniconda3/lib/python3.13/site-packages/wandb_workspaces/reports/v2/internal.py:601: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("spec", pre=True)
+
+tests/test_dashboard.py::DashboardTests::test_first_setup_and_repeated_setup_reuse_the_same_personal_workspace
+  /home/aduy/miniconda3/lib/python3.13/site-packages/wandb_workspaces/reports/v2/interface.py:1419: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("panels")
+
+tests/test_dashboard.py::DashboardTests::test_first_setup_and_repeated_setup_reuse_the_same_personal_workspace
+  /home/aduy/miniconda3/lib/python3.13/site-packages/wandb_workspaces/reports/v2/interface.py:1424: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator("runsets")
+
+tests/test_diagnostics.py::DiagnosticsTests::test_real_nonfinite_model_preserves_failed_replay_batch_and_traceback
+  /home/aduy/miniconda3/lib/python3.13/site-packages/gymnasium/vector/async_vector_env.py:615: UserWarning: [33mWARN: Calling `close` while waiting for a pending call to `step` to complete.[0m
+    logger.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+774 passed, 81 skipped, 8 warnings, 1282 subtests passed in 422.28s (0:07:02)
