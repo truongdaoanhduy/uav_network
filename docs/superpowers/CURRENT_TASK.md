@@ -1,3 +1,16 @@
+# Current task: additional FULL GPU replay cohort — TWO RUNNING / TWO OOM
+
+Updated 2026-10-26T09:42:52.981766+00:00. User authorized four OTHER accounts for fullGPUreplay; all four launched once. **Four healthy runs were not achieved.** Preserve original four hybrid runs and both active fullGPU MATD3 runs. HF/W&B cleanup/deletion remains prohibited.
+
+- Same pinnedsourcef39f45682b0b8a387cf8d95906c6730bf4337742; only layoutsettings replay_device=cuda/replay_cpu_fraction=0.0, plus tracking/outputmetadata. Same20k/env4096/batch8192/replay1M/1KiB/1800steps/seed44/fromepisode0/obs3/gen2. No AMP/compile/fused or scientific retuning.
+- Account18 MASAC BASE b18d6a0d failed atwarmup131072/0updates:CUDAOOM targetcritics/vmap linear336MiB request vs244.81MiB free onGPU1. Account19 MASAC PQL mandatorypreflight8b988c64 statusoom336MiB vs176.81MiBfree; reservedproduction003e327e never started.
+- Account20 MATD3 BASE8c599ca4 RUNNING step835584/updates1376; account21 MATD3 PQLcfad2583 RUNNING step745472/updates1200 at2026-10-26T09:41:59.948575+00:00. Actual2T4each, replaycuda/fraction0/13,105,000,000B confirmed. FullGPUreplay is onlearnerGPU1;2T4memory is not pooled.
+- All4cloudcontrollerssubmitted; bothMATD3controllerreadiness independently passes. Auto-continue/finalCPU30eval seed2000000044 configured. MASACcontroller oldtrainingphase maylag next900spoll and is not healthytraining proof. Never infer completion/visualization from failedrun.
+- Original account14-17hybrid4runs freshRUNNING at2026-10-26T09:34:33.290689+00:00; no activecloudjobcancelled/restarted. No blindretry/lowerbatch/lowerreplay/vectorizationchange/sourcefix issued. Inheritedcpu75tag inFULLGPUmetadata is stale; actualruntimeconfig is authoritative.
+- Evidence: evidence/2026-10-26-fullgpu-four-way-launch.md + adjacentstatusJSON. Durable launch/intent/preflight/error/downloadreceipts outputs/cohort-fullgpu-g2-20261026/. Next:monitor original4+MATD3fullGPU2; MASACfullGPU requires explicit validatedmemorystrategy before newattempt. Neverduplicateactivejobs; no oldwarmstart. Source remains unchanged; commit this operationalrecord.
+
+---
+
 # Current task: corrected four-way production cohort — RUNNING
 
 Updated 2026-10-26T09:04:03.422566+00:00. User authorized four Kaggle accounts for MASAC/MATD3 BASE/PQL. **HF/W&B cleanup/deletion remains prohibited.** Normal training metrics/checkpoint publication authorized. No active job was cancelled/restarted.

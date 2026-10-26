@@ -1,0 +1,1234 @@
+{
+  "validation_utc": "2026-10-26T09:42:52.981766+00:00",
+  "fullgpu_observation": {
+    "utc": "2026-10-26T09:41:59.948575+00:00",
+    "runs": [
+      {
+        "case": "masac-base",
+        "account": "account_18",
+        "kernel_ref": "fowieofweoi/uavnet-train-20261026-093208-d80760",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "kernel_state": "error",
+        "run_id": "b18d6a0d",
+        "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/b18d6a0d",
+        "cpu_eval": {
+          "episodes": 30,
+          "seed": 2000000044,
+          "frame_stride": 5,
+          "fps": 10
+        },
+        "warm_start_artifacts": {},
+        "wandb_state": "failed",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-fullgpu-20261026",
+        "global_step": 131072,
+        "episodes": null,
+        "observation_version": 3,
+        "generation_version": 2,
+        "hardware": {
+          "torch": "2.11.0+cu128",
+          "python": "3.13.15",
+          "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+          "cuda_devices": [
+            {
+              "name": "Tesla T4",
+              "index": 0,
+              "memory_gib": 14.56219482421875,
+              "compute_capability": [
+                7,
+                5
+              ]
+            },
+            {
+              "name": "Tesla T4",
+              "index": 1,
+              "memory_gib": 14.56219482421875,
+              "compute_capability": [
+                7,
+                5
+              ]
+            }
+          ],
+          "logical_cpus": 4,
+          "available_cpus": 4,
+          "cuda_available": true,
+          "torch_cuda_build": "12.8"
+        },
+        "source_git_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "seed": 44,
+          "device": "cuda",
+          "amp_mode": "off",
+          "episodes": 20000,
+          "num_envs": 4096,
+          "algorithm": "masac",
+          "eval_seed": 2000000044,
+          "output_dir": "/kaggle/working/train/masac",
+          "deterministic": true,
+          "eval_episodes": 30,
+          "replay_device": "cuda",
+          "shared_memory": true,
+          "torch_threads": 1,
+          "compile_models": false,
+          "fused_optimizers": false,
+          "collector_overlap": true,
+          "max_train_seconds": 36000,
+          "vectorize_critics": true,
+          "log_interval_steps": 4096,
+          "checkpoint_interval": 128,
+          "coalesce_idle_polls": true,
+          "environment_backend": "warp_packet",
+          "replay_cpu_fraction": 0,
+          "warm_start_checkpoint": "none"
+        },
+        "pql": {
+          "mode": "async",
+          "enabled": false,
+          "policy_device": "auto",
+          "learner_device": "auto",
+          "collector_device": "auto",
+          "worker_timeout_s": 600,
+          "checkpoint_replay": true,
+          "critic_sample_ratio": 8,
+          "max_pending_collections": 2,
+          "warmup_collection_steps": 32,
+          "max_pending_policy_updates": 2
+        },
+        "network": {
+          "enabled": true,
+          "nlos_model": "urban",
+          "gcs_range_m": 500,
+          "max_retries": 5,
+          "bandwidth_hz": 22000000,
+          "bit_rate_bps": 2000000,
+          "buffer_bytes": 3072,
+          "peer_range_m": 500,
+          "report_bytes": 1024,
+          "report_ttl_s": 300,
+          "pa_efficiency": 0.35,
+          "payload_bytes": 1024,
+          "queue_poll_us": 1000,
+          "upstream_path": "third_party/UavNetSim",
+          "tx_power_max_w": 0.4,
+          "tx_power_min_w": 0.001,
+          "noise_figure_db": 7,
+          "tx_power_mapping": "log",
+          "cca_threshold_dbm": -82,
+          "max_queue_packets": 64,
+          "packet_lifetime_s": 10,
+          "sinr_threshold_db": 6,
+          "rx_circuit_power_w": 0.1,
+          "tx_circuit_power_w": 0.1,
+          "ack_uses_data_power": true,
+          "carrier_frequency_hz": 2400000000,
+          "noise_density_dbm_hz": -174,
+          "rediscovery_recovery": true,
+          "link_state_observation": true,
+          "obstacle_extra_loss_db": 0,
+          "obstacle_polygon_sides": 16,
+          "power_limited_admission": true,
+          "receiver_admission_mask": true,
+          "propagation_delay_enabled": true
+        },
+        "initial_global_step": null,
+        "execution_summary": {
+          "train/replay_size": 131072,
+          "train/updates": 0
+        },
+        "execution_config": {
+          "cuda_visible_devices": "0,1"
+        },
+        "controller_ref": "fowieofweoi/uav-flow-a55f34c7eeeae6-0000",
+        "controller_state": "running",
+        "controller": {
+          "run_id": "09739af6",
+          "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/09739af6",
+          "state": "running",
+          "phase": "training",
+          "heartbeat_utc": "2026-10-26T09:35:09.197555+00:00",
+          "current_gpu_ref": "fowieofweoi/uavnet-train-20261026-093208-d80760",
+          "root_kernel_ref": "fowieofweoi/uavnet-train-20261026-093208-d80760",
+          "commit": "f39f45682b0b8a387cf8d95906c6730bf4337742"
+        },
+        "launch_ready": true
+      },
+      {
+        "case": "matd3-pql",
+        "account": "account_21",
+        "kernel_ref": "bhbjbnmku/uavnet-train-20261026-093209-a779b5",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "kernel_state": "running",
+        "run_id": "cfad2583",
+        "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/cfad2583",
+        "cpu_eval": {
+          "episodes": 30,
+          "seed": 2000000044,
+          "frame_stride": 5,
+          "fps": 10
+        },
+        "warm_start_artifacts": {},
+        "wandb_state": "running",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-fullgpu-20261026",
+        "global_step": 745472,
+        "episodes": null,
+        "observation_version": 3,
+        "generation_version": 2,
+        "hardware": {
+          "torch": "2.11.0+cu128",
+          "python": "3.13.15",
+          "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+          "cuda_devices": [
+            {
+              "name": "Tesla T4",
+              "index": 0,
+              "memory_gib": 14.56219482421875,
+              "compute_capability": [
+                7,
+                5
+              ]
+            },
+            {
+              "name": "Tesla T4",
+              "index": 1,
+              "memory_gib": 14.56219482421875,
+              "compute_capability": [
+                7,
+                5
+              ]
+            }
+          ],
+          "logical_cpus": 4,
+          "available_cpus": 4,
+          "cuda_available": true,
+          "torch_cuda_build": "12.8"
+        },
+        "source_git_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "seed": 44,
+          "device": "cuda",
+          "amp_mode": "off",
+          "episodes": 20000,
+          "num_envs": 4096,
+          "algorithm": "matd3",
+          "eval_seed": 2000000044,
+          "output_dir": "/kaggle/working/train/matd3",
+          "deterministic": true,
+          "eval_episodes": 30,
+          "replay_device": "cuda",
+          "shared_memory": true,
+          "torch_threads": 1,
+          "compile_models": false,
+          "fused_optimizers": false,
+          "collector_overlap": true,
+          "max_train_seconds": 36000,
+          "vectorize_critics": true,
+          "log_interval_steps": 4096,
+          "checkpoint_interval": 128,
+          "coalesce_idle_polls": true,
+          "environment_backend": "warp_packet",
+          "replay_cpu_fraction": 0,
+          "warm_start_checkpoint": "none"
+        },
+        "pql": {
+          "mode": "async",
+          "enabled": true,
+          "policy_device": "auto",
+          "learner_device": "auto",
+          "collector_device": "auto",
+          "worker_timeout_s": 600,
+          "checkpoint_replay": true,
+          "critic_sample_ratio": 8,
+          "max_pending_collections": 2,
+          "warmup_collection_steps": 32,
+          "max_pending_policy_updates": 2
+        },
+        "network": {
+          "enabled": true,
+          "nlos_model": "urban",
+          "gcs_range_m": 500,
+          "max_retries": 5,
+          "bandwidth_hz": 22000000,
+          "bit_rate_bps": 2000000,
+          "buffer_bytes": 3072,
+          "peer_range_m": 500,
+          "report_bytes": 1024,
+          "report_ttl_s": 300,
+          "pa_efficiency": 0.35,
+          "payload_bytes": 1024,
+          "queue_poll_us": 1000,
+          "upstream_path": "third_party/UavNetSim",
+          "tx_power_max_w": 0.4,
+          "tx_power_min_w": 0.001,
+          "noise_figure_db": 7,
+          "tx_power_mapping": "log",
+          "cca_threshold_dbm": -82,
+          "max_queue_packets": 64,
+          "packet_lifetime_s": 10,
+          "sinr_threshold_db": 6,
+          "rx_circuit_power_w": 0.1,
+          "tx_circuit_power_w": 0.1,
+          "ack_uses_data_power": true,
+          "carrier_frequency_hz": 2400000000,
+          "noise_density_dbm_hz": -174,
+          "rediscovery_recovery": true,
+          "link_state_observation": true,
+          "obstacle_extra_loss_db": 0,
+          "obstacle_polygon_sides": 16,
+          "power_limited_admission": true,
+          "receiver_admission_mask": true,
+          "propagation_delay_enabled": true
+        },
+        "initial_global_step": null,
+        "execution_summary": {
+          "learner/actor_loss": -42.12528991699219,
+          "learner/actor_update_step": 1200,
+          "learner/critic_loss": 434.0418701171875,
+          "learner/policy_updated": 1,
+          "pql/actor_updates": 600,
+          "pql/actor_updates_per_s": 2.3426872123097473,
+          "pql/critic_updates": 1200,
+          "pql/critic_updates_per_s": 4.685374424619495,
+          "pql/queued_policy_updates": 0,
+          "replay/bytes": 13105000000,
+          "replay/evicted_unsampled_rows": 0,
+          "replay/eviction_measured_rows": 0,
+          "replay/inserted_rows": 741376,
+          "replay/measurement_unknown_rows": 0,
+          "replay/overwritten_rows": 0,
+          "replay/policy_age_available": 0,
+          "replay/sample_age_max_collections": 180,
+          "replay/sample_age_mean_collections": 52.74231943766276,
+          "replay/sample_age_measured_uses": 9830400,
+          "replay/sample_uses": 9830400,
+          "replay/size": 741376,
+          "train/replay_size": 741376,
+          "train/updates": 1200
+        },
+        "execution_config": {
+          "cuda_visible_devices": "0,1"
+        },
+        "controller_ref": "bhbjbnmku/uav-flow-30aecece46735a-0000",
+        "controller_state": "running",
+        "controller": {
+          "run_id": "ba572cdf",
+          "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/ba572cdf",
+          "state": "running",
+          "phase": "training",
+          "heartbeat_utc": "2026-10-26T09:35:02.233874+00:00",
+          "current_gpu_ref": "bhbjbnmku/uavnet-train-20261026-093209-a779b5",
+          "root_kernel_ref": "bhbjbnmku/uavnet-train-20261026-093209-a779b5",
+          "commit": "f39f45682b0b8a387cf8d95906c6730bf4337742"
+        }
+      },
+      {
+        "case": "matd3-base",
+        "account": "account_20",
+        "kernel_ref": "kjhjvnvjgyu/uavnet-train-20261026-093210-d2dbd8",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "kernel_state": "running",
+        "run_id": "8c599ca4",
+        "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/8c599ca4",
+        "cpu_eval": {
+          "episodes": 30,
+          "seed": 2000000044,
+          "frame_stride": 5,
+          "fps": 10
+        },
+        "warm_start_artifacts": {},
+        "wandb_state": "running",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-fullgpu-20261026",
+        "global_step": 835584,
+        "episodes": null,
+        "observation_version": 3,
+        "generation_version": 2,
+        "hardware": {
+          "torch": "2.11.0+cu128",
+          "python": "3.13.15",
+          "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+          "cuda_devices": [
+            {
+              "name": "Tesla T4",
+              "index": 0,
+              "memory_gib": 14.56219482421875,
+              "compute_capability": [
+                7,
+                5
+              ]
+            },
+            {
+              "name": "Tesla T4",
+              "index": 1,
+              "memory_gib": 14.56219482421875,
+              "compute_capability": [
+                7,
+                5
+              ]
+            }
+          ],
+          "logical_cpus": 4,
+          "available_cpus": 4,
+          "cuda_available": true,
+          "torch_cuda_build": "12.8"
+        },
+        "source_git_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "seed": 44,
+          "device": "cuda",
+          "amp_mode": "off",
+          "episodes": 20000,
+          "num_envs": 4096,
+          "algorithm": "matd3",
+          "eval_seed": 2000000044,
+          "output_dir": "/kaggle/working/train/matd3",
+          "deterministic": true,
+          "eval_episodes": 30,
+          "replay_device": "cuda",
+          "shared_memory": true,
+          "torch_threads": 1,
+          "compile_models": false,
+          "fused_optimizers": false,
+          "collector_overlap": true,
+          "max_train_seconds": 36000,
+          "vectorize_critics": true,
+          "log_interval_steps": 4096,
+          "checkpoint_interval": 128,
+          "coalesce_idle_polls": true,
+          "environment_backend": "warp_packet",
+          "replay_cpu_fraction": 0,
+          "warm_start_checkpoint": "none"
+        },
+        "pql": {
+          "mode": "async",
+          "enabled": false,
+          "policy_device": "auto",
+          "learner_device": "auto",
+          "collector_device": "auto",
+          "worker_timeout_s": 600,
+          "checkpoint_replay": true,
+          "critic_sample_ratio": 8,
+          "max_pending_collections": 2,
+          "warmup_collection_steps": 32,
+          "max_pending_policy_updates": 2
+        },
+        "network": {
+          "enabled": true,
+          "nlos_model": "urban",
+          "gcs_range_m": 500,
+          "max_retries": 5,
+          "bandwidth_hz": 22000000,
+          "bit_rate_bps": 2000000,
+          "buffer_bytes": 3072,
+          "peer_range_m": 500,
+          "report_bytes": 1024,
+          "report_ttl_s": 300,
+          "pa_efficiency": 0.35,
+          "payload_bytes": 1024,
+          "queue_poll_us": 1000,
+          "upstream_path": "third_party/UavNetSim",
+          "tx_power_max_w": 0.4,
+          "tx_power_min_w": 0.001,
+          "noise_figure_db": 7,
+          "tx_power_mapping": "log",
+          "cca_threshold_dbm": -82,
+          "max_queue_packets": 64,
+          "packet_lifetime_s": 10,
+          "sinr_threshold_db": 6,
+          "rx_circuit_power_w": 0.1,
+          "tx_circuit_power_w": 0.1,
+          "ack_uses_data_power": true,
+          "carrier_frequency_hz": 2400000000,
+          "noise_density_dbm_hz": -174,
+          "rediscovery_recovery": true,
+          "link_state_observation": true,
+          "obstacle_extra_loss_db": 0,
+          "obstacle_polygon_sides": 16,
+          "power_limited_admission": true,
+          "receiver_admission_mask": true,
+          "propagation_delay_enabled": true
+        },
+        "initial_global_step": null,
+        "execution_summary": {
+          "learner/actor_loss": -43.94596481323242,
+          "learner/actor_update_step": 1376,
+          "learner/critic_loss": 483.6901245117187,
+          "learner/policy_updated": 1,
+          "replay/bytes": 13105000000,
+          "replay/evicted_unsampled_rows": 0,
+          "replay/eviction_measured_rows": 0,
+          "replay/inserted_rows": 831488,
+          "replay/measurement_unknown_rows": 0,
+          "replay/overwritten_rows": 0,
+          "replay/policy_age_available": 0,
+          "replay/sample_age_max_collections": 202,
+          "replay/sample_age_mean_collections": 58.24430456826853,
+          "replay/sample_age_measured_uses": 11272192,
+          "replay/sample_uses": 11272192,
+          "replay/size": 831488,
+          "train/replay_size": 835584,
+          "train/updates": 1376
+        },
+        "execution_config": {
+          "cuda_visible_devices": "0,1"
+        },
+        "controller_ref": "kjhjvnvjgyu/uav-flow-56bbb97875589b-0000",
+        "controller_state": "running",
+        "controller": {
+          "run_id": "673843cb",
+          "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/673843cb",
+          "state": "running",
+          "phase": "training",
+          "heartbeat_utc": "2026-10-26T09:35:14.552968+00:00",
+          "current_gpu_ref": "kjhjvnvjgyu/uavnet-train-20261026-093210-d2dbd8",
+          "root_kernel_ref": "kjhjvnvjgyu/uavnet-train-20261026-093210-d2dbd8",
+          "commit": "f39f45682b0b8a387cf8d95906c6730bf4337742"
+        }
+      },
+      {
+        "case": "masac-pql",
+        "account": "account_19",
+        "kernel_ref": "kjkjhhfghjjkn/uavnet-train-20261026-093213-22e669",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "kernel_state": "error",
+        "run_id": "003e327e",
+        "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/003e327e",
+        "cpu_eval": {
+          "episodes": 30,
+          "seed": 2000000044,
+          "frame_stride": 5,
+          "fps": 10
+        },
+        "warm_start_artifacts": {},
+        "wandb_pending_error_type": "CommError",
+        "controller_ref": "kjkjhhfghjjkn/uav-flow-4f74eeda2c7bd0-0000",
+        "controller_state": "running",
+        "controller": {
+          "run_id": "2206e5d5",
+          "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/2206e5d5",
+          "state": "running",
+          "phase": "training",
+          "heartbeat_utc": "2026-10-26T09:35:40.310118+00:00",
+          "current_gpu_ref": "kjkjhhfghjjkn/uavnet-train-20261026-093213-22e669",
+          "root_kernel_ref": "kjkjhhfghjjkn/uavnet-train-20261026-093213-22e669",
+          "commit": "f39f45682b0b8a387cf8d95906c6730bf4337742"
+        }
+      }
+    ]
+  },
+  "masac_base_failure": {
+    "timestamp_utc": "2026-10-26T09:37:03.749099+00:00",
+    "error_type": "OutOfMemoryError",
+    "traceback": "Traceback (most recent call last):\n  File \"/tmp/uav_network/uav_network/experiments/training.py\", line 213, in _train\n    learn()  # Use previously stored transitions while CPU workers advance.\n    ~~~~~^^\n  File \"/tmp/uav_network/uav_network/experiments/training.py\", line 159, in learn\n    metrics = learner.update(batch,\n                             collect_metrics=checked and update == settings.updates_per_step - 1)\n  File \"/tmp/uav_network/uav_network/algorithms/masac.py\", line 213, in update\n    critic = self.update_critic(batch, collect_metrics)\n  File \"/tmp/uav_network/uav_network/algorithms/precision.py\", line 188, in update\n    result = method(self, *args, **kwargs)\n  File \"/tmp/uav_network/uav_network/algorithms/masac.py\", line 130, in update_critic\n    qs = (self._expected_q_all(self.target_critics, data[\"next_state\"], joint, continuous)\n          ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/uav_network/uav_network/algorithms/masac.py\", line 115, in _expected_q_all\n    q1, q2 = self._critic_values(critics, repeated_state, alternatives.reshape(n, b * k, n, -1), True, True)\n             ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/uav_network/uav_network/algorithms/masac.py\", line 119, in _critic_values\n    return getattr(self, \"_compiled_critic_values\", critic_values)(*args)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^\n  File \"/tmp/uav_network/uav_network/algorithms/parallel_critics.py\", line 20, in critic_values\n    values = torch.vmap(evaluate, in_dims=(0, 0 if per_critic else None))(parameters, actions)\n  File \"/usr/local/lib/python3.13/dist-packages/torch/_functorch/apis.py\", line 220, in wrapped\n    return vmap_impl(\n        # pyrefly: ignore[bad-argument-type]\n    ...<6 lines>...\n        **kwargs,\n    )\n  File \"/usr/local/lib/python3.13/dist-packages/torch/_functorch/vmap.py\", line 316, in vmap_impl\n    return _flat_vmap(\n        func,\n    ...<6 lines>...\n        **kwargs,\n    )\n  File \"/usr/local/lib/python3.13/dist-packages/torch/_functorch/vmap.py\", line 507, in _flat_vmap\n    batched_outputs = func(*batched_inputs, **kwargs)\n  File \"/tmp/uav_network/uav_network/algorithms/parallel_critics.py\", line 18, in evaluate\n    return functional_call(critics[0], params, (state, local_actions), strict=True)\n  File \"/usr/local/lib/python3.13/dist-packages/torch/_functorch/functional_call.py\", line 154, in functional_call\n    return nn.utils.stateless._functional_call(\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n        module,\n        ^^^^^^^\n    ...<4 lines>...\n        strict=strict,\n        ^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/utils/stateless.py\", line 279, in _functional_call\n    return module(*args, **kwargs)\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/modules/module.py\", line 1779, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/modules/module.py\", line 1790, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/tmp/uav_network/uav_network/algorithms/models.py\", line 63, in forward\n    return self.q1(inputs).squeeze(-1), self.q2(inputs).squeeze(-1)\n           ~~~~~~~^^^^^^^^\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/modules/module.py\", line 1779, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/modules/module.py\", line 1790, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/modules/container.py\", line 253, in forward\n    input = module(input)\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/modules/module.py\", line 1779, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/modules/module.py\", line 1790, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/usr/local/lib/python3.13/dist-packages/torch/nn/modules/linear.py\", line 134, in forward\n    return F.linear(input, self.weight, self.bias)\n           ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntorch.OutOfMemoryError: CUDA out of memory. Tried to allocate 336.00 MiB. GPU 1 has a total capacity of 14.56 GiB of which 244.81 MiB is free. Including non-PyTorch memory, this process has 14.32 GiB memory in use. Of the allocated memory 14.15 GiB is allocated by PyTorch, and 17.49 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)\n"
+  },
+  "masac_pql_preflight_failure": {
+    "status": "oom",
+    "source_git_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+    "algorithm": "masac",
+    "num_envs": 4096,
+    "batch_size": 8192,
+    "replay_capacity": 1000000,
+    "critic_sample_ratio": 8,
+    "hardware": {
+      "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+      "python": "3.13.15",
+      "logical_cpus": 4,
+      "available_cpus": 4,
+      "torch": "2.11.0+cu128",
+      "torch_cuda_build": "12.8",
+      "cuda_available": true,
+      "cuda_devices": [
+        {
+          "index": 0,
+          "name": "Tesla T4",
+          "memory_gib": 14.56219482421875,
+          "compute_capability": [
+            7,
+            5
+          ]
+        },
+        {
+          "index": 1,
+          "name": "Tesla T4",
+          "memory_gib": 14.56219482421875,
+          "compute_capability": [
+            7,
+            5
+          ]
+        }
+      ]
+    },
+    "steps": 40,
+    "error_type": "OutOfMemoryError",
+    "error": "CUDA out of memory. Tried to allocate 336.00 MiB. GPU 1 has a total capacity of 14.56 GiB of which 176.81 MiB is free. Including non-PyTorch memory, this process has 14.39 GiB memory in use. Of the allocated memory 14.18 GiB is allocated by PyTorch, and 38.53 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)",
+    "peak_memory": [
+      {
+        "device": 0,
+        "name": "Tesla T4",
+        "total_bytes": 15636037632,
+        "peak_allocated_bytes": 168076288,
+        "peak_reserved_bytes": 222298112
+      },
+      {
+        "device": 1,
+        "name": "Tesla T4",
+        "total_bytes": 15636037632,
+        "peak_allocated_bytes": 15226863616,
+        "peak_reserved_bytes": 15437135872
+      }
+    ],
+    "wandb_run_id": "8b988c64",
+    "wandb_url": "https://forge.coreweave.com/wandb/truongdaoanhduy-uit/uav_search_target/runs/8b988c64"
+  },
+  "preflight": {
+    "utc": "2026-10-26T09:30:24.503666+00:00",
+    "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-fullgpu-20261026",
+    "existing": [],
+    "accounts": [
+      {
+        "account": "account_18",
+        "owner": "fowieofweoi",
+        "quota": {
+          "name": "account_18",
+          "ok": true,
+          "used_hours": 0.0,
+          "remaining_hours": 30.0,
+          "total_hours": 30.0
+        },
+        "recent_kernel_states": [],
+        "utc": "2026-10-26T09:30:16.425993+00:00"
+      },
+      {
+        "account": "account_19",
+        "owner": "kjkjhhfghjjkn",
+        "quota": {
+          "name": "account_19",
+          "ok": true,
+          "used_hours": 0.0,
+          "remaining_hours": 30.0,
+          "total_hours": 30.0
+        },
+        "recent_kernel_states": [],
+        "utc": "2026-10-26T09:30:18.743243+00:00"
+      },
+      {
+        "account": "account_20",
+        "owner": "kjhjvnvjgyu",
+        "quota": {
+          "name": "account_20",
+          "ok": true,
+          "used_hours": 0.0,
+          "remaining_hours": 30.0,
+          "total_hours": 30.0
+        },
+        "recent_kernel_states": [],
+        "utc": "2026-10-26T09:30:21.027308+00:00"
+      },
+      {
+        "account": "account_21",
+        "owner": "bhbjbnmku",
+        "quota": {
+          "name": "account_21",
+          "ok": true,
+          "used_hours": 0.0,
+          "remaining_hours": 30.0,
+          "total_hours": 30.0
+        },
+        "recent_kernel_states": [],
+        "utc": "2026-10-26T09:30:23.324877+00:00"
+      }
+    ]
+  },
+  "layout_diff": [
+    {
+      "field": "runtime.replay_device",
+      "before": "cpu",
+      "after": "cuda"
+    },
+    {
+      "field": "runtime.replay_cpu_fraction",
+      "before": 0.75,
+      "after": 0.0
+    }
+  ],
+  "launch_readiness_receipts": {
+    "masac-base-result": {
+      "kernel_ref": "fowieofweoi/uavnet-train-20261026-093208-d80760",
+      "unattended_ready": true,
+      "controller_health": {
+        "ready": true,
+        "remote_status": "running",
+        "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/09739af6",
+        "run_id": "09739af6",
+        "heartbeat_utc": "2026-10-26T09:35:09.197555+00:00",
+        "phase": "training"
+      }
+    }
+  },
+  "preserved_hybrid_observation": {
+    "utc": "2026-10-26T09:34:33.290689+00:00",
+    "runs": [
+      {
+        "case": "masac-base",
+        "account": "account_14",
+        "kernel_ref": "weofjwelf/uavnet-train-20261026-084830-d5be04",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "kernel_state": "running",
+        "run_id": "d17a279d",
+        "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/d17a279d",
+        "cpu_eval": {
+          "episodes": 30,
+          "seed": 2000000044,
+          "frame_stride": 5,
+          "fps": 10
+        },
+        "warm_start_artifacts": {},
+        "wandb_state": "running",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-cpu75-20261026",
+        "global_step": 2023424,
+        "episodes": null,
+        "observation_version": 3,
+        "generation_version": 2,
+        "hardware": {
+          "torch": "2.11.0+cu128",
+          "python": "3.13.15",
+          "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+          "cuda_devices": [
+            {
+              "name": "Tesla T4",
+              "index": 0,
+              "memory_gib": 14.56219482421875,
+              "compute_capability": [
+                7,
+                5
+              ]
+            },
+            {
+              "name": "Tesla T4",
+              "index": 1,
+              "memory_gib": 14.56219482421875,
+              "compute_capability": [
+                7,
+                5
+              ]
+            }
+          ],
+          "logical_cpus": 4,
+          "available_cpus": 4,
+          "cuda_available": true,
+          "torch_cuda_build": "12.8"
+        },
+        "source_git_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "seed": 44,
+          "device": "cuda",
+          "amp_mode": "off",
+          "episodes": 20000,
+          "num_envs": 4096,
+          "algorithm": "masac",
+          "eval_seed": 2000000044,
+          "output_dir": "/kaggle/working/train/masac",
+          "deterministic": true,
+          "eval_episodes": 30,
+          "replay_device": "cpu",
+          "shared_memory": true,
+          "torch_threads": 1,
+          "compile_models": false,
+          "fused_optimizers": false,
+          "collector_overlap": true,
+          "max_train_seconds": 36000,
+          "vectorize_critics": true,
+          "log_interval_steps": 4096,
+          "checkpoint_interval": 128,
+          "coalesce_idle_polls": true,
+          "environment_backend": "warp_packet",
+          "replay_cpu_fraction": 0.75,
+          "warm_start_checkpoint": "none"
+        },
+        "pql": {
+          "mode": "async",
+          "enabled": false,
+          "policy_device": "auto",
+          "learner_device": "auto",
+          "collector_device": "auto",
+          "worker_timeout_s": 600,
+          "checkpoint_replay": true,
+          "critic_sample_ratio": 8,
+          "max_pending_collections": 2,
+          "warmup_collection_steps": 32,
+          "max_pending_policy_updates": 2
+        },
+        "network": {
+          "enabled": true,
+          "nlos_model": "urban",
+          "gcs_range_m": 500,
+          "max_retries": 5,
+          "bandwidth_hz": 22000000,
+          "bit_rate_bps": 2000000,
+          "buffer_bytes": 3072,
+          "peer_range_m": 500,
+          "report_bytes": 1024,
+          "report_ttl_s": 300,
+          "pa_efficiency": 0.35,
+          "payload_bytes": 1024,
+          "queue_poll_us": 1000,
+          "upstream_path": "third_party/UavNetSim",
+          "tx_power_max_w": 0.4,
+          "tx_power_min_w": 0.001,
+          "noise_figure_db": 7,
+          "tx_power_mapping": "log",
+          "cca_threshold_dbm": -82,
+          "max_queue_packets": 64,
+          "packet_lifetime_s": 10,
+          "sinr_threshold_db": 6,
+          "rx_circuit_power_w": 0.1,
+          "tx_circuit_power_w": 0.1,
+          "ack_uses_data_power": true,
+          "carrier_frequency_hz": 2400000000,
+          "noise_density_dbm_hz": -174,
+          "rediscovery_recovery": true,
+          "link_state_observation": true,
+          "obstacle_extra_loss_db": 0,
+          "obstacle_polygon_sides": 16,
+          "power_limited_admission": true,
+          "receiver_admission_mask": true,
+          "propagation_delay_enabled": true
+        },
+        "initial_global_step": null,
+        "controller_ref": "weofjwelf/uav-flow-9c9a3e88b290e0-0000",
+        "controller_state": "running",
+        "controller": {
+          "run_id": "e9b9df73",
+          "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/e9b9df73",
+          "state": "running",
+          "phase": "training",
+          "heartbeat_utc": "2026-10-26T09:21:32.074189+00:00",
+          "current_gpu_ref": "weofjwelf/uavnet-train-20261026-084830-d5be04",
+          "root_kernel_ref": "weofjwelf/uavnet-train-20261026-084830-d5be04",
+          "commit": "f39f45682b0b8a387cf8d95906c6730bf4337742"
+        },
+        "launch_ready": false
+      },
+      {
+        "case": "matd3-base",
+        "account": "account_16",
+        "kernel_ref": "mjhres/uavnet-train-20261026-084904-c37220",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "kernel_state": "running",
+        "run_id": "da65a1ba",
+        "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/da65a1ba",
+        "cpu_eval": {
+          "episodes": 30,
+          "seed": 2000000044,
+          "frame_stride": 5,
+          "fps": 10
+        },
+        "warm_start_artifacts": {},
+        "wandb_state": "running",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-cpu75-20261026",
+        "global_step": 7626752,
+        "episodes": null,
+        "observation_version": 3,
+        "generation_version": 2,
+        "hardware": {
+          "torch": "2.11.0+cu128",
+          "python": "3.13.15",
+          "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+          "cuda_devices": [
+            {
+              "name": "Tesla T4",
+              "index": 0,
+              "memory_gib": 14.56219482421875,
+              "compute_capability": [
+                7,
+                5
+              ]
+            },
+            {
+              "name": "Tesla T4",
+              "index": 1,
+              "memory_gib": 14.56219482421875,
+              "compute_capability": [
+                7,
+                5
+              ]
+            }
+          ],
+          "logical_cpus": 4,
+          "available_cpus": 4,
+          "cuda_available": true,
+          "torch_cuda_build": "12.8"
+        },
+        "source_git_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "seed": 44,
+          "device": "cuda",
+          "amp_mode": "off",
+          "episodes": 20000,
+          "num_envs": 4096,
+          "algorithm": "matd3",
+          "eval_seed": 2000000044,
+          "output_dir": "/kaggle/working/train/matd3",
+          "deterministic": true,
+          "eval_episodes": 30,
+          "replay_device": "cpu",
+          "shared_memory": true,
+          "torch_threads": 1,
+          "compile_models": false,
+          "fused_optimizers": false,
+          "collector_overlap": true,
+          "max_train_seconds": 36000,
+          "vectorize_critics": true,
+          "log_interval_steps": 4096,
+          "checkpoint_interval": 128,
+          "coalesce_idle_polls": true,
+          "environment_backend": "warp_packet",
+          "replay_cpu_fraction": 0.75,
+          "warm_start_checkpoint": "none"
+        },
+        "pql": {
+          "mode": "async",
+          "enabled": false,
+          "policy_device": "auto",
+          "learner_device": "auto",
+          "collector_device": "auto",
+          "worker_timeout_s": 600,
+          "checkpoint_replay": true,
+          "critic_sample_ratio": 8,
+          "max_pending_collections": 2,
+          "warmup_collection_steps": 32,
+          "max_pending_policy_updates": 2
+        },
+        "network": {
+          "enabled": true,
+          "nlos_model": "urban",
+          "gcs_range_m": 500,
+          "max_retries": 5,
+          "bandwidth_hz": 22000000,
+          "bit_rate_bps": 2000000,
+          "buffer_bytes": 3072,
+          "peer_range_m": 500,
+          "report_bytes": 1024,
+          "report_ttl_s": 300,
+          "pa_efficiency": 0.35,
+          "payload_bytes": 1024,
+          "queue_poll_us": 1000,
+          "upstream_path": "third_party/UavNetSim",
+          "tx_power_max_w": 0.4,
+          "tx_power_min_w": 0.001,
+          "noise_figure_db": 7,
+          "tx_power_mapping": "log",
+          "cca_threshold_dbm": -82,
+          "max_queue_packets": 64,
+          "packet_lifetime_s": 10,
+          "sinr_threshold_db": 6,
+          "rx_circuit_power_w": 0.1,
+          "tx_circuit_power_w": 0.1,
+          "ack_uses_data_power": true,
+          "carrier_frequency_hz": 2400000000,
+          "noise_density_dbm_hz": -174,
+          "rediscovery_recovery": true,
+          "link_state_observation": true,
+          "obstacle_extra_loss_db": 0,
+          "obstacle_polygon_sides": 16,
+          "power_limited_admission": true,
+          "receiver_admission_mask": true,
+          "propagation_delay_enabled": true
+        },
+        "initial_global_step": null,
+        "controller_ref": "mjhres/uav-flow-23a569703ab3f9-0000",
+        "controller_state": "running",
+        "controller": {
+          "run_id": "8ac3d295",
+          "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/8ac3d295",
+          "state": "running",
+          "phase": "training",
+          "heartbeat_utc": "2026-10-26T09:21:20.816793+00:00",
+          "current_gpu_ref": "mjhres/uavnet-train-20261026-084904-c37220",
+          "root_kernel_ref": "mjhres/uavnet-train-20261026-084904-c37220",
+          "commit": "f39f45682b0b8a387cf8d95906c6730bf4337742"
+        },
+        "launch_ready": false
+      },
+      {
+        "case": "masac-pql",
+        "account": "account_15",
+        "kernel_ref": "nkjkhkhk/uavnet-train-20261026-084907-cd531f",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "kernel_state": "running",
+        "run_id": "60fc6245",
+        "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/60fc6245",
+        "cpu_eval": {
+          "episodes": 30,
+          "seed": 2000000044,
+          "frame_stride": 5,
+          "fps": 10
+        },
+        "warm_start_artifacts": {},
+        "wandb_state": "running",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-cpu75-20261026",
+        "global_step": 2519040,
+        "episodes": null,
+        "observation_version": 3,
+        "generation_version": 2,
+        "hardware": {
+          "torch": "2.11.0+cu128",
+          "python": "3.13.15",
+          "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+          "cuda_devices": [
+            {
+              "name": "Tesla T4",
+              "index": 0,
+              "memory_gib": 14.56219482421875,
+              "compute_capability": [
+                7,
+                5
+              ]
+            },
+            {
+              "name": "Tesla T4",
+              "index": 1,
+              "memory_gib": 14.56219482421875,
+              "compute_capability": [
+                7,
+                5
+              ]
+            }
+          ],
+          "logical_cpus": 4,
+          "available_cpus": 4,
+          "cuda_available": true,
+          "torch_cuda_build": "12.8"
+        },
+        "source_git_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "seed": 44,
+          "device": "cuda",
+          "amp_mode": "off",
+          "episodes": 20000,
+          "num_envs": 4096,
+          "algorithm": "masac",
+          "eval_seed": 2000000044,
+          "output_dir": "/kaggle/working/train/masac",
+          "deterministic": true,
+          "eval_episodes": 30,
+          "replay_device": "cpu",
+          "shared_memory": true,
+          "torch_threads": 1,
+          "compile_models": false,
+          "fused_optimizers": false,
+          "collector_overlap": true,
+          "max_train_seconds": 36000,
+          "vectorize_critics": true,
+          "log_interval_steps": 4096,
+          "checkpoint_interval": 128,
+          "coalesce_idle_polls": true,
+          "environment_backend": "warp_packet",
+          "replay_cpu_fraction": 0.75,
+          "warm_start_checkpoint": "none"
+        },
+        "pql": {
+          "mode": "async",
+          "enabled": true,
+          "policy_device": "auto",
+          "learner_device": "auto",
+          "collector_device": "auto",
+          "worker_timeout_s": 600,
+          "checkpoint_replay": true,
+          "critic_sample_ratio": 8,
+          "max_pending_collections": 2,
+          "warmup_collection_steps": 32,
+          "max_pending_policy_updates": 2
+        },
+        "network": {
+          "enabled": true,
+          "nlos_model": "urban",
+          "gcs_range_m": 500,
+          "max_retries": 5,
+          "bandwidth_hz": 22000000,
+          "bit_rate_bps": 2000000,
+          "buffer_bytes": 3072,
+          "peer_range_m": 500,
+          "report_bytes": 1024,
+          "report_ttl_s": 300,
+          "pa_efficiency": 0.35,
+          "payload_bytes": 1024,
+          "queue_poll_us": 1000,
+          "upstream_path": "third_party/UavNetSim",
+          "tx_power_max_w": 0.4,
+          "tx_power_min_w": 0.001,
+          "noise_figure_db": 7,
+          "tx_power_mapping": "log",
+          "cca_threshold_dbm": -82,
+          "max_queue_packets": 64,
+          "packet_lifetime_s": 10,
+          "sinr_threshold_db": 6,
+          "rx_circuit_power_w": 0.1,
+          "tx_circuit_power_w": 0.1,
+          "ack_uses_data_power": true,
+          "carrier_frequency_hz": 2400000000,
+          "noise_density_dbm_hz": -174,
+          "rediscovery_recovery": true,
+          "link_state_observation": true,
+          "obstacle_extra_loss_db": 0,
+          "obstacle_polygon_sides": 16,
+          "power_limited_admission": true,
+          "receiver_admission_mask": true,
+          "propagation_delay_enabled": true
+        },
+        "initial_global_step": null,
+        "controller_ref": "nkjkhkhk/uav-flow-96d46e4df77a3b-0000",
+        "controller_state": "running",
+        "controller": {
+          "run_id": "db402158",
+          "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/db402158",
+          "state": "running",
+          "phase": "training",
+          "heartbeat_utc": "2026-10-26T09:21:31.877887+00:00",
+          "current_gpu_ref": "nkjkhkhk/uavnet-train-20261026-084907-cd531f",
+          "root_kernel_ref": "nkjkhkhk/uavnet-train-20261026-084907-cd531f",
+          "commit": "f39f45682b0b8a387cf8d95906c6730bf4337742"
+        },
+        "launch_ready": true
+      },
+      {
+        "case": "matd3-pql",
+        "account": "account_17",
+        "kernel_ref": "njbiugyry/uavnet-train-20261026-084909-08ae22",
+        "source_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "kernel_state": "running",
+        "run_id": "6f538a33",
+        "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/6f538a33",
+        "cpu_eval": {
+          "episodes": 30,
+          "seed": 2000000044,
+          "frame_stride": 5,
+          "fps": 10
+        },
+        "warm_start_artifacts": {},
+        "wandb_state": "running",
+        "group": "uav-g2-o3-full20k-e4096-b8192-r1kb-cpu75-20261026",
+        "global_step": 7118848,
+        "episodes": null,
+        "observation_version": 3,
+        "generation_version": 2,
+        "hardware": {
+          "torch": "2.11.0+cu128",
+          "python": "3.13.15",
+          "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+          "cuda_devices": [
+            {
+              "name": "Tesla T4",
+              "index": 0,
+              "memory_gib": 14.56219482421875,
+              "compute_capability": [
+                7,
+                5
+              ]
+            },
+            {
+              "name": "Tesla T4",
+              "index": 1,
+              "memory_gib": 14.56219482421875,
+              "compute_capability": [
+                7,
+                5
+              ]
+            }
+          ],
+          "logical_cpus": 4,
+          "available_cpus": 4,
+          "cuda_available": true,
+          "torch_cuda_build": "12.8"
+        },
+        "source_git_commit": "f39f45682b0b8a387cf8d95906c6730bf4337742",
+        "runtime": {
+          "seed": 44,
+          "device": "cuda",
+          "amp_mode": "off",
+          "episodes": 20000,
+          "num_envs": 4096,
+          "algorithm": "matd3",
+          "eval_seed": 2000000044,
+          "output_dir": "/kaggle/working/train/matd3",
+          "deterministic": true,
+          "eval_episodes": 30,
+          "replay_device": "cpu",
+          "shared_memory": true,
+          "torch_threads": 1,
+          "compile_models": false,
+          "fused_optimizers": false,
+          "collector_overlap": true,
+          "max_train_seconds": 36000,
+          "vectorize_critics": true,
+          "log_interval_steps": 4096,
+          "checkpoint_interval": 128,
+          "coalesce_idle_polls": true,
+          "environment_backend": "warp_packet",
+          "replay_cpu_fraction": 0.75,
+          "warm_start_checkpoint": "none"
+        },
+        "pql": {
+          "mode": "async",
+          "enabled": true,
+          "policy_device": "auto",
+          "learner_device": "auto",
+          "collector_device": "auto",
+          "worker_timeout_s": 600,
+          "checkpoint_replay": true,
+          "critic_sample_ratio": 8,
+          "max_pending_collections": 2,
+          "warmup_collection_steps": 32,
+          "max_pending_policy_updates": 2
+        },
+        "network": {
+          "enabled": true,
+          "nlos_model": "urban",
+          "gcs_range_m": 500,
+          "max_retries": 5,
+          "bandwidth_hz": 22000000,
+          "bit_rate_bps": 2000000,
+          "buffer_bytes": 3072,
+          "peer_range_m": 500,
+          "report_bytes": 1024,
+          "report_ttl_s": 300,
+          "pa_efficiency": 0.35,
+          "payload_bytes": 1024,
+          "queue_poll_us": 1000,
+          "upstream_path": "third_party/UavNetSim",
+          "tx_power_max_w": 0.4,
+          "tx_power_min_w": 0.001,
+          "noise_figure_db": 7,
+          "tx_power_mapping": "log",
+          "cca_threshold_dbm": -82,
+          "max_queue_packets": 64,
+          "packet_lifetime_s": 10,
+          "sinr_threshold_db": 6,
+          "rx_circuit_power_w": 0.1,
+          "tx_circuit_power_w": 0.1,
+          "ack_uses_data_power": true,
+          "carrier_frequency_hz": 2400000000,
+          "noise_density_dbm_hz": -174,
+          "rediscovery_recovery": true,
+          "link_state_observation": true,
+          "obstacle_extra_loss_db": 0,
+          "obstacle_polygon_sides": 16,
+          "power_limited_admission": true,
+          "receiver_admission_mask": true,
+          "propagation_delay_enabled": true
+        },
+        "initial_global_step": null,
+        "controller_ref": "njbiugyry/uav-flow-6543108840dee2-0000",
+        "controller_state": "running",
+        "controller": {
+          "run_id": "769adc59",
+          "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/769adc59",
+          "state": "running",
+          "phase": "training",
+          "heartbeat_utc": "2026-10-26T09:21:32.964348+00:00",
+          "current_gpu_ref": "njbiugyry/uavnet-train-20261026-084909-08ae22",
+          "root_kernel_ref": "njbiugyry/uavnet-train-20261026-084909-08ae22",
+          "commit": "f39f45682b0b8a387cf8d95906c6730bf4337742"
+        },
+        "launch_ready": true
+      }
+    ]
+  }
+}
