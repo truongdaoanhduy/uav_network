@@ -1,6 +1,7 @@
 """Actual PQL policy artifacts run the saved Warp backend on CPU and compare results."""
 import importlib.util
 import json
+import pytest
 from pathlib import Path
 import shutil
 import sys
@@ -54,6 +55,11 @@ class CPUHandoffComparisonTests(unittest.TestCase):
             tracker = SimpleNamespace(run=run, identity=lambda:{}, close=lambda failed=False:None)
             with patch.dict(sys.modules, {"wandb": SimpleNamespace(Api=lambda: api)}), \
                  patch("uav_network.experiments.tracking.start_tracking", return_value=tracker), \
+                 patch("uav_network.cloud.visualize.publish_visualization_media",
+                       return_value={"wandb": {"status": "ok"},
+                                     "huggingface": {"status": "ok"}}), \
+                 patch("uav_network.experiments.checkpoint_store.storage_credentials", side_effect=lambda *a, **k:
+                     pytest.fail("Render-only test attempted live HF publication")), \
                  patch("torch.cuda.is_available", return_value=False):
                 results = run_visualization(spec, root / "cpu")
             for algorithm, result in results.items():

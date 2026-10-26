@@ -1,6 +1,7 @@
 """Outbound CPU job allocation and preservation of uploaded GPU results."""
 import importlib
 import json
+import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -94,6 +95,11 @@ class CPUHandoffTests(unittest.TestCase):
             tracker = SimpleNamespace(run=run, identity=lambda:{}, close=lambda failed=False:None)
             with patch.dict("sys.modules", {"wandb": SimpleNamespace(Api=lambda: api)}), \
                  patch("uav_network.experiments.tracking.start_tracking", return_value=tracker), \
+                 patch("uav_network.cloud.visualize.publish_visualization_media",
+                       return_value={"wandb": {"status": "ok"},
+                                     "huggingface": {"status": "ok"}}), \
+                 patch("uav_network.experiments.checkpoint_store.storage_credentials", side_effect=lambda *a, **k:
+                     pytest.fail("Render-only test attempted live HF publication")), \
                  patch.object(torch.cuda, "is_available", return_value=False):
                 with self.assertRaisesRegex(RuntimeError, "matd3"):
                     module.run_visualization(spec, output / "cpu")

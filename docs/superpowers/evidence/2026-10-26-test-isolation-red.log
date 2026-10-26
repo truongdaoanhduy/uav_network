@@ -1,0 +1,182 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ CPUHandoffTests.test_cpu_runner_preserves_render_when_another_uploaded_artifact_is_unavailable _
+
+self = <test_cpu_handoff.CPUHandoffTests testMethod=test_cpu_runner_preserves_render_when_another_uploaded_artifact_is_unavailable>
+
+    def test_cpu_runner_preserves_render_when_another_uploaded_artifact_is_unavailable(self):
+        import shutil
+        import torch
+        from uav_network.configuration import Config
+        from uav_network.experiments.training import train
+        module = self.module()
+        with TemporaryDirectory() as directory:
+            output = Path(directory)
+            c = Config()
+            c.world.num_targets, c.world.num_obstacles, c.world.max_steps = 2, 1, 3
+            c.runtime.device = c.runtime.replay_device = "cpu"
+            c.runtime.episodes = 1
+            c.runtime.output_dir = str(output / "policy")
+            c.masac.hidden_sizes = [32, 32]
+            trained = train(c)
+            def artifact(ref, **kwargs):
+                if "missing" in ref:
+                    raise RuntimeError("Artifact unavailable")
+                def download(root):
+                    path = Path(root) / "checkpoint.pt"
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(trained["checkpoint"], path)
+                    return str(path)
+                return SimpleNamespace(get_entry=lambda name: SimpleNamespace(download=download))
+            api = SimpleNamespace(artifact=artifact)
+            spec = {"entity": "owner", "project": "project", "kernel_ref": "owner/cpu",
+                    "artifacts": {"matd3": "owner/project/missing:v1", "masac": "owner/project/model:v1"},
+                    "runs": {a: {"id": a + "1", "name": a.upper() + "-CPU"} for a in ("matd3", "masac")},
+                    "cpu_eval": {"episodes": 1, "seed": 10044, "frame_stride": 5, "fps": 10},
+                    "training_status": {"matd3": {}, "masac": {}}}
+            run = SimpleNamespace(summary={}, log=lambda *a,**k:None, save=lambda *a,**k:None,
+                                  use_artifact=lambda *a,**k:None)
+            tracker = SimpleNamespace(run=run, identity=lambda:{}, close=lambda failed=False:None)
+            with patch.dict("sys.modules", {"wandb": SimpleNamespace(Api=lambda: api)}), \
+                 patch("uav_network.experiments.tracking.start_tracking", return_value=tracker), \
+                 patch("uav_network.experiments.checkpoint_store.storage_credentials", side_effect=lambda *a, **k:
+                     pytest.fail("Render-only test attempted live HF publication")), \
+                 patch.object(torch.cuda, "is_available", return_value=False):
+                with self.assertRaisesRegex(RuntimeError, "matd3"):
+>                   module.run_visualization(spec, output / "cpu")
+
+tests/test_cpu_handoff.py:102:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+uav_network/cloud/visualize.py:331: in run_visualization
+    publication = publish_visualization_media(config, spec, algorithm, identity["id"],
+uav_network/cloud/visualize.py:99: in publish_visualization_media
+    published = publish_visualization_assets(config, spec, algorithm, run_id, result)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+uav_network/cloud/visualize.py:43: in publish_visualization_assets
+    token, repo = storage_credentials(config)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../miniconda3/lib/python3.13/unittest/mock.py:1167: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../miniconda3/lib/python3.13/unittest/mock.py:1171: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../miniconda3/lib/python3.13/unittest/mock.py:1232: in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_cpu_handoff.py:99: in <lambda>
+    pytest.fail("Render-only test attempted live HF publication")), \
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def __call__(self, reason: str = "", pytrace: bool = True) -> NoReturn:
+        __tracebackhide__ = True
+>       raise Failed(msg=reason, pytrace=pytrace)
+E       Failed: Render-only test attempted live HF publication
+
+../../../miniconda3/lib/python3.13/site-packages/_pytest/outcomes.py:162: Failed
+----------------------------- Captured stdout call -----------------------------
+{"algorithm": "masac", "episode": 1, "global_step": 3, "return": -0.056, "search_rate_percent": 0.0, "delivery_rate_percent": 0.0, "updates": 0, "termination_reason": "time_limit", "minimum_battery_fraction": 0.9984232332617311, "active_uavs": 6, "expired_reports": 0, "dropped_reports": 0, "regenerated_reports": 0, "motion": {"obstacle_blocks": 0, "peer_blocks": 0, "commanded_stalls": 0, "shield_interventions": 0, "shield_obstacle_interventions": 0, "shield_peer_interventions": 0, "shield_boundary_interventions": 0, "shield_infeasible": 0, "shield_correction": 0.0}, "routing": {"selected": 0, "accepted": 0, "receiver_rejected": 0, "out_of_range_or_inactive": 0, "no_buffer": 0}}
+_ CPUHandoffComparisonTests.test_real_pql_policies_keep_backend_and_generate_cpu_paired_metrics _
+
+self = <test_cpu_handoff_comparison.CPUHandoffComparisonTests testMethod=test_real_pql_policies_keep_backend_and_generate_cpu_paired_metrics>
+
+    def test_real_pql_policies_keep_backend_and_generate_cpu_paired_metrics(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            trained = {}
+            for algorithm in ("masac", "matd3"):
+                c = Config()
+                c.world.max_steps = 8
+                c.runtime.algorithm, c.runtime.environment_backend = algorithm, "warp_packet"
+                c.runtime.num_envs = c.runtime.episodes = 4
+                c.runtime.device = c.runtime.replay_device = "cpu"
+                c.runtime.output_dir = str(root / algorithm)
+                c.pql.enabled, c.pql.mode = True, "synchronous"
+                c.pql.collector_device = c.pql.learner_device = c.pql.policy_device = "cpu"
+                c.pql.warmup_collection_steps, c.pql.critic_sample_ratio = 2, 2
+                for settings in (c.masac, c.matd3):
+                    settings.hidden_sizes, settings.batch_size, settings.replay_capacity = [16, 16], 8, 256
+                trained[algorithm] = train(c)
+
+            def artifact(ref, **kwargs):
+                algorithm = ref.split(":")[0].split("/")[-1]
+                def download(root):
+                    destination = Path(root) / "checkpoint.pt"
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(trained[algorithm]["checkpoint"], destination)
+                    return str(destination)
+                return SimpleNamespace(get_entry=lambda name: SimpleNamespace(download=download))
+
+            spec = {"entity": "owner", "project": "project", "kernel_ref": "owner/cpu",
+                    "artifacts": {a: f"owner/project/{a}:v1" for a in trained},
+                    "runs": {a: {"id": a + "1", "name": a.upper() + "-CPU"} for a in trained},
+                    "cpu_eval": {"episodes": 2, "seed": 2000000044, "frame_stride": 5, "fps": 10},
+                    "training_status": {a: {"episode_budget_complete": True} for a in trained}}
+            api = SimpleNamespace(artifact=artifact)
+            run = SimpleNamespace(summary={}, log=lambda *a,**k:None, save=lambda *a,**k:None,
+                                  use_artifact=lambda *a,**k:None)
+            tracker = SimpleNamespace(run=run, identity=lambda:{}, close=lambda failed=False:None)
+            with patch.dict(sys.modules, {"wandb": SimpleNamespace(Api=lambda: api)}), \
+                 patch("uav_network.experiments.tracking.start_tracking", return_value=tracker), \
+                 patch("uav_network.experiments.checkpoint_store.storage_credentials", side_effect=lambda *a, **k:
+                     pytest.fail("Render-only test attempted live HF publication")), \
+                 patch("torch.cuda.is_available", return_value=False):
+>               results = run_visualization(spec, root / "cpu")
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_cpu_handoff_comparison.py:61:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+uav_network/cloud/visualize.py:331: in run_visualization
+    publication = publish_visualization_media(config, spec, algorithm, identity["id"],
+uav_network/cloud/visualize.py:99: in publish_visualization_media
+    published = publish_visualization_assets(config, spec, algorithm, run_id, result)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+uav_network/cloud/visualize.py:43: in publish_visualization_assets
+    token, repo = storage_credentials(config)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../miniconda3/lib/python3.13/unittest/mock.py:1167: in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../miniconda3/lib/python3.13/unittest/mock.py:1171: in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../miniconda3/lib/python3.13/unittest/mock.py:1232: in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+a = (Config(world=WorldConfig(generation_version=2, map_size_m=1000.0, num_uavs=6, num_targets=10, num_obstacles=8, dt_s=1...ollector_device='auto', learner_device='auto', policy_device='auto', worker_timeout_s=120.0, checkpoint_replay=True)),)
+k = {}
+
+    patch("uav_network.experiments.checkpoint_store.storage_credentials", side_effect=lambda *a, **k:
+>       pytest.fail("Render-only test attempted live HF publication")), \
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    patch("torch.cuda.is_available", return_value=False):
+E   Failed: Render-only test attempted live HF publication
+
+tests/test_cpu_handoff_comparison.py:59: Failed
+----------------------------- Captured stdout call -----------------------------
+Warp 1.18.0 initialized:
+   CUDA Toolkit 13.4, CUDA driver not available (NVRTC compilation available)
+   Devices:
+     "cpu"      : "x86_64"
+   Kernel cache:
+     /home/aduy/.cache/warp/1.18.0
+Module uav_network.communication.gpu.mac b27acc4 load on device 'cpu' took 1.56 ms  (cached)
+Module uav_network.environment.gpu.world 02acebd load on device 'cpu' took 0.19 ms  (cached)
+Module uav_network.environment.gpu.geometry 2712cbb load on device 'cpu' took 0.15 ms  (cached)
+Module uav_network.communication.gpu.reports 339b9c6 load on device 'cpu' took 0.15 ms  (cached)
+Module uav_network.environment.gpu.observations 0dd9287 load on device 'cpu' took 0.28 ms  (cached)
+Module uav_network.environment.gpu.validation 745a607 load on device 'cpu' took 0.18 ms  (cached)
+Module uav_network.environment.gpu.motion aa4fae3 load on device 'cpu' took 0.20 ms  (cached)
+{"algorithm": "masac", "architecture": "pql-inspired", "episodes": 0, "global_step": 4, "critic_updates": 0, "actor_updates": 0, "progress/search_rate_percent": 0.0, "progress/delivery_rate_percent": 0.0, "progress/mean_battery_fraction": 0.99947190284729, "progress/mean_active_uavs": 6.0, "pql/transitions_per_s": 14.37500581515091, "pql/critic_updates_per_s": 0.0, "pql/actor_updates_per_s": 0.0, "pql/critic_collector_ratio": 0.0, "pql/sample_uses_per_new_transition": 0.0, "pql/queued_collections": 0, "pql/collector_wait_seconds": 0.0, "replay/evicted_unsampled_fraction": null}
+{"algorithm": "masac", "architecture": "pql-inspired", "episodes": 4, "global_step": 32, "critic_updates": 14, "actor_updates": 14, "progress/search_rate_percent": 0.0, "progress/delivery_rate_percent": 0.0, "progress/mean_battery_fraction": 0.9956080317497253, "progress/mean_active_uavs": 6.0, "pql/transitions_per_s": 46.475635634577785, "pql/critic_updates_per_s": 20.33309059012778, "pql/actor_updates_per_s": 20.33309059012778, "pql/critic_collector_ratio": 2.0, "pql/sample_uses_per_new_transition": 3.5, "pql/queued_collections": 0, "pql/collector_wait_seconds": 0.0, "replay/evicted_unsampled_fraction": null}
+{"algorithm": "matd3", "architecture": "pql-inspired", "episodes": 0, "global_step": 4, "critic_updates": 0, "actor_updates": 0, "progress/search_rate_percent": 0.0, "progress/delivery_rate_percent": 0.0, "progress/mean_battery_fraction": 0.99947190284729, "progress/mean_active_uavs": 6.0, "pql/transitions_per_s": 197.4230760683914, "pql/critic_updates_per_s": 0.0, "pql/actor_updates_per_s": 0.0, "pql/critic_collector_ratio": 0.0, "pql/sample_uses_per_new_transition": 0.0, "pql/queued_collections": 0, "pql/collector_wait_seconds": 0.0, "replay/evicted_unsampled_fraction": null}
+{"algorithm": "matd3", "architecture": "pql-inspired", "episodes": 4, "global_step": 32, "critic_updates": 14, "actor_updates": 7, "progress/search_rate_percent": 0.0, "progress/delivery_rate_percent": 0.0, "progress/mean_battery_fraction": 0.9957852363586426, "progress/mean_active_uavs": 6.0, "pql/transitions_per_s": 143.2543301966132, "pql/critic_updates_per_s": 62.673769461018274, "pql/actor_updates_per_s": 31.336884730509137, "pql/critic_collector_ratio": 2.0, "pql/sample_uses_per_new_transition": 3.5, "pql/queued_collections": 0, "pql/collector_wait_seconds": 0.0, "replay/evicted_unsampled_fraction": null}
+----------------------------- Captured stderr call -----------------------------
+Warp CUDA warning: Could not find or load the NVIDIA CUDA driver. GPU execution will not be available.
+=========================== short test summary info ============================
+FAILED tests/test_cpu_handoff.py::CPUHandoffTests::test_cpu_runner_preserves_render_when_another_uploaded_artifact_is_unavailable
+FAILED tests/test_cpu_handoff_comparison.py::CPUHandoffComparisonTests::test_real_pql_policies_keep_backend_and_generate_cpu_paired_metrics
+2 failed in 5.43s
