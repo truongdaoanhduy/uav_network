@@ -1,3 +1,16 @@
+# Current task: scenario and algorithm verification — CHECKS ONLY
+
+Updated 2026-10-26T06:49:50.616061+00:00. Latest explicit user instruction on the new Sandbox: **do not delete anything on Hugging Face or W&B; perform checks only**. This supersedes every cleanup next-action/authorization in the historical record below. No further policy retirement, LFS purge, runfile removal, artifact deletion, source-summary repair or remote-store publication is authorized under this task. Preserve the remaining303candidates and all required data. Local evidence/docs may be recorded; source changes are not requested.
+
+- Fresh local process/background inventory: no old cleanup process is running; background registry was empty after Sandbox reset. A local REMOTE_MUTATIONS_REVOKED.txt marker is in outputs/cuda-scenario-audit-20261026/. Do not infer remote outcomes from process absence: fresh service check below verifies actual state.
+- Actual repository is ahead of this chat's old checkpoint: HEAD5663f5dd38758607db4c18c8119f1e72ad9cb142, synchronized feature branch, unrelated untracked wandb/ preserved. Compared against CUDA-tested4c5b8862b2c71e6dc7ead6b9b99e1402ca2fd137: no source/test/config/setup/pyproject changes.
+- Fresh06:44UTC Kaggle status COMPLETE; forced output retrieval confirms v3 PASSED, pinned4c5b8862,2TeslaT4/Torch2.11+cu128/CUDA12.8/Warp1.18. Scenario280pass; primary probes pass;4CUDAlearner cases pass; fullsuite834pass21skip37warnings2432subtests0fail. Check downloaded XML/logs under outputs/.../checks-only-20261026/fresh-kaggle/. Do not call these a new rerun.
+- The21CUDA skips include5opt-in full4096 exact-resume cases (UAV_CUDA_FULL4096=1),14CPU-only maintenance/visualization cases,1CPUreplay test and1inverse-two-GPU availability test. CPU-only cases passed on the CPU suite. Remaining requested verification: run bounded opt-in full4096 checks plus primary1KiB hybrid full-resume diagnostics on idle Kaggle2T4; no production20k cohort or historical policy warm start. Flag existing old1MBprofile as stress, separate from primary1KiB.
+- Fresh06:45UTC W&B321runs:234finished65failed22crashed,0active. HF heads main5fc83edb4ea962d640ae77647468871e82b6bec5,public2c68392e5ccc500a2fc13d4d8a2f4b444175bcb8 match prior completed cleanup record; main679LFSobjects426218971693B,public766objects196201625877B. This turn only read stores; no deletion was issued. Earlier completed cleanup/legacy repairs are historical below.
+- Next: complete the missing CUDA verification, inspect all failures/warnings/skip reasons, record evidence and findings without source or HF/W&B mutation. Historical cleanup next-action lists below are cancelled.
+
+---
+
 # Current task: CUDA scenario-first fixes and joint storage cleanup — ACTIVE
 
 Updated 2026-10-26T05:36:12.211269+00:00. No 20k production cohort was requested or launched.
