@@ -97,6 +97,13 @@ def launch(args, credentials):
             "stage": args.stage, "config": config_file, "overrides": overrides, "runs": runs}
     spec.update({"training_mode": training_mode,
                  "accelerator": args.accelerator, "gpus_per_run": args.gpus_per_run})
+    if args.stage == "benchmark":
+        benchmark_steps = getattr(args, "benchmark_steps", 2)
+        benchmark_learner_updates = getattr(args, "benchmark_learner_updates", 2)
+        if benchmark_steps < 1 or benchmark_learner_updates < 1:
+            raise ValueError("Benchmark steps and learner updates must be positive")
+        spec.update(benchmark_steps=benchmark_steps,
+                    benchmark_learner_updates=benchmark_learner_updates)
     if diagnostic:
         spec["diagnostic"] = diagnostic
     else:
@@ -196,6 +203,10 @@ def main(argv=None):
     submit.add_argument("--set", dest="overrides", action="append", default=[])
     submit.add_argument("--gpus-per-run", type=int, choices=[1, 2], default=1,
                         help="Visible GPUs per BASE learner; PQL continues to own all visible GPUs")
+    submit.add_argument("--benchmark-steps", type=int, default=2,
+                        help="BASE benchmark collector steps; benchmark stage only")
+    submit.add_argument("--benchmark-learner-updates", type=int, default=2,
+                        help="BASE benchmark measured learner updates; benchmark stage only")
     submit.add_argument("--accelerator", default="NvidiaTeslaT4")
     submit.add_argument("--timeout-seconds", type=int, default=39600)
     resume = commands.add_parser("resume", help="Resume a quota-paused continuation from a completed kernel")

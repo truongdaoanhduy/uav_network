@@ -28,13 +28,15 @@ class PQLCloudTests(unittest.TestCase):
         spec = {"stage": "benchmark", "config": "configs/comparison-20k-steps2000-scenario-v3.yaml",
                 "overrides": ["pql.enabled=false", "matd3.replay_capacity=5000000",
                               "matd3.batch_size=8192", "runtime.num_envs=4096"],
-                "runs": {"matd3": {"id": "base-probe"}}, "gpus_per_run": 2}
+                "runs": {"matd3": {"id": "base-probe"}}, "gpus_per_run": 2,
+                "benchmark_steps": 32, "benchmark_learner_updates": 20}
         seen = []
         def child(args, **kwargs):
             seen.append(args)
             self.assertIn("benchmark", args)
             self.assertEqual(args[args.index("--env-counts") + 1], "4096")
-            self.assertEqual(args[args.index("--learner-updates") + 1], "2")
+            self.assertEqual(args[args.index("--steps") + 1], "32")
+            self.assertEqual(args[args.index("--learner-updates") + 1], "20")
             output = Path(args[args.index("--output") + 1])
             output.write_text(json.dumps({"results": [{"status": "oom",
                 "devices": {"collector": "cuda:0", "learner": "cuda:1", "replay": "cuda:1"}}]}))

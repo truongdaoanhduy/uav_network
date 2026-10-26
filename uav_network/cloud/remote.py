@@ -146,8 +146,8 @@ def base_benchmarks(spec, config, output):
     for algorithm in spec["runs"]:
         path = output / f"{algorithm}-benchmark.json"
         args = [sys.executable, "-m", "uav_network", "benchmark", "--config", spec["config"],
-                "--env-counts", str(config.runtime.num_envs), "--steps", "2",
-                "--learner-updates", "2", "--output", str(path)]
+                "--env-counts", str(config.runtime.num_envs), "--steps", str(spec.get("benchmark_steps", 2)),
+                "--learner-updates", str(spec.get("benchmark_learner_updates", 2)), "--output", str(path)]
         for override in [*spec["overrides"], f"runtime.algorithm={algorithm}",
                          "runtime.device=cuda"]:
             args += ["--set", override]
