@@ -1,6 +1,6 @@
 # Measured Acceleration Policy Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Encode the measured T4/G3 acceleration policy in the canonical cloud production launcher while preserving explicit overrides and benchmark freedom.
 
@@ -37,10 +37,10 @@
 **Interfaces:**
 - Produces: `apply_measured_acceleration_policy(config_path, stage, algorithm, config, overrides, canonical_path) -> list[str]`.
 
-- [ ] Write failing tests for the four measured modes, benchmark/noncanonical no-op, explicit-override precedence, and PQL-both refusal.
-- [ ] Run focused tests and confirm RED because the helper does not exist.
-- [ ] Implement the minimal pure helper.
-- [ ] Run focused tests and confirm GREEN.
+- [x] Write failing tests for the four measured modes, benchmark/noncanonical no-op, explicit-override precedence, and PQL-both refusal.
+- [x] Run focused tests and confirm RED because the helper does not exist.
+- [x] Implement the minimal pure helper.
+- [x] Run focused tests and confirm GREEN.
 
 ### Task 2: Launcher integration and provenance
 
@@ -55,11 +55,11 @@
 - Consumes the Task 1 helper.
 - Produces manifests whose normal `overrides` contain the effective measured policy and whose tags match resolved flags.
 
-- [ ] Add failing launch/tag integration tests: MATD3 PQL gets compile false; MASAC PQL gets true; BASE both stays valid; benchmark is untouched; stale acceleration tags are removed.
-- [ ] Verify RED.
-- [ ] Apply policy before final config-dependent launch metadata, reload config from effective overrides, and make authoritative tags runtime-derived.
-- [ ] Change canonical tracking group to acceleration-neutral naming.
-- [ ] Verify focused cloud/tag tests GREEN.
+- [x] Add failing launch/tag integration tests: MATD3 PQL gets compile false; MASAC PQL gets true; BASE both stays valid; benchmark is untouched; stale acceleration tags are removed.
+- [x] Verify RED.
+- [x] Apply policy before final config-dependent launch metadata, reload config from effective overrides, and make authoritative tags runtime-derived.
+- [x] Change canonical tracking group to acceleration-neutral naming.
+- [x] Verify focused cloud/tag tests GREEN.
 
 ### Task 3: Regression verification and durable evidence
 
@@ -67,8 +67,8 @@
 - Modify: `docs/superpowers/CURRENT_TASK.md`
 - Create: `docs/superpowers/evidence/2026-10-27-measured-acceleration-policy.md`
 
-- [ ] Run focused acceleration/cloud/resume tests.
-- [ ] Run full offline pytest suite.
-- [ ] Run `git diff --check` and `python3 -m compileall -q uav_network`.
-- [ ] Record exact results and policy matrix; preserve untracked `wandb/`.
-- [ ] Commit source/tests first, then docs/evidence, and push branch.
+- [x] Run focused acceleration/cloud/resume tests.
+- [x] Run full offline pytest suite.
+- [x] Run `git diff --check` and `python3 -m compileall -q uav_network`.
+- [x] Record exact results and policy matrix; preserve untracked `wandb/`.
+- [x] Commit source/tests first, then docs/evidence, and push branch.

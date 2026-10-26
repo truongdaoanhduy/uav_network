@@ -1,27 +1,14 @@
-# Current task: Task 6 measured acceleration policy — COMPLETE
+# Current task: AMP + torch.compile Task 6 production policy — COMPLETE
 
-Updated 2026-10-27. Source commits `b9d660a` + `8bedf4c`; canonical cloud train/validate now materializes the measured T4/G3 acceleration policy into manifest overrides.
+Updated 2026-10-27. Source commits `b9d660a` + `8bedf4c`; measured T4/G3 acceleration policy is now encoded only in the canonical cloud train/validate path.
 
-- Policy: MASAC BASE FP16+compile; MATD3 BASE FP16+compile; MASAC PQL FP16+compile; **MATD3 PQL FP16 + compile OFF**; fused Adam OFF everywhere. Explicit acceleration `--set` values win; benchmark stage and noncanonical configs are untouched.
-- Canonical PQL `--algorithm both` is refused because the algorithms require different compile settings; BASE both remains valid. Effective overrides persist through normal continuation/resume.
-- W&B group is acceleration-neutral (`...accel-policy-20261027`); authoritative tags are regenerated as amp/compile/fused ON/OFF from resolved runtime, preventing stale `torch-compile` on MATD3 PQL.
-- Verification: integration20pass; focused cloud/resume76pass+2skip+770subtests; full offline **820pass,95skip,8warnings,1359subtests,RC0**; diff-check/compileall clean. Existing `wandb/` preserved; no historical run/checkpoint changed and no new20k cohort launched.
-- Evidence: `docs/superpowers/evidence/2026-10-27-measured-acceleration-policy.md`. Next Task7: bounded real 2xT4 smoke proving MASAC-PQL compile ON and MATD3-PQL compile OFF from the new launcher before any new production cohort.
-
----
-
-# Current task: enable AMP FP16 + torch.compile — COMPLETE / CODE ACTIVATED
-
-Updated 2026-10-26T23:43+07:00. Implementation commit `19ffcac` on `feat/cpu-replay-20261022`; this record follows it.
-
-- User requested AMP + `torch.compile`. The production machinery already existed (learner-owned FP16 autocast/GradScaler for MASAC/MATD3 BASE/PQL, Inductor compile wiring, cloud execution preflight and exact-resume guards), so the minimal implementation activates it instead of duplicating learner logic.
-- Primary `configs/comparison-20k-hybrid75-1kb.yaml` now resolves `runtime.amp_mode=fp16`, `runtime.compile_models=true`, while `runtime.fused_optimizers=false` remains unchanged. Tracking group/tags now identify `ampfp16-compile` / `amp-fp16` / `torch-compile`.
-- Structured config diff proved only acceleration/provenance fields changed. Scientific settings remain E4096/B8192/R1M, CPU75/GPU25 default replay, 1KiB report/payload, G3, seed44, 20k episodes; no reward/network/geometry/model/budget retune.
-- TDD RED observed old `amp_mode=off`; GREEN focused profile test passes. Focused regression: **65 passed +17 subtests**. Full offline CPU suite: **806 passed,95 skipped,8 warnings,1350 subtests,exit0,509.72s**. `git diff --check` + `compileall` pass.
-- Direct exact-resume checks prove off/off -> on/on is rejected for both fixed BASE and PQL checkpoints (`runtime.compile_models` / `runtime.amp_mode` mismatch). Existing eight G3 lineages/controllers remain pinned to source `77a1d0f`; none was restarted/cancelled/mutated.
-- Final self-review (no separate reviewer subagent available): 0 Critical,0 Important,0 Minor. Changed-file credential scan clean; existing untracked `wandb/` preserved.
-- Evidence: `docs/superpowers/evidence/2026-10-26-amp-compile-activation.md`; design/plan adjacent under `specs/` and `plans/`.
-- Limitation: no new Kaggle/T4 matched performance benchmark was launched in this task, so no throughput/VRAM/learning-quality improvement is claimed. Future accelerated runs must use a new source commit/lineage; never exact-resume an old off/off G3 checkpoint as on/on.
+- Canonical policy: MASAC BASE FP16+compile; MATD3 BASE FP16+compile; MASAC PQL FP16+compile; MATD3 PQL FP16 with compile OFF; fused Adam OFF. Explicit acceleration `--set` values still win.
+- Policy is scoped to `configs/comparison-20k-hybrid75-1kb.yaml`; benchmark and noncanonical configs are untouched. Canonical PQL `--algorithm both` production launch is refused so the two different compile choices cannot be mixed silently.
+- Effective flags are materialized in normal manifest overrides, so auto-continuation inherits the exact same resume-compatible settings. W&B acceleration tags are regenerated from resolved runtime; tracking group is acceleration-neutral.
+- TDD RED had 4 expected failures before launcher/tag integration; GREEN focused policy/identity 20/20. Continuation/resume regression: 81 passed,2 skipped,46 subtests. Final full offline suite at HEAD: **820 passed,95 skipped,8 warnings,1360 subtests,exit0,197.84s**. `git diff --check`, compileall and changed-file secret scan pass.
+- PyTorch docs cross-check: compile regions may selectively run compiled/eager, and compile speed is workload-dependent with warm-up required; therefore this measured exception remains profile-specific, not a global PyTorch rule.
+- Evidence: `docs/superpowers/evidence/2026-10-27-measured-acceleration-policy.md`; design/plan adjacent. Existing production lineages remain untouched.
+- Next Task7: fresh operational preflight of current G3 lineages/accounts before any new accelerated production launch; never duplicate a live lineage.
 
 ---
 
