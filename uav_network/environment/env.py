@@ -71,6 +71,8 @@ class SwarmSearchEnv:
         scene = generate_scenario(self.config, np.random.default_rng(self.seed), options)
         self.positions, self.targets, self.obstacles, self.gcs = (
             scene.positions, scene.targets, scene.obstacles, scene.gcs)
+        self.generation_fallback = scene.generation_fallback
+        self.generation_attempts = scene.generation_attempts
         self.velocities = np.zeros_like(self.positions)
         self.battery_j = np.full(self.config.world.num_uavs, self.config.energy.battery_capacity_j, dtype=float)
         self.propulsion_energy_j = np.zeros_like(self.battery_j)
@@ -170,7 +172,10 @@ class SwarmSearchEnv:
         rf = self.network.energy_j[:-1] if self.network else np.zeros_like(self.propulsion_energy_j)
         tx_rf = self.network.tx_energy_j[:-1] if self.network else np.zeros_like(self.propulsion_energy_j)
         rx_rf = self.network.rx_energy_j[:-1] if self.network else np.zeros_like(self.propulsion_energy_j)
-        return {"report_diagnostics": self.reports.diagnostics(self.time_s),"motion_counts": dict(self.motion_counts), "reward_components": dict(self.reward_components), "action_counts": dict(self.action_counts),
+        return {
+            "generation_fallback": self.generation_fallback,
+            "generation_attempts": self.generation_attempts,
+            "report_diagnostics": self.reports.diagnostics(self.time_s),"motion_counts": dict(self.motion_counts), "reward_components": dict(self.reward_components), "action_counts": dict(self.action_counts),
                 "buffer_reports": sum(len(b) for b in self.reports.buffers),
                 "buffer_bytes": sum(self.reports.bytes_used(i) for i in range(self.config.world.num_uavs)),
                 "mean_speed_mps": float(np.linalg.norm(self.velocities, axis=1).mean()),

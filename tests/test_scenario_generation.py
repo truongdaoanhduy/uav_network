@@ -75,7 +75,7 @@ def with_generation(saved, version):
 
 
 @pytest.mark.parametrize("algorithm", ["masac", "matd3"])
-@pytest.mark.parametrize("version", [None, 1])
+@pytest.mark.parametrize("version", [None, 1, 2])
 def test_policy_rejects_old_scene_generation(tmp_path, algorithm, version):
     c = settings(algorithm)
     learner = make_learner(c, observation_dim(c), state_dim(c))
@@ -87,7 +87,7 @@ def test_policy_rejects_old_scene_generation(tmp_path, algorithm, version):
         load_policy(path, payload=with_generation(saved, version))
 
 
-@pytest.mark.parametrize("version", [None, 1])
+@pytest.mark.parametrize("version", [None, 1, 2])
 def test_evaluation_snapshot_rejects_old_scene_generation(tmp_path, version):
     c = settings()
     learner = make_learner(c, observation_dim(c), state_dim(c))
@@ -99,7 +99,7 @@ def test_evaluation_snapshot_rejects_old_scene_generation(tmp_path, version):
         load_evaluation_snapshot(with_generation(saved, version))
 
 
-@pytest.mark.parametrize("version", [None, 1])
+@pytest.mark.parametrize("version", [None, 1, 2])
 def test_resume_rejects_old_scene_generation(real_resume, version):
     c, saved, validate = real_resume
     with pytest.raises(ValueError, match="generation"):
@@ -108,7 +108,7 @@ def test_resume_rejects_old_scene_generation(real_resume, version):
 
 def test_scenario_protocol_identifies_generator_semantics():
     protocol = evaluation_protocol(primary(), [2000000044], {})
-    assert protocol["scenario"]["world"].get("generation_version") == 2
+    assert protocol["scenario"]["world"].get("generation_version") == 3
 
 
 def test_unsupported_generation_version_is_rejected():

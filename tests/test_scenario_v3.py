@@ -24,7 +24,7 @@ class ScenarioV3Tests(unittest.TestCase):
         physical_scenario = {**protocol["scenario"],
                              "world": dict(protocol["scenario"]["world"])}
         self.assertEqual(physical_scenario.pop("observation_version"), 3)
-        self.assertEqual(physical_scenario["world"].pop("generation_version"), 2)
+        self.assertEqual(physical_scenario["world"].pop("generation_version"), 3)
         self.assertNotEqual(protocol["scenario_hash"], V2_HASH)
         physical_hash = hashlib.sha256(json.dumps(physical_scenario, sort_keys=True,
                                                   allow_nan=False).encode()).hexdigest()

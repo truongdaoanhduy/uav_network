@@ -1,7 +1,7 @@
 # Primary 20k profile aligned with HARP-LAWN/UavNetSim packet payload scale.
 # Preserve the 1 MB profile separately for stress-test/ablation reproducibility.
 world:
-  generation_version: 2
+  generation_version: 3
   num_targets: 35
   num_obstacles: 25
   max_steps: 1800

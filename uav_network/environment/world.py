@@ -2,6 +2,8 @@
 from dataclasses import dataclass
 import numpy as np
 
+from .scenario_recovery import SCENE_ATTEMPTS, certified_scenes
+
 
 @dataclass
 class Scenario:
@@ -9,13 +11,36 @@ class Scenario:
     targets: np.ndarray
     obstacles: np.ndarray
     gcs: np.ndarray
+    generation_fallback: bool = False
+    generation_attempts: int = 1
 
 
 def _outside(point, obstacles, clearance=0):
     return all(np.linalg.norm(point - o[:2]) >= o[2] + clearance + 1e-9 for o in obstacles)
 
 
+class ScenePlacementError(ValueError):
+    """A bounded random placement failed; a certified complete scene can recover it."""
+
+
 def generate_scenario(config, rng, options=None):
+    if options is not None:
+        return _sample_scenario(config, rng, options)
+    bank = certified_scenes(config)
+    for attempt in range(SCENE_ATTEMPTS):
+        try:
+            scene = _sample_scenario(config, rng)
+        except ScenePlacementError:
+            continue
+        scene.generation_attempts = attempt + 1
+        return scene
+    selected = bank[int(rng.uniform(0, len(bank)))]
+    return Scenario(*(getattr(selected, name).copy()
+                      for name in ("positions", "targets", "obstacles", "gcs")),
+                    generation_fallback=True, generation_attempts=SCENE_ATTEMPTS)
+
+
+def _sample_scenario(config, rng, options=None):
     w = config.world
     gcs = np.asarray(w.gcs_position_m or [w.map_size_m / 2, 0], dtype=float)
     if options is not None:
@@ -41,7 +66,7 @@ def generate_scenario(config, rng, options=None):
                 obstacles.append(np.r_[center, radius])
                 break
         else:
-            raise ValueError("Cannot place obstacles: reduce their count/radius or increase the map")
+            raise ScenePlacementError("Cannot place obstacles: reduce their count/radius or increase the map")
     positions = []
     for _ in range(w.num_uavs):
         for _ in range(w.placement_attempts):
@@ -53,7 +78,7 @@ def generate_scenario(config, rng, options=None):
                 positions.append(point)
                 break
         else:
-            raise ValueError("Cannot place UAVs with the configured launch spacing")
+            raise ScenePlacementError("Cannot place UAVs with the configured launch spacing")
     targets = []
     target_clearance = max(0, w.obstacle_clearance_m - config.sensor.footprint_radius_m) + 1e-6
     for _ in range(w.num_targets):
@@ -63,7 +88,7 @@ def generate_scenario(config, rng, options=None):
                 targets.append(point)
                 break
         else:
-            raise ValueError("Cannot place targets outside exclusion zones")
+            raise ScenePlacementError("Cannot place targets outside exclusion zones")
     scenario = Scenario(np.array(positions), np.array(targets),
                         np.array(obstacles).reshape(-1, 3), gcs)
     validate_scenario(config, scenario)

@@ -60,6 +60,8 @@ def world_info(s, p, index=0):
     reward = row(s.reward_components,index)
     actions = row(s.action_counts,index)
     return {
+        "generation_fallback": bool(row(s.generation_fallback,index)),
+        "generation_attempts": int(row(s.generation_attempts,index)),
         "report_diagnostics": report_diagnostics(row(s.first_discovery,index),row(s.first_delivery,index),
                                                   present.astype(bool),row(s.report_created,index),
                                                   row(s.buffer_peak,index),steps*p.dt,

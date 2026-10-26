@@ -3,6 +3,7 @@ import numpy as np
 import warp as wp
 
 from ..observations import observation_dim, state_dim
+from ..scenario_recovery import SCENE_ATTEMPTS, certified_scenes
 from ...communication.diagnostics import COUNTERS, STATS
 from ...communication.link_budget import report_reference_tx_energy_j
 
@@ -23,6 +24,8 @@ class WorldParams:
     recovery_enabled: wp.int32
     energy_enabled: wp.int32
     placement_attempts: wp.int32
+    scene_attempts: wp.int32
+    fallback_count: wp.int32
     polygon_sides: wp.int32
     network_enabled: wp.int32
     max_queue_packets: wp.int32
@@ -102,6 +105,11 @@ class WorldParams:
 
 @wp.struct
 class WorldState:
+    fallback_positions: wp.array2d(dtype=wp.vec2d)
+    fallback_targets: wp.array2d(dtype=wp.vec2d)
+    fallback_obstacles: wp.array2d(dtype=wp.vec3d)
+    generation_fallback: wp.array(dtype=wp.int32)
+    generation_attempts: wp.array(dtype=wp.int32)
     diagnostic_counts: wp.array2d(dtype=wp.int64)
     diagnostic_stats: wp.array3d(dtype=wp.float64)
     power_histogram: wp.array3d(dtype=wp.int64)
@@ -260,6 +268,7 @@ def params_from_config(config):
                   buffer_bytes=n.buffer_bytes, admission_mask=int(n.receiver_admission_mask),
                   recovery_enabled=int(n.rediscovery_recovery), energy_enabled=int(en.enabled),
                   network_enabled=int(n.enabled), placement_attempts=w.placement_attempts,
+                  scene_attempts=SCENE_ATTEMPTS,
                   polygon_sides=n.obstacle_polygon_sides, max_queue_packets=n.max_queue_packets,
                   payload_bytes=n.payload_bytes, max_retries=n.max_retries,
                   ack_uses_data_power=int(n.ack_uses_data_power),
@@ -329,6 +338,8 @@ def seed_rows(seeds):
 def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False):
     """Allocate one independent world per row; no native simulator or worker."""
     p = params_from_config(config)
+    bank = certified_scenes(config)
+    p.fallback_count = len(bank)
     if not trace:
         p.trace_enabled = 0
         p.trace_capacity = 1
@@ -339,7 +350,15 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False):
     if seeds.shape != (e,):
         raise ValueError("seeds must contain one integer per world")
     s = WorldState()
+    for name, dtype in (("positions", wp.vec2d), ("targets", wp.vec2d), ("obstacles", wp.vec3d)):
+        values = np.stack([getattr(scene, name) for scene in bank])
+        # Warp retains a one-element obstacle allocation even for zero obstacles.
+        if name == "obstacles" and p.obstacles_count == 0:
+            values = np.zeros((len(bank), 1, 3))
+        setattr(s, "fallback_" + name, wp.array(values, dtype=dtype, device=device))
     shapes = {
+        "generation_fallback": ((e,), wp.int32),
+        "generation_attempts": ((e,), wp.int32),
         "diagnostic_counts": ((e,len(COUNTERS)), wp.int64),
         "diagnostic_stats": ((e,len(STATS),4), wp.float64),
         "power_histogram": ((e,2,6), wp.int64),

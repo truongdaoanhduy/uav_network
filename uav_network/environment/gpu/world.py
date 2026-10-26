@@ -58,11 +58,8 @@ def _outside(s: WorldState, e: int, point: wp.vec2d, count: int, clearance: wp.f
     return valid
 
 
-@wp.kernel
-def reset_geometry(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32)):
-    e = wp.tid()
-    if mask[e] == 0:
-        return
+@wp.func
+def _place_geometry(s: WorldState, p: WorldParams, e: int):
     s.errors[e] = 0
     s.gcs[e] = wp.vec2d(p.gcs_x, p.gcs_y)
     s.steps[e] = 0
@@ -76,8 +73,7 @@ def reset_geometry(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32)
         s.battery[e, i] = p.capacity
         s.flight_energy[e, i] = wp.float64(0.0)
     if p.obstacles_count > 0 and wp.float64(2.0) * (p.obstacle_max_radius + p.obstacle_clearance + wp.float64(1e-6)) >= p.map_size:
-        s.errors[e] = 101
-        return
+        return 101
     # Disjoint clearance disks inside the map keep the free flight region connected.
     for o in range(p.obstacles_count):
         radius = _uniform(s, e, p.obstacle_min_radius, p.obstacle_max_radius)
@@ -93,8 +89,7 @@ def reset_geometry(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32)
                 placed = bool(True)
                 break
         if not placed:
-            s.errors[e] = 102
-            return
+            return 102
     for i in range(p.n):
         placed = bool(False)
         for attempt in range(p.placement_attempts):
@@ -113,8 +108,7 @@ def reset_geometry(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32)
                 placed = bool(True)
                 break
         if not placed:
-            s.errors[e] = 103
-            return
+            return 103
     target_clearance = wp.max(wp.float64(0.0), p.obstacle_clearance - p.footprint) + wp.float64(1e-6)
     for t in range(p.targets_count):
         placed = bool(False)
@@ -127,5 +121,36 @@ def reset_geometry(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32)
                 placed = bool(True)
                 break
         if not placed:
-            s.errors[e] = 104
+            return 104
+
+    return 0
+
+
+@wp.kernel
+def reset_geometry(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32)):
+    e = wp.tid()
+    if mask[e] == 0:
+        return
+    code = int(0)
+    for attempt in range(p.scene_attempts):
+        code = _place_geometry(s, p, e)
+        s.generation_attempts[e] = attempt + 1
+        if code == 0:
+            s.errors[e] = 0
+            s.generation_fallback[e] = 0
             return
+        if code == 101:
+            s.errors[e] = code
+            return
+    if p.fallback_count == 0:
+        s.errors[e] = code
+        return
+    selected = int(_uniform(s, e, wp.float64(0.0), wp.float64(p.fallback_count)))
+    for i in range(p.n):
+        s.positions[e, i] = s.fallback_positions[selected, i]
+    for t in range(p.targets_count):
+        s.targets[e, t] = s.fallback_targets[selected, t]
+    for o in range(p.obstacles_count):
+        s.obstacles[e, o] = s.fallback_obstacles[selected, o]
+    s.generation_fallback[e] = 1
+    s.errors[e] = 0

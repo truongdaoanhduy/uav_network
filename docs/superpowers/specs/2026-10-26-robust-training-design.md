@@ -1,0 +1,10 @@
+# Robust scenario generation and bounded-memory MASAC
+
+User authorization: 2026-10-26, implement the diagnosed fixes across seeds and use recognizable run names. Preserve active cloud jobs; no HF/W&B deletion.
+
+- Automatic generation must have a seed-independent valid recovery path, not depend on hoping more random attempts succeed. At startup certify a small deterministic bank of complete scenes for the unchanged configured geometry. If certification fails, reject the configuration before collection. Normal random placement gets bounded full-scene retries; exhaustion selects a certified scene. Explicit user scenes remain strictly validated and are never silently replaced.
+- Native and Warp share certificate data and consume matching PCG sequences; no CPU scene transfer per reset. Record fallback usage, preserve masked resets and RNG/exact snapshots, bump generation protocol and reject incompatible checkpoint semantics.
+- Keep map1000/UAV6/targets35/obstacles25/clearance10/radii30..70/horizon1800/report1024B/seed44/episodes20000/env4096/batch8192/replay1M. No reward, network, AMP, compile or optimizer-budget retuning.
+- MASAC uses bounded sample chunks for destination-enumerating critics, checkpointing differentiable chunks so activation graphs do not accumulate the original peak. Sampling stays outside the chunk function; logical loss normalization, optimizer step and clipping remain unchanged. Compare losses/gradients with unchunked execution before real2T4 memory validation.
+- Names identify stage, MASAC/MATD3, BASE/PQL, hybridCPU75GPU25/FULLGPU, E4096/B8192/R1M and generator version. Continuations retain root identity.
+- Validate CPU full suite, full train/eval seed schedule plus many additional seeds, real CUDA resets/masked resets, and production-shaped MASAC BASE/PQL memory/update/save-resume checks. Then reconcile accounts/lineages and launch fresh corrected failed cases once, with exact continuation/final30CPUeval. Preserve old results and mark protocol separation.

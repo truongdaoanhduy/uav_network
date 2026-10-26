@@ -1,3 +1,9 @@
+# Current task: robust scenario generation, MASAC memory and recognizable runs — IN PROGRESS
+
+User authorized2026-10-26 implementation and corrected failed-case reruns. Plan: plans/2026-10-26-robust-training.md; spec: specs/2026-10-26-robust-training-design.md. Preserve active jobs and all HF/W&B data. Task1writingRED; no production source changed yet. Ledger/receipts outputs/robust-training-20261026/.
+
+---
+
 # Current task: live W&B/Kaggle failure diagnosis — COMPLETE / FIXES PROPOSED
 
 Updated 2026-10-26 18:55:13 +07:00. User requested current Running counts, causes and fix proposals. This supersedes the older six-training snapshot. No production source/config changes, cloud launches/restarts/cancellations, or HF/W&B mutations.
