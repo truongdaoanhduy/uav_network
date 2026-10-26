@@ -1,3 +1,15 @@
+# Current task: compare G3 training with FlashSAC/FastTD3 — COMPLETE
+
+Updated 2026-10-26T20:58:24.667097+07:00. Read-only training comparison; no source/config/job mutations.
+
+- G3 production source77a1d0f, prior documentation HEAD297c2f0; effective eight-case configs from the13:15:10UTC launch receipt. Upstream inspected FlashSAC87edc906 and FastTD3229ed59b.
+- Compared FlashSAC IsaacLab GPU script and FastTD3 IsaacVelocityFlatG1Args with inherited defaults; distinguished task overrides and SimbaV2 examples. GPU-parallel off-policy design is shared, but current MASAC/MATD3 CTDE learners are not complete FlashSAC/FastTD3 implementations.
+- Verified replay units: UAV1M total joint transitions; Flash GPU script10M total; Fast IsaacLab10240 perenv *4096 =41943040 total. G3batch8192/updates8 versus Flash2048/2 and FastG132768/4. Return horizons1/3/8; tau0.005/0.01/0.1; AMP/compile off versus on.
+- Evidence: evidence/2026-10-26-training-config-upstream-comparison.md. Validation: pinned primary config, stored effective receipts, upstream launch/defaults and buffer/step/update source inspection; documentation diff check. No live-health recheck or fresh training-quality claim.
+- Eight G3 cases still use train seed44; generator multi-seed tests do not replace multi-seed training evaluation. No retuning, restart, cancellation or new job is queued. Existing cohort/controller continuation rules below remain operative.
+
+---
+
 # Current task: robust scenario/MASAC fixes — VERIFIED; EIGHT G3 RUNS LEARNING
 
 Updated20:15Vietnam26October2026. Production source77a1d0f52ed4e78bc2823c3ada03d661568cd923. Existing feature branch preserved; subsequent records are docs-only.
