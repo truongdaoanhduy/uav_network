@@ -1,47 +1,45 @@
-# Current follow-up: Personal Workspace / remove duplicate Algorithm column
+# W&B Personal Workspace — COMPLETE / VERIFIED ONLINE
 
-Updated 2026-10-27T23:46:35.061173+07:00. User explicitly authorized W&B sign-in via id.coreweave.com,
-asked to use Personal Workspace and hide Algorithm because run Name already has it,
-then supplied a new W&B key in key.txt and asked to use it. Do not ask sign-in
-permission again. Latest key freshly authenticated as truongdaoanhduy with access
-to truongdaoanhduy-uit/uav_search_target; no credential value printed or committed.
+Updated 2026-10-28T00:07:15.128134+07:00. Source `9e37b4a9e7ca7a4b45be55f9a37d3501163b2d10`
+pushed and verified on main + feat/cpu-replay-20261022; follow-up docs b7cb7ac.
+User authorized W&B sign-in and requested Personal Workspace with Algorithm hidden,
+then supplied a new W&B key in key.txt. Latest key freshly authenticated as the
+correct user/project; no credential values printed, copied into code or committed.
 
-## Current delivered follow-up
+## Final follow-up result
 
-- Personal view nw-nwusertruongdaoanhduy-w, ID VmlldzoxODA5MjI1Nw==,
-  read back at2026-10-27T16:44:33Z:17 visible columns,4 pinned; Algorithm hidden,
-  unpinned and removed from column order. Created/Runtime remain pinned.
-- Existing26 line plots+1guide byte-equivalent before/after. No layout duplication
-  or reset; no run data/config/history/state modification. Saved primary view was
-  not modified by this follow-up. Explicit Personal URL:
-  https://wandb.ai/truongdaoanhduy-uit/uav_search_target/workspace?nw=nwusertruongdaoanhduy
-- Source VISIBLE_COLUMNS now excludes config:runtime.algorithm so startup and
-  dashboard regeneration preserve the preference. Algorithm remains in run names
-  and run config. Human guide now directs to Personal,17columns.
-- Updated existing assertions:3RED failures then10focused tests passed
-  (tests/test_dashboard.py + tests/test_diagnostics_axes.py),7SDK deprecation warnings.
-  diff check passes. No training/checkpoint/metrics behavior changed; no full-suite
-  rerun is warranted for this display-only preference (prior891pass evidence below).
-- Live verification: docs/superpowers/evidence/2026-10-27-wandb-personal-no-algorithm.json.
+- Personal view nw-nwusertruongdaoanhduy-w, ID VmlldzoxODA5MjI1Nw==:
+ 17 visible columns; Algorithm hidden, unpinned and removed from order. Name,
+ State, Created and Runtime pinned. Existing26 line plots+1guide unchanged.
+- Source allowlist excludes config:runtime.algorithm so normal startup/dashboard
+ regeneration preserves the preference. Run names/config retain algorithm data.
+ Saved primary view was not modified in this follow-up; user-facing link now
+ explicitly opens Personal and avoids switching saved views:
+ https://forge.coreweave.com/wandb/truongdaoanhduy-uit/uav_search_target/workspace?nw=nwusertruongdaoanhduy
+- Browser sign-in completed through secure browserAuth and device confirmation.
+ Fresh W&B UI showed signed-in account and Personal Workspace badge. Actual full
+ Runs table was inspected: exactly17 column-action headers, no Algorithm. Delivery,
+ success and other mission plots render actual training series. Browser left at
+ Personal Workspace with charts and marked as the deliverable tab. No auth secrets,
+ cookies or identity-flow URLs were persisted.
+- Existing tests updated for preference:3 observed REDs, then10 passed in6.94s;
+ 7 existing SDK deprecation warnings. compileall/diff check pass;12 credential
+ values scanned with0hits. No training/learner/checkpoint behavior change or new
+ production job; prior full891pass runtime evidence remains below.
 
-## Remaining and authentication rule
+## Evidence and next action
 
-Source `9e37b4a9e7ca7a4b45be55f9a37d3501163b2d10` and API preference changes
-are committed/pushed to main and feat/cpu-replay-20261022; ls-remote confirmed both.
-Direct browser rendering is not yet verified. User chose Google through browserAuth,
-provided account/password through secure requests, and Google advanced to device
-verification. Current cloud tab2 is a Google two-step device-approval screen.
-The user was told the displayed matching number; waiting for device confirmation.
-Do not resend, switch methods, restart login or ask sign-in permission again unless
-requested/required by fresh visible state. The remember-device checkbox was left
-unchecked. Use fresh visible evidence after approval, then open/select Personal
-Workspace and verify the17-column/26-plot layout. Never record authentication URLs,
-credentials, cookies or verification secrets in the repository. API key works for
-API access; it does not replace this browser authentication step.
+API: docs/superpowers/evidence/2026-10-27-wandb-personal-no-algorithm.json
+Browser: docs/superpowers/evidence/2026-10-28-wandb-personal-browser-verification.json
+Guide: docs/training-diagnostics.md
+No requested follow-up remains blocked. Do not ask sign-in permission again or
+restart the authentication flow. Wait for a new task; do not launch training
+implicitly. Main/working branch include the verified source and completion record.
 
-Previous observation below records earlier source9abd8e3 and historical18-column
-layout; current preference is17 in Personal. Prior source full-suite891passed,
-95skipped,1389subtests; unchanged runtime sourcebc1b647.
+## Earlier observability work (historical18-column baseline)
+
+The earlier report below predates the user's17-column preference. Runtime source
+bc1b647/full-suite ecd597f was already verified; the follow-up only changes display.
 
 ## Delivered and verified
 
