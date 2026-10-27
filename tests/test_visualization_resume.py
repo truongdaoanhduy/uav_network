@@ -17,9 +17,19 @@ from uav_network.experiments import evaluation
 
 @unittest.skipIf(torch.cuda.is_available(), reason="requires a CPU-only host")
 class VisualizationResumeTests(unittest.TestCase):
+    def setUp(self):
+        # Other auth tests intentionally use one-character dummy keys. Keep this
+        # traceback test isolated so redaction does not replace ordinary letters.
+        credentials = patch.dict(os.environ, {
+            "WANDB_API_KEY": "synthetic-visualization-wandb-key",
+            "KAGGLE_API_TOKEN": "synthetic-visualization-kaggle-key",
+            "HF_TOKEN": "synthetic-visualization-hf-key"})
+        credentials.start()
+        self.addCleanup(credentials.stop)
+
     def spec(self, config):
         return {"entity": "owner", "project": "main", "account": "selected",
-                "config": str(config), "overrides": [], "commit": "a"*40,
+                "config": str(config), "overrides": ["tracking.credentials_file=missing-visualization-test-key.json"], "commit": "a"*40,
                 "kernel_ref": "owner/cpu", "parent_kernel_ref": "owner/gpu", "training_mode": "base",
                 "runs": {"matd3": {"id": "cpu1", "name": "CPU"}},
                 "artifacts": {"matd3": "owner/main/model:v1"}, "training_status": {"matd3": {"episodes": 1}},
