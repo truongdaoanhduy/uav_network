@@ -127,3 +127,48 @@ def test_cpu_failure_identity_uses_its_actual_run_and_stage_not_restored_env(tmp
     assert report["identity"]["stage"]=="visualize"
     assert report["identity"]["run_id"]=="cpu-actual"
     assert report["identity"]["source_commit"]=="b"*40
+
+
+def test_native_learner_traceback_and_negative_exit_are_facts_not_an_oom_guess(tmp_path):
+    from uav_network.cloud.remote import learner_command,finalize_runs
+    from test_cpu_handoff import parent_spec
+    spec=parent_spec();spec["cpu_visualize"]=False
+    args,environment=learner_command(spec,"masac",spec["runs"]["masac"],0,tmp_path)
+    assert environment["PYTHONFAULTHANDLER"]=="1"
+    with pytest.raises(RuntimeError):
+        finalize_runs(spec,[SimpleNamespace(returncode=-9)],tmp_path)
+    failure=json.loads((tmp_path/"job-failures.json").read_text())["masac"]
+    assert failure["exit_code"]==-9 and failure["signal_name"]=="SIGKILL"
+    assert failure["cause_confirmed"] is False
+
+
+@pytest.mark.parametrize("pql",[False,True])
+def test_closed_console_is_not_a_training_failure(tmp_path,pql):
+    from test_continuation import small_config
+    from uav_network.experiments.training import train
+    config=small_config(tmp_path/"healthy");config.pql.enabled=pql
+    config.runtime.num_envs=1;config.runtime.episodes=1;config.world.max_steps=4
+    closed=StringIO();closed.close()
+    with patch("sys.stdout",closed):
+        result=train(config)
+    assert result["episodes"]==1
+    assert not (tmp_path/"healthy/failure.json").exists()
+
+
+def test_scheduler_signal_is_recorded_as_an_observed_signal(tmp_path):
+    import subprocess,sys
+    script="""
+from pathlib import Path
+import os,signal,sys
+from uav_network.experiments.lifecycle import graceful_termination
+from uav_network.experiments.diagnostics import failure_report
+try:
+    with graceful_termination():os.kill(os.getpid(),signal.SIGTERM)
+except KeyboardInterrupt as error:
+    failure_report(None,Path(sys.argv[1]),error,{})
+"""
+    result=subprocess.run([sys.executable,"-c",script,str(tmp_path)],capture_output=True,text=True,timeout=10)
+    assert result.returncode==0
+    report=json.loads((tmp_path/"failure.json").read_text())
+    assert report["signal_number"]==15 and report["signal_name"]=="SIGTERM"
+    assert report["root_cause_confirmed"] is False

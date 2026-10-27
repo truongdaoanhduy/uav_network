@@ -59,3 +59,13 @@ class EvaluationResumeTests(unittest.TestCase):
         spec = build_visualization_spec(parent_spec(), learner_result(complete=True))
         self.assertEqual(spec["cpu_eval"]["episodes"], 2)
         self.assertEqual(spec["timeout_seconds"], 39600)
+
+
+def test_evaluation_reports_real_inner_progress_without_changing_results(tmp_path):
+    checkpoint=EvaluationResumeTests().checkpoint(tmp_path)
+    progress=[]
+    observed=evaluation.evaluate(checkpoint,episodes=1,seed=100,output_dir=tmp_path/'observed',on_progress=progress.append)
+    plain=evaluation.evaluate(checkpoint,episodes=1,seed=100,output_dir=tmp_path/'plain')
+    assert observed['records']==plain['records']
+    assert progress[0]=={'status':'episode_started','seed':100,'step':0}
+    assert progress[-1]['status']=='episode_complete' and progress[-1]['step']==3

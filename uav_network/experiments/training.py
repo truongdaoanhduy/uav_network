@@ -22,6 +22,7 @@ from .reproducibility import reproducibility_result
 from .environment_checkpoints import snapshot_environment, initialize_environment
 from .diagnostics import TrainingDiagnostics, failure_report
 from .evidence import print_evidence
+from .progress_watchdog import ProgressWatchdog
 from .async_evaluation import AsyncCheckpointEvaluator
 from .recovery_checkpoints import PeriodicRecovery
 from .local_checkpoints import prune_episode_checkpoints, disk_metrics, release_staged_checkpoint
@@ -97,6 +98,7 @@ def _train(config):
     (output / "resolved_config.yaml").write_text(yaml.safe_dump(config.to_dict(), sort_keys=False))
     start = time.perf_counter()
     diagnostics = TrainingDiagnostics(config, output)
+    watchdog = ProgressWatchdog(output)
     count = config.runtime.num_envs
     completed = global_step = collection_steps = 0
     latest = {}
@@ -224,6 +226,7 @@ def _train(config):
                                  next_obs["observation"], next_obs["state"], terminated)
                 pending_learning = True
                 global_step += count
+                watchdog.progress(global_step)
                 collection_steps += 1
                 episode_returns += reward
                 episode_lengths += 1
@@ -256,7 +259,7 @@ def _train(config):
                     if tracker:
                         tracker.episode(record)
                         tracker.diagnostic(diagnostic_values, global_step)
-                    print(json.dumps({"algorithm": learner.algorithm, "episode": completed,
+                    print_evidence({"algorithm": learner.algorithm, "episode": completed,
                                       "global_step": global_step, "return": round(record["return"], 3),
                                       "search_rate_percent": info["search_rate_percent"],
                                       "delivery_rate_percent": info["delivery_rate_percent"],
@@ -268,7 +271,7 @@ def _train(config):
                                       "dropped_reports": info["dropped_reports"],
                                       "regenerated_reports": info["regenerated_reports"],
                                       "motion": info["motion_counts"],
-                                      "routing": info["network"].get("selection_counts", {})}), flush=True)
+                                      "routing": info["network"].get("selection_counts", {})})
                 values = diagnostics.batch(batch_records, global_step, final=final_batch,
                     partial=len(batch_records) < len(done_indices))
                 if tracker and values:
@@ -376,26 +379,29 @@ def _train(config):
             print_evidence({"failure_reporting_error": {"error_type": type(reporting_error).__name__}})
         raise
     finally:
-        cleanup_ok = False
         try:
+            cleanup_ok = False
             try:
-                if evaluator is not None:
-                    evaluator.close(global_step, drain_seconds=0)
-            finally:
-                if vector is not None:
-                    vector.close()
-            cleanup_ok = True
-        finally:
-            if tracker:
-                failed = not completed_ok or not cleanup_ok
                 try:
-                    tracker.close(failed=failed)
-                except Exception as error:
+                    if evaluator is not None:
+                        evaluator.close(global_step, drain_seconds=0)
+                finally:
+                    if vector is not None:
+                        vector.close()
+                cleanup_ok = True
+            finally:
+                if tracker:
+                    failed = not completed_ok or not cleanup_ok
+                    try:
+                        tracker.close(failed=failed)
+                    except Exception as error:
+                        if result is not None:
+                            result["tracking_status"] = "failed"
+                            result["tracking_error_type"] = type(error).__name__
+                            summary.write_text(json.dumps(result, indent=2, allow_nan=False))
+                        raise
                     if result is not None:
-                        result["tracking_status"] = "failed"
-                        result["tracking_error_type"] = type(error).__name__
+                        result["tracking_status"] = "failed" if failed else "finished"
                         summary.write_text(json.dumps(result, indent=2, allow_nan=False))
-                    raise
-                if result is not None:
-                    result["tracking_status"] = "failed" if failed else "finished"
-                    summary.write_text(json.dumps(result, indent=2, allow_nan=False))
+        finally:
+            watchdog.close()

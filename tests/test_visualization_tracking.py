@@ -1,5 +1,6 @@
 """A real CPU evaluation is visible online and closes its run on failure."""
 import os
+import json
 from pathlib import Path
 import sys
 from tempfile import TemporaryDirectory
@@ -55,3 +56,9 @@ class VisualizationTrackingTests(unittest.TestCase):
                     self.assertTrue(any(v.get('evaluation/episodes_completed')==1 for v in logs))
                     self.assertEqual(run.summary['evaluation/checkpoint_global_step'],trained['global_step'])
                     self.assertEqual(run.summary['evaluation/observation_version'],3)
+                    self.assertTrue(any(v.get('evaluation_progress/status')=='episode_complete' for v in logs))
+                    journal=[json.loads(line) for line in (root/'success/tracking/matd3/training-events.jsonl').read_text().splitlines()]
+                    final=next(e for e in reversed(journal) if e['context'].get('evaluation/scenario_hash'))
+                    self.assertEqual(final['context']['evaluation/episodes'],1)
+                    self.assertEqual(final['context']['evaluation/seed_first'],10044)
+                    self.assertEqual(final['context']['evaluation/checkpoint_global_step'],trained['global_step'])

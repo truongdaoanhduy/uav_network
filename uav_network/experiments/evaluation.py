@@ -84,7 +84,7 @@ class EvaluationPaused(RuntimeError):
 
 def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=False,
              frame_stride=5, fps=10, video_format="auto", on_episode=None,
-             completed_records=None, should_pause=None, on_checkpoint=None):
+             completed_records=None, should_pause=None, on_checkpoint=None, on_progress=None):
     if type(frame_stride) is not int or frame_stride < 1 or type(fps) is not int or fps < 1:
         raise ValueError("frame_stride and fps must be positive integers")
     if video_format not in {"auto", "mp4", "gif"}:
@@ -116,7 +116,7 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=Fals
             record, paths, frames, events = run_episode(
                 env, learner, seed=seed + episode, episode=episode + 1,
                 animate=animate and episode == episodes - 1, frame_stride=frame_stride,
-                capture_paths=True)
+                capture_paths=True, on_progress=on_progress)
             records.append(record)
             if on_checkpoint is not None:
                 on_checkpoint(records)

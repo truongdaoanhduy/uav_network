@@ -268,3 +268,18 @@ def test_unreaped_child_remains_reserved_until_nonblocking_reap(tmp_path, stop_r
     assert manager.active is None
     assert manager.counts["reaped"] == 1
     manager.close(9, drain_seconds=0)
+
+
+def test_completed_cpu_evaluation_survives_optional_evidence_upload_failure(tmp_path):
+    c=settings();learner=make_learner(c,observation_dim(c),state_dim(c))
+    def unavailable(*args,**kwargs):raise ConnectionError('evidence upload unavailable')
+    tracker=SimpleNamespace(diagnostic=lambda *a:None,run=SimpleNamespace(save=unavailable))
+    manager=make_manager(c,tmp_path,tracker)
+    manager.tick(4,0,lambda:(learner.actors.state_dict(),7),progress())
+    try:
+        wait_idle(manager)
+        assert manager.last_result['episodes']==2
+        assert manager.counts['completed']==1
+        assert 'evaluation_upload_failed' in (tmp_path/'diagnostics.jsonl').read_text()
+    finally:
+        manager.close(99,drain_seconds=0)

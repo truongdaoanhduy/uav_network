@@ -32,7 +32,26 @@ EVIDENCE_METRICS = {
     "evaluation/episodes_completed", "evaluation/return", "evaluation/search_rate_percent",
     "evaluation/delivery_rate_percent", "evaluation/success", "evaluation/checkpoint_global_step",
     "eval/mean_delivery_rate_percent", "eval/success_rate", "eval/mean_return",
+    "learner/alpha_continuous", "learner/alpha_discrete", "learner/twin_q_gap",
+    "learner/target_abs_max", "learner/critic_gradient_clipped", "learner/actor_update_step",
+    "cohort/return_std", "cohort/source", "cohort/network/packet_pdr_fraction",
+    "cohort/network/diagnostics/action_silent_given_eligible_fraction",
+    "cohort/network/diagnostics/action_receiver_eligible_fraction",
+    "cohort/network/diagnostics/data_phy_success_fraction",
+    "cohort/network/diagnostics/data_retry_fraction", "cohort/network/diagnostics/cca_busy_fraction",
+    "cohort/energy/j_per_gcs_delivery", "cohort/reports/delivery_count",
+    "cohort/reports/discovered_undelivered", "cohort/reports/discovered_undelivered_without_custody",
+    "evaluation/episodes", "evaluation/seed_first", "evaluation/seed_last",
+    "evaluation/scenario_hash", "evaluation/checkpoint_sha256", "evaluation/checkpoint_artifact",
+    "evaluation/deterministic_policy", "evaluation/kind", "evaluation/policy_version",
+    "evaluation/training_seed_overlap", "evaluation/validation_seed_overlap",
 }
+EVIDENCE_PREFIXES = ("diagnostics/", "replay/", "pql/", "storage/", "reward/", "action/", "safety/", "reports/", "evaluation_progress/")
+
+
+def select_evidence(values):
+    return {key: value for key, value in values.items()
+            if key in EVIDENCE_METRICS or key.startswith(EVIDENCE_PREFIXES)}
 
 
 class RunJournal:

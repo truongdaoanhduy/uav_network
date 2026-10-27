@@ -10,7 +10,8 @@ import numpy as np
 
 from .hardware import hardware_info
 from .telemetry import episode_telemetry
-from .run_journal import RunJournal, EVIDENCE_METRICS
+from .run_journal import RunJournal, select_evidence
+from .evidence import resource_snapshot
 from ..environment.observations import OBSERVATION_VERSION
 
 CPU_EPISODE_METRICS = ("evaluation/return", "evaluation/search_rate_percent",
@@ -139,6 +140,9 @@ class OnlineTracker:
         self.last_checkpoint_upload = None
         self.last_recovery_confirmed_at = None
         self.last_status_request = None
+        self.last_resource_capture = None
+        self.latest_resources = {}
+        self.last_warning_count = 0
         self.latest_evidence = {}
         self.journal = None
         self.learning_phase = "initializing"
@@ -231,9 +235,19 @@ class OnlineTracker:
             raise
 
     def _record_event(self, event, values):
-        self.journal.record(event, values)
         now = time.monotonic()
-        if (event == "progress" and self.last_status_request is not None
+        last_capture = getattr(self, "last_resource_capture", None)
+        if last_capture is None or now - last_capture >= 60 or event == "failure":
+            snapshot = resource_snapshot(self.output)
+            self.latest_resources = {"resources/" + key: value for key, value in snapshot.items() if key != "cuda"}
+            for gpu in snapshot["cuda"]:
+                self.latest_resources.update({f"resources/cuda_{gpu['logical_index']}/{key}":value
+                                              for key,value in gpu.items() if key != "logical_index"})
+            self.latest_resources["resources/captured_at_utc"] = datetime.now(timezone.utc).isoformat()
+            self.last_resource_capture = now
+        self.journal.record(event, {**self.latest_resources,
+            "resources/age_seconds": max(0., now - self.last_resource_capture), **values})
+        if (event in {"progress", "diagnostic_warning", "evaluation_progress"} and self.last_status_request is not None
                 and now - self.last_status_request < 60):
             return
         # SDK live watching missed atomic replacements in a real online probe.
@@ -247,7 +261,7 @@ class OnlineTracker:
 
     def _publish_observability(self, final=False):
         policies = {"training-status.json": "live", "metrics-guide.md": "now",
-                    "training-events.jsonl": "end", "diagnostics.jsonl": "end"}
+                    "training-events.jsonl": "end", "diagnostics.jsonl": "end", "thread-stacks.log": "live"}
         for name, policy in policies.items():
             path = self.output / name
             try:
@@ -296,11 +310,21 @@ class OnlineTracker:
 
     def learner(self, metrics, step):
         values = {f"learner/{k}": v for k, v in metrics.items()}
-        self.latest_evidence.update({k:v for k,v in values.items() if k in EVIDENCE_METRICS})
+        self.latest_evidence.update(select_evidence(values))
+        self.latest_evidence["evidence/learner_global_step"] = step
         self.run.log({"global_step": step, **values})
 
     def diagnostic(self, values, step):
-        self.latest_evidence.update({k:v for k,v in values.items() if k in EVIDENCE_METRICS})
+        self.latest_evidence.update(select_evidence(values))
+        self.latest_evidence["evidence/diagnostic_global_step"] = step
+        if "cohort/source_end_step" in values:
+            self.latest_evidence["evidence/cohort_global_step"] = values["cohort/source_end_step"]
+        count = values.get("diagnostics/warning_count", 0)
+        new_warning = isinstance(count, (int, np.integer)) and count > self.last_warning_count
+        if new_warning:
+            self.last_warning_count = int(count)
+        if "evaluation/episodes" in values:
+            self.run.summary["evaluation/episodes_completed"] = values["evaluation/episodes"]
         event = None
         if "recovery/status" in values:
             event = "recovery"
@@ -313,6 +337,10 @@ class OnlineTracker:
             event = "evaluation_result"
         elif "evaluation/episodes_completed" in values or "evaluation_status/status" in values:
             event = "evaluation"
+        elif "evaluation_progress/status" in values:
+            event = "evaluation_progress"
+        elif new_warning:
+            event = "diagnostic_warning"
         if event and self.journal is not None:
             context = {**self.latest_evidence, "global_step":step}
             if self.journal.identity.get("stage") == "visualize":
@@ -341,7 +369,12 @@ class OnlineTracker:
 
     def episode(self, record):
         self.records.append(record)
-        self.run.log(episode_metrics(record, self.config.world.num_uavs))
+        values = episode_metrics(record, self.config.world.num_uavs)
+        self.latest_evidence.update(select_evidence(values))
+        self.latest_evidence.update({"evidence/episode_global_step":record.get("global_step"),
+                                     "evidence/episode_seed":record.get("seed"),
+                                     "evidence/episode_number":record.get("episode")})
+        self.run.log(values)
 
     def checkpoint(self, path, progress, final=False, resumable=False):
         if not self.config.tracking.log_checkpoint:

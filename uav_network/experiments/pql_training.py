@@ -11,6 +11,7 @@ import yaml
 from ..environment.vector import make_vector, random_actions, unpack_info
 from .diagnostics import TrainingDiagnostics, failure_report
 from .evidence import print_evidence
+from .progress_watchdog import ProgressWatchdog
 from .async_evaluation import AsyncCheckpointEvaluator
 from .recovery_checkpoints import PeriodicRecovery
 from .local_checkpoints import prune_episode_checkpoints, disk_metrics, release_staged_checkpoint
@@ -36,7 +37,9 @@ def train_pql(config):
     summary = output / "summary.json"
     completed = global_step = collection_steps = 0
     history = []
+    latest, last_runtime_metrics, seeds = {}, {}, None
     diagnostics = TrainingDiagnostics(config, output)
+    watchdog = ProgressWatchdog(output)
     try:
         checkpoint = config.runtime.warm_start_checkpoint
         engine = PQLSystem(config, checkpoint=None if checkpoint == "none" else checkpoint)
@@ -122,6 +125,7 @@ def train_pql(config):
                 engine.submit((obs["observation"], obs["state"], action, reward,
                                following["observation"], following["state"], terminated))
                 global_step += count
+                watchdog.progress(global_step)
                 collection_steps += 1
                 returns += reward
                 lengths += 1
@@ -171,11 +175,12 @@ def train_pql(config):
                 obs = following
                 if global_step >= next_log or indices or final_batch:
                     values = engine.metrics()
+                    last_runtime_metrics = values.copy()
                     if tracker:
                         tracker.learner(latest, global_step)
                         tracker.diagnostic({**values, **disk_metrics(output)}, global_step)
                         tracker.progress(obs, global_step, completed, engine.critic, len(engine.replay), episode_lengths=lengths, force=True)
-                    print(json.dumps({"algorithm": config.runtime.algorithm, "architecture": "pql-inspired",
+                    print_evidence({"algorithm": config.runtime.algorithm, "architecture": "pql-inspired",
                                       "episodes": completed, "global_step": global_step,
                                       "critic_updates": engine.critic.updates,
                                       "actor_updates": engine.policy.actor_updates,
@@ -185,7 +190,7 @@ def train_pql(config):
                                           "pql/actor_updates_per_s", "pql/critic_collector_ratio",
                                           "pql/sample_uses_per_new_transition", "pql/queued_collections",
                                           "pql/collector_wait_seconds", "replay/evicted_unsampled_fraction")}},
-                                     allow_nan=False), flush=True)
+                                     )
                     next_log = global_step + config.runtime.log_interval_steps
                 if not final_batch and completed >= next_checkpoint:
                     path = output / f"episode_{completed:06d}.pt"
@@ -260,7 +265,10 @@ def train_pql(config):
         try:
             path = failure_report(config, output, error, {"global_step": global_step, "episodes": completed,
                                   "updates": engine.critic.updates if engine else 0,
-                                  "training_architecture": "pql-inspired"})
+                                  "training_architecture": "pql-inspired", "stage": "train",
+                                  "algorithm": config.runtime.algorithm, "seed": config.runtime.seed,
+                                  "collection_steps": collection_steps, "episode_seeds": seeds,
+                                  "last_learner_metrics": latest, "last_runtime_metrics": last_runtime_metrics})
             if engine and hasattr(engine, "failed_batch"):
                 torch.save(engine.failed_batch, output / "failed_batch.pt")
             if tracker:
@@ -269,29 +277,32 @@ def train_pql(config):
             print_evidence({"failure_reporting_error": {"error_type": type(reporting_error).__name__}})
         raise
     finally:
-        cleanup_ok = False
         try:
+            cleanup_ok = False
             try:
-                if evaluator is not None:
-                    evaluator.close(global_step, drain_seconds=0)
-            finally:
                 try:
-                    if engine:
-                        engine.close()
+                    if evaluator is not None:
+                        evaluator.close(global_step, drain_seconds=0)
                 finally:
-                    if vector:
-                        vector.close()
-            cleanup_ok = True
-        finally:
-            if tracker:
-                failed = not completed_ok or not cleanup_ok
-                try:
-                    tracker.close(failed=failed)
-                except Exception as error:
+                    try:
+                        if engine:
+                            engine.close()
+                    finally:
+                        if vector:
+                            vector.close()
+                cleanup_ok = True
+            finally:
+                if tracker:
+                    failed = not completed_ok or not cleanup_ok
+                    try:
+                        tracker.close(failed=failed)
+                    except Exception as error:
+                        if result is not None:
+                            result["tracking_status"], result["tracking_error_type"] = "failed", type(error).__name__
+                            summary.write_text(json.dumps(result, indent=2, allow_nan=False))
+                        raise
                     if result is not None:
-                        result["tracking_status"], result["tracking_error_type"] = "failed", type(error).__name__
+                        result["tracking_status"] = "failed" if failed else "finished"
                         summary.write_text(json.dumps(result, indent=2, allow_nan=False))
-                    raise
-                if result is not None:
-                    result["tracking_status"] = "failed" if failed else "finished"
-                    summary.write_text(json.dumps(result, indent=2, allow_nan=False))
+        finally:
+            watchdog.close()

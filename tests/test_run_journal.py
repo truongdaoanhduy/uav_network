@@ -229,3 +229,41 @@ def test_failed_status_refresh_attempts_are_bounded_too(tmp_path):
         t.diagnostic({"recovery/status":"snapshot_started"},64)
         assert attempts==["training-status.json","training-status.json"]
         t.close()
+
+
+def test_warning_and_replay_evidence_keep_source_steps_and_resources(tmp_path):
+    from contextlib import ExitStack
+    with ExitStack() as stack:
+        c,run,saved,t=tracker_fixture(tmp_path,stack)
+        t.learner({"critic_loss":2.,"alpha_continuous":.2},4096)
+        t.diagnostic({"diagnostics/warning_count":1,"diagnostics/delivery_gap_warning":1,
+                      "replay/evicted_unsampled_fraction":.7,"pql/queued_collections":4,
+                      "storage/disk_free_bytes":1000000},8192)
+        warning=json.loads((tmp_path/"training-status.json").read_text())
+        assert warning["event"]=="diagnostic_warning"
+        assert warning["context"]["diagnostics/delivery_gap_warning"]==1
+        assert warning["context"]["evidence/learner_global_step"]==4096
+        t.progress(observations(c),12288,1,SimpleNamespace(updates=4),100,force=True)
+        status=json.loads((tmp_path/"training-status.json").read_text())
+        assert status["context"]["replay/evicted_unsampled_fraction"]==.7
+        assert status["context"]["pql/queued_collections"]==4
+        assert status["context"]["resources/disk_free_bytes"]>=0
+        assert status["context"]["resources/process_peak_rss_bytes"]>0
+        assert status["context"]["evidence/learner_global_step"]==4096
+        t.close()
+
+
+def test_evaluation_provenance_and_count_describe_displayed_checkpoint(tmp_path):
+    from contextlib import ExitStack
+    with ExitStack() as stack:
+        c,run,saved,t=tracker_fixture(tmp_path,stack)
+        t.diagnostic({"eval/mean_delivery_rate_percent":70.,"eval/success_rate":.2,
+                      "evaluation/episodes":5,"evaluation/checkpoint_global_step":4096,
+                      "evaluation/seed_first":2000,"evaluation/seed_last":2004,
+                      "evaluation/scenario_hash":"a"*64,"evaluation/checkpoint_sha256":"b"*64},8192)
+        status=json.loads((tmp_path/"training-status.json").read_text())
+        assert status["context"]["evaluation/episodes"]==5
+        assert status["context"]["evaluation/seed_first"]==2000
+        assert status["context"]["evaluation/scenario_hash"]=="a"*64
+        assert run.summary["evaluation/episodes_completed"]==5
+        t.close()

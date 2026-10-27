@@ -61,6 +61,13 @@ class AsyncCheckpointEvaluator:
         if status in {"failed", "invalid_result", "timed_out"}:
             self.diagnostics.event(f"evaluation_{status}", step, event, severity="error")
 
+    def _upload(self, path, step):
+        if self.tracker is not None:
+            try:
+                self.tracker.run.save(str(path), base_path=str(self.output), policy="now")
+            except Exception as error:
+                self.diagnostics.event("evaluation_upload_failed", step, {"error_type": type(error).__name__})
+
     def tick(self, step, episodes, source, progress, allow_submit=True):
         self.poll(step)
         due = []
@@ -212,11 +219,13 @@ class AsyncCheckpointEvaluator:
                                "evaluation/deterministic_policy": True, "evaluation/kind": source["kind"],
                                "eval/episodes": result["episodes"], "eval/seed": source["seed_first"],
                                "eval/checkpoint_episode": source["episodes"]})
-                self.tracker.diagnostic(values, step)
-                self.tracker.run.save(str(path), base_path=str(self.output), policy="now")
+                try:
+                    self.tracker.diagnostic(values, step)
+                except Exception as error:
+                    self.diagnostics.event("evaluation_result_logging_failed", step, {"error_type": type(error).__name__})
+                self._upload(path, step)
         self._event(outcome, step, task["source"], **detail)
-        if self.tracker:
-            self.tracker.run.save(str(task["log"]), base_path=str(self.output), policy="now")
+        self._upload(task["log"], step)
 
     def close(self, step, drain_seconds=10.):
         if self.closed:
@@ -237,5 +246,4 @@ class AsyncCheckpointEvaluator:
             else:
                 task["stopping"] = "cancelled"
             self._event("cancelled", step, task["source"], reason="bounded_shutdown", reaped=reaped)
-            if self.tracker:
-                self.tracker.run.save(str(task["log"]), base_path=str(self.output), policy="now")
+            self._upload(task["log"], step)

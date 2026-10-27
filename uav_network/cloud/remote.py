@@ -42,7 +42,7 @@ def stop_process_tree(process, grace_seconds=20):
 
 
 def learner_command(spec, algorithm, run, gpu_index, destination, max_seconds=None):
-    env = dict(os.environ, CUDA_VISIBLE_DEVICES=str(gpu_index),
+    env = dict(os.environ, CUDA_VISIBLE_DEVICES=str(gpu_index), PYTHONFAULTHANDLER="1",
                WANDB_RUN_ID=run["id"], WANDB_NAME=run["name"])
     env.pop("KAGGLE_API_TOKEN", None)
     env.pop("UAV_STAGED_RESUME_CHECKPOINT", None)
@@ -341,8 +341,13 @@ def finalize_runs(spec, processes, output):
     results, failures, evaluation_failures = {}, {}, {}
     for algorithm, process in zip(spec["runs"], processes):
         if process.returncode != 0:
-            failures[algorithm] = {"exit_code": process.returncode,
+            failures[algorithm] = {"exit_code": process.returncode, "cause_confirmed": False,
                                    "log": str(output / f"{algorithm}-{spec['stage']}.log")}
+            if isinstance(process.returncode, int) and process.returncode < 0:
+                try:
+                    failures[algorithm]["signal_name"] = signal.Signals(-process.returncode).name
+                except ValueError:
+                    failures[algorithm]["signal_name"] = None
         folder = output / spec["stage"] / algorithm
         summary = folder / "summary.json"
         if summary.is_file():

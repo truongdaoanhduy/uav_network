@@ -11,7 +11,9 @@ def graceful_termination():
         return
 
     def terminate(signum, frame):
-        raise KeyboardInterrupt("Training terminated by scheduler")
+        error = KeyboardInterrupt("Training terminated by scheduler")
+        error.signal_number = signum
+        raise error
 
     previous = signal.signal(signal.SIGTERM, terminate)
     try:

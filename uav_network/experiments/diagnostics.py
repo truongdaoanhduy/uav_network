@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import json
 import math
 import os
+import signal
 from pathlib import Path
 import traceback
 
@@ -169,6 +170,13 @@ def failure_report(config, output, error, context):
               "resources": resource_snapshot(output),
               "error_chain": [{"error_type": type(cause).__name__} for cause in chain],
               "error_category": exception_category(chain), "root_cause_confirmed": False}
+    number = getattr(error, "signal_number", None)
+    if isinstance(number, int):
+        result["signal_number"] = number
+        try:
+            result["signal_name"] = signal.Signals(number).name
+        except ValueError:
+            result["signal_name"] = None
     path = Path(output) / "failure.json"
     print_evidence({"training_failure": result})
     write_evidence(path, result)

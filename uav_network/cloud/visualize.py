@@ -255,6 +255,7 @@ def run_visualization(spec, output=Path("/kaggle/working")):
     (output / "hardware.json").write_text(json.dumps(hardware_info(), indent=2))
     settings = spec["cpu_eval"]
     from ..experiments.evaluation import EvaluationPaused
+    from ..experiments.progress_watchdog import ProgressWatchdog
     from .controller import atomic_json
     results, failures = {}, {}
     progress = {"artifacts": spec["artifacts"], "cpu_eval": settings,
@@ -277,6 +278,8 @@ def run_visualization(spec, output=Path("/kaggle/working")):
         config = None
         tracking_output = output / "tracking" / algorithm
         tracking_output.mkdir(parents=True, exist_ok=True)
+        watchdog = ProgressWatchdog(tracking_output)
+        last_cpu_point, cpu_progress_serial, last_progress_log = None, 0, None
         failed = True
         completed_eval_episodes = (len(progress["records"].get(algorithm, []))
                                    if spec.get("session_resumable") else 0)
@@ -339,6 +342,19 @@ def run_visualization(spec, output=Path("/kaggle/working")):
                 tracker.run.summary["evaluation/checkpoint_global_step"] = checkpoint_step
                 initial_metrics["evaluation/checkpoint_global_step"] = checkpoint_step
             tracker.diagnostic(initial_metrics, completed_eval_episodes)
+            def record_progress(point):
+                nonlocal last_cpu_point, cpu_progress_serial, last_progress_log
+                current = (point.get("seed"), point.get("step"))
+                if current != last_cpu_point:
+                    cpu_progress_serial += 1
+                    watchdog.progress(cpu_progress_serial)
+                    last_cpu_point = current
+                now = time.monotonic()
+                if (point["status"] != "running" or last_progress_log is None
+                        or now - last_progress_log >= 30):
+                    tracker.diagnostic({"evaluation_progress/" + k: v for k, v in point.items()},
+                                       completed_eval_episodes)
+                    last_progress_log = now
             def record_episode(record):
                 nonlocal completed_eval_episodes
                 completed_eval_episodes = record["episode"]
@@ -347,6 +363,7 @@ def run_visualization(spec, output=Path("/kaggle/working")):
                     "evaluation/search_rate_percent": record["search_rate_percent"],
                     "evaluation/delivery_rate_percent": record["delivery_rate_percent"],
                     "evaluation/success": int(record["success"])}, record["episode"])
+            resolved = artifact
             if spec.get("publication_source_ref"):
                 results[algorithm] = load_publication_assets(spec, algorithm, output)
             else:
@@ -362,7 +379,7 @@ def run_visualization(spec, output=Path("/kaggle/working")):
                 results[algorithm] = evaluate(checkpoint, episodes=settings["episodes"], seed=settings["seed"],
                                               output_dir=output / "visualize" / algorithm, animate=True,
                                               frame_stride=settings["frame_stride"], fps=settings["fps"],
-                                              on_episode=record_episode, **options)
+                                              on_episode=record_episode, on_progress=record_progress, **options)
             completed_eval_episodes = results[algorithm]["episodes"]
             # Publication recovery preserves the saved policy protocol, not this runtime's semantics.
             protocol = results[algorithm].get("protocol", {})
@@ -385,6 +402,17 @@ def run_visualization(spec, output=Path("/kaggle/working")):
             metrics_path.write_text(json.dumps(results[algorithm], indent=2, allow_nan=False))
             aggregates = {"eval/" + k: results[algorithm][k] for k in
                 ("mean_return", "success_rate", "mean_search_rate_percent", "mean_delivery_rate_percent")}
+            seeds = protocol.get("seeds", [])
+            aggregates.update({"evaluation/episodes": results[algorithm]["episodes"],
+                "evaluation/checkpoint_artifact": resolved,
+                "evaluation/kind": "final_cpu_evaluation"})
+            if seeds:
+                aggregates.update({"evaluation/seed_first": seeds[0], "evaluation/seed_last": seeds[-1]})
+            for key in ("scenario_hash", "deterministic_policy", "training_seed_overlap", "validation_seed_overlap"):
+                if key in protocol:
+                    aggregates["evaluation/" + key] = protocol[key]
+            if type(source_step) is int and source_step >= 0:
+                aggregates["evaluation/checkpoint_global_step"] = source_step
             tracker.run.summary.update(aggregates)
             tracker.diagnostic(aggregates, results[algorithm]["episodes"])
             tracker.run.summary["evaluation/episodes_completed"] = results[algorithm]["episodes"]
@@ -401,13 +429,16 @@ def run_visualization(spec, output=Path("/kaggle/working")):
         except Exception as error:
             record_failure(error)
         finally:
-            if tracker is not None:
-                try:
-                    tracker.close(failed=failed)
-                except Exception as error:
-                    if algorithm not in failures:
-                        record_failure(error, "tracker_close")
-                    failures[algorithm]["close_error_type"] = type(error).__name__
+            try:
+                if tracker is not None:
+                    try:
+                        tracker.close(failed=failed)
+                    except Exception as error:
+                        if algorithm not in failures:
+                            record_failure(error, "tracker_close")
+                        failures[algorithm]["close_error_type"] = type(error).__name__
+            finally:
+                watchdog.close()
         (output / "visualization-result.json").write_text(json.dumps(results, indent=2, allow_nan=False))
     if "masac" in results and "matd3" in results:
         from ..experiments.comparison import compare_evaluations, save_comparison
