@@ -29,7 +29,7 @@ class ControllerTests(unittest.TestCase):
         spec = m.build_controller_spec(parent, "b" * 40, gpu_commit="c" * 40)
         return m, parent, account, credentials, spec
 
-    def test_generated_controller_executes_cpu_branch_and_loads_private_launch_token(self):
+    def test_legacy_controller_stage_no_longer_selects_controller_runner(self):
         m, parent, account, credentials, spec = self.fixtures()
         metadata = kernel_metadata(spec)
         self.assertFalse(metadata["enable_gpu"])
@@ -45,8 +45,8 @@ class ControllerTests(unittest.TestCase):
         node = next(n for n in source.body if isinstance(n, ast.Assign)
                     and any(isinstance(t, ast.Name) and t.id == "runner" for t in n.targets))
         exec(compile(ast.Module(body=[node], type_ignores=[]), "<bootstrap>", "exec"), namespace)
-        self.assertEqual(env["CUDA_VISIBLE_DEVICES"], "")
-        self.assertEqual(namespace["runner"], "uav_network.cloud.controller")
+        self.assertNotIn("CUDA_VISIBLE_DEVICES", env)
+        self.assertEqual(namespace["runner"], "uav_network.cloud.remote")
         self.assertTrue(spec["requires_kaggle_token"])
         self.assertNotIn(account.token, json.dumps(spec))
         self.assertNotIn(credentials.wandb_key, kernel_script(spec))

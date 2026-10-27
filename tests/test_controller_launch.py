@@ -74,21 +74,29 @@ class ControllerLaunchTests(unittest.TestCase):
             cli.launch(args, credentials)
         self.assertEqual(events[:2], ["refresh", "verify"])
 
-    def test_auto_continue_seeds_cloud_controller_before_reporting_readiness(self):
+    def test_auto_continue_uses_github_actions_without_kaggle_controller(self):
         with TemporaryDirectory() as directory:
-            manifest = self.launch(directory)
-        self.assertTrue(manifest.get("unattended_ready"), "Running GPU alone cannot survive a quota wait offline")
-        self.assertTrue(manifest["controller_ref"].startswith("owner/uav-flow-"))
-
-    def test_controller_launch_failure_keeps_gpu_receipt_and_reports_not_ready(self):
-        with TemporaryDirectory() as directory:
-            manifest = self.launch(directory, fail=True)
+            manifest = self.launch(directory, fail=True, ready=False)
             saved = json.loads(Path(manifest["manifest"]).read_text())
-        self.assertFalse(manifest.get("unattended_ready", True))
+        self.assertEqual(manifest["orchestration"], "github_actions")
+        self.assertTrue(manifest["external_supervisor_required"])
+        self.assertNotIn("controller_ref", manifest)
+        self.assertNotIn("controller_status", manifest)
+        self.assertNotIn("controller_health", manifest)
+        self.assertNotIn("controller_error_type", manifest)
         self.assertEqual(saved["kernel_ref"], "owner/actual-gpu")
-        self.assertEqual(saved["controller_error_type"], "RuntimeError")
+        self.assertEqual(saved["orchestration"], "github_actions")
 
-    def test_controller_receipt_alone_does_not_claim_unattended_readiness(self):
-        with TemporaryDirectory() as directory:
-            result = self.launch(directory, ready=False)
-        self.assertFalse(result["unattended_ready"])
+
+def test_github_orchestrated_training_kernel_does_not_mount_or_run_old_controller():
+    spec = {
+        "stage": "train", "kernel_ref": "owner/train", "credential_dataset": "owner/wandb",
+        "pipeline_credential_dataset": "owner/pipeline", "cpu_visualize": True,
+        "entity": "owner", "project": "main", "commit": "a" * 40,
+        "account": "selected", "training_mode": "base", "auto_continue": True,
+        "orchestration": "github_actions",
+    }
+    metadata = controller.kernel_metadata(spec)
+    source = controller.kernel_script(spec)
+    assert metadata["dataset_sources"] == ["owner/wandb"]
+    assert "continuation-watch" not in source

@@ -116,7 +116,8 @@ def launch(args, credentials):
         spec["requested_episodes"] = config.runtime.episodes
     if auto_continue:
         spec.update({"auto_continue": True, "root_kernel_ref": spec["kernel_ref"],
-                     "continuation_index": 0})
+                     "continuation_index": 0, "orchestration": "github_actions",
+                     "external_supervisor_required": True})
     if compare_legacy:
         spec["compare_legacy"] = True
     if cpu_visualize:
@@ -166,21 +167,6 @@ def launch(args, credentials):
     if auto_continue:
         manifest["root_kernel_ref"] = actual_ref
     (folder / "launch.json").write_text(json.dumps(manifest, indent=2))
-    if auto_continue:
-        from .controller import build_controller_spec, submit_controller, wait_controller_ready
-        manifest["unattended_ready"] = False
-        try:
-            watch = build_controller_spec(manifest, commit)
-            receipt = submit_controller(watch, folder, account, credentials)
-            manifest.update(controller_ref=receipt["kernel_ref"], controller_status=receipt["status"])
-            health = wait_controller_ready(receipt, account, credentials)
-            manifest["controller_health"] = health
-            manifest["unattended_ready"] = health.get("ready") is True
-            if health.get("wandb_url"):
-                manifest["controller_wandb_url"] = health["wandb_url"]
-        except Exception as error:
-            manifest["controller_error_type"] = type(error).__name__
-        (folder / "launch.json").write_text(json.dumps(manifest, indent=2))
     return manifest
 
 

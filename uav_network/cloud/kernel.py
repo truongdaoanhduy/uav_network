@@ -6,7 +6,9 @@ def kernel_metadata(spec):
     datasets = [spec["credential_dataset"]]
     if spec.get("storage_credential_dataset"):
         datasets.append(spec["storage_credential_dataset"])
-    if spec.get("cpu_visualize") or spec.get("requires_kaggle_token"):
+    needs_launch_token = (spec.get("requires_kaggle_token") or
+                          (spec.get("cpu_visualize") and spec.get("orchestration") != "github_actions"))
+    if needs_launch_token:
         datasets.append(spec["pipeline_credential_dataset"])
     return {"id": spec["kernel_ref"], "title": spec["kernel_ref"].split("/")[-1].replace("-", " "),
             "code_file": "kernel.py", "language": "python", "kernel_type": "script",
@@ -25,7 +27,7 @@ import sys
 import time
 
 SPEC = __SPEC__
-if SPEC["stage"] in {"visualize", "archive", "continuation-watch"}:
+if SPEC["stage"] in {"visualize", "archive"}:
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
 os.environ["UAV_JOB_STARTED_AT"] = str(time.monotonic())
 os.environ["UAV_JOB_STARTED_AT_UTC"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -70,7 +72,9 @@ if SPEC.get("storage_credential_dataset"):
         raise RuntimeError("Expected one private checkpoint storage credential")
     os.environ["HF_TOKEN"] = storage_tokens[0].read_text().strip()
     os.environ["HF_REPO_ID"] = SPEC["checkpoint_repo"]
-if SPEC.get("cpu_visualize") or SPEC.get("requires_kaggle_token"):
+needs_launch_token = (SPEC.get("requires_kaggle_token") or
+                      (SPEC.get("cpu_visualize") and SPEC.get("orchestration") != "github_actions"))
+if needs_launch_token:
     tokens = list(inputs.rglob("uav_cpu_launch_token.txt"))
     if len(tokens) != 1 or not tokens[0].read_text().strip():
         raise RuntimeError("Expected one private CPU launch credential")
@@ -79,7 +83,7 @@ spec_file = Path("/kaggle/working/job.json")
 spec_file.write_text(json.dumps(SPEC, indent=2))
 python = root / ".venv/bin/python"
 # The remote runner uses CUDA_VISIBLE_DEVICES per independent learner.
-runner = {"continuation-watch": "uav_network.cloud.controller", "visualize": "uav_network.cloud.visualize", "archive": "uav_network.cloud.archive"}.get(
+runner = {"visualize": "uav_network.cloud.visualize", "archive": "uav_network.cloud.archive"}.get(
     SPEC["stage"], "uav_network.cloud.remote")
 subprocess.run([str(python), "-m", runner, "--spec", str(spec_file)], cwd=root, check=True)
 '''
