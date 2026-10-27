@@ -229,6 +229,7 @@ class BaselineResumeTests(unittest.TestCase):
             from uav_network.experiments.run_journal import RunJournal
             tracker.journal = RunJournal(output, {"run_id": "test", "stage": "train"})
             tracker.learning_phase = "learning"
+            tracker.last_status_request = None
             config.tracking.checkpoint_store = "wandb"
             tracker.config, tracker.output = config, output
             tracker.wandb = SimpleNamespace(Artifact=artifact)

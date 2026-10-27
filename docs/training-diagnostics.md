@@ -113,7 +113,11 @@ khi full-state upload được xác nhận; policy-only không reset đồng h�
 phải tuổi của state lúc được chụp, cũng không phải bảo đảm full checkpoint của
 phiên trước đã được kiểm tra trong phiên mới.
 
-Status nhỏ đăng ký `live`, guide `now`; journal/diagnostics tăng dần đăng ký
+Status nhỏ đăng ký `live` và yêu cầu refresh `now` sau các mốc chuyển giai đoạn;
+progress yêu cầu refresh tối đa một lần/phút ở nhịp progress kế tiếp. Không dựa
+riêng vào watcher: phép thử online SDK 0.30.0 bỏ lỡ cập nhật atomic replace trong
+110 giây, dù bản cuối được upload khi finish. Đây là yêu cầu upload best-effort,
+không phải cam kết độ trễ mạng một phút. Guide dùng `now`; journal/diagnostics tăng dần đăng ký
 `end`, rồi yêu cầu flush `now` lúc caught failure/close. Cohorts giữ live policy.
 W&B Logs có các event trong khi chạy. Hard kill/mất mạng có thể cắt phần chưa
 đồng bộ: không hứa có traceback cuối hoặc mọi event trước crash. Khi W&B chưa

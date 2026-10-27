@@ -186,3 +186,25 @@ def test_failure_traceback_file_survives_closed_stdout(tmp_path):
     report=json.loads(path.read_text())
     assert report["error_type"]=="RuntimeError"
     assert "original failure" in report["traceback"]
+
+
+def test_atomic_status_has_bounded_explicit_refresh_and_forced_transition_upload(tmp_path):
+    from contextlib import ExitStack
+    clock=[0.]
+    with ExitStack() as stack:
+        stack.enter_context(patch("uav_network.experiments.tracking.time.monotonic",side_effect=lambda:clock[0]))
+        c,run,saved,t=tracker_fixture(tmp_path,stack)
+        uploads=lambda:sum(item==("training-status.json","now") for item in saved)
+        initial=uploads()
+        for step in (1,2):
+            clock[0]=float(step)
+            t.progress(observations(c),step,0,SimpleNamespace(updates=1),100,force=True)
+        assert uploads()==initial
+        clock[0]=61.
+        t.progress(observations(c),3,0,SimpleNamespace(updates=1),100,force=True)
+        assert uploads()==initial+1
+        clock[0]=62.
+        t.diagnostic({"recovery/status":"snapshot_started"},3)
+        assert uploads()==initial+2
+        assert json.loads((tmp_path/"training-status.json").read_text())["context"]["phase"]=="checkpoint_snapshot"
+        t.close()

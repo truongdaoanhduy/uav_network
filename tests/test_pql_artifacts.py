@@ -61,6 +61,7 @@ class PQLArtifactTests(unittest.TestCase):
             from uav_network.experiments.run_journal import RunJournal
             tracker.journal = RunJournal(output, {"run_id": "test", "stage": "train"})
             tracker.learning_phase = "learning"
+            tracker.last_status_request = None
             tracker.config, tracker.output = Config(), output
             tracker.config.tracking.checkpoint_store = "wandb"
             tracker.config.pql.enabled = True

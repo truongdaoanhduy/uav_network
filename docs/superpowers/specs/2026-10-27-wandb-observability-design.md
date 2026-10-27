@@ -31,3 +31,12 @@ Tests must exercise real SDK serialization, removed stale columns/pins, correct 
 ## Builder-check resolutions
 
 No user input needed. Aggregate eval columns use eval/mean_delivery_rate_percent and eval/success_rate, never final_* training aggregates or the last CPU episode. The 12-run cap is per LinePlot.max_runs_to_show, while workspace maxRuns=1000 preserves the table; startup reconciliation must preserve panel configuration. Recovery timing is explicitly seconds since confirmed full upload, not age of captured training state. CPU visualization callbacks route scalar records via tracker.diagnostic so the journal sees actual CPU progress and no training-budget percentage is invented there. Cohort n/partial/source and distinct BASE/PQL sample-use populations are explained in the guide. Console, append, status writes and optional file uploads fail independently. Native resource series are left empty where unavailable.
+
+## Live probe resolution
+
+A real W&B SDK 0.30.0 probe confirmed the initial status but missed its atomic
+replacement for 110 seconds; revision2 arrived on finish. Keep atomic local
+status writes and live registration, but explicitly request status-only now
+uploads at event transitions and at most every60s at progress cadence. Other
+growing files remain end/close-flush; no extra scalar metrics. This is bounded
+best-effort submission, not a network latency guarantee.

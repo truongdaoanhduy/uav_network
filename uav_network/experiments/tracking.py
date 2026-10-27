@@ -138,6 +138,7 @@ class OnlineTracker:
         self.closed = False
         self.last_checkpoint_upload = None
         self.last_recovery_confirmed_at = None
+        self.last_status_request = None
         self.latest_evidence = {}
         self.journal = None
         self.learning_phase = "initializing"
@@ -201,7 +202,7 @@ class OnlineTracker:
             periodic_eval = metadata["stage"] in {"train", "validate"} and bool(
                 config.tracking.evaluation_interval or config.tracking.evaluation_interval_steps)
             self.run.summary["evaluation_status/periodic_enabled"] = periodic_eval
-            self.journal.record("started", {"global_step": self.initial_step,
+            self._record_event("started", {"global_step": self.initial_step,
                 "completed_episodes": initial.get("episodes", 0) if metadata["stage"] in {"train", "validate"} else None,
                 "phase": "initializing", "periodic_evaluation_enabled": periodic_eval})
             self._publish_observability()
@@ -228,6 +229,22 @@ class OnlineTracker:
         except BaseException:
             self.close(failed=True)
             raise
+
+    def _record_event(self, event, values):
+        self.journal.record(event, values)
+        now = time.monotonic()
+        if (event == "progress" and self.last_status_request is not None
+                and now - self.last_status_request < 60):
+            return
+        # SDK live watching missed atomic replacements in a real online probe.
+        # Explicitly refresh only the small status file, at most once/minute for progress.
+        try:
+            self.run.save(str(self.output / "training-status.json"),
+                          base_path=str(self.output), policy="now")
+        except Exception as error:
+            self.journal._warn(error)
+        else:
+            self.last_status_request = now
 
     def _publish_observability(self, final=False):
         policies = {"training-status.json": "live", "metrics-guide.md": "now",
@@ -273,7 +290,7 @@ class OnlineTracker:
         if self.journal.identity.get("stage") in {"train", "validate"}:
             values["run/episode_budget_percent"] = completed / self.config.runtime.episodes * 100
         self.learning_phase = "learning" if learner.updates else "collecting_before_first_update"
-        self.journal.record("progress", {**self.latest_evidence, **values,
+        self._record_event("progress", {**self.latest_evidence, **values,
             "completed_episodes": completed, "updates": learner.updates, "phase":self.learning_phase})
         self.run.log(values)
         self.next_progress = step + self.config.runtime.log_interval_steps
@@ -301,7 +318,7 @@ class OnlineTracker:
             context = {**self.latest_evidence, "global_step":step}
             if self.journal.identity.get("stage") == "visualize":
                 context["phase"] = "cpu_evaluation_completed" if event == "evaluation_result" else "cpu_evaluation"
-            self.journal.record(event, context)
+            self._record_event(event, context)
         self.run.log({"global_step": step, **values})
 
     def failure(self, path, step):
@@ -313,7 +330,7 @@ class OnlineTracker:
         except (OSError, ValueError, TypeError):
             pass
         if self.journal is not None:
-            self.journal.record("failure", {**self.latest_evidence,"global_step":step,"phase":"failed", "error_type":error_type})
+            self._record_event("failure", {**self.latest_evidence,"global_step":step,"phase":"failed", "error_type":error_type})
             self._publish_observability(final=True)
         self.run.summary.update({"diagnostics/fatal_error": True,"diagnostics/failure_type":error_type})
         self.run.log({"global_step": step, "diagnostics/fatal_error_count": 1})
@@ -332,19 +349,19 @@ class OnlineTracker:
             return None
         started = time.perf_counter()
         full = bool(resumable or (final and (self.config.pql.enabled or progress.get("resume_checkpoint") is not None)))
-        self.journal.record("checkpoint_requested", {"global_step":progress["global_step"],
+        self._record_event("checkpoint_requested", {"global_step":progress["global_step"],
             "checkpoint_kind":"full" if full else "policy", "phase":"checkpoint_upload"})
         try:
             reference = self._checkpoint(path, progress, final=final, resumable=resumable)
         except Exception as error:
-            self.journal.record("checkpoint_failed", {"error_type":type(error).__name__,
+            self._record_event("checkpoint_failed", {"error_type":type(error).__name__,
                 "checkpoint_elapsed_seconds":time.perf_counter()-started,"phase":self.learning_phase})
             raise
         if reference and full:
             self.last_recovery_confirmed_at = time.perf_counter()
-            self.journal.record("full_checkpoint_confirmed", {"full_checkpoint_artifact":reference,
+            self._record_event("full_checkpoint_confirmed", {"full_checkpoint_artifact":reference,
                 "full_checkpoint_global_step":progress["global_step"]})
-        self.journal.record("checkpoint_confirmed" if reference else "checkpoint_skipped", {
+        self._record_event("checkpoint_confirmed" if reference else "checkpoint_skipped", {
             "checkpoint_artifact":reference, "checkpoint_elapsed_seconds":time.perf_counter()-started,
             "phase":self.learning_phase})
         return reference
@@ -418,7 +435,7 @@ class OnlineTracker:
         if "reproducibility" in result:
             self.run.summary["reproducibility"] = result["reproducibility"]
         artifact = self.checkpoint(result["checkpoint"], result, final=True)
-        self.journal.record("training_segment_complete", {**self.latest_evidence,"global_step":result["global_step"],
+        self._record_event("training_segment_complete", {**self.latest_evidence,"global_step":result["global_step"],
             "completed_episodes":result["episodes"], "episode_budget_complete":completion is True,
             "stop_reason":result.get("stop_reason","unknown")})
         return {**metrics, **self.identity(), "checkpoint_artifact": artifact}
@@ -427,7 +444,7 @@ class OnlineTracker:
         if not self.closed:
             self.closed = True
             if self.journal is not None:
-                self.journal.record("closed", {**self.latest_evidence,"phase":"failed" if failed else "closed",
+                self._record_event("closed", {**self.latest_evidence,"phase":"failed" if failed else "closed",
                     "elapsed_seconds":time.perf_counter()-self.started})
                 self._publish_observability(final=True)
             self.run.summary.update({"run_ended_at_utc": datetime.now(timezone.utc).isoformat(),
