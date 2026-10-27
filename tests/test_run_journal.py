@@ -208,3 +208,24 @@ def test_atomic_status_has_bounded_explicit_refresh_and_forced_transition_upload
         assert uploads()==initial+2
         assert json.loads((tmp_path/"training-status.json").read_text())["context"]["phase"]=="checkpoint_snapshot"
         t.close()
+
+
+def test_failed_status_refresh_attempts_are_bounded_too(tmp_path):
+    from contextlib import ExitStack
+    clock=[0.]
+    with ExitStack() as stack:
+        stack.enter_context(patch("uav_network.experiments.tracking.time.monotonic",side_effect=lambda:clock[0]))
+        c,run,saved,t=tracker_fixture(tmp_path,stack)
+        attempts=[]
+        def unavailable(path, **kwargs):
+            attempts.append(Path(path).name)
+            raise OSError("upload unavailable")
+        run.save=unavailable
+        for second in (61.,62.,63.):
+            clock[0]=second
+            t.progress(observations(c),int(second),0,SimpleNamespace(updates=1),100,force=True)
+        assert attempts==["training-status.json"]
+        clock[0]=64.
+        t.diagnostic({"recovery/status":"snapshot_started"},64)
+        assert attempts==["training-status.json","training-status.json"]
+        t.close()

@@ -238,13 +238,12 @@ class OnlineTracker:
             return
         # SDK live watching missed atomic replacements in a real online probe.
         # Explicitly refresh only the small status file, at most once/minute for progress.
+        self.last_status_request = now
         try:
             self.run.save(str(self.output / "training-status.json"),
                           base_path=str(self.output), policy="now")
         except Exception as error:
             self.journal._warn(error)
-        else:
-            self.last_status_request = now
 
     def _publish_observability(self, final=False):
         policies = {"training-status.json": "live", "metrics-guide.md": "now",
