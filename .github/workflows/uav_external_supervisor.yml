@@ -1,0 +1,79 @@
+name: UAV External Supervisor
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Inspect desired transitions without submitting Kaggle children
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uav-external-supervisor
+  cancel-in-progress: false
+
+jobs:
+  supervise:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      KAGGLE_API_TOKEN_ACCOUNT_01: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_01 }}
+      KAGGLE_API_TOKEN_ACCOUNT_02: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_02 }}
+      KAGGLE_API_TOKEN_ACCOUNT_03: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_03 }}
+      KAGGLE_API_TOKEN_ACCOUNT_04: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_04 }}
+      KAGGLE_API_TOKEN_ACCOUNT_05: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_05 }}
+      KAGGLE_API_TOKEN_ACCOUNT_06: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_06 }}
+      KAGGLE_API_TOKEN_ACCOUNT_07: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_07 }}
+      KAGGLE_API_TOKEN_ACCOUNT_08: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_08 }}
+      KAGGLE_API_TOKEN_ACCOUNT_09: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_09 }}
+      KAGGLE_API_TOKEN_ACCOUNT_10: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_10 }}
+      KAGGLE_API_TOKEN_ACCOUNT_11: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_11 }}
+      KAGGLE_API_TOKEN_ACCOUNT_12: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_12 }}
+      KAGGLE_API_TOKEN_ACCOUNT_13: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_13 }}
+      KAGGLE_API_TOKEN_ACCOUNT_14: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_14 }}
+      KAGGLE_API_TOKEN_ACCOUNT_15: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_15 }}
+      KAGGLE_API_TOKEN_ACCOUNT_16: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_16 }}
+      KAGGLE_API_TOKEN_ACCOUNT_17: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_17 }}
+      KAGGLE_API_TOKEN_ACCOUNT_18: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_18 }}
+      KAGGLE_API_TOKEN_ACCOUNT_19: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_19 }}
+      KAGGLE_API_TOKEN_ACCOUNT_20: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_20 }}
+      KAGGLE_API_TOKEN_ACCOUNT_21: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_21 }}
+      KAGGLE_API_TOKEN_ACCOUNT_22: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_22 }}
+      KAGGLE_API_TOKEN_ACCOUNT_23: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_23 }}
+      KAGGLE_API_TOKEN_ACCOUNT_24: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_24 }}
+      WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      WANDB_ENTITY: ${{ vars.WANDB_ENTITY }}
+      WANDB_PROJECT: ${{ vars.WANDB_PROJECT }}
+      HF_REPO_ID: ${{ vars.HF_REPO_ID }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - name: Checkout pinned supervisor source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Install orchestration-only dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "kaggle>=2.2,<3" "wandb>=0.25,<1" "huggingface-hub>=0.34,<2" "PyYAML>=6,<7"
+
+      - name: Reconcile UAV lineages
+        shell: bash
+        run: |
+          args=()
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.dry_run }}" == "true" ]]; then
+            args+=(--dry-run)
+          fi
+          PYTHONPATH=. python -m uav_network.cloud.github_supervisor "${args[@]}"
