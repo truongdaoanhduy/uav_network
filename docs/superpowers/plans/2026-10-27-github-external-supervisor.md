@@ -130,3 +130,17 @@
 - [ ] Push branch, verify workflow is registered, run manual reconcile in dry/no-transition mode first, inspect result.
 - [ ] Confirm no new `continuation-watch` kernel was submitted and no active production run was cancelled/restarted.
 - [ ] Record evidence/current task and commit/push.
+
+### Task 7: Verify cloud service credentials from GitHub (2026-10-27 follow-up)
+
+**Files:** `uav_network/cloud/github_supervisor.py`, `.github/workflows/uav_external_supervisor.yml`, `tests/test_github_supervisor.py`, `tests/test_github_supervisor_workflow.py`.
+
+**Interfaces:** `--check-services` performs authenticated read-only W&B viewer/project and HF identity/repository queries, prints status/error class only, exits without reconciling. A manual dry-run executes this probe before reconciliation. Scheduled transitions retain their existing service dependencies.
+
+- [ ] RED: CLI returns success only when both services authenticate and their configured project/repository is accessible; denied service returns nonzero without printing error messages or secrets; neither path submits jobs. Workflow includes the probe only for manual dry-run.
+- [ ] GREEN: add the small probe to the existing supervisor and wire the workflow step; no new dependency.
+- [ ] Run focused cloud tests, full offline CPU pytest, compileall, diff/secret checks.
+- [ ] Push source, execute manual GitHub dry-run on its exact commit, inspect probe and Kaggle reconciliation results; do not launch production training.
+- [ ] Update current task/evidence, commit and push both working/default refs.
+
+Ruling: this closes the unexercised W&B/HF credential verification from Task 6; it is a read-only deployment check under the existing approved supervisor design, not a new training launch.

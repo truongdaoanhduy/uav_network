@@ -83,3 +83,15 @@ def test_secret_sync_uses_stdin_and_skips_disabled_accounts(tmp_path):
     assert enabled_call["input"] == "account_01"
     assert result["secrets"] == sorted(names)
     assert "KAGGLE_ENABLED_ACCOUNTS" in result["variables"]
+
+
+def test_manual_dry_run_probes_cloud_credentials_before_reconciling():
+    data = yaml.safe_load(WORKFLOW.read_text())
+    steps = data["jobs"]["supervise"]["steps"]
+    probe_index = next((index for index, step in enumerate(steps)
+                        if "--check-services" in step.get("run", "")), None)
+    assert probe_index is not None, "Cloud credential readiness has not been checked"
+    assert steps[probe_index]["if"] == "github.event_name == 'workflow_dispatch' && inputs.dry_run"
+    reconcile_index = next(index for index, step in enumerate(steps)
+                           if step.get("name") == "Reconcile UAV lineages")
+    assert probe_index < reconcile_index

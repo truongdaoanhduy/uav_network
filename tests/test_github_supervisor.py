@@ -302,3 +302,60 @@ def test_owned_refs_keeps_reserved_cpu_retry_namespace():
     ]
     with patch.object(s, "run_kaggle", return_value=__import__("json").dumps(rows)):
         assert s._owned_refs(account, 100) == [rows[0]["ref"], rows[1]["ref"]]
+
+
+def test_service_probe_authenticates_reads_and_never_reconciles(monkeypatch, capsys):
+    import json
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+    import wandb
+    import huggingface_hub
+    s, account, credentials, parent = fixtures()
+    monkeypatch.setenv("HF_TOKEN", "synthetic-hf-secret")
+    monkeypatch.setenv("HF_REPO_ID", "owner/checkpoints")
+    wb = Mock(viewer=object())
+    wb.runs.return_value = iter([object()])
+    hf = Mock()
+    hf.whoami.return_value = {"name": "owner"}
+    hf.repo_info.return_value = SimpleNamespace(id="owner/checkpoints")
+    with patch.object(s, "credentials_from_environment", return_value=credentials), \
+         patch.object(s, "reconcile_account", side_effect=AssertionError("probe submitted")), \
+         patch.object(wandb, "Api", return_value=wb), \
+         patch.object(huggingface_hub, "HfApi", return_value=hf):
+        code = s.main(["--check-services"])
+    report = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert report == {"wandb": {"status": "ok"}, "huggingface": {"status": "ok"}}
+    wb.runs.assert_called_once_with("owner/project", per_page=1)
+    hf.repo_info.assert_called_once_with("owner/checkpoints", repo_type="model", timeout=30)
+
+
+def test_service_probe_failure_is_nonzero_and_redacts_remote_error(monkeypatch, capsys):
+    import json
+    from unittest.mock import Mock
+    import wandb
+    import huggingface_hub
+    s, account, credentials, parent = fixtures()
+    monkeypatch.setenv("HF_TOKEN", "synthetic-hf-secret")
+    monkeypatch.setenv("HF_REPO_ID", "owner/checkpoints")
+    for failed_service in ("wandb", "huggingface"):
+        wb = Mock(viewer=object())
+        wb.runs.return_value = iter([])
+        hf = Mock()
+        hf.whoami.return_value = {"name": "owner"}
+        failing = wb.runs if failed_service == "wandb" else hf.repo_info
+        failing.side_effect = RuntimeError("synthetic-wandb synthetic-hf-secret private-details")
+        with patch.object(s, "credentials_from_environment", return_value=credentials), \
+             patch.object(s, "reconcile_account", side_effect=AssertionError("probe submitted")), \
+             patch.object(wandb, "Api", return_value=wb), \
+             patch.object(huggingface_hub, "HfApi", return_value=hf):
+            code = s.main(["--check-services"])
+        output = capsys.readouterr()
+        report = json.loads(output.out)
+        assert code == 1
+        assert report[failed_service] == {"status": "error", "error_type": "RuntimeError"}
+        other = "huggingface" if failed_service == "wandb" else "wandb"
+        assert report[other] == {"status": "ok"}
+        assert "synthetic-wandb" not in output.out + output.err
+        assert "synthetic-hf-secret" not in output.out + output.err
+        assert "private-details" not in output.out + output.err

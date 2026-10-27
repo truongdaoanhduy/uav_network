@@ -335,14 +335,44 @@ def reconcile_account(account, credentials, *, limit=100, dry_run=False):
     return outcomes
 
 
+def check_services(credentials):
+    """Probe configured remote read access without changing cloud state."""
+    report = {}
+    try:
+        import wandb
+        api = wandb.Api(api_key=credentials.wandb_key, timeout=30)
+        if not api.viewer:
+            raise ValueError("W&B identity is unavailable")
+        next(iter(api.runs(f"{credentials.entity}/{credentials.project}", per_page=1)), None)
+        report["wandb"] = {"status": "ok"}
+    except Exception as error:
+        report["wandb"] = {"status": "error", "error_type": type(error).__name__}
+    try:
+        from huggingface_hub import HfApi
+        api = HfApi(token=os.environ["HF_TOKEN"])
+        if not api.whoami():
+            raise ValueError("HF identity is unavailable")
+        api.repo_info(os.environ["HF_REPO_ID"], repo_type="model", timeout=30)
+        report["huggingface"] = {"status": "ok"}
+    except Exception as error:
+        report["huggingface"] = {"status": "error", "error_type": type(error).__name__}
+    return report
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Short-lived GitHub UAV cloud reconciler")
     parser.add_argument("--limit", type=int, default=100)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--check-services", action="store_true",
+                        help="Check W&B/HF read access without reconciling or submitting")
     args = parser.parse_args(argv)
     if args.limit < 1 or args.limit > 500:
         raise ValueError("--limit must be 1..500")
     credentials = credentials_from_environment()
+    if args.check_services:
+        report = check_services(credentials)
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return int(any(item["status"] != "ok" for item in report.values()))
     report = {}
     for account in credentials.accounts:
         report[account.name] = reconcile_account(account, credentials, limit=args.limit,

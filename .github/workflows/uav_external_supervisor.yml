@@ -70,6 +70,10 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install "kaggle>=2.2,<3" "wandb>=0.25,<1" "huggingface-hub>=0.34,<2" "PyYAML>=6,<7"
 
+      - name: Verify W&B and HF credential access (read only)
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
+        run: PYTHONPATH=. python -m uav_network.cloud.github_supervisor --check-services
+
       - name: Reconcile UAV lineages
         shell: bash
         run: |
