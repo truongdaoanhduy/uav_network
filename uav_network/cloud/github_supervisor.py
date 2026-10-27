@@ -23,6 +23,11 @@ CONTROL_NAMES = ("job.json", "job-result.json", "continuation.json",
                  "cpu-visualization.json", "visualization-result.json",
                  "evaluation-progress.json", "job-failures.json")
 ACCOUNT_ENV_RE = re.compile(r"^KAGGLE_API_TOKEN_ACCOUNT_(\d{2})$")
+IMMUTABLE_ARTIFACT_RE = re.compile(r"^[\w.-]+/[\w.-]+/[\w.-]+:v[0-9]+$")
+
+
+class RecoveryUnavailable(RuntimeError):
+    """A failed lineage has no proven exact full-state recovery point."""
 
 
 def credentials_from_environment(env=None):
@@ -87,6 +92,68 @@ def _visualization_complete(job, results):
                 or hf.get("status") != "ok"):
             return False
     return True
+
+
+def verified_recovery_result(job, credentials, *, api=None):
+    runs = job.get("runs", {})
+    if len(runs) != 1:
+        raise RecoveryUnavailable("Recovery requires exactly one learner lineage")
+    algorithm, identity = next(iter(runs.items()))
+    run_id = identity.get("id") if isinstance(identity, dict) else None
+    if not isinstance(run_id, str) or not run_id:
+        raise RecoveryUnavailable("Recovery source run is missing")
+    try:
+        if api is None:
+            import wandb
+            api = wandb.Api(api_key=credentials.wandb_key, timeout=30)
+        run = api.run(f"{job['entity']}/{job['project']}/{run_id}")
+        state = str(getattr(run, "state", "")).lower()
+        if state not in {"crashed", "failed"}:
+            raise RecoveryUnavailable("Recovery is only valid for a failed/crashed source run")
+        summary = dict(run.summary)
+        reference = summary.get("recovery/checkpoint_artifact")
+        episodes = summary.get("recovery/last_verified_episodes")
+        global_step = summary.get("recovery/last_verified_global_step")
+        if (not isinstance(reference, str) or not IMMUTABLE_ARTIFACT_RE.fullmatch(reference)
+                or type(episodes) is not int or episodes < 0
+                or type(global_step) is not int or global_step < 0):
+            raise RecoveryUnavailable("No immutable confirmed recovery pointer")
+        artifact = api.artifact(reference, type="model")
+        metadata = dict(getattr(artifact, "metadata", {}) or {})
+        entries = getattr(getattr(artifact, "manifest", None), "entries", {})
+        if "checkpoint.json" not in entries:
+            raise RecoveryUnavailable("Recovery artifact has no immutable HF checkpoint manifest")
+        if (metadata.get("resumable") is not True
+                or metadata.get("source_run_id") != run_id
+                or metadata.get("source_git_commit") != job.get("commit")
+                or metadata.get("completed_episodes") != episodes
+                or metadata.get("global_step") != global_step):
+            raise RecoveryUnavailable("Recovery artifact provenance differs from the failed lineage")
+        initial_episodes = job.get("continuation_expected_episodes", {}).get(algorithm, 0)
+        initial_step = job.get("continuation_expected_global_step", {}).get(algorithm, 0)
+        target = job.get("requested_episodes")
+        if (type(initial_episodes) is not int or type(initial_step) is not int
+                or type(target) is not int or target < 1
+                or episodes < initial_episodes or episodes > target
+                or global_step < initial_step
+                or (episodes == initial_episodes and global_step == initial_step)):
+            raise RecoveryUnavailable("Recovery progress does not advance the immutable segment prefix")
+        complete = metadata.get("episode_budget_complete") is True
+        if complete and episodes < target:
+            raise RecoveryUnavailable("Recovery metadata claims completion before the episode budget")
+        return {algorithm: {
+            "algorithm": algorithm, "requested_episodes": target,
+            "episodes": episodes, "initial_episodes": initial_episodes,
+            "segment_episodes": episodes - initial_episodes, "global_step": global_step,
+            "updates": 0, "tracking_status": "finished",
+            "episode_budget_complete": complete,
+            "stop_reason": "episode_budget" if complete else "time_budget",
+            "checkpoint_artifact": reference, "wandb_run_id": run_id,
+            "recovery_source_state": state, "exact_recovery": True}}
+    except RecoveryUnavailable:
+        raise
+    except Exception as error:
+        raise RecoveryUnavailable(type(error).__name__) from error
 
 
 def cpu_retry_ref(root_ref, attempt):
@@ -165,7 +232,32 @@ def reconcile_ref(ref, account, credentials, *, dry_run=False):
     if job.get("stage") not in {"train", "validate"}:
         return {**base, "action": "ignored"}
     if status != "complete":
-        return {**base, "action": "recovery_required"}
+        try:
+            recovered = verified_recovery_result(job, credentials)
+        except RecoveryUnavailable as error:
+            return {**base, "action": "recovery_blocked", "error_type": type(error).__name__}
+        recovery_stage = next_stage(job, recovered)
+        root = job.get("root_kernel_ref", ref)
+        if recovery_stage == "gpu":
+            target = kernel_ref_for_segment(root, job.get("continuation_index", 0) + 1)
+            if _owned_kernel_exists(target, account):
+                return {**base, "action": "existing_recovery_gpu", "child_ref": target}
+            if dry_run:
+                return {**base, "action": "would_submit_recovery_gpu", "child_ref": target}
+            with _submit_output("recovery-gpu") as directory:
+                manifest = submit_continuation(job, recovered, Path(directory),
+                                               account=account, credentials=credentials)
+            return {**base, "action": "submitted_recovery_gpu",
+                    "child_ref": manifest.get("kernel_ref", target)}
+        target = kernel_ref_for_segment(root, 0, cpu=True)
+        if _owned_kernel_exists(target, account):
+            return {**base, "action": "existing_recovery_cpu", "child_ref": target}
+        if dry_run:
+            return {**base, "action": "would_submit_recovery_cpu", "child_ref": target}
+        with _submit_output("recovery-cpu") as directory:
+            manifest = submit_visualization(job, recovered, Path(directory),
+                                            account=account, credentials=credentials)
+        return {**base, "action": "submitted_recovery_cpu", "child_ref": manifest["kernel_ref"]}
 
     results = controls.get("job-result.json", {})
     if not isinstance(results, dict) or not results:

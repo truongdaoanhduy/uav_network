@@ -261,9 +261,10 @@ def submit_continuation(parent, results, output, account=None, credentials=None)
                                   timeout=check_submission_deadline(parent))
         verify_credential_dataset(account, credentials, spec["cpu_credential_dataset"], username,
                                   timeout=check_submission_deadline(parent), only_selected=True)
-        verify_pipeline_credential_dataset(
-            account, spec["pipeline_credential_dataset"], username,
-            timeout=check_submission_deadline(parent))
+        if spec.get("orchestration") != "github_actions":
+            verify_pipeline_credential_dataset(
+                account, spec["pipeline_credential_dataset"], username,
+                timeout=check_submission_deadline(parent))
         folder = output / "continuation-kernel"
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "kernel.py").write_text(kernel_script(spec))

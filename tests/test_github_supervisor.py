@@ -81,9 +81,10 @@ def test_unrelated_legacy_job_is_ignored():
 def test_terminal_failed_job_is_blocked_until_verified_recovery():
     s, account, credentials, parent = fixtures()
     with patch.object(s, "kernel_status", return_value="error"), \
-         patch.object(s, "read_controls", return_value={"job.json": parent}):
+         patch.object(s, "read_controls", return_value={"job.json": parent}), \
+         patch.object(s, "verified_recovery_result", side_effect=s.RecoveryUnavailable("missing")):
         observed = s.reconcile_ref(parent["kernel_ref"], account, credentials)
-    assert observed["action"] == "recovery_required"
+    assert observed["action"] == "recovery_blocked"
 
 
 def test_partial_cpu_evaluation_retries_from_saved_progress_once():
@@ -122,3 +123,89 @@ def test_partial_cpu_evaluation_retries_from_saved_progress_once():
     assert calls[0]["completed_records"] == progress["records"]
     assert calls[0]["cpu_attempt"] == 1
     assert len(calls) == 1
+
+
+class FakeArtifact:
+    def __init__(self, metadata, name="owner/project/uav-network-masac-deadbeef:v7"):
+        self.metadata = metadata
+        self.qualified_name = name
+        self.manifest = type("Manifest", (), {"entries": {"checkpoint.json": object()}})()
+
+
+class FakeRun:
+    def __init__(self, summary, state="crashed"):
+        self.summary = summary
+        self.state = state
+
+
+class FakeWandbApi:
+    def __init__(self, run, artifact):
+        self._run, self._artifact = run, artifact
+    def run(self, path):
+        return self._run
+    def artifact(self, ref, type=None):
+        assert ref == self._artifact.qualified_name and type == "model"
+        return self._artifact
+
+
+def good_recovery_api(parent, *, resumable=True, source_run=None, source_commit=None):
+    run_id = parent["runs"]["masac"]["id"]
+    ref = "owner/project/uav-network-masac-deadbeef:v7"
+    summary = {"recovery/checkpoint_artifact": ref,
+               "recovery/last_verified_episodes": 640,
+               "recovery/last_verified_global_step": 123456}
+    metadata = {"resumable": resumable, "completed_episodes": 640, "global_step": 123456,
+                "episode_budget_complete": False,
+                "source_run_id": source_run or run_id,
+                "source_git_commit": source_commit or parent["commit"]}
+    return FakeWandbApi(FakeRun(summary), FakeArtifact(metadata, ref))
+
+
+def test_verified_recovery_requires_immutable_resumable_matching_provenance():
+    s, account, credentials, parent = fixtures()
+    result = s.verified_recovery_result(parent, credentials, api=good_recovery_api(parent))
+    recovered = result["masac"]
+    assert recovered["episodes"] == 640
+    assert recovered["global_step"] == 123456
+    assert recovered["checkpoint_artifact"].endswith(":v7")
+    assert recovered["recovery_source_state"] == "crashed"
+
+    for api in (
+        good_recovery_api(parent, resumable=False),
+        good_recovery_api(parent, source_run="wrong-run"),
+        good_recovery_api(parent, source_commit="f" * 40),
+    ):
+        try:
+            s.verified_recovery_result(parent, credentials, api=api)
+        except s.RecoveryUnavailable:
+            pass
+        else:
+            raise AssertionError("invalid recovery provenance was accepted")
+
+
+def test_crashed_job_with_verified_recovery_submits_exact_continuation_once():
+    s, account, credentials, parent = fixtures()
+    recovered = s.verified_recovery_result(parent, credentials, api=good_recovery_api(parent))
+    child_ref = s.kernel_ref_for_segment(parent["root_kernel_ref"], 1)
+    with patch.object(s, "kernel_status", return_value="error"), \
+         patch.object(s, "read_controls", return_value={"job.json": parent}), \
+         patch.object(s, "verified_recovery_result", return_value=recovered), \
+         patch.object(s, "_owned_kernel_exists", side_effect=[False, True]), \
+         patch.object(s, "submit_continuation", return_value={"status": "submitted", "kernel_ref": child_ref}) as submit:
+        first = s.reconcile_ref(parent["kernel_ref"], account, credentials)
+        second = s.reconcile_ref(parent["kernel_ref"], account, credentials)
+    assert first["action"] == "submitted_recovery_gpu"
+    assert second["action"] == "existing_recovery_gpu"
+    assert submit.call_count == 1
+    assert submit.call_args.args[1]["masac"]["episodes"] == 640
+
+
+def test_crashed_job_without_exact_recovery_blocks_without_push():
+    s, account, credentials, parent = fixtures()
+    with patch.object(s, "kernel_status", return_value="error"), \
+         patch.object(s, "read_controls", return_value={"job.json": parent}), \
+         patch.object(s, "verified_recovery_result", side_effect=s.RecoveryUnavailable("no full state")), \
+         patch.object(s, "submit_continuation", side_effect=AssertionError("warm restart")):
+        observed = s.reconcile_ref(parent["kernel_ref"], account, credentials)
+    assert observed["action"] == "recovery_blocked"
+    assert observed["error_type"] == "RecoveryUnavailable"
