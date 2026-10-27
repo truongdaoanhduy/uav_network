@@ -1,5 +1,6 @@
 """A private CPU-only job evaluates uploaded immutable policy checkpoints."""
 import argparse
+from contextlib import suppress
 import json
 import os
 from pathlib import Path
@@ -277,6 +278,24 @@ def run_visualization(spec, output=Path("/kaggle/working")):
         tracking_output = output / "tracking" / algorithm
         tracking_output.mkdir(parents=True, exist_ok=True)
         failed = True
+        completed_eval_episodes = (len(progress["records"].get(algorithm, []))
+                                   if spec.get("session_resumable") else 0)
+        def record_failure(error, phase="cpu_evaluation"):
+            failures.setdefault(algorithm, {"error_type": type(error).__name__})
+            try:
+                from ..experiments.diagnostics import failure_report
+                completed = max(completed_eval_episodes,
+                                len(progress["records"].get(algorithm, [])))
+                path = failure_report(config, tracking_output, error, {
+                    "algorithm":algorithm, "stage":"visualize", "phase":phase,
+                    "checkpoint_artifact":artifact, "source_commit":spec.get("commit"),
+                    "completed_eval_episodes":completed, "requested_eval_episodes":settings["episodes"],
+                    "seed_first":settings["seed"]})
+                if tracker is not None:
+                    tracker.failure(path, completed)
+            except Exception as reporting_error:
+                with suppress(OSError, ValueError):
+                    print("CPU failure reporting also failed: " + type(reporting_error).__name__, flush=True)
         try:
             from ..configuration import load_config
             from ..experiments.tracking import start_tracking
@@ -314,12 +333,15 @@ def run_visualization(spec, output=Path("/kaggle/working")):
                 "checkpoint_artifact": artifact,
                 "visualization_output_url": "https://www.kaggle.com/code/" + spec["kernel_ref"] + "/output"})
             checkpoint_step = spec.get("training_status", {}).get(algorithm, {}).get("global_step")
-            initial_metrics = {"global_step": 0, "evaluation/episodes_completed": 0}
+            initial_metrics = {"global_step": completed_eval_episodes,
+                               "evaluation/episodes_completed": completed_eval_episodes}
             if type(checkpoint_step) is int and checkpoint_step >= 0:
                 tracker.run.summary["evaluation/checkpoint_global_step"] = checkpoint_step
                 initial_metrics["evaluation/checkpoint_global_step"] = checkpoint_step
-            tracker.diagnostic(initial_metrics, 0)
+            tracker.diagnostic(initial_metrics, completed_eval_episodes)
             def record_episode(record):
+                nonlocal completed_eval_episodes
+                completed_eval_episodes = record["episode"]
                 tracker.diagnostic({"evaluation/episodes_completed": record["episode"],
                     "evaluation/return": record["return"],
                     "evaluation/search_rate_percent": record["search_rate_percent"],
@@ -341,6 +363,7 @@ def run_visualization(spec, output=Path("/kaggle/working")):
                                               output_dir=output / "visualize" / algorithm, animate=True,
                                               frame_stride=settings["frame_stride"], fps=settings["fps"],
                                               on_episode=record_episode, **options)
+            completed_eval_episodes = results[algorithm]["episodes"]
             # Publication recovery preserves the saved policy protocol, not this runtime's semantics.
             protocol = results[algorithm].get("protocol", {})
             source_version = protocol.get("scenario", {}).get("observation_version")
@@ -368,27 +391,23 @@ def run_visualization(spec, output=Path("/kaggle/working")):
             tracker.run.save(str(output / "visualize" / algorithm / "metrics.json"),
                              base_path=str(output), policy="now")
             failed = False
-        except EvaluationPaused:
+        except EvaluationPaused as paused:
+            completed_eval_episodes = len(paused.records)
             tracker.run.summary["evaluation/session_status"] = "paused"
-            tracker.diagnostic({"evaluation_status/status":"paused"},
-                               len(progress["records"].get(algorithm, [])))
+            tracker.diagnostic({"evaluation_status/status":"paused",
+                                "evaluation/episodes_completed":completed_eval_episodes},
+                               completed_eval_episodes)
             failed = False
         except Exception as error:
-            failures[algorithm] = {"error_type": type(error).__name__}
-            try:
-                from ..experiments.diagnostics import failure_report
-                completed = len(progress["records"].get(algorithm, []))
-                path = failure_report(config, tracking_output, error, {
-                    "algorithm":algorithm, "stage":"visualize", "checkpoint_artifact":artifact,
-                    "completed_eval_episodes":completed, "requested_eval_episodes":settings["episodes"],
-                    "seed_first":settings["seed"]})
-                if tracker is not None:
-                    tracker.failure(path, completed)
-            except Exception as reporting_error:
-                print("CPU failure reporting also failed: " + type(reporting_error).__name__, flush=True)
+            record_failure(error)
         finally:
             if tracker is not None:
-                tracker.close(failed=failed)
+                try:
+                    tracker.close(failed=failed)
+                except Exception as error:
+                    if algorithm not in failures:
+                        record_failure(error, "tracker_close")
+                    failures[algorithm]["close_error_type"] = type(error).__name__
         (output / "visualization-result.json").write_text(json.dumps(results, indent=2, allow_nan=False))
     if "masac" in results and "matd3" in results:
         from ..experiments.comparison import compare_evaluations, save_comparison

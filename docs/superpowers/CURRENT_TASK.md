@@ -1,6 +1,13 @@
 # Current task: W&B metrics, logs and compact dashboard — IN PROGRESS
 
-User requests meaningful online plots/logs/Created/Runtime columns. Baseline a046a3b; no production launch. Read docs/superpowers/specs/2026-10-27-wandb-observability-design.md and plans/2026-10-27-wandb-observability.md. Current step: RED→GREEN for dashboard/journal/recovery/CPU diagnostics; 49 focused tests passed. Full offline CPU suite, independent code review and live W&B updates pending. A broader foreground evaluator test run hit its 55s tool limit and is not completion evidence.
+Updated 2026-10-27T22:56:17.999239+07:00. Baseline a046a3b; initial implementation 89c6a8d. User requests meaningful online plots/logs/Created/Runtime; no production launch.
+
+Independent Superpowers review found closed-console failures, inaccurate CPU resume/failure counts and secondary failure masking. All were reproduced RED and fixed; attempt-specific recovery errors now clear after a successful attempt. Existing tracker and axes fixtures were migrated without changing scientific/checkpoint contracts. Focused suites: 75 passed + 9 subtests; CPU handoff/publication: 22 passed + 9 subtests. compileall, diff check, no-torch GitHub supervisor import and tracked secret scan pass (12 values, zero hits).
+
+The first full suite reported 7 failed, 872 passed, 95 skipped in 525.92s; identified outdated fixtures/column assertions, migrated since. It ran during review edits, so it is not final-source evidence. Next: freeze amended source, rerun full CPU suite and request follow-up review, then publish/read back live Personal and primary saved views. Before-state views backed up at outputs/wandb/observability-20261027/workspace-before.json. Native CPU/RAM/GPU0+1/VRAM metric names/units confirmed from actual historical W&B system rows. Human reading guide rewritten. No live view mutation or production start/restart/cancel performed yet.
+
+Spec: docs/superpowers/specs/2026-10-27-wandb-observability-design.md
+Plan: docs/superpowers/plans/2026-10-27-wandb-observability.md
 
 ## Previous completed task context
 

@@ -66,7 +66,7 @@ class RunJournal:
     def _warn(self, error):
         if not self.warned:
             self.warned = True
-            with suppress(OSError):
+            with suppress(OSError, ValueError):
                 print("Optional run journal I/O failed: " + type(error).__name__, flush=True)
 
     def record(self, event, values=None):
@@ -75,7 +75,7 @@ class RunJournal:
         record = {"timestamp_utc": datetime.now(timezone.utc).isoformat(), "event": event,
                   "identity": self.identity, "context": self.context.copy()}
         encoded = json.dumps(record, allow_nan=False, sort_keys=True)
-        with suppress(OSError):
+        with suppress(OSError, ValueError):
             print(json.dumps({"training_event": record}, allow_nan=False), flush=True)
         try:
             with (self.output / "training-events.jsonl").open("a") as stream:

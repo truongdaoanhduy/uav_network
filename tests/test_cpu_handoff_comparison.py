@@ -53,6 +53,7 @@ class CPUHandoffComparisonTests(unittest.TestCase):
             run = SimpleNamespace(summary={}, log=lambda *a,**k:None, save=lambda *a,**k:None,
                                   use_artifact=lambda *a,**k:None)
             tracker = SimpleNamespace(run=run, identity=lambda:{}, close=lambda failed=False:None)
+            tracker.diagnostic = lambda values,step: run.log({"global_step":step, **values})
             with patch.dict(sys.modules, {"wandb": SimpleNamespace(Api=lambda: api)}), \
                  patch("uav_network.experiments.tracking.start_tracking", return_value=tracker), \
                  patch("uav_network.cloud.visualize.publish_visualization_media",

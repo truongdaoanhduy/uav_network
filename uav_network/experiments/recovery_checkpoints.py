@@ -9,7 +9,7 @@ def _report(tracker, values, step):
     try:
         tracker.diagnostic(values, step)
     except Exception as error:
-        with suppress(OSError):
+        with suppress(OSError, ValueError):
             print(f"Recovery status logging failed: {type(error).__name__}; backup status={values['recovery/status']}", flush=True)
 
 

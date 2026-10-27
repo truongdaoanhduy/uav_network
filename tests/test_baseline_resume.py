@@ -226,6 +226,9 @@ class BaselineResumeTests(unittest.TestCase):
                 artifacts.append(instance)
                 return instance
             tracker = OnlineTracker.__new__(OnlineTracker)
+            from uav_network.experiments.run_journal import RunJournal
+            tracker.journal = RunJournal(output, {"run_id": "test", "stage": "train"})
+            tracker.learning_phase = "learning"
             config.tracking.checkpoint_store = "wandb"
             tracker.config, tracker.output = config, output
             tracker.wandb = SimpleNamespace(Artifact=artifact)

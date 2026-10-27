@@ -50,17 +50,13 @@ def test_workspace_run_table_is_compact_and_decision_focused():
     from uav_network.experiments.dashboard_columns import VISIBLE_COLUMNS
 
     expected = [
-        "run:displayName", "run:state", "run:duration", "config:kaggle_account",
-        "config:runtime.algorithm", "summary:training_mode", "summary:global_step",
-        "summary:progress/episode_progress_percent_mean", "summary:train/episodes_completed",
-        "summary:train/joint_transitions_per_s", "summary:progress/search_rate_percent",
-        "summary:progress/delivery_rate_percent", "summary:progress/mean_battery_fraction",
-        "summary:episode/return", "summary:outcome/delivery_rate_percent", "summary:outcome/success",
-        "summary:network/pdr_percent", "summary:network/report_average_hops",
-        "summary:reports/expired", "summary:reports/dropped",
-        "summary:cohort/delivery_rate_percent_mean", "summary:cohort/success_mean",
-        "summary:final_delivery_rate_percent", "summary:final_success_rate",
-        "summary:episode_budget_complete", "summary:stop_reason", "summary:session_status",
+        "run:displayName", "run:state", "run:createdAt", "run:duration",
+        "config:stage", "config:runtime.algorithm", "summary:training_mode",
+        "config:kaggle_account", "config:runtime.seed", "summary:global_step",
+        "summary:train/episodes_completed", "summary:cohort/delivery_rate_percent_mean",
+        "summary:cohort/success_mean", "summary:eval/mean_delivery_rate_percent",
+        "summary:eval/success_rate", "summary:episode_budget_complete",
+        "summary:stop_reason", "summary:diagnostics/failure_type",
     ]
     assert VISIBLE_COLUMNS == expected
 
@@ -75,13 +71,15 @@ def test_workspace_run_table_is_compact_and_decision_focused():
     }
     assert hidden_from_runs.isdisjoint(VISIBLE_COLUMNS)
 
-    all_metrics = {metric for panels in PANELS.values() for _, metric in panels}
+    all_metrics = {key for panels in PANELS.values() for _, metric in panels
+                   for key in (metric if isinstance(metric, tuple) else (metric,))}
     assert {
-        "progress/episode_step_mean", "progress/episode_progress_percent_mean",
+        "train/episodes_completed", "train/joint_transitions_per_s",
         "learner/actor_loss", "learner/critic_loss", "learner/td_error_abs_mean",
-        "pql/transitions_per_s", "pql/critic_updates_per_s", "pql/queued_collections",
-        "train/replay_size", "cohort/network/packet_pdr_fraction",
+        "cohort/network/packet_pdr_fraction", "cohort/delivery_rate_percent_mean",
+        "system/gpu.0.gpu", "system/gpu.1.gpu", "recovery/elapsed_seconds",
     } <= all_metrics
+    assert sum(len(panels) for panels in PANELS.values()) == 26
 
 
 def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source():

@@ -185,6 +185,7 @@ class VisualizationPublishTests(unittest.TestCase):
                 'wandb_run_id': 'cpu99999', 'wandb_url': 'https://wandb/run/cpu99999',
                 'wandb_entity': 'owner', 'wandb_project': 'project',
                 'wandb_workspace_url': 'https://wandb/workspace'}, close=lambda failed=False: None)
+            tracker.diagnostic = lambda values,step: run.log({"global_step":step, **values})
             def evaluate(*args, output_dir=None, **kwargs):
                 folder = Path(output_dir); folder.mkdir(parents=True)
                 image = folder / 'final_episode.png'; image.write_bytes(b'png')

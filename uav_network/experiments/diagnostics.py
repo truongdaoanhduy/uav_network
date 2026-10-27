@@ -1,4 +1,5 @@
 """Evidence-based warnings and crash context; no automatic root-cause claims."""
+from contextlib import suppress
 from collections import deque
 from datetime import datetime, timezone
 import json
@@ -149,6 +150,7 @@ def failure_report(config, output, error, context):
               "error_type": type(error).__name__, "traceback": detail,
               "context": context, "root_cause_confirmed": False}
     path = Path(output) / "failure.json"
-    print(json.dumps({"training_failure": result}), flush=True)
+    with suppress(OSError, ValueError):
+        print(json.dumps({"training_failure": result}), flush=True)
     path.write_text(json.dumps(result, indent=2, allow_nan=False))
     return path

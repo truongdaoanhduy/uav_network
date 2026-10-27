@@ -351,3 +351,19 @@ def test_backup_logging_and_console_failures_do_not_abort_the_snapshot(tmp_path)
          patch("builtins.print",side_effect=BrokenPipeError()):
         recovery_class()(c,tmp_path,started=0.).maybe_save(save,Tracker())
     assert saves==[True]
+
+
+def test_closed_stdout_does_not_prevent_backup_when_status_logging_fails(tmp_path):
+    from io import StringIO
+    c = recovery_config(tmp_path); c.runtime.max_train_seconds = 0
+    saves = []
+    class Tracker:
+        def diagnostic(self, *args, **kwargs): raise OSError("telemetry unavailable")
+        def checkpoint(self, *args, **kwargs): return "owner/project/recovery:v1"
+    def save(policy, *, resume_path):
+        saves.append(True); Path(policy).write_bytes(b"p"); Path(resume_path).write_bytes(b"r")
+        return {"episodes": 0, "global_step": 4}
+    closed = StringIO(); closed.close()
+    with patch("uav_network.experiments.recovery_checkpoints.time.perf_counter", return_value=2.), patch("sys.stdout", closed):
+        recovery_class()(c, tmp_path, started=0.).maybe_save(save, Tracker())
+    assert saves == [True]

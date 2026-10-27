@@ -1,120 +1,140 @@
-# Online training diagnostics
+# Đọc kết quả và điều tra training trên W&B
 
-Purpose: use actual rollout, replay-batch and fixed-seed evaluation evidence to
-investigate weak learning. Warnings identify symptoms; they do not prove a
-particular code bug or guarantee discovery of every logical error.
+Workspace chính: https://wandb.ai/truongdaoanhduy-uit/uav_search_target/workspace
 
-Diagnostics v1 adds actual-attempt telemetry, pooled completed-outcome windows
-and asynchronous actor-only CPU checkpoints. See [diagnostics-v1.md](diagnostics-v1.md)
-for units, denominators, seed banks, lifecycle and storage limits.
+Saved view chính: https://wandb.ai/truongdaoanhduy-uit/uav_search_target/workspace?nw=gmcixx5iveu
 
-## Metric interpretation
+Mục tiêu là thấy kết quả nhiệm vụ, tiến độ và bằng chứng giải thích vấn đề.
+Không có một ngưỡng loss chung để kết luận MASAC/MATD3 học tốt. Log và cảnh báo
+chỉ ra triệu chứng; cần đối chiếu checkpoint, seed, batch hoặc traceback để xác
+minh nguyên nhân. Chi tiết mẫu số và seed bank ở [diagnostics-v1.md](diagnostics-v1.md).
 
-| Evidence | Metrics | Interpretation |
+## Bảng Runs: 18 cột, chỉ ghim 4 cột đầu
+
+| Cột | Ý nghĩa |
+|---|---|
+| Name, State | Tên nhận biết run và trạng thái W&B thực tế. Giữ cả running, finished, failed, crashed. |
+| Created | Thời điểm W&B tạo run, không phải thời điểm submit job Kaggle. |
+| Runtime | Thời gian của run/phiên này, không cộng tất cả phiên trong lineage. |
+| Stage, Algorithm, Mode | Phân biệt train/validate/visualize, MASAC/MATD3 và BASE/PQL. |
+| Account, Seed | Xác định chủ job và seed để đối chiếu. |
+| Global step, completed training episodes | Tiến độ thật; một episode đang chạy chưa được tính là hoàn tất. |
+| Cohort delivery, cohort success | Kết quả episode đã kết thúc trong cửa sổ transition gần nhất. |
+| Eval delivery, eval success | Điểm tổng hợp đánh giá CPU (`eval/*`), không lấy episode CPU cuối cùng thay cho trung bình. |
+| Episode budget complete | Đã đủ tổng episode hay chỉ kết thúc một phiên. |
+| Stop reason, failure type | Vì sao phiên dừng; loại exception nếu code kịp ghi nhận. |
+
+Bảng không lọc theo trạng thái, ID hoặc nhóm; sắp xếp Created mới nhất trước.
+Ô trống là chưa có bằng chứng, không phải 0. Mọi run vẫn giữ nguyên history,
+config và summary. Các cột phụ xem trong trang từng run khi cần.
+`finished` chỉ xác nhận run kết thúc bình thường: cần xem `episode_budget_complete`
+và `stop_reason` trước khi kết luận đã train đủ 20.000 tập.
+
+## 26 đồ thị và một hướng dẫn đọc
+
+| Nhóm | Số plot | Cách dùng |
+|---|---:|---|
+| Mission quality — completed outcomes | 4 | Delivery, success, return, search trên các episode đã kết thúc. |
+| Training progress and speed | 3 | Episode hoàn tất, joint transitions/s, số lần dùng mẫu trên transition mới. |
+| Periodic fixed-policy evaluation | 2 | Delivery/success của checkpoint trên seed đánh giá cố định; mặc định thu gọn. |
+| Final CPU evaluation | 2 | Delivery/success của từng episode đánh giá cuối. |
+| Why delivery is low | 4 | Packet PDR, im lặng dù có receiver hợp lệ, chuyển động bị chặn, J/delivery. |
+| Numerical diagnostics | 5 | Actor/critic loss, TD error, Q, critic gradient; mặc định thu gọn. |
+| Resources | 4 | GPU0/1 utilization, GPU0/1 memory allocated %, CPU %, RAM %. |
+| Recovery and upload cost | 2 | Thời gian từ upload full-state được xác nhận và thời gian snapshot + upload; thu gọn. |
+
+Mỗi plot hiển thị tối đa 12 run riêng, không gộp trung bình các thuật toán. Chọn
+các run cùng scenario, replay, precision, seed và budget để so sánh. Bảng vẫn
+chứa mọi run. Giới hạn này giảm đường chồng lên nhau; không xóa dữ liệu run khác.
+
+Trục X khác nhau theo bằng chứng:
+
+- Training và cohort: `global_step` (joint transition), không nhầm với số episode.
+- Mini-eval: `evaluation/checkpoint_global_step`, tức bước của policy được chụp;
+  evaluator hoàn tất trễ không làm đổi checkpoint nguồn.
+- Từng episode CPU cuối: `evaluation/episodes_completed`.
+- CPU/GPU/RAM: `_runtime` theo giây, vì SDK thu system metrics riêng với learner.
+
+Canonical `configs/comparison-20k-hybrid75-1kb.yaml` đang **tắt mini-eval định kỳ**.
+Không tự bật lịch đánh giá hoặc đổi scientific config trong thay đổi dashboard.
+Nhóm periodic trống là hợp lệ. Không dùng training return để khẳng định khả năng
+tổng quát hóa khi chưa có đánh giá độc lập. Điểm CPU cuối và protocol có trong
+`metrics.json`; `eval/mean_delivery_rate_percent` và `eval/success_rate` là điểm
+tổng hợp hiển thị trên bảng.
+
+## Đánh giá policy và tìm hướng cải thiện
+
+Ưu tiên delivery tới GCS và success trên cùng protocol, sau đó xem search và
+return. So nhiều seed đánh giá tương đương; một training seed hoặc một episode
+đẹp chưa đủ kết luận thuật toán hơn nhau. Loss giảm hoặc GPU sử dụng cao không
+đồng nghĩa policy tốt hơn.
+
+| Quan sát | Bằng chứng cần xem tiếp | Chỉ kết luận sau khi đối chiếu |
 |---|---|---|
-| Mission outcomes | episode/return, search/delivery/success | Higher return alone can hide poor delivery. Compare all three outcomes. |
-| Recent trend | cohort/return_mean/std, cohort/delivery_rate_percent_mean, cohort/episodes | Closed absolute transition windows; partial/n labels are explicit. Rolling episode metrics remain descriptive. |
-| Generalization | eval/mean_return, search/delivery/success | Deterministic CPU evaluation with the same held-out seeds every interval. |
-| Reward accounting | reward/discovery/delivery/blocked_motion/expired_report/dropped_report/propulsion_energy/communication_energy | Cumulative components should sum to the actual episode return. |
-| Critic | learner/q_mean/q_abs_max/target_mean/target_abs_max/td_error_abs_mean/max/twin_q_gap | Large Q/TD error or critic disagreement is evidence to inspect, not proof of divergence. |
-| Optimizer | learner/actor_grad_norm/critic_grad_norm/alpha_grad_norm/critic_gradient_clipped | Norm is measured before clipping. Finite-gradient checks remain enforced every update. |
-| MASAC exploration | learner/continuous_entropy/discrete_entropy/alpha_continuous/alpha_discrete | Watch entropy together with return, destination availability and temperature. |
-| MATD3 | learner/policy_updated/actor_update_step | Actor metrics refer to the last actual delayed actor update, never an invented zero loss. |
-| Actions | action/silent_fraction/peer_fraction/gcs_fraction/movement_saturation_fraction | Distinguish no transmission, relaying, direct GCS and saturated movement. |
-| Reports | reports/buffer_count/buffer_bytes/expired/dropped | Search high with delivery low can involve queues, expiry, routing or policy choices. |
-| Network | packet/PHY delivery, delay, throughput, hops, collisions | Packet delivery and complete target-report delivery are different metrics. |
-| Safety/energy | blocked/boundary rates, propulsion/RF energy, exhausted UAVs | Explain penalties and early battery termination. |
-| Run/runtime | account, job/run UTC timestamps, source SHA, GPU mask, elapsed hours, TPS/replay/updates | Reproduce the experiment and identify compute bottlenecks. |
+| Search cao, delivery thấp | Packet PDR, eligible-silent, reports/expiry/drop, relay, energy và action/reward chi tiết | Có thể liên quan định tuyến, không truyền, tắc hàng đợi hoặc hết pin; search đơn lẻ không xác định nguyên nhân. |
+| Delivery/success giảm theo checkpoint | Cùng seed bank, cùng budget, cohort n/partial, return và numerical diagnostics | Phân biệt policy suy giảm với khác seed, cohort ít mẫu hoặc episode còn dở. |
+| Reward tăng mà delivery không tăng | Thành phần reward, blocked-motion, discovery/delivery, energy/penalties | Kiểm tra hành vi đang được thưởng và mục tiêu nhiệm vụ; chưa tự ý chỉnh reward. |
+| TD/Q/gradient tăng mạnh hoặc nonfinite | `failure.json`, batch/state lỗi, clipping, entropy/alpha và learner counters | Xác minh lỗi số học, scale hoặc update trước khi đổi learning rate/precision. |
+| TPS giảm, outcome chưa đổi | CPU/GPU/RAM theo runtime, replay/sample-use, mốc snapshot/upload, thời gian eval | Phân biệt nghẽn compute, lấy mẫu, I/O và đánh giá; throughput chỉ đo tốc độ. |
+| Episode hoàn tất còn 0 nhưng step/update tăng | Phase, episode step, horizon và completed counter | Với nhiều env chạy song song có thể chưa env nào kết thúc; không gọi là đứng train chỉ vì episode=0. |
+| W&B mất heartbeat | Console cuối, status cuối, checkpoint đã xác nhận, trạng thái/log Kaggle | Mất heartbeat không chứng minh OOM, ban hoặc compute đã chết. |
 
-Defaults: rolling window20 episodes, delivery gap40 percentage points,
-return drop20 reward units, blocked-motion rate0.3. Thresholds are configurable
-under tracking, and are heuristics for this scenario. Warnings require a full
-window except reward-accounting checks; repeated events have a window cooldown.
-No-search, report-loss and battery-exhaustion warnings are observations of
-mission failure modes, not claims that they necessarily indicate faulty code.
+Completed-outcome windows có `cohort/episodes`, `cohort/partial`,
+`cohort/source_start_step`, `cohort/source_end_step`. Xem cỡ mẫu và cửa sổ trước
+khi so sánh; live-world search/battery phụ thuộc tuổi episode đang chạy.
+Packet PDR đo gói tin, khác tỷ lệ mục tiêu báo về GCS. J/delivery chỉ so có ý nghĩa
+khi mức delivery/success tương đương. BASE sample-use đo phiên hiện tại; PQL dùng
+replay counters có thể đã restore, nên cần xem nguồn counter khi resume.
+Cảnh báo no-search, report-loss, blocked-motion, return-drop là heuristic theo
+scenario; không phải mọi cảnh báo đều là bug.
 
-## Files and console
+## Logs và Files
 
-The learner owns the online W&B run and captures stdout/stderr with console wrap.
-Structured warnings appear in Logs and diagnostics.jsonl in Files.
-Startup failures before a W&B run exists retain local/Kaggle evidence.
-Fatal failures write failure.json with a redacted traceback, algorithm, seed,
-global step, episode counter, update counter and last learner metrics.
-An optimizer/runtime failure also saves failed_batch.pt containing the actual
-sampled replay tensors, and failure_state.pt preserves model tensors after the
-failure, with nonfinite parameter names in the context. Some optimizer steps may
-already have completed; this is diagnostic evidence, not an exact restart snapshot.
-These are uploaded before finishing the failed run.
-Resolved config, episode histories at checkpoints, CPU evaluation metrics and
-evaluation logs are retained. Credentials and generated outputs are Gitignored.
-A hard process/machine kill can prevent the final failure upload; periodic online
-checkpoints and prior console/diagnostic files are the durable evidence.
+| File hoặc nơi xem | Nội dung |
+|---|---|
+| W&B Logs | stdout/stderr và các dòng JSON `training_event`: thời gian UTC, phase, run/source/seed, tiến độ và evidence chọn lọc. |
+| `training-events.jsonl` | Lịch sử start/progress/checkpoint/recovery/evaluation/failure/close, giữ context liên tiếp. |
+| `training-status.json` | Bản trạng thái nhỏ mới nhất, ghi bằng atomic replace; đăng ký upload live. |
+| `metrics-guide.md` | Hướng dẫn ý nghĩa metric, nguồn mẫu và trục X đi cùng run. |
+| `diagnostics.jsonl`, `cohorts.jsonl` | Cảnh báo/đánh giá và các cửa sổ outcome với nguồn, cỡ mẫu, partial. |
+| `failure.json` | Loại lỗi, traceback đã redaction, algorithm/seed/source và context tiến độ có sẵn. |
+| `failed_batch.pt`, `failure_state.pt` | Với lỗi learner có hỗ trợ: batch thật và state sau lỗi để tái hiện. Đây là evidence chẩn đoán, không phải full checkpoint phục hồi. |
+| `resolved_config.yaml`, CPU `metrics.json` | Cấu hình/protocol, checkpoint nguồn, aggregate CPU và kết quả publication tương ứng. |
 
-Fixed-seed evaluation runs in a separate CPU process, preserving learner RNG.
-The legacy default interval is50 episodes with timeout300 seconds. Set
-tracking.evaluation_interval=0 to disable that schedule. The diagnostics-v1
-profile instead validates5 disjoint mini-bank seeds every7372800 joint
-transitions and retains the existing final30 CPU evaluation route.
-Evaluation failure is logged separately and does not silently become a good score.
-Evaluation consumes CPU time and is included in the job's wall-time budget.
+Journal chỉ lấy scalar chọn lọc và identity cho phép; không dump tensor, replay,
+credential hoặc cả config vào từng dòng. NaN/Inf ghi rõ bằng chuỗi, dữ liệu chưa
+biết giữ null. Ghi ở nhịp progress sẵn có và khi chuyển giai đoạn, không ghi mỗi
+optimizer update. Lỗi ghi console, append file, atomic status hoặc upload tùy
+chọn được cô lập để không biến thành lỗi learner.
 
-## Reading the dashboard
+`checkpoint_snapshot` đánh dấu đang chụp state và `checkpoint_upload` đánh dấu
+đang truyền. Đồng hồ `recovery/seconds_since_confirmed_upload` chỉ bắt đầu sau
+khi full-state upload được xác nhận; policy-only không reset đồng hồ. Đây không
+phải tuổi của state lúc được chụp, cũng không phải bảo đảm full checkpoint của
+phiên trước đã được kiểm tra trong phiên mới.
 
-Start with fixed-checkpoint validation delivery/success and completed-outcome window return/counts. Then use reward,
-actions, network and energy to explain changes. For numerical failures, inspect
-Q/target/TD/gradient/entropy and failure.json + failed_batch.pt.
-Use the run's System tab for native CPU/GPU/VRAM telemetry and Logs for output.
-The project table includes Kaggle account, start UTC, GPU mask and elapsed hours.
+Status nhỏ đăng ký `live`, guide `now`; journal/diagnostics tăng dần đăng ký
+`end`, rồi yêu cầu flush `now` lúc caught failure/close. Cohorts giữ live policy.
+W&B Logs có các event trong khi chạy. Hard kill/mất mạng có thể cắt phần chưa
+đồng bộ: không hứa có traceback cuối hoặc mọi event trước crash. Khi W&B chưa
+khởi tạo được, tìm file trong output Kaggle/local. Full-state recovery và
+supervisor ngoài sandbox được mô tả ở [github-actions-full-flow.md](github-actions-full-flow.md).
 
-Jobs already running are pinned to their submitted SHA. Updating local/GitHub or
-the dashboard cannot inject new metrics into their processes. Existing plots keep
-updating; enhanced logging starts in jobs launched from the new source.
+Jobs đã submit dùng SHA cố định. Dashboard mới đọc được metric lịch sử hiện có;
+log/metric mới chỉ xuất hiện ở job dùng source mới. Không tạo bù evidence cho
+run cũ và không sửa lịch sử failed/crashed thành finished.
 
-## Sources
-
-- OpenAI Spinning Up SAC logs Q values, policy/critic losses and log-probabilities:
-  https://spinningup.openai.com/en/latest/_modules/spinup/algos/pytorch/sac/sac.html
-- SAC deterministic evaluation:
-  https://spinningup.openai.com/en/latest/user/saving_and_loading.html
-- W&B custom axes, scalar/media logging:
-  https://docs.wandb.ai/models/track/log
-- W&B console logging:
-  https://docs.wandb.ai/models/app/console-logs
-
-Additional reward/action/window checks above are project-specific diagnostics,
-not standardized guarantees of convergence.
-
-## Compact display profiles
-
-The main saved view now has18 panels and a filter for the uav-network-2d experiment group. Validation/recovery groups remain outside the main view. Runs are no longer
-pinned or restricted to specific IDs; new runs in this group appear normally. The Runs table keeps run name (including algorithm), state, Kaggle account,
-start UTC, runtime, completed episodes, return, search and delivery.
-
-Deep diagnostics use a separate20-panel profile. Logging and failure files remain
-available for investigation; changing display profiles does not modify learners.
+## Cập nhật lại view và xem chi tiết khi cần
 
 ```bash
-python -m uav_network dashboard --config configs/kaggle.yaml   --profile core --run-ids 9c9309b3 afdad4a9   --workspace-url 'https://wandb.ai/truongdaoanhduy-uit/uav_search_target?nw=gmcixx5iveu'
-# Use --profile diagnostics in a separate workspace when investigating an issue.
+python -m uav_network dashboard --config configs/comparison-20k-hybrid75-1kb.yaml --profile core
+python -m uav_network dashboard --config configs/comparison-20k-hybrid75-1kb.yaml --profile core --workspace-url 'https://wandb.ai/truongdaoanhduy-uit/uav_search_target/workspace?nw=gmcixx5iveu'
 ```
 
-Removed from the main display: duplicate rolling/live outcome charts, optimizer
-counts/replay/timing charts, separate propulsion/RF charts, extra packet/PHY charts,
-individual warning flags, Q/gradient/entropy/alpha and detailed action/reward plots.
-These remain logged or are available in the diagnostic view and run Files.
+Profile `diagnostics` có các plot action/reward/entropy/alpha/warning chuyên sâu.
+Chỉ dùng nó ở một saved view riêng khi điều tra; chạy vào view chính sẽ thay bố
+cục của view đó. Config/history/file chi tiết vẫn có ở từng run.
 
-
-## Explicit Runs-column visibility
-
-Pinning columns alone did not hide unset columns in the W&B frontend.
-dashboard_columns.py now enumerates existing project config/summary keys and
-saves explicit false visibility for everything outside the nine-column allowlist.
-Run metadata/config/history remain intact; only table presentation changes.
-
-Verified by reading the saved backend view on2026-10-13:
-9 visible columns,933 explicitly hidden, including244 legacy
-training_handoff.resolved_config.* columns. Keep: Name, State, Created,
-Runtime, Kaggle account, completed episodes, episode return, search %, delivery %.
-Hide: old experiment/postprocess/Hugging Face/secret-name/visualization/W&B
-configuration, repeated hyperparameters, internal counters and extra diagnostics.
-Those details remain accessible in individual runs, config files and logs.
+Tài liệu nguồn: [W&B logging](https://docs.wandb.ai/models/track/log),
+[console logs](https://docs.wandb.ai/models/app/console-logs),
+[SAC diagnostics](https://spinningup.openai.com/en/latest/_modules/spinup/algos/pytorch/sac/sac.html).

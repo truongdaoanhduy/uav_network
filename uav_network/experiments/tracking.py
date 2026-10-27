@@ -289,6 +289,8 @@ class OnlineTracker:
         if "recovery/status" in values:
             event = "recovery"
             status = values["recovery/status"]
+            if status != "failed":
+                self.latest_evidence["recovery/error_type"] = None
             phase = {"snapshot_started":"checkpoint_snapshot", "upload_started":"checkpoint_upload"}.get(status)
             self.latest_evidence["phase"] = phase or self.learning_phase
         elif any(k in values for k in ("eval/mean_return", "eval/mean_delivery_rate_percent", "eval/success_rate")):

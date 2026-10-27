@@ -143,3 +143,46 @@ def test_fixed_policy_aggregate_results_are_journaled_even_without_cpu_episode_f
         assert status["context"]["eval/mean_delivery_rate_percent"]==80.
         assert status["context"]["evaluation/checkpoint_global_step"]==4096
         t.close()
+
+
+def test_journal_closed_stdout_keeps_append_and_status(tmp_path):
+    from io import StringIO
+    closed = StringIO(); closed.close()
+    j = journal_type()(tmp_path, {"run_id": "r"})
+    with patch("sys.stdout", closed):
+        j.record("progress", {"global_step": 12})
+    assert json.loads((tmp_path / "training-status.json").read_text())["context"]["global_step"] == 12
+    assert json.loads((tmp_path / "training-events.jsonl").read_text())["event"] == "progress"
+
+
+def test_journal_io_warning_with_closed_stdout_is_optional(tmp_path):
+    from io import StringIO
+    closed = StringIO(); closed.close()
+    j = journal_type()(tmp_path, {"run_id": "r"})
+    with patch("sys.stdout", closed):
+        j._warn(OSError("disk unavailable"))
+    assert j.warned
+
+
+def test_successful_recovery_does_not_retain_previous_attempt_error(tmp_path):
+    from contextlib import ExitStack
+    with ExitStack() as stack:
+        c,run,saved,t=tracker_fixture(tmp_path,stack)
+        t.diagnostic({"recovery/status":"failed","recovery/error_type":"OSError"},4)
+        t.diagnostic({"recovery/status":"snapshot_started"},8)
+        t.diagnostic({"recovery/status":"uploaded"},8)
+        status=json.loads((tmp_path/"training-status.json").read_text())
+        assert status["context"]["recovery/status"]=="uploaded"
+        assert status["context"]["recovery/error_type"] is None
+        t.close()
+
+
+def test_failure_traceback_file_survives_closed_stdout(tmp_path):
+    from io import StringIO
+    from uav_network.experiments.diagnostics import failure_report
+    closed=StringIO();closed.close()
+    with patch("sys.stdout",closed):
+        path=failure_report(None,tmp_path,RuntimeError("original failure"),{"global_step":4})
+    report=json.loads(path.read_text())
+    assert report["error_type"]=="RuntimeError"
+    assert "original failure" in report["traceback"]
