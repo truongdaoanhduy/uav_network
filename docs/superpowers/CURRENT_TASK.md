@@ -1,13 +1,16 @@
-# Current task: W&B visibility Task 2 — COMPLETE
+# Current task: MASAC crash Task 3 — DIAGNOSED / IMMEDIATE MITIGATION APPLIED
 
-Updated 2026-10-27. Production run data was present; stale Saved View state caused the apparent disappearance.
+Updated 2026-10-27. No new training was launched.
 
-- Root cause: saved view `UAV Network 2D - MASAC and MATD3` still filtered `tracking.group=uav-network-2d` with maxRuns=2, excluding 26-Oct G3 groups. Personal Workspace itself was already unfiltered/maxRuns1000.
-- Code fix `b3837fa`: Runs table now pins `config:runtime.algorithm` beside existing `summary:training_mode`, so MASAC/MATD3 and BASE/PQL are explicit even for historical runs. RED reproduced missing column; focused dashboard/axis suite 10/10 GREEN.
-- Live W&B fix: stale saved view updated in place to filters=[], search empty, enabled, maxRuns1000, Algorithm+Mode visible+pinned; fresh GraphQL read-back confirms it. No run/artifact was deleted or rewritten.
-- Evidence: `docs/superpowers/evidence/2026-10-27-wandb-visibility-fix.md`. Next task: diagnose simultaneous MASAC crashes and harden the continuation/monitoring path only where evidence supports a fix.
+- Four MASAC G3 learners + four controllers are W&B `crashed`; all8 heartbeats stop within11s. Last learner telemetry is finite/active and sampled host `oomKills=0`; no failure report/traceback was emitted. BASE SIGTERM handling would have produced a caught `failed` state, so this was an external hard heartbeat/process loss, not a caught MASAC exception.
+- Launch receipts use39600s kernel timeout and36000s learner soft limit, but termination occurred ~6h23m; current Kaggle docs advertise12h CPU/GPU notebook execution. Internal deadline is ruled out.
+- Fresh Kaggle auth now fails for affected accounts16–19 (and20–23). Exact Kaggle-side enforcement reason is unavailable because their private kernels are inaccessible; strongest correlated cause is external account/session/credential invalidation, not FP16/compile or MASAC numerics.
+- Immediate mitigation applied locally: only freshly valid account_01/account_02 remain enabled; account_03..24 disabled, key file remains0600. No ban/quota circumvention. Four-way accelerated launch remains blocked until two additional legitimate credentials pass all gates.
+- Next robustness task, if requested: bounded periodic **resumable** HF snapshots plus independent compliant supervision; first measure checkpoint bytes/upload overhead before changing production cadence.
+- Evidence: `docs/superpowers/evidence/2026-10-27-masac-crash-root-cause.md`.
 
 ---
+
 
 
 # Current task: accelerated cohort operational preflight — COMPLETE / NOT READY
