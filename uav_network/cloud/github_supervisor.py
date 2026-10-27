@@ -24,6 +24,8 @@ CONTROL_NAMES = ("job.json", "job-result.json", "continuation.json",
                  "evaluation-progress.json", "job-failures.json")
 ACCOUNT_ENV_RE = re.compile(r"^KAGGLE_API_TOKEN_ACCOUNT_(\d{2})$")
 IMMUTABLE_ARTIFACT_RE = re.compile(r"^[\w.-]+/[\w.-]+/[\w.-]+:v[0-9]+$")
+MANAGED_PIPELINE_SLUG_RE = re.compile(r"^(?:tra|val)-g[0-9]+-")
+MANAGED_CPU_RETRY_SLUG_RE = re.compile(r"^uav-media-[0-9a-f]{14}-a[0-9]{2}$")
 
 
 class RecoveryUnavailable(RuntimeError):
@@ -313,9 +315,18 @@ def _owned_refs(account, limit):
                 and "/gh-" in row["ref"])]
 
 
+def _managed_ref(ref):
+    _owner, separator, slug = ref.partition("/")
+    if not separator:
+        return False
+    return bool(MANAGED_PIPELINE_SLUG_RE.match(slug) or MANAGED_CPU_RETRY_SLUG_RE.fullmatch(slug))
+
+
 def reconcile_account(account, credentials, *, limit=100, dry_run=False):
     outcomes = []
     for ref in _owned_refs(account, limit):
+        if not _managed_ref(ref):
+            continue
         try:
             outcomes.append(reconcile_ref(ref, account, credentials, dry_run=dry_run))
         except Exception as error:

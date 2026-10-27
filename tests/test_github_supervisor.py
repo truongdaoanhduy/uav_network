@@ -257,3 +257,27 @@ def test_owned_refs_filters_legacy_kernels_before_reconciliation():
     with patch.object(s, "run_kaggle", return_value=__import__("json").dumps(rows)):
         refs = s._owned_refs(account, 100)
     assert refs == [row["ref"] for row in rows if "/gh-" in row["ref"]]
+
+
+def test_reconcile_account_filters_unmanaged_kaggle_refs_before_reconciliation():
+    s, account, credentials, _parent = fixtures()
+    refs = [
+        "owner/notebookbf403d32a3",
+        "owner/uavnet-train-20261016-081807-d07bdf",
+        "owner/uav-memory-1m-20261020-122024",
+        "owner/tra-g3-masac-base-h75-10271003-abc123",
+        "owner/val-g3-matd3-pql-fullgpu-10271004-def456-c01",
+        "owner/uav-media-0123456789abcd-a01",
+    ]
+    seen = []
+
+    def reconcile(ref, selected, creds, *, dry_run=False):
+        seen.append(ref)
+        return {"ref": ref, "action": "checked"}
+
+    with patch.object(s, "_owned_refs", return_value=refs), \
+         patch.object(s, "reconcile_ref", side_effect=reconcile):
+        outcomes = s.reconcile_account(account, credentials, dry_run=True)
+
+    assert seen == refs[3:]
+    assert [row["ref"] for row in outcomes] == refs[3:]
