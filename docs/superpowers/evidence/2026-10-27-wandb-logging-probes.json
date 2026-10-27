@@ -1,0 +1,40 @@
+[
+  {
+    "source_commit": "cf5c921d747e9f3f9a7d348bc614ec880214bc39",
+    "started_at_utc": "2026-10-27T15:57:47.799757+00:00",
+    "training": false,
+    "run_id": "ybnn37l0",
+    "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/ybnn37l0",
+    "live_first_revision_confirmed": true,
+    "live_atomic_replace_confirmed": false,
+    "error_type": "AssertionError",
+    "state": "failed",
+    "files": [
+      "metrics-guide.md",
+      "training-events.jsonl",
+      "training-status.json"
+    ],
+    "finished_at_utc": "2026-10-27T16:00:09.869448+00:00"
+  },
+  {
+    "source_commit": "6255ecc0aec605dbc2a61bafd8c8084f5c37ac54",
+    "started_at_utc": "2026-10-27T16:05:17.748228+00:00",
+    "training": false,
+    "run_id": "aqp31obe",
+    "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/aqp31obe",
+    "live_first_revision_confirmed": true,
+    "live_atomic_replace_confirmed": true,
+    "state": "finished",
+    "files": [
+      "metrics-guide.md",
+      "training-events.jsonl",
+      "training-status.json"
+    ],
+    "final_events": [
+      "probe_started",
+      "probe_atomic_replace",
+      "probe_complete"
+    ],
+    "finished_at_utc": "2026-10-27T16:05:56.831262+00:00"
+  }
+]

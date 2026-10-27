@@ -1,66 +1,87 @@
-# Current task: W&B metrics, logs and compact dashboard — IN PROGRESS
+# W&B observability — CODE / API COMPLETE; browser QA awaits sign-in
 
-Baseline a046a3b. Initial source89c6a8d, review fixescf5c921 +19b400e. Full final suite/publish still pending; no production training launched.
+Updated 2026-10-27T23:31:31.848628+07:00. Runtime source `bc1b6479a6cc9ebed80aeb756ddf8b0811fb7a79`;
+verified full-suite/source push `ecd597f928f68a1f455a943ff490cda0888ae5e3` adds only
+test fixture isolation. Source pushed to main and feat/cpu-replay-20261022 with
+atomic push and exact ls-remote readback. This final record/evidence is docs-only.
+No production training launched, restarted, cancelled or deleted.
 
-All independent-review findings reproduced and fixed (closed stdout, CPU prefix/nonresumable failure count, primary exception preservation, stale recovery error). Follow-up reviewer approved19b400e. Focused suites75passed9subtests plus22passed9subtests; final console regression37passed. First full suite7failed872passed95skipped identified stale fixtures and assertions, all migrated. Subsequent full runs113bb458f844/e1b9bbfc2774 stopped deliberately when review/cloud verification required source amendments; neither is completion evidence.
+## Delivered and verified
 
-Real W&B logging-only probe ybnn37l0 confirmed initial live status but missed atomic replacement for110s; revision2 arrived only after finish. Its genuine failed state is preserved. Added bounded explicit status-only now refresh: each transition, at most60s for progress, fail-open. New regression RED then66passed9subtests; compile/diffcheck pass. Next: repeat real online probe with this fix, independent follow-up, then freeze source and full CPU suite before publishing Personal+primary saved views. Human guide and design updated for observed SDK limitation. Before-view backup: outputs/wandb/observability-20261027/workspace-before.json. Native CPU/RAM/bothGPU metric availability and units verified online.
+- Personal and primary saved W&B views published/read back at 23:21:09 Vietnam,
+  27 Oct. Both retain their IDs: Personal VmlldzoxODA5MjI1Nw==; saved primary
+  VmlldzoxODA5Nzc1Ng==, nw-gmcixx5iveu-v.
+- 18 visible columns, 4 pinned: Name/State/Created/Runtime plus stage/algorithm/mode,
+  account/seed, progress, cohort/eval delivery/success, budget complete, stop reason,
+  failure type.26 line plots + 1 Vietnamese guide,12 individual runs/plot, no
+  aggregation, all real states, newest Created; correct checkpoint/CPU/runtime axes.
+- All 384 run IDs/states/historyLineCount unchanged:272 finished82 failed30 crashed,
+  0 running/pending at publication. Unrelated saved views unchanged; normal startup
+  reconciliation preserves plots. Before specs retained in ignored outputs/wandb.
+- Journal/status/guide, selected scalar evidence, independent console/disk/optional
+  upload guards, accurate CPU resume/pause/failure counts and primary traceback.
+  Explicit status-only now requests at transitions and at most 60s progress,
+  including failed attempts. Growing files end + caught-failure/close flush.
+- Real probe ybnn37l0 exposed missed atomic live update for 110s; genuine failed
+  state retained. Fixed logging-only probe aqp31obe confirmed two revisions while
+  running and 3 files / 3 events after finish. No rollout/quality metrics/GPU allocation.
+- **Final offline CPU suite:891 passed,95 skipped,8 warnings,1389 subtests in 529.84s.**
+  Job 50d61b83acc4, log /tmp/shell_mcp/jobs/50d61b83acc4.stdout.log. JUnit independently
+  read 0 failures/0 errors;2375 total cases including subtests/skips. Exact source ecd597f.
+- Independent source review: no remaining Critical/Important/Minor. compileall,
+  diff check, no-torch supervisor import pass; secret scan 12 real values, 0 hits.
+  Scientific config/algorithm/environment diff empty.
+- Earlier broad889 passed2 failed exposed synthetic one-character key state leaking
+  across tests, causing conservative traceback redaction to replace normal letters.
+  Fixture isolation fixed this; production redaction was not weakened. Interrupted
+  pre-final runs are not completion evidence.
 
-Spec: docs/superpowers/specs/2026-10-27-wandb-observability-design.md
-Plan: docs/superpowers/plans/2026-10-27-wandb-observability.md
+## Direct browser request: remaining permission-dependent check
 
-## Previous completed task context
+Latest user: “wandb onl t mở web rồi đó lên coi đi”. Browser extension tool lacks
+originating context. Cloud tab2 was verified as actual Weights & Biases at
+https://forge.coreweave.com/wandb/truongdaoanhduy-uit/uav_search_target/workspace?nw=gmcixx5iveu
+but signed out, displaying Page not found/Login. Selecting this exact W&B tab
+resolved an initial generic-origin review denial. Login reached id.coreweave.com;
+automatic approval review rejected access because inspection did not explicitly
+authorize the identity-service sign-in. No credentials entered or bypass attempted.
+Backend publication/readback is complete; rendered charts/table are not visually
+verified. Ask for explicit authorization for W&B sign-in via id.coreweave.com only
+as the final step after source/evidence work. Do not repeat the rejected identity
+flow or extract credentials without that authorization. Use browserAuth secure
+flow for any subsequent credential entry; never ask for secrets in chat.
 
-# Current task: General MASAC failure hardening — COMPLETE / DEPLOYED
+## Interpretation / limits / next action
 
-Updated 2026-10-27T18:44:05+07:00. Implementation `820b50ec000eee8e08e0875868f457d104c4057f`; final evidence/help follow as a docs-only commit. Source and evidence are pushed to main and feat/cpu-replay-20261022.
+Canonical 20k periodic mini-eval remains disabled; missing data stays empty. Judge
+mission delivery/success on matched protocol, not loss or GPU utilization alone.
+Created/Runtime describe current W&B run, not submit time or total lineage. Full
+upload clock is not captured-state age. Hard kill/network loss may prevent final
+traceback/upload; no universal root-cause guarantee. New logging applies to future
+source-pinned jobs; historic data remains intact and cannot gain retrospective logs.
 
-## User request
+Only unfinished requested check: browser visual QA, conditional on explicit sign-in
+authorization. Do not start a new scientific/retraining task implicitly. Before any
+later launch, recheck legitimate account/quota/idle/datasets/T4/no duplicates and
+GitHub-synced owner; launch only on user instruction.
 
-Check whether additional key.txt accounts are usable, re-investigate historical MASAC crashes and implement/propose a general failure response. Do not promise every external failure is preventable or restart production implicitly.
+Guide: docs/training-diagnostics.md
+Evidence: docs/superpowers/evidence/2026-10-27-wandb-observability.md, with live,
+logging-probe and test-results JSON beside it.
+Design/plan: docs/superpowers/specs/2026-10-27-wandb-observability-design.md and
+docs/superpowers/plans/2026-10-27-wandb-observability.md.
 
-## Fresh diagnosis
+## Previous completed reliability work
 
-- 18:15–18:17 W&B reads: four MASAC G3 learners and controllers remain crashed, source 77a1d0f. heartbeatAt spread 11s: 02:31:57–02:32:08 Vietnam on 27/10.
-- Strongest evidence remains a common external platform/session/account/connectivity/telemetry event. Exact Kaggle-side cause is unproven; heartbeat loss alone is not proof all compute died, OOM or ban.
-- Old owner credentials are absent from the current key file; old replay/optimizer/RNG do not exist in their retained policy-only artifacts. They cannot be reconstructed or called exact resumes.
-- No new scientific/algorithm/precision fix is claimed to explain that old off/off cohort.
+General MASAC hardening 820b50e, final evidence/help a046a3b. External GitHub
+supervisor active cron 15 min; its orchestration is independent of sandbox.
+10 local accounts authenticated at 18:17 on 27 Oct; only account_01/account_02 synced
+and allowlisted in GitHub at that observation. No production roots launched.
+Old MASAC source 77a1d0f heartbeat loss within 11s remains a shared external-incident
+hypothesis, not proven Kaggle/OOM/ban. Retained policy-only artifacts cannot restore
+lost replay/optimizer/RNG. Do not silently rotate lineage owners or call a seed
+restart exact recovery.
 
-## Accounts
-
-Fresh auth/quota check at 18:17:33: 10 local enabled accounts all authenticate and return GPU quota; 01 remaining 23.35h, 02 25.03h, 03–10 each 30h. This does not prove allocation/phone verification/idle/private datasets/accelerator for a future launch.
-
-GitHub allowlist remains account_01,account_02; matching identities duytrngoanh and vuliu123456. Additional local accounts were not silently enabled in GitHub. Root full-flow launch must explicitly choose a synced allowlisted account; do not let local quota auto-selection pick 03–10. Do not rotate a lineage owner or evade service restrictions.
-
-## Implemented general fixes
-
-- Per-account API/list failures no longer stop subsequent accounts; sanitized error class and account_unavailable report.
-- Unresolved recovery, unknown service, missing recovery or reconcile/account errors return nonzero instead of false green.
-- Verified recovery now carries initial_global_step and real environment_state_saved evidence. BASE/PQL save callbacks derive that marker from actual saved-world snapshots; W&B artifact metadata publishes it. Zero-episode recovery without this proof remains blocked.
-- Quota-paused recovery reports waiting_for_quota, not submitted.
-- Cancelled jobs are not automatically restarted.
-- Three consecutive crash-recovery GPU children maximum; counter survives child specs and resets after a clean segment. Shared builder enforces it. The conservative gate can also block CPU handoff after a third recovered segment fails; operator review is intentional.
-- --report persists credential-free JSON; Actions always uploads uav-supervisor-report for reconciliation, retention 14 days.
-- Scientific configs, source pinning, replay/batch/env/episode budgets, precision policy and W&B/HF history are unchanged.
-
-## Verification and cloud proof
-
-- RED: 15 observed failures before fixes.
-- Focused lifecycle/checkpoint suite: 135 passed, 38 subtests. Four actual small BASE/PQL × MASAC/MATD3 saved-world checkpoints now publish correct evidence and exactly restore.
-- Full offline CPU suite on final implementation 820b50e: **868 passed, 95 skipped, 8 warnings, 1383 subtests passed in 506.22s (0:08:26)**. Task a163687c6241, log /tmp/shell_mcp/jobs/a163687c6241.stdout.log.
-- compileall, diff check, no-torch supervisor import and tracked secret scan: pass (0 hits against 12 local secret values).
-- Independent review: no Critical/Important. Minor deferred: a manual dry-run --check-services failure before reconciliation has console diagnostics but no separate JSON artifact. Scheduled reconciliation reporting is unaffected.
-- Feature dry-run 40497048893 success; downloaded/read artifact 12730654618: account_01=[], account_02=[].
-- Main dry-run [40497938044](https://github.com/truongdaoanhduy/uav_network/actions/runs/40497938044) success at exact source 820b50e; artifact 12731566730 uploaded (189 bytes), service probes ok, both managed sets empty. Workflow active, cron every 15 minutes. Schedule timing is advisory; no new scheduled execution/GPU full flow is claimed.
-- Fresh W&B at 2026-10-27T18:44:05+07:00: **0 running/pending**. No production launch/restart/cancel/delete/adoption. No credential secret value changed.
-
-## Next action / limits
-
-This requested diagnosis/fix/proposal task is complete. Only on an explicit next launch request: preflight legitimate accounts/quota/idle datasets/T4/no duplicates, then launch approved roots with --auto-continue and confirm Kaggle + W&B + GitHub-managed metadata.
-
-Recommended next reliability measurements: real ~15GB HF upload/peak resources; an earlier first positive-progress checkpoint after cost measurement; small cloud fault-injection train→recover→CPU visualize smoke. Before a first confirmed checkpoint, a hard kill cannot exact-resume progress; restart from seed must be labelled/authorized. No live GPU/new large upload was performed here.
-
-Guide: docs/github-actions-full-flow.md
-Evidence/failure-response matrix: docs/superpowers/evidence/2026-10-27-general-failure-hardening.md
-Design/plan: docs/superpowers/specs/2026-10-27-general-failure-hardening-design.md and docs/superpowers/plans/2026-10-27-general-failure-hardening.md
-Previous migration evidence: docs/superpowers/evidence/2026-10-27-github-external-supervisor.md
+See docs/github-actions-full-flow.md and
+ docs/superpowers/evidence/2026-10-27-general-failure-hardening.md for prior evidence
+and launch restrictions.

@@ -1,0 +1,156 @@
+{
+  "verified_at_utc": "2026-10-27T16:21:09.345043+00:00",
+  "run_count": 384,
+  "states": {
+    "finished": 272,
+    "failed": 82,
+    "crashed": 30
+  },
+  "run_state_history_fingerprint": "94a3149c60daf3d98b4133cf78074ca6c4ccf9a224e8f658093b3171d8690373",
+  "run_state_history_counts_unchanged": true,
+  "unrelated_views_unchanged": true,
+  "view_ids_preserved": true,
+  "startup_reconciliation_preserves_plots": true,
+  "views": [
+    {
+      "name": "nw-gmcixx5iveu-v",
+      "id": "VmlldzoxODA5Nzc1Ng==",
+      "visible_columns": [
+        "config:kaggle_account",
+        "config:runtime.algorithm",
+        "config:runtime.seed",
+        "config:stage",
+        "run:createdAt",
+        "run:displayName",
+        "run:duration",
+        "run:state",
+        "summary:cohort/delivery_rate_percent_mean",
+        "summary:cohort/success_mean",
+        "summary:diagnostics/failure_type",
+        "summary:episode_budget_complete",
+        "summary:eval/mean_delivery_rate_percent",
+        "summary:eval/success_rate",
+        "summary:global_step",
+        "summary:stop_reason",
+        "summary:train/episodes_completed",
+        "summary:training_mode"
+      ],
+      "pinned_columns": [
+        "run:createdAt",
+        "run:displayName",
+        "run:duration",
+        "run:state"
+      ],
+      "plots": 26,
+      "guide_panels": 1,
+      "sections": [
+        [
+          "How to read this evidence",
+          1
+        ],
+        [
+          "Mission quality - completed outcomes",
+          4
+        ],
+        [
+          "Training progress and speed",
+          3
+        ],
+        [
+          "Periodic fixed-policy evaluation - only when enabled",
+          2
+        ],
+        [
+          "Final CPU evaluation - each episode",
+          2
+        ],
+        [
+          "Why delivery is low - inspect together",
+          4
+        ],
+        [
+          "Numerical diagnostics - no universal loss target",
+          5
+        ],
+        [
+          "Resources - elapsed runtime axis",
+          4
+        ],
+        [
+          "Recovery and upload cost",
+          2
+        ]
+      ]
+    },
+    {
+      "name": "nw-nwusertruongdaoanhduy-w",
+      "id": "VmlldzoxODA5MjI1Nw==",
+      "visible_columns": [
+        "config:kaggle_account",
+        "config:runtime.algorithm",
+        "config:runtime.seed",
+        "config:stage",
+        "run:createdAt",
+        "run:displayName",
+        "run:duration",
+        "run:state",
+        "summary:cohort/delivery_rate_percent_mean",
+        "summary:cohort/success_mean",
+        "summary:diagnostics/failure_type",
+        "summary:episode_budget_complete",
+        "summary:eval/mean_delivery_rate_percent",
+        "summary:eval/success_rate",
+        "summary:global_step",
+        "summary:stop_reason",
+        "summary:train/episodes_completed",
+        "summary:training_mode"
+      ],
+      "pinned_columns": [
+        "run:createdAt",
+        "run:displayName",
+        "run:duration",
+        "run:state"
+      ],
+      "plots": 26,
+      "guide_panels": 1,
+      "sections": [
+        [
+          "How to read this evidence",
+          1
+        ],
+        [
+          "Mission quality - completed outcomes",
+          4
+        ],
+        [
+          "Training progress and speed",
+          3
+        ],
+        [
+          "Periodic fixed-policy evaluation - only when enabled",
+          2
+        ],
+        [
+          "Final CPU evaluation - each episode",
+          2
+        ],
+        [
+          "Why delivery is low - inspect together",
+          4
+        ],
+        [
+          "Numerical diagnostics - no universal loss target",
+          5
+        ],
+        [
+          "Resources - elapsed runtime axis",
+          4
+        ],
+        [
+          "Recovery and upload cost",
+          2
+        ]
+      ]
+    }
+  ]
+}

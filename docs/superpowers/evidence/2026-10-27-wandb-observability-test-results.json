@@ -1,0 +1,29 @@
+{
+  "source_commit": "ecd597f928f68a1f455a943ff490cda0888ae5e3",
+  "runtime_source_commit": "bc1b6479a6cc9ebed80aeb756ddf8b0811fb7a79",
+  "verified_at": "2026-10-27T23:31:31.848628+07:00",
+  "command": "HF_HUB_OFFLINE=1 WANDB_MODE=disabled PYTHONPATH=. python -m pytest -q --junitxml=outputs/verification/wandb-observability-final.xml",
+  "result": {
+    "passed": 891,
+    "skipped": 95,
+    "warnings": 8,
+    "subtests_passed": 1389,
+    "duration_seconds": 529.84
+  },
+  "junit": {
+    "tests": 2375,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 95
+  },
+  "background_job": "50d61b83acc4",
+  "independent_review": "No remaining Critical, Important or Minor source findings",
+  "static_checks": {
+    "compileall": true,
+    "diff_check": true,
+    "supervisor_import_without_torch": true,
+    "secret_values_checked": 12,
+    "secret_hits": 0,
+    "scientific_config_algorithm_environment_diff": []
+  }
+}

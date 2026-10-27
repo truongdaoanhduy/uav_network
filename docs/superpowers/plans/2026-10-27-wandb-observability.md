@@ -29,6 +29,20 @@ Files: run_journal.py (record scalar event/context/status/guide with contained I
 
 ### Task 3: Verify and publish
 
-- [ ] Focused and full offline CPU tests, source/secret/static checks, independent review.
-- [ ] Backup/read live Personal and primary saved views, apply curated core profiles, read back identities/table/axes/panel selection and real metric availability.
-- [ ] Update human guide/evidence/CURRENT_TASK with exact checks and limits, commit and push main + working branch. No production run is needed merely to test UI/logging.
+- [x] Focused and full offline CPU tests, source/secret/static checks, independent review.
+- [x] Backup/read live Personal and primary saved views, apply curated core profiles, read back identities/table/axes/panel selection and real metric availability.
+- [x] Update human guide/evidence/CURRENT_TASK with exact checks and limits; source pushed to main + working branch. No production training launched.
+
+## Completion evidence
+
+Runtime bc1b647; fixture-only ecd597f; full offline suite891 passed/95 skipped,
+1389 subtests. Live API readback verified both existing view IDs,18 visible/4 pinned,
+26 plots+guide,12-run per-plot cap, no aggregation, correct axes and unchanged
+384run state/history counts. Real fixed logging-only cloud probe aqp31obe passed.
+Independent final source review has no remaining findings.
+
+The later user request for direct browser inspection reached the actual W&B tab,
+but it was signed out. Automatic approval review denied id.coreweave.com sign-in;
+no credentials entered or bypass attempted. Visual rendering still requires
+explicit authorization for that identity flow. Backend/source completion stands.
+See docs/superpowers/evidence/2026-10-27-wandb-observability.md.
