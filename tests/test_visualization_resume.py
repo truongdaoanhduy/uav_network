@@ -177,3 +177,19 @@ class VisualizationResumeTests(unittest.TestCase):
             assert report["error_type"]=="ValueError"
             assert "original download failure" in report["traceback"]
             assert json.loads((root/"visualization-failures.json").read_text())["matd3"]["error_type"]=="ValueError"
+
+
+    def test_paused_cpu_evaluation_with_closed_stdout_keeps_pause_result(self):
+        from io import StringIO
+        with TemporaryDirectory() as directory:
+            root=Path(directory);spec=self.spec("configs/kaggle-smoke.yaml")
+            prefix=[{"episode":1,"seed":10044}]
+            spec["completed_records"]={"matd3":prefix}
+            tracker=self.tracker();closed=StringIO();closed.close()
+            with patch("uav_network.experiments.tracking.start_tracking",return_value=tracker), \
+                 patch("uav_network.cloud.remote.prepare_checkpoints",return_value={"matd3":root/"policy.pt"}), \
+                 patch.object(visualize,"evaluate",side_effect=evaluation.EvaluationPaused(prefix)), \
+                 patch("sys.stdout",closed):
+                result=visualize.run_visualization(spec,root)
+            assert result=={}
+            assert tracker.run.summary["evaluation/session_status"]=="paused"

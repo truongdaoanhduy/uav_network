@@ -418,7 +418,8 @@ def run_visualization(spec, output=Path("/kaggle/working")):
     if failures:
         (output / "visualization-failures.json").write_text(json.dumps(failures, indent=2))
         raise RuntimeError("CPU visualization failures: " + ", ".join(failures))
-    print(json.dumps({a: {k: v[k] for k in ("device", "render_path", "animation_path")} for a, v in results.items()}), flush=True)
+    with suppress(OSError, ValueError):
+        print(json.dumps({a: {k: v[k] for k in ("device", "render_path", "animation_path")} for a, v in results.items()}), flush=True)
     return results
 
 
