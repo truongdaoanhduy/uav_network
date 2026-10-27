@@ -24,7 +24,7 @@ CONTROL_NAMES = ("job.json", "job-result.json", "continuation.json",
                  "evaluation-progress.json", "job-failures.json")
 ACCOUNT_ENV_RE = re.compile(r"^KAGGLE_API_TOKEN_ACCOUNT_(\d{2})$")
 IMMUTABLE_ARTIFACT_RE = re.compile(r"^[\w.-]+/[\w.-]+/[\w.-]+:v[0-9]+$")
-MANAGED_PIPELINE_SLUG_RE = re.compile(r"^(?:tra|val)-g[0-9]+-")
+MANAGED_PIPELINE_SLUG_RE = re.compile(r"^gh-(?:tra|val)-g[0-9]+-")
 MANAGED_CPU_RETRY_SLUG_RE = re.compile(r"^uav-media-[0-9a-f]{14}-a[0-9]{2}$")
 
 
@@ -302,6 +302,13 @@ def reconcile_ref(ref, account, credentials, *, dry_run=False):
     return {**base, "action": "submitted_cpu", "child_ref": manifest["kernel_ref"]}
 
 
+def _managed_ref(ref):
+    _owner, separator, slug = ref.partition("/")
+    if not separator:
+        return False
+    return bool(MANAGED_PIPELINE_SLUG_RE.match(slug) or MANAGED_CPU_RETRY_SLUG_RE.fullmatch(slug))
+
+
 def _owned_refs(account, limit):
     text = run_kaggle(["kernels", "list", "--mine", "--format", "json",
                        "--page-size", str(limit), "--sort-by", "dateRun"], account)
@@ -312,14 +319,7 @@ def _owned_refs(account, limit):
         raise RuntimeError("Kaggle kernel list returned invalid JSON")
     return [row["ref"] for row in rows
             if (isinstance(row, dict) and isinstance(row.get("ref"), str)
-                and "/gh-" in row["ref"])]
-
-
-def _managed_ref(ref):
-    _owner, separator, slug = ref.partition("/")
-    if not separator:
-        return False
-    return bool(MANAGED_PIPELINE_SLUG_RE.match(slug) or MANAGED_CPU_RETRY_SLUG_RE.fullmatch(slug))
+                and _managed_ref(row["ref"]))]
 
 
 def reconcile_account(account, credentials, *, limit=100, dry_run=False):

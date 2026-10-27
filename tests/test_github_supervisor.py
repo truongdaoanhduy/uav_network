@@ -265,8 +265,8 @@ def test_reconcile_account_filters_unmanaged_kaggle_refs_before_reconciliation()
         "owner/notebookbf403d32a3",
         "owner/uavnet-train-20261016-081807-d07bdf",
         "owner/uav-memory-1m-20261020-122024",
-        "owner/tra-g3-masac-base-h75-10271003-abc123",
-        "owner/val-g3-matd3-pql-fullgpu-10271004-def456-c01",
+        "owner/gh-tra-g3-masac-base-h75-10271003-abc123",
+        "owner/gh-val-g3-matd3-pql-fullgpu-10271004-def456-c01",
         "owner/uav-media-0123456789abcd-a01",
     ]
     seen = []
@@ -281,3 +281,24 @@ def test_reconcile_account_filters_unmanaged_kaggle_refs_before_reconciliation()
 
     assert seen == refs[3:]
     assert [row["ref"] for row in outcomes] == refs[3:]
+
+
+def test_managed_ref_matches_reserved_github_lineages_and_cpu_retries_only():
+    from uav_network.cloud import github_supervisor as s
+    assert s._managed_ref("owner/gh-tra-g3-masac-base-h75-10271003-abc123")
+    assert s._managed_ref("owner/gh-val-g3-matd3-pql-fullgpu-10271004-def456-c01")
+    assert s._managed_ref("owner/uav-media-0123456789abcd-a01")
+    assert not s._managed_ref("owner/tra-g3-masac-base-h75-10271003-abc123")
+    assert not s._managed_ref("owner/uavnet-train-20261016-081807-d07bdf")
+
+
+def test_owned_refs_keeps_reserved_cpu_retry_namespace():
+    from uav_network.cloud import github_supervisor as s
+    account = Account("selected", "synthetic-token")
+    rows = [
+        {"ref": "owner/gh-tra-g3-masac-base-h75-10271003-abc123"},
+        {"ref": "owner/uav-media-0123456789abcd-a01"},
+        {"ref": "owner/notebook123"},
+    ]
+    with patch.object(s, "run_kaggle", return_value=__import__("json").dumps(rows)):
+        assert s._owned_refs(account, 100) == [rows[0]["ref"], rows[1]["ref"]]
