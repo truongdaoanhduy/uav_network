@@ -76,12 +76,14 @@ class DashboardTests(unittest.TestCase):
         pinned = {key for key,value in feed["columnPinned"].items() if value}
         self.assertEqual(len(visible),17)
         self.assertNotIn("config:runtime.algorithm",visible)
+        self.assertNotIn("summary:training_mode",visible)
+        self.assertIn("summary:evaluation/episodes_completed",visible)
         self.assertTrue({"run:createdAt","run:duration","summary:eval/mean_delivery_rate_percent",
                          "summary:eval/success_rate"} <= visible)
         self.assertEqual(pinned,{"run:displayName","run:state","run:createdAt","run:duration"})
         plots = [p for section in spec["panelBankConfig"]["sections"] for p in section["panels"]
                  if "metrics" in p.get("config",{})]
-        self.assertEqual(len(plots),26)
+        self.assertEqual(len(plots),27)
         for panel in plots:
             config = panel["config"]
             self.assertEqual(config.get("limit"),12)

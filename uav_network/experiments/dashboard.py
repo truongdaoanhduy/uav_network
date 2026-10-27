@@ -19,6 +19,7 @@ PANELS = {
         ("Mission success fraction - higher", "cohort/success_mean"),
         ("Completed-episode return - inspect with delivery", "cohort/return_mean"),
         ("Discovered targets (%) - higher", "cohort/search_rate_percent_mean"),
+        ("Completed episodes in outcome window - sample size", "cohort/episodes"),
     ],
     "Training progress and speed": [
         ("Completed training episodes", "train/episodes_completed"),
@@ -41,17 +42,17 @@ PANELS = {
         ("UAV joules / GCS delivery - compare equal success", "cohort/energy/j_per_gcs_delivery"),
     ],
     "Numerical diagnostics - no universal loss target": [
-        ("Actor loss - diagnostic only", "learner/actor_loss"),
         ("Critic loss - diagnostic only", "learner/critic_loss"),
         ("TD error absolute mean", "learner/td_error_abs_mean"),
         ("Q absolute maximum", "learner/q_abs_max"),
         ("Critic gradient norm", "learner/critic_grad_norm"),
     ],
-    "Resources - elapsed runtime axis": [
+    "Resources - runtime for system; training steps for disk": [
         ("GPU 0 / 1 utilization (%)", ("system/gpu.0.gpu", "system/gpu.1.gpu")),
         ("GPU 0 / 1 allocated memory (%)", ("system/gpu.0.memoryAllocated", "system/gpu.1.memoryAllocated")),
         ("CPU utilization (SDK %)", "system/cpu"),
         ("Host RAM utilization (%)", "system/memory_percent"),
+        ("Free output disk bytes - training-step samples", "storage/disk_free_bytes"),
     ],
     "Recovery and upload cost": [
         ("Seconds since confirmed FULL upload - not captured-state age", "recovery/seconds_since_confirmed_upload"),
@@ -62,6 +63,7 @@ PANELS = {
 
 DIAGNOSTIC_PANELS = {
     "Numerical learning": [
+        ("Actor loss - diagnostic only", "learner/actor_loss"),
         ("TD error", "learner/td_error_abs_mean"), ("Q magnitude", "learner/q_abs_max"),
         ("Critic gradient", "learner/critic_grad_norm"), ("Actor gradient", "learner/actor_grad_norm"),
         ("Continuous entropy", "learner/continuous_entropy"), ("Next-hop entropy", "learner/discrete_entropy"),

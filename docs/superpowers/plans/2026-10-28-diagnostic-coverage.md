@@ -25,14 +25,14 @@ Files: new evidence.py, run_journal.py, diagnostics.py, async_evaluation.py, tra
 ### Task2: Forward progress, root context and publication boundaries
 
 Files: new progress_watchdog.py, tracking.py, training.py, pql_training.py, cloud/remote.py, cloud/visualize.py; focused tests.
-- [ ] RED: real short subprocess emits stack on absent progress; reset/cancel/owner switch leave no dangling FD; optional failure cannot kill learner.
-- [ ] GREEN:300s non-terminating owned timer; bounded resource samples and warning/replay/PQL/source evidence; source protocol/count in CPU records; named negative exit signal with unknown cause.
-- [ ] Verify no-torch supervisor import and existing BASE/PQL/evaluation/checkpoint behavior.
+- [x] RED: real short subprocess emits stack on absent progress; reset/cancel/owner switch leave no dangling FD; optional failure cannot kill learner.
+- [x] GREEN:300s non-terminating owned timer; bounded resource samples and warning/replay/PQL/source evidence; source protocol/count in CPU records; named negative exit signal with unknown cause.
+- [x] Verify no-torch supervisor import and existing BASE/PQL/evaluation/checkpoint behavior.
 
 ### Task3: Curate and verify Personal evidence
 
 Files: dashboard_columns.py, dashboard.py, guide; tests/test_dashboard.py and test_diagnostics_axes.py.
-- [ ] RED→GREEN:17 columns replace redundant Mode with eval n;27plots+guide, cohort count/disk visible and actor loss retained in advanced profile; correct axes,12-run individual cap, no aggregation.
+- [x] RED→GREEN:17 columns replace redundant Mode with eval n;27plots+guide, cohort count/disk visible and actor loss retained in advanced profile; correct axes,12-run individual cap, no aggregation.
 - [ ] Independent final review, source freeze, full offline CPU suite and secret/static checks.
 - [ ] Update Personal view only, backup/readback IDs/columns/plots and native UI; no stale data or state rewriting.
 - [ ] Coverage matrix/evidence/CURRENT_TASK, commit/push and report measured limits.

@@ -14,7 +14,7 @@ minh nguyên nhân. Chi tiết mẫu số và seed bank ở [diagnostics-v1.md](
 | Name, State | Tên nhận biết run và trạng thái W&B thực tế. Giữ cả running, finished, failed, crashed. |
 | Created | Thời điểm W&B tạo run, không phải thời điểm submit job Kaggle. |
 | Runtime | Thời gian của run/phiên này, không cộng tất cả phiên trong lineage. |
-| Stage, Mode | Phân biệt train/validate/visualize và BASE/PQL. Thuật toán đã có trong Name; cột Algorithm được ẩn để tránh lặp. |
+| Stage, eval episodes completed | Phân biệt train/validate/visualize; số tập của kết quả eval đang hiển thị (không cộng dồn các checkpoint). BASE/PQL và thuật toán đã có trong Name; ẩn Mode/Algorithm để tránh lặp. |
 | Account, Seed | Xác định chủ job và seed để đối chiếu. |
 | Global step, completed training episodes | Tiến độ thật; một episode đang chạy chưa được tính là hoàn tất. |
 | Cohort delivery, cohort success | Kết quả episode đã kết thúc trong cửa sổ transition gần nhất. |
@@ -28,7 +28,7 @@ config và summary. Các cột phụ xem trong trang từng run khi cần.
 `finished` chỉ xác nhận run kết thúc bình thường: cần xem `episode_budget_complete`
 và `stop_reason` trước khi kết luận đã train đủ 20.000 tập.
 
-## 26 đồ thị và một hướng dẫn đọc
+## 27 đồ thị và một hướng dẫn đọc
 
 | Nhóm | Số plot | Cách dùng |
 |---|---:|---|
@@ -95,7 +95,8 @@ scenario; không phải mọi cảnh báo đều là bug.
 | `training-status.json` | Bản trạng thái nhỏ mới nhất, ghi bằng atomic replace; đăng ký upload live. |
 | `metrics-guide.md` | Hướng dẫn ý nghĩa metric, nguồn mẫu và trục X đi cùng run. |
 | `diagnostics.jsonl`, `cohorts.jsonl` | Cảnh báo/đánh giá và các cửa sổ outcome với nguồn, cỡ mẫu, partial. |
-| `failure.json` | Loại lỗi, traceback đã redaction, algorithm/seed/source và context tiến độ có sẵn. |
+| `failure.json` | Exception chain, traceback đã redaction, loại lỗi bảo thủ, tài nguyên RAM/CUDA/đĩa, signal thực nhận và context/seed/metrics cuối có sẵn; không tự xác nhận nguyên nhân gốc. |
+| `thread-stacks.log` | Stack mọi thread sau 300s không có marker tiến độ mới; lặp lại, không tự kill. Có cho BASE/PQL và CPU, kể cả không bật W&B. Native fatal traceback đi vào stderr khi subprocess được chạy với `PYTHONFAULTHANDLER=1`. |
 | `failed_batch.pt`, `failure_state.pt` | Với lỗi learner có hỗ trợ: batch thật và state sau lỗi để tái hiện. Đây là evidence chẩn đoán, không phải full checkpoint phục hồi. |
 | `resolved_config.yaml`, CPU `metrics.json` | Cấu hình/protocol, checkpoint nguồn, aggregate CPU và kết quả publication tương ứng. |
 
@@ -139,3 +140,23 @@ cục của view đó. Config/history/file chi tiết vẫn có ở từng run.
 Tài liệu nguồn: [W&B logging](https://docs.wandb.ai/models/track/log),
 [console logs](https://docs.wandb.ai/models/app/console-logs),
 [SAC diagnostics](https://spinningup.openai.com/en/latest/_modules/spinup/algos/pytorch/sac/sac.html).
+
+## Kiểm tra độ bao phủ và các tình trạng khác
+
+Xem [ma trận bằng chứng và giới hạn](diagnostic-coverage.md) để chọn file cần đọc,
+bằng chứng phải lấy thêm và bước kiểm tra tiếp. Không có log nào tự giải thích
+mọi nguyên nhân. Nếu không có traceback, không được gán OOM/ban chỉ từ crashed.
+
+Hai plot bổ sung là **cohort/episodes** (độ lớn mẫu của outcome) và
+**storage/disk_free_bytes** (đĩa tại nhịp log training). Plot đĩa dùng global_step;
+CPU/GPU/RAM của SDK dùng runtime. Actor loss vẫn có trong metrics và profile
+`diagnostic`, nhường chỗ trong giao diện chính cho bằng chứng dễ dùng hơn.
+
+Journal giữ warning/replay/PQL/reward/action/safety/report có sẵn, source step
+của từng nhóm và resource snapshot best-effort mỗi 60s ở nhịp event; xem tuổi mẫu.
+Failure lấy snapshot mới. CPU có tiến độ từng episode/throttled 30s, checkpoint,
+seed đầu/cuối, scenario hash, deterministic và overlap khi protocol có cung cấp.
+Không sửa lịch mini-eval đang tắt và không tự đổi policy/scenario để tăng điểm.
+
+Chỉ jobs dùng commit mới có các log mới. Phiên đã chạy với commit cũ không thể
+nhận thêm code; dữ liệu thiếu của run lịch sử giữ nguyên, không bịa lại.

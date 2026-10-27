@@ -14,7 +14,10 @@ READING_GUIDE = """### Đọc dashboard đúng cách
 - Loss/TD/Q/gradient là chẩn đoán, không có ngưỡng loss chung để chấm tốt/xấu. PDR là packet, khác delivery mục tiêu tới GCS. Energy/delivery chỉ có nghĩa khi delivery/success tương đương.
 - GPU/CPU/RAM và throughput giải thích tốc độ, không chấm chất lượng policy. Sample-use BASE đo segment hiện tại; PQL dùng replay counters có thể đã restore.
 - Mỗi plot tối đa 12 run riêng; bảng vẫn giữ mọi trạng thái. Chọn các run cùng cấu hình để so sánh. Created là lúc W&B tạo run; Runtime là phiên hiện tại, không phải tổng lineage.
-- Logs/Files: training-events.jsonl, training-status.json, diagnostics.jsonl, cohorts.jsonl, failure.json. Logs chỉ ra triệu chứng và mốc xảy ra; traceback/batch/provenance mới giúp xác minh nguyên nhân.
+- **Số tập eval** trong bảng mô tả kết quả eval đang hiển thị; không cộng dồn các checkpoint. Ít mẫu, cohort partial hoặc khác scenario/seed/budget thì chưa đủ để xếp hạng. Success=0 là chưa hoàn thành toàn nhiệm vụ, vẫn cần xem delivery.
+- **Phân biệt:** kết quả thấp, giảm theo thời gian, lỗi số học, chậm/không có tiến độ, lỗi telemetry và lỗi eval/publication là các tình trạng khác nhau. Không dùng State hoặc loss riêng để chấm policy.
+- Logs/Files: training-events.jsonl, training-status.json, diagnostics.jsonl, cohorts.jsonl, failure.json, thread-stacks.log. Stack sau 300s không có tiến độ chỉ ghi vị trí đang chờ; không kết luận deadlock hay tự tắt job. SIGKILL/mất heartbeat chưa chứng minh OOM/ban; cần log Kaggle/nền tảng.
+- Journal kèm resource snapshot tối đa mỗi phút ở nhịp event (có tuổi mẫu); không thể ghi khi cả tiến trình bị dừng. Log mới áp dụng cho job dùng source mới; run cũ không có bằng chứng bổ sung hồi tố.
 """
 
 IDENTITY_FIELDS = {"run_id", "algorithm", "mode", "seed", "source_commit", "stage",

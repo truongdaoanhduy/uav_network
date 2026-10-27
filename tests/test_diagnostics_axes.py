@@ -51,7 +51,7 @@ def test_workspace_run_table_is_compact_and_decision_focused():
 
     expected = [
         "run:displayName", "run:state", "run:createdAt", "run:duration",
-        "config:stage", "summary:training_mode",
+        "config:stage", "summary:evaluation/episodes_completed",
         "config:kaggle_account", "config:runtime.seed", "summary:global_step",
         "summary:train/episodes_completed", "summary:cohort/delivery_rate_percent_mean",
         "summary:cohort/success_mean", "summary:eval/mean_delivery_rate_percent",
@@ -75,11 +75,11 @@ def test_workspace_run_table_is_compact_and_decision_focused():
                    for key in (metric if isinstance(metric, tuple) else (metric,))}
     assert {
         "train/episodes_completed", "train/joint_transitions_per_s",
-        "learner/actor_loss", "learner/critic_loss", "learner/td_error_abs_mean",
+        "cohort/episodes", "storage/disk_free_bytes", "learner/critic_loss", "learner/td_error_abs_mean",
         "cohort/network/packet_pdr_fraction", "cohort/delivery_rate_percent_mean",
         "system/gpu.0.gpu", "system/gpu.1.gpu", "recovery/elapsed_seconds",
     } <= all_metrics
-    assert sum(len(panels) for panels in PANELS.values()) == 26
+    assert sum(len(panels) for panels in PANELS.values()) == 27
 
 
 def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source():
@@ -118,3 +118,9 @@ def test_authored_cpu_episode_panels_use_episode_axis():
         assert panel_axis(metric) == 'evaluation/episodes_completed'
     assert panel_axis('evaluation/mean_return') == 'evaluation/checkpoint_global_step'
     assert panel_axis('eval/mean_delivery_rate_percent') == 'evaluation/checkpoint_global_step'
+
+
+def test_actor_loss_is_available_in_advanced_diagnostics_without_core_clutter():
+    from uav_network.experiments.dashboard import PANELS, DIAGNOSTIC_PANELS
+    assert all(metric!='learner/actor_loss' for panels in PANELS.values() for _,metric in panels)
+    assert any(metric=='learner/actor_loss' for panels in DIAGNOSTIC_PANELS.values() for _,metric in panels)
