@@ -1,14 +1,14 @@
-# Current task: accelerated cohort Task 8/9 reaudit — COMPLETE / LAUNCH BLOCKED
+# Current task: W&B visibility Task 2 — COMPLETE
 
-Updated 2026-10-27. Fresh Kaggle+W&B re-audit completed; no production job submitted.
+Updated 2026-10-27. Production run data was present; stale Saved View state caused the apparent disappearance.
 
-- All24 enabled local Kaggle credentials checked independently. Only account_01 (~23.42h) and account_02 (~25.03h) pass auth + >=12h quota + idle-kernel + private W&B-dataset gates. account_03..24 fail current authentication; no disabled/duplicate/unused local token exists. Four-account production launch remains blocked.
-- Fresh W&B state changed materially: robust G3 MASAC BASE/PQL fullGPU+hybrid runs `25eecfd1`,`63202ad9`,`3b39b0c8`,`6f0bcde3` are now crashed; their four controllers are also crashed. Four MATD3 G3 lineages remain finished at20k.
-- All8 MASAC train/controller heartbeats stopped inside 11s (19:31:57..19:32:08UTC). Summaries remain finite and expose no run-specific Python traceback. Evidence therefore points to a shared external/platform/session/network/credential termination domain, not four independent MASAC code failures; exact Kaggle cause is unproven because old owner tokens no longer authenticate.
-- Acceleration policy remains unchanged and already verified. Do not run a 2/4 cohort and do not warm-start old off/off checkpoints. Next launch action requires at least two refreshed/replacement Kaggle credentials, followed by the same four-gate preflight.
-- Evidence: `docs/superpowers/evidence/2026-10-27-accelerated-cohort-reaudit-and-masac-crash.md`.
+- Root cause: saved view `UAV Network 2D - MASAC and MATD3` still filtered `tracking.group=uav-network-2d` with maxRuns=2, excluding 26-Oct G3 groups. Personal Workspace itself was already unfiltered/maxRuns1000.
+- Code fix `b3837fa`: Runs table now pins `config:runtime.algorithm` beside existing `summary:training_mode`, so MASAC/MATD3 and BASE/PQL are explicit even for historical runs. RED reproduced missing column; focused dashboard/axis suite 10/10 GREEN.
+- Live W&B fix: stale saved view updated in place to filters=[], search empty, enabled, maxRuns1000, Algorithm+Mode visible+pinned; fresh GraphQL read-back confirms it. No run/artifact was deleted or rewritten.
+- Evidence: `docs/superpowers/evidence/2026-10-27-wandb-visibility-fix.md`. Next task: diagnose simultaneous MASAC crashes and harden the continuation/monitoring path only where evidence supports a fix.
 
 ---
+
 
 # Current task: accelerated cohort operational preflight — COMPLETE / NOT READY
 
