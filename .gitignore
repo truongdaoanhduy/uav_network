@@ -11,3 +11,4 @@ dist/
 running_log.log
 .env
 key*.txt
+wandb/

@@ -192,7 +192,7 @@ def main(argv=None):
     submit.add_argument("--cpu-visualize", action="store_true",
                         help="After uploaded training checkpoints, submit a separate CPU-only visualization job")
     submit.add_argument("--auto-continue", action="store_true",
-                        help="Seed a cloud CPU supervisor, resume GPU sessions to the episode target, then CPU visualization")
+                        help="Use the GitHub Actions supervisor for GPU continuation and final CPU evaluation/visualization")
     submit.add_argument("--set", dest="overrides", action="append", default=[])
     submit.add_argument("--gpus-per-run", type=int, choices=[1, 2], default=1,
                         help="Visible GPUs per BASE learner; PQL continues to own all visible GPUs")

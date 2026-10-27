@@ -216,6 +216,16 @@ Trên máy CUDA, chạy thêm:
 Các test CUDA báo skip rõ ràng nếu host không có CUDA. Xem kết quả CPU thực tế
 và phạm vi đã kiểm tra trong [verification-v02.md](docs/verification-v02.md).
 
+## Full flow bằng GitHub Actions (production hiện tại)
+
+Dùng `--auto-continue` với một thuật toán và account đã được bật trong
+`KAGGLE_ENABLED_ACCOUNTS`. GitHub Actions theo dõi training, tiếp tục các GPU
+session và chạy CPU evaluation/visualize khi đủ episode, kể cả khi tắt sandbox.
+Không tạo Kaggle CPU `continuation-watch` cho các launch mới.
+
+Xem [hướng dẫn launch và xác nhận có thể tắt sandbox](docs/github-actions-full-flow.md).
+Các ví dụ profile cũ bên dưới không thay cho full flow này.
+
 ## Kaggle CUDA và W&B online
 
 `key.txt` giữ nguyên schema project cũ, đã được chép vào root project mới.
