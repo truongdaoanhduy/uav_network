@@ -26,13 +26,18 @@ to truongdaoanhduy-uit/uav_search_target; no credential value printed or committ
 
 ## Remaining and authentication rule
 
-Code/API follow-up is ready for commit/push. Direct browser rendering is still not
-verified: current cloud tab2 is id.coreweave.com/login, offering Google/GitHub/
-Apple/Microsoft/email. User's permission is now granted, but an API key does not
-supply the site's browser credentials. If continuing visual QA, use browserAuth
-secure method/credential request; never enter a token through model-visible UI,
-extract cookies or ask for secrets in chat. This is missing browser authentication,
-not a missing user permission. Continue useful API/source work independently.
+Source `9e37b4a9e7ca7a4b45be55f9a37d3501163b2d10` and API preference changes
+are committed/pushed to main and feat/cpu-replay-20261022; ls-remote confirmed both.
+Direct browser rendering is not yet verified. User chose Google through browserAuth,
+provided account/password through secure requests, and Google advanced to device
+verification. Current cloud tab2 is a Google two-step device-approval screen.
+The user was told the displayed matching number; waiting for device confirmation.
+Do not resend, switch methods, restart login or ask sign-in permission again unless
+requested/required by fresh visible state. The remember-device checkbox was left
+unchecked. Use fresh visible evidence after approval, then open/select Personal
+Workspace and verify the17-column/26-plot layout. Never record authentication URLs,
+credentials, cookies or verification secrets in the repository. API key works for
+API access; it does not replace this browser authentication step.
 
 Previous observation below records earlier source9abd8e3 and historical18-column
 layout; current preference is17 in Personal. Prior source full-suite891passed,
