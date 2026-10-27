@@ -11,7 +11,7 @@ import re
 from tempfile import TemporaryDirectory
 from uuid import uuid4
 
-from .client import kernel_status, run_kaggle
+from .client import kernel_status, resolve_username, run_kaggle
 from .continuation import (_owned_kernel_exists, kernel_ref_for_segment,
                            next_stage, submit_continuation)
 from .credentials import Account, Credentials
@@ -338,6 +338,13 @@ def reconcile_account(account, credentials, *, limit=100, dry_run=False):
 def check_services(credentials):
     """Probe configured remote read access without changing cloud state."""
     report = {}
+    for account in credentials.accounts:
+        try:
+            report[f"kaggle/{account.name}"] = {
+                "status": "ok", "username": resolve_username(account)}
+        except Exception as error:
+            report[f"kaggle/{account.name}"] = {
+                "status": "error", "error_type": type(error).__name__}
     try:
         import wandb
         api = wandb.Api(api_key=credentials.wandb_key, timeout=30)

@@ -135,7 +135,7 @@
 
 **Files:** `uav_network/cloud/github_supervisor.py`, `.github/workflows/uav_external_supervisor.yml`, `tests/test_github_supervisor.py`, `tests/test_github_supervisor_workflow.py`.
 
-**Interfaces:** `--check-services` performs authenticated read-only W&B viewer/project and HF identity/repository queries, prints status/error class only, exits without reconciling. A manual dry-run executes this probe before reconciliation. Scheduled transitions retain their existing service dependencies.
+**Interfaces:** `--check-services` performs authenticated read-only Kaggle identity, W&B viewer/project and HF identity/repository queries, prints status/error class only, exits without reconciling. A manual dry-run executes this probe before reconciliation. Scheduled transitions retain their existing service dependencies.
 
 - [ ] RED: CLI returns success only when both services authenticate and their configured project/repository is accessible; denied service returns nonzero without printing error messages or secrets; neither path submits jobs. Workflow includes the probe only for manual dry-run.
 - [ ] GREEN: add the small probe to the existing supervisor and wire the workflow step; no new dependency.

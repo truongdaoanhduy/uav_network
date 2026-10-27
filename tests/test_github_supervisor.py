@@ -313,20 +313,31 @@ def test_service_probe_authenticates_reads_and_never_reconciles(monkeypatch, cap
     s, account, credentials, parent = fixtures()
     monkeypatch.setenv("HF_TOKEN", "synthetic-hf-secret")
     monkeypatch.setenv("HF_REPO_ID", "owner/checkpoints")
+    project_reads = []
+    def project_rows():
+        project_reads.append("fetched")
+        yield object()
     wb = Mock(viewer=object())
-    wb.runs.return_value = iter([object()])
+    wb.runs.return_value = project_rows()
     hf = Mock()
     hf.whoami.return_value = {"name": "owner"}
     hf.repo_info.return_value = SimpleNamespace(id="owner/checkpoints")
     with patch.object(s, "credentials_from_environment", return_value=credentials), \
          patch.object(s, "reconcile_account", side_effect=AssertionError("probe submitted")), \
-         patch.object(wandb, "Api", return_value=wb), \
-         patch.object(huggingface_hub, "HfApi", return_value=hf):
+         patch.object(s, "resolve_username", return_value="owner") as username, \
+         patch.object(wandb, "Api", return_value=wb) as wb_constructor, \
+         patch.object(huggingface_hub, "HfApi", return_value=hf) as hf_constructor:
         code = s.main(["--check-services"])
     report = json.loads(capsys.readouterr().out)
     assert code == 0
-    assert report == {"wandb": {"status": "ok"}, "huggingface": {"status": "ok"}}
+    assert report == {"wandb": {"status": "ok"}, "huggingface": {"status": "ok"},
+                      "kaggle/selected": {"status": "ok", "username": "owner"}}
+    username.assert_called_once_with(account)
+    wb_constructor.assert_called_once_with(api_key="synthetic-wandb", timeout=30)
     wb.runs.assert_called_once_with("owner/project", per_page=1)
+    assert project_reads == ["fetched"]
+    hf_constructor.assert_called_once_with(token="synthetic-hf-secret")
+    hf.whoami.assert_called_once_with()
     hf.repo_info.assert_called_once_with("owner/checkpoints", repo_type="model", timeout=30)
 
 
@@ -338,15 +349,20 @@ def test_service_probe_failure_is_nonzero_and_redacts_remote_error(monkeypatch, 
     s, account, credentials, parent = fixtures()
     monkeypatch.setenv("HF_TOKEN", "synthetic-hf-secret")
     monkeypatch.setenv("HF_REPO_ID", "owner/checkpoints")
-    for failed_service in ("wandb", "huggingface"):
+    def denied_project():
+        raise RuntimeError("synthetic-wandb synthetic-hf-secret private-details")
+        yield
+    for failed_service in ("wandb", "huggingface", "kaggle/selected"):
         wb = Mock(viewer=object())
-        wb.runs.return_value = iter([])
+        wb.runs.return_value = denied_project() if failed_service == "wandb" else iter([])
         hf = Mock()
         hf.whoami.return_value = {"name": "owner"}
-        failing = wb.runs if failed_service == "wandb" else hf.repo_info
-        failing.side_effect = RuntimeError("synthetic-wandb synthetic-hf-secret private-details")
+        if failed_service == "huggingface":
+            hf.repo_info.side_effect = RuntimeError("synthetic-hf-secret private-details")
+        username_error = RuntimeError("synthetic-hf-secret private-details") if failed_service == "kaggle/selected" else None
         with patch.object(s, "credentials_from_environment", return_value=credentials), \
              patch.object(s, "reconcile_account", side_effect=AssertionError("probe submitted")), \
+             patch.object(s, "resolve_username", return_value="owner", side_effect=username_error), \
              patch.object(wandb, "Api", return_value=wb), \
              patch.object(huggingface_hub, "HfApi", return_value=hf):
             code = s.main(["--check-services"])
@@ -354,8 +370,7 @@ def test_service_probe_failure_is_nonzero_and_redacts_remote_error(monkeypatch, 
         report = json.loads(output.out)
         assert code == 1
         assert report[failed_service] == {"status": "error", "error_type": "RuntimeError"}
-        other = "huggingface" if failed_service == "wandb" else "wandb"
-        assert report[other] == {"status": "ok"}
+        assert all(result["status"] == "ok" for service, result in report.items() if service != failed_service)
         assert "synthetic-wandb" not in output.out + output.err
         assert "synthetic-hf-secret" not in output.out + output.err
         assert "private-details" not in output.out + output.err
