@@ -12,7 +12,7 @@ from tempfile import TemporaryDirectory
 from uuid import uuid4
 
 from .client import kernel_status, resolve_username, run_kaggle
-from .continuation import (_owned_kernel_exists, kernel_ref_for_segment,
+from .continuation import (MAX_CONSECUTIVE_RECOVERIES, _owned_kernel_exists, kernel_ref_for_segment,
                            next_stage, submit_continuation)
 from .credentials import Account, Credentials
 from .visualize import submit_visualization, submit_visualization_spec
@@ -30,6 +30,10 @@ MANAGED_CPU_RETRY_SLUG_RE = re.compile(r"^uav-media-[0-9a-f]{14}-a[0-9]{2}$")
 
 class RecoveryUnavailable(RuntimeError):
     """A failed lineage has no proven exact full-state recovery point."""
+
+    def __init__(self, message, *, reason="checkpoint_unverified"):
+        super().__init__(message)
+        self.reason = reason
 
 
 def credentials_from_environment(env=None):
@@ -109,11 +113,11 @@ def _visualization_complete(job, results):
 def verified_recovery_result(job, credentials, *, api=None):
     runs = job.get("runs", {})
     if len(runs) != 1:
-        raise RecoveryUnavailable("Recovery requires exactly one learner lineage")
+        raise RecoveryUnavailable("Recovery requires exactly one learner lineage", reason="invalid_lineage")
     algorithm, identity = next(iter(runs.items()))
     run_id = identity.get("id") if isinstance(identity, dict) else None
     if not isinstance(run_id, str) or not run_id:
-        raise RecoveryUnavailable("Recovery source run is missing")
+        raise RecoveryUnavailable("Recovery source run is missing", reason="source_run_missing")
     try:
         if api is None:
             import wandb
@@ -121,7 +125,7 @@ def verified_recovery_result(job, credentials, *, api=None):
         run = api.run(f"{job['entity']}/{job['project']}/{run_id}")
         state = str(getattr(run, "state", "")).lower()
         if state not in {"crashed", "failed"}:
-            raise RecoveryUnavailable("Recovery is only valid for a failed/crashed source run")
+            raise RecoveryUnavailable("Recovery is only valid for a failed/crashed source run", reason="source_state_not_recoverable")
         summary = dict(run.summary)
         reference = summary.get("recovery/checkpoint_artifact")
         episodes = summary.get("recovery/last_verified_episodes")
@@ -129,18 +133,18 @@ def verified_recovery_result(job, credentials, *, api=None):
         if (not isinstance(reference, str) or not IMMUTABLE_ARTIFACT_RE.fullmatch(reference)
                 or type(episodes) is not int or episodes < 0
                 or type(global_step) is not int or global_step < 0):
-            raise RecoveryUnavailable("No immutable confirmed recovery pointer")
+            raise RecoveryUnavailable("No immutable confirmed recovery pointer", reason="checkpoint_missing")
         artifact = api.artifact(reference, type="model")
         metadata = dict(getattr(artifact, "metadata", {}) or {})
         entries = getattr(getattr(artifact, "manifest", None), "entries", {})
         if "checkpoint.json" not in entries:
-            raise RecoveryUnavailable("Recovery artifact has no immutable HF checkpoint manifest")
+            raise RecoveryUnavailable("Recovery artifact has no immutable HF checkpoint manifest", reason="checkpoint_manifest_missing")
         if (metadata.get("resumable") is not True
                 or metadata.get("source_run_id") != run_id
                 or metadata.get("source_git_commit") != job.get("commit")
                 or metadata.get("completed_episodes") != episodes
                 or metadata.get("global_step") != global_step):
-            raise RecoveryUnavailable("Recovery artifact provenance differs from the failed lineage")
+            raise RecoveryUnavailable("Recovery artifact provenance differs from the failed lineage", reason="checkpoint_provenance_mismatch")
         initial_episodes = job.get("continuation_expected_episodes", {}).get(algorithm, 0)
         initial_step = job.get("continuation_expected_global_step", {}).get(algorithm, 0)
         target = job.get("requested_episodes")
@@ -149,14 +153,19 @@ def verified_recovery_result(job, credentials, *, api=None):
                 or episodes < initial_episodes or episodes > target
                 or global_step < initial_step
                 or (episodes == initial_episodes and global_step == initial_step)):
-            raise RecoveryUnavailable("Recovery progress does not advance the immutable segment prefix")
+            raise RecoveryUnavailable("Recovery progress does not advance the immutable segment prefix", reason="checkpoint_progress_invalid")
+        environment_saved = metadata.get("environment_state_saved") is True
+        if episodes == initial_episodes and not environment_saved:
+            raise RecoveryUnavailable("Recovery has no verified in-flight environment",
+                                      reason="environment_state_missing")
         complete = metadata.get("episode_budget_complete") is True
         if complete and episodes < target:
-            raise RecoveryUnavailable("Recovery metadata claims completion before the episode budget")
+            raise RecoveryUnavailable("Recovery metadata claims completion before the episode budget", reason="checkpoint_completion_invalid")
         return {algorithm: {
             "algorithm": algorithm, "requested_episodes": target,
             "episodes": episodes, "initial_episodes": initial_episodes,
             "segment_episodes": episodes - initial_episodes, "global_step": global_step,
+            "initial_global_step": initial_step, "environment_state_saved": environment_saved,
             "updates": 0, "tracking_status": "finished",
             "episode_budget_complete": complete,
             "stop_reason": "episode_budget" if complete else "time_budget",
@@ -165,7 +174,7 @@ def verified_recovery_result(job, credentials, *, api=None):
     except RecoveryUnavailable:
         raise
     except Exception as error:
-        raise RecoveryUnavailable(type(error).__name__) from error
+        raise RecoveryUnavailable(type(error).__name__, reason="recovery_service_unavailable") from error
 
 
 def cpu_retry_ref(root_ref, attempt):
@@ -219,6 +228,8 @@ def reconcile_ref(ref, account, credentials, *, dry_run=False):
     base = {"ref": ref, "status": status}
     if status in ACTIVE:
         return {**base, "action": "active"}
+    if status == "cancelled":
+        return {**base, "action": "cancelled"}
     if status not in TERMINAL:
         return {**base, "action": "service_unavailable"}
 
@@ -244,10 +255,18 @@ def reconcile_ref(ref, account, credentials, *, dry_run=False):
     if job.get("stage") not in {"train", "validate"}:
         return {**base, "action": "ignored"}
     if status != "complete":
+        streak = job.get("consecutive_recoveries", 0)
+        if type(streak) is not int or streak < 0:
+            raise ValueError("Invalid consecutive recovery counter")
+        if streak >= MAX_CONSECUTIVE_RECOVERIES:
+            return {**base, "action": "recovery_blocked",
+                    "failure_reason": "recovery_budget_exhausted"}
         try:
             recovered = verified_recovery_result(job, credentials)
         except RecoveryUnavailable as error:
-            return {**base, "action": "recovery_blocked", "error_type": type(error).__name__}
+            action = "service_unavailable" if error.reason == "recovery_service_unavailable" else "recovery_blocked"
+            return {**base, "action": action, "error_type": type(error).__name__,
+                    "failure_reason": error.reason}
         recovery_stage = next_stage(job, recovered)
         root = job.get("root_kernel_ref", ref)
         if recovery_stage == "gpu":
@@ -259,6 +278,9 @@ def reconcile_ref(ref, account, credentials, *, dry_run=False):
             with _submit_output("recovery-gpu") as directory:
                 manifest = submit_continuation(job, recovered, Path(directory),
                                                account=account, credentials=credentials)
+            if manifest.get("status") == "waiting_for_quota":
+                return {**base, "action": "waiting_for_quota", "child_ref": target,
+                        "wait_reason": manifest.get("wait_reason")}
             return {**base, "action": "submitted_recovery_gpu",
                     "child_ref": manifest.get("kernel_ref", target)}
         target = kernel_ref_for_segment(root, 0, cpu=True)
@@ -370,6 +392,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Short-lived GitHub UAV cloud reconciler")
     parser.add_argument("--limit", type=int, default=100)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--report", type=Path, help="Write credential-free reconciliation JSON")
     parser.add_argument("--check-services", action="store_true",
                         help="Check W&B/HF read access without reconciling or submitting")
     args = parser.parse_args(argv)
@@ -382,11 +405,21 @@ def main(argv=None):
         return int(any(item["status"] != "ok" for item in report.values()))
     report = {}
     for account in credentials.accounts:
-        report[account.name] = reconcile_account(account, credentials, limit=args.limit,
-                                                  dry_run=args.dry_run)
-    print(json.dumps(report, indent=2, sort_keys=True))
-    return 1 if any(item.get("action") == "reconcile_error"
-                    for rows in report.values() for item in rows) else 0
+        try:
+            report[account.name] = reconcile_account(account, credentials, limit=args.limit,
+                                                      dry_run=args.dry_run)
+        except Exception as error:
+            report[account.name] = [{"action": "account_unavailable",
+                                     "error_type": type(error).__name__}]
+    encoded = json.dumps(report, indent=2, sort_keys=True)
+    if args.report is not None:
+        args.report.parent.mkdir(parents=True, exist_ok=True)
+        args.report.write_text(encoded + "\n")
+    print(encoded)
+    blocked = {"reconcile_error", "account_unavailable", "recovery_blocked",
+               "recovery_required", "service_unavailable"}
+    return int(any(item.get("action") in blocked
+                   for rows in report.values() for item in rows))
 
 
 if __name__ == "__main__":

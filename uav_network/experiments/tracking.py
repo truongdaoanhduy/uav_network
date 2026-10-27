@@ -272,6 +272,7 @@ class OnlineTracker:
                                                 "global_step": progress["global_step"],
                                                 "episode_budget_complete": progress.get("episode_budget_complete", False),
                                                 "resumable": bool(full_state),
+                                                "environment_state_saved": bool(full_state and progress.get("environment_state_saved") is True),
                                                 "source_git_commit": os.environ.get("UAV_GIT_COMMIT", "local"),
                                                 "source_run_id": self.run.id})
         files = {"checkpoint.pt": Path(path)}

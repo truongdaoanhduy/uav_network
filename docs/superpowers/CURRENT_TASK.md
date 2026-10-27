@@ -1,3 +1,11 @@
+# Current task: General failure hardening — IN PROGRESS
+
+User requested fresh MASAC crash diagnosis, account usability and a general recovery strategy. Baseline source 29a8fe4; no production training is authorized by this diagnostic task. Read design/plan docs/superpowers/{specs,plans}/2026-10-27-general-failure-hardening*.md. Current step: 15 RED failures reproduced; minimal fixes and actual small BASE/PQL snapshots now GREEN (135 passed, 38 subtests). Full CPU suite and review pending before default-branch deployment.
+
+Fresh 18:17 Vietnam observations: 10 local accounts authenticate and return GPU quota; GitHub allowlist remains 01/02. Four G3 MASAC plus controllers are still crashed with heartbeat spread 11s, source 77a1d0f. Old owner tokens are absent from the current credential file; exact platform-side cause remains unproven and replay cannot be reconstructed.
+
+## Previous completed deployment context
+
 # Current task: GitHub Actions external supervisor — COMPLETE / DEPLOYED
 
 Updated 2026-10-27T18:02:13+07:00. Supervisor implementation commit `a0c04c34d3e09408d13205219a1221baa8083131`; launch guide/help/ignore follow-up `bd184a783f4b5dac791894b8f248f1bb522662e3`. Source and final documentation are pushed to `main` and `feat/cpu-replay-20261022`.

@@ -91,6 +91,7 @@ def train_pql(config):
                                  "torch": generator.get_state().cpu() if generator is not None else None}
                 engine.flush()
                 environment = snapshot_environment(vector, returns, lengths, seeds, next_seed)
+                state["environment_state_saved"] = environment is not None
                 engine.save(resume_path or output / "resume_latest.pt", state, collector_rng=collector_rng, environment=environment)
             else:
                 # vmap temporarily swaps live critic parameters; light snapshots

@@ -16,6 +16,9 @@ from .credentials import Account, Credentials
 from .kernel import kernel_metadata, kernel_script
 
 
+MAX_CONSECUTIVE_RECOVERIES = 3
+
+
 def kernel_ref_for_segment(root_ref, index, cpu=False):
     """Leave room for the CPU suffix even when a continuation index grows."""
     owner, separator, slug = root_ref.partition("/")
@@ -97,6 +100,15 @@ def build_continuation_spec(parent, results):
               "cpu_eval", "storage_credential_dataset", "checkpoint_repo", "timeout_seconds", "accelerator", "gpus_per_run", "requested_episodes", "training_mode",
               "orchestration", "external_supervisor_required")
     child = {key: deepcopy(parent[key]) for key in fields if key in parent}
+    streak = parent.get("consecutive_recoveries", 0)
+    if type(streak) is not int or streak < 0:
+        raise ValueError("Invalid consecutive recovery counter")
+    if results[algorithm].get("exact_recovery") is True:
+        if streak >= MAX_CONSECUTIVE_RECOVERIES:
+            raise ValueError("Automatic recovery budget exhausted")
+        child["consecutive_recoveries"] = streak + 1
+    else:
+        child["consecutive_recoveries"] = 0
     if not child.get("pipeline_credential_dataset") or not child.get("cpu_credential_dataset"):
         raise ValueError("Continuation needs its existing private GPU and CPU credential inputs")
     config = load_config(parent["config"], parent["overrides"])

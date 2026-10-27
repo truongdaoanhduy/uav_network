@@ -81,4 +81,13 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.dry_run }}" == "true" ]]; then
             args+=(--dry-run)
           fi
-          PYTHONPATH=. python -m uav_network.cloud.github_supervisor "${args[@]}"
+          PYTHONPATH=. python -m uav_network.cloud.github_supervisor --report outputs/supervisor-report.json "${args[@]}"
+
+      - name: Preserve sanitized reconciliation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: uav-supervisor-report
+          path: outputs/supervisor-report.json
+          if-no-files-found: ignore
+          retention-days: 14

@@ -95,3 +95,14 @@ def test_manual_dry_run_probes_cloud_credentials_before_reconciling():
     reconcile_index = next(index for index, step in enumerate(steps)
                            if step.get("name") == "Reconcile UAV lineages")
     assert probe_index < reconcile_index
+
+
+def test_workflow_retains_sanitized_reconcile_report_even_on_failure():
+    data = yaml.safe_load(WORKFLOW.read_text())
+    steps = data["jobs"]["supervise"]["steps"]
+    reconcile = next(step for step in steps if step.get("name") == "Reconcile UAV lineages")
+    assert "--report outputs/supervisor-report.json" in reconcile["run"]
+    upload = next((step for step in steps if step.get("uses", "").startswith("actions/upload-artifact@")), None)
+    assert upload is not None
+    assert upload["if"] == "always()"
+    assert upload["with"]["path"] == "outputs/supervisor-report.json"

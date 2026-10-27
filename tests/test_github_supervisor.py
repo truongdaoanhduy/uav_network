@@ -374,3 +374,124 @@ def test_service_probe_failure_is_nonzero_and_redacts_remote_error(monkeypatch, 
         assert "synthetic-wandb" not in output.out + output.err
         assert "synthetic-hf-secret" not in output.out + output.err
         assert "private-details" not in output.out + output.err
+
+
+def test_one_unavailable_account_does_not_starve_other_accounts(capsys):
+    import json
+    s, account, credentials, _ = fixtures()
+    credentials.accounts.append(Account("healthy", "another-synthetic-token"))
+    checked = []
+    def reconcile(selected, creds, **kwargs):
+        checked.append(selected.name)
+        if selected.name == "selected":
+            raise RuntimeError("synthetic-token private-error-details")
+        return [{"ref": "owner/gh-tra-g3-healthy", "action": "active"}]
+    with patch.object(s, "credentials_from_environment", return_value=credentials), \
+         patch.object(s, "reconcile_account", side_effect=reconcile):
+        code = s.main([])
+    output = capsys.readouterr().out
+    report = json.loads(output)
+    assert code == 1 and checked == ["selected", "healthy"]
+    assert report["selected"][0]["action"] == "account_unavailable"
+    assert report["healthy"][0]["action"] == "active"
+    assert "synthetic-token" not in output and "private-error-details" not in output
+
+
+def test_unresolved_recovery_and_unknown_service_are_not_reported_green(capsys):
+    s, account, credentials, _ = fixtures()
+    for action in ("recovery_blocked", "recovery_required", "service_unavailable", "reconcile_error"):
+        with patch.object(s, "credentials_from_environment", return_value=credentials), \
+             patch.object(s, "reconcile_account", return_value=[{"action": action}]):
+            assert s.main([]) == 1, action
+        capsys.readouterr()
+
+
+def test_sanitized_report_survives_account_failure(tmp_path, capsys):
+    import json
+    s, account, credentials, _ = fixtures()
+    path = tmp_path / "reports" / "reconcile.json"
+    with patch.object(s, "credentials_from_environment", return_value=credentials), \
+         patch.object(s, "reconcile_account", side_effect=TimeoutError("synthetic-wandb secret-error")):
+        assert s.main(["--report", str(path)]) == 1
+    data = path.read_text()
+    assert json.loads(data)["selected"][0]["error_type"] == "TimeoutError"
+    assert "synthetic-wandb" not in data and "secret-error" not in data
+    assert json.loads(data) == json.loads(capsys.readouterr().out)
+
+
+def test_verified_recovery_of_continuation_keeps_its_initial_global_step():
+    s, account, credentials, parent = fixtures()
+    parent.update(continuation_index=1, continuation_expected_episodes={"masac": 300},
+                  continuation_expected_global_step={"masac": 1000})
+    result = s.verified_recovery_result(parent, credentials, api=good_recovery_api(parent))
+    assert s.next_stage(parent, result) == "gpu"
+    assert result["masac"]["initial_global_step"] == 1000
+    from uav_network.cloud.continuation import build_continuation_spec
+    child = build_continuation_spec(parent, result)
+    assert child["continuation_expected_global_step"] == {"masac": 123456}
+
+
+def test_zero_episode_recovery_needs_verified_environment_state():
+    import pytest
+    s, account, credentials, parent = fixtures()
+    for marker in (True, False):
+        api = good_recovery_api(parent)
+        api._run.summary["recovery/last_verified_episodes"] = 0
+        api._artifact.metadata.update(completed_episodes=0, environment_state_saved=marker)
+        if not marker:
+            with pytest.raises(s.RecoveryUnavailable):
+                s.verified_recovery_result(parent, credentials, api=api)
+            continue
+        result = s.verified_recovery_result(parent, credentials, api=api)
+        assert s.next_stage(parent, result) == "gpu"
+        assert result["masac"]["initial_global_step"] == 0
+        assert result["masac"]["environment_state_saved"] is True
+
+
+def test_cancelled_gpu_and_cpu_are_not_automatically_restarted():
+    s, account, credentials, parent = fixtures()
+    for stage in ("train", "visualize"):
+        parent["stage"] = stage
+        with patch.object(s, "kernel_status", return_value="cancelled"), \
+             patch.object(s, "read_controls", side_effect=AssertionError("cancelled job was adopted")):
+            result = s.reconcile_ref(parent["kernel_ref"], account, credentials)
+        assert result["action"] == "cancelled"
+
+
+def test_recovery_waiting_for_quota_is_not_a_submitted_child():
+    s, account, credentials, parent = fixtures()
+    recovered = s.verified_recovery_result(parent, credentials, api=good_recovery_api(parent))
+    with patch.object(s, "kernel_status", return_value="error"), \
+         patch.object(s, "read_controls", return_value={"job.json": parent}), \
+         patch.object(s, "verified_recovery_result", return_value=recovered), \
+         patch.object(s, "_owned_kernel_exists", return_value=False), \
+         patch.object(s, "submit_continuation", return_value={"status": "waiting_for_quota", "wait_reason": "insufficient_quota"}):
+        result = s.reconcile_ref(parent["kernel_ref"], account, credentials)
+    assert result["action"] == "waiting_for_quota"
+    assert result["wait_reason"] == "insufficient_quota"
+
+
+def test_consecutive_crash_recovery_is_bounded_and_clean_segment_resets_it():
+    import pytest
+    from uav_network.cloud.continuation import build_continuation_spec
+    s, account, credentials, parent = fixtures()
+    parent["consecutive_recoveries"] = 2
+    results = learner_result()
+    results["masac"]["exact_recovery"] = True
+    assert build_continuation_spec(parent, results)["consecutive_recoveries"] == 3
+    parent["consecutive_recoveries"] = 3
+    with pytest.raises(ValueError, match="recovery budget"):
+        build_continuation_spec(parent, results)
+    del results["masac"]["exact_recovery"]
+    assert build_continuation_spec(parent, results)["consecutive_recoveries"] == 0
+
+
+def test_exhausted_recovery_budget_blocks_before_network_or_submission():
+    s, account, credentials, parent = fixtures()
+    parent["consecutive_recoveries"] = 3
+    with patch.object(s, "kernel_status", return_value="error"), \
+         patch.object(s, "read_controls", return_value={"job.json": parent}), \
+         patch.object(s, "verified_recovery_result", side_effect=AssertionError("unbounded recovery")):
+        result = s.reconcile_ref(parent["kernel_ref"], account, credentials)
+    assert result["action"] == "recovery_blocked"
+    assert result["failure_reason"] == "recovery_budget_exhausted"

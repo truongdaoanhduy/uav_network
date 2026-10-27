@@ -61,7 +61,7 @@ def test_resumable_publication_bypasses_light_throttle_and_keeps_separate_pointe
             patch("uav_network.experiments.checkpoint_store.upload_checkpoint_files", side_effect=upload_descriptor):
         tracker = OnlineTracker(c, tmp_path)
         tracker.checkpoint(p, {"episodes": 0, "global_step": 4})
-        ref = tracker.checkpoint(p, {"episodes": 0, "global_step": 8, "resume_checkpoint": str(r)},
+        ref = tracker.checkpoint(p, {"episodes": 0, "global_step": 8, "resume_checkpoint": str(r), "environment_state_saved": True},
                                  resumable=True)
         artifact, aliases = artifacts[-1]
         manifest = json.loads(artifact.data)
@@ -69,6 +69,7 @@ def test_resumable_publication_bypasses_light_throttle_and_keeps_separate_pointe
         assert "resumable" not in aliases and "final" not in aliases
         assert "resumable" in artifact.aliases
         assert artifact.metadata["resumable"] is True
+        assert artifact.metadata["environment_state_saved"] is True
         assert artifact.metadata["episode_budget_complete"] is False
         assert run.summary["recovery/checkpoint_artifact"] == ref
         assert run.summary["recovery/last_verified_global_step"] == 8
@@ -208,6 +209,8 @@ def test_periodic_full_state_before_first_episode_exactly_resumes_and_leaves_no_
             if resumable:
                 payload = torch.load(progress["resume_checkpoint"],weights_only=True)
                 assert payload["progress"]["episodes"] == 0
+                assert progress["environment_state_saved"] is True
+                assert payload["progress"]["environment_state_saved"] is True
                 assert payload["training"]["environment"]["world"]["arrays"]
                 assert payload["training"]["replay"]["size"] > 0
                 torch.save(payload,captured)
@@ -215,7 +218,7 @@ def test_periodic_full_state_before_first_episode_exactly_resumes_and_leaves_no_
     module = "uav_network.experiments.pql_training" if pql else "uav_network.experiments.training"
     with patch(module+".start_tracking",return_value=Tracker()):
         first = train(c)
-    assert captured.is_file(), "A hard kill before episode completion currently loses full training state"
+    assert captured.is_file(), "Periodic recovery must publish saved-world evidence before the first episode"
     assert not list(Path(c.runtime.output_dir).glob(".recovery-*"))
     saved = torch.load(first["resume_checkpoint"],weights_only=True)
     c.runtime.output_dir = str(tmp_path / "resumed")

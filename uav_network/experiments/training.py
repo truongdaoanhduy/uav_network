@@ -187,14 +187,16 @@ def _train(config):
                 progress["stop_reason"] = "episode_budget" if completed >= config.runtime.episodes else "time_budget"
             if tracker:
                 progress["source_run_id"] = tracker.identity()["wandb_run_id"]
+            environment = (snapshot_environment(vector, episode_returns, episode_lengths,
+                                                episode_seeds, next_seed) if full_state else None)
+            progress["environment_state_saved"] = environment is not None
             learner.save(path, progress=progress)
             if full_state:
                 save_fixed_checkpoint(learner, resume_path or output / "resume_latest.pt", progress, replay, rng,
                                       warmup_origin=warmup_origin, random_warmup=random_warmup,
                                       next_metrics_at=next_metrics_at, latest=latest, pending_learning=pending_learning,
                                       action_generator=getattr(vector, "action_generator", None),
-                                      environment=snapshot_environment(vector, episode_returns, episode_lengths,
-                                                                       episode_seeds, next_seed))
+                                      environment=environment)
             return progress
 
         time_limit = False
