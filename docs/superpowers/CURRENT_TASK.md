@@ -1,3 +1,9 @@
+# Current task: W&B metrics, logs and compact dashboard — IN PROGRESS
+
+User requests meaningful online plots/logs/Created/Runtime columns. Baseline a046a3b; no production launch. Read docs/superpowers/specs/2026-10-27-wandb-observability-design.md and plans/2026-10-27-wandb-observability.md. Current step: RED→GREEN for dashboard/journal/recovery/CPU diagnostics; 49 focused tests passed. Full offline CPU suite, independent code review and live W&B updates pending. A broader foreground evaluator test run hit its 55s tool limit and is not completion evidence.
+
+## Previous completed task context
+
 # Current task: General MASAC failure hardening — COMPLETE / DEPLOYED
 
 Updated 2026-10-27T18:44:05+07:00. Implementation `820b50ec000eee8e08e0875868f457d104c4057f`; final evidence/help follow as a docs-only commit. Source and evidence are pushed to main and feat/cpu-replay-20261022.

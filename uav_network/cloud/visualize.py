@@ -273,6 +273,9 @@ def run_visualization(spec, output=Path("/kaggle/working")):
         return deadline - time.monotonic() < max(900, last_episode_seconds * 1.5 + 300)
     for algorithm, artifact in spec["artifacts"].items():
         tracker = None
+        config = None
+        tracking_output = output / "tracking" / algorithm
+        tracking_output.mkdir(parents=True, exist_ok=True)
         failed = True
         try:
             from ..configuration import load_config
@@ -291,11 +294,17 @@ def run_visualization(spec, output=Path("/kaggle/working")):
             tracking_output = output / "tracking" / algorithm
             tracking_output.mkdir(parents=True, exist_ok=True)
             previous_id = os.environ.get("WANDB_RUN_ID")
+            previous_stage = os.environ.get("UAV_STAGE")
             os.environ["WANDB_RUN_ID"] = identity["id"]
+            os.environ["UAV_STAGE"] = "visualize"
             try:
                 tracker = start_tracking(config, tracking_output,
                                          {"observation_version": None, "generation_version": None})
             finally:
+                if previous_stage is None:
+                    os.environ.pop("UAV_STAGE", None)
+                else:
+                    os.environ["UAV_STAGE"] = previous_stage
                 if previous_id is None:
                     os.environ.pop("WANDB_RUN_ID", None)
                 else:
@@ -309,14 +318,13 @@ def run_visualization(spec, output=Path("/kaggle/working")):
             if type(checkpoint_step) is int and checkpoint_step >= 0:
                 tracker.run.summary["evaluation/checkpoint_global_step"] = checkpoint_step
                 initial_metrics["evaluation/checkpoint_global_step"] = checkpoint_step
-            tracker.run.log(initial_metrics)
+            tracker.diagnostic(initial_metrics, 0)
             def record_episode(record):
-                tracker.run.log({"global_step": record["episode"],
-                    "evaluation/episodes_completed": record["episode"],
+                tracker.diagnostic({"evaluation/episodes_completed": record["episode"],
                     "evaluation/return": record["return"],
                     "evaluation/search_rate_percent": record["search_rate_percent"],
                     "evaluation/delivery_rate_percent": record["delivery_rate_percent"],
-                    "evaluation/success": int(record["success"])})
+                    "evaluation/success": int(record["success"])}, record["episode"])
             if spec.get("publication_source_ref"):
                 results[algorithm] = load_publication_assets(spec, algorithm, output)
             else:
@@ -352,17 +360,32 @@ def run_visualization(spec, output=Path("/kaggle/working")):
             results[algorithm]["publication"] = publication
             metrics_path = output / "visualize" / algorithm / "metrics.json"
             metrics_path.write_text(json.dumps(results[algorithm], indent=2, allow_nan=False))
-            tracker.run.summary.update({"eval/" + k: results[algorithm][k] for k in
-                ("mean_return", "success_rate", "mean_search_rate_percent", "mean_delivery_rate_percent")})
+            aggregates = {"eval/" + k: results[algorithm][k] for k in
+                ("mean_return", "success_rate", "mean_search_rate_percent", "mean_delivery_rate_percent")}
+            tracker.run.summary.update(aggregates)
+            tracker.diagnostic(aggregates, results[algorithm]["episodes"])
             tracker.run.summary["evaluation/episodes_completed"] = results[algorithm]["episodes"]
             tracker.run.save(str(output / "visualize" / algorithm / "metrics.json"),
                              base_path=str(output), policy="now")
             failed = False
         except EvaluationPaused:
             tracker.run.summary["evaluation/session_status"] = "paused"
+            tracker.diagnostic({"evaluation_status/status":"paused"},
+                               len(progress["records"].get(algorithm, [])))
             failed = False
         except Exception as error:
             failures[algorithm] = {"error_type": type(error).__name__}
+            try:
+                from ..experiments.diagnostics import failure_report
+                completed = len(progress["records"].get(algorithm, []))
+                path = failure_report(config, tracking_output, error, {
+                    "algorithm":algorithm, "stage":"visualize", "checkpoint_artifact":artifact,
+                    "completed_eval_episodes":completed, "requested_eval_episodes":settings["episodes"],
+                    "seed_first":settings["seed"]})
+                if tracker is not None:
+                    tracker.failure(path, completed)
+            except Exception as reporting_error:
+                print("CPU failure reporting also failed: " + type(reporting_error).__name__, flush=True)
         finally:
             if tracker is not None:
                 tracker.close(failed=failed)

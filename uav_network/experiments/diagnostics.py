@@ -139,7 +139,7 @@ def failure_report(config, output, error, context):
         from ..cloud.credentials import load_credentials
         credentials = load_credentials(config.tracking.credentials_file)
         secrets += [credentials.wandb_key, *(a.token for a in credentials.accounts)]
-    except (OSError, ValueError, KeyError, RuntimeError):
+    except (OSError, ValueError, KeyError, RuntimeError, AttributeError):
         pass
     detail = "".join(traceback.format_exception(error))
     for secret in secrets:

@@ -1,7 +1,16 @@
 """Bounded full-state backups; only owned staging files are ever released."""
+from contextlib import suppress
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import time
+
+
+def _report(tracker, values, step):
+    try:
+        tracker.diagnostic(values, step)
+    except Exception as error:
+        with suppress(OSError):
+            print(f"Recovery status logging failed: {type(error).__name__}; backup status={values['recovery/status']}", flush=True)
 
 
 class PeriodicRecovery:
@@ -29,6 +38,7 @@ class PeriodicRecovery:
         values = {"recovery/attempts": self.attempts,
                   "recovery/max_attempts": self.maximum,
                   "recovery/effective_interval_seconds": self.interval}
+        _report(tracker, {**values,"recovery/status":"snapshot_started"}, step)
         try:
             # A primary full checkpoint is ~15.8GB on a ~20GB Kaggle disk.
             # Never keep two stages or overwrite the final resume_latest file.
@@ -39,6 +49,8 @@ class PeriodicRecovery:
                     raise ValueError("Recovery callback did not produce full resume files")
                 progress = {**progress, "resume_checkpoint": str(resume)}
                 size = policy.stat().st_size + resume.stat().st_size
+                _report(tracker, {**values,"recovery/status":"upload_started",
+                                  "recovery/checkpoint_bytes":size}, progress.get("global_step",step))
                 artifact = tracker.checkpoint(policy, progress, resumable=True)
                 if not artifact:
                     raise RuntimeError("Recovery artifact was not confirmed")
@@ -51,7 +63,4 @@ class PeriodicRecovery:
             finished = time.perf_counter()
             self.next_due = finished + self.interval
         values["recovery/elapsed_seconds"] = finished - started
-        try:
-            tracker.diagnostic(values, progress.get("global_step", step))
-        except Exception as error:
-            print(f"Recovery status logging failed: {type(error).__name__}; backup status={values['recovery/status']}", flush=True)
+        _report(tracker, values, progress.get("global_step", step))

@@ -166,8 +166,10 @@ def test_failed_upload_is_visible_bounded_and_does_not_destroy_final_checkpoint(
         assert events[-1][0]["recovery/error_type"] == "OSError"
         assert preserved.read_bytes() == b"previous final"
         assert sorted(p.name for p in tmp_path.iterdir()) == ["resume_latest.pt"]
+        count = len(events)
         clock[0] = 100.; recovery.maybe_save(save, Tracker())
-        assert len(events) == 1
+        assert len(events) == count
+        assert [v["recovery/status"] for v, step in events] == ["snapshot_started","upload_started","failed"]
 
 
 def test_recovery_settings_load_validate_and_canonical_profile_enables_protection():
@@ -317,3 +319,35 @@ def test_failed_confirmation_keeps_remote_resumable_alias_on_previous_version(tm
         assert server["resumable"] == "previous:v1"
         assert run.summary["recovery/checkpoint_artifact"] == "previous:v1"
         tracker.close()
+
+
+def test_backup_reports_snapshot_and_upload_phases_before_slow_operations(tmp_path):
+    c=recovery_config(tmp_path);c.runtime.max_train_seconds=0
+    phases=[]
+    class Tracker:
+        def diagnostic(self,values,step):phases.append(values["recovery/status"])
+        def checkpoint(self,path,progress,*,resumable=False):
+            assert phases[-1]=="upload_started"
+            return "owner/project/recovery:v1"
+    def save(policy,*,resume_path):
+        assert phases[-1]=="snapshot_started"
+        Path(policy).write_bytes(b"policy");Path(resume_path).write_bytes(b"resume")
+        return {"episodes":0,"global_step":4}
+    with patch("uav_network.experiments.recovery_checkpoints.time.perf_counter",return_value=2.):
+        recovery_class()(c,tmp_path,started=0.).maybe_save(save,Tracker())
+    assert phases==["snapshot_started","upload_started","uploaded"]
+
+
+def test_backup_logging_and_console_failures_do_not_abort_the_snapshot(tmp_path):
+    c=recovery_config(tmp_path);c.runtime.max_train_seconds=0
+    saves=[]
+    class Tracker:
+        def diagnostic(self,*args):raise OSError("logging unavailable")
+        def checkpoint(self,*args,**kwargs):return "owner/project/recovery:v1"
+    def save(policy,*,resume_path):
+        saves.append(True);Path(policy).write_bytes(b"p");Path(resume_path).write_bytes(b"r")
+        return {"episodes":0,"global_step":4}
+    with patch("uav_network.experiments.recovery_checkpoints.time.perf_counter",return_value=2.), \
+         patch("builtins.print",side_effect=BrokenPipeError()):
+        recovery_class()(c,tmp_path,started=0.).maybe_save(save,Tracker())
+    assert saves==[True]

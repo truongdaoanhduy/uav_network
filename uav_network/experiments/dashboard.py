@@ -8,79 +8,54 @@ from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
 
 from .tracking import CPU_EPISODE_METRICS, _authentication, default_workspace_url
-from .dashboard_columns import VISIBLE_COLUMNS, save_with_visible_columns, reconcile_runset
+from .dashboard_columns import VISIBLE_COLUMNS, PINNED_COLUMNS, save_with_visible_columns, reconcile_runset
+
+from .run_journal import READING_GUIDE
 
 
 PANELS = {
-    "Live mission progress": [
-        ("Episode progress (%)", "progress/episode_progress_percent_mean"),
-        ("Episode step mean", "progress/episode_step_mean"),
-        ("Episode step min", "progress/episode_step_min"),
-        ("Episode step max", "progress/episode_step_max"),
-        ("Live search (%)", "progress/search_rate_percent"),
-        ("Live delivery (%)", "progress/delivery_rate_percent"),
-        ("Live battery fraction", "progress/mean_battery_fraction"),
-        ("Active UAVs", "progress/mean_active_uavs"),
+    "Mission quality - completed outcomes": [
+        ("Delivery to GCS (%) - higher", "cohort/delivery_rate_percent_mean"),
+        ("Mission success fraction - higher", "cohort/success_mean"),
+        ("Completed-episode return - inspect with delivery", "cohort/return_mean"),
+        ("Discovered targets (%) - higher", "cohort/search_rate_percent_mean"),
     ],
-    "Training throughput": [
-        ("Joint transitions / s", "train/joint_transitions_per_s"),
-        ("Replay size", "train/replay_size"),
-        ("Learner updates", "train/updates"),
-        ("Sample uses / new transition", "train/sample_uses_per_new_transition"),
-        ("Elapsed hours", "run/elapsed_hours"),
+    "Training progress and speed": [
+        ("Completed training episodes", "train/episodes_completed"),
+        ("Joint transitions / s - speed, not policy quality", "train/joint_transitions_per_s"),
+        ("Sample uses / new transition - BASE segment vs PQL counters",
+         ("train/sample_uses_per_new_transition", "pql/sample_uses_per_new_transition")),
     ],
-    "Learning quality": [
-        ("Actor loss", "learner/actor_loss"),
-        ("Critic loss", "learner/critic_loss"),
-        ("TD error |mean|", "learner/td_error_abs_mean"),
-        ("Q |max|", "learner/q_abs_max"),
-        ("Critic gradient", "learner/critic_grad_norm"),
-        ("Actor gradient", "learner/actor_grad_norm"),
+    "Periodic fixed-policy evaluation - only when enabled": [
+        ("Fixed-seed evaluation delivery (%) - higher", "evaluation/mean_delivery_rate_percent"),
+        ("Fixed-seed evaluation success fraction - higher", "evaluation/success_rate"),
     ],
-    "PQL execution": [
-        ("PQL transitions / s", "pql/transitions_per_s"),
-        ("PQL critic updates / s", "pql/critic_updates_per_s"),
-        ("PQL actor updates / s", "pql/actor_updates_per_s"),
-        ("Critic / collector ratio", "pql/critic_collector_ratio"),
-        ("PQL sample uses / new transition", "pql/sample_uses_per_new_transition"),
-        ("Queued collections", "pql/queued_collections"),
-        ("Collector wait (s)", "pql/collector_wait_seconds"),
+    "Final CPU evaluation - each episode": [
+        ("CPU evaluation delivery (%) - higher", "evaluation/delivery_rate_percent"),
+        ("CPU evaluation success (0/1)", "evaluation/success"),
     ],
-    "Completed outcomes per transition window": [
-        ("Completed-outcome return", "cohort/return_mean"),
-        ("Completed-outcome discovery (%)", "cohort/search_rate_percent_mean"),
-        ("Completed-outcome delivery (%)", "cohort/delivery_rate_percent_mean"),
-        ("Completed-outcome success fraction", "cohort/success_mean"),
+    "Why delivery is low - inspect together": [
+        ("Packet delivery fraction - distinct from target delivery", "cohort/network/packet_pdr_fraction"),
+        ("Silent with eligible receiver (fraction)", "cohort/network/diagnostics/action_silent_given_eligible_fraction"),
+        ("Blocked motion fraction", "safety/blocked_motion_rate"),
+        ("UAV joules / GCS delivery - compare equal success", "cohort/energy/j_per_gcs_delivery"),
     ],
-    "Report communication": [
-        ("Pooled packet delivery fraction", "cohort/network/packet_pdr_fraction"),
-        ("Payload throughput (kbps)", "network/payload_throughput_kbps"),
-        ("PHY success (%)", "network/phy_success_percent"),
-        ("Delivered-report hops", "cohort/reports/delivery_hops_mean"),
-        ("Delivered-report age (s)", "cohort/reports/delivered_report_age_mean_s"),
-        ("Collisions", "network/collisions"),
+    "Numerical diagnostics - no universal loss target": [
+        ("Actor loss - diagnostic only", "learner/actor_loss"),
+        ("Critic loss - diagnostic only", "learner/critic_loss"),
+        ("TD error absolute mean", "learner/td_error_abs_mean"),
+        ("Q absolute maximum", "learner/q_abs_max"),
+        ("Critic gradient norm", "learner/critic_grad_norm"),
     ],
-    "Battery and energy": [
-        ("Total UAV energy (J)", "energy/total_uav_energy_j"),
-        ("Propulsion energy (J)", "energy/propulsion_energy_j"),
-        ("Communication energy (J)", "energy/uav_rf_energy_j"),
-        ("Battery fraction", "energy/mean_battery_fraction"),
+    "Resources - elapsed runtime axis": [
+        ("GPU 0 / 1 utilization (%)", ("system/gpu.0.gpu", "system/gpu.1.gpu")),
+        ("GPU 0 / 1 allocated memory (%)", ("system/gpu.0.memoryAllocated", "system/gpu.1.memoryAllocated")),
+        ("CPU utilization (SDK %)", "system/cpu"),
+        ("Host RAM utilization (%)", "system/memory_percent"),
     ],
-    "Safety and report loss": [
-        ("Blocked motion rate", "safety/blocked_motion_rate"),
-        ("Boundary clip rate", "safety/boundary_clip_rate"),
-        ("Expired reports", "reports/expired"),
-        ("Dropped reports", "reports/dropped"),
-    ],
-    "Fixed-seed evaluation": [
-        ("Validation return (fixed checkpoint)", "evaluation/mean_return"),
-        ("Validation search (%)", "evaluation/mean_search_rate_percent"),
-        ("Validation delivery (%)", "evaluation/mean_delivery_rate_percent"),
-        ("Validation success", "evaluation/success_rate"),
-    ],
-    "Diagnostic alerts": [
-        ("Warning count", "diagnostics/warning_count"),
-        ("Fatal error count", "diagnostics/fatal_error_count"),
+    "Recovery and upload cost": [
+        ("Seconds since confirmed FULL upload - not captured-state age", "recovery/seconds_since_confirmed_upload"),
+        ("Full snapshot + upload elapsed seconds", "recovery/elapsed_seconds"),
     ],
 }
 
@@ -108,6 +83,9 @@ DIAGNOSTIC_PANELS = {
 
 
 def panel_axis(metric):
+    metric = metric[0] if isinstance(metric, tuple) else metric
+    if metric.startswith("system/"):
+        return "_runtime"
     if metric in CPU_EPISODE_METRICS:
         return "evaluation/episodes_completed"
     return "evaluation/checkpoint_global_step" if metric.startswith(("evaluation/", "eval/")) else "global_step"
@@ -214,16 +192,21 @@ def create_dashboard(config, run_ids=(), name="UAV Network 2D - MASAC and MATD3"
     if missing:
         raise ValueError(f"Requested W&B runs not found: {sorted(missing)}")
     panels = PANELS if profile == "core" else DIAGNOSTIC_PANELS
-    workspace.sections = [ws.Section(name=title, is_open=title not in
-                                     ("Fixed-seed evaluation", "Diagnostic alerts"), panels=[
-        wr.LinePlot(title=label, x=panel_axis(metric), y=[metric]) for label, metric in metrics
+    workspace.sections = [ws.Section(name=title, is_open=not title.startswith(
+        ("Periodic", "Numerical", "Recovery")), panels=[
+        wr.LinePlot(title=label, x=panel_axis(metric),
+                    y=list(metric) if isinstance(metric, tuple) else [metric],
+                    max_runs_to_show=12, aggregate=False, smoothing_type="none")
+        for label, metric in metrics
     ]) for title, metrics in panels.items()]
+    workspace.sections.insert(0, ws.Section(name="How to read this evidence", is_open=True,
+                              panels=[wr.MarkdownPanel(markdown=READING_GUIDE)]))
     workspace.settings = ws.WorkspaceSettings(x_axis="global_step", max_runs=1000)
     workspace.runset_settings = ws.RunsetSettings(
         filters="",
         pinned_runs=[],
         run_settings={},
-        pinned_columns=list(VISIBLE_COLUMNS),
+        pinned_columns=list(PINNED_COLUMNS),
     )
     column_result = save_with_visible_columns(workspace, runs, _graphql)
     url = default_workspace_url(entity, project)
@@ -232,7 +215,7 @@ def create_dashboard(config, run_ids=(), name="UAV Network 2D - MASAC and MATD3"
     result = {"workspace_url": url, "workspace_name": workspace.name,
               "workspace_type": "saved" if saved_view else "personal",
               "entity": entity, "project": project, "pinned_runs": [], "verified_run_ids": list(run_ids), "profile": profile,
-              "panel_count": sum(len(v) for v in panels.values()), **column_result}
+              "panel_count": sum(len(v) for v in panels.values()) + 1, **column_result}
     folder = Path("outputs/wandb")
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "workspace.json").write_text(json.dumps(result, indent=2))

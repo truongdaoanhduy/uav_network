@@ -10,6 +10,7 @@ import numpy as np
 
 from .hardware import hardware_info
 from .telemetry import episode_telemetry
+from .run_journal import RunJournal, EVIDENCE_METRICS
 from ..environment.observations import OBSERVATION_VERSION
 
 CPU_EPISODE_METRICS = ("evaluation/return", "evaluation/search_rate_percent",
@@ -136,6 +137,10 @@ class OnlineTracker:
         self.records = list(initial.get("records", []))
         self.closed = False
         self.last_checkpoint_upload = None
+        self.last_recovery_confirmed_at = None
+        self.latest_evidence = {}
+        self.journal = None
+        self.learning_phase = "initializing"
         run_id = os.environ.get("WANDB_RUN_ID") or uuid4().hex[:8]
         name = config.tracking.run_name
         if name == "auto":
@@ -185,6 +190,21 @@ class OnlineTracker:
                 raise RuntimeError("W&B did not start online")
             if (self.run.entity, self.run.project) != (entity, project):
                 raise RuntimeError("W&B run destination differs from the configured main project")
+            self.journal = RunJournal(self.output, {
+                "run_id": self.run.id, "algorithm": config.runtime.algorithm,
+                "mode": metadata["training_mode"], "seed": config.runtime.seed,
+                "source_commit": metadata["source_git_commit"], "stage": metadata["stage"],
+                "account": metadata["kaggle_account"], "num_envs": config.runtime.num_envs,
+                "batch_size": config.algorithm_config.batch_size,
+                "replay_cpu_fraction": config.runtime.replay_cpu_fraction,
+                "root_kernel_ref": metadata["pipeline"]["root_kernel_ref"]})
+            periodic_eval = metadata["stage"] in {"train", "validate"} and bool(
+                config.tracking.evaluation_interval or config.tracking.evaluation_interval_steps)
+            self.run.summary["evaluation_status/periodic_enabled"] = periodic_eval
+            self.journal.record("started", {"global_step": self.initial_step,
+                "completed_episodes": initial.get("episodes", 0) if metadata["stage"] in {"train", "validate"} else None,
+                "phase": "initializing", "periodic_evaluation_enabled": periodic_eval})
+            self._publish_observability()
             if os.environ.get("UAV_INPUT_ARTIFACT"):
                 self.run.use_artifact(os.environ["UAV_INPUT_ARTIFACT"], type="model")
             self.run.save(str(self.output / "cohorts.jsonl"), base_path=str(self.output), policy="live")
@@ -208,6 +228,18 @@ class OnlineTracker:
         except BaseException:
             self.close(failed=True)
             raise
+
+    def _publish_observability(self, final=False):
+        policies = {"training-status.json": "live", "metrics-guide.md": "now",
+                    "training-events.jsonl": "end", "diagnostics.jsonl": "end"}
+        for name, policy in policies.items():
+            path = self.output / name
+            try:
+                if path.is_file():
+                    self.run.save(str(path), base_path=str(self.output), policy="now" if final else policy)
+            except Exception as error:
+                if self.journal is not None:
+                    self.journal._warn(error)
 
     def identity(self):
         return {"wandb_run_id": self.run.id, "wandb_url": self.run.url,
@@ -235,17 +267,53 @@ class OnlineTracker:
                   "run/elapsed_seconds": time.perf_counter() - self.started,
                   "run/elapsed_hours": (time.perf_counter() - self.started) / 3600,
                   **progress_metrics(observations, self.config), **episode_progress}
+        values.update({"recovery/full_checkpoint_available": int(self.last_recovery_confirmed_at is not None),
+                       "recovery/seconds_since_confirmed_upload": (time.perf_counter() - self.last_recovery_confirmed_at
+                           if self.last_recovery_confirmed_at is not None else None)})
+        if self.journal.identity.get("stage") in {"train", "validate"}:
+            values["run/episode_budget_percent"] = completed / self.config.runtime.episodes * 100
+        self.learning_phase = "learning" if learner.updates else "collecting_before_first_update"
+        self.journal.record("progress", {**self.latest_evidence, **values,
+            "completed_episodes": completed, "updates": learner.updates, "phase":self.learning_phase})
         self.run.log(values)
         self.next_progress = step + self.config.runtime.log_interval_steps
 
     def learner(self, metrics, step):
-        self.run.log({"global_step": step, **{f"learner/{k}": v for k, v in metrics.items()}})
+        values = {f"learner/{k}": v for k, v in metrics.items()}
+        self.latest_evidence.update({k:v for k,v in values.items() if k in EVIDENCE_METRICS})
+        self.run.log({"global_step": step, **values})
 
     def diagnostic(self, values, step):
+        self.latest_evidence.update({k:v for k,v in values.items() if k in EVIDENCE_METRICS})
+        event = None
+        if "recovery/status" in values:
+            event = "recovery"
+            status = values["recovery/status"]
+            phase = {"snapshot_started":"checkpoint_snapshot", "upload_started":"checkpoint_upload"}.get(status)
+            self.latest_evidence["phase"] = phase or self.learning_phase
+        elif any(k in values for k in ("eval/mean_return", "eval/mean_delivery_rate_percent", "eval/success_rate")):
+            event = "evaluation_result"
+        elif "evaluation/episodes_completed" in values or "evaluation_status/status" in values:
+            event = "evaluation"
+        if event and self.journal is not None:
+            context = {**self.latest_evidence, "global_step":step}
+            if self.journal.identity.get("stage") == "visualize":
+                context["phase"] = "cpu_evaluation_completed" if event == "evaluation_result" else "cpu_evaluation"
+            self.journal.record(event, context)
         self.run.log({"global_step": step, **values})
 
     def failure(self, path, step):
-        self.run.summary.update({"diagnostics/fatal_error": True})
+        error_type = "unknown"
+        try:
+            candidate = json.loads(Path(path).read_text()).get("error_type")
+            if isinstance(candidate, str) and candidate.isidentifier():
+                error_type = candidate
+        except (OSError, ValueError, TypeError):
+            pass
+        if self.journal is not None:
+            self.journal.record("failure", {**self.latest_evidence,"global_step":step,"phase":"failed", "error_type":error_type})
+            self._publish_observability(final=True)
+        self.run.summary.update({"diagnostics/fatal_error": True,"diagnostics/failure_type":error_type})
         self.run.log({"global_step": step, "diagnostics/fatal_error_count": 1})
         self.run.save(str(path), base_path=str(self.output), policy="now")
         for name in ("failed_batch.pt", "failure_state.pt"):
@@ -258,6 +326,28 @@ class OnlineTracker:
         self.run.log(episode_metrics(record, self.config.world.num_uavs))
 
     def checkpoint(self, path, progress, final=False, resumable=False):
+        if not self.config.tracking.log_checkpoint:
+            return None
+        started = time.perf_counter()
+        full = bool(resumable or (final and (self.config.pql.enabled or progress.get("resume_checkpoint") is not None)))
+        self.journal.record("checkpoint_requested", {"global_step":progress["global_step"],
+            "checkpoint_kind":"full" if full else "policy", "phase":"checkpoint_upload"})
+        try:
+            reference = self._checkpoint(path, progress, final=final, resumable=resumable)
+        except Exception as error:
+            self.journal.record("checkpoint_failed", {"error_type":type(error).__name__,
+                "checkpoint_elapsed_seconds":time.perf_counter()-started,"phase":self.learning_phase})
+            raise
+        if reference and full:
+            self.last_recovery_confirmed_at = time.perf_counter()
+            self.journal.record("full_checkpoint_confirmed", {"full_checkpoint_artifact":reference,
+                "full_checkpoint_global_step":progress["global_step"]})
+        self.journal.record("checkpoint_confirmed" if reference else "checkpoint_skipped", {
+            "checkpoint_artifact":reference, "checkpoint_elapsed_seconds":time.perf_counter()-started,
+            "phase":self.learning_phase})
+        return reference
+
+    def _checkpoint(self, path, progress, final=False, resumable=False):
         if not self.config.tracking.log_checkpoint:
             return None
         if (not final and not resumable and self.config.tracking.checkpoint_store == "huggingface"
@@ -326,11 +416,18 @@ class OnlineTracker:
         if "reproducibility" in result:
             self.run.summary["reproducibility"] = result["reproducibility"]
         artifact = self.checkpoint(result["checkpoint"], result, final=True)
+        self.journal.record("training_segment_complete", {**self.latest_evidence,"global_step":result["global_step"],
+            "completed_episodes":result["episodes"], "episode_budget_complete":completion is True,
+            "stop_reason":result.get("stop_reason","unknown")})
         return {**metrics, **self.identity(), "checkpoint_artifact": artifact}
 
     def close(self, failed=False):
         if not self.closed:
             self.closed = True
+            if self.journal is not None:
+                self.journal.record("closed", {**self.latest_evidence,"phase":"failed" if failed else "closed",
+                    "elapsed_seconds":time.perf_counter()-self.started})
+                self._publish_observability(final=True)
             self.run.summary.update({"run_ended_at_utc": datetime.now(timezone.utc).isoformat(),
                                      "run_elapsed_seconds": time.perf_counter() - self.started})
             self.run.finish(exit_code=1 if failed else 0)

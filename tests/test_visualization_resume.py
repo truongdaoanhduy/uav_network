@@ -30,6 +30,7 @@ class VisualizationResumeTests(unittest.TestCase):
         run = SimpleNamespace(summary={}, log=lambda *a, **k: None, use_artifact=lambda *a, **k: None,
                               save=lambda *a, **k: None)
         return SimpleNamespace(run=run, close=lambda **kw: None,
+                               diagnostic=lambda values,step: run.log({"global_step":step, **values}),
                                identity=lambda: {"wandb_run_id": "cpu1", "wandb_url": "https://wandb.ai/owner/main/runs/cpu1"})
 
     def test_cpu_job_writes_portable_prefix_and_next_session_finishes_without_repeating_it(self):
@@ -96,3 +97,19 @@ class VisualizationResumeTests(unittest.TestCase):
             except AttributeError as error:
                 self.fail(f"Publication-only recovery is missing: {error}")
             self.assertEqual(got["matd3"]["publication"]["wandb"]["status"], "ok")
+
+    def test_cpu_failure_retains_traceback_and_source_artifact(self):
+        with TemporaryDirectory() as directory:
+            root=Path(directory);tracker=self.tracker();failures=[]
+            tracker.failure=lambda path,step: failures.append(Path(path))
+            spec=self.spec("configs/kaggle-smoke.yaml")
+            with patch("uav_network.experiments.tracking.start_tracking",return_value=tracker), \
+                 patch("uav_network.cloud.remote.prepare_checkpoints",side_effect=RuntimeError("checkpoint download broke")):
+                with self.assertRaisesRegex(RuntimeError,"CPU visualization failures"):
+                    visualize.run_visualization(spec,root)
+            path=root/"tracking/matd3/failure.json"
+            assert path.is_file() and failures==[path]
+            report=json.loads(path.read_text())
+            assert report["error_type"]=="RuntimeError"
+            assert report["context"]["checkpoint_artifact"]=="owner/main/model:v1"
+            assert "checkpoint download broke" in report["traceback"]

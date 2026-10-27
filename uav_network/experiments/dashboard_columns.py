@@ -3,30 +3,28 @@ import json
 
 
 VISIBLE_COLUMNS = [
-    "run:displayName", "run:state", "run:duration", "config:kaggle_account",
-    "config:runtime.algorithm", "summary:training_mode", "summary:global_step",
-    "summary:progress/episode_progress_percent_mean", "summary:train/episodes_completed",
-    "summary:train/joint_transitions_per_s", "summary:progress/search_rate_percent",
-    "summary:progress/delivery_rate_percent", "summary:progress/mean_battery_fraction",
-    "summary:episode/return", "summary:outcome/delivery_rate_percent", "summary:outcome/success",
-    "summary:network/pdr_percent", "summary:network/report_average_hops",
-    "summary:reports/expired", "summary:reports/dropped",
-    "summary:cohort/delivery_rate_percent_mean", "summary:cohort/success_mean",
-    "summary:final_delivery_rate_percent", "summary:final_success_rate",
-    "summary:episode_budget_complete", "summary:stop_reason", "summary:session_status",
+    "run:displayName", "run:state", "run:createdAt", "run:duration",
+    "config:stage", "config:runtime.algorithm", "summary:training_mode",
+    "config:kaggle_account", "config:runtime.seed", "summary:global_step",
+    "summary:train/episodes_completed", "summary:cohort/delivery_rate_percent_mean",
+    "summary:cohort/success_mean", "summary:eval/mean_delivery_rate_percent",
+    "summary:eval/success_rate", "summary:episode_budget_complete",
+    "summary:stop_reason", "summary:diagnostics/failure_type",
 ]
+PINNED_COLUMNS = VISIBLE_COLUMNS[:4]
 
 
 def reconcile_runset(runset):
-    """Show every run state neutrally, newest runs first."""
+    """All real states, newest first; only useful columns are visible/pinned."""
     runset.update(filters={"filterFormat": "filterV2", "filters": []},
                   search={"query": ""}, selections={"root": 1, "bounds": [], "tree": []}, enabled=True,
                   sort={"keys": [{"key": {"section": "run", "name": "createdAt"}, "ascending": False}]})
     feed = runset.setdefault("runFeed", {})
-    for name in ("columnVisible", "columnPinned"):
-        feed.setdefault(name, {}).update(dict.fromkeys(VISIBLE_COLUMNS, True))
-    feed["columnOrder"] = list(VISIBLE_COLUMNS) + [
-        name for name in feed.get("columnOrder", []) if name not in VISIBLE_COLUMNS]
+    known = set(feed.get("columnVisible", {})) | set(feed.get("columnPinned", {}))
+    known.update(feed.get("columnOrder", [])); known.update(VISIBLE_COLUMNS)
+    feed["columnVisible"] = {name: name in VISIBLE_COLUMNS for name in sorted(known)}
+    feed["columnPinned"] = {name: name in PINNED_COLUMNS for name in sorted(known)}
+    feed["columnOrder"] = list(VISIBLE_COLUMNS)
 
 
 def flattened_keys(values, prefix=""):
@@ -51,7 +49,7 @@ def save_with_visible_columns(workspace, runs, graphql):
     # ponytail: SDK save marks only pinned columns true and leaves others visible.
     # Use its current model/upsert boundary until public hidden-columns support exists.
     feed.column_visible = {name: name in VISIBLE_COLUMNS for name in sorted(known)}
-    feed.column_pinned = {name: name in VISIBLE_COLUMNS for name in sorted(known)}
+    feed.column_pinned = {name: name in PINNED_COLUMNS for name in sorted(known)}
     feed.column_order = list(VISIBLE_COLUMNS)
     spec = json.loads(model.spec.model_dump_json(by_alias=True, exclude_none=True))
     reconcile_runset(spec["section"]["runSets"][0])

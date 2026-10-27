@@ -59,7 +59,7 @@ class DashboardTests(unittest.TestCase):
                 self.assertEqual(result["workspace_url"], "https://wandb.ai/owner/project/workspace")
                 self.assertEqual(result["workspace_type"], "personal")
                 self.assertEqual(result["pinned_runs"], [])
-                self.assertEqual(result["panel_count"], sum(len(items) for items in PANELS.values()))
+                self.assertEqual(result["panel_count"], sum(len(items) for items in PANELS.values()) + 1)
                 self.assertEqual(json.loads(Path("outputs/wandb/workspace.json").read_text()), result)
 
         self.assertEqual(set(stored), {"nw-existing-v", personal_name})
@@ -72,13 +72,28 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(spec["runSets"][0]["sort"]["keys"],
                          [{"key": {"section": "run", "name": "createdAt"}, "ascending": False}])
         feed = spec["runSets"][0]["runFeed"]
-        for name in ("run:state", "summary:episode_budget_complete", "summary:stop_reason", "summary:session_status"):
-            self.assertTrue(feed["columnPinned"][name])
+        visible = {key for key,value in feed["columnVisible"].items() if value}
+        pinned = {key for key,value in feed["columnPinned"].items() if value}
+        self.assertEqual(len(visible),18)
+        self.assertTrue({"run:createdAt","run:duration","summary:eval/mean_delivery_rate_percent",
+                         "summary:eval/success_rate"} <= visible)
+        self.assertEqual(pinned,{"run:displayName","run:state","run:createdAt","run:duration"})
+        plots = [p for section in spec["panelBankConfig"]["sections"] for p in section["panels"]
+                 if "metrics" in p.get("config",{})]
+        self.assertEqual(len(plots),26)
+        for panel in plots:
+            config = panel["config"]
+            self.assertEqual(config.get("limit"),12)
+            self.assertFalse(config.get("aggregate",False))
+            metric=config["metrics"][0]
+            if metric.startswith("system/"): self.assertEqual(config["xAxis"],"_runtime")
+            elif metric in {"evaluation/delivery_rate_percent","evaluation/success"}:
+                self.assertEqual(config["xAxis"],"evaluation/episodes_completed")
         self.assertGreaterEqual(spec["settings"]["maxRuns"], 1000)
         self.assertEqual(spec["settings"]["xAxis"], "global_step")
         self.assertFalse(spec["settings"]["shouldAutoGeneratePanels"])
         self.assertEqual(sum(len(s["panels"]) for s in spec["panelBankConfig"]["sections"]),
-                         sum(len(items) for items in PANELS.values()))
+                         sum(len(items) for items in PANELS.values()) + 1)
 
     def test_updates_existing_personal_workspace_without_creating_saved_views(self):
         self.check_personal_workspace(exists=True)
