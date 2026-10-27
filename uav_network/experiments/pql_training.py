@@ -11,6 +11,7 @@ import yaml
 from ..environment.vector import make_vector, random_actions, unpack_info
 from .diagnostics import TrainingDiagnostics, failure_report
 from .async_evaluation import AsyncCheckpointEvaluator
+from .recovery_checkpoints import PeriodicRecovery
 from .local_checkpoints import prune_episode_checkpoints, disk_metrics, release_staged_checkpoint
 from .pql_system import PQLSystem
 from .reproducibility import reproducibility_result
@@ -68,6 +69,7 @@ def train_pql(config):
         next_checkpoint = (completed // config.runtime.checkpoint_interval + 1) * config.runtime.checkpoint_interval
         latest = {}
         startup_s = time.perf_counter() - started
+        recovery = PeriodicRecovery(config, output, started=started)
         time_limit = False
 
         def progress(final=False):
@@ -80,7 +82,7 @@ def train_pql(config):
                               stop_reason="episode_budget" if completed >= config.runtime.episodes else "time_budget")
             return result
 
-        def save(policy_path, final=False, full_state=True):
+        def save(policy_path, final=False, full_state=True, resume_path=None, publish=True):
             state = progress(final)
             # Resume state stays separate from the small model used for W&B/evaluation.
             if full_state:
@@ -89,13 +91,13 @@ def train_pql(config):
                                  "torch": generator.get_state().cpu() if generator is not None else None}
                 engine.flush()
                 environment = snapshot_environment(vector, returns, lengths, seeds, next_seed)
-                engine.save(output / "resume_latest.pt", state, collector_rng=collector_rng, environment=environment)
+                engine.save(resume_path or output / "resume_latest.pt", state, collector_rng=collector_rng, environment=environment)
             else:
                 # vmap temporarily swaps live critic parameters; light snapshots
                 # need the same drained boundary as a full resume checkpoint.
                 engine.flush()
             engine.critic.save(policy_path, progress=state)
-            if tracker and not final:
+            if tracker and not final and publish:
                 tracker.checkpoint(policy_path, state)
             prune_episode_checkpoints(output, config.tracking.local_checkpoints_to_keep)
             return state
@@ -198,6 +200,9 @@ def train_pql(config):
                         returns[i] = lengths[i] = 0
                     reset_mask = done.cpu().numpy() if device_env else done
                     obs, _ = vector.reset(seed=reset_seeds, options={"reset_mask": reset_mask})
+                recovery.maybe_save(
+                    lambda path, resume_path: save(path, resume_path=resume_path, publish=False),
+                    tracker, step=global_step)
         final = output / "final.pt"
         save(final, final=True)
         drain = min(10., max(0., config.runtime.max_train_seconds - (time.perf_counter() - started))) if config.runtime.max_train_seconds else 10.

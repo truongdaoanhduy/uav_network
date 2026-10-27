@@ -60,6 +60,7 @@ def test_workspace_run_table_is_compact_and_decision_focused():
         "summary:reports/expired", "summary:reports/dropped",
         "summary:cohort/delivery_rate_percent_mean", "summary:cohort/success_mean",
         "summary:final_delivery_rate_percent", "summary:final_success_rate",
+        "summary:episode_budget_complete", "summary:stop_reason", "summary:session_status",
     ]
     assert VISIBLE_COLUMNS == expected
 

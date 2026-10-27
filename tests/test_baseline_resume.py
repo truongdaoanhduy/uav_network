@@ -229,8 +229,9 @@ class BaselineResumeTests(unittest.TestCase):
             config.tracking.checkpoint_store = "wandb"
             tracker.config, tracker.output = config, output
             tracker.wandb = SimpleNamespace(Artifact=artifact)
-            tracker.run = SimpleNamespace(id="test", save=lambda *args, **kwargs: None,
-                log_artifact=lambda *args, **kwargs: SimpleNamespace(wait=lambda **kwargs: None, qualified_name="model:final"))
+            tracker.run = SimpleNamespace(id="test", summary={}, save=lambda *args, **kwargs: None,
+                log_artifact=lambda *args, **kwargs: SimpleNamespace(wait=lambda **kwargs: None, qualified_name="model:final",
+                    aliases=[], save=lambda: None))
             tracker.checkpoint(result["checkpoint"], result, final=True)
             self.assertEqual(set(artifacts[-1].files), {"checkpoint.pt", "resume.pt"})
             tracker.checkpoint(result["checkpoint"], {"episodes": 2, "global_step": 6}, final=True)

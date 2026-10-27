@@ -62,8 +62,9 @@ class PQLArtifactTests(unittest.TestCase):
             tracker.config.tracking.checkpoint_store = "wandb"
             tracker.config.pql.enabled = True
             tracker.wandb = SimpleNamespace(Artifact=artifact)
-            tracker.run = SimpleNamespace(id="test", save=lambda *args, **kwargs: None,
-                log_artifact=lambda *args, **kwargs: SimpleNamespace(wait=lambda **kwargs: None, qualified_name="model:final"))
+            tracker.run = SimpleNamespace(id="test", summary={}, save=lambda *args, **kwargs: None,
+                log_artifact=lambda *args, **kwargs: SimpleNamespace(wait=lambda **kwargs: None, qualified_name="model:final",
+                    aliases=[], save=lambda: None))
             state = {"episodes": 4, "global_step": 16, "resume_checkpoint": str(resume)}
             tracker.checkpoint(policy, state, final=True)
             self.assertEqual(artifacts[-1].files["resume.pt"]["version"], 3)

@@ -22,6 +22,7 @@ from .reproducibility import reproducibility_result
 from .environment_checkpoints import snapshot_environment, initialize_environment
 from .diagnostics import TrainingDiagnostics, failure_report
 from .async_evaluation import AsyncCheckpointEvaluator
+from .recovery_checkpoints import PeriodicRecovery
 from .local_checkpoints import prune_episode_checkpoints, disk_metrics, release_staged_checkpoint
 from .pql_workers import cloned_state, inference_copy, synchronize as synchronize_worker
 
@@ -143,6 +144,7 @@ def _train(config):
         restored_training = None  # Release the CPU checkpoint copy after restoring replay.
         warm_start_sha256 = release_staged_checkpoint(config.runtime.warm_start_checkpoint)
         startup_s = time.perf_counter() - start
+        recovery = PeriodicRecovery(config, output, started=start)
 
         def learn(force_metrics=False):
             nonlocal latest, update_s, next_metrics_at, pending_learning
@@ -176,7 +178,7 @@ def _train(config):
                                             max(1, global_step - initial["global_step"])}, global_step)
                 next_metrics_at = global_step + config.runtime.log_interval_steps
 
-        def save(path, final=False, full_state=True):
+        def save(path, final=False, full_state=True, resume_path=None):
             progress = {"episodes": completed, "global_step": global_step,
                         "collection_steps": collection_steps, "next_seed": next_seed,
                         "records": history}
@@ -187,7 +189,7 @@ def _train(config):
                 progress["source_run_id"] = tracker.identity()["wandb_run_id"]
             learner.save(path, progress=progress)
             if full_state:
-                save_fixed_checkpoint(learner, output / "resume_latest.pt", progress, replay, rng,
+                save_fixed_checkpoint(learner, resume_path or output / "resume_latest.pt", progress, replay, rng,
                                       warmup_origin=warmup_origin, random_warmup=random_warmup,
                                       next_metrics_at=next_metrics_at, latest=latest, pending_learning=pending_learning,
                                       action_generator=getattr(vector, "action_generator", None),
@@ -300,6 +302,7 @@ def _train(config):
                         episode_returns[i] = episode_lengths[i] = 0
                     reset_mask = done.cpu().numpy() if device_env else done
                     obs, _ = vector.reset(seed=seeds, options={"reset_mask": reset_mask})
+                recovery.maybe_save(save, tracker, step=global_step)
         checkpoint = output / "final.pt"
         save(checkpoint, final=True, full_state=not final_resume_saved)
         drain = min(10., max(0., config.runtime.max_train_seconds - (time.perf_counter() - start))) if config.runtime.max_train_seconds else 10.

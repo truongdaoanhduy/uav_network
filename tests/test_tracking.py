@@ -20,12 +20,16 @@ from uav_network.cloud.credentials import load_credentials
 class StoredArtifact:
     def __init__(self, name, type, metadata):
         self.name, self.metadata, self.committed = name, metadata, False
+        self.aliases = []
 
     def add_file(self, path, name):
         self.data = Path(path).read_bytes()
 
     def wait(self, timeout):
         self.committed = True
+
+    def save(self):
+        assert self.committed, "Aliases can only be saved after artifact confirmation"
 
     @property
     def qualified_name(self):

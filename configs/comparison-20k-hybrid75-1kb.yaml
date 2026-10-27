@@ -79,6 +79,8 @@ pql:
   worker_timeout_s: 600
   checkpoint_replay: true
 tracking:
+  resumable_checkpoint_interval_seconds: 3600.0
+  resumable_checkpoint_max_uploads: 4
   enabled: true
   artifact_timeout_seconds: 900
   evaluation_interval: 0

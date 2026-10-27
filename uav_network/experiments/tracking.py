@@ -257,24 +257,28 @@ class OnlineTracker:
         self.records.append(record)
         self.run.log(episode_metrics(record, self.config.world.num_uavs))
 
-    def checkpoint(self, path, progress, final=False):
+    def checkpoint(self, path, progress, final=False, resumable=False):
         if not self.config.tracking.log_checkpoint:
             return None
-        if (not final and self.config.tracking.checkpoint_store == "huggingface"
+        if (not final and not resumable and self.config.tracking.checkpoint_store == "huggingface"
                 and self.last_checkpoint_upload is not None
                 and time.monotonic() - self.last_checkpoint_upload
                     < self.config.tracking.checkpoint_upload_interval_seconds):
             self.run.summary["checkpoint_uploads_skipped"] = self.run.summary.get("checkpoint_uploads_skipped", 0) + 1
             return None
+        full_state = resumable or (final and (self.config.pql.enabled or progress.get("resume_checkpoint") is not None))
         artifact = self.wandb.Artifact(f"uav-network-{self.config.runtime.algorithm}-{self.run.id}", type="model",
                                       metadata={"completed_episodes": progress["episodes"],
                                                 "global_step": progress["global_step"],
-                                                "episode_budget_complete": progress.get("episode_budget_complete", False)})
+                                                "episode_budget_complete": progress.get("episode_budget_complete", False),
+                                                "resumable": bool(full_state),
+                                                "source_git_commit": os.environ.get("UAV_GIT_COMMIT", "local"),
+                                                "source_run_id": self.run.id})
         files = {"checkpoint.pt": Path(path)}
-        if final and (self.config.pql.enabled or progress.get("resume_checkpoint") is not None):
+        if full_state:
             resume = progress.get("resume_checkpoint")
             if resume is None or not Path(resume).is_file():
-                raise ValueError("Final artifact requires a complete resume checkpoint")
+                raise ValueError("Resumable artifact requires a complete resume checkpoint")
             files["resume.pt"] = Path(resume)
         if self.config.tracking.checkpoint_store == "huggingface":
             from .checkpoint_store import upload_checkpoint_files, MANIFEST
@@ -289,10 +293,21 @@ class OnlineTracker:
         else:
             for name, file in files.items():
                 artifact.add_file(str(file), name=name)
-        logged = self.run.log_artifact(artifact, aliases=["latest", "final"] if final else ["latest"])
+        aliases = ["latest", "final"] if final else ["latest"]
+        logged = self.run.log_artifact(artifact, aliases=aliases)
         logged.wait(timeout=self.config.tracking.artifact_timeout_seconds)
+        if "resume.pt" in files:
+            # A timed-out initial publication must not move the recovery alias.
+            logged.aliases = list(dict.fromkeys([*logged.aliases, "resumable"]))
+            logged.save()
         self.last_checkpoint_upload = time.monotonic()
-        return logged.qualified_name
+        reference = logged.qualified_name
+        if "resume.pt" in files:
+            self.run.summary.update({"recovery/checkpoint_artifact": reference,
+                                     "recovery/last_verified_global_step": progress["global_step"],
+                                     "recovery/last_verified_episodes": progress["episodes"],
+                                     "recovery/last_verified_utc": datetime.now(timezone.utc).isoformat()})
+        return reference
 
     def complete(self, result):
         metrics = final_metrics(self.records) if self.records else {}

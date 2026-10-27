@@ -192,6 +192,8 @@ class TrackingConfig:
     tags: list = field(default_factory=lambda: ["uav-network", "2d", "fov", "uavnetsim"])
     log_checkpoint: bool = True
     checkpoint_upload_interval_seconds: float = 300.0
+    resumable_checkpoint_interval_seconds: float = 0.0
+    resumable_checkpoint_max_uploads: int = 4
     local_checkpoints_to_keep: int = 2
     checkpoint_store: str = "huggingface"
     checkpoint_repo: str = "auto"
@@ -340,6 +342,16 @@ class Config:
         if (self.tracking.checkpoint_repo != "auto"
                 and not re.fullmatch(r"[\w.-]+/[\w.-]+", self.tracking.checkpoint_repo)):
             raise ValueError("checkpoint_repo must be auto or owner/repository")
+        t = self.tracking
+        if (not math.isfinite(t.resumable_checkpoint_interval_seconds)
+                or t.resumable_checkpoint_interval_seconds < 0
+                or type(t.resumable_checkpoint_max_uploads) is not int
+                or t.resumable_checkpoint_max_uploads < 1):
+            raise ValueError("Invalid resumable_checkpoint interval or upload limit")
+        if (t.resumable_checkpoint_interval_seconds > 0 and t.enabled and t.log_checkpoint
+                and t.checkpoint_store == "huggingface"
+                and self.pql.enabled and not self.pql.checkpoint_replay):
+            raise ValueError("resumable_checkpoint requires full PQL replay")
         if self.tracking.artifact_timeout_seconds < 1:
             raise ValueError("artifact_timeout_seconds must be positive")
         if (not math.isfinite(self.tracking.checkpoint_upload_interval_seconds)
