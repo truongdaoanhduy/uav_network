@@ -34,7 +34,7 @@ def test_external_supervisor_workflow_references_masked_secrets_not_values():
         assert f"secrets.KAGGLE_API_TOKEN_ACCOUNT_{index:02d}" in source
     for name in ("WANDB_API_KEY", "HF_TOKEN"):
         assert f"secrets.{name}" in source
-    for name in ("WANDB_ENTITY", "WANDB_PROJECT", "HF_REPO_ID"):
+    for name in ("WANDB_ENTITY", "WANDB_PROJECT", "HF_REPO_ID", "KAGGLE_ENABLED_ACCOUNTS"):
         assert f"vars.{name}" in source
     # Real secret prefixes/tokens must never be copied into the workflow.
     assert "KGAT_" not in source
@@ -77,5 +77,9 @@ def test_secret_sync_uses_stdin_and_skips_disabled_accounts(tmp_path):
         assert kwargs["text"] is True and kwargs["check"] is True
         assert not any(value in " ".join(command) for value in secret_values)
     variable_names = {command[3] for command, _ in calls if command[1:3] == ["variable", "set"]}
-    assert variable_names == {"WANDB_ENTITY", "WANDB_PROJECT", "HF_REPO_ID"}
+    assert variable_names == {"WANDB_ENTITY", "WANDB_PROJECT", "HF_REPO_ID", "KAGGLE_ENABLED_ACCOUNTS"}
+    enabled_call = next(kwargs for command, kwargs in calls
+                        if command[1:4] == ["variable", "set", "KAGGLE_ENABLED_ACCOUNTS"])
+    assert enabled_call["input"] == "account_01"
     assert result["secrets"] == sorted(names)
+    assert "KAGGLE_ENABLED_ACCOUNTS" in result["variables"]

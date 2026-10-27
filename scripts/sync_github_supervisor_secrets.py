@@ -33,6 +33,7 @@ def sync_credentials(key_file: str | Path, *, repo: str | None = None,
         raise ValueError("key.txt needs kaggle.accounts")
 
     secrets: list[tuple[str, str]] = []
+    enabled_accounts: list[str] = []
     for item in accounts:
         if not isinstance(item, dict) or item.get("enabled", True) is not True:
             continue
@@ -40,6 +41,8 @@ def sync_credentials(key_file: str | Path, *, repo: str | None = None,
         match = ACCOUNT_RE.fullmatch(str(name or ""))
         if not match or not isinstance(token, str) or not token:
             raise ValueError("Enabled Kaggle accounts require account_NN names and tokens")
+        account_name = f"account_{match.group(1)}"
+        enabled_accounts.append(account_name)
         secrets.append((f"KAGGLE_API_TOKEN_ACCOUNT_{match.group(1)}", token))
 
     wandb = data.get("wandb", {})
@@ -48,7 +51,8 @@ def sync_credentials(key_file: str | Path, *, repo: str | None = None,
                 ("HF_TOKEN", hf.get("token"))]
     variables = [("WANDB_ENTITY", wandb.get("entity")),
                  ("WANDB_PROJECT", wandb.get("project")),
-                 ("HF_REPO_ID", hf.get("repo_id"))]
+                 ("HF_REPO_ID", hf.get("repo_id")),
+                 ("KAGGLE_ENABLED_ACCOUNTS", ",".join(enabled_accounts))]
 
     for name, value in secrets:
         _set_stdin("secret", name, value, repo, run)

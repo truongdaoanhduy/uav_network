@@ -209,3 +209,37 @@ def test_crashed_job_without_exact_recovery_blocks_without_push():
         observed = s.reconcile_ref(parent["kernel_ref"], account, credentials)
     assert observed["action"] == "recovery_blocked"
     assert observed["error_type"] == "RecoveryUnavailable"
+
+
+def test_environment_credentials_use_explicit_enabled_account_allowlist():
+    from uav_network.cloud import github_supervisor as s
+    env = {
+        "KAGGLE_ENABLED_ACCOUNTS": "account_01,account_03",
+        "KAGGLE_API_TOKEN_ACCOUNT_01": "token-one",
+        "KAGGLE_API_TOKEN_ACCOUNT_02": "stale-disabled-token",
+        "KAGGLE_API_TOKEN_ACCOUNT_03": "token-three",
+        "WANDB_API_KEY": "wandb",
+        "WANDB_ENTITY": "owner",
+        "WANDB_PROJECT": "project",
+        "HF_TOKEN": "hf",
+        "HF_REPO_ID": "owner/repo",
+    }
+    credentials = s.credentials_from_environment(env)
+    assert [account.name for account in credentials.accounts] == ["account_01", "account_03"]
+    assert all(account.name != "account_02" for account in credentials.accounts)
+
+
+def test_environment_credentials_fail_closed_when_allowlisted_token_is_missing():
+    from uav_network.cloud import github_supervisor as s
+    env = {
+        "KAGGLE_ENABLED_ACCOUNTS": "account_01,account_03",
+        "KAGGLE_API_TOKEN_ACCOUNT_01": "token-one",
+        "WANDB_API_KEY": "wandb",
+        "WANDB_ENTITY": "owner",
+        "WANDB_PROJECT": "project",
+        "HF_TOKEN": "hf",
+        "HF_REPO_ID": "owner/repo",
+    }
+    import pytest
+    with pytest.raises(RuntimeError, match="enabled account_03"):
+        s.credentials_from_environment(env)

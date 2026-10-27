@@ -32,11 +32,21 @@ class RecoveryUnavailable(RuntimeError):
 
 def credentials_from_environment(env=None):
     env = os.environ if env is None else env
+    raw_enabled = str(env.get("KAGGLE_ENABLED_ACCOUNTS", "")).strip()
+    enabled = [name.strip() for name in raw_enabled.split(",") if name.strip()]
+    if not enabled:
+        raise RuntimeError("GitHub supervisor requires KAGGLE_ENABLED_ACCOUNTS")
+    if len(enabled) != len(set(enabled)) or any(not re.fullmatch(r"account_\d{2}", name) for name in enabled):
+        raise RuntimeError("KAGGLE_ENABLED_ACCOUNTS is invalid")
     accounts = []
-    for index in range(1, 25):
+    for name in enabled:
+        index = int(name.rsplit("_", 1)[1])
+        if not 1 <= index <= 24:
+            raise RuntimeError("KAGGLE_ENABLED_ACCOUNTS is invalid")
         token = str(env.get(f"KAGGLE_API_TOKEN_ACCOUNT_{index:02d}", "")).strip()
-        if token:
-            accounts.append(Account(f"account_{index:02d}", token))
+        if not token:
+            raise RuntimeError(f"Missing GitHub Kaggle secret for enabled {name}")
+        accounts.append(Account(name, token))
     key = str(env.get("WANDB_API_KEY", "")).strip()
     entity = str(env.get("WANDB_ENTITY", "")).strip()
     project = str(env.get("WANDB_PROJECT", "")).strip()

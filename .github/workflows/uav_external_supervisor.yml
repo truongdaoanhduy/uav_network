@@ -52,6 +52,7 @@ jobs:
       WANDB_ENTITY: ${{ vars.WANDB_ENTITY }}
       WANDB_PROJECT: ${{ vars.WANDB_PROJECT }}
       HF_REPO_ID: ${{ vars.HF_REPO_ID }}
+      KAGGLE_ENABLED_ACCOUNTS: ${{ vars.KAGGLE_ENABLED_ACCOUNTS }}
       PYTHONUNBUFFERED: "1"
     steps:
       - name: Checkout pinned supervisor source
