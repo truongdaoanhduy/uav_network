@@ -8,7 +8,9 @@ def publish_pipeline_status(spec, results, output, *, failed, next_stage):
     path = Path(output) / "continuation.json"
     record = json.loads(path.read_text()) if path.is_file() else {}
     waiting = not failed and record.get("status") == "waiting_for_quota"
-    payload = {"pipeline/status": "failed" if failed else "waiting_for_quota" if waiting else "submitted",
+    external = not failed and record.get("status") == "external_pending"
+    payload = {"pipeline/status": ("failed" if failed else "waiting_for_quota" if waiting
+                                   else "awaiting_external_supervisor" if external else "submitted"),
                "pipeline/next_stage": next_stage,
                "pipeline/training_complete": all(
                    r.get("episode_budget_complete") is True for r in results.values()) and bool(results)}

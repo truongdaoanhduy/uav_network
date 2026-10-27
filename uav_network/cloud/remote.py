@@ -361,7 +361,17 @@ def finalize_runs(spec, processes, output):
             if failures or (output / "job-scheduling-failure.json").is_file():
                 raise ValueError("Automatic continuation cannot follow a learner or scheduling failure")
             action = next_stage(spec, results)
-            if action == "gpu":
+            if spec.get("orchestration") == "github_actions":
+                result = next(iter(results.values()))
+                (output / "continuation.json").write_text(json.dumps({
+                    "status": "external_pending", "next_stage": action,
+                    "root_kernel_ref": spec.get("root_kernel_ref", spec["kernel_ref"]),
+                    "parent_kernel_ref": spec["kernel_ref"],
+                    "requested_episodes": result["requested_episodes"],
+                    "episodes": result["episodes"], "global_step": result["global_step"],
+                    "episode_budget_complete": result["episode_budget_complete"],
+                    "checkpoint_artifact": result["checkpoint_artifact"]}, indent=2))
+            elif action == "gpu":
                 submit_continuation(spec, results, output)
             else:
                 from .visualize import submit_visualization

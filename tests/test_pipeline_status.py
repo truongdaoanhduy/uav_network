@@ -53,3 +53,44 @@ def test_failed_handoff_is_visible_in_existing_wandb_run():
         assert summary.get("pipeline/wait_reason") == "insufficient_quota"
         assert "pipeline/failure_reason" not in summary
         assert "secret" not in json.dumps(summary)
+
+
+def test_github_orchestration_emits_gpu_transition_without_self_submission():
+    parent = parent_spec()
+    parent["orchestration"] = "github_actions"
+    results = learner_result(complete=False)
+    with TemporaryDirectory() as directory:
+        output = Path(directory)
+        write_summary(output, results)
+        with patch.object(continuation, "submit_continuation", side_effect=AssertionError("self-submit gpu")), \
+             patch("uav_network.cloud.visualize.submit_visualization", side_effect=AssertionError("self-submit cpu")):
+            remote.finalize_runs(parent, [SimpleNamespace(returncode=0)], output)
+        receipt = json.loads((output / "continuation.json").read_text())
+        assert receipt["status"] == "external_pending"
+        assert receipt["next_stage"] == "gpu"
+        assert receipt["parent_kernel_ref"] == parent["kernel_ref"]
+        assert receipt["root_kernel_ref"] == parent["root_kernel_ref"]
+        assert receipt["episodes"] == 1500
+        assert receipt["global_step"] == 9000
+        assert receipt["checkpoint_artifact"] == results["masac"]["checkpoint_artifact"]
+        status = json.loads((output / "pipeline-status.json").read_text())
+        assert status["pipeline/status"] == "awaiting_external_supervisor"
+        assert status["pipeline/next_stage"] == "gpu"
+
+
+def test_github_orchestration_emits_cpu_transition_without_self_submission():
+    parent = parent_spec()
+    parent["orchestration"] = "github_actions"
+    results = learner_result(complete=True)
+    with TemporaryDirectory() as directory:
+        output = Path(directory)
+        write_summary(output, results)
+        with patch.object(continuation, "submit_continuation", side_effect=AssertionError("self-submit gpu")), \
+             patch("uav_network.cloud.visualize.submit_visualization", side_effect=AssertionError("self-submit cpu")):
+            remote.finalize_runs(parent, [SimpleNamespace(returncode=0)], output)
+        receipt = json.loads((output / "continuation.json").read_text())
+        assert receipt["status"] == "external_pending"
+        assert receipt["next_stage"] == "cpu"
+        assert receipt["episodes"] == 10000
+        assert receipt["episode_budget_complete"] is True
+        assert not (output / "cpu-visualization.json").exists()
