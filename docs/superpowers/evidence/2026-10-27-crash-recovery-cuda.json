@@ -1,0 +1,173 @@
+{
+  "source_commit": "0fe0e7c4bb7fe7d2a18a6fad64c8cbdba4a0505d",
+  "started_utc": "2026-10-27T05:49:43Z",
+  "stages": [
+    {
+      "name": "setup",
+      "exit_code": 0,
+      "seconds": 25.41606868000008
+    },
+    {
+      "name": "hardware",
+      "exit_code": 0,
+      "seconds": 8.550926646999983
+    },
+    {
+      "name": "focused",
+      "exit_code": 0,
+      "seconds": 90.349750567
+    },
+    {
+      "name": "gpu-probe",
+      "exit_code": 0,
+      "seconds": 127.84027193899999
+    }
+  ],
+  "mounted_credentials": false,
+  "status": "passed",
+  "finished_utc": "2026-10-27T05:53:56Z",
+  "hardware": {
+    "torch": "2.11.0+cu128",
+    "cuda": "12.8",
+    "devices": [
+      {
+        "name": "Tesla T4",
+        "total_bytes": 15636037632
+      },
+      {
+        "name": "Tesla T4",
+        "total_bytes": 15636037632
+      }
+    ]
+  },
+  "results": {
+    "gpu_cases": [
+      {
+        "layout": "hybrid",
+        "algorithm": "masac",
+        "pql": false,
+        "amp": "fp16",
+        "compile": false,
+        "seconds": 3.754352252999979,
+        "status": "passed"
+      },
+      {
+        "layout": "hybrid",
+        "algorithm": "masac",
+        "pql": true,
+        "amp": "fp16",
+        "compile": false,
+        "seconds": 2.685444555999993,
+        "status": "passed"
+      },
+      {
+        "layout": "hybrid",
+        "algorithm": "matd3",
+        "pql": false,
+        "amp": "fp16",
+        "compile": false,
+        "seconds": 0.5929624999999987,
+        "status": "passed"
+      },
+      {
+        "layout": "hybrid",
+        "algorithm": "matd3",
+        "pql": true,
+        "amp": "fp16",
+        "compile": false,
+        "seconds": 1.578959617999999,
+        "status": "passed"
+      },
+      {
+        "layout": "fullgpu",
+        "algorithm": "masac",
+        "pql": false,
+        "amp": "fp16",
+        "compile": false,
+        "seconds": 0.7506855579999865,
+        "status": "passed"
+      },
+      {
+        "layout": "fullgpu",
+        "algorithm": "masac",
+        "pql": true,
+        "amp": "fp16",
+        "compile": false,
+        "seconds": 2.614523708999968,
+        "status": "passed"
+      },
+      {
+        "layout": "fullgpu",
+        "algorithm": "matd3",
+        "pql": false,
+        "amp": "fp16",
+        "compile": false,
+        "seconds": 0.6378649089999726,
+        "status": "passed"
+      },
+      {
+        "layout": "fullgpu",
+        "algorithm": "matd3",
+        "pql": true,
+        "amp": "fp16",
+        "compile": false,
+        "seconds": 1.5714273650000905,
+        "status": "passed"
+      }
+    ],
+    "capacity_probe": {
+      "kind": "synthetic full-capacity serialization only; not a valid learned checkpoint",
+      "replay_bytes": 13105000000,
+      "disk_free_before": 20940464128,
+      "published_to_hf": false,
+      "resume_bytes": 15485450455,
+      "policy_bytes": 26388043,
+      "disk_free_during": 5428613120,
+      "serialize_seconds": 48.031055684999956,
+      "sha256": "56271ed2e91dd455ccb6cc9eed8b3eabe36bf3e356db4942bfa64b44aae4b1f7",
+      "checksum_seconds": 59.96414409299996,
+      "recovery/attempts": 1,
+      "recovery/max_attempts": 1,
+      "recovery/effective_interval_seconds": 1e-12,
+      "recovery/status": "uploaded",
+      "recovery/checkpoint_bytes": 15511838498,
+      "recovery/elapsed_seconds": 108.44545440299999,
+      "disk_free_after_cleanup": 20940464128,
+      "peak_rss_bytes": 17699971072
+    }
+  },
+  "kernel_ref": "duytrngoanh/uav-recovery-check-20261027",
+  "driver_sha256": "de6bf37c628e7699de285a2c06dabc6713cbfb798ab1442765ab94e347ba9699",
+  "production_training": false,
+  "real_hf_transfer_measured": false,
+  "capacity_tracker": "local verifying fake; no network upload",
+  "cpu_full_suite": {
+    "source_commit": "0fe0e7c4bb7fe7d2a18a6fad64c8cbdba4a0505d",
+    "passed": 834,
+    "skipped": 95,
+    "warnings": 8,
+    "subtests_passed": 1369,
+    "seconds": 535.64,
+    "exit_code": 0
+  },
+  "async_cpu": [
+    {
+      "algorithm": "masac",
+      "mode": "async",
+      "snapshot_episodes": 0,
+      "initial_step": 2,
+      "updates": 24,
+      "status": "passed",
+      "bitwise_schedule_claim": false
+    },
+    {
+      "algorithm": "matd3",
+      "mode": "async",
+      "snapshot_episodes": 0,
+      "initial_step": 2,
+      "updates": 24,
+      "status": "passed",
+      "bitwise_schedule_claim": false
+    }
+  ]
+}

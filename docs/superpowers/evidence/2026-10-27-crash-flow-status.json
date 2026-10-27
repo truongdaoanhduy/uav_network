@@ -1,0 +1,355 @@
+{
+  "utc": "2026-10-27T05:59:29.381088+00:00",
+  "project_counts": {
+    "crashed": 30,
+    "failed": 81,
+    "finished": 271
+  },
+  "runs": [
+    {
+      "id": "25eecfd1",
+      "state": "crashed",
+      "heartbeat": "2026-10-26T19:31:57Z",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "amp": "off",
+      "compile": false,
+      "step": 14651392,
+      "episodes": 8192,
+      "budget_complete": null,
+      "stop_reason": null
+    },
+    {
+      "id": "63202ad9",
+      "state": "crashed",
+      "heartbeat": "2026-10-26T19:32:06Z",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "amp": "off",
+      "compile": false,
+      "step": 16424960,
+      "episodes": 8192,
+      "budget_complete": null,
+      "stop_reason": null
+    },
+    {
+      "id": "3b39b0c8",
+      "state": "crashed",
+      "heartbeat": "2026-10-26T19:32:08Z",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "amp": "off",
+      "compile": false,
+      "step": 16232448,
+      "episodes": 8196,
+      "budget_complete": null,
+      "stop_reason": null
+    },
+    {
+      "id": "6f0bcde3",
+      "state": "crashed",
+      "heartbeat": "2026-10-26T19:31:57Z",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "amp": "off",
+      "compile": false,
+      "step": 13889536,
+      "episodes": 7045,
+      "budget_complete": null,
+      "stop_reason": null
+    },
+    {
+      "id": "93fdf127",
+      "state": "finished",
+      "heartbeat": "2026-10-26T16:06:32Z",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "amp": "off",
+      "compile": false,
+      "step": 35262464,
+      "episodes": 20000,
+      "budget_complete": true,
+      "stop_reason": "episode_budget"
+    },
+    {
+      "id": "ce8f3be6",
+      "state": "finished",
+      "heartbeat": "2026-10-26T16:54:50Z",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "amp": "off",
+      "compile": false,
+      "step": 35672064,
+      "episodes": 20000,
+      "budget_complete": true,
+      "stop_reason": "episode_budget"
+    },
+    {
+      "id": "76b73021",
+      "state": "finished",
+      "heartbeat": "2026-10-26T15:45:20Z",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "amp": "off",
+      "compile": false,
+      "step": 35672064,
+      "episodes": 20000,
+      "budget_complete": true,
+      "stop_reason": "episode_budget"
+    },
+    {
+      "id": "3fcf25c7",
+      "state": "finished",
+      "heartbeat": "2026-10-26T17:56:43Z",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "amp": "off",
+      "compile": false,
+      "step": 35344384,
+      "episodes": 20000,
+      "budget_complete": true,
+      "stop_reason": "episode_budget"
+    },
+    {
+      "id": "9c62d7c4",
+      "state": "finished",
+      "heartbeat": "2026-10-26T16:20:52Z",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "amp": "off",
+      "compile": false,
+      "step": 30,
+      "episodes": 30,
+      "budget_complete": null,
+      "stop_reason": null,
+      "publication": {
+        "visualization/hf_video_url": "https://huggingface.co/duy95/uav-search-checkpoints/resolve/814fb2ca928a92ed57858b7e54a3201a1163296a/visualizations/base/matd3/9c62d7c4/final_episode.mp4",
+        "visualization/publication.huggingface.status": "ok",
+        "visualization/publication.wandb.status": "ok",
+        "visualization/wandb_media_uploaded": true
+      }
+    },
+    {
+      "id": "15db2a32",
+      "state": "finished",
+      "heartbeat": "2026-10-26T17:09:32Z",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "amp": "off",
+      "compile": false,
+      "step": 30,
+      "episodes": 30,
+      "budget_complete": null,
+      "stop_reason": null,
+      "publication": {
+        "visualization/hf_video_url": "https://huggingface.co/duy95/uav-search-checkpoints/resolve/1d0ccd7d0b50454386ae426e7406544b5fadaa33/visualizations/base/matd3/15db2a32/final_episode.mp4",
+        "visualization/publication.huggingface.status": "ok",
+        "visualization/publication.wandb.status": "ok",
+        "visualization/wandb_media_uploaded": true
+      }
+    },
+    {
+      "id": "ba98364f",
+      "state": "finished",
+      "heartbeat": "2026-10-26T15:59:50Z",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "amp": "off",
+      "compile": false,
+      "step": 30,
+      "episodes": 30,
+      "budget_complete": null,
+      "stop_reason": null,
+      "publication": {
+        "visualization/hf_video_url": "https://huggingface.co/duy95/uav-search-checkpoints/resolve/bffc05698d20084ddd2dbec0ce20f5ffbc4f17be/visualizations/pql/matd3/ba98364f/final_episode.mp4",
+        "visualization/publication.huggingface.status": "ok",
+        "visualization/publication.wandb.status": "ok",
+        "visualization/wandb_media_uploaded": true
+      }
+    },
+    {
+      "id": "239f3eb9",
+      "state": "finished",
+      "heartbeat": "2026-10-26T18:10:04Z",
+      "source": "77a1d0f52ed4e78bc2823c3ada03d661568cd923",
+      "amp": "off",
+      "compile": false,
+      "step": 30,
+      "episodes": 30,
+      "budget_complete": null,
+      "stop_reason": null,
+      "publication": {
+        "visualization/hf_video_url": "https://huggingface.co/duy95/uav-search-checkpoints/resolve/b489f5776604f9dc70321dc086eb02c585df98e9/visualizations/pql/matd3/239f3eb9/final_episode.mp4",
+        "visualization/publication.huggingface.status": "ok",
+        "visualization/publication.wandb.status": "ok",
+        "visualization/wandb_media_uploaded": true
+      }
+    }
+  ],
+  "workspace": {
+    "name": "nw-nwusertruongdaoanhduy-w",
+    "sort": {
+      "keys": [
+        {
+          "key": {
+            "section": "run",
+            "name": "state"
+          },
+          "ascending": true
+        },
+        {
+          "key": {
+            "section": "run",
+            "name": "createdAt"
+          },
+          "ascending": false
+        }
+      ]
+    },
+    "filters": {
+      "filterFormat": "filterV2",
+      "filters": []
+    },
+    "state_pinned": true,
+    "max_runs": 1000
+  },
+  "workspace_verification": {
+    "utc": "2026-10-27T05:20:28.036155+00:00",
+    "views": [
+      {
+        "name": "nw-nwusertruongdaoanhduy-w",
+        "title": "Truongdaoanhduy's workspace",
+        "charts_sha256": "5ee643738a884afb6edcc5ac907d3349cdab8e6b781c499c98b3a46834610a2a",
+        "verified": true
+      },
+      {
+        "name": "nw-gmcixx5iveu-v",
+        "title": "UAV Network 2D - MASAC and MATD3",
+        "charts_sha256": "2de64b512616f83d4665daeb8ebbc328541d890862e09917067683dda0415fce",
+        "verified": true
+      }
+    ],
+    "first_server_states": [
+      "crashed",
+      "crashed",
+      "crashed",
+      "crashed",
+      "crashed",
+      "crashed",
+      "crashed",
+      "crashed"
+    ],
+    "unchanged_run_count": 382,
+    "workspace_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/workspace"
+  },
+  "masac_checkpoint_metadata": [
+    {
+      "id": "25eecfd1",
+      "artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-25eecfd1:latest",
+      "metadata": {
+        "global_step": 14499840,
+        "completed_episodes": 8192,
+        "episode_budget_complete": false
+      },
+      "manifest": {
+        "schema": 1,
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "674510ba2d9f9f41f77d0a7add90275f3c870356",
+        "files": {
+          "checkpoint.pt": {
+            "path": "uav-network/25eecfd1/step-14499840-episodes-8192/checkpoint.pt",
+            "size": 91076715,
+            "sha256": "c1798682368ef685fa490a95fb40ab0975236c9120ec3070d680f83bc025dbcc"
+          }
+        }
+      },
+      "resumable": false
+    },
+    {
+      "id": "63202ad9",
+      "artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-63202ad9:latest",
+      "metadata": {
+        "global_step": 14565376,
+        "completed_episodes": 8192,
+        "episode_budget_complete": false
+      },
+      "manifest": {
+        "schema": 1,
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "a6f6ec9fb609b0a8a748266a81365c7e2b909538",
+        "files": {
+          "checkpoint.pt": {
+            "path": "uav-network/63202ad9/step-14565376-episodes-8192/checkpoint.pt",
+            "size": 91072107,
+            "sha256": "e884cc26b2f6f63675afc5acaf5028f440f8a205953c4f59bbad058e1b38ebb8"
+          }
+        }
+      },
+      "resumable": false
+    },
+    {
+      "id": "3b39b0c8",
+      "artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-3b39b0c8:latest",
+      "metadata": {
+        "global_step": 14512128,
+        "completed_episodes": 8192,
+        "episode_budget_complete": false
+      },
+      "manifest": {
+        "schema": 1,
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "071963527c2d512f7d9bf1aca8fce934fd668d8d",
+        "files": {
+          "checkpoint.pt": {
+            "path": "uav-network/3b39b0c8/step-14512128-episodes-8192/checkpoint.pt",
+            "size": 91701739,
+            "sha256": "8fb13c440c38c22206b10a57858e1c5f54548794a784f1c15f21940479e61636"
+          }
+        }
+      },
+      "resumable": false
+    },
+    {
+      "id": "6f0bcde3",
+      "artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-6f0bcde3:latest",
+      "metadata": {
+        "global_step": 13742080,
+        "completed_episodes": 6028,
+        "episode_budget_complete": false
+      },
+      "manifest": {
+        "schema": 1,
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "3996e3454e2f1424496e667b6f8122be7205e947",
+        "files": {
+          "checkpoint.pt": {
+            "path": "uav-network/6f0bcde3/step-13742080-episodes-6028/checkpoint.pt",
+            "size": 74185771,
+            "sha256": "dffd3187dce09d97dc95ef3b03e6737dd1ea46241cd27b6c657376fe010e1464"
+          }
+        }
+      },
+      "resumable": false
+    }
+  ],
+  "kaggle_access": [
+    {
+      "account": "account_18",
+      "ref": "fowieofweoi/tra-g3-masac-base-fullgpu-10261-381dcf",
+      "configured_timeout_seconds": 39600,
+      "auth_error_now": true
+    },
+    {
+      "account": "account_19",
+      "ref": "kjkjhhfghjjkn/tra-g3-masac-pql-fullgpu-1026-fbe033",
+      "configured_timeout_seconds": 39600,
+      "auth_error_now": true
+    },
+    {
+      "account": "account_17",
+      "ref": "njbiugyry/tra-g3-masac-pql-h75-10261304-ab625d",
+      "configured_timeout_seconds": 39600,
+      "auth_error_now": true
+    },
+    {
+      "account": "account_16",
+      "ref": "mjhres/tra-g3-masac-base-h75-10261304-bab1fa",
+      "configured_timeout_seconds": 39600,
+      "auth_error_now": true
+    }
+  ],
+  "cause_caution": "Common external heartbeat-loss event is an inference; exact platform cause and credential-failure timing are unproven."
+}

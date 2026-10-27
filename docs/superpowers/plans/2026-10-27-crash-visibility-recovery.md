@@ -23,13 +23,15 @@ No running job mutation/relaunch/cancellation; no HF/W&B deletion; keep scientif
 - [x] Run focused GREEN; update existing primary live views without changing run data; read back and verify query order.
 
 ### Task2: Bounded resumable publication
-- [ ] Add RED tests for publisher resumable inclusion/aliases/throttle/failed-confirmation pointer.
-- [ ] Extend tracker checkpoint publication and configuration validation.
-- [ ] Add RED tests for wall-clock timing/caps/failure/staging cleanup and BASE/PQL integration with real small full checkpoints.
-- [ ] Implement recovery_checkpoints.py; wire snapshot callbacks after full reset boundaries, using optional resume_path and suppressing duplicate PQL publication.
-- [ ] Verify real checkpoint validation and future resumed updates for BASE/PQL, including overflow state and pending-learning clocks.
+- [x] Add RED tests for publisher resumable inclusion/aliases/throttle/failed-confirmation pointer.
+- [x] Extend tracker checkpoint publication and configuration validation.
+- [x] Add RED tests for wall-clock timing/caps/failure/staging cleanup and BASE/PQL integration with real small full checkpoints.
+- [x] Implement recovery_checkpoints.py; wire snapshot callbacks after full reset boundaries, using optional resume_path and suppressing duplicate PQL publication.
+- [x] Verify real checkpoint validation and future resumed updates for BASE/PQL, including overflow state and pending-learning clocks.
 
 ### Task3: Verification and evidence
-- [ ] Run full offline suite and targeted real2T4 checks when a legitimate available account passes gates.
-- [ ] Obtain one fresh independent review; resolve confirmed findings and rerun affected checks.
-- [ ] Record the exact states, alternative-cause evidence/uncertainty, workspace readback, backup bounds/cost/limits; update CURRENT_TASK and commit/push.
+- [x] Run full offline suite and targeted real2T4 checks when a legitimate available account passes gates.
+- [x] Obtain one fresh independent review; resolve confirmed findings and rerun affected checks.
+- [x] Record the exact states, alternative-cause evidence/uncertainty, workspace readback, backup bounds/cost/limits; update CURRENT_TASK and commit/push.
+
+Completed on source0fe0e7c. Final evidence: ../evidence/2026-10-27-crash-flow-recovery.md. Full CPU834passed; real2T4 focused20passed/5skip and8exact recovery cases; independent Important alias finding resolved. No production relaunch.
