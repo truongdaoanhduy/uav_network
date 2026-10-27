@@ -28,10 +28,11 @@ def run_name(config, algorithm, mode, stage, suffix):
             f"-S{config.runtime.seed}-{suffix}")
 
 
-def kernel_slug(owner, config, algorithm, mode, stage, stamp, token):
+def kernel_slug(owner, config, algorithm, mode, stage, stamp, token, external_supervisor=False):
     layout = replay_layout(config)
     layout = "h" + layout.split("-")[1][1:] if layout.startswith("HYBRID") else layout.lower()
-    prefix = f"{stage[:3]}-g{config.world.generation_version}-{algorithm}-{mode}-{layout}-{stamp[4:8]}{stamp[9:13]}"
+    marker = "gh-" if external_supervisor else ""
+    prefix = f"{marker}{stage[:3]}-g{config.world.generation_version}-{algorithm}-{mode}-{layout}-{stamp[4:8]}{stamp[9:13]}"
     return prefix[:50 - len(owner) - 1 - len(token) - 1].rstrip("-") + "-" + token
 
 

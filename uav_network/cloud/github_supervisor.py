@@ -309,7 +309,8 @@ def _owned_refs(account, limit):
     if not isinstance(rows, list):
         raise RuntimeError("Kaggle kernel list returned invalid JSON")
     return [row["ref"] for row in rows
-            if isinstance(row, dict) and isinstance(row.get("ref"), str)]
+            if (isinstance(row, dict) and isinstance(row.get("ref"), str)
+                and "/gh-" in row["ref"])]
 
 
 def reconcile_account(account, credentials, *, limit=100, dry_run=False):

@@ -86,7 +86,8 @@ def launch(args, credentials):
     algorithms = ("masac", "matd3") if args.algorithm == "both" else (args.algorithm,)
     inputs = parse_warm_start_artifacts(args.warm_start_artifact, algorithms)
     training_mode = "pql" if diagnostic or config.pql.enabled else "base"
-    slug = kernel_slug(username, config, args.algorithm, training_mode, args.stage, stamp, token)
+    slug = kernel_slug(username, config, args.algorithm, training_mode, args.stage, stamp, token,
+                       external_supervisor=auto_continue)
     runs = {a: {"id": uuid4().hex[:8],
                 "name": run_name(config, a, training_mode, args.stage, stamp + "-" + token)}
             for a in algorithms}

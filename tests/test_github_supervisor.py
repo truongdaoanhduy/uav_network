@@ -243,3 +243,17 @@ def test_environment_credentials_fail_closed_when_allowlisted_token_is_missing()
     import pytest
     with pytest.raises(RuntimeError, match="enabled account_03"):
         s.credentials_from_environment(env)
+
+
+def test_owned_refs_filters_legacy_kernels_before_reconciliation():
+    s, account, credentials, parent = fixtures()
+    rows = [
+        {"ref": "owner/old-training"},
+        {"ref": "owner/gh-tra-g3-masac-base-1027-ab1234"},
+        {"ref": "owner/gh-tra-g3-masac-base-1027-ab1234-c01"},
+        {"ref": "owner/gh-tra-g3-masac-base-1027-ab1234-cpu"},
+        {"ref": "owner/notebook123"},
+    ]
+    with patch.object(s, "run_kaggle", return_value=__import__("json").dumps(rows)):
+        refs = s._owned_refs(account, 100)
+    assert refs == [row["ref"] for row in rows if "/gh-" in row["ref"]]

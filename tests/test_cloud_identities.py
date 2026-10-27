@@ -127,3 +127,16 @@ def test_authoritative_tags_replace_stale_acceleration_tags_with_resolved_runtim
     assert "fused-off" in tags
     assert "torch-compile" not in tags
     assert "fused-adam" not in tags
+
+
+def test_github_supervised_kernel_slug_has_reserved_marker_and_fits_limit():
+    from uav_network.cloud.identities import kernel_slug
+    c = load_config("configs/comparison-20k-hybrid75-1kb.yaml")
+    owner = "verylongownername"
+    slug = kernel_slug(owner, c, "masac", "base", "train",
+                       "20261027-101530", "abcdef", external_supervisor=True)
+    assert slug.startswith("gh-")
+    assert len(owner + "/" + slug) <= 50
+    legacy = kernel_slug(owner, c, "masac", "base", "train",
+                         "20261027-101530", "abcdef")
+    assert not legacy.startswith("gh-")
