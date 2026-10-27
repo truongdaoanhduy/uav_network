@@ -28,7 +28,7 @@ Files: cloud/github_supervisor.py, cloud/continuation.py, experiments/training.p
 
 Files: workflow, evidence/current-task/operations guide. Interface: --report PATH writes sanitized reconciliation JSON; Actions uploads it with always().
 
-- [ ] Wire report artifact and test CLI report creation on account/lineage failures.
-- [ ] Run full offline CPU suite, review, static/secret checks.
-- [ ] Commit/push feature, hosted dry-run; fast-forward main after checks; verify report artifact and preserve all production jobs.
-- [ ] Record cause assessment, failure-response matrix, test/commit/cloud evidence and limits; push final record.
+- [x] Wire report artifact and test CLI report creation on account/lineage failures.
+- [x] Run full offline CPU suite, review, static/secret checks.
+- [x] Commit/push feature, hosted dry-run; fast-forward main after checks; verify report artifact and preserve all production jobs.
+- [x] Record cause assessment, failure-response matrix, test/commit/cloud evidence and limits; push final record.

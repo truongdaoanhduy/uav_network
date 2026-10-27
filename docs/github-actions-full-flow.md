@@ -52,3 +52,17 @@ Khi đó có thể tắt sandbox/laptop. Riêng trạng thái W&B `running` chư
 - CPU evaluation bị ngắt: dùng progress đã lưu để retry; ref xác định trước giúp tránh tạo job trùng.
 
 Supervisor hoạt động độc lập với sandbox. Quota hoặc lỗi dịch vụ cloud vẫn có thể làm việc chuyển bước phải chờ; trạng thái và log xem trong Actions và W&B.
+
+## Khi flow gặp lỗi
+
+Mỗi lần reconcile ghi `supervisor-report.json`, có trong artifact `uav-supervisor-report` của Actions, lưu 14 ngày. Lỗi một account không chặn các account sau. `recovery_blocked`, `recovery_required`, `service_unavailable`, lỗi account hoặc reconcile làm invocation báo lỗi để dễ kiểm tra, không đổi trạng thái lịch sử của learner.
+
+- `waiting_for_quota`: chờ, chưa coi là submit thành công và không đổi account.
+- `checkpoint_missing` / `environment_state_missing` / `checkpoint_provenance_mismatch`: cần checkpoint có bằng chứng phù hợp; không dùng policy để giả exact resume.
+- `recovery_service_unavailable`: lần kiểm tra sau thử lại khi dịch vụ hoạt động.
+- `recovery_budget_exhausted`: ba phiên crash recovery liên tiếp đã dùng hết; giữ nguyên checkpoint và chờ kiểm tra. Budget chỉ reset sau một segment clean, có thể chặn cả handoff CPU sau lần crash thứ ba.
+- `cancelled`: không tự khởi chạy lại.
+
+Bước probe --check-services của manual dry-run hiện chỉ ghi console khi probe thất bại trước reconcile; trường hợp đó chưa có JSON riêng. Lỗi setup/runner cũng cần xem log Actions.
+
+[Phân tích MASAC và ma trận xử lý các nhóm lỗi](superpowers/evidence/2026-10-27-general-failure-hardening.md).

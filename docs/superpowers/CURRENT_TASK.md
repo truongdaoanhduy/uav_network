@@ -1,64 +1,53 @@
-# Current task: General failure hardening — IN PROGRESS
+# Current task: General MASAC failure hardening — COMPLETE / DEPLOYED
 
-User requested fresh MASAC crash diagnosis, account usability and a general recovery strategy. Baseline source 29a8fe4; no production training is authorized by this diagnostic task. Read design/plan docs/superpowers/{specs,plans}/2026-10-27-general-failure-hardening*.md. Current step: 15 RED failures reproduced; minimal fixes and actual small BASE/PQL snapshots now GREEN (135 passed, 38 subtests). Full CPU suite and review pending before default-branch deployment.
+Updated 2026-10-27T18:44:05+07:00. Implementation `820b50ec000eee8e08e0875868f457d104c4057f`; final evidence/help follow as a docs-only commit. Source and evidence are pushed to main and feat/cpu-replay-20261022.
 
-Fresh 18:17 Vietnam observations: 10 local accounts authenticate and return GPU quota; GitHub allowlist remains 01/02. Four G3 MASAC plus controllers are still crashed with heartbeat spread 11s, source 77a1d0f. Old owner tokens are absent from the current credential file; exact platform-side cause remains unproven and replay cannot be reconstructed.
+## User request
 
-## Previous completed deployment context
+Check whether additional key.txt accounts are usable, re-investigate historical MASAC crashes and implement/propose a general failure response. Do not promise every external failure is preventable or restart production implicitly.
 
-# Current task: GitHub Actions external supervisor — COMPLETE / DEPLOYED
+## Fresh diagnosis
 
-Updated 2026-10-27T18:02:13+07:00. Supervisor implementation commit `a0c04c34d3e09408d13205219a1221baa8083131`; launch guide/help/ignore follow-up `bd184a783f4b5dac791894b8f248f1bb522662e3`. Source and final documentation are pushed to `main` and `feat/cpu-replay-20261022`.
+- 18:15–18:17 W&B reads: four MASAC G3 learners and controllers remain crashed, source 77a1d0f. heartbeatAt spread 11s: 02:31:57–02:32:08 Vietnam on 27/10.
+- Strongest evidence remains a common external platform/session/account/connectivity/telemetry event. Exact Kaggle-side cause is unproven; heartbeat loss alone is not proof all compute died, OOM or ban.
+- Old owner credentials are absent from the current key file; old replay/optimizer/RNG do not exist in their retained policy-only artifacts. They cannot be reconstructed or called exact resumes.
+- No new scientific/algorithm/precision fix is claimed to explain that old off/off cohort.
 
-## User request and result
+## Accounts
 
-Replace Kaggle's long-lived CPU `continuation-watch` controller with GitHub Actions so GPU training, continuation and final CPU evaluation/visualization progress after local Sandbox/laptop shutdown.
+Fresh auth/quota check at 18:17:33: 10 local enabled accounts all authenticate and return GPU quota; 01 remaining 23.35h, 02 25.03h, 03–10 each 30h. This does not prove allocation/phone verification/idle/private datasets/accelerator for a future launch.
 
-- New `--auto-continue` root launches use `orchestration=github_actions`, `external_supervisor_required=true` and reserved `gh-tra-g...`/`gh-val-g...` refs.
-- They do not create a Kaggle CPU controller. Kaggle performs bounded GPU/CPU compute; GitHub reconciles the next stage.
-- Incomplete clean segments continue from full state. Full 20k completion transitions to CPU evaluation: 30 episodes, seed 2000000044, visualization and verified W&B/HF publication.
-- Crash recovery requires a verified immutable resumable checkpoint matching lineage/commit/progress. Missing full state blocks recovery; historical policy-only MASAC crashes cannot be called exact resumes.
-- Deterministic child refs and workflow concurrency prevent duplicate submissions. Partial CPU evaluation retries use saved progress.
-- Scientific configs, rewards, replay, episode budgets, AMP/compile policy and history remain unchanged.
+GitHub allowlist remains account_01,account_02; matching identities duytrngoanh and vuliu123456. Additional local accounts were not silently enabled in GitHub. Root full-flow launch must explicitly choose a synced allowlisted account; do not let local quota auto-selection pick 03–10. Do not rotate a lineage owner or evade service restrictions.
 
-## Live deployment proof
+## Implemented general fixes
 
-Workflow: `.github/workflows/uav_external_supervisor.yml`, `UAV External Supervisor`, ID `398085505`; `active`, 15-minute schedule plus manual dispatch, no overlapping reconciliation.
+- Per-account API/list failures no longer stop subsequent accounts; sanitized error class and account_unavailable report.
+- Unresolved recovery, unknown service, missing recovery or reconcile/account errors return nonzero instead of false green.
+- Verified recovery now carries initial_global_step and real environment_state_saved evidence. BASE/PQL save callbacks derive that marker from actual saved-world snapshots; W&B artifact metadata publishes it. Zero-episode recovery without this proof remains blocked.
+- Quota-paused recovery reports waiting_for_quota, not submitted.
+- Cancelled jobs are not automatically restarted.
+- Three consecutive crash-recovery GPU children maximum; counter survives child specs and resets after a clean segment. Shared builder enforces it. The conservative gate can also block CPU handoff after a third recovered segment fails; operator review is intentional.
+- --report persists credential-free JSON; Actions always uploads uav-supervisor-report for reconciliation, retention 14 days.
+- Scientific configs, source pinning, replay/batch/env/episode budgets, precision policy and W&B/HF history are unchanged.
 
-Latest successful manual dry-run on `main`: [40492765863](https://github.com/truongdaoanhduy/uav_network/actions/runs/40492765863), source `bd184a783f4b5dac791894b8f248f1bb522662e3`, completed at 18:00:11 Vietnam time on 27/10/2026.
+## Verification and cloud proof
 
-- GitHub-held Kaggle identities: `account_01=duytrngoanh`, `account_02=vuliu123456`; matched the current local `key.txt`.
-- W&B authentication/project read: `ok`; HF identity/repository read: `ok`.
-- Reconcile report: `account_01: []`, `account_02: []`; no managed lineage and no child submitted.
-- Fresh W&B query at 2026-10-27T18:02:13+07:00: **0 running/pending**.
-- No production training was launched, restarted, cancelled, deleted or adopted during this task.
-- This proves deployment, credential/read access and empty-set reconciliation; no new production train → visualize cycle was launched to claim live end-to-end completion.
+- RED: 15 observed failures before fixes.
+- Focused lifecycle/checkpoint suite: 135 passed, 38 subtests. Four actual small BASE/PQL × MASAC/MATD3 saved-world checkpoints now publish correct evidence and exactly restore.
+- Full offline CPU suite on final implementation 820b50e: **868 passed, 95 skipped, 8 warnings, 1383 subtests passed in 506.22s (0:08:26)**. Task a163687c6241, log /tmp/shell_mcp/jobs/a163687c6241.stdout.log.
+- compileall, diff check, no-torch supervisor import and tracked secret scan: pass (0 hits against 12 local secret values).
+- Independent review: no Critical/Important. Minor deferred: a manual dry-run --check-services failure before reconciliation has console diagnostics but no separate JSON artifact. Scheduled reconciliation reporting is unaffected.
+- Feature dry-run 40497048893 success; downloaded/read artifact 12730654618: account_01=[], account_02=[].
+- Main dry-run [40497938044](https://github.com/truongdaoanhduy/uav_network/actions/runs/40497938044) success at exact source 820b50e; artifact 12731566730 uploaded (189 bytes), service probes ok, both managed sets empty. Workflow active, cron every 15 minutes. Schedule timing is advisory; no new scheduled execution/GPU full flow is claimed.
+- Fresh W&B at 2026-10-27T18:44:05+07:00: **0 running/pending**. No production launch/restart/cancel/delete/adoption. No credential secret value changed.
 
-## Account selection and credentials
+## Next action / limits
 
-GitHub secret names: `KAGGLE_API_TOKEN_ACCOUNT_01`, `KAGGLE_API_TOKEN_ACCOUNT_02`, `WANDB_API_KEY`, `HF_TOKEN`. Values were not printed or refreshed in this follow-up.
+This requested diagnosis/fix/proposal task is complete. Only on an explicit next launch request: preflight legitimate accounts/quota/idle datasets/T4/no duplicates, then launch approved roots with --auto-continue and confirm Kaggle + W&B + GitHub-managed metadata.
 
-Variables: `WANDB_ENTITY=truongdaoanhduy-uit`, `WANDB_PROJECT=uav_search_target`, `HF_REPO_ID=duy95/uav-search-checkpoints`, `KAGGLE_ENABLED_ACCOUNTS=account_01,account_02`.
+Recommended next reliability measurements: real ~15GB HF upload/peak resources; an earlier first positive-progress checkpoint after cost measurement; small cloud fault-injection train→recover→CPU visualize smoke. Before a first confirmed checkpoint, a hard kill cannot exact-resume progress; restart from seed must be labelled/authorized. No live GPU/new large upload was performed here.
 
-Local `key.txt` currently has additional enabled accounts; these are NOT enabled in GitHub automatically. Future full-flow launches must explicitly select an allowlisted account; do not omit `--account` and let the local quota selector choose an unsupervised account. Do not enable extra accounts or switch an existing lineage owner without a fresh authorized preflight.
-
-Old reference `/home/aduy/Documents/NCKH/uav_search_target` used GitHub repository secrets for Kaggle and private Kaggle datasets for W&B/HF. No old secret-population helper was found. `scripts/sync_github_supervisor_secrets.py` uses stdin-only secret setting; earlier direct secret refresh was blocked, so historical evidence does not claim it happened.
-
-## Verification
-
-- Focused cloud lifecycle suite: **83 passed, 38 subtests passed**.
-- Full offline CPU suite covering final supervisor behavior: **858 passed, 95 skipped, 8 warnings, 1381 subtests passed in 539.41s (0:08:59)**. Background task `650f5711fb93`, log `/tmp/shell_mcp/jobs/650f5711fb93.stdout.log`. Started on implementation `a0c04c3`; later `bd184a7` changes only guide/CLI help/gitignore, not supervisor behavior.
-- `python -m compileall -q uav_network scripts`: pass.
-- `git diff --check`: pass; tracked secret scan: **0 hits** against 12 local values.
-- Lightweight supervisor import rejects any torch import and passes.
-- Independent review: no critical/important findings. The minor test gap was fixed with explicit credential arguments, `whoami` and actual lazy iterator consumption/denial checks.
-- `wandb/` logs are preserved and now ignored; `key.txt` stays ignored/untracked.
-
-## Next action
-
-This task is finished. Only on an explicit launch request: preflight quota/idle kernels/credential datasets/accelerator/no duplicate lineage, then launch one approved algorithm per enabled account with `--auto-continue`. Confirm Kaggle running, W&B progress and GitHub-managed manifest before saying the user can close Sandbox for that root. A W&B `running` row alone is insufficient; legacy unmarked jobs are not retroactively managed.
-
-Guide: `docs/github-actions-full-flow.md`.
-Evidence: `docs/superpowers/evidence/2026-10-27-github-external-supervisor.md`.
-Design: `docs/superpowers/specs/2026-10-27-github-external-supervisor-design.md`.
-Plan: `docs/superpowers/plans/2026-10-27-github-external-supervisor.md`.
+Guide: docs/github-actions-full-flow.md
+Evidence/failure-response matrix: docs/superpowers/evidence/2026-10-27-general-failure-hardening.md
+Design/plan: docs/superpowers/specs/2026-10-27-general-failure-hardening-design.md and docs/superpowers/plans/2026-10-27-general-failure-hardening.md
+Previous migration evidence: docs/superpowers/evidence/2026-10-27-github-external-supervisor.md
