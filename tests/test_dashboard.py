@@ -69,8 +69,8 @@ class DashboardTests(unittest.TestCase):
             self.assertTrue(all(w["id"] == "personal-id" for w in writes))
         spec = stored[personal_name]["spec"]["section"]
         self.assertEqual(spec["runSets"][0]["filters"]["filters"], [])
-        self.assertEqual(spec["runSets"][0]["sort"]["keys"][0],
-                         {"key": {"section": "run", "name": "state"}, "ascending": True})
+        self.assertEqual(spec["runSets"][0]["sort"]["keys"],
+                         [{"key": {"section": "run", "name": "createdAt"}, "ascending": False}])
         feed = spec["runSets"][0]["runFeed"]
         for name in ("run:state", "summary:episode_budget_complete", "summary:stop_reason", "summary:session_status"):
             self.assertTrue(feed["columnPinned"][name])
@@ -128,6 +128,6 @@ class DefaultVisibilityTests(unittest.TestCase):
         self.assertEqual(current["runSets"][0]["search"]["query"], "")
         self.assertEqual(current["runSets"][0]["selections"]["root"], 1)
         self.assertTrue(current["runSets"][0]["enabled"])
-        self.assertEqual(current["runSets"][0]["sort"]["keys"][0],
-                         {"key": {"section": "run", "name": "state"}, "ascending": True})
+        self.assertEqual(current["runSets"][0]["sort"]["keys"],
+                         [{"key": {"section": "run", "name": "createdAt"}, "ascending": False}])
         self.assertGreaterEqual(current["settings"]["maxRuns"], 1000)

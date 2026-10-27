@@ -18,11 +18,10 @@ VISIBLE_COLUMNS = [
 
 
 def reconcile_runset(runset):
-    """Show actual failures first without changing any run state or chart."""
+    """Show every run state neutrally, newest runs first."""
     runset.update(filters={"filterFormat": "filterV2", "filters": []},
                   search={"query": ""}, selections={"root": 1, "bounds": [], "tree": []}, enabled=True,
-                  sort={"keys": [{"key": {"section": "run", "name": "state"}, "ascending": True},
-                                 {"key": {"section": "run", "name": "createdAt"}, "ascending": False}]})
+                  sort={"keys": [{"key": {"section": "run", "name": "createdAt"}, "ascending": False}]})
     feed = runset.setdefault("runFeed", {})
     for name in ("columnVisible", "columnPinned"):
         feed.setdefault(name, {}).update(dict.fromkeys(VISIBLE_COLUMNS, True))
