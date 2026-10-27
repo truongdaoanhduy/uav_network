@@ -1,4 +1,7 @@
 """Curated W&B run-table columns for live and completed UAV comparisons."""
+import json
+
+
 VISIBLE_COLUMNS = [
     "run:displayName", "run:state", "run:duration", "config:kaggle_account",
     "config:runtime.algorithm", "summary:training_mode", "summary:global_step",
@@ -10,7 +13,21 @@ VISIBLE_COLUMNS = [
     "summary:reports/expired", "summary:reports/dropped",
     "summary:cohort/delivery_rate_percent_mean", "summary:cohort/success_mean",
     "summary:final_delivery_rate_percent", "summary:final_success_rate",
+    "summary:episode_budget_complete", "summary:stop_reason", "summary:session_status",
 ]
+
+
+def reconcile_runset(runset):
+    """Show actual failures first without changing any run state or chart."""
+    runset.update(filters={"filterFormat": "filterV2", "filters": []},
+                  search={"query": ""}, selections={"root": 1, "bounds": [], "tree": []}, enabled=True,
+                  sort={"keys": [{"key": {"section": "run", "name": "state"}, "ascending": True},
+                                 {"key": {"section": "run", "name": "createdAt"}, "ascending": False}]})
+    feed = runset.setdefault("runFeed", {})
+    for name in ("columnVisible", "columnPinned"):
+        feed.setdefault(name, {}).update(dict.fromkeys(VISIBLE_COLUMNS, True))
+    feed["columnOrder"] = list(VISIBLE_COLUMNS) + [
+        name for name in feed.get("columnOrder", []) if name not in VISIBLE_COLUMNS]
 
 
 def flattened_keys(values, prefix=""):
@@ -37,9 +54,11 @@ def save_with_visible_columns(workspace, runs, graphql):
     feed.column_visible = {name: name in VISIBLE_COLUMNS for name in sorted(known)}
     feed.column_pinned = {name: name in VISIBLE_COLUMNS for name in sorted(known)}
     feed.column_order = list(VISIBLE_COLUMNS)
+    spec = json.loads(model.spec.model_dump_json(by_alias=True, exclude_none=True))
+    reconcile_runset(spec["section"]["runSets"][0])
     inputs = {"entityName": workspace.entity, "projectName": workspace.project,
               "name": model.name, "displayName": model.display_name, "type": "project-view",
-              "spec": model.spec.model_dump_json(by_alias=True, exclude_none=True),
+              "spec": json.dumps(spec),
               "createdUsing": "WANDB_SDK"}
     if model.id:
         inputs["id"] = model.id

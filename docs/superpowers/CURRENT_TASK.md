@@ -1,3 +1,11 @@
+# Current task: fresh crash audit, visibility and recovery hardening — IN PROGRESS
+
+2026-10-27. User explicitly requested fixes. Baseline HEADb01aa1c, production cohort77a1d0f unchanged. Fresh05:06UTC project271finished/81failed/30crashed; four MATD3 complete20k, four MASAC/controller crashed. No new production launch.
+
+Plan: plans/2026-10-27-crash-visibility-recovery.md; spec adjacent. Evidence/output: outputs/crash-flow-audit-20261027/. Existing worktree is linked; no new checkout needed. Baseline focused10passed. Next: RED/GREEN visibility, then bounded temporary-staged full checkpoints; preserve all remote history and current acceleration policy.
+
+---
+
 # Current task: MASAC crash Task 3 — DIAGNOSED / IMMEDIATE MITIGATION APPLIED
 
 Updated 2026-10-27. No new training was launched.

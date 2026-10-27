@@ -8,7 +8,7 @@ from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
 
 from .tracking import CPU_EPISODE_METRICS, _authentication, default_workspace_url
-from .dashboard_columns import VISIBLE_COLUMNS, save_with_visible_columns
+from .dashboard_columns import VISIBLE_COLUMNS, save_with_visible_columns, reconcile_runset
 
 
 PANELS = {
@@ -263,10 +263,7 @@ def ensure_project_workspace(config):
     section = spec["section"]
     section.setdefault("settings", {})["maxRuns"] = 1000
     for runset in section.get("runSets", []):
-        runset.update(filters={"filterFormat": "filterV2", "filters": []},
-                      search={"query": ""}, selections={"root": 1, "bounds": [], "tree": []}, enabled=True,
-                      sort={"keys": [{"key": {"section": "run", "name": "state"}, "ascending": False},
-                                     {"key": {"section": "run", "name": "createdAt"}, "ascending": False}]})
+        reconcile_runset(runset)
     if json.dumps(spec, sort_keys=True) != original:
         inputs = {"id": view["id"], "entityName": entity, "projectName": project,
                   "name": view["name"], "displayName": view["displayName"], "type": "project-view",
