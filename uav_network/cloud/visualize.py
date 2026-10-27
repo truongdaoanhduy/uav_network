@@ -11,13 +11,22 @@ from uuid import uuid4
 
 from .identities import related_run_name
 
-import torch
-
 from .client import record_submission_phase, pushed_kernel_ref, run_kaggle, verify_credential_dataset
 from .credentials import Account, Credentials
 from .kernel import kernel_metadata, kernel_script
-from ..experiments.evaluation import evaluate
-from ..experiments.hardware import hardware_info
+
+# Lazy, patchable hooks keep GitHub orchestration free of the torch dependency.
+class _LazyTorch:
+    def __getattr__(self, name):
+        import importlib
+        module = importlib.import_module("torch")
+        globals()["torch"] = module
+        return getattr(module, name)
+
+
+torch = _LazyTorch()
+evaluate = None
+hardware_info = None
 
 
 def _visualization_asset_files(result):
@@ -154,6 +163,7 @@ def build_visualization_spec(parent, results):
             "training_status": statuses, "cpu_eval": parent.get("cpu_eval", {
                 "episodes": 1, "seed": 10044, "frame_stride": 5, "fps": 10}),
             "session_resumable": True,
+            **{k: parent[k] for k in ("orchestration", "external_supervisor_required") if k in parent},
             "requires_kaggle_token": bool(parent.get("pipeline_credential_dataset")),
             **{k: parent[k] for k in ("pipeline_credential_dataset",) if k in parent},
             "timeout_seconds": 39600}
@@ -229,6 +239,13 @@ def load_publication_assets(spec, algorithm, output):
 
 
 def run_visualization(spec, output=Path("/kaggle/working")):
+    global evaluate, hardware_info
+    if evaluate is None:
+        from ..experiments.evaluation import evaluate as _evaluate
+        evaluate = _evaluate
+    if hardware_info is None:
+        from ..experiments.hardware import hardware_info as _hardware_info
+        hardware_info = _hardware_info
     if torch.cuda.is_available():
         raise RuntimeError("Visualization must run in a separate CPU-only session")
     from .remote import prepare_checkpoints
