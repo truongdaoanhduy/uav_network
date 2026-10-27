@@ -51,7 +51,7 @@ def test_workspace_run_table_is_compact_and_decision_focused():
 
     expected = [
         "run:displayName", "run:state", "run:duration", "config:kaggle_account",
-        "summary:training_mode", "summary:global_step",
+        "config:runtime.algorithm", "summary:training_mode", "summary:global_step",
         "summary:progress/episode_progress_percent_mean", "summary:train/episodes_completed",
         "summary:train/joint_transitions_per_s", "summary:progress/search_rate_percent",
         "summary:progress/delivery_rate_percent", "summary:progress/mean_battery_fraction",
