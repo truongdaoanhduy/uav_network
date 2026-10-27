@@ -1,3 +1,15 @@
+# Current task: diagnostic coverage audit — IN PROGRESS
+
+Updated 2026-10-28T00:27:44.554250+07:00. Baseline a13430b; Task1 evidence hardening implemented and48focused tests passed. User asks to audit and supplement logs for crashed/failed/weak training and other meaningful cases, and refine Personal Runs/workspace without clutter.
+
+Reproduced3 gaps: diagnostic event closed stdout raisesValueError; disk-full raisesOSError; failure report contextNaN raisesValueError. Existing journal omits selected warning/replay/PQL/resource/protocol context; no stalled-thread trace. Latest key valid; browser remains signed in, Personal17columns26plots+guide already verified previously.
+
+Selected bounded reuse-first design: docs/superpowers/specs/2026-10-28-diagnostic-coverage-design.md
+Plan: docs/superpowers/plans/2026-10-28-diagnostic-coverage.md
+Builder check found no unanswered questions; BASE/PQL need independent watchdog/fallback guards. Task1 shared bounded evidence/redaction, exception/resources/actual CPU identity and fail-open optional diagnostics implemented.11observed RED failures fixed;48passed2subtests. Next: Task2 watchdog/progress/context/exit semantics, then Personal evidence curation. No production training or scientific config/evaluation schedule change.
+
+## Previous completed task record
+
 # W&B Personal Workspace — COMPLETE / VERIFIED ONLINE
 
 Updated 2026-10-28T00:07:15.128134+07:00. Source `9e37b4a9e7ca7a4b45be55f9a37d3501163b2d10`

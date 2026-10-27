@@ -2,10 +2,10 @@
 from contextlib import suppress
 from datetime import datetime, timezone
 import json
-import math
 from numbers import Integral, Real
-import os
 from pathlib import Path
+
+from .evidence import json_safe, secret_values
 
 READING_GUIDE = """### Đọc dashboard đúng cách
 - **Chất lượng nhiệm vụ:** delivery và success cao hơn trên cùng scenario, seed và budget; return chỉ là bằng chứng bổ sung. So sánh cùng replay/precision; không gộp trung bình các thuật toán khác nhau.
@@ -38,9 +38,7 @@ EVIDENCE_METRICS = {
 class RunJournal:
     def __init__(self, output, identity):
         self.output = Path(output)
-        self.secrets = [value for key, value in os.environ.items()
-                        if (key in {"WANDB_API_KEY", "KAGGLE_API_TOKEN", "HF_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"}
-                            or key.startswith("KAGGLE_API_TOKEN_ACCOUNT_")) and len(value) >= 8]
+        self.secrets = secret_values()
         self.identity = {k: self._scalar(v) for k, v in identity.items() if k in IDENTITY_FIELDS}
         self.context, self.warned = {}, False
         try:
@@ -51,17 +49,7 @@ class RunJournal:
             self._warn(error)
 
     def _scalar(self, value):
-        if value is None or isinstance(value, bool):
-            return value
-        if isinstance(value, Integral):
-            return int(value)
-        if isinstance(value, Real):
-            return float(value) if math.isfinite(value) else ("NaN" if math.isnan(value) else str(value))
-        if isinstance(value, str):
-            for secret in self.secrets:
-                value = value.replace(secret, "[REDACTED]")
-            return value[:256]
-        return "<" + type(value).__name__ + ">"
+        return json_safe(value, self.secrets) if isinstance(value, (str, Real, Integral, bool)) or value is None else "<" + type(value).__name__ + ">"
 
     def _warn(self, error):
         if not self.warned:

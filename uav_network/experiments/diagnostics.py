@@ -1,5 +1,4 @@
 """Evidence-based warnings and crash context; no automatic root-cause claims."""
-from contextlib import suppress
 from collections import deque
 from datetime import datetime, timezone
 import json
@@ -11,17 +10,24 @@ import traceback
 import numpy as np
 
 from .telemetry import OutcomePool
+from .evidence import (exception_category, exception_chain, json_safe, print_evidence,
+                       redact, resource_snapshot, secret_values, write_evidence)
 
 
 class TrainingDiagnostics:
     def __init__(self, config, output, initial_step=0):
         self.settings = config.tracking
         self.output = Path(output)
-        self.output.mkdir(parents=True, exist_ok=True)
         self.path = self.output / "diagnostics.jsonl"
-        self.path.touch()
         self.cohorts_path = self.output / "cohorts.jsonl"
-        self.cohorts_path.touch()
+        self.secrets = secret_values(config)
+        self.io_errors = 0
+        try:
+            self.output.mkdir(parents=True, exist_ok=True)
+            self.path.touch()
+            self.cohorts_path.touch()
+        except OSError:
+            self.io_errors += 1
         self.window = deque(maxlen=2 * self.settings.diagnostic_window)
         self.warning_count = 0
         self.last_warning = {}
@@ -65,8 +71,10 @@ class TrainingDiagnostics:
                        "interpretation": "Completed outcomes in distinct transition windows; observed symptom"})
         self.previous_cohort = values.copy() if ready else None
         values["diagnostics/warning_count"] = self.warning_count
-        with self.cohorts_path.open("a") as stream:
-            stream.write(json.dumps(values, allow_nan=False) + "\n")
+        if not write_evidence(self.cohorts_path, json_safe(values, self.secrets), append=True):
+            self.io_errors += 1
+        if self.io_errors:
+            values["diagnostics/logging_io_error_count"] = self.io_errors
         self.pool = OutcomePool()
         self.cohort_start = step
         self.cohort_partial = False
@@ -76,9 +84,11 @@ class TrainingDiagnostics:
         event = {"timestamp_utc": datetime.now(timezone.utc).isoformat(),
                  "code": code, "severity": severity, "global_step": int(step),
                  "evidence": evidence, "root_cause_confirmed": False}
-        with self.path.open("a") as stream:
-            stream.write(json.dumps(event, allow_nan=False) + "\n")
-        print(json.dumps({"diagnostic_event": event}, allow_nan=False), flush=True)
+        event = json_safe(event, self.secrets)
+        if not write_evidence(self.path, event, append=True):
+            self.io_errors += 1
+            event["evidence_write_failed"] = True
+        print_evidence({"diagnostic_event": event})
         return event
 
     def episode(self, record):
@@ -135,22 +145,31 @@ class TrainingDiagnostics:
 
 def failure_report(config, output, error, context):
     """Redact credentials before writing a traceback; retain the original exception."""
-    secrets = [os.environ.get(k, "") for k in ("WANDB_API_KEY", "KAGGLE_API_TOKEN", "HF_TOKEN")]
+    secrets = secret_values(config)
+    chain = exception_chain(error)
     try:
-        from ..cloud.credentials import load_credentials
-        credentials = load_credentials(config.tracking.credentials_file)
-        secrets += [credentials.wandb_key, *(a.token for a in credentials.accounts)]
-    except (OSError, ValueError, KeyError, RuntimeError, AttributeError):
-        pass
-    detail = "".join(traceback.format_exception(error))
-    for secret in secrets:
-        if secret:
-            detail = detail.replace(secret, "[REDACTED]")
-    result = {"timestamp_utc": datetime.now(timezone.utc).isoformat(),
-              "error_type": type(error).__name__, "traceback": detail,
-              "context": context, "root_cause_confirmed": False}
+        detail = redact("".join(traceback.format_exception(error)), secrets)
+    except Exception:
+        detail = "Traceback formatting unavailable: " + type(error).__name__
+    try:
+        stored = json.loads((Path(output) / "wandb_run.json").read_text())
+    except (OSError, ValueError):
+        stored = {}
+    stored = stored if isinstance(stored, dict) else {}
+    explicit = context if isinstance(context, dict) else {}
+    identity = {"source_commit": explicit.get("source_commit") or os.environ.get("UAV_GIT_COMMIT", "local"),
+                "run_id": explicit.get("run_id") or stored.get("wandb_run_id") or os.environ.get("WANDB_RUN_ID"),
+                "stage": explicit.get("stage") or os.environ.get("UAV_STAGE", "train"),
+                "account": os.environ.get("UAV_KAGGLE_ACCOUNT"),
+                "root_kernel_ref": os.environ.get("UAV_ROOT_KAGGLE_KERNEL")}
+    result = {"schema": 2, "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+              "error_type": type(error).__name__, "traceback": detail[:65536],
+              "traceback_truncated": len(detail) > 65536,
+              "context": json_safe(context, secrets), "identity": json_safe(identity, secrets),
+              "resources": resource_snapshot(output),
+              "error_chain": [{"error_type": type(cause).__name__} for cause in chain],
+              "error_category": exception_category(chain), "root_cause_confirmed": False}
     path = Path(output) / "failure.json"
-    with suppress(OSError, ValueError):
-        print(json.dumps({"training_failure": result}), flush=True)
-    path.write_text(json.dumps(result, indent=2, allow_nan=False))
+    print_evidence({"training_failure": result})
+    write_evidence(path, result)
     return path

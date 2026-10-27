@@ -10,6 +10,7 @@ import sys
 import time
 
 from .evaluation_snapshots import save_evaluation_snapshot
+from .evidence import json_safe, secret_values, write_evidence
 
 
 def sha256(path):
@@ -24,6 +25,7 @@ class AsyncCheckpointEvaluator:
     def __init__(self, config, output, tracker, diagnostics, initial_step=0, initial_episodes=0):
         self.config, self.output = config, Path(output)
         self.tracker, self.diagnostics = tracker, diagnostics
+        self.secrets = secret_values(config)
         self.interval = config.tracking.evaluation_interval_steps
         self.next_step = (initial_step // self.interval + 1) * self.interval if self.interval else None
         self.legacy_interval = config.tracking.evaluation_interval if tracker is not None else 0
@@ -44,13 +46,18 @@ class AsyncCheckpointEvaluator:
     def _event(self, status, step, source=None, **detail):
         self.counts[status] += 1
         event = {"status": status, "arrival_global_step": int(step), "source": source, **detail}
-        with self.events_path.open("a") as stream:
-            stream.write(json.dumps(event, allow_nan=False) + "\n")
+        write_evidence(self.events_path, json_safe(event, self.secrets), append=True)
         if self.tracker:
-            self.tracker.run.save(str(self.events_path), base_path=str(self.output), policy="live")
-            self.tracker.diagnostic({"evaluation_status/status": status,
-                                     **{f"evaluation_status/{key}": value for key, value in self.counts.items()},
-                                     "evaluation_status/running": int(self.active is not None)}, step)
+            try:
+                self.tracker.run.save(str(self.events_path), base_path=str(self.output), policy="live")
+            except Exception as error:
+                self.diagnostics.event("evaluation_upload_failed", step, {"error_type": type(error).__name__})
+            try:
+                self.tracker.diagnostic({"evaluation_status/status": status,
+                                         **{f"evaluation_status/{key}": value for key, value in self.counts.items()},
+                                         "evaluation_status/running": int(self.active is not None)}, step)
+            except Exception as error:
+                self.diagnostics.event("evaluation_status_logging_failed", step, {"error_type": type(error).__name__})
         if status in {"failed", "invalid_result", "timed_out"}:
             self.diagnostics.event(f"evaluation_{status}", step, event, severity="error")
 

@@ -10,6 +10,7 @@ import yaml
 
 from ..environment.vector import make_vector, random_actions, unpack_info
 from .diagnostics import TrainingDiagnostics, failure_report
+from .evidence import print_evidence
 from .async_evaluation import AsyncCheckpointEvaluator
 from .recovery_checkpoints import PeriodicRecovery
 from .local_checkpoints import prune_episode_checkpoints, disk_metrics, release_staged_checkpoint
@@ -265,7 +266,7 @@ def train_pql(config):
             if tracker:
                 tracker.failure(path, global_step)
         except Exception as reporting_error:
-            print(f"Failure reporting also failed: {type(reporting_error).__name__}", flush=True)
+            print_evidence({"failure_reporting_error": {"error_type": type(reporting_error).__name__}})
         raise
     finally:
         cleanup_ok = False
