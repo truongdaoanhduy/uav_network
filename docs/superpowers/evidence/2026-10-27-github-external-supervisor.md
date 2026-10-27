@@ -78,3 +78,22 @@ TDD/regression gates included observed RED failures before each fix and GREEN af
 - A failed/crashed segment is resumed only from a verified exact full-state recovery point.
 - A final completed episode budget transitions to the existing canonical CPU evaluation/visualization protocol.
 - Existing historical Kaggle/W&B/HF jobs are not adopted retroactively unless they carry the new reserved marker and `orchestration=github_actions` receipt.
+
+## Follow-up deployment verification — 2026-10-27T18:02:13+07:00
+
+The user's continuation request closed the earlier W&B/HF credential-verification gap without launching production training.
+
+- `f2dbd3b`: add read-only `--check-services` to manual dry-runs only. W&B viewer plus lazy project read; HF identity plus repository read; sanitized error classes/nonzero failure.
+- `a0c04c3`: include authenticated Kaggle usernames so secret/account renumbering can be detected. Tests cover explicit credential arguments, HF whoami, lazy W&B consumption/denial and Kaggle failure.
+- `bd184a7`: current launch guide, corrected CLI help, preserve/ignore local `wandb/` logs so they do not block the launcher's clean-source check.
+- Feature dry-runs `40491014267` and `40491603831`: success. Final default-branch dry-run [40492765863](https://github.com/truongdaoanhduy/uav_network/actions/runs/40492765863) at `bd184a7`: success.
+- GitHub identities match local: account_01 → duytrngoanh; account_02 → vuliu123456. W&B/HF probes report ok. Final reconcile has two empty managed-lineage lists, no submitted child.
+- Additional local enabled accounts were not automatically added to the GitHub allowlist; use explicit allowlisted `--account` for a future launch.
+- Fresh W&B active query at 2026-10-27T18:02:13+07:00: 0 running/pending.
+- Focused suite: 83 passed, 38 subtests. Full CPU suite: **858 passed, 95 skipped, 8 warnings, 1381 subtests passed in 539.41s (0:08:59)**; log `/tmp/shell_mcp/jobs/650f5711fb93.stdout.log`. Started on final supervisor implementation a0c04c3; only guide/help/gitignore changed afterward. Earlier interrupted f2dbd3b run is not used as completion evidence.
+- compileall, diff check, no-torch import and scan of tracked files against 12 local secret values: pass; 0 secret hits.
+- Independent review: no critical/important findings; its minor coverage recommendation was addressed. Reviewer did not assess live credentials or write/end-to-end readiness. Live read credentials are now verified; write permissions/new production train → visualize remain deliberately unexercised.
+- No token value refreshed/printed; no production root/child/controller launched, restarted, cancelled or deleted. No W&B/HF history changed.
+- Decision: keep service probes restricted to manual dry-run so a temporary W&B/HF outage cannot add a new dependency to normal receipt-driven reconciliation. Account identity comparison is an explicit deployment check; operators must recheck it if local accounts change.
+
+Remaining limit: no scheduled invocation had yet been observed when this follow-up was finalized; the workflow is active with the checked-in cron and manual hosted execution has passed. GitHub schedule timing is advisory.
