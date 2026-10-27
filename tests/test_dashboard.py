@@ -74,7 +74,8 @@ class DashboardTests(unittest.TestCase):
         feed = spec["runSets"][0]["runFeed"]
         visible = {key for key,value in feed["columnVisible"].items() if value}
         pinned = {key for key,value in feed["columnPinned"].items() if value}
-        self.assertEqual(len(visible),18)
+        self.assertEqual(len(visible),17)
+        self.assertNotIn("config:runtime.algorithm",visible)
         self.assertTrue({"run:createdAt","run:duration","summary:eval/mean_delivery_rate_percent",
                          "summary:eval/success_rate"} <= visible)
         self.assertEqual(pinned,{"run:displayName","run:state","run:createdAt","run:duration"})

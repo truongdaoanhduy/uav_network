@@ -1,22 +1,20 @@
 # Đọc kết quả và điều tra training trên W&B
 
-Workspace chính: https://wandb.ai/truongdaoanhduy-uit/uav_search_target/workspace
-
-Saved view chính: https://wandb.ai/truongdaoanhduy-uit/uav_search_target/workspace?nw=gmcixx5iveu
+Personal Workspace: https://wandb.ai/truongdaoanhduy-uit/uav_search_target/workspace?nw=nwusertruongdaoanhduy
 
 Mục tiêu là thấy kết quả nhiệm vụ, tiến độ và bằng chứng giải thích vấn đề.
 Không có một ngưỡng loss chung để kết luận MASAC/MATD3 học tốt. Log và cảnh báo
 chỉ ra triệu chứng; cần đối chiếu checkpoint, seed, batch hoặc traceback để xác
 minh nguyên nhân. Chi tiết mẫu số và seed bank ở [diagnostics-v1.md](diagnostics-v1.md).
 
-## Bảng Runs: 18 cột, chỉ ghim 4 cột đầu
+## Bảng Runs trong Personal Workspace: 17 cột, chỉ ghim 4 cột đầu
 
 | Cột | Ý nghĩa |
 |---|---|
 | Name, State | Tên nhận biết run và trạng thái W&B thực tế. Giữ cả running, finished, failed, crashed. |
 | Created | Thời điểm W&B tạo run, không phải thời điểm submit job Kaggle. |
 | Runtime | Thời gian của run/phiên này, không cộng tất cả phiên trong lineage. |
-| Stage, Algorithm, Mode | Phân biệt train/validate/visualize, MASAC/MATD3 và BASE/PQL. |
+| Stage, Mode | Phân biệt train/validate/visualize và BASE/PQL. Thuật toán đã có trong Name; cột Algorithm được ẩn để tránh lặp. |
 | Account, Seed | Xác định chủ job và seed để đối chiếu. |
 | Global step, completed training episodes | Tiến độ thật; một episode đang chạy chưa được tính là hoàn tất. |
 | Cohort delivery, cohort success | Kết quả episode đã kết thúc trong cửa sổ transition gần nhất. |
@@ -132,7 +130,6 @@ run cũ và không sửa lịch sử failed/crashed thành finished.
 
 ```bash
 python -m uav_network dashboard --config configs/comparison-20k-hybrid75-1kb.yaml --profile core
-python -m uav_network dashboard --config configs/comparison-20k-hybrid75-1kb.yaml --profile core --workspace-url 'https://wandb.ai/truongdaoanhduy-uit/uav_search_target/workspace?nw=gmcixx5iveu'
 ```
 
 Profile `diagnostics` có các plot action/reward/entropy/alpha/warning chuyên sâu.

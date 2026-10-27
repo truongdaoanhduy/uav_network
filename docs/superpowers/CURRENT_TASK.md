@@ -1,10 +1,42 @@
-# W&B observability — CODE / API COMPLETE; browser QA awaits sign-in
+# Current follow-up: Personal Workspace / remove duplicate Algorithm column
 
-Updated 2026-10-27T23:31:31.848628+07:00. Runtime source `bc1b6479a6cc9ebed80aeb756ddf8b0811fb7a79`;
-verified full-suite/source push `ecd597f928f68a1f455a943ff490cda0888ae5e3` adds only
-test fixture isolation. Source pushed to main and feat/cpu-replay-20261022 with
-atomic push and exact ls-remote readback. This final record/evidence is docs-only.
-No production training launched, restarted, cancelled or deleted.
+Updated 2026-10-27T23:46:35.061173+07:00. User explicitly authorized W&B sign-in via id.coreweave.com,
+asked to use Personal Workspace and hide Algorithm because run Name already has it,
+then supplied a new W&B key in key.txt and asked to use it. Do not ask sign-in
+permission again. Latest key freshly authenticated as truongdaoanhduy with access
+to truongdaoanhduy-uit/uav_search_target; no credential value printed or committed.
+
+## Current delivered follow-up
+
+- Personal view nw-nwusertruongdaoanhduy-w, ID VmlldzoxODA5MjI1Nw==,
+  read back at2026-10-27T16:44:33Z:17 visible columns,4 pinned; Algorithm hidden,
+  unpinned and removed from column order. Created/Runtime remain pinned.
+- Existing26 line plots+1guide byte-equivalent before/after. No layout duplication
+  or reset; no run data/config/history/state modification. Saved primary view was
+  not modified by this follow-up. Explicit Personal URL:
+  https://wandb.ai/truongdaoanhduy-uit/uav_search_target/workspace?nw=nwusertruongdaoanhduy
+- Source VISIBLE_COLUMNS now excludes config:runtime.algorithm so startup and
+  dashboard regeneration preserve the preference. Algorithm remains in run names
+  and run config. Human guide now directs to Personal,17columns.
+- Updated existing assertions:3RED failures then10focused tests passed
+  (tests/test_dashboard.py + tests/test_diagnostics_axes.py),7SDK deprecation warnings.
+  diff check passes. No training/checkpoint/metrics behavior changed; no full-suite
+  rerun is warranted for this display-only preference (prior891pass evidence below).
+- Live verification: docs/superpowers/evidence/2026-10-27-wandb-personal-no-algorithm.json.
+
+## Remaining and authentication rule
+
+Code/API follow-up is ready for commit/push. Direct browser rendering is still not
+verified: current cloud tab2 is id.coreweave.com/login, offering Google/GitHub/
+Apple/Microsoft/email. User's permission is now granted, but an API key does not
+supply the site's browser credentials. If continuing visual QA, use browserAuth
+secure method/credential request; never enter a token through model-visible UI,
+extract cookies or ask for secrets in chat. This is missing browser authentication,
+not a missing user permission. Continue useful API/source work independently.
+
+Previous observation below records earlier source9abd8e3 and historical18-column
+layout; current preference is17 in Personal. Prior source full-suite891passed,
+95skipped,1389subtests; unchanged runtime sourcebc1b647.
 
 ## Delivered and verified
 
@@ -36,21 +68,6 @@ No production training launched, restarted, cancelled or deleted.
   Fixture isolation fixed this; production redaction was not weakened. Interrupted
   pre-final runs are not completion evidence.
 
-## Direct browser request: remaining permission-dependent check
-
-Latest user: “wandb onl t mở web rồi đó lên coi đi”. Browser extension tool lacks
-originating context. Cloud tab2 was verified as actual Weights & Biases at
-https://forge.coreweave.com/wandb/truongdaoanhduy-uit/uav_search_target/workspace?nw=gmcixx5iveu
-but signed out, displaying Page not found/Login. Selecting this exact W&B tab
-resolved an initial generic-origin review denial. Login reached id.coreweave.com;
-automatic approval review rejected access because inspection did not explicitly
-authorize the identity-service sign-in. No credentials entered or bypass attempted.
-Backend publication/readback is complete; rendered charts/table are not visually
-verified. Ask for explicit authorization for W&B sign-in via id.coreweave.com only
-as the final step after source/evidence work. Do not repeat the rejected identity
-flow or extract credentials without that authorization. Use browserAuth secure
-flow for any subsequent credential entry; never ask for secrets in chat.
-
 ## Interpretation / limits / next action
 
 Canonical 20k periodic mini-eval remains disabled; missing data stays empty. Judge
@@ -60,8 +77,7 @@ upload clock is not captured-state age. Hard kill/network loss may prevent final
 traceback/upload; no universal root-cause guarantee. New logging applies to future
 source-pinned jobs; historic data remains intact and cannot gain retrospective logs.
 
-Only unfinished requested check: browser visual QA, conditional on explicit sign-in
-authorization. Do not start a new scientific/retraining task implicitly. Before any
+User has now explicitly authorized the sign-in required for browser visual QA. Do not start a new scientific/retraining task implicitly. Before any
 later launch, recheck legitimate account/quota/idle/datasets/T4/no duplicates and
 GitHub-synced owner; launch only on user instruction.
 

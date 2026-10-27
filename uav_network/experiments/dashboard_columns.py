@@ -4,7 +4,7 @@ import json
 
 VISIBLE_COLUMNS = [
     "run:displayName", "run:state", "run:createdAt", "run:duration",
-    "config:stage", "config:runtime.algorithm", "summary:training_mode",
+    "config:stage", "summary:training_mode",
     "config:kaggle_account", "config:runtime.seed", "summary:global_step",
     "summary:train/episodes_completed", "summary:cohort/delivery_rate_percent_mean",
     "summary:cohort/success_mean", "summary:eval/mean_delivery_rate_percent",

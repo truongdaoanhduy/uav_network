@@ -1,0 +1,38 @@
+{
+  "verified_at_utc": "2026-10-27T16:44:33.332613+00:00",
+  "viewer": "truongdaoanhduy",
+  "personal_view_id": "VmlldzoxODA5MjI1Nw==",
+  "personal_view_name": "nw-nwusertruongdaoanhduy-w",
+  "visible_columns": [
+    "config:kaggle_account",
+    "config:runtime.seed",
+    "config:stage",
+    "run:createdAt",
+    "run:displayName",
+    "run:duration",
+    "run:state",
+    "summary:cohort/delivery_rate_percent_mean",
+    "summary:cohort/success_mean",
+    "summary:diagnostics/failure_type",
+    "summary:episode_budget_complete",
+    "summary:eval/mean_delivery_rate_percent",
+    "summary:eval/success_rate",
+    "summary:global_step",
+    "summary:stop_reason",
+    "summary:train/episodes_completed",
+    "summary:training_mode"
+  ],
+  "pinned_columns": [
+    "run:createdAt",
+    "run:displayName",
+    "run:duration",
+    "run:state"
+  ],
+  "algorithm_column_hidden": true,
+  "algorithm_unpinned_and_removed_from_order": true,
+  "existing_panels_unchanged": true,
+  "line_plots": 26,
+  "guide_panels": 1,
+  "created_runtime_pinned": true,
+  "personal_workspace_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/workspace?nw=nwusertruongdaoanhduy"
+}
