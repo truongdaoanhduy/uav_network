@@ -140,3 +140,27 @@ def test_github_supervised_kernel_slug_has_reserved_marker_and_fits_limit():
     legacy = kernel_slug(owner, c, "masac", "base", "train",
                          "20261027-101530", "abcdef")
     assert not legacy.startswith("gh-")
+
+@pytest.mark.parametrize(
+    "share_actor,share_critic,marker",
+    [
+        (False, False, None),
+        (True, False, "SHARED-ACTOR"),
+        (False, True, "SHARED-CRITIC"),
+        (True, True, "SHARED-ACTOR-CRITIC"),
+    ],
+)
+def test_parameter_sharing_is_visible_without_renaming_default_runs(share_actor, share_critic, marker):
+    from uav_network.cloud.identities import authoritative_tags, run_name
+    c = load_config("configs/comparison-20k-hybrid75-1kb.yaml")
+    c.runtime.algorithm = "masac"
+    c.masac.share_actor_parameters = share_actor
+    c.masac.share_critic_parameters = share_critic
+    name = run_name(c, "masac", "PQL", "train", "suffix")
+    if marker is None:
+        assert "SHARED" not in name
+    else:
+        assert marker in name
+    tags = authoritative_tags(c, "masac")
+    assert ("actor-shared" if share_actor else "actor-independent") in tags
+    assert ("critic-shared" if share_critic else "critic-independent") in tags

@@ -93,7 +93,7 @@ def launch(args, credentials):
             for a in algorithms}
     overrides = list(effective_overrides)
     if not diagnostic:
-        config.tracking.tags = authoritative_tags(config)
+        config.tracking.tags = authoritative_tags(config, args.algorithm)
         overrides = [item for item in overrides if not item.startswith("tracking.tags=")]
         overrides.append("tracking.tags=" + json.dumps(config.tracking.tags))
     spec = {"submitted_at_utc": datetime.now(timezone.utc).isoformat(), "commit": commit, "kernel_ref": f"{username}/{slug}", "account": account.name,

@@ -216,7 +216,8 @@ class MASAC(nn.Module):
         actor_losses, entropies_c, entropies_d, targets_c, targets_d = [], [], [], [], []
         try:
             samples = ([self._sample(self._actor_at(i), data["observation"][:, i], agent_index=i)
-                        for i in range(self.num_uavs)] if vectorized else None)
+                        for i in range(self.num_uavs)]
+                       if vectorized or self.share_critic_parameters else None)
             continuous_actions = torch.stack([sample[0] for sample in samples], 1) if samples is not None else None
             if self.share_critic_parameters:
                 if continuous_actions is None:
@@ -230,7 +231,7 @@ class MASAC(nn.Module):
             for i in range(self.num_uavs):
                 actor = self._actor_at(i)
                 obs = data["observation"][:, i]
-                continuous, logp, probs, log_probs = (samples[i] if vectorized
+                continuous, logp, probs, log_probs = (samples[i] if samples is not None
                                                        else self._sample(actor, obs, agent_index=i))
                 q = (qs[:, i] if qs is not None
                      else self._expected_q(self.critics[i], data["state"], base_joint, continuous, i))
