@@ -1,0 +1,357 @@
+{
+  "audited_at_utc": "2026-10-28T05:50:17.624352+00:00",
+  "audited_head": "3d3a829286eda353da449589c0cf4cbb64c70415",
+  "runtime_source": "1aa095f29b8505bbf43ca42033c51ea96d144dd5",
+  "live_status": [
+    {
+      "run_id": "4f98f2c9",
+      "account": "account_01",
+      "kernel_ref": "duytrngoanh/gh-tra-g3-masac-base-h75-102803-a0b159",
+      "wandb_state": "running",
+      "heartbeat_utc": "2026-10-28T05:48:42Z",
+      "kaggle_status": "duytrngoanh/gh-tra-g3-masac-base-h75-102803-a0b159 has status \"KernelWorkerStatus.RUNNING\"",
+      "global_step": 9568256,
+      "episodes_recorded": 4096,
+      "updates": 18432,
+      "recovery_summary": {
+        "recovery/full_checkpoint_available": 0
+      },
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "source_commit": "1aa095f29b8505bbf43ca42033c51ea96d144dd5",
+      "checked_at_utc": "2026-10-28T05:48:43.993583+00:00"
+    },
+    {
+      "run_id": "03df03cc",
+      "account": "account_02",
+      "kernel_ref": "vuliu123456/gh-tra-g3-masac-pql-h75-1028032-944054",
+      "wandb_state": "failed",
+      "heartbeat_utc": "2026-10-28T04:57:42Z",
+      "kaggle_status": "vuliu123456/gh-tra-g3-masac-pql-h75-1028032-944054 has status \"KernelWorkerStatus.ERROR\"",
+      "global_step": 6971392,
+      "episodes_recorded": 2720,
+      "updates": 13352,
+      "recovery_summary": {
+        "recovery/full_checkpoint_available": 0
+      },
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "source_commit": "1aa095f29b8505bbf43ca42033c51ea96d144dd5",
+      "checked_at_utc": "2026-10-28T05:48:44.421329+00:00"
+    },
+    {
+      "run_id": "3befcfb8",
+      "account": "account_03",
+      "kernel_ref": "egkljwigojwof/gh-tra-g3-matd3-base-h75-1028-8d7c87",
+      "wandb_state": "failed",
+      "heartbeat_utc": "2026-10-28T04:38:42Z",
+      "kaggle_status": "egkljwigojwof/gh-tra-g3-matd3-base-h75-1028-8d7c87 has status \"KernelWorkerStatus.ERROR\"",
+      "global_step": 14188544,
+      "episodes_recorded": 7620,
+      "updates": 27448,
+      "recovery_summary": {
+        "recovery/full_checkpoint_available": 0
+      },
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "source_commit": "1aa095f29b8505bbf43ca42033c51ea96d144dd5",
+      "checked_at_utc": "2026-10-28T05:48:44.870109+00:00"
+    },
+    {
+      "run_id": "4f8f7d7d",
+      "account": "account_04",
+      "kernel_ref": "gkgijewjf/gh-tra-g3-matd3-pql-h75-10280327-2ad6d8",
+      "wandb_state": "failed",
+      "heartbeat_utc": "2026-10-28T04:39:34Z",
+      "kaggle_status": "gkgijewjf/gh-tra-g3-matd3-pql-h75-10280327-2ad6d8 has status \"KernelWorkerStatus.ERROR\"",
+      "global_step": 14262272,
+      "episodes_recorded": 7861,
+      "updates": 27592,
+      "recovery_summary": {
+        "recovery/full_checkpoint_available": 0
+      },
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "source_commit": "1aa095f29b8505bbf43ca42033c51ea96d144dd5",
+      "checked_at_utc": "2026-10-28T05:48:45.269177+00:00"
+    },
+    {
+      "run_id": "a04dbdef",
+      "account": "account_06",
+      "kernel_ref": "fwklgeewjlfew/gh-tra-g3-masac-base-h75-1028-a76638",
+      "wandb_state": "running",
+      "heartbeat_utc": "2026-10-28T05:48:35Z",
+      "kaggle_status": "fwklgeewjlfew/gh-tra-g3-masac-base-h75-1028-a76638 has status \"KernelWorkerStatus.RUNNING\"",
+      "global_step": 1505280,
+      "episodes_recorded": 0,
+      "updates": 5368,
+      "recovery_summary": {
+        "recovery/full_checkpoint_available": 0
+      },
+      "num_envs": 2048,
+      "batch_size": 4096,
+      "source_commit": "55a264cf27505d97f66aae4eadf73f61422169f7",
+      "checked_at_utc": "2026-10-28T05:48:45.696094+00:00"
+    },
+    {
+      "run_id": "8db188ea",
+      "account": "account_07",
+      "kernel_ref": "lkejflwejf/gh-tra-g3-masac-pql-h75-10280520-a7f572",
+      "wandb_state": "running",
+      "heartbeat_utc": "2026-10-28T05:48:39Z",
+      "kaggle_status": "lkejflwejf/gh-tra-g3-masac-pql-h75-10280520-a7f572 has status \"KernelWorkerStatus.RUNNING\"",
+      "global_step": 1599488,
+      "episodes_recorded": 0,
+      "updates": 5976,
+      "recovery_summary": {
+        "recovery/full_checkpoint_available": 0
+      },
+      "num_envs": 2048,
+      "batch_size": 4096,
+      "source_commit": "55a264cf27505d97f66aae4eadf73f61422169f7",
+      "checked_at_utc": "2026-10-28T05:48:46.109783+00:00"
+    }
+  ],
+  "failures": [
+    {
+      "run_id": "03df03cc",
+      "timestamp_utc": "2026-10-28T04:57:38.328028+00:00",
+      "traceback": "Traceback (most recent call last):\n  File \"/tmp/uav_network/uav_network/experiments/pql_training.py\", line 152, in train_pql\n    encoded = json.dumps(record, allow_nan=False)\n  File \"/usr/lib/python3.13/json/__init__.py\", line 242, in dumps\n    **kw).encode(obj)\n          ~~~~~~^^^^^\n  File \"/usr/lib/python3.13/json/encoder.py\", line 202, in encode\n    chunks = self.iterencode(o, _one_shot=True)\n  File \"/usr/lib/python3.13/json/encoder.py\", line 263, in iterencode\n    return _iterencode(o, 0)\nValueError: Out of range float values are not JSON compliant: inf\n",
+      "progress_at_exception": {
+        "global_step": 6971392,
+        "episodes": 2721,
+        "updates": 13360
+      },
+      "offending_metrics": {
+        "critic_grad_norm": "inf"
+      },
+      "last_learner_metrics": {
+        "q_mean": 2.1186883449554443,
+        "q_abs_max": 867.525146484375,
+        "target_mean": 1.3790333271026611,
+        "target_abs_max": 872.6064453125,
+        "td_error_abs_mean": 2.1961231231689453,
+        "td_error_abs_max": 144.12548828125,
+        "twin_q_gap": 1.028102159500122,
+        "batch_reward_mean": 0.3012969493865967,
+        "batch_terminated_fraction": 0.0030517578125,
+        "batch_active_uav_fraction": 0.7102457880973816,
+        "critic_grad_norm": "inf",
+        "critic_gradient_clipped": 1.0,
+        "critic_loss": 108.6290512084961,
+        "amp/enabled": 1,
+        "amp/critic/attempted": 13353,
+        "amp/critic/applied": 13344,
+        "amp/critic/skipped": 9,
+        "amp/critic/scale": 4096.0,
+        "amp/autocast_fp16": 1,
+        "actor_grad_norm": 0.04402291029691696,
+        "alpha_grad_norm": 0.11211230605840683,
+        "actor_loss": -0.02319812774658203,
+        "continuous_entropy": -1.6230089664459229,
+        "discrete_entropy": 0.014634164981544018,
+        "alpha_continuous": 0.007142079062759876,
+        "alpha_discrete": 3.548335552215576,
+        "amp/actor/attempted": 13360,
+        "amp/actor/applied": 13359,
+        "amp/actor/skipped": 1,
+        "amp/actor/scale": 2097152.0,
+        "amp/alpha/attempted": 13360,
+        "amp/alpha/applied": 13360,
+        "amp/alpha/skipped": 0,
+        "amp/alpha/scale": 4194304.0
+      },
+      "nonfinite_parameter_names": null,
+      "model_parameter_check_available": false,
+      "resources": {
+        "disk_free_bytes": 20664483840,
+        "process_rss_bytes": 12564426752,
+        "process_peak_rss_bytes": 12611956736,
+        "host_available_bytes": 19758190592,
+        "cuda": [
+          {
+            "logical_index": 0,
+            "allocated_bytes": 120624128,
+            "reserved_bytes": 343932928,
+            "peak_allocated_bytes": 285709312
+          },
+          {
+            "logical_index": 1,
+            "allocated_bytes": 3641918464,
+            "reserved_bytes": 4773117952,
+            "peak_allocated_bytes": 4491697152
+          }
+        ]
+      },
+      "serialization_probe": {
+        "reconstructed_nonfinite_float_from_sanitized_failure_report": true,
+        "original_strict_json_raises_ValueError": true,
+        "candidate_json_safe_on_learner_metrics_encodes": true,
+        "finite_metrics_unchanged": true,
+        "production_code_changed": false
+      }
+    },
+    {
+      "run_id": "3befcfb8",
+      "timestamp_utc": "2026-10-28T04:38:41.148028+00:00",
+      "traceback": "Traceback (most recent call last):\n  File \"/tmp/uav_network/uav_network/experiments/training.py\", line 254, in _train\n    encoded = json.dumps(record, allow_nan=False)\n  File \"/usr/lib/python3.13/json/__init__.py\", line 242, in dumps\n    **kw).encode(obj)\n          ~~~~~~^^^^^\n  File \"/usr/lib/python3.13/json/encoder.py\", line 202, in encode\n    chunks = self.iterencode(o, _one_shot=True)\n  File \"/usr/lib/python3.13/json/encoder.py\", line 263, in iterencode\n    return _iterencode(o, 0)\nValueError: Out of range float values are not JSON compliant: inf\n",
+      "progress_at_exception": {
+        "global_step": 14188544,
+        "episodes": 7621,
+        "updates": 27456
+      },
+      "offending_metrics": {
+        "actor_grad_norm": "inf"
+      },
+      "last_learner_metrics": {
+        "q_mean": -8.131278991699219,
+        "q_abs_max": 531.0523071289062,
+        "target_mean": -8.323789596557617,
+        "target_abs_max": 623.7220458984375,
+        "td_error_abs_mean": 3.5152554512023926,
+        "td_error_abs_max": 225.04855346679688,
+        "twin_q_gap": 1.5880216360092163,
+        "batch_reward_mean": 0.7280317544937134,
+        "batch_terminated_fraction": 0.00341796875,
+        "batch_active_uav_fraction": 0.6220499873161316,
+        "actor_loss": 8.002754211425781,
+        "actor_grad_norm": "inf",
+        "actor_update_step": 27456.0,
+        "critic_loss": 225.98410034179688,
+        "critic_grad_norm": 217.4183349609375,
+        "critic_gradient_clipped": 1.0,
+        "policy_updated": 1.0,
+        "amp/enabled": 1,
+        "amp/critic/attempted": 27456,
+        "amp/critic/applied": 27442,
+        "amp/critic/skipped": 14,
+        "amp/critic/scale": 8192.0,
+        "amp/autocast_fp16": 1,
+        "amp/actor/attempted": 13728,
+        "amp/actor/applied": 13720,
+        "amp/actor/skipped": 8,
+        "amp/actor/scale": 16384.0
+      },
+      "nonfinite_parameter_names": [],
+      "model_parameter_check_available": true,
+      "resources": {
+        "disk_free_bytes": 20206870528,
+        "process_rss_bytes": 12667326464,
+        "process_peak_rss_bytes": 12822487040,
+        "host_available_bytes": 19646697472,
+        "cuda": [
+          {
+            "logical_index": 0,
+            "allocated_bytes": 65138688,
+            "reserved_bytes": 88080384,
+            "peak_allocated_bytes": 81949184
+          },
+          {
+            "logical_index": 1,
+            "allocated_bytes": 3417673216,
+            "reserved_bytes": 4110417920,
+            "peak_allocated_bytes": 3885263872
+          }
+        ]
+      },
+      "serialization_probe": {
+        "reconstructed_nonfinite_float_from_sanitized_failure_report": true,
+        "original_strict_json_raises_ValueError": true,
+        "candidate_json_safe_on_learner_metrics_encodes": true,
+        "finite_metrics_unchanged": true,
+        "production_code_changed": false
+      }
+    },
+    {
+      "run_id": "4f8f7d7d",
+      "timestamp_utc": "2026-10-28T04:39:32.183581+00:00",
+      "traceback": "Traceback (most recent call last):\n  File \"/tmp/uav_network/uav_network/experiments/pql_training.py\", line 152, in train_pql\n    encoded = json.dumps(record, allow_nan=False)\n  File \"/usr/lib/python3.13/json/__init__.py\", line 242, in dumps\n    **kw).encode(obj)\n          ~~~~~~^^^^^\n  File \"/usr/lib/python3.13/json/encoder.py\", line 202, in encode\n    chunks = self.iterencode(o, _one_shot=True)\n  File \"/usr/lib/python3.13/json/encoder.py\", line 263, in iterencode\n    return _iterencode(o, 0)\nValueError: Out of range float values are not JSON compliant: inf\n",
+      "progress_at_exception": {
+        "global_step": 14262272,
+        "episodes": 7862,
+        "updates": 27600
+      },
+      "offending_metrics": {
+        "critic_grad_norm": "inf"
+      },
+      "last_learner_metrics": {
+        "q_mean": -19.773452758789062,
+        "q_abs_max": 313.0503234863281,
+        "target_mean": -19.73873519897461,
+        "target_abs_max": 311.9568176269531,
+        "td_error_abs_mean": 3.9394145011901855,
+        "td_error_abs_max": 174.04574584960938,
+        "twin_q_gap": 1.2978216409683228,
+        "batch_reward_mean": 1.7813644409179688,
+        "batch_terminated_fraction": 0.004638671875,
+        "batch_active_uav_fraction": 0.68487548828125,
+        "critic_loss": 236.01937866210938,
+        "critic_grad_norm": "inf",
+        "critic_gradient_clipped": 1.0,
+        "policy_updated": 1.0,
+        "amp/enabled": 1,
+        "amp/critic/attempted": 27593,
+        "amp/critic/applied": 27578,
+        "amp/critic/skipped": 15,
+        "amp/critic/scale": 8192.0,
+        "amp/autocast_fp16": 1,
+        "actor_loss": 19.442419052124023,
+        "actor_grad_norm": 0.013751093298196793,
+        "actor_update_step": 27600.0,
+        "amp/actor/attempted": 13800,
+        "amp/actor/applied": 13793,
+        "amp/actor/skipped": 7,
+        "amp/actor/scale": 16384.0
+      },
+      "nonfinite_parameter_names": null,
+      "model_parameter_check_available": false,
+      "resources": {
+        "disk_free_bytes": 20265562112,
+        "process_rss_bytes": 12609302528,
+        "process_peak_rss_bytes": 12799418368,
+        "host_available_bytes": 20014309376,
+        "cuda": [
+          {
+            "logical_index": 0,
+            "allocated_bytes": 137052160,
+            "reserved_bytes": 341835776,
+            "peak_allocated_bytes": 285683712
+          },
+          {
+            "logical_index": 1,
+            "allocated_bytes": 3639211520,
+            "reserved_bytes": 5054136320,
+            "peak_allocated_bytes": 4479419392
+          }
+        ]
+      },
+      "serialization_probe": {
+        "reconstructed_nonfinite_float_from_sanitized_failure_report": true,
+        "original_strict_json_raises_ValueError": true,
+        "candidate_json_safe_on_learner_metrics_encodes": true,
+        "finite_metrics_unchanged": true,
+        "production_code_changed": false
+      }
+    }
+  ],
+  "recovery_schedule": {
+    "configured_interval_seconds": 3600,
+    "session_seconds": 36000,
+    "max_uploads": 4,
+    "effective_interval_seconds": 9000,
+    "formula": "max(configured_interval_seconds, session_seconds/max_uploads)",
+    "first_due_seconds": 9000
+  },
+  "verification": {
+    "command": "python -m pytest tests/test_precision.py tests/test_recovery_checkpoints.py -k 'overflow or nonfinite or wall_clock_spreads or recovery_settings' -q",
+    "result": "7 passed, 40 deselected in 7.29s",
+    "scope": "CPU AMP behavior and existing backup scheduling; no fresh CUDA test and no full production rerun"
+  },
+  "supervisor": {
+    "run_id": 40638183428,
+    "job_id": 122649926122,
+    "reported_at_utc": "2026-10-28T05:28:50Z",
+    "accounts_02_03_04": "recovery_blocked/RecoveryUnavailable/checkpoint_missing"
+  },
+  "changes": "documentation only; no training, config, W&B metadata or cloud state mutation"
+}

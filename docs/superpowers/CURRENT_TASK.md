@@ -1,3 +1,19 @@
+# Three failed training runs — DIAGNOSED / FIX PROPOSED, NOT IMPLEMENTED
+
+Observed live 2026-10-28T05:48:44–05:48:46Z. Audited HEAD `3d3a829286eda353da449589c0cf4cbb64c70415`; failed runtime source `1aa095f29b8505bbf43ca42033c51ea96d144dd5`. User requested live diagnosis and a proposed solution.
+
+Confirmed: MASAC PQL `03df03cc`, MATD3 BASE `3befcfb8`, MATD3 PQL `4f8f7d7d` are W&B failed and Kaggle ERROR. All three traceback at strict episode JSON serialization with grad_norm inf: `training.py:254` / `pql_training.py:152`. AMP already skips nonfinite-gradient steps; BASE failure report has no nonfinite model parameters. Numerical source of the first nonfinite CUDA operation remains unproven. No evidence attributing the crash to hybrid replay/action design.
+
+Recovery is separately blocked: effective first backup is max(3600,36000/4)=9000s, not 3600s. All three failed before it; model artifacts are policy-only/resumable=false and summaries show no full-state checkpoint. Supervisor 40638183428 reports checkpoint_missing. Use verified full-state provenance for any recovery; policy/failure snapshots cannot be exact resume.
+
+Verification: reproduced serializer failure and a narrow json_safe candidate on all three saved metric sets; finite metrics unchanged. Existing CPU precision/recovery tests: 7 passed, 40 deselected in 7.29s. No fresh CUDA or full suite this diagnosis-only task. Production code, scientific config and cloud/W&B state remain unchanged.
+
+At the same live snapshot `4f98f2c9`, `a04dbdef`, `8db188ea` are running on both services with fresh heartbeat/progress, and no confirmed full checkpoint yet. Protect these lineages; old pinned code still has the telemetry bug.
+
+Next action when implementation is requested: read [the audit and prioritized fix proposal](evidence/2026-10-28-failed-training-audit.md), then RED test the serializer boundary before patching BASE/PQL and first-backup timing. Fresh-check all services before operational decisions. No new production launch authorized by this proposal task.
+
+---
+
 # Additional MASAC E2048/B4096 cohort — RUNNING / CLOUD SUPERVISOR ACTIVE
 
 Updated 2026-10-28T05:29:09Z. User explicitly requested two additional MASAC production roots, BASE and PQL, keeping the preceding canonical HYBRID75/1KiB 20k setup unchanged except `runtime.num_envs=2048` and `masac.batch_size=4096`. The PQL root additionally uses the same mode selector `pql.enabled=true` as the existing PQL cohort.
