@@ -212,12 +212,23 @@ class MATD3(nn.Module):
         vectorized = self.config.runtime.vectorize_critics
         actor_losses, actor_grads = [], []
         with torch.no_grad():
-            base = self._actor_actions(data["observation"])
+            if self.share_actor_parameters:
+                base = self._actor_actions(data["observation"])
+            else:
+                base = torch.stack([self._actor_action(actor, data["observation"][:, i], agent_index=i)
+                                    for i, actor in enumerate(self.actors)], 1)
         self.critics.requires_grad_(False)
         try:
             batched_q = None
-            candidate_actions = (self._actor_actions(data["observation"], straight_through=True)
-                                 if vectorized or self.share_critic_parameters or self.share_actor_parameters else None)
+            candidate_actions = None
+            if vectorized or self.share_critic_parameters or self.share_actor_parameters:
+                if self.share_actor_parameters:
+                    candidate_actions = self._actor_actions(data["observation"], straight_through=True)
+                else:
+                    candidate_actions = torch.stack([
+                        self._actor_action(actor, data["observation"][:, i],
+                                           straight_through=True, agent_index=i)
+                        for i, actor in enumerate(self.actors)], 1)
             if vectorized or self.share_critic_parameters:
                 joints = base[None].expand(self.num_uavs, -1, -1, -1).clone()
                 indices = torch.arange(self.num_uavs, device=self.device)

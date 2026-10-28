@@ -237,9 +237,17 @@ class MASAC(nn.Module):
         actor_grads = []
         actor_losses, entropies_c, entropies_d, targets_c, targets_d = [], [], [], [], []
         try:
-            samples = (self._sample_agents(data["observation"])
-                       if vectorized or self.share_critic_parameters or self.share_actor_parameters else None)
-            continuous_actions = samples[0] if samples is not None else None
+            samples, batched_samples = None, None
+            if vectorized or self.share_critic_parameters or self.share_actor_parameters:
+                if self.share_actor_parameters:
+                    batched_samples = self._sample_agents(data["observation"])
+                    continuous_actions = batched_samples[0]
+                else:
+                    samples = [self._sample(actor, data["observation"][:, i], agent_index=i)
+                               for i, actor in enumerate(self.actors)]
+                    continuous_actions = torch.stack([sample[0] for sample in samples], 1)
+            else:
+                continuous_actions = None
             if self.share_critic_parameters:
                 qs = self._expected_q_shared_all(self.critics[0], data["state"], base_joint, continuous_actions)
             else:
@@ -248,9 +256,12 @@ class MASAC(nn.Module):
             for i in range(self.num_uavs):
                 actor = self._actor_at(i)
                 obs = data["observation"][:, i]
-                continuous, logp, probs, log_probs = (tuple(value[:, i] for value in samples)
-                                                       if samples is not None
-                                                       else self._sample(actor, obs, agent_index=i))
+                if batched_samples is not None:
+                    continuous, logp, probs, log_probs = tuple(value[:, i] for value in batched_samples)
+                elif samples is not None:
+                    continuous, logp, probs, log_probs = samples[i]
+                else:
+                    continuous, logp, probs, log_probs = self._sample(actor, obs, agent_index=i)
                 q = (qs[:, i] if qs is not None
                      else self._expected_q(self.critics[i], data["state"], base_joint, continuous, i))
                 loss = (alpha_c[i] * logp + (probs * (alpha_d[i] * log_probs - q)).sum(-1)).mean()

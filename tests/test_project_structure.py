@@ -23,8 +23,8 @@ def test_scientific_algorithm_source_contract_with_chunked_execution():
     import hashlib
     root = Path(__file__).resolve().parents[1]
     expected = {
-        "uav_network/algorithms/masac.py": "6220b55447c079738a395f9ebba4763355bc0760051a51610428a6d6bfb94f93",
-        "uav_network/algorithms/matd3.py": "580216119bf24fc3568294908c087b87587d1cf4a081c93caed848f64e18a689",
+        "uav_network/algorithms/masac.py": "7fe0dc5d417d26f83c0679841fe3841564d45fd799b13cd898f54f9a7f21ae4b",
+        "uav_network/algorithms/matd3.py": "91461b6b30324a6c8f5fcb4082301f8f40a0c959c15d8c0fd9f2bc93a5ee90f1",
     }
     for name, digest in expected.items():
         assert hashlib.sha256((root / name).read_bytes()).hexdigest() == digest
