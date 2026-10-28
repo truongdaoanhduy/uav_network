@@ -1,0 +1,2532 @@
+{
+  "purpose": "MATD3 actor overflow investigation on historical finite weights and fresh late-policy rollouts; not exact historical replay",
+  "commit": "0042166fb0408d9efa487ad2ccd31c59b709cd69",
+  "kernel_ref": "egkljwigojwof/diag-matd3-actor-late-1028-fc3fc4",
+  "wandb_run_id": "aa6066de",
+  "entity": "truongdaoanhduy-uit",
+  "project": "uav_search_target",
+  "source_run_id": "3befcfb8",
+  "submitted_at_utc": "2026-10-28T07:54:32.761826+00:00",
+  "historical_failed_batch_replayed": false,
+  "optimizer_restored_from_historical_run": false,
+  "attempts": [
+    {
+      "rollout_step": 32,
+      "batch_index": 0,
+      "compiled": false,
+      "scale_before": 32768.0,
+      "active_fraction": 1.0,
+      "input_finite": true,
+      "metrics": {
+        "actor_loss": -245.52239990234375,
+        "actor_grad_norm": 0.3440626859664917,
+        "actor_update_step": 27456.0,
+        "policy_updated": 1.0,
+        "amp/enabled": 1,
+        "amp/actor/attempted": 1,
+        "amp/actor/applied": 1,
+        "amp/actor/skipped": 0,
+        "amp/actor/scale": 32768.0,
+        "amp/autocast_fp16": 1,
+        "actor_grad_norm_nonfinite": 0,
+        "actor_grad_norm_nonfinite_kind": null
+      }
+    },
+    {
+      "rollout_step": 32,
+      "batch_index": 0,
+      "compiled": true,
+      "scale_before": 32768.0,
+      "active_fraction": 1.0,
+      "input_finite": true,
+      "metrics": {
+        "actor_loss": -245.52239990234375,
+        "actor_grad_norm": 0.3440626859664917,
+        "actor_update_step": 27456.0,
+        "policy_updated": 1.0,
+        "amp/enabled": 1,
+        "amp/actor/attempted": 1,
+        "amp/actor/applied": 1,
+        "amp/actor/skipped": 0,
+        "amp/actor/scale": 32768.0,
+        "amp/autocast_fp16": 1,
+        "actor_grad_norm_nonfinite": 0,
+        "actor_grad_norm_nonfinite_kind": null
+      }
+    },
+    {
+      "rollout_step": 32,
+      "batch_index": 0,
+      "compiled": false,
+      "scale_before": 65536.0,
+      "active_fraction": 1.0,
+      "input_finite": true,
+      "metrics": {
+        "actor_loss": -245.52239990234375,
+        "actor_grad_norm": 0.3440626859664917,
+        "actor_update_step": 27456.0,
+        "policy_updated": 1.0,
+        "amp/enabled": 1,
+        "amp/actor/attempted": 1,
+        "amp/actor/applied": 1,
+        "amp/actor/skipped": 0,
+        "amp/actor/scale": 65536.0,
+        "amp/autocast_fp16": 1,
+        "actor_grad_norm_nonfinite": 0,
+        "actor_grad_norm_nonfinite_kind": null
+      }
+    },
+    {
+      "rollout_step": 32,
+      "batch_index": 0,
+      "compiled": true,
+      "scale_before": 65536.0,
+      "active_fraction": 1.0,
+      "input_finite": true,
+      "metrics": {
+        "actor_loss": -245.52239990234375,
+        "actor_grad_norm": 0.3440626859664917,
+        "actor_update_step": 27456.0,
+        "policy_updated": 1.0,
+        "amp/enabled": 1,
+        "amp/actor/attempted": 1,
+        "amp/actor/applied": 1,
+        "amp/actor/skipped": 0,
+        "amp/actor/scale": 65536.0,
+        "amp/autocast_fp16": 1,
+        "actor_grad_norm_nonfinite": 0,
+        "actor_grad_norm_nonfinite_kind": null
+      }
+    },
+    {
+      "rollout_step": 32,
+      "batch_index": 1,
+      "compiled": false,
+      "scale_before": 32768.0,
+      "active_fraction": 1.0,
+      "input_finite": true,
+      "metrics": {
+        "actor_loss": -245.40798950195312,
+        "actor_grad_norm": 0.28951501846313477,
+        "actor_update_step": 27456.0,
+        "policy_updated": 1.0,
+        "amp/enabled": 1,
+        "amp/actor/attempted": 1,
+        "amp/actor/applied": 1,
+        "amp/actor/skipped": 0,
+        "amp/actor/scale": 32768.0,
+        "amp/autocast_fp16": 1,
+        "actor_grad_norm_nonfinite": 0,
+        "actor_grad_norm_nonfinite_kind": null
+      }
+    },
+    {
+      "rollout_step": 32,
+      "batch_index": 1,
+      "compiled": true,
+      "scale_before": 32768.0,
+      "active_fraction": 1.0,
+      "input_finite": true,
+      "metrics": {
+        "actor_loss": -245.40798950195312,
+        "actor_grad_norm": 0.28951501846313477,
+        "actor_update_step": 27456.0,
+        "policy_updated": 1.0,
+        "amp/enabled": 1,
+        "amp/actor/attempted": 1,
+        "amp/actor/applied": 1,
+        "amp/actor/skipped": 0,
+        "amp/actor/scale": 32768.0,
+        "amp/autocast_fp16": 1,
+        "actor_grad_norm_nonfinite": 0,
+        "actor_grad_norm_nonfinite_kind": null
+      }
+    },
+    {
+      "rollout_step": 32,
+      "batch_index": 1,
+      "compiled": false,
+      "scale_before": 65536.0,
+      "active_fraction": 1.0,
+      "input_finite": true,
+      "metrics": {
+        "actor_loss": -245.40798950195312,
+        "actor_grad_norm": 0.28951501846313477,
+        "actor_update_step": 27456.0,
+        "policy_updated": 1.0,
+        "amp/enabled": 1,
+        "amp/actor/attempted": 1,
+        "amp/actor/applied": 1,
+        "amp/actor/skipped": 0,
+        "amp/actor/scale": 65536.0,
+        "amp/autocast_fp16": 1,
+        "actor_grad_norm_nonfinite": 0,
+        "actor_grad_norm_nonfinite_kind": null
+      }
+    },
+    {
+      "rollout_step": 32,
+      "batch_index": 1,
+      "compiled": true,
+      "scale_before": 65536.0,
+      "active_fraction": 1.0,
+      "input_finite": true,
+      "metrics": {
+        "actor_loss": -245.40798950195312,
+        "actor_grad_norm": 0.28951501846313477,
+        "actor_update_step": 27456.0,
+        "policy_updated": 1.0,
+        "amp/enabled": 1,
+        "amp/actor/attempted": 1,
+        "amp/actor/applied": 1,
+        "amp/actor/skipped": 0,
+        "amp/actor/scale": 65536.0,
+        "amp/autocast_fp16": 1,
+        "actor_grad_norm_nonfinite": 0,
+        "actor_grad_norm_nonfinite_kind": null
+      }
+    },
+    {
+      "rollout_step": 128,
+      "batch_index": 0,
+      "compiled": false,
+      "scale_before": 32768.0,
+      "active_fraction": 1.0,
+      "input_finite": true,
+      "metrics": {
+        "actor_loss": -136.18023681640625,
+        "actor_grad_norm": null,
+        "actor_update_step": 27456.0,
+        "policy_updated": 1.0,
+        "amp/enabled": 1,
+        "amp/actor/attempted": 1,
+        "amp/actor/applied": 0,
+        "amp/actor/skipped": 1,
+        "amp/actor/scale": 16384.0,
+        "amp/autocast_fp16": 1,
+        "actor_grad_norm_nonfinite": 1,
+        "actor_grad_norm_nonfinite_kind": "inf"
+      }
+    },
+    {
+      "rollout_step": 128,
+      "batch_index": 0,
+      "compiled": true,
+      "scale_before": 32768.0,
+      "active_fraction": 1.0,
+      "input_finite": true,
+      "metrics": {
+        "actor_loss": -136.18023681640625,
+        "actor_grad_norm": null,
+        "actor_update_step": 27456.0,
+        "policy_updated": 1.0,
+        "amp/enabled": 1,
+        "amp/actor/attempted": 1,
+        "amp/actor/applied": 0,
+        "amp/actor/skipped": 1,
+        "amp/actor/scale": 16384.0,
+        "amp/autocast_fp16": 1,
+        "actor_grad_norm_nonfinite": 1,
+        "actor_grad_norm_nonfinite_kind": "inf"
+      }
+    }
+  ],
+  "comparisons": [
+    {
+      "source_commit": "0042166fb0408d9efa487ad2ccd31c59b709cd69",
+      "source_device": "cuda:1",
+      "replay_device": "cuda:1",
+      "group": "actor",
+      "algorithm": "matd3",
+      "source_compile_models": false,
+      "compiled_forward_replayed": false,
+      "source_async": false,
+      "rng_interleaving_replayed": true,
+      "input_stats": {
+        "observation": {
+          "shape": [
+            8192,
+            6,
+            163
+          ],
+          "dtype": "torch.float32",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 1.0
+        },
+        "next_observation": {
+          "shape": [
+            8192,
+            6,
+            163
+          ],
+          "dtype": "torch.float32",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 1.0
+        },
+        "state": {
+          "shape": [
+            8192,
+            643
+          ],
+          "dtype": "torch.float32",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 1.0
+        },
+        "next_state": {
+          "shape": [
+            8192,
+            643
+          ],
+          "dtype": "torch.float32",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 1.0
+        },
+        "continuous": {
+          "shape": [
+            8192,
+            6,
+            3
+          ],
+          "dtype": "torch.float32",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 1.0
+        },
+        "destination": {
+          "shape": [
+            8192,
+            6
+          ],
+          "dtype": "torch.int64",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 6.0
+        },
+        "reward": {
+          "shape": [
+            8192
+          ],
+          "dtype": "torch.float32",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 114.79898071289062
+        },
+        "terminated": {
+          "shape": [
+            8192
+          ],
+          "dtype": "torch.float32",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 0.0
+        }
+      },
+      "cases": {
+        "off": {
+          "error_type": null,
+          "losses_finite": true,
+          "skipped": 0,
+          "applied": null,
+          "parameter_gradient_stats": {
+            "actors.5.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 1.9084892244336515e-07,
+              "abs_max_at_source_scale": 0.006253737490624189
+            },
+            "actors.5.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 5.083268206362845e-06,
+              "abs_max_at_source_scale": 0.16656853258609772
+            },
+            "actors.5.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0024379759561270475,
+              "abs_max_at_source_scale": 79.8875961303711
+            },
+            "actors.5.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.019263610243797302,
+              "abs_max_at_source_scale": 631.22998046875
+            },
+            "actors.5.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0007665237062610686,
+              "abs_max_at_source_scale": 25.117448806762695
+            },
+            "actors.5.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0008022809051908553,
+              "abs_max_at_source_scale": 26.289140701293945
+            },
+            "actors.5.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.007189321331679821,
+              "abs_max_at_source_scale": 235.57968139648438
+            },
+            "actors.5.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.007189321797341108,
+              "abs_max_at_source_scale": 235.57969665527344
+            },
+            "actors.4.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 7.555016782134771e-05,
+              "abs_max_at_source_scale": 2.475627899169922
+            },
+            "actors.4.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0013292905641719699,
+              "abs_max_at_source_scale": 43.55819320678711
+            },
+            "actors.4.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2.329619019292295e-05,
+              "abs_max_at_source_scale": 0.7633695602416992
+            },
+            "actors.4.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0003686052223201841,
+              "abs_max_at_source_scale": 12.078455924987793
+            },
+            "actors.4.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 6.143930659163743e-05,
+              "abs_max_at_source_scale": 2.0132431983947754
+            },
+            "actors.4.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0004416990850586444,
+              "abs_max_at_source_scale": 14.47359561920166
+            },
+            "actors.4.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0008123439038172364,
+              "abs_max_at_source_scale": 26.618885040283203
+            },
+            "actors.4.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0008368187700398266,
+              "abs_max_at_source_scale": 27.42087745666504
+            },
+            "actors.3.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2.0117572603339795e-06,
+              "abs_max_at_source_scale": 0.06592126190662384
+            },
+            "actors.3.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2.987557672895491e-05,
+              "abs_max_at_source_scale": 0.9789628982543945
+            },
+            "actors.3.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 1.7401700347363658e-07,
+              "abs_max_at_source_scale": 0.005702189169824123
+            },
+            "actors.3.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 1.3887870409234893e-06,
+              "abs_max_at_source_scale": 0.045507773756980896
+            },
+            "actors.3.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 4.787033844877442e-07,
+              "abs_max_at_source_scale": 0.0156861525028944
+            },
+            "actors.3.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 1.0846054010471562e-06,
+              "abs_max_at_source_scale": 0.035540349781513214
+            },
+            "actors.3.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 3.0460452649094805e-07,
+              "abs_max_at_source_scale": 0.009981281124055386
+            },
+            "actors.3.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 3.404039432552963e-07,
+              "abs_max_at_source_scale": 0.01115435641258955
+            },
+            "actors.2.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 9.834849151957314e-06,
+              "abs_max_at_source_scale": 0.3222683370113373
+            },
+            "actors.2.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.00012903931201435626,
+              "abs_max_at_source_scale": 4.228360176086426
+            },
+            "actors.2.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 5.945679504293366e-07,
+              "abs_max_at_source_scale": 0.019482802599668503
+            },
+            "actors.2.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2.193916316173272e-06,
+              "abs_max_at_source_scale": 0.07189024984836578
+            },
+            "actors.2.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 1.904254304463393e-06,
+              "abs_max_at_source_scale": 0.062398605048656464
+            },
+            "actors.2.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 6.417674740077928e-06,
+              "abs_max_at_source_scale": 0.21029436588287354
+            },
+            "actors.2.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2.023410615947796e-06,
+              "abs_max_at_source_scale": 0.06630311906337738
+            },
+            "actors.2.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2.023410161200445e-06,
+              "abs_max_at_source_scale": 0.06630310416221619
+            },
+            "actors.1.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0014816835755482316,
+              "abs_max_at_source_scale": 48.55180740356445
+            },
+            "actors.1.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.026551589369773865,
+              "abs_max_at_source_scale": 870.04248046875
+            },
+            "actors.1.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.8551533222198486,
+              "abs_max_at_source_scale": 28021.6640625
+            },
+            "actors.1.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 7.690993309020996,
+              "abs_max_at_source_scale": 252018.46875
+            },
+            "actors.1.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.1460472047328949,
+              "abs_max_at_source_scale": 4785.6748046875
+            },
+            "actors.1.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.23992246389389038,
+              "abs_max_at_source_scale": 7861.779296875
+            },
+            "actors.1.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.23213034868240356,
+              "abs_max_at_source_scale": 7606.447265625
+            },
+            "actors.1.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.23213034868240356,
+              "abs_max_at_source_scale": 7606.447265625
+            },
+            "actors.0.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0019995300099253654,
+              "abs_max_at_source_scale": 65.52059936523438
+            },
+            "actors.0.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.02615988999605179,
+              "abs_max_at_source_scale": 857.207275390625
+            },
+            "actors.0.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.017326850444078445,
+              "abs_max_at_source_scale": 567.7662353515625
+            },
+            "actors.0.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.1342209428548813,
+              "abs_max_at_source_scale": 4398.15185546875
+            },
+            "actors.0.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.01271279901266098,
+              "abs_max_at_source_scale": 416.572998046875
+            },
+            "actors.0.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.01694054901599884,
+              "abs_max_at_source_scale": 555.10791015625
+            },
+            "actors.0.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.08233465254306793,
+              "abs_max_at_source_scale": 2697.94189453125
+            },
+            "actors.0.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.08233464509248734,
+              "abs_max_at_source_scale": 2697.941650390625
+            }
+          },
+          "first_nonfinite_parameter_gradient": null,
+          "overflow_events": [],
+          "metrics": {
+            "actor_loss": -136.17861938476562,
+            "actor_grad_norm": 3.1086597442626953,
+            "actor_update_step": 27456.0,
+            "policy_updated": 1.0
+          },
+          "model_finite": true
+        },
+        "fp16": {
+          "error_type": null,
+          "losses_finite": true,
+          "skipped": 1,
+          "applied": 0,
+          "parameter_gradient_stats": {
+            "actors.5.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.1668701171875
+            },
+            "actors.5.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.006267547607421875
+            },
+            "actors.5.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 631.5
+            },
+            "actors.5.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 79.9375
+            },
+            "actors.5.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 26.3125
+            },
+            "actors.5.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 25.140625
+            },
+            "actors.5.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 235.625
+            },
+            "actors.5.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 235.75
+            },
+            "actors.4.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 43.4375
+            },
+            "actors.4.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2.365234375
+            },
+            "actors.4.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 12.1953125
+            },
+            "actors.4.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.7724609375
+            },
+            "actors.4.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 14.2890625
+            },
+            "actors.4.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 1.9296875
+            },
+            "actors.4.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 27.5
+            },
+            "actors.4.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 26.671875
+            },
+            "actors.3.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.9765625
+            },
+            "actors.3.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0657958984375
+            },
+            "actors.3.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0
+            },
+            "actors.3.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0
+            },
+            "actors.3.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0350341796875
+            },
+            "actors.3.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0151824951171875
+            },
+            "actors.3.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.010498046875
+            },
+            "actors.3.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.00853729248046875
+            },
+            "actors.2.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 4.23046875
+            },
+            "actors.2.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.322509765625
+            },
+            "actors.2.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.154541015625
+            },
+            "actors.2.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0295562744140625
+            },
+            "actors.2.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.208251953125
+            },
+            "actors.2.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.05914306640625
+            },
+            "actors.2.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.06585693359375
+            },
+            "actors.2.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.06585693359375
+            },
+            "actors.1.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 870.5
+            },
+            "actors.1.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 48.59375
+            },
+            "actors.1.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": false,
+              "nonfinite_count": 16,
+              "finite_abs_max": 63776.0
+            },
+            "actors.1.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 28016.0
+            },
+            "actors.1.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 7860.0
+            },
+            "actors.1.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 4784.0
+            },
+            "actors.1.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 7604.0
+            },
+            "actors.1.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 7604.0
+            },
+            "actors.0.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 857.5
+            },
+            "actors.0.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 65.5625
+            },
+            "actors.0.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 4396.0
+            },
+            "actors.0.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 568.0
+            },
+            "actors.0.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 555.0
+            },
+            "actors.0.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 416.5
+            },
+            "actors.0.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2696.0
+            },
+            "actors.0.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2696.0
+            }
+          },
+          "first_nonfinite_parameter_gradient": "actors.1.continuous.weight",
+          "overflow_events": [
+            {
+              "group": "actor",
+              "scale_before": 32768.0,
+              "scale_after": 16384.0,
+              "raw_gradients_finite": false,
+              "category": "nonfinite_gradients",
+              "attempted": 1,
+              "skipped": 1,
+              "losses": [
+                -137.5333709716797,
+                -138.69097900390625,
+                -125.9579849243164,
+                -138.7822723388672,
+                -135.44491577148438,
+                -140.6719207763672
+              ]
+            }
+          ],
+          "metrics": {
+            "actor_loss": -136.18023681640625,
+            "actor_grad_norm": "inf",
+            "actor_update_step": 27456.0,
+            "policy_updated": 1.0,
+            "amp/enabled": 1,
+            "amp/actor/attempted": 1,
+            "amp/actor/applied": 0,
+            "amp/actor/skipped": 1,
+            "amp/actor/scale": 16384.0,
+            "amp/autocast_fp16": 1
+          },
+          "model_finite": true
+        }
+      },
+      "snapshot_file": "128-0-eager-32768/overflow-actor-probe-actor.pt"
+    },
+    {
+      "source_commit": "0042166fb0408d9efa487ad2ccd31c59b709cd69",
+      "source_device": "cuda:1",
+      "replay_device": "cuda:1",
+      "group": "actor",
+      "algorithm": "matd3",
+      "source_compile_models": true,
+      "compiled_forward_replayed": false,
+      "source_async": false,
+      "rng_interleaving_replayed": true,
+      "input_stats": {
+        "observation": {
+          "shape": [
+            8192,
+            6,
+            163
+          ],
+          "dtype": "torch.float32",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 1.0
+        },
+        "next_observation": {
+          "shape": [
+            8192,
+            6,
+            163
+          ],
+          "dtype": "torch.float32",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 1.0
+        },
+        "state": {
+          "shape": [
+            8192,
+            643
+          ],
+          "dtype": "torch.float32",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 1.0
+        },
+        "next_state": {
+          "shape": [
+            8192,
+            643
+          ],
+          "dtype": "torch.float32",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 1.0
+        },
+        "continuous": {
+          "shape": [
+            8192,
+            6,
+            3
+          ],
+          "dtype": "torch.float32",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 1.0
+        },
+        "destination": {
+          "shape": [
+            8192,
+            6
+          ],
+          "dtype": "torch.int64",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 6.0
+        },
+        "reward": {
+          "shape": [
+            8192
+          ],
+          "dtype": "torch.float32",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 114.79898071289062
+        },
+        "terminated": {
+          "shape": [
+            8192
+          ],
+          "dtype": "torch.float32",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 0.0
+        }
+      },
+      "cases": {
+        "off": {
+          "error_type": null,
+          "losses_finite": true,
+          "skipped": 0,
+          "applied": null,
+          "parameter_gradient_stats": {
+            "actors.5.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 1.9084892244336515e-07,
+              "abs_max_at_source_scale": 0.006253737490624189
+            },
+            "actors.5.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 5.083268206362845e-06,
+              "abs_max_at_source_scale": 0.16656853258609772
+            },
+            "actors.5.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0024379759561270475,
+              "abs_max_at_source_scale": 79.8875961303711
+            },
+            "actors.5.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.019263610243797302,
+              "abs_max_at_source_scale": 631.22998046875
+            },
+            "actors.5.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0007665237062610686,
+              "abs_max_at_source_scale": 25.117448806762695
+            },
+            "actors.5.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0008022809051908553,
+              "abs_max_at_source_scale": 26.289140701293945
+            },
+            "actors.5.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.007189321331679821,
+              "abs_max_at_source_scale": 235.57968139648438
+            },
+            "actors.5.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.007189321797341108,
+              "abs_max_at_source_scale": 235.57969665527344
+            },
+            "actors.4.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 7.555016782134771e-05,
+              "abs_max_at_source_scale": 2.475627899169922
+            },
+            "actors.4.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0013292905641719699,
+              "abs_max_at_source_scale": 43.55819320678711
+            },
+            "actors.4.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2.329619019292295e-05,
+              "abs_max_at_source_scale": 0.7633695602416992
+            },
+            "actors.4.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0003686052223201841,
+              "abs_max_at_source_scale": 12.078455924987793
+            },
+            "actors.4.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 6.143930659163743e-05,
+              "abs_max_at_source_scale": 2.0132431983947754
+            },
+            "actors.4.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0004416990850586444,
+              "abs_max_at_source_scale": 14.47359561920166
+            },
+            "actors.4.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0008123439038172364,
+              "abs_max_at_source_scale": 26.618885040283203
+            },
+            "actors.4.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0008368187700398266,
+              "abs_max_at_source_scale": 27.42087745666504
+            },
+            "actors.3.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2.0117572603339795e-06,
+              "abs_max_at_source_scale": 0.06592126190662384
+            },
+            "actors.3.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2.987557672895491e-05,
+              "abs_max_at_source_scale": 0.9789628982543945
+            },
+            "actors.3.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 1.7401700347363658e-07,
+              "abs_max_at_source_scale": 0.005702189169824123
+            },
+            "actors.3.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 1.3887870409234893e-06,
+              "abs_max_at_source_scale": 0.045507773756980896
+            },
+            "actors.3.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 4.787033844877442e-07,
+              "abs_max_at_source_scale": 0.0156861525028944
+            },
+            "actors.3.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 1.0846054010471562e-06,
+              "abs_max_at_source_scale": 0.035540349781513214
+            },
+            "actors.3.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 3.0460452649094805e-07,
+              "abs_max_at_source_scale": 0.009981281124055386
+            },
+            "actors.3.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 3.404039432552963e-07,
+              "abs_max_at_source_scale": 0.01115435641258955
+            },
+            "actors.2.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 9.834849151957314e-06,
+              "abs_max_at_source_scale": 0.3222683370113373
+            },
+            "actors.2.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.00012903931201435626,
+              "abs_max_at_source_scale": 4.228360176086426
+            },
+            "actors.2.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 5.945679504293366e-07,
+              "abs_max_at_source_scale": 0.019482802599668503
+            },
+            "actors.2.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2.193916316173272e-06,
+              "abs_max_at_source_scale": 0.07189024984836578
+            },
+            "actors.2.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 1.904254304463393e-06,
+              "abs_max_at_source_scale": 0.062398605048656464
+            },
+            "actors.2.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 6.417674740077928e-06,
+              "abs_max_at_source_scale": 0.21029436588287354
+            },
+            "actors.2.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2.023410615947796e-06,
+              "abs_max_at_source_scale": 0.06630311906337738
+            },
+            "actors.2.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2.023410161200445e-06,
+              "abs_max_at_source_scale": 0.06630310416221619
+            },
+            "actors.1.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0014816835755482316,
+              "abs_max_at_source_scale": 48.55180740356445
+            },
+            "actors.1.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.026551589369773865,
+              "abs_max_at_source_scale": 870.04248046875
+            },
+            "actors.1.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.8551533222198486,
+              "abs_max_at_source_scale": 28021.6640625
+            },
+            "actors.1.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 7.690993309020996,
+              "abs_max_at_source_scale": 252018.46875
+            },
+            "actors.1.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.1460472047328949,
+              "abs_max_at_source_scale": 4785.6748046875
+            },
+            "actors.1.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.23992246389389038,
+              "abs_max_at_source_scale": 7861.779296875
+            },
+            "actors.1.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.23213034868240356,
+              "abs_max_at_source_scale": 7606.447265625
+            },
+            "actors.1.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.23213034868240356,
+              "abs_max_at_source_scale": 7606.447265625
+            },
+            "actors.0.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0019995300099253654,
+              "abs_max_at_source_scale": 65.52059936523438
+            },
+            "actors.0.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.02615988999605179,
+              "abs_max_at_source_scale": 857.207275390625
+            },
+            "actors.0.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.017326850444078445,
+              "abs_max_at_source_scale": 567.7662353515625
+            },
+            "actors.0.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.1342209428548813,
+              "abs_max_at_source_scale": 4398.15185546875
+            },
+            "actors.0.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.01271279901266098,
+              "abs_max_at_source_scale": 416.572998046875
+            },
+            "actors.0.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.01694054901599884,
+              "abs_max_at_source_scale": 555.10791015625
+            },
+            "actors.0.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.08233465254306793,
+              "abs_max_at_source_scale": 2697.94189453125
+            },
+            "actors.0.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.08233464509248734,
+              "abs_max_at_source_scale": 2697.941650390625
+            }
+          },
+          "first_nonfinite_parameter_gradient": null,
+          "overflow_events": [],
+          "metrics": {
+            "actor_loss": -136.17861938476562,
+            "actor_grad_norm": 3.1086597442626953,
+            "actor_update_step": 27456.0,
+            "policy_updated": 1.0
+          },
+          "model_finite": true
+        },
+        "fp16": {
+          "error_type": null,
+          "losses_finite": true,
+          "skipped": 1,
+          "applied": 0,
+          "parameter_gradient_stats": {
+            "actors.5.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.1668701171875
+            },
+            "actors.5.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.006267547607421875
+            },
+            "actors.5.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 631.5
+            },
+            "actors.5.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 79.9375
+            },
+            "actors.5.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 26.3125
+            },
+            "actors.5.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 25.140625
+            },
+            "actors.5.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 235.625
+            },
+            "actors.5.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 235.75
+            },
+            "actors.4.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 43.4375
+            },
+            "actors.4.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2.365234375
+            },
+            "actors.4.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 12.1953125
+            },
+            "actors.4.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.7724609375
+            },
+            "actors.4.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 14.2890625
+            },
+            "actors.4.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 1.9296875
+            },
+            "actors.4.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 27.5
+            },
+            "actors.4.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 26.671875
+            },
+            "actors.3.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.9765625
+            },
+            "actors.3.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0657958984375
+            },
+            "actors.3.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0
+            },
+            "actors.3.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0
+            },
+            "actors.3.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0350341796875
+            },
+            "actors.3.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0151824951171875
+            },
+            "actors.3.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.010498046875
+            },
+            "actors.3.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.00853729248046875
+            },
+            "actors.2.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 4.23046875
+            },
+            "actors.2.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.322509765625
+            },
+            "actors.2.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.154541015625
+            },
+            "actors.2.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.0295562744140625
+            },
+            "actors.2.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.208251953125
+            },
+            "actors.2.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.05914306640625
+            },
+            "actors.2.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.06585693359375
+            },
+            "actors.2.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 0.06585693359375
+            },
+            "actors.1.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 870.5
+            },
+            "actors.1.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 48.59375
+            },
+            "actors.1.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": false,
+              "nonfinite_count": 16,
+              "finite_abs_max": 63776.0
+            },
+            "actors.1.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 28016.0
+            },
+            "actors.1.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 7860.0
+            },
+            "actors.1.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 4784.0
+            },
+            "actors.1.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 7604.0
+            },
+            "actors.1.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 7604.0
+            },
+            "actors.0.destination.weight": {
+              "shape": [
+                7,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 857.5
+            },
+            "actors.0.destination.bias": {
+              "shape": [
+                7
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 65.5625
+            },
+            "actors.0.continuous.weight": {
+              "shape": [
+                3,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 4396.0
+            },
+            "actors.0.continuous.bias": {
+              "shape": [
+                3
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 568.0
+            },
+            "actors.0.encoder.2.weight": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 555.0
+            },
+            "actors.0.encoder.2.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 416.5
+            },
+            "actors.0.encoder.0.weight": {
+              "shape": [
+                256,
+                163
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2696.0
+            },
+            "actors.0.encoder.0.bias": {
+              "shape": [
+                256
+              ],
+              "dtype": "torch.float32",
+              "finite": true,
+              "nonfinite_count": 0,
+              "finite_abs_max": 2696.0
+            }
+          },
+          "first_nonfinite_parameter_gradient": "actors.1.continuous.weight",
+          "overflow_events": [
+            {
+              "group": "actor",
+              "scale_before": 32768.0,
+              "scale_after": 16384.0,
+              "raw_gradients_finite": false,
+              "category": "nonfinite_gradients",
+              "attempted": 1,
+              "skipped": 1,
+              "losses": [
+                -137.5333709716797,
+                -138.69097900390625,
+                -125.9579849243164,
+                -138.7822723388672,
+                -135.44491577148438,
+                -140.6719207763672
+              ]
+            }
+          ],
+          "metrics": {
+            "actor_loss": -136.18023681640625,
+            "actor_grad_norm": "inf",
+            "actor_update_step": 27456.0,
+            "policy_updated": 1.0,
+            "amp/enabled": 1,
+            "amp/actor/attempted": 1,
+            "amp/actor/applied": 0,
+            "amp/actor/skipped": 1,
+            "amp/actor/scale": 16384.0,
+            "amp/autocast_fp16": 1
+          },
+          "model_finite": true
+        }
+      },
+      "snapshot_file": "128-0-compiled-32768/overflow-actor-probe-actor.pt"
+    }
+  ],
+  "trace": {
+    "mode": "eager_backward_only",
+    "first_observed_nonfinite_op": {
+      "op": "aten.mm.default",
+      "inputs": [
+        {
+          "shape": [
+            3,
+            8192
+          ],
+          "dtype": "torch.float16",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 22.484375
+        },
+        {
+          "shape": [
+            8192,
+            256
+          ],
+          "dtype": "torch.float16",
+          "finite": true,
+          "nonfinite_count": 0,
+          "finite_abs_max": 30.125
+        }
+      ],
+      "nonfinite_outputs": [
+        {
+          "shape": [
+            3,
+            256
+          ],
+          "dtype": "torch.float16",
+          "finite": false,
+          "nonfinite_count": 16,
+          "finite_abs_max": 63776.0
+        }
+      ]
+    },
+    "uninspected_operations": 0,
+    "metrics": {
+      "actor_loss": -136.18023681640625,
+      "actor_grad_norm": null,
+      "actor_update_step": 27456.0,
+      "policy_updated": 1.0,
+      "amp/enabled": 1,
+      "amp/actor/attempted": 1,
+      "amp/actor/applied": 0,
+      "amp/actor/skipped": 1,
+      "amp/actor/scale": 16384.0,
+      "amp/autocast_fp16": 1,
+      "actor_grad_norm_nonfinite": 1,
+      "actor_grad_norm_nonfinite_kind": "inf"
+    }
+  },
+  "found_actor_overflow": true,
+  "status": "completed",
+  "policy_rollout_learning": false,
+  "hardware": [
+    "Tesla T4",
+    "Tesla T4"
+  ],
+  "source_model_finite": true,
+  "rollout_steps": 128,
+  "fresh_transitions": 524288,
+  "elapsed_seconds": 281.07684061
+}

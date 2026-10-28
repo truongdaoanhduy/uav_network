@@ -1,3 +1,20 @@
+# MATD3 actor reproduction / three authorized restarts — RUNNING / STARTUP VERIFIED
+
+Updated 2026-10-28T08:16:13Z. User explicitly requested a further actor-overflow reproduction and restarts of the three failed experiments. Diagnostic and new production source `0042166fb0408d9efa487ad2ccd31c59b709cd69` is the documentation descendant of verified runtime98724b8; no runtime/config edits in this follow-up.
+
+- Actor probe `aa6066de`, Kaggle `egkljwigojwof/diag-matd3-actor-late-1028-fc3fc4`, completed. Actual finite historical MATD3 BASE model + NEW finite rollout batch reproduced actor overflow at scale32768 in eager and compile-enabled probes. Eager backward trace first nonfinite operation is `aten.mm.default`, [3,8192] x [8192,256] -> [3,256],16nonfinite outputs, zero uninspected operations. FP32 reference weight gradient7.690993309*32768=252018.46875>65504. FP32 loss/norm finite. Historical batch/optimizer were never recovered; do not claim exact old-event replay.
+- Fresh seed44 production roots (same scientific/runtime config, 20000episodes,E4096,B8192,R1M,CPU75/GPU25,2T4): MASAC PQL account02 old03df03cc ->new0650d5b1/root`vuliu123456/gh-tra-g3-masac-pql-h75-1028080-7b56ff`; MATD3 BASE account03 old3befcfb8 ->new44558e6c/root`egkljwigojwof/gh-tra-g3-matd3-base-h75-1028-fa6b65`; MATD3 PQL account04 old4f8f7d7d ->new87a9500e/root`gkgijewjf/gh-tra-g3-matd3-pql-h75-10280805-9535a7`. Old full-state checkpoints are absent, so these are fresh lineages, not exact resumes/warm-starts. All three effective W&B scientific sections and full runtime compare equal to each old counterpart.
+- 08:15UTC Kaggle+W&B running with positive learner progress: MASAC PQL global_step278528/updates272, MATD3 BASE688128/1088, MATD3 PQL655360/1008. All three have already captured real production nonfinite-gradient events and continued applying updates after AMP skip/backoff; MATD3 BASE/PQL actor and critic snapshots and MASAC PQL critic snapshot are available on their W&B runs. No 20000episode completion claimed.
+- External supervisor reconcile40654732673/job122702913311 explicitly recognizes all new exact roots active/running at08:09:44UTC. Overall invocation nonzero concerns only OLD roots with checkpoint_missing; do not confuse this with new-root failure. Manifests retain auto_continue, GitHub orchestration, CPU30 evaluation and visualization.
+- Preserve healthy old roots: 4f98f2c9,a04dbdef,8db188ea all running on W&B+Kaggle with fresh heartbeat at08:16UTC. Their config/state was not mutated. Do not launch duplicate roots or cancel them.
+- Fresh verification: recipe py_compile passed; project structure/scientific source checks 2passed +449subtests in0.22s; diff check and runtime/config equality against98724b8 passed; evidence consistency assertions passed; 12 credential values scanned across6changed files,0hits. Previously verified runtime98724b8 full CPU suite959passed/95skipped/1408subtests; no runtime modifications here.
+
+Detailed [report](evidence/2026-10-28-matd3-actor-reproduction-and-restarts.md), [structured evidence](evidence/2026-10-28-matd3-actor-reproduction-and-restarts.json), [full diagnostic result](evidence/2026-10-28-matd3-actor-probe-result.json), [executed recipe](evidence/2026-10-28-matd3-actor-probe.py).
+
+Next action: preserve these six active production roots. Recheck live service state for follow-ups; use the now-saved production batch/snapshot for any further numerical failure. Do not infer that an observed skip means the run failed, or claim a lost historical batch was reconstructed. No merge/main migration was requested.
+
+---
+
 # AMP overflow telemetry/capture fix — COMPLETE / VERIFIED ON CPU AND DUAL T4
 
 Completed 2026-10-28. Verified runtime `98724b827ce0dd017bb319dea09aa3c31b90282a` on `feat/cpu-replay-20261022`. User authorized execution of the preceding proposal. Existing host worktree retained; no production restart/cancel or scientific-config change.

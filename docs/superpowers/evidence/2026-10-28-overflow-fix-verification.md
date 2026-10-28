@@ -1,5 +1,7 @@
 # Overflow capture, numeric evidence and logging fix — 28 October 2026
 
+Follow-up 2026-10-28: [actor arithmetic reproduction and authorized production restarts](2026-10-28-matd3-actor-reproduction-and-restarts.md) resolves the earlier missing actor reproduction on new rollout data. The exact historical failed batch remains unavailable.
+
 Runtime source: `98724b827ce0dd017bb319dea09aa3c31b90282a`. Branch: `feat/cpu-replay-20261022`.
 
 ## What is fixed
