@@ -1,3 +1,29 @@
+# Additional MASAC E2048/B4096 cohort — RUNNING / CLOUD SUPERVISOR ACTIVE
+
+Updated 2026-10-28T05:29:09Z. User explicitly requested two additional MASAC production roots, BASE and PQL, keeping the preceding canonical HYBRID75/1KiB 20k setup unchanged except `runtime.num_envs=2048` and `masac.batch_size=4096`. The PQL root additionally uses the same mode selector `pql.enabled=true` as the existing PQL cohort.
+
+## Accounts / roots
+
+- `account_06` / `fwklgeewjlfew`: MASAC BASE, root `fwklgeewjlfew/gh-tra-g3-masac-base-h75-1028-a76638`, W&B `a04dbdef`.
+- `account_07` / `lkejflwejf`: MASAC PQL, root `lkejflwejf/gh-tra-g3-masac-pql-h75-10280520-a7f572`, W&B `8db188ea`.
+- Both roots pin source `55a264cf27505d97f66aae4eadf73f61422169f7`, which contains the previously verified credential-refresh fix; scientific runtime/algorithm code is unchanged from the preceding cohort source.
+- Both manifests have `orchestration=github_actions`, `external_supervisor_required=true`, `auto_continue=true`, `cpu_visualize=true`, 2 visible T4 GPUs, final CPU evaluation 30 episodes with seed `2000000044`.
+
+## Verified effective configuration
+
+W&B config readback confirms both runs use `runtime.num_envs=2048`, `masac.batch_size=4096`, episodes 20,000, replay 1,000,000, learning_starts 131,072, updates_per_step 8, scenario-v3, 1KiB report/payload and the same HYBRID CPU75/GPU25 layout. BASE has `pql.enabled=false`; PQL has `pql.enabled=true`. Because the canonical YAML carried stale human tags `env4096`/`batch8192`, both W&B run tags were corrected post-start to `env2048`/`batch4096`; run config and training values were not mutated.
+
+Fresh launch snapshot at 05:29:05–05:29:09Z:
+
+- BASE `a04dbdef`: Kaggle `running`, W&B `running`, global_step 354,304, train/updates 872.
+- PQL `8db188ea`: Kaggle `running`, W&B `running`, global_step 202,752, train/updates 520.
+
+GitHub `KAGGLE_ENABLED_ACCOUNTS` now keeps the original four accounts and adds 06/07: `account_01,account_02,account_03,account_04,account_06,account_07`. Hosted service probe confirms Kaggle identities for 06/07 plus W&B/HF are OK. Non-dry supervisor run `40638183428` reports both new roots exactly as `action=active`, `status=running`, so they are independent of the local sandbox and are eligible for the same train -> verified continuation -> final CPU evaluation/visualization flow.
+
+Operational caveat: the same supervisor invocation exits nonzero because older roots on accounts02-04 currently report `recovery_blocked/checkpoint_missing`; account isolation still lets reconciliation continue through accounts06/07, as proven by the active/running entries above. Do not relaunch or cancel the new roots because of the unrelated old-lineage errors.
+
+---
+
 # Four-account accelerated 20k cohort — RUNNING / CLOUD SUPERVISOR ACTIVE
 
 Updated 2026-10-28T03:36:06Z. User explicitly authorized four fresh canonical HYBRID75/1KiB production roots, one Kaggle account per MASAC/MATD3 BASE/PQL, with sandbox-independent continuation and final CPU evaluation/visualization.
