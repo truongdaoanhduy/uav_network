@@ -1,3 +1,43 @@
+# Four-account accelerated 20k cohort — RUNNING / CLOUD SUPERVISOR ACTIVE
+
+Updated 2026-10-28T03:36:06Z. User explicitly authorized four fresh canonical HYBRID75/1KiB production roots, one Kaggle account per MASAC/MATD3 BASE/PQL, with sandbox-independent continuation and final CPU evaluation/visualization.
+
+## Source / launch correction
+
+- Production roots are pinned to `1aa095f29b8505bbf43ca42033c51ea96d144dd5` on `feat/cpu-replay-20261022`.
+- Launch preflight exposed a stale canonical private W&B credential dataset. No kernel had been submitted at that failure point. Root cause: `_ensure_single_credential` verified an existing stale value then failed without refreshing it.
+- TDD fix `1aa095f`: existing owned private credential datasets now publish one refreshed version and reread until the selected local credential matches; newly created datasets still fail hard on mismatch. Focused verification: 26 passed + 9 subtests. Full suite: 931 passed, 95 skipped, 8 warnings, 1400 subtests, 0 failures in 513.19s.
+- GitHub supervisor secrets were refreshed from the local ignored key file without printing values. `KAGGLE_ENABLED_ACCOUNTS=account_01,account_02,account_03,account_04`.
+- Hosted GitHub read-only dry-run `40625191550` succeeded: Kaggle identities for all four accounts, W&B and HF all `status=ok`; no pre-existing supervised lineage on those accounts.
+
+## Running roots
+
+| Account | Case | Kaggle root | W&B learner |
+| --- | --- | --- | --- |
+| `account_01` / `duytrngoanh` | MASAC BASE | `duytrngoanh/gh-tra-g3-masac-base-h75-102803-a0b159` | `4f98f2c9` |
+| `account_02` / `vuliu123456` | MASAC PQL | `vuliu123456/gh-tra-g3-masac-pql-h75-1028032-944054` | `03df03cc` |
+| `account_03` / `egkljwigojwof` | MATD3 BASE | `egkljwigojwof/gh-tra-g3-matd3-base-h75-1028-8d7c87` | `3befcfb8` |
+| `account_04` / `gkgijewjf` | MATD3 PQL | `gkgijewjf/gh-tra-g3-matd3-pql-h75-10280327-2ad6d8` | `4f8f7d7d` |
+
+All four manifests have `orchestration=github_actions`, `external_supervisor_required=true`, `auto_continue=true`, `cpu_visualize=true`, final CPU evaluation `episodes=30`, `seed=2000000044`, frame stride 5 and 10 fps. They use canonical `configs/comparison-20k-hybrid75-1kb.yaml`, 2 visible T4 GPUs, 20,000-episode budget; PQL roots only add `pql.enabled=true`. Measured acceleration policy remains algorithm-specific and unchanged.
+
+## Fresh live evidence before sandbox handoff
+
+At 03:35:57–03:36:06Z all four Kaggle roots were `running`, all four W&B learner rows were `running` with fresh heartbeat and positive learner progress:
+
+- MASAC BASE `4f98f2c9`: global_step 573,440; train/updates 864.
+- MASAC PQL `03df03cc`: global_step 495,616; train/updates 688.
+- MATD3 BASE `3befcfb8`: global_step 684,032; train/updates 1,080.
+- MATD3 PQL `4f8f7d7d`: global_step 331,776; train/updates 376.
+
+Hosted non-dry supervisor reconcile `40627527455` succeeded and reported all four exact refs with `action=active`, `status=running`. The scheduled `UAV External Supervisor` remains on `main` and runs every 15 minutes; it is independent of the local sandbox. Therefore the local sandbox/laptop may be stopped without stopping these four roots. When a GPU segment ends before the 20,000-episode budget, the supervisor should continue from a verified resumable full-state checkpoint on the same account. When the episode budget completes, it should hand off to the configured CPU 30-episode evaluation/visualization and W&B/HF publication. Cloud quota/service failures can delay a transition; do not create duplicate roots or move a lineage to another account.
+
+## Next action
+
+Do not relaunch/cancel these roots. For status questions, fresh-query Kaggle + W&B and the latest GitHub supervisor report; the progress numbers above are only the launch-time snapshot. If a lineage stops, follow exact checkpoint provenance/recovery gates rather than warm-starting or silently changing scientific config.
+
+---
+
 # Diagnostic coverage audit — COMPLETE / VERIFIED ONLINE
 
 Updated 2026-10-28T01:10:01.014110+00:00. Runtime/source frozen and verified at `56604cc71f294cd94e5251491ab7d1397a95200b`.
