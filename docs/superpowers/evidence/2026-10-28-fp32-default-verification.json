@@ -1,0 +1,275 @@
+{
+  "recorded_at_utc": "2026-10-28T09:19:51.830191+00:00",
+  "runtime_source_commit": "d290b7157a85428eacdfa3343c731a343af9fa37",
+  "base_commit": "e7f9d979d3c49abca4c1a0d04ea7514ece24dffe",
+  "default_behavior": {
+    "canonical_amp_key_absent": true,
+    "launcher_injects_amp": false,
+    "resolved_amp_mode": "off",
+    "canonical_tag": "amp-off",
+    "explicit_amp_opt_in_preserved": true
+  },
+  "baseline": {
+    "passed": 39,
+    "subtests": 8,
+    "seconds": 18.18
+  },
+  "red": {
+    "failed": 7,
+    "passed": 33,
+    "subtests": 10,
+    "seconds": 21.5,
+    "reason": "canonical YAML and cloud policy selected FP16 despite requested AMP omission"
+  },
+  "focused_green": {
+    "passed": 78,
+    "subtests": 460,
+    "seconds": 20.44
+  },
+  "full_suite": {
+    "passed": 960,
+    "skipped": 95,
+    "warnings": 8,
+    "subtests": 1417,
+    "seconds": 501.47,
+    "junit_errors": 0,
+    "junit_failures": 0
+  },
+  "cuda_probe": {
+    "spec": {
+      "folder": "outputs/fp32-cuda-check-c36d75",
+      "purpose": "Canonical FP32 CUDA/no-scaler execution validation before transition of three recent retries; zero production episodes",
+      "commit": "d290b7157a85428eacdfa3343c731a343af9fa37",
+      "kernel_ref": "fwelfijwelfj/diag-fp32-canonical-1028-c36d75",
+      "wandb_run_id": "8df42093",
+      "entity": "truongdaoanhduy-uit",
+      "project": "uav_search_target",
+      "submitted_at_utc": "2026-10-28T08:43:01.194602+00:00",
+      "account": "account_05",
+      "stage": "benchmark",
+      "credential_dataset": "fwelfijwelfj/uav-cpu-wandb-credential"
+    },
+    "status": "passed",
+    "cases": 4,
+    "result_file": "2026-10-28-fp32-cuda-result.json"
+  },
+  "general_dtype_example": {
+    "torch_default_dtype": "torch.float32",
+    "model_parameter_dtype": "torch.float32",
+    "input_dtype": "torch.float32",
+    "output_dtype": "torch.float32"
+  },
+  "review": {
+    "reviewed_range": "e7f9d979..d290b715",
+    "critical": 0,
+    "important": 0,
+    "minor_deferred": [
+      "Diagnostic wrapper may overwrite the detailed execution-check failure report if check_execution raises; gate still fails safely and process console traceback remains."
+    ],
+    "declined_to_judge_resolution": {
+      "actual_cuda": "All four actual CUDA case reports now passed with dtype/scaler checks.",
+      "full_suite": "Fresh complete JUnit and log readback confirm960passed/95skipped/1417subtests,0errors/failures.",
+      "live_migration": "Not performed; exact cancellation session IDs are unavailable via the public ref-based APIs, and browser has no authenticated Kaggle session."
+    }
+  },
+  "rulings": [
+    {
+      "decision": "Transition scope is the three recent retry roots on accounts02/03/04; preserve healthy01/06/07.",
+      "cost_if_wrong": "Older source-pinned healthy runs continue their existing precision until separately requested."
+    },
+    {
+      "decision": "Remove automatic AMP selection while preserving explicit FP16 opt-in.",
+      "cost_if_wrong": "The optional internal AMP parameter remains available if the user intended removal of the entire feature."
+    }
+  ],
+  "operational_status": {
+    "fp32_production_launched": false,
+    "old_runs_cancelled": false,
+    "prepared_relaunch_count": 3,
+    "prepared_scientific_diff": {},
+    "prepared_runtime_difference_only": "amp_mode fp16 -> off",
+    "blocker": "Public cancellation needs kernel_session_id; public status/info responses expose no current session ID. Ref-bound info/status are verified, but base kernel ID is not a verified cancellable session ID. Browser private page returns404 and homepage shows Login; no authenticated Kaggle UI session is available.",
+    "current_runs": [
+      {
+        "account": "account_02",
+        "case": "masac-pql",
+        "id": "0650d5b1",
+        "kernel_ref": "vuliu123456/gh-tra-g3-masac-pql-h75-1028080-7b56ff",
+        "kaggle_status": "vuliu123456/gh-tra-g3-masac-pql-h75-1028080-7b56ff has status \"KernelWorkerStatus.RUNNING\"",
+        "wandb_state": "running",
+        "at_utc": "2026-10-28T09:22:05.924099+00:00",
+        "heartbeat": "2026-10-28T09:22:00Z",
+        "global_step": 4931584,
+        "updates": 9360,
+        "amp_mode": "fp16",
+        "source_commit": "0042166fb0408d9efa487ad2ccd31c59b709cd69",
+        "recovery": {
+          "recovery/attempts": 1,
+          "recovery/checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-0650d5b1:v0",
+          "recovery/checkpoint_bytes": 15540933014,
+          "recovery/effective_interval_seconds": 9000,
+          "recovery/elapsed_seconds": 453.7324252000003,
+          "recovery/full_checkpoint_available": 1,
+          "recovery/last_verified_episodes": 0,
+          "recovery/last_verified_global_step": 2437120,
+          "recovery/last_verified_utc": "2026-10-28T08:50:26.735700+00:00",
+          "recovery/max_attempts": 4,
+          "recovery/seconds_since_confirmed_upload": 1892.0362627079992,
+          "recovery/status": "uploaded"
+        }
+      },
+      {
+        "account": "account_03",
+        "case": "matd3-base",
+        "id": "44558e6c",
+        "kernel_ref": "egkljwigojwof/gh-tra-g3-matd3-base-h75-1028-fa6b65",
+        "kaggle_status": "egkljwigojwof/gh-tra-g3-matd3-base-h75-1028-fa6b65 has status \"KernelWorkerStatus.RUNNING\"",
+        "wandb_state": "running",
+        "at_utc": "2026-10-28T09:22:06.310944+00:00",
+        "heartbeat": "2026-10-28T09:21:55Z",
+        "global_step": 13975552,
+        "updates": 27032,
+        "amp_mode": "fp16",
+        "source_commit": "0042166fb0408d9efa487ad2ccd31c59b709cd69",
+        "recovery": {
+          "recovery/attempts": 1,
+          "recovery/checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-matd3-44558e6c:v1",
+          "recovery/checkpoint_bytes": 15555229562,
+          "recovery/effective_interval_seconds": 9000,
+          "recovery/elapsed_seconds": 432.44874907400026,
+          "recovery/full_checkpoint_available": 1,
+          "recovery/last_verified_episodes": 551,
+          "recovery/last_verified_global_step": 6836224,
+          "recovery/last_verified_utc": "2026-10-28T08:48:13.922006+00:00",
+          "recovery/max_attempts": 4,
+          "recovery/seconds_since_confirmed_upload": 2018.6541311700005,
+          "recovery/status": "uploaded"
+        }
+      },
+      {
+        "account": "account_04",
+        "case": "matd3-pql",
+        "id": "87a9500e",
+        "kernel_ref": "gkgijewjf/gh-tra-g3-matd3-pql-h75-10280805-9535a7",
+        "kaggle_status": "gkgijewjf/gh-tra-g3-matd3-pql-h75-10280805-9535a7 has status \"KernelWorkerStatus.RUNNING\"",
+        "wandb_state": "running",
+        "at_utc": "2026-10-28T09:22:06.685612+00:00",
+        "heartbeat": "2026-10-28T09:21:57Z",
+        "global_step": 12001280,
+        "updates": 23168,
+        "amp_mode": "fp16",
+        "source_commit": "0042166fb0408d9efa487ad2ccd31c59b709cd69",
+        "recovery": {
+          "recovery/attempts": 1,
+          "recovery/checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-matd3-87a9500e:v0",
+          "recovery/checkpoint_bytes": 15546666838,
+          "recovery/effective_interval_seconds": 9000,
+          "recovery/elapsed_seconds": 883.1400947050001,
+          "recovery/full_checkpoint_available": 1,
+          "recovery/last_verified_episodes": 30,
+          "recovery/last_verified_global_step": 6737920,
+          "recovery/last_verified_utc": "2026-10-28T08:56:02.566074+00:00",
+          "recovery/max_attempts": 4,
+          "recovery/seconds_since_confirmed_upload": 1554.633492908,
+          "recovery/status": "uploaded"
+        }
+      },
+      {
+        "account": "account_01",
+        "case": "masac-base",
+        "id": "4f98f2c9",
+        "kernel_ref": "duytrngoanh/gh-tra-g3-masac-base-h75-102803-a0b159",
+        "kaggle_status": "duytrngoanh/gh-tra-g3-masac-base-h75-102803-a0b159 has status \"KernelWorkerStatus.RUNNING\"",
+        "wandb_state": "running",
+        "at_utc": "2026-10-28T09:22:07.050782+00:00",
+        "heartbeat": "2026-10-28T09:21:57Z",
+        "global_step": 22269952,
+        "updates": 43240,
+        "amp_mode": "fp16",
+        "source_commit": "1aa095f29b8505bbf43ca42033c51ea96d144dd5",
+        "recovery": {
+          "recovery/attempts": 2,
+          "recovery/checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-4f98f2c9:v9",
+          "recovery/checkpoint_bytes": 15679355926,
+          "recovery/effective_interval_seconds": 9000,
+          "recovery/elapsed_seconds": 461.7548694720026,
+          "recovery/full_checkpoint_available": 1,
+          "recovery/last_verified_episodes": 8255,
+          "recovery/last_verified_global_step": 20226048,
+          "recovery/last_verified_utc": "2026-10-28T08:43:36.605760+00:00",
+          "recovery/max_attempts": 4,
+          "recovery/seconds_since_confirmed_upload": 2298.8675575119996,
+          "recovery/status": "uploaded"
+        }
+      },
+      {
+        "account": "account_06",
+        "case": "masac-base",
+        "id": "a04dbdef",
+        "kernel_ref": "fwklgeewjlfew/gh-tra-g3-masac-base-h75-1028-a76638",
+        "kaggle_status": "fwklgeewjlfew/gh-tra-g3-masac-base-h75-1028-a76638 has status \"KernelWorkerStatus.RUNNING\"",
+        "wandb_state": "running",
+        "at_utc": "2026-10-28T09:22:07.499131+00:00",
+        "heartbeat": "2026-10-28T09:22:05Z",
+        "global_step": 11638784,
+        "updates": 44952,
+        "amp_mode": "fp16",
+        "source_commit": "55a264cf27505d97f66aae4eadf73f61422169f7",
+        "recovery": {
+          "recovery/attempts": 1,
+          "recovery/checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-a04dbdef:v5",
+          "recovery/checkpoint_bytes": 14432534166,
+          "recovery/effective_interval_seconds": 9000,
+          "recovery/elapsed_seconds": 673.0341801550003,
+          "recovery/full_checkpoint_available": 1,
+          "recovery/last_verified_episodes": 4096,
+          "recovery/last_verified_global_step": 8136704,
+          "recovery/last_verified_utc": "2026-10-28T08:05:07.672559+00:00",
+          "recovery/max_attempts": 4,
+          "recovery/seconds_since_confirmed_upload": 4615.765540109,
+          "recovery/status": "uploaded"
+        }
+      },
+      {
+        "account": "account_07",
+        "case": "masac-pql",
+        "id": "8db188ea",
+        "kernel_ref": "lkejflwejf/gh-tra-g3-masac-pql-h75-10280520-a7f572",
+        "kaggle_status": "lkejflwejf/gh-tra-g3-masac-pql-h75-10280520-a7f572 has status \"KernelWorkerStatus.RUNNING\"",
+        "wandb_state": "running",
+        "at_utc": "2026-10-28T09:22:07.927311+00:00",
+        "heartbeat": "2026-10-28T09:21:54Z",
+        "global_step": 12374016,
+        "updates": 48080,
+        "amp_mode": "fp16",
+        "source_commit": "55a264cf27505d97f66aae4eadf73f61422169f7",
+        "recovery": {
+          "recovery/attempts": 1,
+          "recovery/checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-8db188ea:v4",
+          "recovery/checkpoint_bytes": 14432565078,
+          "recovery/effective_interval_seconds": 9000,
+          "recovery/elapsed_seconds": 358.5977358599994,
+          "recovery/full_checkpoint_available": 1,
+          "recovery/last_verified_episodes": 4096,
+          "recovery/last_verified_global_step": 9369600,
+          "recovery/last_verified_utc": "2026-10-28T08:02:29.503497+00:00",
+          "recovery/max_attempts": 4,
+          "recovery/seconds_since_confirmed_upload": 4762.922338124999,
+          "recovery/status": "uploaded"
+        }
+      }
+    ]
+  },
+  "verification": {
+    "structure_tests_passed": 2,
+    "structure_subtests_passed": 452,
+    "structure_seconds": 0.19,
+    "git_diff_check": "passed",
+    "source_contract_tests": "passed in full and focused suites",
+    "scientific_config_comparison": "only requested AMP mode differs in prepared replacements",
+    "production_cancellation_calls": 0,
+    "production_fp32_submissions": 0,
+    "credential_values_scanned": 12,
+    "credential_hits": 0
+  }
+}

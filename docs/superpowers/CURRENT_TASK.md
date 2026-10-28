@@ -1,13 +1,17 @@
-# FP32 default and authorized retry transition — IN PROGRESS
+# FP32 default — CPU / DUAL-T4 VERIFIED; production transition BLOCKED
 
-Updated 2026-10-28. User requested FP32 training and no AMP flag required. Existing Config default is off, but canonical YAML and cloud acceleration policy selected FP16; removed those automatic selections and changed canonical tag to amp-off. Explicit FP16 is retained for historical diagnostics/replay only when requested.
+Updated 2026-10-28. Runtime source `d290b7157a85428eacdfa3343c731a343af9fa37` pushed on feat/cpu-replay-20261022. User requested FP32/no AMP needed by default. Removed canonical YAML FP16 key and cloud policy AMP injection; Config already defaults off; tag amp-off. Explicit opt-in retained for historical diagnostics. Algorithm/scientific source unchanged.
 
-- Scope: transition the three recent retry roots 0650d5b1/44558e6c/87a9500e on accounts02/03/04 after FP32 GPU checks. Preserve healthy accounts01/06/07, history and scientific config. Precision change is a fresh seed44 lineage, not an exact FP16 resume.
-- Baseline39passed/+8subtests; regression RED7failed/33passed/+10subtests confirms old forced-FP16 behavior. Focused GREEN78passed/+460subtests in20.44s, including actual FP32 learner forward/gradients/no-scalers for both algorithms with AMP omitted.
-- Full CPU suite background job cf64f63da286 is running; log outputs/fp32-default-full-suite.log and JUnit outputs/fp32-default-full-suite.xml. Do not claim full-suite success yet.
-- Plan docs/superpowers/plans/2026-10-28-fp32-default.md; ledger outputs/fp32-default-progress.md. CUDA check driver docs/superpowers/evidence/2026-10-28-fp32-cuda-check.py. Probe account05 identity fwelfijwelfj/quota30h checked; no production cancellation/relaunch performed in this task yet.
+- Baseline39passed; RED7expected failures; focused GREEN78passed/+460subtests. Full CPU suite960passed,95skipped,8known warnings,+1417subtests in501.47s; JUnit0errors/0failures.
+- Actual dual-T4 diagnostic8df42093, Kaggle fwelfijwelfj/diag-fp32-canonical-1028-c36d75, source d290b715: all4canonical MASAC/MATD3 BASE/PQL cases passed E4096/B8192/R1M/HYBRID75. Real gradients/parameters FP32 and finite; no scalers; no FP16 autocast; compile/PQL worker execution verified. Raw result docs/superpowers/evidence/2026-10-28-fp32-cuda-result.json.
+- Fresh reviewer0Critical/0Important. Deferred minor: diagnostic wrapper can overwrite detailed failure JSON if inner preflight fails; all4actual cases passed. Full scope/rulings in report.
+- Operational gate remains BLOCKED: no current session IDs exposed by public ref-based Kaggle APIs; cancellation requires exact kernel_session_id. Base kernel ID is not a verified cancellable session ID and was never sent to cancellation. Extension browser timed out; recovered cloud browser has no signed-in Kaggle owner session (private page404, homepage Login). No sign-in credentials entered.
+- NO production root cancelled/restarted/overwritten in this FP32 task; no production FP32 replacement launched. All6existing roots still running FP16 at2026-10-28T09:22Z readback, all now have full recovery pointers. Recent retries0650d5b1/44558e6c/87a9500e keep source0042166; healthy4f98f2c9/a04dbdef/8db188ea preserved. Do not mistake FP32 canary for production migration.
+- Prepared3relaunch argument sets in ignored outputs/fp32-relaunch-prepared.json; science config equal, only AMP mode off changes, no AMP CLI argument. Plan docs/superpowers/plans/2026-10-28-fp32-default.md; ledger outputs/fp32-default-progress.md.
 
-Next action: publish this focused-tested source, run bounded canonical FP32 CUDA checks, verify full suite, then transition only the three retry roots and verify new W&B progress and supervisor state. Record exact source and new IDs before final handoff.
+Detailed [report](evidence/2026-10-28-fp32-default-verification.md), [structured evidence](evidence/2026-10-28-fp32-default-verification.json), [CUDA result](evidence/2026-10-28-fp32-cuda-result.json).
+
+Next action: obtain authenticated owner UI access or verified cancellable session IDs for the exact three retries, cancel only those and verify terminal state, then submit fresh clearly labeled FP32 lineages on the same accounts with external continuation/final CPU eval. Verify W&B effective off, source, positive learner progress and supervisor recognition. Do not weaken strict full-state precision validation or duplicate running roots. No main merge requested.
 
 ---
 
