@@ -24,11 +24,16 @@ class VisualizationTrackingTests(unittest.TestCase):
             c.runtime.episodes=1;c.world.max_steps=3;c.world.num_targets=1;c.world.num_obstacles=0
             c.matd3.hidden_sizes=[8,8];c.matd3.batch_size=2;c.matd3.replay_capacity=8;c.matd3.learning_starts=2
             trained=train(c);checkpoint=trained['checkpoint']
-            for failure in (False,True):
+            for failure,progress_upload_failure in ((False,False),(True,False),(False,True)):
                 logs=[];finished=[];initializations=[]
+                run_output=root/('failed' if failure else 'success-progress' if progress_upload_failure else 'success')
+                def log(values):
+                    logs.append(values)
+                    if progress_upload_failure and 'evaluation_progress/status' in values:
+                        raise ConnectionError('optional progress telemetry unavailable')
                 run=SimpleNamespace(offline=False,id='cpu1',entity='owner',project='main',url='https://wandb.ai/owner/main/runs/cpu1',
                     summary={},save=lambda *a,**k:None,define_metric=lambda *a,**k:None,
-                    use_artifact=lambda *a,**k:None,log=lambda v:logs.append(v),finish=lambda exit_code:finished.append(exit_code))
+                    use_artifact=lambda *a,**k:None,log=log,finish=lambda exit_code:finished.append(exit_code))
                 def init(**kwargs):initializations.append(kwargs);return run
                 sdk=SimpleNamespace(init=init,Settings=lambda **kw:kw)
                 spec={'entity':'owner','project':'main','config':str(root/'train/resolved_config.yaml'),'overrides':[],
@@ -43,9 +48,9 @@ class VisualizationTrackingTests(unittest.TestCase):
                      patch('uav_network.cloud.visualize.publish_visualization_media',return_value={}):
                     if failure:
                         with patch('uav_network.cloud.visualize.evaluate',side_effect=ValueError('render failed')):
-                            with self.assertRaises(RuntimeError):run_visualization(spec,root/'failed')
+                            with self.assertRaises(RuntimeError):run_visualization(spec,run_output)
                     else:
-                        result=run_visualization(spec,root/'success')
+                        result=run_visualization(spec,run_output)
                         self.assertEqual(result['matd3']['device'],'cpu')
                 self.assertEqual(len(initializations),1,'CPU jobs must open an online run')
                 self.assertEqual(initializations[0]['mode'],'online')
@@ -57,7 +62,7 @@ class VisualizationTrackingTests(unittest.TestCase):
                     self.assertEqual(run.summary['evaluation/checkpoint_global_step'],trained['global_step'])
                     self.assertEqual(run.summary['evaluation/observation_version'],3)
                     self.assertTrue(any(v.get('evaluation_progress/status')=='episode_complete' for v in logs))
-                    journal=[json.loads(line) for line in (root/'success/tracking/matd3/training-events.jsonl').read_text().splitlines()]
+                    journal=[json.loads(line) for line in (run_output/'tracking/matd3/training-events.jsonl').read_text().splitlines()]
                     final=next(e for e in reversed(journal) if e['context'].get('evaluation/scenario_hash'))
                     self.assertEqual(final['context']['evaluation/episodes'],1)
                     self.assertEqual(final['context']['evaluation/seed_first'],10044)

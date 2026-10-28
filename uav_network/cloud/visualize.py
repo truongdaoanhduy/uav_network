@@ -256,6 +256,7 @@ def run_visualization(spec, output=Path("/kaggle/working")):
     settings = spec["cpu_eval"]
     from ..experiments.evaluation import EvaluationPaused
     from ..experiments.progress_watchdog import ProgressWatchdog
+    from ..experiments.evidence import print_evidence
     from .controller import atomic_json
     results, failures = {}, {}
     progress = {"artifacts": spec["artifacts"], "cpu_eval": settings,
@@ -280,6 +281,7 @@ def run_visualization(spec, output=Path("/kaggle/working")):
         tracking_output.mkdir(parents=True, exist_ok=True)
         watchdog = ProgressWatchdog(tracking_output)
         last_cpu_point, cpu_progress_serial, last_progress_log = None, 0, None
+        progress_warning = False
         failed = True
         completed_eval_episodes = (len(progress["records"].get(algorithm, []))
                                    if spec.get("session_resumable") else 0)
@@ -343,7 +345,7 @@ def run_visualization(spec, output=Path("/kaggle/working")):
                 initial_metrics["evaluation/checkpoint_global_step"] = checkpoint_step
             tracker.diagnostic(initial_metrics, completed_eval_episodes)
             def record_progress(point):
-                nonlocal last_cpu_point, cpu_progress_serial, last_progress_log
+                nonlocal last_cpu_point, cpu_progress_serial, last_progress_log, progress_warning
                 current = (point.get("seed"), point.get("step"))
                 if current != last_cpu_point:
                     cpu_progress_serial += 1
@@ -352,8 +354,13 @@ def run_visualization(spec, output=Path("/kaggle/working")):
                 now = time.monotonic()
                 if (point["status"] != "running" or last_progress_log is None
                         or now - last_progress_log >= 30):
-                    tracker.diagnostic({"evaluation_progress/" + k: v for k, v in point.items()},
-                                       completed_eval_episodes)
+                    try:
+                        tracker.diagnostic({"evaluation_progress/" + k: v for k, v in point.items()},
+                                           completed_eval_episodes)
+                    except Exception as error:
+                        if not progress_warning:
+                            print_evidence({"evaluation_progress_logging_failed": {"error_type": type(error).__name__}})
+                            progress_warning = True
                     last_progress_log = now
             def record_episode(record):
                 nonlocal completed_eval_episodes

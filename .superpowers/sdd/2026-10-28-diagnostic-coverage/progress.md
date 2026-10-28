@@ -10,3 +10,8 @@ Ruling: classify Torch OutOfMemoryError as torch_allocation, not CUDA-specific; 
 Task1: complete (commits a13430b..0dcdea7c1073ce4486b2ff6f724e0632f21b7c71, tests48passed/2subtests). Task2: in progress.
 Task2: complete (87b1cfb);60focused tests in13.50s. Correct no-torch module is cloud.github_supervisor (initial command used nonexistent cloud.supervisor, produced no result); actual import now verified.
 Task3: table/27plots/guide/matrix implemented;4observed RED curation failures then11passed7SDKwarnings in1.71s. Final review pending.
+Final review: fresh reviewer coverage_review_available at3100d7c after gpt-6-astra dispatch failed before execution (usage limit).2Important: optional CPUprogress publication abort and incomplete env credential family redaction;1Minor: watchdog rearm throttle may emit up to30s early.
+Final: fixed optional CPUprogress failure — actual CPU visualization throwing only on progress telemetry RED→GREEN, independent watchdog remains active.
+Final: fixed env credential redaction — KAGGLE_KEY/API_KEY/TOKEN/PASSWORD RED→GREEN; added ACCESS_KEY/KEY characterization.77focused tests passed7warnings in36.22s. Full suite pending frozen source.
+Final: minor (deferred): watchdog rearm throttle yields270–300s effective inactivity interval (default300); stack is diagnostic-only, never deadlock verdict or termination. Avoid per-vector-step native timer reset overhead.
+Final: Ruling: reviewer did not judge live publication/fullsuite — perform API backup/readback+native UI and full CPU suite before completion; operational evidence is required, not inferred from source.

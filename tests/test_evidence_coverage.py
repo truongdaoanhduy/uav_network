@@ -172,3 +172,13 @@ except KeyboardInterrupt as error:
     report=json.loads((tmp_path/"failure.json").read_text())
     assert report["signal_number"]==15 and report["signal_name"]=="SIGTERM"
     assert report["root_cause_confirmed"] is False
+
+
+@pytest.mark.parametrize('name',['KAGGLE_KEY','SERVICE_API_KEY','PRIVATE_SERVICE_TOKEN','SERVICE_PASSWORD','AWS_ACCESS_KEY_ID','SERVICE_KEY'])
+def test_environment_credential_families_are_redacted_in_exception_text(tmp_path,monkeypatch,capsys,name):
+    private='synthetic-private-'+name.lower()
+    monkeypatch.setenv(name,private)
+    report=failure_report(None,tmp_path,RuntimeError('request failed '+private),{'detail':private})
+    combined=report.read_text()+capsys.readouterr().out
+    assert private not in combined
+    assert '[REDACTED]' in combined

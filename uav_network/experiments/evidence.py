@@ -10,17 +10,18 @@ import shutil
 import sys
 
 
-SENSITIVE_FIELDS = ("api_key", "password", "secret", "token", "authorization")
+SENSITIVE_FIELDS = ("api_key", "password", "secret", "token", "authorization", "access_key", "private_key", "credential")
 
 
 def secret_values(config=None):
-    values = [v for k, v in os.environ.items() if v and
-              (k in {"WANDB_API_KEY", "KAGGLE_API_TOKEN", "HF_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"}
-               or k.startswith("KAGGLE_API_TOKEN_ACCOUNT_"))]
+    def sensitive_name(name):
+        name = name.lower()
+        return name == "key" or name.endswith("_key") or any(word in name for word in SENSITIVE_FIELDS)
+    values = [value for name, value in os.environ.items() if value and sensitive_name(name)]
     def collect(value):
         if isinstance(value, dict):
             for key, item in value.items():
-                if isinstance(item, str) and item and any(s in key.lower() for s in SENSITIVE_FIELDS):
+                if isinstance(item, str) and item and sensitive_name(key):
                     values.append(item)
                 collect(item)
         elif isinstance(value, list):
