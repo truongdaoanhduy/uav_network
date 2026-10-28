@@ -120,6 +120,18 @@ class MATD3(nn.Module):
     def _critic_values(self, *args):
         return getattr(self, "_compiled_critic_values", critic_values)(*args)
 
+    def _shared_critic_actor_values(self, state, joints):
+        """Evaluate one team critic for each agent-specific joint action.
+
+        `joints` is [agent, batch, agent, action]. The single shared critic is
+        evaluated in one flattened batch and returned as [batch, agent].
+        """
+        n, b = joints.shape[:2]
+        repeated_state = state[None].expand(n, -1, -1).reshape(n * b, -1)
+        q1, q2 = self.critics[0](repeated_state, joints.reshape(n * b, self.num_uavs, -1))
+        return (q1.reshape(n, b).transpose(0, 1).contiguous(),
+                q2.reshape(n, b).transpose(0, 1).contiguous())
+
     @autocast_update
     def update_critic(self, batch, collect_metrics=True):
         data, a = tensor_batch(batch, self.device), self.config.matd3
@@ -158,17 +170,20 @@ class MATD3(nn.Module):
         self.critics.requires_grad_(False)
         try:
             batched_q = None
-            if vectorized:
+            if vectorized or self.share_critic_parameters:
                 joints = base[None].expand(self.num_uavs, -1, -1, -1).clone()
                 indices = torch.arange(self.num_uavs, device=self.device)
                 joints[indices, :, indices] = torch.stack([
                     self._actor_action(self._actor_at(i), data["observation"][:, i],
                                        straight_through=True, agent_index=i)
                     for i in range(self.num_uavs)])
-                batched_q, _ = self._critic_values(self.critics, data["state"], joints, True, True)
+                if self.share_critic_parameters:
+                    batched_q, _ = self._shared_critic_actor_values(data["state"], joints)
+                else:
+                    batched_q, _ = self._critic_values(self.critics, data["state"], joints, True, True)
             for i in range(self.num_uavs):
                 actor = self._actor_at(i)
-                if vectorized:
+                if batched_q is not None:
                     q1 = batched_q[:, i]
                 else:
                     joint = base.clone()
