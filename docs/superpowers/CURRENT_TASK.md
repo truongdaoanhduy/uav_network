@@ -10,6 +10,8 @@ Verification: reproduced serializer failure and a narrow json_safe candidate on 
 
 At the same live snapshot `4f98f2c9`, `a04dbdef`, `8db188ea` are running on both services with fresh heartbeat/progress, and no confirmed full checkpoint yet. Protect these lineages; old pinned code still has the telemetry bug.
 
+Follow-up 2026-10-28T06:02Z: inspected final AMP history and actual BASE model snapshot (240 finite tensors, max abs 2.1222). Scale/skip transitions strongly support AMP overflow/backoff; cannot distinguish nonfinite raw gradients from FP32 norm-reduction overflow without the missing batch/gradients. Source has normalized inputs but no LayerNorm; neither missing normalization nor corrupt data is established. Capture first skip batch/model/scaler/RNG and replay FP32 vs FP16 before asserting numerical root cause.
+
 Next action when implementation is requested: read [the audit and prioritized fix proposal](evidence/2026-10-28-failed-training-audit.md), then RED test the serializer boundary before patching BASE/PQL and first-backup timing. Fresh-check all services before operational decisions. No new production launch authorized by this proposal task.
 
 ---

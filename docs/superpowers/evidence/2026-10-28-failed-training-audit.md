@@ -69,3 +69,13 @@ Supervisor đang tuân thủ điều kiện provenance/full state: policy weight
 - Diff runtime/config liên quan giữa source các run và HEAD đang kiểm tra rỗng.
 - Fresh W&B + Kaggle lúc 12:48 VN: MASAC BASE E4096 `4f98f2c9`, MASAC BASE E2048 `a04dbdef`, MASAC PQL E2048 `8db188ea` vẫn running, heartbeat mới và tiến độ tăng. Cả ba chưa có full checkpoint đã xác nhận tại snapshot này. Hai run E2048 vẫn dùng serializer tương tự; giảm batch/env không loại bỏ bug này.
 - Không sửa production code/config; không thay W&B state/metadata; không submit, cancel hoặc relaunch training. Lượt này hoàn tất chẩn đoán và đề xuất theo yêu cầu. Evidence có cấu trúc: [2026-10-28-failed-training-audit.json](2026-10-28-failed-training-audit.json).
+
+## Follow-up: nguồn norm inf — kiểm tra 2026-10-28T06:02Z
+
+Đọc thêm history cuối của cả ba run và download failure_state.pt của MATD3 BASE. Snapshot có 240 tensor model, tất cả hữu hạn, max absolute parameter 2.122197389602661. Không có batch đúng lúc overflow trong các W&B files đã liệt kê; code chỉ dump batch khi learner raise, trong khi AMP skip không raise và exception xảy ra sau đó tại JSON.
+
+History + failure context: MASAC PQL critic scale 8192 -> 4096, skipped 8 -> 9; MATD3 BASE actor scale 65536 -> 32768 -> 16384, skipped 6 -> 7 -> 8; MATD3 PQL critic vừa tăng scale 8192 -> 16384 rồi tại failure giảm 8192, skipped 14 -> 15. Đây là bằng chứng mạnh phù hợp AMP overflow/backoff, nhưng code cũng backoff khi FP32 norm reduction overflow: chưa phân biệt được hai nhánh vì thiếu raw gradients và branch marker. Không khẳng định đã tìm phép toán đầu tiên.
+
+models.py dùng Linear/ReLU, không LayerNorm/BatchNorm; GPU observations/state chuẩn hóa vị trí/map_size, vận tốc/max_speed, pin/capacity. Đây là kiểm tra source, không chứng minh batch lỗi hữu hạn hay phân phối ổn. Không có cơ sở quy lỗi thiếu LayerNorm.
+
+Bước chẩn đoán cần thêm: tại nhánh AMP skip đầu tiên, lưu batch và model trước update, scaler state trước/sau, RNG, dtype, finite/min/max từng input; tách raw gradient nonfinite trước clipping khỏi norm reduction overflow và ghi layer đầu tiên. Replay cùng batch/model/RNG FP32 đối chiếu FP16. Chỉ nếu FP32 cũng lỗi mới truy tiếp dữ liệu/target/model, không mặc định thêm normalization. Minh họa CPU độc lập: float16(3)*32768=inf, float16(3)*16384=49152; không phải replay batch lịch sử.
