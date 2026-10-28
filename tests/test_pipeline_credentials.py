@@ -25,6 +25,29 @@ class PipelineCredentialTests(unittest.TestCase):
             self.assertTrue(read.call_args.kwargs['only_selected'])
 
 
+    def test_existing_private_credential_refreshes_when_value_is_stale(self):
+        account = Account("one", "new-private-token")
+        dataset = SimpleNamespace(ref="owner/uav-cpu-launch-credential", is_private=True)
+        reads = [("uav_cpu_launch_token.txt", "old-private-token"),
+                 ("uav_cpu_launch_token.txt", account.token)]
+        versions = []
+
+        def transport(args, selected, **kwargs):
+            if args[:2] == ["datasets", "version"]:
+                folder = Path(args[args.index("-p") + 1])
+                self.assertEqual((folder / "uav_cpu_launch_token.txt").read_text(), account.token)
+                versions.append(True)
+                return "versioned"
+            raise AssertionError(args)
+
+        with patch.object(client, "private_dataset_info", return_value=dataset), \
+             patch.object(client, "private_dataset_file", side_effect=reads) as read, \
+             patch.object(client, "run_kaggle", side_effect=transport):
+            self.assertEqual(client.ensure_pipeline_dataset(account, "owner", timeout=60), dataset.ref)
+        self.assertEqual(len(versions), 1)
+        self.assertEqual(read.call_count, 2)
+
+
     def test_existing_private_credential_refreshes_after_download_timeout(self):
         account = Account("one", "private-token")
         dataset = SimpleNamespace(ref="owner/uav-cpu-launch-credential", is_private=True)

@@ -228,6 +228,7 @@ def _ensure_single_credential(account, username, slug, title, filename, value, t
                 raise TimeoutError("Private CPU credential dataset was not ready")
             time.sleep(2)
     # Kaggle can expose owned private metadata while DownloadDataset is unavailable.
+    refresh_requested = False
     while True:
         remaining = deadline - time.monotonic()
         if remaining <= 0:
@@ -235,7 +236,19 @@ def _ensure_single_credential(account, username, slug, title, filename, value, t
         try:
             _, token = private_dataset_file(account, ref, username, {filename},
                                             min(15, max(1, int(remaining))), only_selected=True)
-            break
+            if token == value:
+                return ref
+            if created:
+                raise RuntimeError("Private CPU-flow credential does not match the selected local credential")
+            if not refresh_requested:
+                try:
+                    publish("version")
+                except subprocess.TimeoutExpired:
+                    # The version may have been accepted even though the client timed out.
+                    pass
+                refresh_requested = True
+            time.sleep(min(2, remaining))
+            continue
         except subprocess.TimeoutExpired:
             # A mounted private dataset remains usable even when the DownloadDataset
             # endpoint stalls. Refresh an existing dataset from the exact local value
@@ -256,9 +269,6 @@ def _ensure_single_credential(account, username, slug, title, filename, value, t
             if '404 Client Error' not in str(error):
                 raise
             time.sleep(min(2, remaining))
-    if token != value:
-        raise RuntimeError("Private CPU-flow credential does not match the selected local credential")
-    return ref
 
 
 def ensure_pipeline_dataset(account, username, timeout=120):
