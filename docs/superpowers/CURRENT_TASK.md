@@ -3,6 +3,11 @@
 Updated 2026-10-28T01:10:01.014110+00:00. Runtime/source frozen and verified at `56604cc71f294cd94e5251491ab7d1397a95200b`.
 User requested audit+supplement logs for crashed/failed/poor training and other meaningful cases; Personal Runs and Workspace refined without clutter. No production training launched/restarted/cancelled, scientific config/eval schedule/checkpoint formats unchanged. Runtime and completion records published on main+feature; remote hash readback and GitHub connector both verified completion commit `95c4fe5b972e3ecb943168790557337749119fad`. This follow-up changes records only.
 
+## New-chat handoff and lineage correction — 2026-10-28
+
+User requested a detailed pasteable handoff, saved in docs/superpowers/HANDOFF_NEW_CHAT_2026-10-28.md. Read it for code map, config, orchestration, constraints and evidence routing. This follow-up changes documentation only; runtime remains56604cc and its924-pass verification.
+Fresh CPU lineage/provenance check at08:20:29Vietnam: BASE HYBRID ce8f3be6 ->15db2a32 (45.8095% delivery,0/30success); PQL HYBRID3fcf25c7 ->239f3eb9 (48.9524%,0/30). Prior conversational answer mistakenly called48.95% BASE HYBRID. Updated quality-example JSON/report now map all4MATD3 CPU children correctly. Use artifact provenance rather than adjacency. No new training/cloud/UI mutation.
+
 ## Delivered and verified
 
 - Safe evidence serialization/redaction, exception chain/category/resources/signal/run identity. Optional console/disk/journal/async upload failures isolated; real W&B mandatory-online failure contract preserved. NaN/Inf/unknown objects cannot destroy failure evidence; unknown root cause stays false/unknown.

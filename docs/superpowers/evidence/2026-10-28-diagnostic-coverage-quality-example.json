@@ -1,7 +1,54 @@
 {
-  "observed_at_utc": "2026-10-28T01:10:42.207310+00:00",
-  "runs": {
-    "training": {
+  "observed_at_utc": "2026-10-28T01:20:29.217589+00:00",
+  "lineages": {
+    "base_hybrid": {
+      "training_run_id": "ce8f3be6",
+      "evaluation_run_id": "15db2a32",
+      "evaluation_name": "EVALCPU-MATD3-BASE-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130451-a1d316-3e6aee",
+      "checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-matd3-ce8f3be6:v11",
+      "metrics": {
+        "evaluation/episodes_completed": 30,
+        "eval/mean_delivery_rate_percent": 45.8095238095238,
+        "eval/success_rate": 0
+      }
+    },
+    "base_fullgpu": {
+      "training_run_id": "93fdf127",
+      "evaluation_run_id": "9c62d7c4",
+      "evaluation_name": "EVALCPU-MATD3-BASE-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130438-ee1a73-6989e3",
+      "checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-matd3-93fdf127:v11",
+      "metrics": {
+        "evaluation/episodes_completed": 30,
+        "eval/mean_delivery_rate_percent": 48.09523809523809,
+        "eval/success_rate": 0
+      }
+    },
+    "pql_hybrid": {
+      "training_run_id": "3fcf25c7",
+      "evaluation_run_id": "239f3eb9",
+      "evaluation_name": "EVALCPU-MATD3-PQL-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261026-130451-aa4bf3-82323e",
+      "checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-matd3-3fcf25c7:v11",
+      "metrics": {
+        "evaluation/episodes_completed": 30,
+        "eval/mean_delivery_rate_percent": 48.95238095238096,
+        "eval/success_rate": 0
+      }
+    },
+    "pql_fullgpu": {
+      "training_run_id": "76b73021",
+      "evaluation_run_id": "ba98364f",
+      "evaluation_name": "EVALCPU-MATD3-PQL-FULLGPU-E4096-B8192-R1M-G3-S44-20261026-130436-41e6ab-f5dac4",
+      "checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-matd3-76b73021:v9",
+      "metrics": {
+        "evaluation/episodes_completed": 30,
+        "eval/mean_delivery_rate_percent": 46.09523809523809,
+        "eval/success_rate": 0
+      }
+    }
+  },
+  "prior_training_snapshot": {
+    "observed_at_utc": "2026-10-28T01:10:42.207310+00:00",
+    "run": {
       "id": "ce8f3be6",
       "state": "finished",
       "metrics": {
@@ -14,17 +61,7 @@
         "cohort/delivery_rate_percent_mean": 59.33233249051829,
         "cohort/success_mean": 0
       }
-    },
-    "evaluation": {
-      "id": "239f3eb9",
-      "state": "finished",
-      "metrics": {
-        "global_step": 30,
-        "evaluation/episodes_completed": 30,
-        "eval/mean_delivery_rate_percent": 48.95238095238096,
-        "eval/success_rate": 0,
-        "stage": "visualize"
-      }
     }
-  }
+  },
+  "correction": "239f3eb9 and48.95238% belong to MATD3 PQL HYBRID (3fcf25c7). BASE HYBRID ce8f3be6 uses15db2a32 and45.80952%. Pair runs using checkpoint provenance."
 }

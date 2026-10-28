@@ -62,13 +62,23 @@ API verified at01:01:16UTC (08:01:16Vietnam)28/10. Personal view ID preserved:
   at01:06:53UTC:385runs(273finished82failed30crashed,0running); sole addition was
   logging-onlycanary `f0vws7re`, finished.
 
-Concrete quality example re-read at01:10:42UTC (08:10:42Vietnam): training run
-`ce8f3be6` finished20,000episodes, budget complete, final cohort n3616/delivery
-59.3323%/success0. CPU run `239f3eb9` finished30episodes, aggregate target delivery
-48.9524%, success0/30. This is completed execution with incomplete mission outcomes
-on that evaluation bank, not evidence of successful overall training, nor a proof
-of the cause or a definitive algorithm ranking. Training and evaluation domains
-must not be mixed. No learning-rate/reward adjustment made on that observation.
+Quality examples rechecked at01:20:29UTC (08:20:29Vietnam)28/10 using the actual
+CPU run name and checkpoint artifact, correcting an earlier mistaken pairing:
+
+| Mode | Train run | CPU eval run | Delivery mean | Success |
+|---|---|---|---:|---:|
+| MATD3 BASE HYBRID | ce8f3be6 | 15db2a32 |45.8095%|0/30|
+| MATD3 BASE FULLGPU |93fdf127|9c62d7c4|48.0952%|0/30|
+| MATD3 PQL HYBRID |3fcf25c7|239f3eb9|48.9524%|0/30|
+| MATD3 PQL FULLGPU |76b73021|ba98364f|46.0952%|0/30|
+
+At01:10:42UTC trainingce8f3be6 was observed finished20,000episodes, budget complete,
+final cohort n3616/delivery59.3323%/success0. Its CPU evaluation is15db2a32, not
+239f3eb9. The previous conversational answer incorrectly attributed48.95% to BASE
+HYBRID; that value belongs to PQL HYBRID. Do not pair runs by adjacency or algorithm
+name alone; verify checkpoint provenance. These completed executions still have
+incomplete mission outcomes on their evaluation seed bank. This does not prove the
+cause or establish an algorithm ranking across training seeds/scenarios.
 
 ## Tests and online probe
 
