@@ -1,7 +1,7 @@
 # Diagnostic coverage audit — COMPLETE / VERIFIED ONLINE
 
 Updated 2026-10-28T01:10:01.014110+00:00. Runtime/source frozen and verified at `56604cc71f294cd94e5251491ab7d1397a95200b`.
-User requested audit+supplement logs for crashed/failed/poor training and other meaningful cases; Personal Runs and Workspace refined without clutter. No production training launched/restarted/cancelled, scientific config/eval schedule/checkpoint formats unchanged. Main+feature push follows final record commit.
+User requested audit+supplement logs for crashed/failed/poor training and other meaningful cases; Personal Runs and Workspace refined without clutter. No production training launched/restarted/cancelled, scientific config/eval schedule/checkpoint formats unchanged. Runtime and completion records published on main+feature; remote hash readback and GitHub connector both verified completion commit `95c4fe5b972e3ecb943168790557337749119fad`. This follow-up changes records only.
 
 ## Delivered and verified
 
@@ -25,7 +25,7 @@ Runs: https://forge.coreweave.com/wandb/truongdaoanhduy-uit/uav_search_target/ta
 Guide: docs/training-diagnostics.md
 Coverage: docs/diagnostic-coverage.md
 Evidence: docs/superpowers/evidence/2026-10-28-diagnostic-coverage.md (+tests/personal/browser/probe/service/review/ledger records).
-No requested work remains blocked; integration hashes to verify after push. Retain existing host worktree, credentials and unrelated views.
+No requested work remains blocked; both remote refs verified at95c4fe5, then this documentation-only integration record is pushed using the same atomic method. Retain existing host worktree, credentials and unrelated views.
 
 ## Previous completed task record
 

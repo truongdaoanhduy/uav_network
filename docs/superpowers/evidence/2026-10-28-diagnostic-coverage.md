@@ -117,3 +117,11 @@ Deferred minor: watchdog rearm precision up to30s early, as described above.
 - [Quality example](2026-10-28-diagnostic-coverage-quality-example.json)
 - [Review](2026-10-28-diagnostic-coverage-review.json)
 - [Continuity ledger](2026-10-28-diagnostic-coverage-ledger.md)
+
+## Integration
+
+Runtime source56604cc and completion records95c4fe5 were pushed atomically to
+main+feat/cpu-replay-20261022. Both remote hashes matched; GitHub connector fetched
+95c4fe5 successfully. This follow-up records that verification only; no runtime,
+tests, config or workflow changed after the924-pass source freeze.
+[Integration record](2026-10-28-diagnostic-coverage-integration.json).

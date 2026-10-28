@@ -1,0 +1,19 @@
+{
+  "verified_at_utc": "2026-10-28T01:13:44.866297+00:00",
+  "runtime_source": "56604cc71f294cd94e5251491ab7d1397a95200b",
+  "completion_records_commit": "95c4fe5b972e3ecb943168790557337749119fad",
+  "main_and_feature_verified_at_completion": [
+    [
+      "95c4fe5b972e3ecb943168790557337749119fad",
+      "refs/heads/feat/cpu-replay-20261022"
+    ],
+    [
+      "95c4fe5b972e3ecb943168790557337749119fad",
+      "refs/heads/main"
+    ]
+  ],
+  "github_connector_verified_completion_sha": "95c4fe5b972e3ecb943168790557337749119fad",
+  "github_url": "https://github.com/truongdaoanhduy/uav_network/commit/95c4fe5b972e3ecb943168790557337749119fad",
+  "integration_method": "atomic fast-forward push, no force",
+  "followup_record_only": true
+}
