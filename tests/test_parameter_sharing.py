@@ -116,6 +116,26 @@ class ParameterSharingTests(unittest.TestCase):
                     self.assertTrue(all(np.isfinite(value) for value in second.values()))
 
 
+    def test_masac_shared_team_critic_updates_for_c_and_d(self):
+        for share_actor in (False, True):
+            for vectorized in (False, True):
+                with self.subTest(share_actor=share_actor, vectorized=vectorized):
+                    learner = self._learner("masac", share_actor, True)
+                    learner.config.runtime.vectorize_critics = vectorized
+                    critic_before = next(learner.critics.parameters()).detach().clone()
+                    actor_before = next(learner.actors.parameters()).detach().clone()
+                    alpha_c_before = learner.log_alpha_continuous.detach().clone()
+                    metrics = learner.update(self._batch(learner.config))
+                    self.assertEqual(len(learner.critics), 1)
+                    self.assertEqual(len(learner.target_critics), 1)
+                    self.assertFalse(torch.equal(critic_before, next(learner.critics.parameters())))
+                    self.assertFalse(torch.equal(actor_before, next(learner.actors.parameters())))
+                    self.assertFalse(torch.equal(alpha_c_before, learner.log_alpha_continuous))
+                    self.assertEqual(learner.log_alpha_continuous.shape, (6,))
+                    self.assertEqual(learner.log_alpha_discrete.shape, (6,))
+                    self.assertTrue(all(np.isfinite(value) for value in metrics.values()))
+
+
 
 if __name__ == "__main__":
     unittest.main()
