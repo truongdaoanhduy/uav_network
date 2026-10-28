@@ -34,14 +34,14 @@ Interfaces: learner_telemetry(metrics: dict) -> dict, with null numeric value, n
 
 Files: algorithms/precision.py; new experiments/overflow_capture.py; training.py, pql_training.py and tracking.py; scripts/replay_overflow.py; tests/test_overflow_capture.py.
 Interfaces: observer receives raw gradients and event at skip; recorder captures batch/model/scaler/RNG; replay compares identical starting state and input in FP32/FP16 without changing production.
-- [ ] RED: raw-inf vs finite-grad norm-overflow evidence, unchanged Adam/RNG, one snapshot per group, failed storage isolation and FP32/FP16 replay tests.
-- [ ] GREEN: implement pre-clipping observation and integrate BASE/PQL; bounded first-event capture and published diagnostic files.
-- [ ] Verify focused regressions; run available diagnostic canary with truthful device/provenance labels; commit.
+- [x] RED: raw-inf vs finite-grad norm-overflow evidence, unchanged Adam/RNG, one snapshot per group, failed storage isolation and FP32/FP16 replay tests.
+- [x] GREEN: implement pre-clipping observation and integrate BASE/PQL; bounded first-event capture and published diagnostic files.
+- [x] Verify focused regressions; run available diagnostic canary with truthful device/provenance labels; commit.
 
 ### Task 3: Early recovery and final verification
 
 Files: experiments/recovery_checkpoints.py; tests/test_recovery_checkpoints.py; diagnostic documentation/current task.
-- [ ] RED: canonical first backup at 1800s rather than 9000s; later spacing and max attempts unchanged.
-- [ ] GREEN: cap first delay at 1800s.
-- [ ] Run full suite, compile/diff/secret checks; fresh whole-change review and address material findings with RED/GREEN.
-- [ ] Push working branch, verify remote, report observed numerical evidence and limits.
+- [x] RED: canonical first backup at 1800s rather than 9000s; later spacing and max attempts unchanged.
+- [x] GREEN: cap first delay at 1800s.
+- [x] Run full suite, compile/diff/secret checks; fresh whole-change review and address material findings with RED/GREEN.
+- [x] Push working branch, verify remote, report observed numerical evidence and limits.

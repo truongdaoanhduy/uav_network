@@ -160,3 +160,20 @@ Không sửa lịch mini-eval đang tắt và không tự đổi policy/scenario
 
 Chỉ jobs dùng commit mới có các log mới. Phiên đã chạy với commit cũ không thể
 nhận thêm code; dữ liệu thiếu của run lịch sử giữ nguyên, không bịa lại.
+
+
+## Handled AMP overflow evidence
+
+An AMP skip is not automatically a model failure. Learner scalar telemetry uses null for nonfinite numbers plus `<metric>_nonfinite` and `<metric>_nonfinite_kind`; finite gradient norms reset their flags. Episode/history/summary and W&B scalar channels share this conversion. Genuine nonfinite learner losses and FP32 gradient errors still fail through the existing guards.
+
+BASE and PQL learners attempt one snapshot per critic/actor group at the first AMP skip. `overflow-<role>-<group>.pt` is diagnostic evidence, not a training-resume checkpoint. It stores the original batch, model, owned unscaled pre-clipping gradient tensors and their statistics, optimizer/scaler state, update counters and pre-forward Torch RNG. The adjacent JSON names the source/device, checks input finiteness and distinguishes `nonfinite_gradients` from `norm_reduction_overflow`. Capture/upload failures are optional and bounded; they cannot prevent scaler backoff or stop healthy training.
+
+Replay a saved snapshot separately:
+
+```bash
+python -m scripts.replay_overflow snapshot.pt --device cuda:1 --output comparison.json
+```
+
+Replay constructs independent FP32/FP16 learners from the same saved values/RNG. It records the first observed nonfinite parameter gradient, per-parameter gradient statistics, finite losses/model state and AMP skip counts. FP32 bypasses AMP counters, so its `applied` field is null. Replay is eager; it does not claim to reproduce compiled kernels or asynchronous RNG interleaving. The first nonfinite parameter observed by a hook is not proof of the first arithmetic operation that overflowed. Diagnostic snapshots contain no environment/replay history sufficient for exact training resume.
+
+For future canonical sessions, the first full recovery backup is due after min(effective interval, 1800 seconds); later attempts retain the bounded session spacing. With 10h/four attempts and interval=1h, first due is 30 minutes and later attempts are spaced 2.5h after the prior attempt finishes. Successful upload confirmation can occur later than the due time. Existing source-pinned jobs retain their original timing and code.

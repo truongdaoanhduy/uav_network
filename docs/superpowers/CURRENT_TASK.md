@@ -1,18 +1,32 @@
-# Three failed training runs — DIAGNOSED / FIX PROPOSED, NOT IMPLEMENTED
+# AMP overflow telemetry/capture fix — COMPLETE / VERIFIED ON CPU AND DUAL T4
 
-Observed live 2026-10-28T05:48:44–05:48:46Z. Audited HEAD `3d3a829286eda353da449589c0cf4cbb64c70415`; failed runtime source `1aa095f29b8505bbf43ca42033c51ea96d144dd5`. User requested live diagnosis and a proposed solution.
+Completed 2026-10-28. Verified runtime `98724b827ce0dd017bb319dea09aa3c31b90282a` on `feat/cpu-replay-20261022`. User authorized execution of the preceding proposal. Existing host worktree retained; no production restart/cancel or scientific-config change.
 
-Confirmed: MASAC PQL `03df03cc`, MATD3 BASE `3befcfb8`, MATD3 PQL `4f8f7d7d` are W&B failed and Kaggle ERROR. All three traceback at strict episode JSON serialization with grad_norm inf: `training.py:254` / `pql_training.py:152`. AMP already skips nonfinite-gradient steps; BASE failure report has no nonfinite model parameters. Numerical source of the first nonfinite CUDA operation remains unproven. No evidence attributing the crash to hybrid replay/action design.
+## Changes and verification
 
-Recovery is separately blocked: effective first backup is max(3600,36000/4)=9000s, not 3600s. All three failed before it; model artifacts are policy-only/resumable=false and summaries show no full-state checkpoint. Supervisor 40638183428 reports checkpoint_missing. Use verified full-state provenance for any recovery; policy/failure snapshots cannot be exact resume.
+- Idempotent learner telemetry prevents handled Inf/NaN from crashing strict episode/history/summary/W&B JSON. Original finite metrics retained; missing numeric values carry nonfinite labels/flags.
+- AMP pre-clipping norm boundary preserves original gradient evidence and prior optimizer skip/backoff behavior. First critic/actor skip attempts bounded batch/model/gradient/optimizer/scaler/RNG snapshots; storage/upload failure isolated. Replay CLI compares eager FP32/FP16 and records actual parameter gradient statistics. FP32 applied counter is null because AMP counters are bypassed.
+- Full recovery first due is capped at1800s; subsequent spacing and attempt cap unchanged. Existing source-pinned jobs keep their old source/timing.
+- Fresh whole-change review:2 Important findings (repeated labels and missing gradient tensors), both observed RED->GREEN and fixed. No deferred reviewer minors.
+- Final full CPU suite on98724b8:959 passed,95 skipped,1408 subtests,8 warnings,525.47s; JUnit0 failures/0 errors. Compile/diff/scientific source hashes pass;12 credential values scanned,0 hits. Local CUDA unavailable; actual GPU evidence comes from the completed Kaggle probes below.
 
-Verification: reproduced serializer failure and a narrow json_safe candidate on all three saved metric sets; finite metrics unchanged. Existing CPU precision/recovery tests: 7 passed, 40 deselected in 7.29s. No fresh CUDA or full suite this diagnosis-only task. Production code, scientific config and cloud/W&B state remain unchanged.
+## Direct numerical evidence
 
-At the same live snapshot `4f98f2c9`, `a04dbdef`, `8db188ea` are running on both services with fresh heartbeat/progress, and no confirmed full checkpoint yet. Protect these lineages; old pinned code still has the telemetry bug.
+All three diagnostic kernels COMPLETE on Kaggle, all W&B diagnostic runs finished:
 
-Follow-up 2026-10-28T06:02Z: inspected final AMP history and actual BASE model snapshot (240 finite tensors, max abs 2.1222). Scale/skip transitions strongly support AMP overflow/backoff; cannot distinguish nonfinite raw gradients from FP32 norm-reduction overflow without the missing batch/gradients. Source has normalized inputs but no LayerNorm; neither missing normalization nor corrupt data is established. Capture first skip batch/model/scaler/RNG and replay FP32 vs FP16 before asserting numerical root cause.
+- `128d227d`: fresh canonical-sized four-case probe, kernel `egkljwigojwof/overflow-fp16-diagnostics-cbac3c`, source4e3a942. BASE cases did not overflow within bound; MASAC/MATD3 PQL critics naturally overflowed on finite input, and FP32 replay was finite.
+- `c031f202`: sourcefd5d207, kernel `gkgijewjf/diag-trained-overflow-1028-33be7a`; actual finite model from historical MATD3 BASE failure, fresh canonical batch. Critic overflow at8192, FP32 norm8542;8 actor batches at32768 did not reproduce actor overflow.
+- `9299f2f9`: source98724b8, kernel `egkljwigojwof/diag-overflow-reference-1028-e761e3`; CUDA reference replay of3 captured critic snapshots. Fresh MATD3 PQL weight gradient1.05083346*65536=68867.42; MASAC PQL1.06436467*65536=69754.20, both exceed FP16 max65504. For those two cases, all6/all2 above-range parameter tensors match the nonfinite FP16 gradient tensors. Model/input remain finite. This confirms scaled-backward overflow in observed canaries, not just norm-reduction overflow.
 
-Next action when implementation is requested: read [the audit and prioritized fix proposal](evidence/2026-10-28-failed-training-audit.md), then RED test the serializer boundary before patching BASE/PQL and first-backup timing. Fresh-check all services before operational decisions. No new production launch authorized by this proposal task.
+Exact historical failed batches are unavailable. Original MATD3 BASE actor event is still not exactly reproduced; no claim to have identified its first arithmetic operation. Eager replay cannot reconstruct compiled kernels or asynchronous RNG interleaving. Do not reinterpret diagnostic snapshots as resumable training state or invent missing data.
+
+## Live operational snapshot and next action
+
+At2026-10-28T06:52Z, original healthy `4f98f2c9`, `a04dbdef`, `8db188ea` were running on W&B+Kaggle with fresh heartbeat. E4096 BASE now has a verified full backup atstep10256384/episode4096; E2048 roots had no confirmed full checkpoint yet. Preserve them and fresh-query before action. Old failed03df03cc/3befcfb8/4f8f7d7d still lack verified full recovery state; warm-start or restart must be labeled as a new lineage if later requested.
+
+Next launches should pin verified fixed source98724b8 or its documentation descendants. This completed task did not authorize a silent20k production relaunch, main merge, or migration of existing lineages.
+
+Detailed measured evidence and code map: [overflow verification](evidence/2026-10-28-overflow-fix-verification.md), [structured result](evidence/2026-10-28-overflow-fix-verification.json), [diagnostic usage](../training-diagnostics.md).
 
 ---
 
