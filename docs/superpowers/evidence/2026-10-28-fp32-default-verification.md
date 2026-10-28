@@ -1,5 +1,7 @@
 # FP32 default: verified; live retry transition blocked
 
+Follow-up: the user clarified API-only access. New FP32 roots have now been submitted on idle owned accounts05/08/09, with old02/03/04 removed from automatic continuation; see [completed API-transition evidence](2026-10-28-fp32-api-transition.md). The blocked state below is the preceding timestamped snapshot.
+
 Runtime source: `d290b7157a85428eacdfa3343c731a343af9fa37` on `feat/cpu-replay-20261022`. Base before this task: `e7f9d979d3c49abca4c1a0d04ea7514ece24dffe`. The user requested ordinary FP32 training and explained they also wanted general knowledge about omitted AMP settings.
 
 ## Implemented and verified

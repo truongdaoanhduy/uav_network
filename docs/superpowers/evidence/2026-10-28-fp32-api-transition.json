@@ -1,0 +1,1014 @@
+{
+  "recorded_at_utc": "2026-10-28T09:38:37.836055+00:00",
+  "source_commit": "ca53c74bcdea557cca681f77082eb6cf323f64cd",
+  "verified_runtime_ancestor": "d290b7157a85428eacdfa3343c731a343af9fa37",
+  "runtime_identical_to_verified_ancestor": true,
+  "reason_for_alternate_accounts": "User clarified only API credentials are available and nonprimary web login details are forgotten. Public API cannot resolve a cancellable current session ID by ref. Use new fresh FP32 roots on verified idle owned API accounts; retire old retries from automatic continuation.",
+  "account_identity_map": [
+    {
+      "account": "account_01",
+      "username": "duytrngoanh"
+    },
+    {
+      "account": "account_02",
+      "username": "vuliu123456"
+    },
+    {
+      "account": "account_03",
+      "username": "egkljwigojwof"
+    },
+    {
+      "account": "account_04",
+      "username": "gkgijewjf"
+    },
+    {
+      "account": "account_05",
+      "username": "fwelfijwelfj"
+    },
+    {
+      "account": "account_06",
+      "username": "fwklgeewjlfew"
+    },
+    {
+      "account": "account_07",
+      "username": "lkejflwejf"
+    },
+    {
+      "account": "account_08",
+      "username": "kljgewkfjl"
+    },
+    {
+      "account": "account_09",
+      "username": "ewlgkjewkf"
+    },
+    {
+      "account": "account_10",
+      "username": "ewkljfwef"
+    }
+  ],
+  "preflight": [
+    {
+      "account": "account_05",
+      "username": "fwelfijwelfj",
+      "quota": [
+        {
+          "name": "account_05",
+          "ok": true,
+          "used_hours": 0.08,
+          "remaining_hours": 29.92,
+          "total_hours": 30.0
+        }
+      ],
+      "existing": [
+        {
+          "ref": "fwelfijwelfj/diag-fp32-canonical-1028-c36d75",
+          "state": "complete"
+        },
+        {
+          "ref": "fwelfijwelfj/notebook45e2786225",
+          "state": "no_published_session_404"
+        }
+      ],
+      "at_utc": "2026-10-28T09:29:56.473896+00:00",
+      "identity_verified_at_utc": "2026-10-28T09:30:37.101718+00:00"
+    },
+    {
+      "account": "account_08",
+      "username": "kljgewkfjl",
+      "quota": [
+        {
+          "name": "account_08",
+          "ok": true,
+          "used_hours": 0.0,
+          "remaining_hours": 30.0,
+          "total_hours": 30.0
+        }
+      ],
+      "existing": [],
+      "at_utc": "2026-10-28T09:29:49.966653+00:00",
+      "identity_verified_at_utc": "2026-10-28T09:30:38.401172+00:00"
+    },
+    {
+      "account": "account_09",
+      "username": "ewlgkjewkf",
+      "quota": [
+        {
+          "name": "account_09",
+          "ok": true,
+          "used_hours": 0.0,
+          "remaining_hours": 30.0,
+          "total_hours": 30.0
+        }
+      ],
+      "existing": [],
+      "at_utc": "2026-10-28T09:29:52.047860+00:00",
+      "identity_verified_at_utc": "2026-10-28T09:30:39.774269+00:00"
+    }
+  ],
+  "new_manifests": [
+    {
+      "submitted_at_utc": "2026-10-28T09:31:56.950732+00:00",
+      "commit": "ca53c74bcdea557cca681f77082eb6cf323f64cd",
+      "kernel_ref": "fwelfijwelfj/gh-tra-g3-masac-pql-h75-102809-92a283",
+      "account": "account_05",
+      "timeout_seconds": 39600,
+      "warm_start_artifacts": {},
+      "credential_dataset": "fwelfijwelfj/uav-cpu-wandb-credential",
+      "entity": "truongdaoanhduy-uit",
+      "project": "uav_search_target",
+      "stage": "train",
+      "config": "configs/comparison-20k-hybrid75-1kb.yaml",
+      "overrides": [
+        "pql.enabled=true",
+        "runtime.compile_models=true",
+        "runtime.fused_optimizers=false",
+        "tracking.tags=[\"uav-network\", \"scenario-v3\", \"full20k\", \"replay1m\", \"batch8192\", \"env4096\", \"steps1800\", \"seed44\", \"base-pql-comparison\", \"report1kb\", \"radio-energy\", \"cpu-visualize\", \"auto-continue\", \"amp-off\", \"torch-compile\", \"fused-off\", \"replay-hybrid-c75-g25\", \"generation3\"]"
+      ],
+      "runs": {
+        "masac": {
+          "id": "dff78acf",
+          "name": "TRAIN-MASAC-PQL-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261028-093156-92a283"
+        }
+      },
+      "training_mode": "pql",
+      "accelerator": "NvidiaTeslaT4",
+      "gpus_per_run": 2,
+      "requested_episodes": 20000,
+      "auto_continue": true,
+      "root_kernel_ref": "fwelfijwelfj/gh-tra-g3-masac-pql-h75-102809-92a283",
+      "continuation_index": 0,
+      "orchestration": "github_actions",
+      "external_supervisor_required": true,
+      "cpu_visualize": true,
+      "pipeline_credential_dataset": "fwelfijwelfj/uav-cpu-launch-credential",
+      "cpu_credential_dataset": "fwelfijwelfj/uav-cpu-wandb-credential",
+      "cpu_eval": {
+        "episodes": 30,
+        "seed": 2000000044,
+        "frame_stride": 5,
+        "fps": 10
+      },
+      "checkpoint_repo": "duy95/uav-search-checkpoints",
+      "storage_credential_dataset": "fwelfijwelfj/uav-hf-checkpoint-credential",
+      "kernel_url": "https://www.kaggle.com/code/fwelfijwelfj/gh-tra-g3-masac-pql-h75-102809-92a283",
+      "wandb_urls": {
+        "masac": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/dff78acf"
+      },
+      "manifest": "/home/aduy/Documents/NCKH/uav_network-public-hf-20261022/outputs/kaggle/gh-tra-g3-masac-pql-h75-102809-92a283/launch.json"
+    },
+    {
+      "submitted_at_utc": "2026-10-28T09:32:12.283326+00:00",
+      "commit": "ca53c74bcdea557cca681f77082eb6cf323f64cd",
+      "kernel_ref": "kljgewkfjl/gh-tra-g3-matd3-base-h75-1028093-890afc",
+      "account": "account_08",
+      "timeout_seconds": 39600,
+      "warm_start_artifacts": {},
+      "credential_dataset": "kljgewkfjl/uav-cpu-wandb-credential",
+      "entity": "truongdaoanhduy-uit",
+      "project": "uav_search_target",
+      "stage": "train",
+      "config": "configs/comparison-20k-hybrid75-1kb.yaml",
+      "overrides": [
+        "runtime.compile_models=true",
+        "runtime.fused_optimizers=false",
+        "tracking.tags=[\"uav-network\", \"scenario-v3\", \"full20k\", \"replay1m\", \"batch8192\", \"env4096\", \"steps1800\", \"seed44\", \"base-pql-comparison\", \"report1kb\", \"radio-energy\", \"cpu-visualize\", \"auto-continue\", \"amp-off\", \"torch-compile\", \"fused-off\", \"replay-hybrid-c75-g25\", \"generation3\"]"
+      ],
+      "runs": {
+        "matd3": {
+          "id": "a85d067a",
+          "name": "TRAIN-MATD3-BASE-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261028-093212-890afc"
+        }
+      },
+      "training_mode": "base",
+      "accelerator": "NvidiaTeslaT4",
+      "gpus_per_run": 2,
+      "requested_episodes": 20000,
+      "auto_continue": true,
+      "root_kernel_ref": "kljgewkfjl/gh-tra-g3-matd3-base-h75-1028093-890afc",
+      "continuation_index": 0,
+      "orchestration": "github_actions",
+      "external_supervisor_required": true,
+      "cpu_visualize": true,
+      "pipeline_credential_dataset": "kljgewkfjl/uav-cpu-launch-credential",
+      "cpu_credential_dataset": "kljgewkfjl/uav-cpu-wandb-credential",
+      "cpu_eval": {
+        "episodes": 30,
+        "seed": 2000000044,
+        "frame_stride": 5,
+        "fps": 10
+      },
+      "checkpoint_repo": "duy95/uav-search-checkpoints",
+      "storage_credential_dataset": "kljgewkfjl/uav-hf-checkpoint-credential",
+      "kernel_url": "https://www.kaggle.com/code/kljgewkfjl/gh-tra-g3-matd3-base-h75-1028093-890afc",
+      "wandb_urls": {
+        "matd3": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/a85d067a"
+      },
+      "manifest": "/home/aduy/Documents/NCKH/uav_network-public-hf-20261022/outputs/kaggle/gh-tra-g3-matd3-base-h75-1028093-890afc/launch.json"
+    },
+    {
+      "submitted_at_utc": "2026-10-28T09:32:12.332714+00:00",
+      "commit": "ca53c74bcdea557cca681f77082eb6cf323f64cd",
+      "kernel_ref": "ewlgkjewkf/gh-tra-g3-matd3-pql-h75-10280932-1f7593",
+      "account": "account_09",
+      "timeout_seconds": 39600,
+      "warm_start_artifacts": {},
+      "credential_dataset": "ewlgkjewkf/uav-cpu-wandb-credential",
+      "entity": "truongdaoanhduy-uit",
+      "project": "uav_search_target",
+      "stage": "train",
+      "config": "configs/comparison-20k-hybrid75-1kb.yaml",
+      "overrides": [
+        "pql.enabled=true",
+        "runtime.compile_models=false",
+        "runtime.fused_optimizers=false",
+        "tracking.tags=[\"uav-network\", \"scenario-v3\", \"full20k\", \"replay1m\", \"batch8192\", \"env4096\", \"steps1800\", \"seed44\", \"base-pql-comparison\", \"report1kb\", \"radio-energy\", \"cpu-visualize\", \"auto-continue\", \"amp-off\", \"compile-off\", \"fused-off\", \"replay-hybrid-c75-g25\", \"generation3\"]"
+      ],
+      "runs": {
+        "matd3": {
+          "id": "b8d0b40a",
+          "name": "TRAIN-MATD3-PQL-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261028-093212-1f7593"
+        }
+      },
+      "training_mode": "pql",
+      "accelerator": "NvidiaTeslaT4",
+      "gpus_per_run": 2,
+      "requested_episodes": 20000,
+      "auto_continue": true,
+      "root_kernel_ref": "ewlgkjewkf/gh-tra-g3-matd3-pql-h75-10280932-1f7593",
+      "continuation_index": 0,
+      "orchestration": "github_actions",
+      "external_supervisor_required": true,
+      "cpu_visualize": true,
+      "pipeline_credential_dataset": "ewlgkjewkf/uav-cpu-launch-credential",
+      "cpu_credential_dataset": "ewlgkjewkf/uav-cpu-wandb-credential",
+      "cpu_eval": {
+        "episodes": 30,
+        "seed": 2000000044,
+        "frame_stride": 5,
+        "fps": 10
+      },
+      "checkpoint_repo": "duy95/uav-search-checkpoints",
+      "storage_credential_dataset": "ewlgkjewkf/uav-hf-checkpoint-credential",
+      "kernel_url": "https://www.kaggle.com/code/ewlgkjewkf/gh-tra-g3-matd3-pql-h75-10280932-1f7593",
+      "wandb_urls": {
+        "matd3": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/b8d0b40a"
+      },
+      "manifest": "/home/aduy/Documents/NCKH/uav_network-public-hf-20261022/outputs/kaggle/gh-tra-g3-matd3-pql-h75-10280932-1f7593/launch.json"
+    }
+  ],
+  "old_to_new": [
+    {
+      "old_fp16_run_id": "0650d5b1",
+      "new_account": "account_05",
+      "new_run_id": "dff78acf",
+      "new_kernel_ref": "fwelfijwelfj/gh-tra-g3-masac-pql-h75-102809-92a283",
+      "new_restart_kind": "fresh_seed44_FP32",
+      "old_fp16_immediately_cancelled": false
+    },
+    {
+      "old_fp16_run_id": "44558e6c",
+      "new_account": "account_08",
+      "new_run_id": "a85d067a",
+      "new_kernel_ref": "kljgewkfjl/gh-tra-g3-matd3-base-h75-1028093-890afc",
+      "new_restart_kind": "fresh_seed44_FP32",
+      "old_fp16_immediately_cancelled": false
+    },
+    {
+      "old_fp16_run_id": "87a9500e",
+      "new_account": "account_09",
+      "new_run_id": "b8d0b40a",
+      "new_kernel_ref": "ewlgkjewkf/gh-tra-g3-matd3-pql-h75-10280932-1f7593",
+      "new_restart_kind": "fresh_seed44_FP32",
+      "old_fp16_immediately_cancelled": false
+    }
+  ],
+  "allowlist_transition": {
+    "changed_at_utc": "2026-10-28T09:34:56.342746+00:00",
+    "before": [
+      "account_01",
+      "account_02",
+      "account_03",
+      "account_04",
+      "account_06",
+      "account_07"
+    ],
+    "after": [
+      "account_01",
+      "account_05",
+      "account_06",
+      "account_07",
+      "account_08",
+      "account_09"
+    ],
+    "purpose": "Retire old FP16 retries from automatic continuation and supervise new FP32 roots while preserving healthy01/06/07. Existing FP16 GPU segments were not cancelled."
+  },
+  "github_service_probe_run": 40665341474,
+  "github_service_probe_job": 122738305307,
+  "github_service_probe": {
+    "huggingface": {
+      "status": "ok"
+    },
+    "kaggle/account_01": {
+      "status": "ok",
+      "username": "duytrngoanh"
+    },
+    "kaggle/account_05": {
+      "status": "ok",
+      "username": "fwelfijwelfj"
+    },
+    "kaggle/account_06": {
+      "status": "ok",
+      "username": "fwklgeewjlfew"
+    },
+    "kaggle/account_07": {
+      "status": "ok",
+      "username": "lkejflwejf"
+    },
+    "kaggle/account_08": {
+      "status": "ok",
+      "username": "kljgewkfjl"
+    },
+    "kaggle/account_09": {
+      "status": "ok",
+      "username": "ewlgkjewkf"
+    },
+    "wandb": {
+      "status": "ok"
+    }
+  },
+  "github_dry_reconcile": {
+    "account_01": [
+      {
+        "action": "active",
+        "ref": "duytrngoanh/gh-tra-g3-masac-base-h75-102803-a0b159",
+        "status": "running"
+      }
+    ],
+    "account_05": [
+      {
+        "action": "active",
+        "ref": "fwelfijwelfj/gh-tra-g3-masac-pql-h75-102809-92a283",
+        "status": "running"
+      }
+    ],
+    "account_06": [
+      {
+        "action": "active",
+        "ref": "fwklgeewjlfew/gh-tra-g3-masac-base-h75-1028-a76638",
+        "status": "running"
+      }
+    ],
+    "account_07": [
+      {
+        "action": "active",
+        "ref": "lkejflwejf/gh-tra-g3-masac-pql-h75-10280520-a7f572",
+        "status": "running"
+      }
+    ],
+    "account_08": [
+      {
+        "action": "active",
+        "ref": "kljgewkfjl/gh-tra-g3-matd3-base-h75-1028093-890afc",
+        "status": "running"
+      }
+    ],
+    "account_09": [
+      {
+        "action": "active",
+        "ref": "ewlgkjewkf/gh-tra-g3-matd3-pql-h75-10280932-1f7593",
+        "status": "running"
+      }
+    ]
+  },
+  "github_nondry_reconcile_run": 40665691175,
+  "startup_verification": [
+    {
+      "new_id": "dff78acf",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/dff78acf",
+      "old_id": "0650d5b1",
+      "account": "account_05",
+      "kernel_ref": "fwelfijwelfj/gh-tra-g3-masac-pql-h75-102809-92a283",
+      "checked_at_utc": "2026-10-28T09:41:34.645493+00:00",
+      "kaggle_status": "fwelfijwelfj/gh-tra-g3-masac-pql-h75-102809-92a283 has status \"KernelWorkerStatus.RUNNING\"",
+      "wandb_state": "running",
+      "heartbeat": "2026-10-28T09:41:33Z",
+      "source": "ca53c74bcdea557cca681f77082eb6cf323f64cd",
+      "runtime": {
+        "seed": 44,
+        "device": "cuda",
+        "amp_mode": "off",
+        "episodes": 20000,
+        "num_envs": 4096,
+        "algorithm": "masac",
+        "eval_seed": 2000000044,
+        "output_dir": "/kaggle/working/train/masac",
+        "deterministic": true,
+        "eval_episodes": 30,
+        "replay_device": "cpu",
+        "shared_memory": true,
+        "torch_threads": 1,
+        "compile_models": true,
+        "fused_optimizers": false,
+        "collector_overlap": true,
+        "critic_chunk_size": 1024,
+        "max_train_seconds": 36000,
+        "vectorize_critics": true,
+        "log_interval_steps": 4096,
+        "checkpoint_interval": 128,
+        "coalesce_idle_polls": true,
+        "environment_backend": "warp_packet",
+        "replay_cpu_fraction": 0.75,
+        "warm_start_checkpoint": "none"
+      },
+      "hardware": {
+        "torch": "2.11.0+cu128",
+        "python": "3.13.15",
+        "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+        "cuda_devices": [
+          {
+            "name": "Tesla T4",
+            "index": 0,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          },
+          {
+            "name": "Tesla T4",
+            "index": 1,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          }
+        ],
+        "logical_cpus": 4,
+        "available_cpus": 4,
+        "cuda_available": true,
+        "torch_cuda_build": "12.8"
+      },
+      "pipeline": {
+        "auto_continue": true,
+        "root_kernel_ref": "fwelfijwelfj/gh-tra-g3-masac-pql-h75-102809-92a283",
+        "target_episodes": 20000,
+        "continuation_index": 0
+      },
+      "continuation": {
+        "kind": "fresh",
+        "source_run_id": null,
+        "state_restore": "fresh",
+        "input_artifact": null,
+        "initial_episodes": 0,
+        "initial_global_step": 0,
+        "optimizer_replay_restored": false
+      },
+      "tags": [
+        "amp-off",
+        "auto-continue",
+        "base-pql-comparison",
+        "batch8192",
+        "cpu-visualize",
+        "env4096",
+        "full20k",
+        "fused-off",
+        "generation3",
+        "radio-energy",
+        "replay-hybrid-c75-g25",
+        "replay1m",
+        "report1kb",
+        "scenario-v3",
+        "seed44",
+        "steps1800",
+        "torch-compile",
+        "uav-network"
+      ],
+      "global_step": 208896,
+      "updates": 136,
+      "selected_latest_metrics": {
+        "learner/actor_grad_norm": 0.09454437345266342,
+        "learner/actor_grad_norm_nonfinite": 0,
+        "learner/actor_loss": -7.0123515129089355,
+        "learner/alpha_grad_norm": 1.3877602815628052,
+        "learner/alpha_grad_norm_nonfinite": 0,
+        "learner/critic_grad_norm": 20.519737243652344,
+        "learner/critic_grad_norm_nonfinite": 0,
+        "learner/critic_loss": 327.7506103515625
+      },
+      "scientific_diff": {},
+      "runtime_diff": {
+        "amp_mode": {
+          "old": "fp16",
+          "new": "off"
+        }
+      }
+    },
+    {
+      "new_id": "a85d067a",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/a85d067a",
+      "old_id": "44558e6c",
+      "account": "account_08",
+      "kernel_ref": "kljgewkfjl/gh-tra-g3-matd3-base-h75-1028093-890afc",
+      "checked_at_utc": "2026-10-28T09:41:35.551808+00:00",
+      "kaggle_status": "kljgewkfjl/gh-tra-g3-matd3-base-h75-1028093-890afc has status \"KernelWorkerStatus.RUNNING\"",
+      "wandb_state": "running",
+      "heartbeat": "2026-10-28T09:41:24Z",
+      "source": "ca53c74bcdea557cca681f77082eb6cf323f64cd",
+      "runtime": {
+        "seed": 44,
+        "device": "cuda",
+        "amp_mode": "off",
+        "episodes": 20000,
+        "num_envs": 4096,
+        "algorithm": "matd3",
+        "eval_seed": 2000000044,
+        "output_dir": "/kaggle/working/train/matd3",
+        "deterministic": true,
+        "eval_episodes": 30,
+        "replay_device": "cpu",
+        "shared_memory": true,
+        "torch_threads": 1,
+        "compile_models": true,
+        "fused_optimizers": false,
+        "collector_overlap": true,
+        "critic_chunk_size": 1024,
+        "max_train_seconds": 36000,
+        "vectorize_critics": true,
+        "log_interval_steps": 4096,
+        "checkpoint_interval": 128,
+        "coalesce_idle_polls": true,
+        "environment_backend": "warp_packet",
+        "replay_cpu_fraction": 0.75,
+        "warm_start_checkpoint": "none"
+      },
+      "hardware": {
+        "torch": "2.11.0+cu128",
+        "python": "3.13.15",
+        "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+        "cuda_devices": [
+          {
+            "name": "Tesla T4",
+            "index": 0,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          },
+          {
+            "name": "Tesla T4",
+            "index": 1,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          }
+        ],
+        "logical_cpus": 4,
+        "available_cpus": 4,
+        "cuda_available": true,
+        "torch_cuda_build": "12.8"
+      },
+      "pipeline": {
+        "auto_continue": true,
+        "root_kernel_ref": "kljgewkfjl/gh-tra-g3-matd3-base-h75-1028093-890afc",
+        "target_episodes": 20000,
+        "continuation_index": 0
+      },
+      "continuation": {
+        "kind": "fresh",
+        "source_run_id": null,
+        "state_restore": "fresh",
+        "input_artifact": null,
+        "initial_episodes": 0,
+        "initial_global_step": 0,
+        "optimizer_replay_restored": false
+      },
+      "tags": [
+        "amp-off",
+        "auto-continue",
+        "base-pql-comparison",
+        "batch8192",
+        "cpu-visualize",
+        "env4096",
+        "full20k",
+        "fused-off",
+        "generation3",
+        "radio-energy",
+        "replay-hybrid-c75-g25",
+        "replay1m",
+        "report1kb",
+        "scenario-v3",
+        "seed44",
+        "steps1800",
+        "torch-compile",
+        "uav-network"
+      ],
+      "global_step": 487424,
+      "updates": 696,
+      "selected_latest_metrics": {
+        "learner/actor_grad_norm": 0.08874740451574326,
+        "learner/actor_grad_norm_nonfinite": 0,
+        "learner/actor_loss": -32.598304748535156,
+        "learner/critic_grad_norm": 118.98575592041016,
+        "learner/critic_grad_norm_nonfinite": 0,
+        "learner/critic_loss": 243.87307739257812
+      },
+      "scientific_diff": {},
+      "runtime_diff": {
+        "amp_mode": {
+          "old": "fp16",
+          "new": "off"
+        }
+      }
+    },
+    {
+      "new_id": "b8d0b40a",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/b8d0b40a",
+      "old_id": "87a9500e",
+      "account": "account_09",
+      "kernel_ref": "ewlgkjewkf/gh-tra-g3-matd3-pql-h75-10280932-1f7593",
+      "checked_at_utc": "2026-10-28T09:41:36.386986+00:00",
+      "kaggle_status": "ewlgkjewkf/gh-tra-g3-matd3-pql-h75-10280932-1f7593 has status \"KernelWorkerStatus.RUNNING\"",
+      "wandb_state": "running",
+      "heartbeat": "2026-10-28T09:41:32Z",
+      "source": "ca53c74bcdea557cca681f77082eb6cf323f64cd",
+      "runtime": {
+        "seed": 44,
+        "device": "cuda",
+        "amp_mode": "off",
+        "episodes": 20000,
+        "num_envs": 4096,
+        "algorithm": "matd3",
+        "eval_seed": 2000000044,
+        "output_dir": "/kaggle/working/train/matd3",
+        "deterministic": true,
+        "eval_episodes": 30,
+        "replay_device": "cpu",
+        "shared_memory": true,
+        "torch_threads": 1,
+        "compile_models": false,
+        "fused_optimizers": false,
+        "collector_overlap": true,
+        "critic_chunk_size": 1024,
+        "max_train_seconds": 36000,
+        "vectorize_critics": true,
+        "log_interval_steps": 4096,
+        "checkpoint_interval": 128,
+        "coalesce_idle_polls": true,
+        "environment_backend": "warp_packet",
+        "replay_cpu_fraction": 0.75,
+        "warm_start_checkpoint": "none"
+      },
+      "hardware": {
+        "torch": "2.11.0+cu128",
+        "python": "3.13.15",
+        "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+        "cuda_devices": [
+          {
+            "name": "Tesla T4",
+            "index": 0,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          },
+          {
+            "name": "Tesla T4",
+            "index": 1,
+            "memory_gib": 14.56219482421875,
+            "compute_capability": [
+              7,
+              5
+            ]
+          }
+        ],
+        "logical_cpus": 4,
+        "available_cpus": 4,
+        "cuda_available": true,
+        "torch_cuda_build": "12.8"
+      },
+      "pipeline": {
+        "auto_continue": true,
+        "root_kernel_ref": "ewlgkjewkf/gh-tra-g3-matd3-pql-h75-10280932-1f7593",
+        "target_episodes": 20000,
+        "continuation_index": 0
+      },
+      "continuation": {
+        "kind": "fresh",
+        "source_run_id": null,
+        "state_restore": "fresh",
+        "input_artifact": null,
+        "initial_episodes": 0,
+        "initial_global_step": 0,
+        "optimizer_replay_restored": false
+      },
+      "tags": [
+        "amp-off",
+        "auto-continue",
+        "base-pql-comparison",
+        "batch8192",
+        "compile-off",
+        "cpu-visualize",
+        "env4096",
+        "full20k",
+        "fused-off",
+        "generation3",
+        "radio-energy",
+        "replay-hybrid-c75-g25",
+        "replay1m",
+        "report1kb",
+        "scenario-v3",
+        "seed44",
+        "steps1800",
+        "uav-network"
+      ],
+      "global_step": 548864,
+      "updates": 800,
+      "selected_latest_metrics": {
+        "learner/actor_grad_norm": 0.02387405186891556,
+        "learner/actor_grad_norm_nonfinite": 0,
+        "learner/actor_loss": -33.988739013671875,
+        "learner/critic_grad_norm": 69.62381744384766,
+        "learner/critic_grad_norm_nonfinite": 0,
+        "learner/critic_loss": 317.7591857910156
+      },
+      "scientific_diff": {},
+      "runtime_diff": {
+        "amp_mode": {
+          "old": "fp16",
+          "new": "off"
+        }
+      }
+    }
+  ],
+  "github_nondry_reconcile_job": 122739467717,
+  "github_nondry_reconcile": {
+    "account_01": [
+      {
+        "action": "active",
+        "ref": "duytrngoanh/gh-tra-g3-masac-base-h75-102803-a0b159",
+        "status": "running"
+      }
+    ],
+    "account_05": [
+      {
+        "action": "active",
+        "ref": "fwelfijwelfj/gh-tra-g3-masac-pql-h75-102809-92a283",
+        "status": "running"
+      }
+    ],
+    "account_06": [
+      {
+        "action": "active",
+        "ref": "fwklgeewjlfew/gh-tra-g3-masac-base-h75-1028-a76638",
+        "status": "running"
+      }
+    ],
+    "account_07": [
+      {
+        "action": "active",
+        "ref": "lkejflwejf/gh-tra-g3-masac-pql-h75-10280520-a7f572",
+        "status": "running"
+      }
+    ],
+    "account_08": [
+      {
+        "action": "active",
+        "ref": "kljgewkfjl/gh-tra-g3-matd3-base-h75-1028093-890afc",
+        "status": "running"
+      }
+    ],
+    "account_09": [
+      {
+        "action": "active",
+        "ref": "ewlgkjewkf/gh-tra-g3-matd3-pql-h75-10280932-1f7593",
+        "status": "running"
+      }
+    ]
+  },
+  "retained_old_runs": [
+    {
+      "account": "account_02",
+      "case": "masac-pql",
+      "id": "0650d5b1",
+      "kernel_ref": "vuliu123456/gh-tra-g3-masac-pql-h75-1028080-7b56ff",
+      "kaggle_status": "vuliu123456/gh-tra-g3-masac-pql-h75-1028080-7b56ff has status \"KernelWorkerStatus.RUNNING\"",
+      "wandb_state": "running",
+      "at_utc": "2026-10-28T09:15:46.276041+00:00",
+      "heartbeat": "2026-10-28T09:42:45Z",
+      "global_step": 6578176,
+      "updates": 12576,
+      "amp_mode": "fp16",
+      "source_commit": "0042166fb0408d9efa487ad2ccd31c59b709cd69",
+      "recovery": {
+        "recovery/attempts": 1,
+        "recovery/checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-0650d5b1:v0",
+        "recovery/checkpoint_bytes": 15540933014,
+        "recovery/effective_interval_seconds": 9000,
+        "recovery/elapsed_seconds": 453.7324252000003,
+        "recovery/full_checkpoint_available": 1,
+        "recovery/last_verified_episodes": 0,
+        "recovery/last_verified_global_step": 2437120,
+        "recovery/last_verified_utc": "2026-10-28T08:50:26.735700+00:00",
+        "recovery/max_attempts": 4,
+        "recovery/seconds_since_confirmed_upload": 3137.8359271519994,
+        "recovery/status": "uploaded"
+      },
+      "checked_at_utc": "2026-10-28T09:42:47.724702+00:00",
+      "automatic_continuation_enabled": false
+    },
+    {
+      "account": "account_03",
+      "case": "matd3-base",
+      "id": "44558e6c",
+      "kernel_ref": "egkljwigojwof/gh-tra-g3-matd3-base-h75-1028-fa6b65",
+      "kaggle_status": "egkljwigojwof/gh-tra-g3-matd3-base-h75-1028-fa6b65 has status \"KernelWorkerStatus.RUNNING\"",
+      "wandb_state": "running",
+      "at_utc": "2026-10-28T09:15:46.762566+00:00",
+      "heartbeat": "2026-10-28T09:42:40Z",
+      "global_step": 17592320,
+      "updates": 34104,
+      "amp_mode": "fp16",
+      "source_commit": "0042166fb0408d9efa487ad2ccd31c59b709cd69",
+      "recovery": {
+        "recovery/attempts": 1,
+        "recovery/checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-matd3-44558e6c:v1",
+        "recovery/checkpoint_bytes": 15555229562,
+        "recovery/effective_interval_seconds": 9000,
+        "recovery/elapsed_seconds": 432.44874907400026,
+        "recovery/full_checkpoint_available": 1,
+        "recovery/last_verified_episodes": 551,
+        "recovery/last_verified_global_step": 6836224,
+        "recovery/last_verified_utc": "2026-10-28T08:48:13.922006+00:00",
+        "recovery/max_attempts": 4,
+        "recovery/seconds_since_confirmed_upload": 3266.1123442,
+        "recovery/status": "uploaded"
+      },
+      "checked_at_utc": "2026-10-28T09:42:48.278169+00:00",
+      "automatic_continuation_enabled": false
+    },
+    {
+      "account": "account_04",
+      "case": "matd3-pql",
+      "id": "87a9500e",
+      "kernel_ref": "gkgijewjf/gh-tra-g3-matd3-pql-h75-10280805-9535a7",
+      "kaggle_status": "gkgijewjf/gh-tra-g3-matd3-pql-h75-10280805-9535a7 has status \"KernelWorkerStatus.RUNNING\"",
+      "wandb_state": "running",
+      "at_utc": "2026-10-28T09:15:47.232783+00:00",
+      "heartbeat": "2026-10-28T09:42:42Z",
+      "global_step": 15826944,
+      "updates": 30640,
+      "amp_mode": "fp16",
+      "source_commit": "0042166fb0408d9efa487ad2ccd31c59b709cd69",
+      "recovery": {
+        "recovery/attempts": 1,
+        "recovery/checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-matd3-87a9500e:v0",
+        "recovery/checkpoint_bytes": 15546666838,
+        "recovery/effective_interval_seconds": 9000,
+        "recovery/elapsed_seconds": 883.1400947050001,
+        "recovery/full_checkpoint_available": 1,
+        "recovery/last_verified_episodes": 30,
+        "recovery/last_verified_global_step": 6737920,
+        "recovery/last_verified_utc": "2026-10-28T08:56:02.566074+00:00",
+        "recovery/max_attempts": 4,
+        "recovery/seconds_since_confirmed_upload": 2799.0735262410003,
+        "recovery/status": "uploaded"
+      },
+      "checked_at_utc": "2026-10-28T09:42:48.771254+00:00",
+      "automatic_continuation_enabled": false
+    },
+    {
+      "account": "account_01",
+      "case": "masac-base",
+      "id": "4f98f2c9",
+      "kernel_ref": "duytrngoanh/gh-tra-g3-masac-base-h75-102803-a0b159",
+      "kaggle_status": "duytrngoanh/gh-tra-g3-masac-base-h75-102803-a0b159 has status \"KernelWorkerStatus.RUNNING\"",
+      "wandb_state": "running",
+      "at_utc": "2026-10-28T09:15:47.684798+00:00",
+      "heartbeat": "2026-10-28T09:42:42Z",
+      "global_step": 23625728,
+      "updates": 45888,
+      "amp_mode": "fp16",
+      "source_commit": "1aa095f29b8505bbf43ca42033c51ea96d144dd5",
+      "recovery": {
+        "recovery/attempts": 2,
+        "recovery/checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-4f98f2c9:v9",
+        "recovery/checkpoint_bytes": 15679355926,
+        "recovery/effective_interval_seconds": 9000,
+        "recovery/elapsed_seconds": 461.7548694720026,
+        "recovery/full_checkpoint_available": 1,
+        "recovery/last_verified_episodes": 8255,
+        "recovery/last_verified_global_step": 20226048,
+        "recovery/last_verified_utc": "2026-10-28T08:43:36.605760+00:00",
+        "recovery/max_attempts": 4,
+        "recovery/seconds_since_confirmed_upload": 3545.3626041860007,
+        "recovery/status": "uploaded"
+      },
+      "checked_at_utc": "2026-10-28T09:42:49.180178+00:00",
+      "automatic_continuation_enabled": true
+    },
+    {
+      "account": "account_06",
+      "case": "masac-base",
+      "id": "a04dbdef",
+      "kernel_ref": "fwklgeewjlfew/gh-tra-g3-masac-base-h75-1028-a76638",
+      "kaggle_status": "fwklgeewjlfew/gh-tra-g3-masac-base-h75-1028-a76638 has status \"KernelWorkerStatus.RUNNING\"",
+      "wandb_state": "running",
+      "at_utc": "2026-10-28T09:15:48.220990+00:00",
+      "heartbeat": "2026-10-28T09:42:35Z",
+      "global_step": 12433408,
+      "updates": 48056,
+      "amp_mode": "fp16",
+      "source_commit": "55a264cf27505d97f66aae4eadf73f61422169f7",
+      "recovery": {
+        "recovery/attempts": 1,
+        "recovery/checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-a04dbdef:v5",
+        "recovery/checkpoint_bytes": 14432534166,
+        "recovery/effective_interval_seconds": 9000,
+        "recovery/elapsed_seconds": 673.0341801550003,
+        "recovery/full_checkpoint_available": 1,
+        "recovery/last_verified_episodes": 4096,
+        "recovery/last_verified_global_step": 8136704,
+        "recovery/last_verified_utc": "2026-10-28T08:05:07.672559+00:00",
+        "recovery/max_attempts": 4,
+        "recovery/seconds_since_confirmed_upload": 5845.709292779,
+        "recovery/status": "uploaded"
+      },
+      "checked_at_utc": "2026-10-28T09:42:49.591486+00:00",
+      "automatic_continuation_enabled": true
+    },
+    {
+      "account": "account_07",
+      "case": "masac-pql",
+      "id": "8db188ea",
+      "kernel_ref": "lkejflwejf/gh-tra-g3-masac-pql-h75-10280520-a7f572",
+      "kaggle_status": "lkejflwejf/gh-tra-g3-masac-pql-h75-10280520-a7f572 has status \"KernelWorkerStatus.RUNNING\"",
+      "wandb_state": "running",
+      "at_utc": "2026-10-28T09:15:48.657841+00:00",
+      "heartbeat": "2026-10-28T09:42:39Z",
+      "global_step": 13549568,
+      "updates": 52656,
+      "amp_mode": "fp16",
+      "source_commit": "55a264cf27505d97f66aae4eadf73f61422169f7",
+      "recovery": {
+        "recovery/attempts": 1,
+        "recovery/checkpoint_artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-8db188ea:v4",
+        "recovery/checkpoint_bytes": 14432565078,
+        "recovery/effective_interval_seconds": 9000,
+        "recovery/elapsed_seconds": 358.5977358599994,
+        "recovery/full_checkpoint_available": 1,
+        "recovery/last_verified_episodes": 4096,
+        "recovery/last_verified_global_step": 9369600,
+        "recovery/last_verified_utc": "2026-10-28T08:02:29.503497+00:00",
+        "recovery/max_attempts": 4,
+        "recovery/seconds_since_confirmed_upload": 6007.725173548999,
+        "recovery/status": "uploaded"
+      },
+      "checked_at_utc": "2026-10-28T09:42:50.104742+00:00",
+      "automatic_continuation_enabled": true
+    }
+  ],
+  "allowlist_readback": {
+    "at_utc": "2026-10-28T09:42:50.914376+00:00",
+    "enabled": [
+      "account_01",
+      "account_05",
+      "account_06",
+      "account_07",
+      "account_08",
+      "account_09"
+    ]
+  },
+  "verification": {
+    "runtime_config_unchanged_from_d290b715": true,
+    "review_critical": 0,
+    "review_important": 0,
+    "previous_full_cpu_suite": {
+      "passed": 960,
+      "skipped": 95,
+      "subtests": 1417,
+      "warnings": 8,
+      "seconds": 501.47
+    },
+    "dual_t4_preflight_cases_passed": 4,
+    "effective_new_config_comparison": "world/sensor/network/energy/reward/masac/matd3/pql exact; full runtime differs only amp_mode fp16->off",
+    "new_production_runs_all_running_with_positive_updates": true,
+    "github_probe_success": true,
+    "github_nondry_reconcile_success": true,
+    "final_doc_checks": {
+      "at_utc": "2026-10-28T09:48:18.845098+00:00",
+      "structure_tests_passed": 2,
+      "structure_subtests_passed": 453,
+      "seconds": 0.19,
+      "diff_check": "passed",
+      "runtime_unchanged_after_verification": true,
+      "evidence_consistency_assertions": "passed",
+      "credential_values_scanned": 12,
+      "credential_hits": 0
+    }
+  }
+}
