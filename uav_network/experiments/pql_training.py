@@ -10,7 +10,7 @@ import yaml
 
 from ..environment.vector import make_vector, random_actions, unpack_info
 from .diagnostics import TrainingDiagnostics, failure_report
-from .evidence import print_evidence
+from .evidence import print_evidence, learner_telemetry
 from .progress_watchdog import ProgressWatchdog
 from .async_evaluation import AsyncCheckpointEvaluator
 from .recovery_checkpoints import PeriodicRecovery
@@ -48,7 +48,8 @@ def train_pql(config):
         if completed >= config.runtime.episodes:
             raise ValueError("Requested episode budget must exceed completed checkpoint episodes")
         diagnostics.start_windows(global_step)
-        history = list(initial["records"])
+        history = [{**r, "learner": learner_telemetry(r.get("learner", {}))}
+                   for r in initial["records"]]
         resumed = checkpoint != "none"
         initial["optimizer_replay_restored"] = resumed and len(engine.replay) > 0
         initial["state_restore"] = ("training_state_exact_environment" if engine.initial_environment is not None
@@ -147,7 +148,7 @@ def train_pql(config):
                     record = {"episode": completed, "worker": int(i), "seed": int(seeds[i]),
                               "global_step": global_step, "return": float(returns[i]),
                               "episode_length": int(lengths[i]), "terminated": bool(terminated[i]),
-                              "truncated": bool(truncated[i]), **info, "learner": latest,
+                              "truncated": bool(truncated[i]), **info, "learner": learner_telemetry(latest),
                               "num_uavs": config.world.num_uavs}
                     encoded = json.dumps(record, allow_nan=False)
                     stream.write(encoded + "\n")

@@ -21,7 +21,7 @@ from .fixed_checkpoints import save_fixed_checkpoint, restore_replay, restore_ru
 from .reproducibility import reproducibility_result
 from .environment_checkpoints import snapshot_environment, initialize_environment
 from .diagnostics import TrainingDiagnostics, failure_report
-from .evidence import print_evidence
+from .evidence import print_evidence, learner_telemetry
 from .progress_watchdog import ProgressWatchdog
 from .async_evaluation import AsyncCheckpointEvaluator
 from .recovery_checkpoints import PeriodicRecovery
@@ -122,7 +122,8 @@ def _train(config):
         random_warmup = restored_training["random_warmup"] if restored_training else config.runtime.warm_start_checkpoint == "none"
         if restored_training:
             next_metrics_at, latest = restored_training["next_metrics_at"], restored_training["latest"]
-        history = list(initial["records"])
+        history = [{**r, "learner": learner_telemetry(r.get("learner", {}))}
+                   for r in initial["records"]]
         collector = learner if collector_device == learner_device else inference_copy(learner, collector_device)
         collector_version = learner.actor_updates
         vector = make_vector(config, device=collector_device)
@@ -248,7 +249,7 @@ def _train(config):
                     record = {"episode": completed, "worker": int(i), "seed": int(episode_seeds[i]),
                               "global_step": global_step, "return": float(episode_returns[i]),
                               "episode_length": int(episode_lengths[i]), "terminated": bool(terminated[i]),
-                              "truncated": bool(truncated[i]), **info, "learner": latest}
+                              "truncated": bool(truncated[i]), **info, "learner": learner_telemetry(latest)}
                     record["num_uavs"] = config.world.num_uavs
                     diagnostic_values = diagnostics.episode(record)
                     encoded = json.dumps(record, allow_nan=False)

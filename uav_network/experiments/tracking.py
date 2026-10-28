@@ -1,5 +1,6 @@
 """Online W&B mission metrics and policy/full-state checkpoint artifacts."""
 from datetime import datetime, timezone
+from .evidence import learner_telemetry
 import json
 import os
 from pathlib import Path
@@ -66,7 +67,7 @@ def episode_metrics(record, num_uavs):
                "collisions": "collisions", "report_e2e_delay_s": "report_e2e_delay_s",
                "report_average_hops": "report_average_hops", "energy_blocked_transmissions": "energy_blocked"}
     result.update({f"network/{target}": network[source] for source, target in mapping.items() if source in network})
-    result.update({f"learner/{key}": value for key, value in record.get("learner", {}).items()})
+    result.update({f"learner/{key}": value for key, value in learner_telemetry(record.get("learner", {})).items()})
     motion = record.get("motion_counts", {})
     result.update({f"motion/{k}": v for k, v in motion.items()})
     result.update({f"safety/{name}_rate": motion.get(key, 0) / opportunities for name, key in (
@@ -309,7 +310,7 @@ class OnlineTracker:
         self.next_progress = step + self.config.runtime.log_interval_steps
 
     def learner(self, metrics, step):
-        values = {f"learner/{k}": v for k, v in metrics.items()}
+        values = {f"learner/{k}": v for k, v in learner_telemetry(metrics).items()}
         self.latest_evidence.update(select_evidence(values))
         self.latest_evidence["evidence/learner_global_step"] = step
         self.run.log({"global_step": step, **values})

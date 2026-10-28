@@ -75,6 +75,26 @@ def json_safe(value, secrets=(), depth=0):
     return "<" + type(value).__name__ + ">"
 
 
+
+def learner_telemetry(metrics):
+    """Keep scalar charts numeric while preserving handled overflow evidence."""
+    result = dict(metrics)
+    for name, value in metrics.items():
+        kind = None
+        if isinstance(value, Real) and not math.isfinite(value):
+            kind = "NaN" if math.isnan(value) else str(float(value))
+        elif isinstance(value, str) and value in {"inf", "-inf", "NaN"}:
+            kind = value  # Older evidence may already contain labeled nonfinite values.
+        if kind is not None:
+            result[name] = None
+            result[name + "_nonfinite"] = 1
+            result[name + "_nonfinite_kind"] = kind
+        elif name.endswith("_grad_norm") and value is not None:
+            result[name + "_nonfinite"] = 0
+            result[name + "_nonfinite_kind"] = None
+    return result
+
+
 def print_evidence(record):
     try:
         print(json.dumps(record, allow_nan=False), flush=True)
