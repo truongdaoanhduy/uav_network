@@ -53,7 +53,6 @@ runtime:
   coalesce_idle_polls: true
   vectorize_critics: true
   critic_chunk_size: 1024
-  amp_mode: fp16
   compile_models: true
   fused_optimizers: false
   episodes: 20000
@@ -94,7 +93,7 @@ tracking:
   group: uav-v3-full20k-e4096-b8192-r1kb-cpu75-accel-policy-20261027
   tags:
   - uav-network
-  - amp-fp16
+  - amp-off
   - torch-compile
   - scenario-v3
   - full20k

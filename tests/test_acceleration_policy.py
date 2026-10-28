@@ -35,7 +35,8 @@ def test_measured_policy_applies_the_four_production_modes(algorithm, pql, expec
     effective = apply_measured_acceleration_policy(
         CANONICAL, "train", algorithm, config, initial, CANONICAL)
     final = resolved(effective)
-    assert final.runtime.amp_mode == "fp16"
+    assert final.runtime.amp_mode == "off"
+    assert not any(item.startswith("runtime.amp_mode=") for item in effective)
     assert final.runtime.compile_models is expected_compile
     assert final.runtime.fused_optimizers is False
 
@@ -73,7 +74,7 @@ def test_canonical_pql_both_production_is_refused_but_base_both_is_allowed():
     effective = apply_measured_acceleration_policy(
         CANONICAL, "train", "both", base, ["pql.enabled=false"], CANONICAL)
     final = resolved(effective)
-    assert final.runtime.amp_mode == "fp16"
+    assert final.runtime.amp_mode == "off"
     assert final.runtime.compile_models is True
     assert final.runtime.fused_optimizers is False
 
@@ -150,10 +151,13 @@ def test_launcher_materializes_measured_pql_policy_and_truthful_tags(tmp_path):
     masac = _launch_canonical(tmp_path / "masac", "masac", True)
     matd3_overrides = _override_map(matd3)
     masac_overrides = _override_map(masac)
-    assert matd3_overrides["runtime.amp_mode"] == "fp16"
+    assert "runtime.amp_mode" not in matd3_overrides
+    assert "amp-off" in _tracking_tags(matd3)
+    assert "amp-fp16" not in _tracking_tags(matd3)
     assert matd3_overrides["runtime.compile_models"] is False
     assert matd3_overrides["runtime.fused_optimizers"] is False
-    assert masac_overrides["runtime.amp_mode"] == "fp16"
+    assert "runtime.amp_mode" not in masac_overrides
+    assert "amp-off" in _tracking_tags(masac)
     assert masac_overrides["runtime.compile_models"] is True
     assert masac_overrides["runtime.fused_optimizers"] is False
     assert "compile-off" in _tracking_tags(matd3)

@@ -47,6 +47,33 @@ class ProductionExecutionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"amp_mode"):
             c.validate()
 
+    def test_omitted_amp_runs_fp32_without_scalers_for_both_learners(self):
+        for algorithm in ("masac", "matd3"):
+            with self.subTest(algorithm=algorithm), TemporaryDirectory() as directory:
+                c = small_config(Path(directory), algorithm)
+                learner = make_learner(c, observation_dim(c), state_dim(c))
+                seen = []
+                hook = learner.actors[0].encoder.register_forward_hook(
+                    lambda mod, args, result: seen.append(result.dtype))
+                try:
+                    for _ in range(4):
+                        metrics = learner.update(batch(c))
+                finally:
+                    hook.remove()
+                self.assertEqual(c.runtime.amp_mode, "off")
+                self.assertFalse(learner.precision.enabled)
+                self.assertEqual(learner.precision.scalers, {})
+                self.assertTrue(seen)
+                self.assertEqual(set(seen), {torch.float32})
+                for parameter in learner.parameters():
+                    self.assertEqual(parameter.dtype, torch.float32)
+                    self.assertTrue(torch.isfinite(parameter).all())
+                    if parameter.grad is not None:
+                        self.assertEqual(parameter.grad.dtype, torch.float32)
+                        self.assertTrue(torch.isfinite(parameter.grad).all())
+                self.assertTrue(all(torch.isfinite(torch.as_tensor(value)).all()
+                                    for value in metrics.values()))
+
     def test_real_both_learners_autocast_updates_and_keep_attempt_schedule(self):
         for algorithm in ("masac","matd3"):
             with self.subTest(algorithm=algorithm), TemporaryDirectory() as directory:

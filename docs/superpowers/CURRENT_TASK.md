@@ -1,3 +1,16 @@
+# FP32 default and authorized retry transition — IN PROGRESS
+
+Updated 2026-10-28. User requested FP32 training and no AMP flag required. Existing Config default is off, but canonical YAML and cloud acceleration policy selected FP16; removed those automatic selections and changed canonical tag to amp-off. Explicit FP16 is retained for historical diagnostics/replay only when requested.
+
+- Scope: transition the three recent retry roots 0650d5b1/44558e6c/87a9500e on accounts02/03/04 after FP32 GPU checks. Preserve healthy accounts01/06/07, history and scientific config. Precision change is a fresh seed44 lineage, not an exact FP16 resume.
+- Baseline39passed/+8subtests; regression RED7failed/33passed/+10subtests confirms old forced-FP16 behavior. Focused GREEN78passed/+460subtests in20.44s, including actual FP32 learner forward/gradients/no-scalers for both algorithms with AMP omitted.
+- Full CPU suite background job cf64f63da286 is running; log outputs/fp32-default-full-suite.log and JUnit outputs/fp32-default-full-suite.xml. Do not claim full-suite success yet.
+- Plan docs/superpowers/plans/2026-10-28-fp32-default.md; ledger outputs/fp32-default-progress.md. CUDA check driver docs/superpowers/evidence/2026-10-28-fp32-cuda-check.py. Probe account05 identity fwelfijwelfj/quota30h checked; no production cancellation/relaunch performed in this task yet.
+
+Next action: publish this focused-tested source, run bounded canonical FP32 CUDA checks, verify full suite, then transition only the three retry roots and verify new W&B progress and supervisor state. Record exact source and new IDs before final handoff.
+
+---
+
 # MATD3 actor reproduction / three authorized restarts — RUNNING / STARTUP VERIFIED
 
 Updated 2026-10-28T08:16:13Z. User explicitly requested a further actor-overflow reproduction and restarts of the three failed experiments. Diagnostic and new production source `0042166fb0408d9efa487ad2ccd31c59b709cd69` is the documentation descendant of verified runtime98724b8; no runtime/config edits in this follow-up.

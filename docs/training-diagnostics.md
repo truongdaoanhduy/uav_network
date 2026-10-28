@@ -177,3 +177,22 @@ python -m scripts.replay_overflow snapshot.pt --device cuda:1 --output compariso
 Replay constructs independent FP32/FP16 learners from the same saved values/RNG. It records the first observed nonfinite parameter gradient, per-parameter gradient statistics, finite losses/model state and AMP skip counts. FP32 bypasses AMP counters, so its `applied` field is null. Replay is eager; it does not claim to reproduce compiled kernels or asynchronous RNG interleaving. The first nonfinite parameter observed by a hook is not proof of the first arithmetic operation that overflowed. Diagnostic snapshots contain no environment/replay history sufficient for exact training resume.
 
 For future canonical sessions, the first full recovery backup is due after min(effective interval, 1800 seconds); later attempts retain the bounded session spacing. With 10h/four attempts and interval=1h, first due is 30 minutes and later attempts are spaced 2.5h after the prior attempt finishes. Successful upload confirmation can occur later than the due time. Existing source-pinned jobs retain their original timing and code.
+
+## Precision mặc định: FP32, không bật AMP
+
+Không điền `runtime.amp_mode` thì `Config` dùng `off`. Profile canonical và
+cloud launcher không tự thêm FP16. Training thông thường dùng model/input
+FP32, không có autocast FP16 hoặc GradScaler. Không cần truyền một cờ FP32.
+Tag canonical là `amp-off`; tag effective vẫn được tạo theo runtime thực tế.
+
+Trong PyTorch nói chung, dtype số thực mặc định ban đầu là `torch.float32`.
+Đây là FP32 với AMP tắt, không phải một chế độ “AMP FP32”. Phép toán phụ thuộc
+dtype của tensor: tensor/model đã ép `.half()`, dữ liệu NumPy float64 hoặc
+`set_default_dtype` có thể làm kết quả khác; tắt autocast không tự cast chúng.
+AMP chỉ chạy khi được bật rõ ràng; `runtime.amp_mode=fp16` còn được giữ cho
+thí nghiệm chủ động và replay các snapshot cũ. Các kernel đang chạy giữ source
+và cấu hình đã ghim, nên không tự đổi precision khi cập nhật YAML.
+
+Bằng chứng actor đã ghi nhận là overflow trong scaled backward FP16 với dữ
+liệu hữu hạn; FP32 bỏ cơ chế loss scaling đó. FP32 vẫn có thể sinh NaN/Inf do
+phép toán không hợp lệ hoặc giá trị quá lớn, nên giữ kiểm tra/log bằng chứng.

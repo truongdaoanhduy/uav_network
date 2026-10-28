@@ -188,10 +188,10 @@ def test_harp_lawn_matched_profile_uses_one_kib_report():
     assert c.runtime.num_envs == 4096
     assert c.runtime.episodes == 20000
     assert c.world.max_steps == 1800
-    assert c.runtime.amp_mode == "fp16"
+    assert c.runtime.amp_mode == "off"
     assert c.runtime.compile_models is True
     assert c.runtime.fused_optimizers is False
     assert "accel-policy" in c.tracking.group
     assert "compile" not in c.tracking.group.lower()
-    assert "amp-fp16" in c.tracking.tags
+    assert "amp-off" in c.tracking.tags
     assert "torch-compile" in c.tracking.tags
