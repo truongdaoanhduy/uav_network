@@ -183,3 +183,17 @@ def exception_category(chain):
         if isinstance(error, (KeyboardInterrupt, SystemExit)):
             return "interrupted"
     return "unknown_exception"
+
+
+def publish_overflow(tracker):
+    published = getattr(tracker, "_overflow_published", set())
+    tracker._overflow_published = published
+    for path in tracker.output.glob("overflow-*"):
+        if path.suffix not in {".pt", ".json"} or path.name in published:
+            continue
+        published.add(path.name)  # Bounded attempts; uploads are diagnostic only.
+        try:
+            tracker.run.save(str(path), base_path=str(tracker.output), policy="now")
+        except Exception as error:
+            if tracker.journal is not None:
+                tracker.journal._warn(error)

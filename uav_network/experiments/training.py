@@ -23,6 +23,7 @@ from .environment_checkpoints import snapshot_environment, initialize_environmen
 from .diagnostics import TrainingDiagnostics, failure_report
 from .evidence import print_evidence, learner_telemetry
 from .progress_watchdog import ProgressWatchdog
+from .overflow_capture import attach_overflow_capture
 from .async_evaluation import AsyncCheckpointEvaluator
 from .recovery_checkpoints import PeriodicRecovery
 from .local_checkpoints import prune_episode_checkpoints, disk_metrics, release_staged_checkpoint
@@ -147,6 +148,7 @@ def _train(config):
             restore_runtime_rng(restored_training["rng"], rng, action_generator=getattr(vector, "action_generator", None))
         restored_training = None  # Release the CPU checkpoint copy after restoring replay.
         warm_start_sha256 = release_staged_checkpoint(config.runtime.warm_start_checkpoint)
+        attach_overflow_capture(learner, output, "base")
         startup_s = time.perf_counter() - start
         recovery = PeriodicRecovery(config, output, started=start)
 

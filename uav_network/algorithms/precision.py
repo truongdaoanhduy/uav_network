@@ -61,6 +61,15 @@ def validate_precision_state(state, mode, groups):
             raise ValueError("Precision checkpoint scaler values are invalid")
 
 
+def _total_norm(gradients):
+    public = getattr(torch.nn.utils, "get_total_norm", None)
+    if public is not None:
+        return public(gradients, error_if_nonfinite=False).detach()
+    # Torch 2.5 exposes clipping but not the split norm/clip helpers.
+    return (torch.linalg.vector_norm(torch.stack([torch.linalg.vector_norm(g) for g in gradients]))
+            if gradients else torch.tensor(0.))
+
+
 class MixedPrecision:
     """Independent critic, grouped-actor and optional alpha scaler clocks.
 
@@ -73,6 +82,8 @@ class MixedPrecision:
         self.enabled = mode == "fp16"
         self.scalers = {group: torch.amp.GradScaler(self.device.type) for group in self.groups} if self.enabled else {}
         self.counts = {group: dict(attempted=0, applied=0, skipped=0) for group in self.groups}
+        self.overflow_observer = None
+        self.observer_errors = 0
 
     def autocast(self):
         # A disabled context must preserve diagnostic callers' outer autocast.
@@ -114,11 +125,18 @@ class MixedPrecision:
             torch.autograd.backward([scaler.scale(loss) for loss in losses])
             for optimizer in optimizers:
                 scaler.unscale_(optimizer)
-            norms = [torch.nn.utils.clip_grad_norm_(values, grad_clip, error_if_nonfinite=False).detach()
-                     for values in parameters]
+            gradients = [[p.grad for p in values if p.grad is not None] for values in parameters]
+            norms = [_total_norm(values)
+                     for values in gradients]
             # No actor step, including Adam clocks/moments, occurs before this
             # check has accepted every actor's independently clipped gradient.
             if torch.isfinite(torch.stack(norms)).all():
+                for values, norm in zip(parameters, norms):
+                    clip = getattr(torch.nn.utils, "clip_grads_with_norm_", None)
+                    if clip is None:
+                        torch.nn.utils.clip_grad_norm_(values, grad_clip)
+                    else:
+                        clip(values, grad_clip, norm)
                 for optimizer in optimizers:
                     scaler.step(optimizer)
                 scaler.update()
@@ -137,6 +155,17 @@ class MixedPrecision:
                     state["_growth_tracker"] = 0
                     scaler.load_state_dict(state)
                 count["skipped"] += 1
+                observer = self.overflow_observer
+                if observer is not None:
+                    try:
+                        finite = all(bool(torch.isfinite(g).all()) for values in gradients for g in values)
+                        observer.on_skip({"group": group, "scale_before": before,
+                            "scale_after": scaler.get_scale(), "raw_gradients_finite": finite,
+                            "category": "norm_reduction_overflow" if finite else "nonfinite_gradients",
+                            "attempted": count["attempted"], "skipped": count["skipped"],
+                            "losses": [float(loss.detach()) for loss in losses]}, parameters)
+                    except Exception:
+                        self.observer_errors += 1
             return norms
 
     def state_dict(self):
@@ -154,6 +183,8 @@ class MixedPrecision:
 
     def metrics(self, groups=None):
         result = {"amp/enabled": int(self.enabled)}
+        if self.observer_errors:
+            result["amp/observer_errors"] = self.observer_errors
         for group in (self.groups if groups is None else groups):
             values = self.counts[group]
             result.update({f"amp/{group}/{name}": value for name, value in values.items()})
@@ -184,7 +215,10 @@ def autocast_update(method):
     def update(self, *args, **kwargs):
         gate = getattr(self, "_compile_startup_gate", None)
         guard = gate.enter(group) if gate is not None else nullcontext()
-        with guard, self.precision.autocast():
+        observer = self.precision.overflow_observer
+        observe = getattr(observer, "update_context", None)
+        context = observe(self, args[0] if args else kwargs["batch"], group) if observe else nullcontext()
+        with guard, self.precision.autocast(), context:
             result = method(self, *args, **kwargs)
             if self.precision.enabled and isinstance(result, dict) and result:
                 fp16 = (torch.is_autocast_enabled(self.device.type)

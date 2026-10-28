@@ -1,4 +1,5 @@
 """Handled numeric overflow must not destroy episode/history or scalar charts."""
+from pathlib import Path
 import json
 import math
 import os
@@ -81,3 +82,26 @@ def test_online_scalar_channels_keep_nonfinite_numeric_values_missing(tmp_path):
     rows = [v for v in run.logged if 'learner/critic_grad_norm' in v]
     assert rows[-1]['learner/critic_grad_norm_nonfinite'] == 0
     assert rows[-1]['learner/critic_grad_norm'] == 2.0
+
+
+def test_online_publishes_bounded_overflow_evidence_once_and_isolates_failure(tmp_path):
+    c = config(tmp_path, 'matd3', 'base')
+    c.tracking.credentials_file = str(tmp_path / 'absent')
+    run = OnlineRun()
+    calls = []
+    def save(path, **kwargs):
+        if Path(path).name.startswith('overflow-'):
+            calls.append(Path(path).name)
+            if Path(path).suffix == '.json': raise OSError('upload unavailable')
+    run.save = save
+    sdk = SimpleNamespace(init=lambda **kw: run, Settings=lambda **kw: kw, Artifact=StoredArtifact)
+    with patch.dict(sys.modules, {'wandb': sdk}), patch.dict(os.environ, {
+        'WANDB_API_KEY': 'test-key', 'WANDB_ENTITY': 'owner', 'WANDB_PROJECT': 'project'}):
+        tracker = OnlineTracker(c, tmp_path)
+        (tmp_path / 'overflow-base-critic.pt').write_bytes(b'diagnostic snapshot')
+        (tmp_path / 'overflow-base-critic.json').write_text('{}')
+        tracker.learner({'critic_loss': 1.0}, 1)
+        tracker.learner({'critic_loss': 0.5}, 2)
+        tracker.close()
+    assert calls.count('overflow-base-critic.pt') == 1
+    assert calls.count('overflow-base-critic.json') == 1

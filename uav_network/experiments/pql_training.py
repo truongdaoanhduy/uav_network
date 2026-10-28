@@ -12,6 +12,7 @@ from ..environment.vector import make_vector, random_actions, unpack_info
 from .diagnostics import TrainingDiagnostics, failure_report
 from .evidence import print_evidence, learner_telemetry
 from .progress_watchdog import ProgressWatchdog
+from .overflow_capture import attach_overflow_capture
 from .async_evaluation import AsyncCheckpointEvaluator
 from .recovery_checkpoints import PeriodicRecovery
 from .local_checkpoints import prune_episode_checkpoints, disk_metrics, release_staged_checkpoint
@@ -43,6 +44,9 @@ def train_pql(config):
     try:
         checkpoint = config.runtime.warm_start_checkpoint
         engine = PQLSystem(config, checkpoint=None if checkpoint == "none" else checkpoint)
+        attach_overflow_capture(engine.critic, output, "critic")
+        if engine.policy is not engine.critic:
+            attach_overflow_capture(engine.policy, output, "policy")
         initial = deepcopy(engine.initial_progress)
         completed, global_step, collection_steps = (initial[key] for key in ("episodes", "global_step", "collection_steps"))
         if completed >= config.runtime.episodes:

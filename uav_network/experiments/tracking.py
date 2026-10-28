@@ -1,6 +1,6 @@
 """Online W&B mission metrics and policy/full-state checkpoint artifacts."""
 from datetime import datetime, timezone
-from .evidence import learner_telemetry
+from .evidence import learner_telemetry, publish_overflow
 import json
 import os
 from pathlib import Path
@@ -261,6 +261,7 @@ class OnlineTracker:
             self.journal._warn(error)
 
     def _publish_observability(self, final=False):
+        publish_overflow(self)
         policies = {"training-status.json": "live", "metrics-guide.md": "now",
                     "training-events.jsonl": "end", "diagnostics.jsonl": "end", "thread-stacks.log": "live"}
         for name, policy in policies.items():
@@ -310,6 +311,7 @@ class OnlineTracker:
         self.next_progress = step + self.config.runtime.log_interval_steps
 
     def learner(self, metrics, step):
+        publish_overflow(self)
         values = {f"learner/{k}": v for k, v in learner_telemetry(metrics).items()}
         self.latest_evidence.update(select_evidence(values))
         self.latest_evidence["evidence/learner_global_step"] = step
