@@ -1,7 +1,6 @@
 Bạn tiếp quản dự án UAV/RL dưới đây từ một chat trước. Hãy dùng bản bàn giao này để đọc đúng source và tiếp tục công việc tôi yêu cầu ở cuối prompt. Tôi muốn bạn làm việc trực tiếp, kiểm chứng bằng bằng chứng, hoàn tất trong phạm vi đã giao; không chỉ đưa ra kế hoạch rồi dừng.
 
 # 1. Cách tiếp quản bắt buộc
-
 1. Đọc AGENTS.md và phần MỚI NHẤT ở đầu docs/superpowers/CURRENT_TASK.md trước khi sửa code hoặc launch job.
 2. Kiểm tra repo, branch, HEAD, trạng thái worktree và remote thực tế. Các số liệu/tài khoản/quota/trạng thái cloud trong prompt là snapshot có thời điểm, không phải trạng thái luôn đúng.
 3. Nếu HEAD mới hơn mốc dưới đây, đọc diff/commit mới và ưu tiên source + hồ sơ mới nhất. Các phần “Previous completed task” và tài liệu ngày cũ có thể chứa yêu cầu đã được thay thế.
@@ -9,7 +8,6 @@ Bạn tiếp quản dự án UAV/RL dưới đây từ một chat trước. Hãy
 5. Nếu cuối prompt chưa có nhiệm vụ mới cụ thể, hãy xác nhận đã tiếp quản và nêu trạng thái đã kiểm tra. Prompt bàn giao tự nó không yêu cầu chạy lại training hay thay đổi scientific config.
 
 # 2. Mục tiêu dự án và yêu cầu của tôi
-
 - Dự án uav_network: mô phỏng UAV 2D tìm mục tiêu, truyền báo cáo qua mạng UAV/relay tới GCS, xét năng lượng, chuyển động an toàn và truyền thông ở mức packet.
 - Thuật toán chính MASAC và MATD3; hai cách chạy BASE và PQL-inspired. PQL là kiến trúc collector/critic/policy workers, không phải thuật toán thứ ba độc lập để tự ý đổi tên.
 - So sánh thêm cách bố trí replay HYBRID CPU75/GPU25 với FULLGPU. “replay/relay 1 triệu” trong nhiều tin nhắn cũ của tôi thường là replay buffer 1.000.000 transitions; phân biệt với mạng relay UAV.
@@ -20,7 +18,6 @@ Bạn tiếp quản dự án UAV/RL dưới đây từ một chat trước. Hãy
 - Tôi thích bạn tự làm các bước cần thiết trong phạm vi yêu cầu đã rõ, không hỏi lại các lựa chọn triển khai thông thường. Hỏi khi thiếu thông tin quyết định hoặc sắp làm việc thật sự phá hủy/ngoài phạm vi.
 
 # 3. Repo, môi trường và mốc version
-
 GitHub:
 https://github.com/truongdaoanhduy/uav_network
 
@@ -47,7 +44,6 @@ Python project yêu cầu >=3.11. Xem pyproject.toml để lấy dependency th�
 Nếu Sandbox cũ không truy cập được: dùng GitHub đọc source/hồ sơ trước, hoặc checkout riêng khi công cụ cho phép. key.txt, outputs và phiên đăng nhập không có sẵn chỉ vì clone được GitHub; hãy nói rõ khả năng nào đã truy cập được.
 
 # 4. Tài liệu nguồn cần đọc theo nhiệm vụ
-
 Luôn đọc:
 - AGENTS.md
 - docs/superpowers/CURRENT_TASK.md
@@ -81,7 +77,6 @@ CPU replay:
 - Không mở lại một nhiệm vụ đã hoàn tất chỉ vì một checkbox của tài liệu cũ chưa được cập nhật.
 
 # 5. Cấu hình khoa học hiện tại và các khái niệm dễ nhầm
-
 Profile canonical:
   configs/comparison-20k-hybrid75-1kb.yaml
 
@@ -113,7 +108,6 @@ Phân biệt:
 - return/loss/throughput không phải mỗi cái tự chấm policy tốt/xấu.
 
 # 6. Bản đồ code
-
 Configuration và CLI:
 - uav_network/configuration.py: dataclass/config loading/validation.
 - uav_network/__main__.py, experiments/cli.py: train/config/evaluate/compare/hardware/dashboard/kaggle.
@@ -170,7 +164,6 @@ Cloud/orchestration:
 Đọc module hiện có trước khi tạo lớp/service/monitoring mới. Ưu tiên stdlib và helper đang dùng.
 
 # 7. Full flow GitHub Actions đã làm
-
 - Workflow UAV External Supervisor: cron */15 * * * *, workflow_dispatch có dry_run.
 - Đây là các invocation ngắn để reconcile; không giữ Actions runner chạy 10 giờ cùng learner.
 - Supervisor dùng dependency orchestration; import cloud.github_supervisor không được kéo torch vào.
@@ -195,7 +188,6 @@ GitHub schedule có thể trễ; cron source không bảo đảm mỗi đúng 15
 Quan trọng: đã có hosted manual dry-run thành công và các phần cơ chế đã kiểm thử. Chưa được coi là đã chạy thực tế toàn bộ production train -> crash -> recover -> full 20k -> visualize trên source mới chỉ vì các test/smoke đều xanh. Lần audit logs gần nhất không launch lại đợt production.
 
 # 8. Credentials và nhiều tài khoản Kaggle
-
 - Credential file của repo: key.txt, trước đây là symlink tới:
     /home/aduy/Documents/NCKH/uav_network/key.txt
 - File bị ignore; GitHub không chứa secrets này. Đọc schema/key names cần thiết, không in giá trị, không cat toàn bộ, không commit/copy secrets vào prompt/log/issue.
@@ -210,7 +202,6 @@ Quan trọng: đã có hosted manual dry-run thành công và các phần cơ ch
 - Không tự cập nhật/revoke credentials hay mở rộng quyền khi nhiệm vụ chỉ là audit/prompt.
 
 # 9. Recovery/checkpoint đã sửa và giới hạn thật
-
 - G3 MASAC cũ chỉ còn policy checkpoint; không có replay/optimizer/RNG nên không exact-resume được tiến độ đã mất.
 - Full-state serializers mới giữ replay, optimizer/scaler/RNG, progress/update clocks và environment state khi hỗ trợ; PQL cần drain workers và replay checkpoint enabled.
 - Validate identity/algorithm/config/provenance/counters trước mutation. CPU/CUDA RNG thay device rồi reseed không được gọi là exact continuation.
@@ -228,7 +219,6 @@ Quan trọng: đã có hosted manual dry-run thành công và các phần cơ ch
 - Nếu cần chứng minh khôi phục trên cloud, phải tải/validate checkpoint thật và chạy continuation tương ứng; không suy từ tên artifact “latest”.
 
 # 10. Sự cố MASAC lịch sử và các run cần nhận biết
-
 G3 production source:
   77a1d0f52ed4e78bc2823c3ada03d661568cd923
 Các job đó AMP OFF, compile OFF. Policy acceleration sau này không được đưa vào source đã ghim.
@@ -263,7 +253,6 @@ Cả bốn CPU eval hoàn tất 30 tập và có publication theo báo cáo lị
 Các số này cho thấy nhiệm vụ chưa thành công toàn bộ trên seed bank đã thử; không đủ tự nó kết luận nguyên nhân hay xếp hạng thuật toán cho mọi seed/scenario.
 
 # 11. Acceleration policy có bằng chứng riêng
-
 Chỉ canonical config, cloud train/validate; explicit user overrides thắng:
 - MASAC BASE: FP16 + compile ON + fused OFF.
 - MATD3 BASE: FP16 + compile ON + fused OFF.
@@ -277,7 +266,6 @@ MATD3 PQL compile chậm hơn khoảng 11,51% TPS ở phép đo matched T4/G3 đ
 Real two-T4 PQL smoke ở source906ee68 đã kiểm tra policy đúng cho MASAC/MATD3 và execution-check có learner updates thật. Smoke trainer budget ngắn có 0 learner updates, nên không dùng 1-episode smoke làm bằng chứng học tốt hay thay chứng cứ execution-check.
 
 # 12. Observability mới đã hoàn tất ở source56604cc
-
 Các sửa đổi:
 - evidence.py dùng stdlib, JSON an toàn/bounded; NaN/Inf thành chuỗi, unknown object thành type marker, không repr/dump tensor/replay tùy tiện.
 - Redact configured credential values và env secret/token/password/API-key/access-key/private-key/legacy KAGGLE_KEY families. Không hứa có thể tự nhận diện mọi chuỗi secret không có ngữ cảnh.
@@ -310,7 +298,6 @@ Files người xem:
 Mọi file tùy chọn là best-effort. Mạng/đĩa/console cùng mất thì không còn kênh ghi. Log mới chỉ xuất hiện ở job thực sự dùng source mới; không hồi tố vào run cũ.
 
 # 13. W&B online / Personal Workspace chính xác
-
 Entity/project:
   truongdaoanhduy-uit/uav_search_target
 
@@ -373,7 +360,6 @@ system/cpu, system/memory_percent.
 CUDA device index là logical index theo CUDA_VISIBLE_DEVICES, đừng tự gán physical GPU.
 
 # 14. Cách đọc chất lượng training
-
 - Ưu tiên delivery tới GCS, mission success, n và protocol/budget/seed tương ứng; return chỉ bổ sung.
 - Kiểm tra cohort/episodes, cohort/partial, source_start/end_step; live-world metrics phụ thuộc tuổi episode.
 - Success=0 nghĩa chưa có full mission success trong mẫu; không được diễn giải thành chưa gửi được bất kỳ report nào.
@@ -389,7 +375,6 @@ CUDA device index là logical index theo CUDA_VISIBLE_DEVICES, đừng tự gán
 - Final CPU30 trên một training seed chưa đủ kết luận generalization/algorithm ranking. Canonical mini-eval đang tắt, đừng bật hoặc đổi seed/reward chỉ để lấp plot trống nếu nhiệm vụ chưa yêu cầu.
 
 # 15. Bằng chứng test và trạng thái đã quan sát
-
 Full suite trên đúng runtime56604cc, source frozen:
   924 passed, 95 skipped, 8 warnings,
   1396 subtests passed, 554.26s (~9m14s).
@@ -419,7 +404,6 @@ Snapshot service cuối audit lúc 08:06:53 ngày28/10 giờ Việt Nam:
 Đây là snapshot, phải query lại trước hành động operational. Không suy rằng có production run đang chạy vì câu chuyện ở chat cũ nói “đã launch”.
 
 # 16. Test/inspection commands để dùng đúng chỗ
-
 Các lệnh sau là kiểm tra, không launch GPU production:
 
   git status --short
@@ -459,7 +443,6 @@ Chỉ CLI dry-run/check-services read access không thay cho full production end
 Lệnh launch production cụ thể: đọc docs/github-actions-full-flow.md và --help mới, chọn account/credential dataset/quota/algorithm/mode/source rõ ràng; không chạy ví dụ chỉ vì nó xuất hiện trong tài liệu bàn giao.
 
 # 17. Công cụ, browser và skills nên dùng
-
 Dùng các plugin có sẵn theo năng lực:
 - Sandbox: thao tác repo/environment thật.
 - GitHub: source, commits, Actions, logs/artifacts.
@@ -487,7 +470,6 @@ Browser:
 - Không lưu screenshot cá nhân công khai hoặc vào thư viện nếu tôi chưa yêu cầu.
 
 # 18. Phạm vi còn chưa được chứng minh và điều không nên suy diễn
-
 - Chưa có chứng minh mọi nguyên nhân crash từ logs; hard kill/power loss/platform/account vẫn có khoảng trống.
 - Checkpoint policy-only cũ không được “nâng cấp” hồi tố thành full state.
 - Không bảo đảm Kaggle không ngắt, quota luôn có, GitHub cron đúng phút, mọi upload thành công.
@@ -499,7 +481,6 @@ Browser:
 - UI/logging “đủ dùng” không đồng nghĩa policy đã tốt; dùng protocol và nhiều seed khi cần đánh giá khoa học.
 
 # 19. Cách làm việc và tiêu chí hoàn tất cho nhiệm vụ mới
-
 - Tóm tắt ngắn những gì đã xác minh từ repo/live state, rồi thực hiện nhiệm vụ dưới đây.
 - Tách observed fact, hypothesis, reproduced bug và unverified limit.
 - Khi debug: đọc code/log, xác định giả thuyết, tái hiện, thêm test có ý nghĩa, sửa nguyên nhân, chạy kiểm chứng thích hợp.
@@ -512,5 +493,4 @@ Browser:
 - Báo cáo cuối: đã thay đổi gì, vì sao, source/commit nào, kiểm chứng nào thật sự chạy, kết quả và giới hạn gì còn lại. Không chỉ nói “đã làm” từ tool success.
 
 # 20. Nhiệm vụ tôi muốn bạn làm ở chat mới
-
 [Tôi sẽ ghi yêu cầu tiếp theo ở đây, hoặc gửi ngay sau prompt này. Hãy giữ toàn bộ bối cảnh trên và thực hiện đúng yêu cầu mới; không tự coi tất cả mục lịch sử là việc phải làm lại.]
