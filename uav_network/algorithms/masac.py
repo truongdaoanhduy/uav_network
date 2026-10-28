@@ -34,8 +34,13 @@ class MASAC(nn.Module):
         self.num_uavs = n = config.world.num_uavs
         self.destinations = k = n + 1
         a = config.masac
-        self.actors = nn.ModuleList(HybridActor(observation_dim, k, a.hidden_sizes) for _ in range(n))
-        self.critics = nn.ModuleList(TwinCritic(state_dim, n, k, a.hidden_sizes) for _ in range(n))
+        self.share_actor_parameters = a.share_actor_parameters
+        self.share_critic_parameters = a.share_critic_parameters
+        actor_input_dim = observation_dim + n if self.share_actor_parameters else observation_dim
+        actor_count = 1 if self.share_actor_parameters else n
+        critic_count = 1 if self.share_critic_parameters else n
+        self.actors = nn.ModuleList(HybridActor(actor_input_dim, k, a.hidden_sizes) for _ in range(actor_count))
+        self.critics = nn.ModuleList(TwinCritic(state_dim, n, k, a.hidden_sizes) for _ in range(critic_count))
         self.target_critics = deepcopy(self.critics)
         self.target_critics.requires_grad_(False)
         self.log_alpha_continuous = nn.Parameter(torch.full((n,), math.log(a.initial_alpha)))

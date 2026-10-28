@@ -109,6 +109,8 @@ class RewardConfig:
 @dataclass
 class OffPolicyConfig:
     hidden_sizes: list = field(default_factory=lambda: [256, 256])
+    share_actor_parameters: bool = False
+    share_critic_parameters: bool = False
     replay_capacity: int = 50_000
     batch_size: int = 256
     learning_starts: int = 2000
