@@ -59,8 +59,11 @@ class MATD3(nn.Module):
     def _actor_input(self, observation, index):
         if not self.share_actor_parameters:
             return observation
-        identity = F.one_hot(torch.full((len(observation),), index, device=observation.device, dtype=torch.long),
-                             num_classes=self.num_uavs).to(observation.dtype)
+        if isinstance(index, int):
+            index = torch.full((len(observation),), index, device=observation.device, dtype=torch.long)
+        else:
+            index = torch.as_tensor(index, device=observation.device, dtype=torch.long)
+        identity = F.one_hot(index, num_classes=self.num_uavs).to(observation.dtype)
         return torch.cat((observation, identity), dim=-1)
 
     def _actor_action(self, actor, observation, straight_through=False, agent_index=0):
@@ -72,20 +75,52 @@ class MATD3(nn.Module):
         continuous = canonical_continuous(continuous, observation, destination)
         return torch.cat((continuous, discrete), -1)
 
+    def _policy_outputs(self, observations, *, target=False):
+        """Return continuous actions/probabilities for every UAV.
+
+        A shared actor is evaluated once on a flattened B*N batch so sharing
+        reduces kernel-launch and graph overhead in addition to parameter count.
+        """
+        if self.share_actor_parameters:
+            b, n = observations.shape[:2]
+            flat = observations.reshape(b * n, -1)
+            indices = torch.arange(n, device=observations.device).expand(b, n).reshape(-1)
+            actor = self._actor_at(0, target=target)
+            continuous, probs = actor(self._actor_input(flat, indices),
+                                      valid_destinations(flat, self.destinations))
+            return continuous.reshape(b, n, 3), probs.reshape(b, n, self.destinations)
+        actors = self.target_actors if target else self.actors
+        values = [actor(observations[:, i], valid_destinations(observations[:, i], self.destinations))
+                  for i, actor in enumerate(actors)]
+        return tuple(torch.stack([value[j] for value in values], 1) for j in range(2))
+
+    def _actor_actions(self, observations, *, straight_through=False, target=False):
+        continuous, probs = self._policy_outputs(observations, target=target)
+        destination = probs.argmax(-1)
+        hard = F.one_hot(destination, self.destinations).to(probs.dtype)
+        discrete = hard + probs - probs.detach() if straight_through else hard
+        continuous = canonical_continuous(continuous, observations, destination)
+        return torch.cat((continuous, discrete), -1)
+
     @torch.no_grad()
     def target_actions(self, observations):
         a = self.config.matd3
-        actions = []
-        for i in range(self.num_uavs):
-            actor = self._actor_at(i, target=True)
-            obs = observations[:, i]
-            actor_observation = self._actor_input(obs, i)
-            continuous, probs = actor(actor_observation, valid_destinations(obs, self.destinations))
-            noise = (torch.randn_like(continuous) * a.target_noise_std).clamp(-a.target_noise_clip, a.target_noise_clip)
-            destination = probs.argmax(-1)
-            continuous = canonical_continuous((continuous + noise).clamp(-1, 1), obs, destination)
-            actions.append(joint_action(continuous, destination, self.destinations))
-        return torch.stack(actions, 1)
+        if not self.share_actor_parameters:
+            actions = []
+            for i, actor in enumerate(self.target_actors):
+                obs = observations[:, i]
+                continuous, probs = actor(obs, valid_destinations(obs, self.destinations))
+                noise = (torch.randn_like(continuous) * a.target_noise_std).clamp(
+                    -a.target_noise_clip, a.target_noise_clip)
+                destination = probs.argmax(-1)
+                continuous = canonical_continuous((continuous + noise).clamp(-1, 1), obs, destination)
+                actions.append(joint_action(continuous, destination, self.destinations))
+            return torch.stack(actions, 1)
+        continuous, probs = self._policy_outputs(observations, target=True)
+        noise = (torch.randn_like(continuous) * a.target_noise_std).clamp(-a.target_noise_clip, a.target_noise_clip)
+        destination = probs.argmax(-1)
+        continuous = canonical_continuous((continuous + noise).clamp(-1, 1), observations, destination)
+        return joint_action(continuous, destination, self.destinations)
 
     @torch.no_grad()
     def act_batch(self, observations, deterministic=False, step=0, *, return_tensors=False):
@@ -93,21 +128,33 @@ class MATD3(nn.Module):
         a = self.config.matd3
         fraction = min(1, max(0, step) / a.epsilon_decay_steps)
         epsilon = a.initial_epsilon + fraction * (a.final_epsilon - a.initial_epsilon)
-        actions = []
-        for i in range(self.num_uavs):
-            actor = self._actor_at(i)
-            local = obs[:, i]
-            mask = valid_destinations(local, self.destinations)
-            continuous, probs = actor(self._actor_input(local, i), mask)
+        if not self.share_actor_parameters:
+            actions = []
+            for i, actor in enumerate(self.actors):
+                local = obs[:, i]
+                mask = valid_destinations(local, self.destinations)
+                continuous, probs = actor(local, mask)
+                destination = probs.argmax(-1)
+                if not deterministic:
+                    continuous = (continuous + torch.randn_like(continuous) * a.exploration_noise_std).clamp(-1, 1)
+                    random_destination = torch.multinomial(mask.float(), 1).squeeze(-1)
+                    explore = torch.rand(len(local), device=self.device) < epsilon
+                    destination = torch.where(explore, random_destination, destination)
+                continuous = canonical_continuous(continuous, local, destination)
+                actions.append(joint_action(continuous, destination, self.destinations))
+            joint = torch.stack(actions, 1)
+        else:
+            continuous, probs = self._policy_outputs(obs)
             destination = probs.argmax(-1)
             if not deterministic:
                 continuous = (continuous + torch.randn_like(continuous) * a.exploration_noise_std).clamp(-1, 1)
-                random_destination = torch.multinomial(mask.float(), 1).squeeze(-1)
-                explore = torch.rand(len(local), device=self.device) < epsilon
+                mask = valid_destinations(obs, self.destinations)
+                random_destination = torch.multinomial(
+                    mask.float().reshape(-1, self.destinations), 1).reshape(destination.shape)
+                explore = torch.rand(destination.shape, device=self.device) < epsilon
                 destination = torch.where(explore, random_destination, destination)
-            continuous = canonical_continuous(continuous, local, destination)
-            actions.append(joint_action(continuous, destination, self.destinations))
-        joint = torch.stack(actions, 1)
+            continuous = canonical_continuous(continuous, obs, destination)
+            joint = joint_action(continuous, destination, self.destinations)
         if return_tensors:
             return Action(joint[..., :3].contiguous(), joint[..., 3:].argmax(-1))
         values = joint.cpu().numpy()
@@ -165,30 +212,29 @@ class MATD3(nn.Module):
         vectorized = self.config.runtime.vectorize_critics
         actor_losses, actor_grads = [], []
         with torch.no_grad():
-            base = torch.stack([self._actor_action(self._actor_at(i), data["observation"][:, i], agent_index=i)
-                                for i in range(self.num_uavs)], 1)
+            base = self._actor_actions(data["observation"])
         self.critics.requires_grad_(False)
         try:
             batched_q = None
+            candidate_actions = (self._actor_actions(data["observation"], straight_through=True)
+                                 if vectorized or self.share_critic_parameters or self.share_actor_parameters else None)
             if vectorized or self.share_critic_parameters:
                 joints = base[None].expand(self.num_uavs, -1, -1, -1).clone()
                 indices = torch.arange(self.num_uavs, device=self.device)
-                joints[indices, :, indices] = torch.stack([
-                    self._actor_action(self._actor_at(i), data["observation"][:, i],
-                                       straight_through=True, agent_index=i)
-                    for i in range(self.num_uavs)])
+                joints[indices, :, indices] = candidate_actions.transpose(0, 1)
                 if self.share_critic_parameters:
                     batched_q, _ = self._shared_critic_actor_values(data["state"], joints)
                 else:
                     batched_q, _ = self._critic_values(self.critics, data["state"], joints, True, True)
             for i in range(self.num_uavs):
-                actor = self._actor_at(i)
                 if batched_q is not None:
                     q1 = batched_q[:, i]
                 else:
                     joint = base.clone()
-                    joint[:, i] = self._actor_action(actor, data["observation"][:, i],
-                                                     straight_through=True, agent_index=i)
+                    own_action = (candidate_actions[:, i] if candidate_actions is not None
+                                  else self._actor_action(self.actors[i], data["observation"][:, i],
+                                                          straight_through=True, agent_index=i))
+                    joint[:, i] = own_action
                     q1, _ = self.critics[i](data["state"], joint)
                 actor_loss = -q1.mean()
                 actor_losses.append(actor_loss)

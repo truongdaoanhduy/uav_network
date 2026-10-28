@@ -4,6 +4,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
+from torch.distributions import Categorical
 
 import numpy as np
 import torch
@@ -13,6 +14,7 @@ from uav_network.environment.observations import observation_dim, state_dim
 from uav_network.environment.env import Action
 from uav_network.algorithms.masac import MASAC
 from uav_network.algorithms.matd3 import MATD3
+from uav_network.algorithms.action_utils import canonical_continuous, joint_action, valid_destinations
 
 
 class ParameterSharingTests(unittest.TestCase):
@@ -88,6 +90,80 @@ class ParameterSharingTests(unittest.TestCase):
             "terminated": np.array([0, 1] * (batch // 2), dtype=np.float32),
         }
 
+    def test_masac_independent_actor_preserves_legacy_rng_order(self):
+        learner = self._learner("masac", False, False)
+        observations = torch.as_tensor(self._observations(learner.config, batch=4))
+        torch.manual_seed(2468)
+        actual = learner.act_batch(observations.numpy(), deterministic=False, return_tensors=True)
+        torch.manual_seed(2468)
+        expected = []
+        for i, actor in enumerate(learner.actors):
+            local = observations[:, i]
+            continuous, _, probs, _ = learner._sample(actor, local, False, i)
+            destination = Categorical(probs=probs, validate_args=False).sample()
+            expected.append(joint_action(canonical_continuous(continuous, local, destination),
+                                         destination, learner.destinations))
+        expected = torch.stack(expected, 1)
+        torch.testing.assert_close(actual.continuous, expected[..., :3], rtol=0, atol=0)
+        torch.testing.assert_close(actual.destination, expected[..., 3:].argmax(-1), rtol=0, atol=0)
+
+
+    def test_matd3_independent_actor_preserves_legacy_rng_order(self):
+        learner = self._learner("matd3", False, False)
+        observations = torch.as_tensor(self._observations(learner.config, batch=4))
+        step = 123
+        a = learner.config.matd3
+
+        torch.manual_seed(1234)
+        actual = learner.act_batch(observations.numpy(), deterministic=False, step=step, return_tensors=True)
+        torch.manual_seed(1234)
+        expected = []
+        fraction = min(1, max(0, step) / a.epsilon_decay_steps)
+        epsilon = a.initial_epsilon + fraction * (a.final_epsilon - a.initial_epsilon)
+        for i, actor in enumerate(learner.actors):
+            local = observations[:, i]
+            mask = valid_destinations(local, learner.destinations)
+            continuous, probs = actor(local, mask)
+            destination = probs.argmax(-1)
+            continuous = (continuous + torch.randn_like(continuous) * a.exploration_noise_std).clamp(-1, 1)
+            random_destination = torch.multinomial(mask.float(), 1).squeeze(-1)
+            explore = torch.rand(len(local)) < epsilon
+            destination = torch.where(explore, random_destination, destination)
+            continuous = canonical_continuous(continuous, local, destination)
+            expected.append(joint_action(continuous, destination, learner.destinations))
+        expected = torch.stack(expected, 1)
+        torch.testing.assert_close(actual.continuous, expected[..., :3], rtol=0, atol=0)
+        torch.testing.assert_close(actual.destination, expected[..., 3:].argmax(-1), rtol=0, atol=0)
+
+        torch.manual_seed(5678)
+        actual_target = learner.target_actions(observations)
+        torch.manual_seed(5678)
+        expected_target = []
+        for i, actor in enumerate(learner.target_actors):
+            local = observations[:, i]
+            continuous, probs = actor(local, valid_destinations(local, learner.destinations))
+            noise = (torch.randn_like(continuous) * a.target_noise_std).clamp(
+                -a.target_noise_clip, a.target_noise_clip)
+            destination = probs.argmax(-1)
+            continuous = canonical_continuous((continuous + noise).clamp(-1, 1), local, destination)
+            expected_target.append(joint_action(continuous, destination, learner.destinations))
+        torch.testing.assert_close(actual_target, torch.stack(expected_target, 1), rtol=0, atol=0)
+
+
+    def test_shared_actor_batches_all_uavs_into_one_inference_forward(self):
+        for algorithm in ("masac", "matd3"):
+            with self.subTest(algorithm=algorithm):
+                learner = self._learner(algorithm, True, False)
+                forwards = []
+                hook = learner.actors[0].encoder.register_forward_hook(
+                    lambda module, args, output: forwards.append(tuple(args[0].shape)))
+                try:
+                    learner.act_batch(self._observations(learner.config, batch=3), deterministic=True)
+                finally:
+                    hook.remove()
+                self.assertEqual(forwards, [(18, learner.observation_dim + learner.num_uavs)])
+
+
     def test_shared_actor_update_uses_one_optimizer_and_changes_shared_weights(self):
         for algorithm in ("masac", "matd3"):
             with self.subTest(algorithm=algorithm):
@@ -145,9 +221,9 @@ class ParameterSharingTests(unittest.TestCase):
         learner.config.runtime.vectorize_critics = False
         with patch.object(learner, "_sample", wraps=learner._sample) as sample:
             learner.update_actor(self._batch(learner.config), collect_metrics=False)
-        # Six detached base-policy samples + six differentiable actor samples.
-        # Q alternatives and entropy/log-prob must use the same differentiable sample.
-        self.assertEqual(sample.call_count, 12)
+        # One Bx6 detached base-policy sample + one Bx6 differentiable actor sample.
+        # Q alternatives and entropy/log-prob must reuse the latter sample.
+        self.assertEqual(sample.call_count, 2)
 
 
     def test_pql_inference_copy_supports_shared_actor(self):

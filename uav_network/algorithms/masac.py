@@ -62,8 +62,11 @@ class MASAC(nn.Module):
     def _actor_input(self, observation, index):
         if not self.share_actor_parameters:
             return observation
-        identity = F.one_hot(torch.full((len(observation),), index, device=observation.device, dtype=torch.long),
-                             num_classes=self.num_uavs).to(observation.dtype)
+        if isinstance(index, int):
+            index = torch.full((len(observation),), index, device=observation.device, dtype=torch.long)
+        else:
+            index = torch.as_tensor(index, device=observation.device, dtype=torch.long)
+        identity = F.one_hot(index, num_classes=self.num_uavs).to(observation.dtype)
         return torch.cat((observation, identity), dim=-1)
 
     def _sample(self, actor, observation, deterministic=False, agent_index=0):
@@ -79,21 +82,40 @@ class MASAC(nn.Module):
         conditional_logp = (parts[:, :2].sum(-1) + (1 - probs[:, 0]) * parts[:, 2]) * active
         return continuous, conditional_logp, probs, logs
 
+    def _sample_agents(self, observations, deterministic=False):
+        """Sample every UAV policy; shared actors use one B*N forward pass."""
+        if self.share_actor_parameters:
+            b, n = observations.shape[:2]
+            flat = observations.reshape(b * n, -1)
+            indices = torch.arange(n, device=observations.device).expand(b, n).reshape(-1)
+            values = self._sample(self.actors[0], flat, deterministic, indices)
+            return tuple(value.reshape(b, n, *value.shape[1:]) for value in values)
+        values = [self._sample(self.actors[i], observations[:, i], deterministic, i)
+                  for i in range(self.num_uavs)]
+        return tuple(torch.stack([value[j] for value in values], 1) for j in range(4))
+
     def _joint_sample(self, observations, deterministic=False):
-        actions, logs, probabilities, log_probabilities, raw_actions = [], [], [], [], []
-        for i in range(self.num_uavs):
-            actor = self._actor_at(i)
-            obs = observations[:, i]
-            continuous, logp, probs, log_probs = self._sample(actor, obs, deterministic, i)
-            destination = probs.argmax(-1) if deterministic else Categorical(probs=probs, validate_args=False).sample()
-            actions.append(joint_action(canonical_continuous(continuous, obs, destination),
-                                        destination, self.destinations))
-            logs.append(logp)
-            probabilities.append(probs)
-            log_probabilities.append(log_probs)
-            raw_actions.append(continuous)
-        return tuple(torch.stack(values, 1) for values in
-                     (actions, logs, probabilities, log_probabilities, raw_actions))
+        if not self.share_actor_parameters:
+            actions, logs, probabilities, log_probabilities, raw_actions = [], [], [], [], []
+            for i, actor in enumerate(self.actors):
+                obs = observations[:, i]
+                continuous, logp, probs, log_probs = self._sample(actor, obs, deterministic, i)
+                destination = (probs.argmax(-1) if deterministic
+                               else Categorical(probs=probs, validate_args=False).sample())
+                actions.append(joint_action(canonical_continuous(continuous, obs, destination),
+                                            destination, self.destinations))
+                logs.append(logp)
+                probabilities.append(probs)
+                log_probabilities.append(log_probs)
+                raw_actions.append(continuous)
+            return tuple(torch.stack(values, 1) for values in
+                         (actions, logs, probabilities, log_probabilities, raw_actions))
+        continuous, logs, probabilities, log_probabilities = self._sample_agents(observations, deterministic)
+        destination = (probabilities.argmax(-1) if deterministic
+                       else Categorical(probs=probabilities, validate_args=False).sample())
+        actions = joint_action(canonical_continuous(continuous, observations, destination),
+                               destination, self.destinations)
+        return actions, logs, probabilities, log_probabilities, continuous
 
     @torch.no_grad()
     def act_batch(self, observations, deterministic=False, step=0, *, return_tensors=False):
@@ -215,15 +237,10 @@ class MASAC(nn.Module):
         actor_grads = []
         actor_losses, entropies_c, entropies_d, targets_c, targets_d = [], [], [], [], []
         try:
-            samples = ([self._sample(self._actor_at(i), data["observation"][:, i], agent_index=i)
-                        for i in range(self.num_uavs)]
-                       if vectorized or self.share_critic_parameters else None)
-            continuous_actions = torch.stack([sample[0] for sample in samples], 1) if samples is not None else None
+            samples = (self._sample_agents(data["observation"])
+                       if vectorized or self.share_critic_parameters or self.share_actor_parameters else None)
+            continuous_actions = samples[0] if samples is not None else None
             if self.share_critic_parameters:
-                if continuous_actions is None:
-                    continuous_actions = torch.stack([
-                        self._sample(self._actor_at(i), data["observation"][:, i], agent_index=i)[0]
-                        for i in range(self.num_uavs)], 1)
                 qs = self._expected_q_shared_all(self.critics[0], data["state"], base_joint, continuous_actions)
             else:
                 qs = (self._expected_q_all(self.critics, data["state"], base_joint, continuous_actions)
@@ -231,7 +248,8 @@ class MASAC(nn.Module):
             for i in range(self.num_uavs):
                 actor = self._actor_at(i)
                 obs = data["observation"][:, i]
-                continuous, logp, probs, log_probs = (samples[i] if samples is not None
+                continuous, logp, probs, log_probs = (tuple(value[:, i] for value in samples)
+                                                       if samples is not None
                                                        else self._sample(actor, obs, agent_index=i))
                 q = (qs[:, i] if qs is not None
                      else self._expected_q(self.critics[i], data["state"], base_joint, continuous, i))
