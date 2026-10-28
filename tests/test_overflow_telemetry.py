@@ -105,3 +105,13 @@ def test_online_publishes_bounded_overflow_evidence_once_and_isolates_failure(tm
         tracker.close()
     assert calls.count('overflow-base-critic.pt') == 1
     assert calls.count('overflow-base-critic.json') == 1
+
+
+@pytest.mark.parametrize('value,kind', [(float('inf'), 'inf'), (float('-inf'), '-inf'), (float('nan'), 'NaN')])
+def test_learner_telemetry_is_idempotent_and_keeps_original_nonfinite_labels(value, kind):
+    from uav_network.experiments.evidence import learner_telemetry
+    once = learner_telemetry({'critic_grad_norm': value, 'critic_loss': 2.0})
+    twice = learner_telemetry(once)
+    assert twice == once
+    assert twice['critic_grad_norm_nonfinite_kind'] == kind
+    assert set(twice) == {'critic_grad_norm', 'critic_loss', 'critic_grad_norm_nonfinite', 'critic_grad_norm_nonfinite_kind'}

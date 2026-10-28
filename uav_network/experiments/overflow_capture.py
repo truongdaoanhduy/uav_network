@@ -82,6 +82,9 @@ class OverflowCapture:
             "source_device": str(learner.device), "role": self.role,
             "source_async": bool(learner.config.pql.enabled and learner.config.pql.mode == "async"),
             "model": cpu_copy(learner.state_dict()),
+            "gradient_stage": "unscaled_before_clipping",
+            "gradients": {name: cpu_copy(p.grad) for name, p in learner.named_parameters()
+                          if id(p) in owned and p.grad is not None},
             "requires_grad": {k: p.requires_grad for k, p in learner.named_parameters()},
             "batch": {k: cpu_copy(torch.as_tensor(v)) for k, v in batch.items()},
             "rng": cpu_copy(context["rng"]), "precision_before": context["precision_before"],

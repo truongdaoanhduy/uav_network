@@ -72,6 +72,10 @@ def test_first_skip_preserves_batch_model_rng_and_replays_fp32_fp16(tmp_path, al
     same(saved['rng']['cpu'], rng)
     assert saved['event']['category'] == 'nonfinite_gradients'
     assert saved['event']['raw_gradients_finite'] is False
+    assert saved.get('gradient_stage') == 'unscaled_before_clipping'
+    assert saved.get('gradients'), 'Original gradient tensors must remain available without exact replay'
+    assert any(not bool(torch.isfinite(g).all()) for g in saved['gradients'].values())
+    assert set(saved['gradients']) == set(saved['event']['gradients'])
     assert all(row['finite'] for row in saved['input_stats'].values())
     original_bytes = paths[0].read_bytes()
     update(batch)

@@ -80,6 +80,8 @@ def learner_telemetry(metrics):
     """Keep scalar charts numeric while preserving handled overflow evidence."""
     result = dict(metrics)
     for name, value in metrics.items():
+        if name.endswith(("_nonfinite", "_nonfinite_kind")):
+            continue
         kind = None
         if isinstance(value, Real) and not math.isfinite(value):
             kind = "NaN" if math.isnan(value) else str(float(value))
