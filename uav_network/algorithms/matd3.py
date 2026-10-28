@@ -52,8 +52,20 @@ class MATD3(nn.Module):
         self.updates = self.actor_updates = 0
         self._last_actor_metrics = {}
 
-    def _actor_action(self, actor, observation, straight_through=False):
-        continuous, probs = actor(observation, valid_destinations(observation, self.destinations))
+    def _actor_at(self, index, *, target=False):
+        actors = self.target_actors if target else self.actors
+        return actors[0] if self.share_actor_parameters else actors[index]
+
+    def _actor_input(self, observation, index):
+        if not self.share_actor_parameters:
+            return observation
+        identity = F.one_hot(torch.full((len(observation),), index, device=observation.device, dtype=torch.long),
+                             num_classes=self.num_uavs).to(observation.dtype)
+        return torch.cat((observation, identity), dim=-1)
+
+    def _actor_action(self, actor, observation, straight_through=False, agent_index=0):
+        actor_observation = self._actor_input(observation, agent_index)
+        continuous, probs = actor(actor_observation, valid_destinations(observation, self.destinations))
         destination = probs.argmax(-1)
         hard = F.one_hot(destination, self.destinations).to(probs.dtype)
         discrete = hard + probs - probs.detach() if straight_through else hard
@@ -64,9 +76,11 @@ class MATD3(nn.Module):
     def target_actions(self, observations):
         a = self.config.matd3
         actions = []
-        for i, actor in enumerate(self.target_actors):
+        for i in range(self.num_uavs):
+            actor = self._actor_at(i, target=True)
             obs = observations[:, i]
-            continuous, probs = actor(obs, valid_destinations(obs, self.destinations))
+            actor_observation = self._actor_input(obs, i)
+            continuous, probs = actor(actor_observation, valid_destinations(obs, self.destinations))
             noise = (torch.randn_like(continuous) * a.target_noise_std).clamp(-a.target_noise_clip, a.target_noise_clip)
             destination = probs.argmax(-1)
             continuous = canonical_continuous((continuous + noise).clamp(-1, 1), obs, destination)
@@ -80,10 +94,11 @@ class MATD3(nn.Module):
         fraction = min(1, max(0, step) / a.epsilon_decay_steps)
         epsilon = a.initial_epsilon + fraction * (a.final_epsilon - a.initial_epsilon)
         actions = []
-        for i, actor in enumerate(self.actors):
+        for i in range(self.num_uavs):
+            actor = self._actor_at(i)
             local = obs[:, i]
             mask = valid_destinations(local, self.destinations)
-            continuous, probs = actor(local, mask)
+            continuous, probs = actor(self._actor_input(local, i), mask)
             destination = probs.argmax(-1)
             if not deterministic:
                 continuous = (continuous + torch.randn_like(continuous) * a.exploration_noise_std).clamp(-1, 1)
@@ -138,8 +153,8 @@ class MATD3(nn.Module):
         vectorized = self.config.runtime.vectorize_critics
         actor_losses, actor_grads = [], []
         with torch.no_grad():
-            base = torch.stack([self._actor_action(actor, data["observation"][:, i])
-                                for i, actor in enumerate(self.actors)], 1)
+            base = torch.stack([self._actor_action(self._actor_at(i), data["observation"][:, i], agent_index=i)
+                                for i in range(self.num_uavs)], 1)
         self.critics.requires_grad_(False)
         try:
             batched_q = None
@@ -147,22 +162,30 @@ class MATD3(nn.Module):
                 joints = base[None].expand(self.num_uavs, -1, -1, -1).clone()
                 indices = torch.arange(self.num_uavs, device=self.device)
                 joints[indices, :, indices] = torch.stack([
-                    self._actor_action(actor, data["observation"][:, i], straight_through=True)
-                    for i, actor in enumerate(self.actors)])
+                    self._actor_action(self._actor_at(i), data["observation"][:, i],
+                                       straight_through=True, agent_index=i)
+                    for i in range(self.num_uavs)])
                 batched_q, _ = self._critic_values(self.critics, data["state"], joints, True, True)
-            for i, actor in enumerate(self.actors):
+            for i in range(self.num_uavs):
+                actor = self._actor_at(i)
                 if vectorized:
                     q1 = batched_q[:, i]
                 else:
                     joint = base.clone()
-                    joint[:, i] = self._actor_action(actor, data["observation"][:, i], straight_through=True)
+                    joint[:, i] = self._actor_action(actor, data["observation"][:, i],
+                                                     straight_through=True, agent_index=i)
                     q1, _ = self.critics[i](data["state"], joint)
                 actor_loss = -q1.mean()
                 actor_losses.append(actor_loss)
             actor_step = self.precision.step_actors if self.precision.enabled else step_actor_optimizers
-            actor_grads = actor_step(actor_losses, self.actor_optimizers,
-                                               [actor.parameters() for actor in self.actors],
-                                               a.grad_clip_norm, collect_metrics)
+            if self.share_actor_parameters:
+                step_losses = [torch.stack(actor_losses).mean()]
+                parameter_groups = [self.actors[0].parameters()]
+            else:
+                step_losses = actor_losses
+                parameter_groups = [actor.parameters() for actor in self.actors]
+            actor_grads = actor_step(step_losses, self.actor_optimizers, parameter_groups,
+                                     a.grad_clip_norm, collect_metrics)
             actor_losses = [loss.detach() for loss in actor_losses]
         finally:
             self.critics.requires_grad_(True)

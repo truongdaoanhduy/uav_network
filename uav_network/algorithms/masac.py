@@ -56,9 +56,20 @@ class MASAC(nn.Module):
                                         ("critic", "actor", "alpha") if self.algorithm == "masac" else ("critic", "actor"))
         self.updates = self.actor_updates = 0
 
-    def _sample(self, actor, observation, deterministic=False):
+    def _actor_at(self, index):
+        return self.actors[0] if self.share_actor_parameters else self.actors[index]
+
+    def _actor_input(self, observation, index):
+        if not self.share_actor_parameters:
+            return observation
+        identity = F.one_hot(torch.full((len(observation),), index, device=observation.device, dtype=torch.long),
+                             num_classes=self.num_uavs).to(observation.dtype)
+        return torch.cat((observation, identity), dim=-1)
+
+    def _sample(self, actor, observation, deterministic=False, agent_index=0):
         mask = valid_destinations(observation, self.destinations)
-        continuous, parts, probs, logs = actor.sample(observation, deterministic, mask, return_parts=True)
+        actor_observation = self._actor_input(observation, agent_index)
+        continuous, parts, probs, logs = actor.sample(actor_observation, deterministic, mask, return_parts=True)
         # 0*log(0) contributes zero. Clear it before alpha multiplication:
         # float32.min * alpha>1 overflows, even though the destination has p=0.
         logs = logs.masked_fill(probs == 0, 0)
@@ -70,9 +81,10 @@ class MASAC(nn.Module):
 
     def _joint_sample(self, observations, deterministic=False):
         actions, logs, probabilities, log_probabilities, raw_actions = [], [], [], [], []
-        for i, actor in enumerate(self.actors):
+        for i in range(self.num_uavs):
+            actor = self._actor_at(i)
             obs = observations[:, i]
-            continuous, logp, probs, log_probs = self._sample(actor, obs, deterministic)
+            continuous, logp, probs, log_probs = self._sample(actor, obs, deterministic, i)
             destination = probs.argmax(-1) if deterministic else Categorical(probs=probs, validate_args=False).sample()
             actions.append(joint_action(canonical_continuous(continuous, obs, destination),
                                         destination, self.destinations))
@@ -174,13 +186,15 @@ class MASAC(nn.Module):
         actor_grads = []
         actor_losses, entropies_c, entropies_d, targets_c, targets_d = [], [], [], [], []
         try:
-            samples = ([self._sample(actor, data["observation"][:, i]) for i, actor in enumerate(self.actors)]
-                       if vectorized else None)
+            samples = ([self._sample(self._actor_at(i), data["observation"][:, i], agent_index=i)
+                        for i in range(self.num_uavs)] if vectorized else None)
             qs = (self._expected_q_all(self.critics, data["state"], base_joint,
                                       torch.stack([s[0] for s in samples], 1)) if vectorized else None)
-            for i, actor in enumerate(self.actors):
+            for i in range(self.num_uavs):
+                actor = self._actor_at(i)
                 obs = data["observation"][:, i]
-                continuous, logp, probs, log_probs = samples[i] if vectorized else self._sample(actor, obs)
+                continuous, logp, probs, log_probs = (samples[i] if vectorized
+                                                       else self._sample(actor, obs, agent_index=i))
                 q = qs[:, i] if vectorized else self._expected_q(self.critics[i], data["state"], base_joint, continuous, i)
                 loss = (alpha_c[i] * logp + (probs * (alpha_d[i] * log_probs - q)).sum(-1)).mean()
                 actor_losses.append(loss)
@@ -191,9 +205,14 @@ class MASAC(nn.Module):
                 choices = valid_destinations(obs, self.destinations).sum(-1).float()
                 targets_d.append((a.target_discrete_entropy_ratio * choices.log()).mean())
             actor_step = self.precision.step_actors if self.precision.enabled else step_actor_optimizers
-            actor_grads = actor_step(actor_losses, self.actor_optimizers,
-                                               [actor.parameters() for actor in self.actors],
-                                               a.grad_clip_norm, collect_metrics)
+            if self.share_actor_parameters:
+                step_losses = [torch.stack(actor_losses).mean()]
+                parameter_groups = [self.actors[0].parameters()]
+            else:
+                step_losses = actor_losses
+                parameter_groups = [actor.parameters() for actor in self.actors]
+            actor_grads = actor_step(step_losses, self.actor_optimizers, parameter_groups,
+                                     a.grad_clip_norm, collect_metrics)
             actor_losses = [loss.detach() for loss in actor_losses]
         finally:
             self.critics.requires_grad_(True)

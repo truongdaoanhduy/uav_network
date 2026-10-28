@@ -2,6 +2,7 @@
 from dataclasses import replace
 import unittest
 
+import numpy as np
 import torch
 
 from uav_network.configuration import Config
@@ -48,6 +49,52 @@ class ParameterSharingTests(unittest.TestCase):
                     self.assertEqual(len(learner.target_critics), critics)
                     if algorithm == "matd3":
                         self.assertEqual(len(learner.target_actors), actors)
+
+
+    def _observations(self, config, batch=3):
+        obs = np.zeros((batch, config.world.num_uavs, observation_dim(config)), dtype=np.float32)
+        obs[:, :, 9] = 1
+        obs[:, :, -(config.world.num_uavs + 1):] = 1
+        return obs
+
+    def test_shared_actor_is_agent_conditioned_and_emits_all_uav_actions(self):
+        for algorithm in ("masac", "matd3"):
+            with self.subTest(algorithm=algorithm):
+                learner = self._learner(algorithm, True, False)
+                actor = learner.actors[0]
+                self.assertEqual(actor.encoder[0].in_features, learner.observation_dim + learner.num_uavs)
+                self.assertEqual(len(learner.actor_optimizers), 1)
+                action = learner.act_batch(self._observations(learner.config), deterministic=True)
+                self.assertEqual(action.continuous.shape, (3, 6, 3))
+                self.assertEqual(action.destination.shape, (3, 6))
+
+
+    def _batch(self, config, batch=8):
+        rng = np.random.default_rng(44)
+        obs = self._observations(config, batch)
+        n = config.world.num_uavs
+        return {
+            "observation": obs,
+            "next_observation": obs.copy(),
+            "state": rng.normal(size=(batch, state_dim(config))).astype(np.float32),
+            "next_state": rng.normal(size=(batch, state_dim(config))).astype(np.float32),
+            "continuous": rng.uniform(-1, 1, size=(batch, n, 3)).astype(np.float32),
+            "destination": rng.integers(0, n + 1, size=(batch, n)),
+            "reward": rng.normal(size=batch).astype(np.float32),
+            "terminated": np.array([0, 1] * (batch // 2), dtype=np.float32),
+        }
+
+    def test_shared_actor_update_uses_one_optimizer_and_changes_shared_weights(self):
+        for algorithm in ("masac", "matd3"):
+            with self.subTest(algorithm=algorithm):
+                learner = self._learner(algorithm, True, False)
+                before = next(learner.actors.parameters()).detach().clone()
+                metrics = learner.update(self._batch(learner.config))
+                if algorithm == "matd3":
+                    metrics = learner.update(self._batch(learner.config))
+                self.assertEqual(len(learner.actor_optimizers), 1)
+                self.assertFalse(torch.equal(before, next(learner.actors.parameters())))
+                self.assertTrue(all(np.isfinite(value) for value in metrics.values()))
 
 
 
