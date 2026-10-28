@@ -1,0 +1,14 @@
+{
+  "verified_at_utc": "2026-10-28T01:06:53.858298+00:00",
+  "run_count": 385,
+  "states": {
+    "finished": 273,
+    "failed": 82,
+    "crashed": 30
+  },
+  "existing_384_ids_states_history_counts_unchanged": true,
+  "only_new_run": "f0vws7re",
+  "new_run_purpose": "logging-only, no training or policy quality metrics",
+  "new_run_finished": true,
+  "all_views_unchanged_after_publication": true
+}

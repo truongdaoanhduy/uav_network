@@ -1,12 +1,31 @@
-# Current task: diagnostic coverage audit — IN PROGRESS
+# Diagnostic coverage audit — COMPLETE / VERIFIED ONLINE
 
-Updated 2026-10-28T00:27:44.554250+07:00. Baseline a13430b; Task1 evidence hardening implemented and48focused tests passed. User asks to audit and supplement logs for crashed/failed/weak training and other meaningful cases, and refine Personal Runs/workspace without clutter.
+Updated 2026-10-28T01:10:01.014110+00:00. Runtime/source frozen and verified at `56604cc71f294cd94e5251491ab7d1397a95200b`.
+User requested audit+supplement logs for crashed/failed/poor training and other meaningful cases; Personal Runs and Workspace refined without clutter. No production training launched/restarted/cancelled, scientific config/eval schedule/checkpoint formats unchanged. Main+feature push follows final record commit.
 
-Reproduced3 gaps: diagnostic event closed stdout raisesValueError; disk-full raisesOSError; failure report contextNaN raisesValueError. Existing journal omits selected warning/replay/PQL/resource/protocol context; no stalled-thread trace. Latest key valid; browser remains signed in, Personal17columns26plots+guide already verified previously.
+## Delivered and verified
 
-Selected bounded reuse-first design: docs/superpowers/specs/2026-10-28-diagnostic-coverage-design.md
-Plan: docs/superpowers/plans/2026-10-28-diagnostic-coverage.md
-Builder check found no unanswered questions; BASE/PQL need independent watchdog/fallback guards. Task1 shared bounded evidence/redaction, exception/resources/actual CPU identity and fail-open optional diagnostics implemented.11observed RED failures fixed;48passed2subtests. Next: Task2 watchdog/progress/context/exit semantics, then Personal evidence curation. No production training or scientific config/evaluation schedule change.
+- Safe evidence serialization/redaction, exception chain/category/resources/signal/run identity. Optional console/disk/journal/async upload failures isolated; real W&B mandatory-online failure contract preserved. NaN/Inf/unknown objects cannot destroy failure evidence; unknown root cause stays false/unknown.
+- Selected warning/replay/PQL/reward/action/safety/report/eval evidence with source-step markers. Resource snapshots at most60s at event cadence and fresh on failure; sample age recorded. No background resource sampler during total process freeze.
+- BASE/PQL/offline and CPU owned non-terminating native traceback watchdog; default300s with bounded rearm throttle gives270–300s effective inactivity interval. Native stack is evidence, not automatic deadlock/OOM verdict. Learner subprocess PYTHONFAULTHANDLER=1; negative exits named signal; SIGTERM only when actually observed.
+- CPU inner progress/protocol/source/count; optional inner-progress W&B failure does not kill actual evaluation. PQL last metrics/seed context without new locks in exception path.
+- Personal view `nw-nwusertruongdaoanhduy-w` / `VmlldzoxODA5MjI1Nw==`:17columns,4pins(Name/State/Created/Runtime),27plots+1guide,12individual runs/plot/noaggregation. Algorithm+Mode hidden; eval count replaces redundant Mode. Added cohort n+disk-free plots; actor loss remains in advanced diagnostic profile.
+- Original384run IDs/states/historyLineCounts unchanged during publication and after canary. Unrelated views+all IDs preserved. Project final observation385runs(273finished82failed30crashed,0running), only addition logging-onlycheck `f0vws7re`, finished. Probe verified live status/atomic replacement plus actual resource/source/native stack across4remote files; no quality metrics fabricated.
+- Signed-in browser Personal UI:17actual column headers, Created/Runtime/eval count visible, Algorithm/Mode absent; real outcome series render. Tab left at user's Personal Workspace. No personal screenshots saved.
+- Fresh independent reviewer found2Important, both observed RED→GREEN.77focused passed. Full offline CPU suite on56604cc:924passed95skipped8warnings1396subtests in554.26s; JUnit0errors0failures. compileall/diff pass;14credential values scanned,0hits. No GPU tests claimed this task.
+
+## Limits and continuation
+
+No universal root-cause guarantee: hard kill/power loss/external platform/account events still need Kaggle/OS/service logs. Old pinned jobs cannot gain new code or missing replay/logs retroactively. Canonical periodic mini-eval remains disabled, so training return alone does not establish generalization. FinalCPU30 describes that seed bank; algorithm ranking needs matched protocol/budget and multiple training seeds/uncertainty. No production20k rerun authorized by this audit.
+
+Minor deferred: watchdog may dump up to30s early due bounded timer reset; diagnostic-only/no kill. All coverage decisions and review scope are recorded in the ledger evidence.
+
+Personal: https://forge.coreweave.com/wandb/truongdaoanhduy-uit/uav_search_target/workspace?nw=nwusertruongdaoanhduy
+Runs: https://forge.coreweave.com/wandb/truongdaoanhduy-uit/uav_search_target/table?nw=nwusertruongdaoanhduy
+Guide: docs/training-diagnostics.md
+Coverage: docs/diagnostic-coverage.md
+Evidence: docs/superpowers/evidence/2026-10-28-diagnostic-coverage.md (+tests/personal/browser/probe/service/review/ledger records).
+No requested work remains blocked; integration hashes to verify after push. Retain existing host worktree, credentials and unrelated views.
 
 ## Previous completed task record
 

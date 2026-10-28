@@ -1,0 +1,30 @@
+{
+  "observed_at_utc": "2026-10-28T01:10:42.207310+00:00",
+  "runs": {
+    "training": {
+      "id": "ce8f3be6",
+      "state": "finished",
+      "metrics": {
+        "global_step": 35672064,
+        "episodes_completed": 20000,
+        "train/episodes_completed": 20000,
+        "episode_budget_complete": true,
+        "stop_reason": "episode_budget",
+        "cohort/episodes": 3616,
+        "cohort/delivery_rate_percent_mean": 59.33233249051829,
+        "cohort/success_mean": 0
+      }
+    },
+    "evaluation": {
+      "id": "239f3eb9",
+      "state": "finished",
+      "metrics": {
+        "global_step": 30,
+        "evaluation/episodes_completed": 30,
+        "eval/mean_delivery_rate_percent": 48.95238095238096,
+        "eval/success_rate": 0,
+        "stage": "visualize"
+      }
+    }
+  }
+}

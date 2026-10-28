@@ -1,0 +1,26 @@
+{
+  "source_commit": "56604cc71f294cd94e5251491ab7d1397a95200b",
+  "started_at_utc": "2026-10-28T01:03:03.635727+00:00",
+  "training": false,
+  "run_id": "f0vws7re",
+  "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/f0vws7re",
+  "live_first_revision_confirmed": true,
+  "local_native_stack_confirmed": true,
+  "live_atomic_replace_confirmed": true,
+  "state": "finished",
+  "files": [
+    "metrics-guide.md",
+    "thread-stacks.log",
+    "training-events.jsonl",
+    "training-status.json"
+  ],
+  "final_events": [
+    "probe_started",
+    "probe_atomic_replace",
+    "probe_complete"
+  ],
+  "remote_resources_confirmed": true,
+  "remote_source_confirmed": true,
+  "remote_native_stack_confirmed": true,
+  "finished_at_utc": "2026-10-28T01:03:46.169421+00:00"
+}

@@ -1,0 +1,23 @@
+{
+  "exit_code": 0,
+  "source_commit": "56604cc71f294cd94e5251491ab7d1397a95200b",
+  "completed_at_utc": "2026-10-28T01:09:01.336946+00:00",
+  "command": "HF_HUB_OFFLINE=1 WANDB_MODE=disabled CUDA_VISIBLE_DEVICES='' PYTHONPATH=. python -m pytest tests -q --tb=short --junitxml=outputs/verification/diagnostic-coverage-20261028/full-suite.xml",
+  "summary": "924 passed, 95 skipped, 8 warnings, 1396 subtests passed in 554.26s (0:09:14)",
+  "junit_totals": {
+    "tests": 2415,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 95
+  },
+  "passed": 924,
+  "skipped": 95,
+  "subtests_passed": 1396,
+  "warnings": 8,
+  "elapsed_seconds": 554.26,
+  "gpu_validation_this_task": false,
+  "compileall_pass": true,
+  "diff_check_pass": true,
+  "credential_values_checked": 14,
+  "credential_hits": 0
+}

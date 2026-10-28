@@ -1,0 +1,16 @@
+{
+  "verified_at_utc": "2026-10-28T01:06:08.792828+00:00",
+  "workspace_url": "https://forge.coreweave.com/wandb/truongdaoanhduy-uit/uav_search_target/workspace?nw=nwusertruongdaoanhduy",
+  "runs_url": "https://forge.coreweave.com/wandb/truongdaoanhduy-uit/uav_search_target/table?nw=nwusertruongdaoanhduy",
+  "personal_workspace_badge": true,
+  "column_count": 17,
+  "algorithm_hidden": true,
+  "training_mode_hidden": true,
+  "evaluation_episodes_completed_visible": true,
+  "created_runtime_visible": true,
+  "mission_quality_section_reports_five_panels": true,
+  "actual_delivery_success_return_series_rendered": true,
+  "guide_includes_sample_count_missing_evidence_and_failure_limits": true,
+  "screenshots_saved": false,
+  "screenshot_privacy": "Internal inspection only; user did not request saving personal screenshots."
+}
