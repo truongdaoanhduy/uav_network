@@ -25,7 +25,8 @@ class PeriodicRecovery:
         # every backup slot in its first few minutes.
         self.interval = max(settings.resumable_checkpoint_interval_seconds,
                             config.runtime.max_train_seconds / self.maximum)
-        self.next_due = started + self.interval
+        # Protect the early segment before spreading the remaining bounded slots.
+        self.next_due = started + min(self.interval, 1800.)
         self.attempts = 0
 
     def maybe_save(self, save, tracker, *, step=0):
