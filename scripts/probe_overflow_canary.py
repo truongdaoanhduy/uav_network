@@ -10,7 +10,6 @@ from uav_network.algorithms.checkpoints import make_learner
 from uav_network.configuration import load_config
 from uav_network.environment.observations import observation_dim, state_dim
 from uav_network.environment.vector import make_vector
-from uav_network.experiments.evidence import json_safe
 from uav_network.experiments.overflow_capture import attach_overflow_capture, replay_overflow
 from uav_network.experiments.pql_replay import make_replay
 from uav_network.experiments.pql_system import PQLSystem
@@ -109,14 +108,14 @@ def run_case(algorithm, pql, output, seconds=120., collections=128):
             comparison = replay_overflow(path, device='cuda:1')
             comparison['snapshot_file'] = path.name
             report['comparisons'].append(comparison)
-        return json_safe(report)
+        return report
     finally:
         if vector is not None:
             vector.close()
         if engine is not None:
             engine.close()
         report['elapsed_seconds'] = time.monotonic() - started
-        (output / 'result.json').write_text(json.dumps(json_safe(report), indent=2, allow_nan=False))
+        (output / 'result.json').write_text(json.dumps(report, indent=2, allow_nan=False))
 
 
 def main():

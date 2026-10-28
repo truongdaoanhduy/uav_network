@@ -85,6 +85,9 @@ def test_first_skip_preserves_batch_model_rng_and_replays_fp32_fp16(tmp_path, al
     same(torch.get_rng_state(), rng)
     assert result['cases']['off']['losses_finite'] is True
     assert result['cases']['off']['skipped'] == 0
+    assert result['cases']['off']['applied'] is None  # FP32 bypasses AMP counters.
+    assert result['cases']['off']['parameter_gradient_stats']
+    assert all(row['finite'] for row in result['cases']['off']['parameter_gradient_stats'].values())
     assert result['cases']['fp16']['skipped'] >= 1
     assert result['cases']['fp16']['first_nonfinite_parameter_gradient'] is not None
     json.dumps(result, allow_nan=False)

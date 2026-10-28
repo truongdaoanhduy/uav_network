@@ -144,12 +144,16 @@ def replay_overflow(path, device="cpu"):
             if mode == "fp16":
                 learner.precision.load_state_dict(saved["precision_before"])
             before = dict(learner.precision.counts[group])
-            events, bad_gradients, hooks = [], [], []
+            events, bad_gradients, hooks, gradient_stats = [], [], [], {}
             learner.precision.overflow_observer = SimpleNamespace(on_skip=lambda event, params: events.append(event))
             for name, p in learner.named_parameters():
                 if p.requires_grad:
                     def observe(gradient, name=name):
-                        if not bool(torch.isfinite(gradient).all()) and not bad_gradients:
+                        stats = tensor_stats(gradient)
+                        if mode == "off" and stats["finite_abs_max"] is not None:
+                            stats["abs_max_at_source_scale"] = stats["finite_abs_max"] * saved["event"]["scale_before"]
+                        gradient_stats[name] = stats
+                        if not stats["finite"] and not bad_gradients:
                             bad_gradients.append(name)
                         return gradient
                     hooks.append(p.register_hook(observe))
@@ -170,7 +174,8 @@ def replay_overflow(path, device="cpu"):
             cases[mode] = {"error_type": error,
                 "losses_finite": error is None and bool(losses) and all(torch.isfinite(torch.tensor(v)) for v in losses),
                 "skipped": learner.precision.counts[group]["skipped"] - before["skipped"],
-                "applied": learner.precision.counts[group]["applied"] - before["applied"],
+                "applied": (learner.precision.counts[group]["applied"] - before["applied"]) if mode == "fp16" else None,
+                "parameter_gradient_stats": gradient_stats,
                 "first_nonfinite_parameter_gradient": next(iter(bad_gradients), None),
                 "overflow_events": events, "metrics": metrics,
                 "model_finite": all(bool(torch.isfinite(p).all()) for p in learner.parameters())}
