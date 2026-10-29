@@ -397,13 +397,15 @@ def test_one_unavailable_account_does_not_starve_other_accounts(capsys):
     assert "synthetic-token" not in output and "private-error-details" not in output
 
 
-def test_unresolved_recovery_and_unknown_service_are_not_reported_green(capsys):
+def test_only_actionable_supervisor_failures_return_nonzero(capsys):
+    import json
     s, account, credentials, _ = fixtures()
-    for action in ("recovery_blocked", "recovery_required", "service_unavailable", "reconcile_error"):
+    for action, code in {"recovery_blocked": 0, "recovery_required": 1,
+                         "service_unavailable": 1, "reconcile_error": 1}.items():
         with patch.object(s, "credentials_from_environment", return_value=credentials), \
              patch.object(s, "reconcile_account", return_value=[{"action": action}]):
-            assert s.main([]) == 1, action
-        capsys.readouterr()
+            assert s.main([]) == code, action
+        assert json.loads(capsys.readouterr().out)["selected"][0]["action"] == action
 
 
 def test_sanitized_report_survives_account_failure(tmp_path, capsys):
