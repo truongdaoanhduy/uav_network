@@ -1,3 +1,56 @@
+# Controlled 20-target / 15-obstacle 2D study — IMPLEMENTED / CPU VERIFIED
+
+Updated 2026-10-29T10:52:51.081529+00:00. User explicitly requested the five audit recommendations,
+20/15 first, and later reference sensing/XYZ. Verified runtime `2dbfdc860d57cf23b391c117d70576f95c323ff8`
+on `feat/cpu-replay-20261022`. Existing host worktree retained. Incorporated
+published production fixes through `80b690a`; no production job submitted or
+old lineage changed by this task.
+
+- Canonical `configs/comparison-20k-hybrid75-1kb.yaml`: 6 UAV, 1000 m,
+  20 target/15 obstacle, 1800 steps, link-budget power +3 dB. Keep movement
+  and routing learned; keep finite radio/energy, queue, TTL and packet MAC.
+  Previous 35/25 profile is `configs/comparison-20k-hybrid75-1kb-35t25o.yaml`.
+- Native/Warp guided power and learners ignore the controller-owned power
+  slot, including SAC log-probability/entropy, target/replay and PQL copies.
+  Optional per-UAV local8x8 coverage has exact resume and selective reset;
+  inactive legacy config/snapshots retain their previous meaning.
+- Seven separate cases: baseline, learned_power, buffer16, buffer32,
+  ttl600, coverage8, battery2x. Three training seeds44/100044/200044;
+  MASAC/MATD3 BASE/PQL ->84 prepared configs, zero cloud submissions.
+  Validation5 every3686400 transitions at1000000044; final30 at2000000044.
+  Final summary verifies checkpoint/config hashes, mode, precision and
+  seed bank; reports seed-level sample std and actual budget metadata.
+- Final full pytest:1028 passed,97 skipped,1470 subtests,8 warnings,
+  301.89s; JUnit0 failures/errors. Project unittest:628 run,71 skipped,
+  OK162.819s. Compileall and diff checks pass. Independent review found
+  checkpoint/mode binding and missing protocol metadata; both fixed with
+  RED->GREEN regressions in one review-fix pass.
+- Full-horizon Warp CPU privileged feasibility:5/5 layouts deliver20/20,
+  mean138.4 steps, mean final battery88.07%. Final smoke after provenance
+  fix:18 train/evaluate cases, all18 verified final checkpoints and positive
+  updates;2episodes/E2/horizon8/hidden8x8/step16/5updates/eval2. These are
+  pipeline/feasibility checks, not learned convergence or paper results.
+- No CUDA hardware on this host; no production20k study training or new
+  Bayesian sensing/XYZ implementation. Read-only reference contract is
+  documented; do not copy its heavier3km/50target/30obstacle profile.
+
+[Usage and limits](../controlled-20t15o-study.md) |
+[Structured evidence](evidence/2026-10-29-20t15o-study.json) |
+[Plan](plans/2026-10-29-20t15o-controlled-study.md).
+Local prepared manifest: `outputs/controlled-20t15o-study-20261029/manifest.json`.
+Local final smoke: `outputs/controlled-20t15o-verification/smoke-final/smoke_summary.json`.
+
+Next action: verify this new path on CUDA, then run a budget-complete paired
+baseline study with periodic validation and three training seeds before
+selecting resource ablations or claiming convergence. Keep test seeds
+held out; do not resume35/25 checkpoints into20/15. Only after the easy2D
+stage is measured, add altitude-dependent Bayesian sensing and then XYZ
+with motion/LOS/energy/action/observations/checkpoints updated together.
+No main merge or PR was requested; preserve this host-managed worktree.
+Recheck live service state before any operational action on old lineages.
+
+---
+
 # FP32 default and API-only production cohort — RUNNING / VERIFIED ONLINE
 
 Updated 2026-10-28. User requested FP32 training with AMP omitted by default, then clarified nonprimary web logins are forgotten and only API credentials are available. Resolved usernames through API. Actual production source `ca53c74bcdea557cca681f77082eb6cf323f64cd`, runtime identical to verified d290b715. Canonical YAML no AMP key, cloud no automatic AMP override, effective off/amp-off. Explicit opt-in remains for historical probes. No algorithm/scientific config changes except requested numerical mode.

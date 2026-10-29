@@ -28,35 +28,35 @@
 ### Task 1: Link-budget power and learner semantics
 Files: configuration.py; communication/link_budget.py, backend.py, gpu/power.py, gpu/mac.py; environment/gpu/state.py; algorithms/action_utils.py, masac.py, matd3.py; experiments/pql_workers.py; tests/test_controlled_power.py.
 Interfaces: network.power_control in {learned,link_budget}, network.link_budget_margin_db finite [0,30]; link_budget_power_w(required,network); selected_power helper in native/Warp. canonical_continuous(...,learn_power=True), joint_action(...,learn_power=True). Inference copy carries learn_power.
-- [ ] Write behavioral tests: selected receiver power and clamp/margin, actual native/Warp packet traces, actor power/replay invariance and zero power-head gradients for both algorithms/sharing, PQL inference.
-- [ ] Run focused pytest; observe failures from missing behavior.
-- [ ] Implement helpers, controller power after motion, ignored-slot canonicalization and 2-axis MASAC entropy.
-- [ ] Verify controlled_power plus legacy power/energy/masking/parameter-sharing tests.
-- [ ] Commit this deliverable.
+- [x] Write behavioral tests: selected receiver power and clamp/margin, actual native/Warp packet traces, actor power/replay invariance and zero power-head gradients for both algorithms/sharing, PQL inference.
+- [x] Run focused pytest; observe failures from missing behavior.
+- [x] Implement helpers, controller power after motion, ignored-slot canonicalization and 2-axis MASAC entropy.
+- [x] Verify controlled_power plus legacy power/energy/masking/parameter-sharing tests.
+- [x] Commit this deliverable.
 
 ### Task 2: Local coarse coverage and exact checkpoints
 Files: configuration.py; environment/coverage.py, env.py, observations.py, gpu/geometry.py, gpu/world.py, gpu/state.py, gpu/observations.py, gpu/vector.py; experiments/environment_checkpoints.py, fixed_checkpoints.py, pql_checkpoints.py as required for legacy normalization; tests/test_coverage_memory.py.
 Interfaces: sensor.coverage_grid_cells 0 or integer 1..32; env.coverage [N,G*G]; Warp s.coverage [E,N,G*G]; update after sensing and on reset only for selected worlds. Append memory before destination mask and into critic state.
-- [ ] RED tests native/Warp FOV/occlusion/locality, persistence, selective reset, snapshot continuation and loading missing inactive legacy fields.
-- [ ] Implement minimum state and observation integration; no network sharing of coverage.
-- [ ] GREEN focused coverage + decentralized observation + exact resume/checkpoint tests.
-- [ ] Commit.
+- [x] RED tests native/Warp FOV/occlusion/locality, persistence, selective reset, snapshot continuation and loading missing inactive legacy fields.
+- [x] Implement minimum state and observation integration; no network sharing of coverage.
+- [x] GREEN focused coverage + decentralized observation + exact resume/checkpoint tests.
+- [x] Commit.
 
 ### Task 3: Canonical profile, controlled cases and periodic evaluation
 Files: configs/comparison-20k-hybrid75-1kb.yaml; configs/comparison-20k-hybrid75-1kb-35t25o.yaml; experiments/study.py; experiments/cli.py; cloud/identities.py only if needed for unambiguous study labels; tests/test_controlled_study.py.
 Interfaces: plan_study(config_path,output_dir,*,seeds,variants,algorithms,modes,overrides=()); run_study(manifest_path,case_ids=None); summarize_study(manifest_path).
 CLI: python -m uav_network study {plan,run,summarize}; plan is read/prepare only, run explicitly selects local execution; no new external scheduler.
-- [ ] RED tests 84 unique cases, paired seeds/one-factor differences, old profile preservation, disjoint training/validation/test banks, nonzero eval cadence.
-- [ ] RED real CLI/config materialization and sequential tiny execution; summary excludes incomplete budget and computes mean/sample std over independent seed means, validates final eval provenance.
-- [ ] Implement profile update and minimal CLI/manifest/summary. Respect requested overrides; enforce FP32 for this study.
-- [ ] GREEN study, config, production identity and async evaluation tests.
-- [ ] Commit.
+- [x] RED tests 84 unique cases, paired seeds/one-factor differences, old profile preservation, disjoint training/validation/test banks, nonzero eval cadence.
+- [x] RED real CLI/config materialization and sequential tiny execution; summary excludes incomplete budget and computes mean/sample std over independent seed means, validates final eval provenance.
+- [x] Implement profile update and minimal CLI/manifest/summary. Respect requested overrides; enforce FP32 for this study.
+- [x] GREEN study, config, production identity and async evaluation tests.
+- [x] Commit.
 
 ### Task 4: Verification, feasibility, smoke and handoff
 Files: docs/controlled-20t15o-study.md; docs/superpowers/evidence/2026-10-29-20t15o-study.json; docs/superpowers/CURRENT_TASK.md (only our appended record); plan checkboxes/ledger.
-- [ ] Full-horizon 20/15 Warp CPU privileged oracle on at least five seeds; retain actual outcomes without claiming failures prove impossibility.
-- [ ] Tiny real train/evaluate smoke across MASAC/MATD3 BASE/PQL and three independent seeds, with tracking off; no convergence claim.
-- [ ] Run full pytest, project unittest, compileall, git diff --check and secret-value scan with counts only.
-- [ ] Fresh reviewer reviews a470a40..HEAD plus working diff and spec. Fix critical/important findings with RED->GREEN, then full suite.
-- [ ] Document actual verification, commands for selected study cases, 84-case cost scope, future reference sensing/XYZ plan. Record user-visible limitations.
-- [ ] Commit/push verified changes and completion record. Preserve user's initial unrelated CURRENT_TASK.md diff.
+- [x] Full-horizon 20/15 Warp CPU privileged oracle on at least five seeds; retain actual outcomes without claiming failures prove impossibility.
+- [x] Tiny real train/evaluate smoke across MASAC/MATD3 BASE/PQL and three independent seeds, with tracking off; no convergence claim.
+- [x] Run full pytest, project unittest, compileall, git diff --check and secret-value scan with counts only.
+- [x] Independent reviewer inspected 80b690a..9cfb83a (all study changes) and spec; checkpoint/mode binding and standalone protocol metadata findings fixed in one RED->GREEN pass; focused 59 passed/5 skipped/464 subtests. Final full suite green:1028 passed/97 skipped/1470 subtests; unittest628 run/71 skipped, OK.
+- [x] Document actual verification, commands for selected study cases, 84-case cost scope, future reference sensing/XYZ plan. Record user-visible limitations.
+- [x] Commit/push verified changes and completion record. Preserve user's initial unrelated CURRENT_TASK.md diff.
