@@ -3,14 +3,14 @@ import argparse
 from collections import defaultdict
 from copy import deepcopy
 import json
-import hashlib
 from pathlib import Path
 
 import numpy as np
 import yaml
 
-from ..configuration import _apply, load_config
+from ..configuration import _apply, load_config, config_fingerprint
 from .comparison_metrics import evaluation_protocol
+from .checkpoint_store import file_sha256
 
 VARIANTS = {
     "baseline": {},
@@ -24,10 +24,6 @@ VARIANTS = {
 DEFAULT_SEEDS = (44, 100044, 200044)
 DEFAULT_CONFIG = Path(__file__).resolve().parents[2] / "configs/comparison-20k-hybrid75-1kb.yaml"
 METRICS = ("mean_return", "mean_search_rate_percent", "mean_delivery_rate_percent", "success_rate")
-
-
-def _config_hash(config):
-    return hashlib.sha256(json.dumps(config.to_dict(),sort_keys=True,allow_nan=False).encode()).hexdigest()
 
 
 def _choices(values, allowed, name):
@@ -107,7 +103,7 @@ def plan_study(config_path=DEFAULT_CONFIG, output_dir=None, *, seeds=DEFAULT_SEE
                                   "seed":seed,"config_path":config_file,"train_output":train_output,
                                   "evaluation_output":evaluation_output,
                                   "scenario_hash":evaluation_protocol(case,[],{})["scenario_hash"],
-                                  "config_hash":_config_hash(case),
+                                  "config_hash":config_fingerprint(case),
                                   "config":case.to_dict()})
     root.mkdir(parents=True)
     (root/"configs").mkdir()
@@ -142,7 +138,7 @@ def _load(manifest_path):
 
 def _case_config(root,case):
     c=load_config(_inside(root,case["config_path"]))
-    if (_config_hash(c)!=case["config_hash"]
+    if (config_fingerprint(c)!=case["config_hash"]
             or c.runtime.amp_mode!="off" or c.runtime.seed!=case["seed"]
             or c.runtime.algorithm!=case["algorithm"] or c.pql.enabled!=(case["mode"]=="pql")
             or evaluation_protocol(c,[],{})["scenario_hash"]!=case["scenario_hash"]
@@ -187,12 +183,27 @@ def summarize_study(manifest_path):
     root,m=_load(manifest_path)
     groups=defaultdict(list)
     expected=defaultdict(list)
+    protocols={}
     missing,rejected=[],[]
     for case in m["cases"]:
         key=(case["variant"],case["algorithm"],case["mode"])
         expected[key].append(case["seed"])
         try:
             c=_case_config(root,case)
+            compact = {"scenario_hash":case["scenario_hash"], "amp_mode":c.runtime.amp_mode,
+                       "requested_training_episodes":c.runtime.episodes, "num_envs":c.runtime.num_envs,
+                       "max_steps":c.world.max_steps, "num_uavs":c.world.num_uavs,
+                       "map_size_m":c.world.map_size_m, "num_targets":c.world.num_targets,
+                       "num_obstacles":c.world.num_obstacles, "power_control":c.network.power_control,
+                       "link_budget_margin_db":c.network.link_budget_margin_db,
+                       "buffer_bytes":c.network.buffer_bytes, "report_ttl_s":c.network.report_ttl_s,
+                       "coverage_grid_cells":c.sensor.coverage_grid_cells,
+                       "battery_capacity_j":c.energy.battery_capacity_j,
+                       "evaluation_episodes":c.runtime.eval_episodes,
+                       "evaluation_seed_first":c.runtime.eval_seed}
+            if key in protocols and protocols[key] != compact:
+                raise ValueError("Study group protocols differ")
+            protocols[key] = compact
             tp=_inside(root,case["train_output"])/"summary.json"
             ep=_inside(root,case["evaluation_output"])/"metrics.json"
             if not tp.exists():
@@ -202,14 +213,22 @@ def summarize_study(manifest_path):
                     or trained.get("episodes")!=c.runtime.episodes):
                 rejected.append({"id":case["id"],"reason":"episode_budget_incomplete"});continue
             resolved=load_config(tp.parent/"resolved_config.yaml")
-            if _config_hash(resolved)!=case["config_hash"]:
+            if config_fingerprint(resolved)!=case["config_hash"]:
                 raise ValueError("Executed training configuration differs from planned case")
             if not ep.exists():
                 missing.append(case["id"]);continue
             ev=json.loads(ep.read_text())
             protocol=ev.get("protocol",{})
+            policy=ev.get("policy_provenance",{})
+            checkpoint=_inside(root,case["train_output"])/"final.pt"
             expected_seeds=list(range(c.runtime.eval_seed,c.runtime.eval_seed+c.runtime.eval_episodes))
-            if (ev.get("algorithm")!=case["algorithm"] or ev.get("episodes")!=c.runtime.eval_episodes
+            if (Path(trained.get("checkpoint","")).resolve()!=checkpoint
+                    or policy.get("config_sha256")!=case["config_hash"]
+                    or policy.get("checkpoint_sha256")!=file_sha256(checkpoint)
+                    or policy.get("algorithm")!=case["algorithm"]
+                    or policy.get("training_mode")!=case["mode"]
+                    or policy.get("amp_mode")!="off"
+                    or ev.get("algorithm")!=case["algorithm"] or ev.get("episodes")!=c.runtime.eval_episodes
                     or len(ev.get("records",[]))!=c.runtime.eval_episodes
                     or [r.get("seed") for r in ev["records"]]!=expected_seeds
                     or protocol.get("seeds")!=expected_seeds
@@ -234,6 +253,7 @@ def summarize_study(manifest_path):
                        if len(rows)>1 else None} for k in METRICS}
         steps=[r["global_step"] for r in rows]
         results.append({"variant":key[0],"algorithm":key[1],"mode":key[2],
+                        "protocol":protocols.get(key),
                         "expected_training_seeds":seeds,"training_seeds":[r["seed"] for r in rows],
                         "training_seed_count":len(rows),"evaluation_episodes_per_seed":[r["episodes"] for r in rows],
                         "training_global_steps":steps,"equal_environment_interaction_budget":

@@ -6,6 +6,8 @@ import numpy as np
 import torch
 
 from ..algorithms.checkpoints import load_policy
+from ..configuration import config_fingerprint
+from .checkpoint_store import file_sha256
 from ..environment.env import SwarmSearchEnv
 from .rendering import COMMUNICATION_WINDOW_S, animation_frame, render_animation, render_episode
 from .comparison_metrics import MissionMetrics, evaluation_protocol, summarize_metrics
@@ -91,6 +93,11 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=Fals
         raise ValueError("video_format must be auto, mp4 or gif")
     learner, progress, source = load_evaluation_policy(checkpoint)
     config = learner.config
+    provenance = {"checkpoint_sha256": file_sha256(checkpoint),
+                  "config_sha256": config_fingerprint(config),
+                  "algorithm": learner.algorithm,
+                  "training_mode": "pql" if config.pql.enabled else "base",
+                  "amp_mode": config.runtime.amp_mode}
     torch.set_num_threads(config.runtime.torch_threads)
     episodes = config.runtime.eval_episodes if episodes is None else episodes
     seed = config.runtime.eval_seed if seed is None else seed
@@ -124,6 +131,7 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=Fals
                 on_episode(record)
         preview = render_episode(env, paths, output / "final_episode.png")
         result = {"algorithm": learner.algorithm, "episodes": episodes, "device": "cpu", "render_path": preview,
+                  "policy_provenance": provenance,
                   "environment_backend": config.runtime.environment_backend,
                   "mean_return": float(np.mean([r["return"] for r in records])),
                   "success_rate": float(np.mean([r["success"] for r in records])),

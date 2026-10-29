@@ -10,14 +10,18 @@ from uav_network.environment.world import generate_scenario, validate_scenario
 from uav_network.environment.gpu.vector import WarpVectorEnv
 
 
-def primary():
-    return load_config("configs/comparison-20k-hybrid75-1kb.yaml")
+PROFILES = ("configs/comparison-20k-hybrid75-1kb.yaml",
+            "configs/comparison-20k-hybrid75-1kb-35t25o.yaml")
+
+
+def primary(profile=PROFILES[0]):
+    return load_config(profile)
 
 
 def assert_scene(scene, config):
     validate_scenario(config, scene)
     w = config.world
-    assert scene.obstacles.shape == (25, 3)
+    assert scene.obstacles.shape == (w.num_obstacles, 3)
     assert np.all(scene.obstacles[:, 2] >= w.obstacle_radius_min_m)
     assert np.all(scene.obstacles[:, 2] <= w.obstacle_radius_max_m)
     expanded = scene.obstacles[:, 2] + w.obstacle_clearance_m
@@ -32,14 +36,16 @@ def test_recovery_has_its_own_generation_protocol():
     assert primary().world.generation_version == 3
 
 
+@pytest.mark.parametrize("profile", PROFILES)
 @pytest.mark.parametrize("seed", [9642, 44, 302, 9641, 9643, 2000000044])
-def test_complete_scene_survives_bad_and_independent_seeds(seed):
-    c = primary()
+def test_complete_scene_survives_bad_and_independent_seeds(seed, profile):
+    c = primary(profile)
     assert_scene(generate_scenario(c, np.random.default_rng(seed)), c)
 
 
-def test_exhaustion_uses_repeatable_certified_scene_without_shared_mutation():
-    c = primary()
+@pytest.mark.parametrize("profile", PROFILES)
+def test_exhaustion_uses_repeatable_certified_scene_without_shared_mutation(profile):
+    c = primary(profile)
     c.world.placement_attempts = 1
     a = generate_scenario(c, np.random.default_rng(9642))
     b = generate_scenario(c, np.random.default_rng(9642))
@@ -52,13 +58,14 @@ def test_exhaustion_uses_repeatable_certified_scene_without_shared_mutation():
     np.testing.assert_array_equal(fresh.positions, b.positions)
 
 
+@pytest.mark.parametrize("profile", PROFILES)
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
 @pytest.mark.parametrize("attempts", [1, 5000])
-def test_native_warp_recovery_and_masked_reset_match(device, attempts):
+def test_native_warp_recovery_and_masked_reset_match(device, attempts, profile):
     if device.startswith("cuda") and not torch.cuda.is_available():
         pytest.skip("Real CUDA device required")
     import warp as wp
-    c = primary()
+    c = primary(profile)
     c.runtime.num_envs = 4
     c.world.placement_attempts = attempts
     seeds = [9642, 44, 9643, 2000000044]

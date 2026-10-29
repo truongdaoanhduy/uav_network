@@ -2,6 +2,8 @@
 from dataclasses import asdict, dataclass, field, fields, is_dataclass
 from pathlib import Path
 import math
+import hashlib
+import json
 from copy import deepcopy
 import re
 
@@ -445,3 +447,8 @@ def with_legacy_feature_defaults(values):
             for key, value in defaults.items():
                 result[group].setdefault(key, value)
     return result
+
+
+def config_fingerprint(config):
+    """Exact resolved experiment identity, including learner/mode/runtime settings."""
+    return hashlib.sha256(json.dumps(config.to_dict(), sort_keys=True, allow_nan=False).encode()).hexdigest()

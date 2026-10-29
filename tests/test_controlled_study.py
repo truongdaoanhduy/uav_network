@@ -141,18 +141,27 @@ def test_summary_reports_seed_level_variance_and_rejects_wrong_provenance(tmp_pa
     from uav_network.experiments.comparison_metrics import evaluation_protocol
     dest=tmp_path/"summary"
     m=plan_study(PROFILE,dest,seeds=[44,100044],variants=["baseline"],
-                 algorithms=["masac"],modes=["base"])
+                 algorithms=["masac"],modes=["base"],overrides=["masac.hidden_sizes=[8,8]"])
     for case,value,step in zip(m["cases"],[10.,30.],[100,200]):
         c=load_config(dest/case["config_path"])
         tp=dest/case["train_output"];ep=dest/case["evaluation_output"]
         tp.mkdir(parents=True);ep.mkdir(parents=True)
         (tp/"resolved_config.yaml").write_text((dest/case["config_path"]).read_text())
+        from uav_network.algorithms.checkpoints import make_learner,save_policy
+        from uav_network.environment.observations import observation_dim,state_dim
+        from uav_network.experiments.checkpoint_store import file_sha256
+        model=make_learner(c,observation_dim(c),state_dim(c))
+        checkpoint=tp/"final.pt"
+        save_policy(model,checkpoint)
         (tp/"summary.json").write_text(json.dumps({
-            "episode_budget_complete":True,"episodes":20000,"global_step":step}))
+            "checkpoint":str(checkpoint),"episode_budget_complete":True,"episodes":20000,"global_step":step}))
         seeds=list(range(c.runtime.eval_seed,c.runtime.eval_seed+30))
         protocol=evaluation_protocol(c,seeds,{"next_seed":case["seed"]+24096,
                                                "global_step":step,"episodes":20000})
         fixture={"algorithm":"masac","episodes":30,"protocol":protocol,
+                 "policy_provenance":{"checkpoint_sha256":file_sha256(checkpoint),
+                     "config_sha256":case["config_hash"],"algorithm":"masac",
+                     "training_mode":"base","amp_mode":"off"},
                  "mean_return":value,"mean_search_rate_percent":value,
                  "mean_delivery_rate_percent":value,"success_rate":0.,
                  "records":[{"seed":s,"return":value} for s in seeds]}
@@ -213,3 +222,39 @@ def test_case_config_fingerprint_detects_learner_parameter_drift(tmp_path):
     summary=summarize_study(dest/"manifest.json")
     assert not summary["missing_cases"]
     assert summary["rejected_cases"][0]["reason"]=="invalid_provenance_or_config"
+
+
+def test_final_evaluation_cannot_be_reused_for_another_training_mode(tmp_path):
+    from uav_network.experiments.study import plan_study,run_study,summarize_study
+    dest=tmp_path/"mode_swap"
+    m=plan_study(PROFILE,dest,seeds=[44],variants=["baseline"],algorithms=["masac"],
+                 modes=["base","pql"],overrides=[
+                     "runtime.device=cpu","runtime.replay_device=cpu","runtime.replay_cpu_fraction=0",
+                     "runtime.num_envs=1","runtime.episodes=1","world.max_steps=2",
+                     "runtime.eval_episodes=2","runtime.compile_models=false","tracking.enabled=false",
+                     "tracking.evaluation_interval_steps=0","runtime.max_train_seconds=0",
+                     "masac.hidden_sizes=[8,8]","masac.batch_size=2","masac.replay_capacity=16",
+                     "masac.learning_starts=1","masac.updates_per_step=1",
+                     "pql.critic_sample_ratio=1","pql.warmup_collection_steps=1"])
+    result=run_study(dest/"manifest.json")
+    assert all(x["status"]=="completed" for x in result["cases"]),result
+    paths=[dest/case["evaluation_output"]/"metrics.json" for case in m["cases"]]
+    paths[1].write_bytes(paths[0].read_bytes())
+    summary=summarize_study(dest/"manifest.json")
+    assert summary["complete"] is False
+    assert summary["rejected_cases"][0]["id"]==m["cases"][1]["id"]
+    assert summary["rejected_cases"][0]["reason"]=="invalid_provenance_or_config"
+
+
+def test_summary_exposes_the_actual_protocol_even_before_training(tmp_path):
+    from uav_network.experiments.study import plan_study,summarize_study
+    dest=tmp_path/"protocol"
+    m=plan_study(PROFILE,dest,seeds=[44],variants=["baseline"],algorithms=["masac"],modes=["base"])
+    summary=summarize_study(dest/"manifest.json")
+    protocol=summary["groups"][0]["protocol"]
+    assert protocol["scenario_hash"]==m["cases"][0]["scenario_hash"]
+    assert protocol["amp_mode"]=="off"
+    assert protocol["requested_training_episodes"]==20000
+    assert protocol["max_steps"]==1800
+    assert protocol["num_targets"]==20 and protocol["num_obstacles"]==15
+    assert protocol["evaluation_episodes"]==30
