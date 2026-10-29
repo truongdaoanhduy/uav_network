@@ -1,4 +1,9 @@
-# Controlled 20-target / 15-obstacle 2D study — IMPLEMENTED / CPU VERIFIED
+# Controlled 20-target / 15-obstacle 2D study — HORIZON 1200 CONFIGURED / CPU VERIFIED
+
+2026-10-29 follow-up: canonical 20/15 horizon requested at 1200 steps. Historical 35/25 stays at 1800.
+The original 1800-step feasibility/test evidence below remains historical evidence; do not relabel it as a fresh 1200 verification.
+Periodic evaluation remains every 3,686,400 joint transitions so this change does not alter the experience-based validation cadence.
+Fresh verification after the horizon change: focused study/scenario 36 passed, 5 skipped; full pytest 1028 passed, 97 skipped, 8 warnings, 1472 subtests; compileall/diff check pass. A new local 84-case horizon-1200 manifest was generated with zero cloud submissions.
 
 Updated 2026-10-29T10:52:51.081529+00:00. User explicitly requested the five audit recommendations,
 20/15 first, and later reference sensing/XYZ. Verified runtime `2dbfdc860d57cf23b391c117d70576f95c323ff8`
@@ -7,7 +12,7 @@ published production fixes through `80b690a`; no production job submitted or
 old lineage changed by this task.
 
 - Canonical `configs/comparison-20k-hybrid75-1kb.yaml`: 6 UAV, 1000 m,
-  20 target/15 obstacle, 1800 steps, link-budget power +3 dB. Keep movement
+  20 target/15 obstacle, 1200 steps, link-budget power +3 dB. Keep movement
   and routing learned; keep finite radio/energy, queue, TTL and packet MAC.
   Previous 35/25 profile is `configs/comparison-20k-hybrid75-1kb-35t25o.yaml`.
 - Native/Warp guided power and learners ignore the controller-owned power

@@ -26,6 +26,8 @@ def flatten(data, prefix=""):
 def test_canonical_easier_profile_and_historical_profile_are_distinct():
     c = load_config(PROFILE)
     assert (c.world.num_uavs,c.world.map_size_m,c.world.num_targets,c.world.num_obstacles)==(6,1000,20,15)
+    assert c.world.max_steps==1200
+    assert "steps1200" in c.tracking.tags and "steps1800" not in c.tracking.tags
     assert c.network.power_control=="link_budget"
     assert c.network.link_budget_margin_db==3.
     assert c.network.buffer_bytes==3072 and c.network.report_ttl_s==300
@@ -36,6 +38,7 @@ def test_canonical_easier_profile_and_historical_profile_are_distinct():
     assert c.runtime.amp_mode=="off"
     old=load_config(ROOT/"configs/comparison-20k-hybrid75-1kb-35t25o.yaml")
     assert (old.world.num_targets,old.world.num_obstacles)==(35,25)
+    assert old.world.max_steps==1800
     assert old.network.power_control=="learned"
     assert old.tracking.evaluation_interval_steps==0
 
@@ -255,6 +258,6 @@ def test_summary_exposes_the_actual_protocol_even_before_training(tmp_path):
     assert protocol["scenario_hash"]==m["cases"][0]["scenario_hash"]
     assert protocol["amp_mode"]=="off"
     assert protocol["requested_training_episodes"]==20000
-    assert protocol["max_steps"]==1800
+    assert protocol["max_steps"]==1200
     assert protocol["num_targets"]==20 and protocol["num_obstacles"]==15
     assert protocol["evaluation_episodes"]==30

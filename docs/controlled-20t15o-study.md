@@ -21,7 +21,7 @@ TTL, CSMA/retry/ACK và dynamic-window shield.
 
 ## Cấu hình và bảy phép so riêng
 
-Tất cả dùng 6 UAV, map 1000 m, 20 target, 15 obstacle, horizon 1800 bước,
+Tất cả dùng 6 UAV, map 1000 m, 20 target, 15 obstacle, horizon 1200 bước,
 report/payload 1024 B và radio range 500 m. Cấu hình production yêu cầu
 20.000 episode, E4096, batch8192, replay1M, FP32. Số episode bằng nhau
 không bảo đảm số transition bằng nhau khi kết thúc episode sớm.
@@ -72,9 +72,9 @@ training step. Không tự chọn winner khi budget chưa tương đương.
 ## Lệnh sử dụng
 
 Chạy từ repository root, trong môi trường đã cài dependencies của project.
-Đã chuẩn bị 84 YAML trong:
-`outputs/controlled-20t15o-study-20261029/configs/` và manifest tương ứng.
-Đây là 7 variant x 2 thuật toán x 2 mode x 3 seed; chưa submit cloud job.
+Bộ 84 YAML cũ trong `outputs/controlled-20t15o-study-20261029/` được tạo khi horizon còn 1800 và chỉ nên coi là lịch sử.
+Sau thay đổi 1200, phải tạo manifest mới từ canonical YAML trước khi chạy.
+Đây vẫn là 7 variant x 2 thuật toán x 2 mode x 3 seed; chưa submit cloud job.
 
 Tạo một study mới (thư mục đích phải chưa tồn tại):
 
@@ -113,9 +113,10 @@ các ablation theo nút thắt quan sát được. Không tự thay reward hoặ
 
 ## Bằng chứng kiểm tra của lần triển khai
 
-- Feasibility oracle có quyền biết target: 5/5 layout giao 20/20 report,
+- Feasibility oracle lịch sử trước khi đổi horizon có quyền biết target: 5/5 layout giao 20/20 report,
   seed 3000000044..3000000048; episode 89..194 bước, mean 138.4;
-  mean pin cuối 88.07%. Horizon được phép 1800 bước.
+  mean pin cuối 88.07%. Lần kiểm này cho phép horizon 1800 bước; vì mọi episode đều <200 bước,
+  các trajectory đó cũng nằm trong giới hạn 1200, nhưng đây không phải một lần chạy feasibility mới.
 - Đây là khả thi trên các scene đã thử, không phải kết quả policy học,
   không bảo đảm mọi scene hoặc khả năng hội tụ của MASAC/MATD3.
 - Smoke cuối: 18 case train+evaluate, baseline đủ 4 thuật toán/mode trên

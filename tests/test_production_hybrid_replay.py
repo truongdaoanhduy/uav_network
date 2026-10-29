@@ -187,7 +187,7 @@ def test_harp_lawn_matched_profile_uses_one_kib_report():
     assert c.network.buffer_bytes == 3072
     assert c.runtime.num_envs == 4096
     assert c.runtime.episodes == 20000
-    assert c.world.max_steps == 1800
+    assert c.world.max_steps == 1200
     assert c.runtime.amp_mode == "off"
     assert c.runtime.compile_models is True
     assert c.runtime.fused_optimizers is False

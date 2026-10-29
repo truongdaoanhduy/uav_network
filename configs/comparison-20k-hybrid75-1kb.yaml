@@ -6,7 +6,7 @@ world:
   map_size_m: 1000.0
   num_targets: 20
   num_obstacles: 15
-  max_steps: 1800
+  max_steps: 1200
   motion_safety: dynamic_window
 network:
   propagation_delay_enabled: true
@@ -68,7 +68,7 @@ runtime:
   log_interval_steps: 4096
   checkpoint_interval: 128
   max_train_seconds: 36000
-  output_dir: outputs/comparison-20k-steps1800-t20-o15-linkbudget3db-report1kb
+  output_dir: outputs/comparison-20k-steps1200-t20-o15-linkbudget3db-report1kb
 pql:
   enabled: false
   mode: async
@@ -109,7 +109,7 @@ tracking:
   - cpu75-gpu25
   - batch8192
   - env4096
-  - steps1800
+  - steps1200
   - seed44
   - base-pql-comparison
   - report1kb
