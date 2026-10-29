@@ -149,9 +149,7 @@ def panel_options(title, metric):
 
 
 def panel_y(title, metric):
-    """Use expression-only Y series for percentage-success panels."""
-    if title in {"UAV-paper mission success (%)", "Rolling mission success rate (%) - trend"}:
-        return []
+    """Always keep the source metric so W&B can query history for expressions."""
     return list(metric) if isinstance(metric, tuple) else [metric]
 
 def run_filter(group, run_ids=()):

@@ -99,7 +99,7 @@ class DashboardTests(unittest.TestCase):
         success = [p for p in plots if p.get("config", {}).get("chartTitle") == "UAV-paper mission success (%)"]
         self.assertEqual(len(success), 1)
         success_config = success[0]["config"]
-        self.assertEqual(success_config["metrics"], [])
+        self.assertEqual(success_config["metrics"], ["outcome/success"])
         self.assertEqual(success_config["expressions"], ["${outcome/success} * 100"])
         self.assertEqual(success_config["xAxis"], "episode/index")
         self.assertEqual(success_config["xExpression"], "${episode/index} / 100")
@@ -111,7 +111,7 @@ class DashboardTests(unittest.TestCase):
         rolling_success = [p for p in plots if p.get("config", {}).get("chartTitle") == "Rolling mission success rate (%) - trend"]
         self.assertEqual(len(rolling_success), 1)
         rolling_config = rolling_success[0]["config"]
-        self.assertEqual(rolling_config["metrics"], [])
+        self.assertEqual(rolling_config["metrics"], ["rolling/success_rate"])
         self.assertEqual(rolling_config["expressions"], ["${rolling/success_rate} * 100"])
         self.assertEqual(rolling_config["xAxis"], "global_step")
         self.assertEqual(rolling_config["xExpression"], "${global_step} / 1000000")
