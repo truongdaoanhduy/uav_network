@@ -1,4 +1,5 @@
 """Decentralized observations and team rewards for a 2D search mission."""
+from .coverage import scan_coverage
 from dataclasses import dataclass
 import numpy as np
 
@@ -74,6 +75,8 @@ class SwarmSearchEnv:
         self.generation_fallback = scene.generation_fallback
         self.generation_attempts = scene.generation_attempts
         self.velocities = np.zeros_like(self.positions)
+        self.coverage = np.zeros((self.config.world.num_uavs,
+                                  self.config.sensor.coverage_grid_cells ** 2), dtype=np.int32)
         self.battery_j = np.full(self.config.world.num_uavs, self.config.energy.battery_capacity_j, dtype=float)
         self.propulsion_energy_j = np.zeros_like(self.battery_j)
         self.reports = ReportStore(self.config)
@@ -95,6 +98,7 @@ class SwarmSearchEnv:
         return local_observations(self), self.info()
 
     def _sense(self):
+        scan_coverage(self)
         for i, position in enumerate(self.positions):
             if not self.active[i]:
                 continue

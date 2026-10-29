@@ -48,6 +48,11 @@ def evaluation_protocol(config, seeds, progress):
     # New V3 radio fields must not relabel historical V1/V2 physics when they
     # are at their exact legacy defaults. Non-default V3 values remain hashed.
     network = scenario["network"]
+    if network.get("power_control") == "learned":
+        network.pop("power_control", None)
+        network.pop("link_budget_margin_db", None)
+    if not scenario["sensor"].get("coverage_grid_cells", 0):
+        scenario["sensor"].pop("coverage_grid_cells", None)
     if (network.get("pa_efficiency") == 1.0
             and network.get("tx_circuit_power_w") == 0.0
             and network.get("rx_circuit_power_w") == 0.0):

@@ -131,6 +131,9 @@ def reset_geometry(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32)
     e = wp.tid()
     if mask[e] == 0:
         return
+    for i in range(p.n):
+        for cell in range(p.coverage_grid_cells*p.coverage_grid_cells):
+            s.coverage[e,i,cell] = 0
     code = int(0)
     for attempt in range(p.scene_attempts):
         code = _place_geometry(s, p, e)

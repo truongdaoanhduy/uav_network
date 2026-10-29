@@ -1,4 +1,5 @@
 """Warp worlds sharing Torch storage; no simulator process or per-step array transport."""
+from ...configuration import with_legacy_feature_defaults
 from contextlib import nullcontext
 from copy import deepcopy
 from types import SimpleNamespace
@@ -11,7 +12,7 @@ from .state import allocate_state, params_from_config, seed_rows
 from .motion import motion_step
 from .world import reset_geometry
 from .validation import validate_actions
-from .geometry import sense
+from .geometry import sense, scan_coverage
 from .observations import observe, centralized
 from ...communication.gpu.mac import reset_network, begin_step, sense_reports, masked_sense_reports, packet_step, end_step
 from ...communication.gpu.metrics import world_info
@@ -119,6 +120,8 @@ class WarpVectorEnv:
         self._launch(reset_geometry,self.num_envs,self.s,self.p,wp_mask)
         self._check_errors()
         self._launch(sense,(self.num_envs,self.p.n,self.p.targets_count),self.s,self.p)
+        if self.p.coverage_grid_cells:
+            self._launch(scan_coverage,(self.num_envs,self.p.n,self.p.coverage_grid_cells**2),self.s,self.p)
         self._launch(masked_sense_reports,self.num_envs,self.s,self.p,wp_mask)
         observation = self._publish(self._buffers[self._buffer])
         self._ready = True
@@ -148,12 +151,15 @@ class WarpVectorEnv:
         if self._closed or self._waiting:
             raise RuntimeError("Cannot restore a closed or waiting vector")
         if (not isinstance(snapshot, dict) or snapshot.get("version") != 1
-                or snapshot.get("config") != self._snapshot_config()
+                or with_legacy_feature_defaults(snapshot.get("config", {})) != self._snapshot_config()
                 or snapshot.get("device_type") != self.device.type):
             raise ValueError("Incompatible Warp snapshot version/config/device")
         arrays = {name: wp.to_torch(value) for name, value in vars(self.s).items()
                   if isinstance(value, wp.array)}
         incoming = snapshot.get("arrays")
+        if (isinstance(incoming, dict) and not self.p.coverage_grid_cells
+                and "coverage" not in incoming):
+            incoming = dict(incoming, coverage=torch.empty_like(arrays["coverage"], device="cpu"))
         if not isinstance(incoming, dict) or incoming.keys() != arrays.keys():
             raise ValueError("Warp snapshot array fields mismatch")
         for name, target in arrays.items():
@@ -223,6 +229,8 @@ class WarpVectorEnv:
         self._launch(begin_step,self.num_envs,self.s,self.p)
         self._launch(motion_step,self.num_envs,self.s,self.p,wc)
         self._launch(sense,(self.num_envs,self.p.n,self.p.targets_count),self.s,self.p)
+        if self.p.coverage_grid_cells:
+            self._launch(scan_coverage,(self.num_envs,self.p.n,self.p.coverage_grid_cells**2),self.s,self.p)
         self._launch(sense_reports,self.num_envs,self.s,self.p)
         self._launch(packet_step,self.num_envs,self.s,self.p,wc,wd)
         self._launch(end_step,self.num_envs,self.s,self.p)

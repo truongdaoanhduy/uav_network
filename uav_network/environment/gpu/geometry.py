@@ -101,3 +101,24 @@ def target_visible(s: WorldState, p: WorldParams, e: int, i: int, t: int):
 def sense(s: WorldState, p: WorldParams):
     e, i, t = wp.tid()
     s.visible[e, i, t] = int(target_visible(s, p, e, i, t))
+
+
+@wp.kernel
+def scan_coverage(s: WorldState, p: WorldParams):
+    e, i, cell = wp.tid()
+    if p.energy_enabled != 0 and s.battery[e,i] <= wp.float64(0):
+        return
+    width = p.map_size / wp.float64(p.coverage_grid_cells)
+    point = wp.vec2d((wp.float64(cell % p.coverage_grid_cells)+wp.float64(.5))*width,
+                     (wp.float64(cell // p.coverage_grid_cells)+wp.float64(.5))*width)
+    position = s.positions[e,i]
+    if wp.length(point-position) > p.footprint + wp.float64(1e-9):
+        return
+    visible = bool(True)
+    if p.occlusion != 0:
+        for o in range(p.obstacles_count):
+            circle = s.obstacles[e,o]
+            if segment_distance(position,point,wp.vec2d(circle[0],circle[1])) < circle[2]+wp.float64(1e-9):
+                visible = bool(False)
+    if visible:
+        s.coverage[e,i,cell] = 1

@@ -1,4 +1,5 @@
 """Complete fixed-schedule learner state with optional in-flight mission state."""
+from ..configuration import with_legacy_feature_defaults
 import random
 
 import numpy as np
@@ -92,7 +93,7 @@ def validate_fixed_checkpoint(saved, config):
         raise ValueError("Fixed-schedule checkpoint is missing optimizer/replay/RNG/schedule state")
     if saved.get("algorithm") != config.runtime.algorithm:
         raise ValueError("Fixed-schedule resume algorithm differs from checkpoint")
-    before, current = saved["config"], config.to_dict()
+    before, current = with_legacy_feature_defaults(saved["config"]), config.to_dict()
     if before["runtime"].get("replay_cpu_fraction", 0.0) != config.runtime.replay_cpu_fraction:
         raise ValueError("Fixed-schedule resume runtime.replay_cpu_fraction differs from checkpoint")
     if before["pql"]["enabled"] or config.pql.enabled:

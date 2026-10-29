@@ -18,6 +18,7 @@ class WorldParams:
     occlusion: wp.int32
     target_slots: wp.int32
     obstacle_slots: wp.int32
+    coverage_grid_cells: wp.int32
     report_bytes: wp.int32
     buffer_bytes: wp.int32
     admission_mask: wp.int32
@@ -132,6 +133,7 @@ class WorldState:
     rx_energy: wp.array2d(dtype=wp.float64)
     visible: wp.array3d(dtype=wp.int32)
     known: wp.array3d(dtype=wp.int32)
+    coverage: wp.array3d(dtype=wp.int32)
     recovery: wp.array3d(dtype=wp.int32)
     report_present: wp.array3d(dtype=wp.int32)
     report_origin: wp.array3d(dtype=wp.int32)
@@ -267,6 +269,7 @@ def params_from_config(config):
                   max_steps=w.max_steps, motion_safety=int(w.motion_safety == "dynamic_window"),
                   occlusion=int(c.obstacle_occlusion), target_slots=c.visible_target_slots,
                   obstacle_slots=c.visible_obstacle_slots, report_bytes=n.report_bytes,
+                  coverage_grid_cells=c.coverage_grid_cells,
                   buffer_bytes=n.buffer_bytes, admission_mask=int(n.receiver_admission_mask),
                   recovery_enabled=int(n.rediscovery_recovery), energy_enabled=int(en.enabled),
                   network_enabled=int(n.enabled), placement_attempts=w.placement_attempts,
@@ -363,6 +366,7 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False, ce
             values = np.zeros((max(1, len(bank)), 1, 3))
         setattr(s, "fallback_" + name, wp.array(values, dtype=dtype, device=device))
     shapes = {
+        "coverage": ((e,n,config.sensor.coverage_grid_cells**2), wp.int32),
         "generation_fallback": ((e,), wp.int32),
         "generation_attempts": ((e,), wp.int32),
         "diagnostic_counts": ((e,len(COUNTERS)), wp.int64),

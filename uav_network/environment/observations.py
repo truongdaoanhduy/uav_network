@@ -12,12 +12,15 @@ def observation_dim(config):
     w, s, n = config.world, config.sensor, config.network
     link = 3 * w.num_uavs if n.link_state_observation else 0
     return (10 + 2 * w.num_targets + 4 * (s.visible_target_slots + s.visible_obstacle_slots)
-            + 6 * (w.num_uavs - 1) + link + w.num_uavs + 1)
+            + 6 * (w.num_uavs - 1) + link + w.num_uavs + 1
+            + s.coverage_grid_cells ** 2)
 
 
 def state_dim(config):
     w = config.world
-    return 7 * w.num_uavs + 3 * w.num_targets + 3 * w.num_obstacles + 2 * w.num_uavs * w.num_targets + 1
+    return (7 * w.num_uavs + 3 * w.num_targets + 3 * w.num_obstacles
+            + 2 * w.num_uavs * w.num_targets + 1
+            + w.num_uavs * config.sensor.coverage_grid_cells ** 2)
 
 
 def _nominal_required(env, source, destination):
@@ -125,7 +128,8 @@ def local_observations(env):
                                *(env.velocities[j] / w.max_speed_mps), env.battery_fraction[j], env.active[j]]
         link = link_state_features(env, i) if n.link_state_observation else np.empty(0)
         rows.append(np.r_[own, env.reports.known[i], age, targets.ravel(),
-                          obstacles.ravel(), peers.ravel(), link, masks[i]])
+                          obstacles.ravel(), peers.ravel(), link,
+                          env.coverage[i] if s.coverage_grid_cells else np.empty(0), masks[i]])
     return np.asarray(rows, dtype=np.float32)
 
 
@@ -139,4 +143,5 @@ def centralized_state(env):
                  env.obstacles.ravel() / w.map_size_m,
                  env.reports.known.ravel(), ages.ravel(), env.reports.delivered,
                  inflight / n.max_queue_packets, env.battery_fraction, env.active,
-                 env.steps / w.max_steps].astype(np.float32)
+                 env.steps / w.max_steps,
+                 env.coverage.ravel() if env.config.sensor.coverage_grid_cells else np.empty(0)].astype(np.float32)

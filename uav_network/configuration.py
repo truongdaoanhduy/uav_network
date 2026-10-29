@@ -2,6 +2,7 @@
 from dataclasses import asdict, dataclass, field, fields, is_dataclass
 from pathlib import Path
 import math
+from copy import deepcopy
 import re
 
 import yaml
@@ -37,6 +38,7 @@ class SensorConfig:
     obstacle_occlusion: bool = True
     visible_target_slots: int = 4
     visible_obstacle_slots: int = 3
+    coverage_grid_cells: int = 0
 
     @property
     def footprint_radius_m(self):
@@ -284,6 +286,8 @@ class Config:
                 or not math.isfinite(n.tx_circuit_power_w) or n.tx_circuit_power_w < 0
                 or not math.isfinite(n.rx_circuit_power_w) or n.rx_circuit_power_w < 0):
             raise ValueError("Radio PA efficiency must be in (0,1] and circuit powers finite/nonnegative")
+        if s.coverage_grid_cells > 32:
+            raise ValueError("sensor.coverage_grid_cells must be in [0,32]")
         if n.power_control not in {"learned", "link_budget"}:
             raise ValueError("network.power_control must be learned or link_budget")
         if not 0 <= n.link_budget_margin_db <= 30:
@@ -424,3 +428,20 @@ def load_config(path=None, overrides=()):
             raise ValueError("Overrides use group.name=value")
         _apply(config, {parts[0]: {parts[1]: yaml.safe_load(value)}})
     return config.validate()
+
+
+def with_legacy_feature_defaults(values):
+    """Fill only newly introduced optional settings, never required science fields."""
+    if not isinstance(values, dict):
+        raise ValueError("Checkpoint configuration must be a mapping")
+    result = deepcopy(values)
+    for group, defaults in (
+        ("sensor", {"coverage_grid_cells": 0}),
+        ("network", {"power_control": "learned", "link_budget_margin_db": 3.0}),
+    ):
+        if group in result:
+            if not isinstance(result[group], dict):
+                raise ValueError(f"Checkpoint {group} must be a mapping")
+            for key, value in defaults.items():
+                result[group].setdefault(key, value)
+    return result

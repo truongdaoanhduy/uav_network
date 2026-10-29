@@ -1,4 +1,5 @@
 """PQL-inspired three-component training with measured, bounded rate feedback."""
+from ..configuration import with_legacy_feature_defaults
 from copy import deepcopy
 import math
 from queue import Empty, Full, Queue
@@ -71,8 +72,9 @@ class PQLSystem:
                 from .environment_checkpoints import validate_environment
                 validate_environment(self.initial_environment, config, saved["progress"])
             self.initial_collector_rng = saved["training"]["rng"].get("collector")
+            saved_config = with_legacy_feature_defaults(saved["config"])
             for group in ("world", "sensor", "network", "energy", "reward", config.runtime.algorithm):
-                if saved["config"][group] != config.to_dict()[group]:
+                if saved_config[group] != config.to_dict()[group]:
                     raise ValueError(f"PQL resume {group} differs from checkpoint")
             if (saved["config"]["runtime"]["seed"] != config.runtime.seed
                     or saved["config"]["runtime"]["environment_backend"] != config.runtime.environment_backend

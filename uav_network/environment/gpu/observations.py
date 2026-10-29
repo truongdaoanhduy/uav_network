@@ -153,6 +153,9 @@ def observe(s: WorldState, p: WorldParams):
             s.observation[e,i,offset+3*slot+1] = wp.float32(wp.clamp(source_gcs/diagonal,wp.float64(-1),wp.float64(1)))
             s.observation[e,i,offset+3*slot+2] = wp.float32(1.0)
         offset = offset + 3*p.n
+    for cell in range(p.coverage_grid_cells*p.coverage_grid_cells):
+        s.observation[e,i,offset+cell] = wp.float32(s.coverage[e,i,cell])
+    offset += p.coverage_grid_cells*p.coverage_grid_cells
     s.observation[e, i, offset] = wp.float32(1.0)
     slot = int(0)
     for j in range(p.n):
@@ -191,3 +194,7 @@ def centralized(s: WorldState, p: WorldParams):
         s.state[e, offset + p.n + i] = wp.float32(s.battery[e, i] / p.capacity)
         s.state[e, offset + 2 * p.n + i] = wp.float32(int(_active(s, p, e, i)))
     s.state[e, offset + 3 * p.n] = wp.float32(wp.float64(s.steps[e]) / wp.float64(p.max_steps))
+
+    for i in range(p.n):
+        for cell in range(p.coverage_grid_cells*p.coverage_grid_cells):
+            s.state[e,offset+3*p.n+1+i*p.coverage_grid_cells*p.coverage_grid_cells+cell] = wp.float32(s.coverage[e,i,cell])
