@@ -21,13 +21,13 @@ PANELS = {
         ("Discovered targets (%) - higher", "cohort/search_rate_percent_mean"),
         ("Completed episodes in outcome window - sample size", "cohort/episodes"),
     ],
-    "Training convergence - rolling outcomes": [
-        ("Episode return / reward (raw)", "episode/return"),
-        ("Rolling return / reward mean", "rolling/return_mean"),
+    "Training convergence - paper style": [
+        ("Paper-style training return / reward", "episode/return"),
+        ("Paper-style search rate (%)", "outcome/search_rate_percent"),
+        ("Paper-style delivery rate (%)", "outcome/delivery_rate_percent"),
+        ("Paper-style mission success fraction", "outcome/success"),
+        ("Episode return / reward (raw audit)", "episode/return"),
         ("Rolling return standard deviation", "rolling/return_std"),
-        ("Rolling search rate (%)", "rolling/search_rate_percent"),
-        ("Rolling delivery rate (%)", "rolling/delivery_rate_percent"),
-        ("Rolling mission success fraction", "rolling/success_rate"),
     ],
     "Training progress and speed": [
         ("Completed training episodes", "train/episodes_completed"),
@@ -49,7 +49,7 @@ PANELS = {
         ("Blocked motion fraction", "safety/blocked_motion_rate"),
         ("UAV joules / GCS delivery - compare equal success", "cohort/energy/j_per_gcs_delivery"),
     ],
-    "Numerical diagnostics - no universal loss target": [
+    "Learner stability - loss and gradients": [
         ("Critic loss - diagnostic only", "learner/critic_loss"),
         ("Actor loss - diagnostic only", "learner/actor_loss"),
         ("TD error absolute mean", "learner/td_error_abs_mean"),
@@ -95,13 +95,25 @@ DIAGNOSTIC_PANELS = {
 
 def panel_axis(metric):
     metric = metric[0] if isinstance(metric, tuple) else metric
-    if metric == "episode/return":
+    if metric == "episode/return" or metric.startswith("outcome/"):
         return "episode/index"
     if metric.startswith("system/"):
         return "_runtime"
     if metric in CPU_EPISODE_METRICS:
         return "evaluation/episodes_completed"
     return "evaluation/checkpoint_global_step" if metric.startswith(("evaluation/", "eval/")) else "global_step"
+
+
+def panel_options(title, metric):
+    """Display smoothing only; underlying W&B history stays unchanged."""
+    metric = metric[0] if isinstance(metric, tuple) else metric
+    if title.startswith("Paper-style"):
+        return {"smoothing_type": "average", "smoothing_factor": 0.9,
+                "smoothing_show_original": False, "title_x": "Episode"}
+    if metric in {"learner/critic_loss", "learner/actor_loss", "learner/td_error_abs_mean"}:
+        return {"smoothing_type": "average", "smoothing_factor": 0.8,
+                "smoothing_show_original": True}
+    return {"smoothing_type": "none"}
 
 
 def run_filter(group, run_ids=()):
@@ -209,7 +221,7 @@ def create_dashboard(config, run_ids=(), name="UAV Network 2D - MASAC and MATD3"
         ("Periodic", "Numerical", "Recovery")), panels=[
         wr.LinePlot(title=label, x=panel_axis(metric),
                     y=list(metric) if isinstance(metric, tuple) else [metric],
-                    max_runs_to_show=12, aggregate=False, smoothing_type="none")
+                    max_runs_to_show=12, aggregate=False, **panel_options(label, metric))
         for label, metric in metrics
     ]) for title, metrics in panels.items()]
     workspace.sections.insert(0, ws.Section(name="How to read this evidence", is_open=True,

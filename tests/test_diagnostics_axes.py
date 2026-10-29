@@ -77,8 +77,8 @@ def test_workspace_run_table_is_compact_and_decision_focused():
         "train/episodes_completed", "train/joint_transitions_per_s",
         "cohort/episodes", "storage/disk_free_bytes", "learner/critic_loss", "learner/td_error_abs_mean",
         "cohort/network/packet_pdr_fraction", "cohort/delivery_rate_percent_mean",
-        "episode/return", "rolling/return_mean", "rolling/return_std", "rolling/search_rate_percent",
-        "rolling/delivery_rate_percent", "rolling/success_rate",
+        "episode/return", "rolling/return_std",
+        "outcome/search_rate_percent", "outcome/delivery_rate_percent", "outcome/success",
         "learner/actor_loss", "system/gpu.0.gpu", "system/gpu.1.gpu", "recovery/elapsed_seconds",
     } <= all_metrics
     assert sum(len(panels) for panels in PANELS.values()) == 34
@@ -91,6 +91,9 @@ def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source()
     assert "summary:cohort/delivery_rate_percent_mean" in VISIBLE_COLUMNS
     assert "summary:cohort/success_mean" in VISIBLE_COLUMNS
     assert panel_axis("episode/return") == "episode/index"
+    assert panel_axis("outcome/search_rate_percent") == "episode/index"
+    assert panel_axis("outcome/delivery_rate_percent") == "episode/index"
+    assert panel_axis("outcome/success") == "episode/index"
     assert panel_axis("evaluation/mean_return") == "evaluation/checkpoint_global_step"
     assert panel_axis("eval/mean_return") == "evaluation/checkpoint_global_step"
     assert panel_axis("evaluation_status/failed") == "global_step"
@@ -127,3 +130,18 @@ def test_actor_loss_is_available_in_core_and_advanced_diagnostics():
     from uav_network.experiments.dashboard import PANELS, DIAGNOSTIC_PANELS
     assert any(metric=='learner/actor_loss' for panels in PANELS.values() for _,metric in panels)
     assert any(metric=='learner/actor_loss' for panels in DIAGNOSTIC_PANELS.values() for _,metric in panels)
+
+
+def test_paper_style_panels_use_visible_smoothing_and_loss_keeps_raw_trace():
+    from uav_network.experiments.dashboard import panel_options
+    reward = panel_options("Paper-style training return / reward", "episode/return")
+    assert reward["smoothing_type"] == "average"
+    assert reward["smoothing_factor"] == 0.9
+    assert reward["smoothing_show_original"] is False
+    assert reward["title_x"] == "Episode"
+    loss = panel_options("Critic loss - diagnostic only", "learner/critic_loss")
+    assert loss["smoothing_type"] == "average"
+    assert loss["smoothing_factor"] == 0.8
+    assert loss["smoothing_show_original"] is True
+    raw = panel_options("Episode return / reward (raw audit)", "episode/return")
+    assert raw == {"smoothing_type": "none"}

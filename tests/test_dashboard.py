@@ -84,6 +84,12 @@ class DashboardTests(unittest.TestCase):
         plots = [p for section in spec["panelBankConfig"]["sections"] for p in section["panels"]
                  if "metrics" in p.get("config",{})]
         self.assertEqual(len(plots),34)
+        paper_return = [p for p in plots if p.get("config", {}).get("chartTitle") == "Paper-style training return / reward"]
+        self.assertEqual(len(paper_return), 1)
+        self.assertEqual(paper_return[0]["config"]["xAxis"], "episode/index")
+        self.assertEqual(paper_return[0]["config"]["smoothingType"], "average")
+        self.assertEqual(paper_return[0]["config"]["smoothingWeight"], 0.9)
+        self.assertFalse(paper_return[0]["config"]["showOriginalAfterSmoothing"])
         for panel in plots:
             config = panel["config"]
             self.assertEqual(config.get("limit"),12)
