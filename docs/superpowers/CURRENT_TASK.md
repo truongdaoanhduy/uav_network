@@ -1,3 +1,22 @@
+# Shared actor + shared critic MASAC/MATD3 — CPU VERIFIED / NOT LAUNCHED
+
+Updated 2026-10-29. User selected the full-sharing topology after comparing matched W&B MASAC runs. Added a dedicated controlled profile rather than overwriting the independent baseline:
+`configs/comparison-20k-hybrid75-1kb-shared-actor-critic.yaml`.
+
+- MASAC: `share_actor_parameters=true`, `share_critic_parameters=true`.
+- MATD3: `share_actor_parameters=true`, `share_critic_parameters=true`.
+- All controlled settings remain matched to the canonical 20T/15O baseline: 6 UAV, 1000 m, 20 targets, 15 obstacles, 1200 steps, seed44, 20k episodes, E4096, B8192, replay1M, HYBRID75, FP32, BASE, link-budget+3dB. Only sharing topology plus output/group/tag identity differ.
+- Existing shared topology code was already implemented for both learners; no learning-equation change was needed. Shared actor remains UAV-ID conditioned; shared critic is one centralized team twin critic. Run naming resolves to `TRAIN-MASAC-BASE-SHARED-ACTOR-CRITIC-...` and `TRAIN-MATD3-BASE-SHARED-ACTOR-CRITIC-...` with actor-shared/critic-shared tags.
+- TDD: new profile contract failed first because the profile did not exist, then passed after creation. Focused controlled-study + parameter-sharing + cloud-identity verification: 43 passed, 34 subtests. Tiny CPU smoke for both algorithms completed 1/1 episode at 2 steps, preserved both sharing flags, and reported no non-finite summary values.
+- Fresh full suite after the change: 1029 passed, 97 skipped, 8 warnings, 1475 subtests in 213.47s. `compileall` and `git diff --check` pass.
+- No W&B/Kaggle production training was launched by this configuration task. Do not claim new shared-both 20T/15O training results until a fresh production run is explicitly started and evaluated.
+
+Design: `docs/superpowers/specs/2026-10-29-shared-actor-critic-masac-matd3-design.md`.
+Plan: `docs/superpowers/plans/2026-10-29-shared-actor-critic-masac-matd3.md`.
+Next action for production: fresh-check duplicate jobs/quota/account ownership, then launch one MASAC BASE and one MATD3 BASE from the new profile on seed44; preserve independent baseline results for the controlled comparison.
+
+---
+
 # Controlled 20-target / 15-obstacle 2D study — HORIZON 1200 CONFIGURED / CPU VERIFIED
 
 2026-10-29 follow-up: canonical 20/15 horizon requested at 1200 steps. Historical 35/25 stays at 1800.

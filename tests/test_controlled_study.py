@@ -43,6 +43,40 @@ def test_canonical_easier_profile_and_historical_profile_are_distinct():
     assert old.tracking.evaluation_interval_steps==0
 
 
+def test_shared_actor_critic_profile_preserves_controlled_baseline():
+    shared_path = ROOT / "configs/comparison-20k-hybrid75-1kb-shared-actor-critic.yaml"
+    shared = load_config(shared_path)
+    base = load_config(PROFILE)
+
+    assert shared.masac.share_actor_parameters is True
+    assert shared.masac.share_critic_parameters is True
+    assert shared.matd3.share_actor_parameters is True
+    assert shared.matd3.share_critic_parameters is True
+    assert base.masac.share_actor_parameters is False
+    assert base.masac.share_critic_parameters is False
+    assert base.matd3.share_actor_parameters is False
+    assert base.matd3.share_critic_parameters is False
+
+    assert "shared-actor-critic" in shared.runtime.output_dir
+    assert "shared-actor-critic" in shared.tracking.group
+    assert "shared-actor-critic" in shared.tracking.tags
+
+    shared_dict = shared.to_dict()
+    base_dict = base.to_dict()
+    for algorithm in ("masac", "matd3"):
+        for key in ("share_actor_parameters", "share_critic_parameters"):
+            shared_dict[algorithm].pop(key, None)
+            base_dict[algorithm].pop(key, None)
+    shared_dict["runtime"].pop("output_dir")
+    base_dict["runtime"].pop("output_dir")
+    shared_dict["tracking"].pop("group")
+    base_dict["tracking"].pop("group")
+    shared_tags = set(shared_dict["tracking"].pop("tags"))
+    base_tags = set(base_dict["tracking"].pop("tags"))
+    assert shared_tags == base_tags | {"shared-actor-critic"}
+    assert shared_dict == base_dict
+
+
 def test_default_matrix_is_84_cases_with_independent_seed_banks(tmp_path):
     from uav_network.experiments.study import plan_study
     manifest=plan_study(PROFILE,tmp_path/"study")
