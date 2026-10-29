@@ -24,6 +24,8 @@ def test_external_supervisor_workflow_is_scheduled_manual_and_nonoverlapping():
     job = data["jobs"]["supervise"]
     assert job["runs-on"] == "ubuntu-24.04"
     assert job["timeout-minutes"] <= 30
+    checkout = next(step for step in job["steps"] if step.get("name") == "Checkout pinned supervisor source")
+    assert checkout["with"]["ref"] == "feat/cpu-replay-20261022"
     assert "uav_network.cloud.github_supervisor" in source
     assert "continuation-watch" not in source
 
@@ -83,6 +85,52 @@ def test_secret_sync_uses_stdin_and_skips_disabled_accounts(tmp_path):
     assert enabled_call["input"] == "account_01"
     assert result["secrets"] == sorted(names)
     assert "KAGGLE_ENABLED_ACCOUNTS" in result["variables"]
+
+
+def test_secret_sync_preserves_stable_github_alias_after_local_renumber(tmp_path):
+    from scripts.sync_github_supervisor_secrets import sync_credentials
+
+    key = tmp_path / "key.txt"
+    key.write_text(json.dumps({
+        "kaggle": {"accounts": [
+            {"name": "account_04", "github_account": "account_07",
+             "token": "renumbered-token", "enabled": True},
+        ]},
+        "wandb": {"api_key": "wandb-secret", "entity": "owner", "project": "project"},
+        "huggingface": {"token": "hf-secret", "repo_id": "owner/checkpoints"},
+    }))
+    calls = []
+
+    def run(command, **kwargs):
+        calls.append((list(command), dict(kwargs)))
+        class Result:
+            stdout = ""
+        return Result()
+
+    sync_credentials(key, repo="owner/repo", run=run)
+    secret_names = {command[3] for command, _ in calls if command[1:3] == ["secret", "set"]}
+    assert "KAGGLE_API_TOKEN_ACCOUNT_07" in secret_names
+    assert "KAGGLE_API_TOKEN_ACCOUNT_04" not in secret_names
+    enabled_call = next(kwargs for command, kwargs in calls
+                        if command[1:4] == ["variable", "set", "KAGGLE_ENABLED_ACCOUNTS"])
+    assert enabled_call["input"] == "account_07"
+
+
+def test_secret_sync_rejects_duplicate_github_aliases(tmp_path):
+    import pytest
+    from scripts.sync_github_supervisor_secrets import sync_credentials
+
+    key = tmp_path / "key.txt"
+    key.write_text(json.dumps({
+        "kaggle": {"accounts": [
+            {"name": "account_04", "github_account": "account_07", "token": "one", "enabled": True},
+            {"name": "account_05", "github_account": "account_07", "token": "two", "enabled": True},
+        ]},
+        "wandb": {"api_key": "wandb-secret", "entity": "owner", "project": "project"},
+        "huggingface": {"token": "hf-secret", "repo_id": "owner/checkpoints"},
+    }))
+    with pytest.raises(ValueError, match="duplicate GitHub Kaggle account alias"):
+        sync_credentials(key, repo="owner/repo", run=lambda *args, **kwargs: None)
 
 
 def test_manual_dry_run_probes_cloud_credentials_before_reconciling():
