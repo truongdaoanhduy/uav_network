@@ -77,9 +77,11 @@ def test_workspace_run_table_is_compact_and_decision_focused():
         "train/episodes_completed", "train/joint_transitions_per_s",
         "cohort/episodes", "storage/disk_free_bytes", "learner/critic_loss", "learner/td_error_abs_mean",
         "cohort/network/packet_pdr_fraction", "cohort/delivery_rate_percent_mean",
+        "rolling/return_mean", "rolling/return_std", "rolling/search_rate_percent",
+        "rolling/delivery_rate_percent", "rolling/success_rate",
         "system/gpu.0.gpu", "system/gpu.1.gpu", "recovery/elapsed_seconds",
     } <= all_metrics
-    assert sum(len(panels) for panels in PANELS.values()) == 27
+    assert sum(len(panels) for panels in PANELS.values()) == 32
 
 
 def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source():

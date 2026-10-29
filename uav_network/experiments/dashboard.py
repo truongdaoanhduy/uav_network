@@ -21,6 +21,13 @@ PANELS = {
         ("Discovered targets (%) - higher", "cohort/search_rate_percent_mean"),
         ("Completed episodes in outcome window - sample size", "cohort/episodes"),
     ],
+    "Training convergence - rolling outcomes": [
+        ("Rolling return / reward mean", "rolling/return_mean"),
+        ("Rolling return standard deviation", "rolling/return_std"),
+        ("Rolling search rate (%)", "rolling/search_rate_percent"),
+        ("Rolling delivery rate (%)", "rolling/delivery_rate_percent"),
+        ("Rolling mission success fraction", "rolling/success_rate"),
+    ],
     "Training progress and speed": [
         ("Completed training episodes", "train/episodes_completed"),
         ("Joint transitions / s - speed, not policy quality", "train/joint_transitions_per_s"),
