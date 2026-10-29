@@ -83,17 +83,40 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(pinned,{"run:displayName","run:state","run:createdAt","run:duration"})
         plots = [p for section in spec["panelBankConfig"]["sections"] for p in section["panels"]
                  if "metrics" in p.get("config",{})]
-        self.assertEqual(len(plots),36)
+        self.assertEqual(len(plots),37)
         paper_return = [p for p in plots if p.get("config", {}).get("chartTitle") == "UAV-paper training return / reward"]
         self.assertEqual(len(paper_return), 1)
         paper_config = paper_return[0]["config"]
         self.assertEqual(paper_config["xAxis"], "episode/index")
-        self.assertEqual(paper_config["xExpression"], "${episode/index} / 5000")
-        self.assertEqual(paper_config["xAxisTitle"], "Episode (×5×10³)")
+        self.assertEqual(paper_config["xExpression"], "${episode/index} / 100")
+        self.assertEqual(paper_config["xAxisTitle"], "Episode (×10²)")
         self.assertEqual(paper_config["smoothingType"], "exponential")
         self.assertEqual(paper_config["smoothingWeight"], 0.99)
         self.assertEqual(paper_config["pointVisualizationMethod"], "sampling")
         self.assertFalse(paper_config["showOriginalAfterSmoothing"])
+
+
+        success = [p for p in plots if p.get("config", {}).get("chartTitle") == "UAV-paper mission success (%)"]
+        self.assertEqual(len(success), 1)
+        success_config = success[0]["config"]
+        self.assertEqual(success_config["metrics"], [])
+        self.assertEqual(success_config["expressions"], ["${outcome/success} * 100"])
+        self.assertEqual(success_config["xAxis"], "episode/index")
+        self.assertEqual(success_config["xExpression"], "${episode/index} / 100")
+        self.assertEqual(success_config["xAxisTitle"], "Episode (×10²)")
+        self.assertEqual(success_config["yAxisTitle"], "Mission success (%)")
+        self.assertEqual(success_config["yAxisMin"], 0.0)
+        self.assertEqual(success_config["yAxisMax"], 100.0)
+
+        rolling_success = [p for p in plots if p.get("config", {}).get("chartTitle") == "Rolling mission success rate (%) - trend"]
+        self.assertEqual(len(rolling_success), 1)
+        rolling_config = rolling_success[0]["config"]
+        self.assertEqual(rolling_config["metrics"], [])
+        self.assertEqual(rolling_config["expressions"], ["${rolling/success_rate} * 100"])
+        self.assertEqual(rolling_config["xAxis"], "global_step")
+        self.assertEqual(rolling_config["xExpression"], "${global_step} / 1000000")
+        self.assertEqual(rolling_config["yAxisMin"], 0.0)
+        self.assertEqual(rolling_config["yAxisMax"], 100.0)
 
         sample_return = [p for p in plots if p.get("config", {}).get("chartTitle") == "Sample-efficiency training return / reward"]
         self.assertEqual(len(sample_return), 1)
@@ -110,7 +133,10 @@ class DashboardTests(unittest.TestCase):
             config = panel["config"]
             self.assertEqual(config.get("limit"),12)
             self.assertFalse(config.get("aggregate",False))
-            metric=config["metrics"][0]
+            metrics=config.get("metrics", [])
+            if not metrics:
+                continue
+            metric=metrics[0]
             if metric.startswith("system/"): self.assertEqual(config["xAxis"],"_runtime")
             elif metric in {"evaluation/delivery_rate_percent","evaluation/success"}:
                 self.assertEqual(config["xAxis"],"evaluation/episodes_completed")

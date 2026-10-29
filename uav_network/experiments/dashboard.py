@@ -25,7 +25,8 @@ PANELS = {
         ("UAV-paper training return / reward", "episode/return"),
         ("UAV-paper search rate (%)", "outcome/search_rate_percent"),
         ("UAV-paper delivery rate (%)", "outcome/delivery_rate_percent"),
-        ("UAV-paper mission success fraction", "outcome/success"),
+        ("UAV-paper mission success (%)", "outcome/success"),
+        ("Rolling mission success rate (%) - trend", "rolling/success_rate"),
         ("Sample-efficiency training return / reward", "episode/return"),
         ("Compute-efficiency training return / reward", "episode/return"),
         ("Episode return / reward (raw audit)", "episode/return"),
@@ -97,6 +98,8 @@ DIAGNOSTIC_PANELS = {
 
 def panel_axis(metric, title=""):
     metric = metric[0] if isinstance(metric, tuple) else metric
+    if metric == "rolling/success_rate":
+        return "global_step"
     if title.startswith("Sample-efficiency"):
         return "global_step"
     if title.startswith("Compute-efficiency"):
@@ -115,9 +118,23 @@ def panel_options(title, metric):
     metric = metric[0] if isinstance(metric, tuple) else metric
     clean_curve = {"smoothing_type": "exponential", "smoothing_factor": 0.99,
                    "smoothing_show_original": False, "point_visualization_method": "sampling"}
+    if title == "UAV-paper mission success (%)":
+        return {**clean_curve, "title_x": "Episode (×10²)",
+                "xaxis_expression": "${episode/index} / 100",
+                "title_y": "Mission success (%)",
+                "custom_expressions": ["${outcome/success} * 100"],
+                "range_y": (0, 100)}
+    if title == "Rolling mission success rate (%) - trend":
+        return {"smoothing_type": "average", "smoothing_factor": 0.8,
+                "smoothing_show_original": True, "point_visualization_method": "bucketing-gorilla",
+                "title_x": "Environment Steps (M)",
+                "xaxis_expression": "${global_step} / 1000000",
+                "title_y": "Rolling success rate (%)",
+                "custom_expressions": ["${rolling/success_rate} * 100"],
+                "range_y": (0, 100)}
     if title.startswith("UAV-paper"):
-        return {**clean_curve, "title_x": "Episode (×5×10³)",
-                "xaxis_expression": "${episode/index} / 5000"}
+        return {**clean_curve, "title_x": "Episode (×10²)",
+                "xaxis_expression": "${episode/index} / 100"}
     if title.startswith("Sample-efficiency"):
         return {**clean_curve, "title_x": "Environment Steps (M)",
                 "xaxis_expression": "${global_step} / 1000000"}
@@ -129,6 +146,13 @@ def panel_options(title, metric):
                 "smoothing_show_original": True}
     return {"smoothing_type": "none"}
 
+
+
+def panel_y(title, metric):
+    """Use expression-only Y series for percentage-success panels."""
+    if title in {"UAV-paper mission success (%)", "Rolling mission success rate (%) - trend"}:
+        return []
+    return list(metric) if isinstance(metric, tuple) else [metric]
 
 def run_filter(group, run_ids=()):
     expression = f"Config('tracking.group') == {group!r}"
@@ -234,7 +258,7 @@ def create_dashboard(config, run_ids=(), name="UAV Network 2D - MASAC and MATD3"
     workspace.sections = [ws.Section(name=title, is_open=not title.startswith(
         ("Periodic", "Numerical", "Recovery")), panels=[
         wr.LinePlot(title=label, x=panel_axis(metric, label),
-                    y=list(metric) if isinstance(metric, tuple) else [metric],
+                    y=panel_y(label, metric),
                     max_runs_to_show=12, aggregate=False, **panel_options(label, metric))
         for label, metric in metrics
     ]) for title, metrics in panels.items()]
