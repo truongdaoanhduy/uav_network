@@ -88,12 +88,12 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(len(paper_return), 1)
         paper_config = paper_return[0]["config"]
         self.assertEqual(paper_config["xAxis"], "episode/index")
-        self.assertEqual(paper_config["xExpression"], "${episode/index} / 10000")
-        self.assertEqual(paper_config["xAxisTitle"], "Episode (×10⁴)")
+        self.assertEqual(paper_config["xExpression"], "${episode/index} / 1000")
+        self.assertEqual(paper_config["xAxisTitle"], "Episode (×10³)")
         self.assertEqual(paper_config["smoothingType"], "exponential")
-        self.assertEqual(paper_config["smoothingWeight"], 0.99)
-        self.assertEqual(paper_config["pointVisualizationMethod"], "sampling")
-        self.assertFalse(paper_config["showOriginalAfterSmoothing"])
+        self.assertEqual(paper_config["smoothingWeight"], 0.95)
+        self.assertEqual(paper_config["pointVisualizationMethod"], "bucketing-gorilla")
+        self.assertTrue(paper_config["showOriginalAfterSmoothing"])
 
         sample_return = [p for p in plots if p.get("config", {}).get("chartTitle") == "Sample-efficiency training return / reward"]
         self.assertEqual(len(sample_return), 1)
@@ -106,6 +106,18 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(compute_return[0]["config"]["xAxis"], "_runtime")
         self.assertEqual(compute_return[0]["config"]["xExpression"], "${_runtime} / 60")
         self.assertEqual(compute_return[0]["config"]["xAxisTitle"], "Wall Time (min)")
+
+        success = [p for p in plots if p.get("config", {}).get("chartTitle") == "Rolling mission success rate (20-episode window)"]
+        self.assertEqual(len(success), 1)
+        success_config = success[0]["config"]
+        self.assertEqual(success_config["metrics"], ["rolling/success_rate"])
+        self.assertEqual(success_config["xAxis"], "global_step")
+        self.assertEqual(success_config["xExpression"], "${global_step} / 1000000")
+        self.assertEqual(success_config["xAxisTitle"], "Environment Steps (M)")
+        self.assertEqual(success_config["yAxisTitle"], "Success rate (20-episode rolling fraction)")
+        self.assertEqual(success_config["smoothingType"], "none")
+        self.assertEqual(success_config["pointVisualizationMethod"], "bucketing-gorilla")
+
         for panel in plots:
             config = panel["config"]
             self.assertEqual(config.get("limit"),12)

@@ -25,7 +25,7 @@ PANELS = {
         ("UAV-paper training return / reward", "episode/return"),
         ("UAV-paper search rate (%)", "outcome/search_rate_percent"),
         ("UAV-paper delivery rate (%)", "outcome/delivery_rate_percent"),
-        ("UAV-paper mission success fraction", "outcome/success"),
+        ("Rolling mission success rate (20-episode window)", "rolling/success_rate"),
         ("Sample-efficiency training return / reward", "episode/return"),
         ("Compute-efficiency training return / reward", "episode/return"),
         ("Episode return / reward (raw audit)", "episode/return"),
@@ -113,11 +113,15 @@ def panel_axis(metric, title=""):
 def panel_options(title, metric):
     """Display-only transforms; the underlying W&B history stays unchanged."""
     metric = metric[0] if isinstance(metric, tuple) else metric
-    clean_curve = {"smoothing_type": "exponential", "smoothing_factor": 0.99,
-                   "smoothing_show_original": False, "point_visualization_method": "sampling"}
+    clean_curve = {"smoothing_type": "exponential", "smoothing_factor": 0.95,
+                   "smoothing_show_original": True, "point_visualization_method": "bucketing-gorilla"}
+    if metric == "rolling/success_rate":
+        return {"smoothing_type": "none", "point_visualization_method": "bucketing-gorilla",
+                "title_x": "Environment Steps (M)", "xaxis_expression": "${global_step} / 1000000",
+                "title_y": "Success rate (20-episode rolling fraction)"}
     if title.startswith("UAV-paper"):
-        return {**clean_curve, "title_x": "Episode (×10⁴)",
-                "xaxis_expression": "${episode/index} / 10000"}
+        return {**clean_curve, "title_x": "Episode (×10³)",
+                "xaxis_expression": "${episode/index} / 1000"}
     if title.startswith("Sample-efficiency"):
         return {**clean_curve, "title_x": "Environment Steps (M)",
                 "xaxis_expression": "${global_step} / 1000000"}
