@@ -27,3 +27,13 @@ def power_fraction(p: WorldParams, power: wp.float64) -> wp.float64:
 @wp.func
 def link_power_feasible(s: WorldState, p: WorldParams, e: int, source: int, destination: int) -> bool:
     return p.power_limited_admission == 0 or nominal_required_power(s,p,e,source,destination) <= p.tx_power_max
+
+
+@wp.func
+def selected_power(s: WorldState, p: WorldParams, e: int, source: int,
+                   destination: int, action_value: wp.float32) -> wp.float64:
+    power = power_from_action(p, action_value)
+    if p.guided_power != 0:
+        power = wp.clamp(nominal_required_power(s,p,e,source,destination) * p.power_margin_factor,
+                         p.tx_power_min, p.tx_power_max)
+    return power

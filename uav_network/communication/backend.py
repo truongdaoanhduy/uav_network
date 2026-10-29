@@ -6,7 +6,7 @@ from .upstream import REVISION, start_simulator
 from .energy import install_obstacle_loss, install_phy_budget
 from .diagnostics import COUNTERS, STATS, COUNT, STAT, add_sample, network_diagnostics
 from .telemetry import install_telemetry
-from .link_budget import power_from_action, nominal_required_power_w
+from .link_budget import power_from_action, nominal_required_power_w, link_budget_power_w
 
 _ACTIVE = None  # Upstream configuration and packet IDs are process globals.
 
@@ -267,7 +267,14 @@ class UavNetSimNetwork:
             report = next((r for r in buffer.values()
                            if self._eligible(source, destination, positions, r)), None)
             if report is not None:
-                power = power_from_action(float(action.continuous[source, 2]), self.config.network)
+                if self.config.network.power_control == "link_budget":
+                    receiver = self.scene.gcs if destination == self.config.world.num_uavs else positions[destination]
+                    required = nominal_required_power_w(
+                        positions[source], receiver, self.scene.obstacles, self.config.network,
+                        self.config.sensor.altitude_m, destination == self.config.world.num_uavs)
+                    power = link_budget_power_w(required, self.config.network)
+                else:
+                    power = power_from_action(float(action.continuous[source, 2]), self.config.network)
                 self.selection_counts["accepted"] += 1
                 self._inject(source, destination, power, report)
             elif all(not self.reports.can_forward(source, destination, r, self.clock.now / 1e6)

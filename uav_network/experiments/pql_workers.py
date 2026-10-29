@@ -80,6 +80,7 @@ def inference_copy(learner, device):
     result.config = deepcopy(learner.config)
     result.device = torch.device(device)
     result.num_uavs, result.destinations = learner.num_uavs, learner.destinations
+    result.learn_power = learner.learn_power
     result.share_actor_parameters = learner.share_actor_parameters
     result.share_critic_parameters = learner.share_critic_parameters
     result.actors = deepcopy(learner.actors).to(device).requires_grad_(False)

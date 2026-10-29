@@ -55,6 +55,8 @@ class NetworkConfig:
     tx_power_min_w: float = 0.1
     tx_power_max_w: float = 0.4
     tx_power_mapping: str = "linear"
+    power_control: str = "learned"
+    link_budget_margin_db: float = 3.0
     # Radio hardware defaults preserve the historical RF-output-only energy model.
     pa_efficiency: float = 1.0
     tx_circuit_power_w: float = 0.0
@@ -282,6 +284,10 @@ class Config:
                 or not math.isfinite(n.tx_circuit_power_w) or n.tx_circuit_power_w < 0
                 or not math.isfinite(n.rx_circuit_power_w) or n.rx_circuit_power_w < 0):
             raise ValueError("Radio PA efficiency must be in (0,1] and circuit powers finite/nonnegative")
+        if n.power_control not in {"learned", "link_budget"}:
+            raise ValueError("network.power_control must be learned or link_budget")
+        if not 0 <= n.link_budget_margin_db <= 30:
+            raise ValueError("network.link_budget_margin_db must be in [0,30]")
         if n.tx_power_mapping not in {"linear", "log"}:
             raise ValueError("network.tx_power_mapping must be linear or log")
         if type(n.power_limited_admission) is not bool or type(n.link_state_observation) is not bool:

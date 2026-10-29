@@ -7,7 +7,7 @@ from .reports import (active, bytes_used, can_receive, transfer, begin_step, sen
 from .phy import xy, busy, emit, evaluate, arrival_start, arrival_end, latest_arrival_end
 from .events import push, pop, replace_root, next_time_after_root
 from .telemetry import record_action
-from .power import power_from_action, link_power_feasible
+from .power import selected_power, link_power_feasible
 from .streaming import (clear_pending, fill_session, fragment_bit, inject, window_count, window_mask)
 from . import diagnostics as diag
 
@@ -380,7 +380,7 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
                 if selected < 0 or s.report_order[e,source,t] < s.report_order[e,source,selected]:
                     selected = t
         if selected >= 0:
-            power = power_from_action(p,continuous[e,source,2])
+            power = selected_power(s,p,e,source,dest,continuous[e,source,2])
             s.selection_counts[e,1] += 1
             inject(s,p,e,source,dest,selected,power,now)
         elif can_forward:

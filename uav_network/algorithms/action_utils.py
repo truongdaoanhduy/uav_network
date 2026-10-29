@@ -16,11 +16,13 @@ def masked_log_probabilities(logits, mask=None):
     return F.log_softmax(logits, dim=-1)
 
 
-def canonical_continuous(continuous, observation, destination):
+def canonical_continuous(continuous, observation, destination, *, learn_power=True):
     active = (observation[..., 9] > .5).to(continuous.dtype)
     return torch.cat((continuous[..., :2] * active[..., None],
-                      continuous[..., 2:3] * (active * (destination != 0))[..., None]), -1)
+                      continuous[..., 2:3] * (active * (destination != 0) * learn_power)[..., None]), -1)
 
 
-def joint_action(continuous, destination, destinations):
+def joint_action(continuous, destination, destinations, *, learn_power=True):
+    if not learn_power:
+        continuous = torch.cat((continuous[..., :2], continuous[..., 2:3] * 0), -1)
     return torch.cat((continuous, F.one_hot(destination, destinations)), -1)

@@ -114,3 +114,10 @@ def report_reference_tx_energy_j(network_config) -> float:
     pa_efficiency = float(getattr(network_config, "pa_efficiency", 1.0))
     circuit = float(getattr(network_config, "tx_circuit_power_w", 0.0))
     return airtime * (circuit + float(network_config.tx_power_max_w) / pa_efficiency)
+
+
+def link_budget_power_w(required_w: float, network_config) -> float:
+    """Nominal receiver requirement plus margin, bounded by radio hardware."""
+    return min(float(network_config.tx_power_max_w),
+               max(float(network_config.tx_power_min_w),
+                   float(required_w) * 10.0 ** (network_config.link_budget_margin_db / 10.0)))

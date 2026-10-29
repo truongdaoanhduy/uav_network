@@ -30,6 +30,7 @@ class MATD3(nn.Module):
         self.device = torch.device(device)
         self.num_uavs = n = config.world.num_uavs
         self.destinations = k = n + 1
+        self.learn_power = config.network.power_control == "learned"
         a = config.matd3
         self.share_actor_parameters = a.share_actor_parameters
         self.share_critic_parameters = a.share_critic_parameters
@@ -72,7 +73,7 @@ class MATD3(nn.Module):
         destination = probs.argmax(-1)
         hard = F.one_hot(destination, self.destinations).to(probs.dtype)
         discrete = hard + probs - probs.detach() if straight_through else hard
-        continuous = canonical_continuous(continuous, observation, destination)
+        continuous = canonical_continuous(continuous, observation, destination, learn_power=self.learn_power)
         return torch.cat((continuous, discrete), -1)
 
     def _policy_outputs(self, observations, *, target=False):
@@ -99,7 +100,7 @@ class MATD3(nn.Module):
         destination = probs.argmax(-1)
         hard = F.one_hot(destination, self.destinations).to(probs.dtype)
         discrete = hard + probs - probs.detach() if straight_through else hard
-        continuous = canonical_continuous(continuous, observations, destination)
+        continuous = canonical_continuous(continuous, observations, destination, learn_power=self.learn_power)
         return torch.cat((continuous, discrete), -1)
 
     @torch.no_grad()
@@ -113,13 +114,13 @@ class MATD3(nn.Module):
                 noise = (torch.randn_like(continuous) * a.target_noise_std).clamp(
                     -a.target_noise_clip, a.target_noise_clip)
                 destination = probs.argmax(-1)
-                continuous = canonical_continuous((continuous + noise).clamp(-1, 1), obs, destination)
+                continuous = canonical_continuous((continuous + noise).clamp(-1, 1), obs, destination, learn_power=self.learn_power)
                 actions.append(joint_action(continuous, destination, self.destinations))
             return torch.stack(actions, 1)
         continuous, probs = self._policy_outputs(observations, target=True)
         noise = (torch.randn_like(continuous) * a.target_noise_std).clamp(-a.target_noise_clip, a.target_noise_clip)
         destination = probs.argmax(-1)
-        continuous = canonical_continuous((continuous + noise).clamp(-1, 1), observations, destination)
+        continuous = canonical_continuous((continuous + noise).clamp(-1, 1), observations, destination, learn_power=self.learn_power)
         return joint_action(continuous, destination, self.destinations)
 
     @torch.no_grad()
@@ -140,7 +141,7 @@ class MATD3(nn.Module):
                     random_destination = torch.multinomial(mask.float(), 1).squeeze(-1)
                     explore = torch.rand(len(local), device=self.device) < epsilon
                     destination = torch.where(explore, random_destination, destination)
-                continuous = canonical_continuous(continuous, local, destination)
+                continuous = canonical_continuous(continuous, local, destination, learn_power=self.learn_power)
                 actions.append(joint_action(continuous, destination, self.destinations))
             joint = torch.stack(actions, 1)
         else:
@@ -153,7 +154,7 @@ class MATD3(nn.Module):
                     mask.float().reshape(-1, self.destinations), 1).reshape(destination.shape)
                 explore = torch.rand(destination.shape, device=self.device) < epsilon
                 destination = torch.where(explore, random_destination, destination)
-            continuous = canonical_continuous(continuous, obs, destination)
+            continuous = canonical_continuous(continuous, obs, destination, learn_power=self.learn_power)
             joint = joint_action(continuous, destination, self.destinations)
         if return_tensors:
             return Action(joint[..., :3].contiguous(), joint[..., 3:].argmax(-1))
@@ -192,7 +193,8 @@ class MATD3(nn.Module):
                 target = torch.stack([td3_target(data["reward"], data["terminated"],
                                                 *critic(data["next_state"], next_actions), a.gamma)
                                       for critic in self.target_critics], 1)
-        replay_actions = joint_action(data["continuous"], data["destination"], self.destinations)
+        replay_actions = joint_action(data["continuous"], data["destination"], self.destinations,
+                                    learn_power=self.learn_power)
         q1, q2 = self._critic_values(self.critics, data["state"], replay_actions, vectorized)
         loss = F.mse_loss(q1, target) + F.mse_loss(q2, target)
         critic_step = (lambda *args: self.precision.step("critic", *args)) if self.precision.enabled else step_optimizer

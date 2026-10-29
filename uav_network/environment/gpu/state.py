@@ -34,6 +34,7 @@ class WorldParams:
     ack_uses_data_power: wp.int32
     propagation_delay_enabled: wp.int32
     tx_power_mapping_log: wp.int32
+    guided_power: wp.int32
     power_limited_admission: wp.int32
     link_state_observation: wp.int32
     cw_min: wp.int32
@@ -70,6 +71,7 @@ class WorldParams:
     gcs_y: wp.float64
     tx_power_min: wp.float64
     tx_power_max: wp.float64
+    power_margin_factor: wp.float64
     pa_efficiency: wp.float64
     tx_circuit_power: wp.float64
     rx_circuit_power: wp.float64
@@ -274,6 +276,8 @@ def params_from_config(config):
                   ack_uses_data_power=int(n.ack_uses_data_power),
                   propagation_delay_enabled=int(n.propagation_delay_enabled),
                   tx_power_mapping_log=int(n.tx_power_mapping == "log"),
+                  guided_power=int(n.power_control == "link_budget"),
+                  power_margin_factor=10.0 ** (n.link_budget_margin_db / 10.0),
                   power_limited_admission=int(n.power_limited_admission),
                   link_state_observation=int(n.link_state_observation), cw_min=31,
                   coalesce_idle_polls=int(config.runtime.coalesce_idle_polls),

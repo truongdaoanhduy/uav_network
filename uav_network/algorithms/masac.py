@@ -33,6 +33,7 @@ class MASAC(nn.Module):
         self.device = torch.device(device)
         self.num_uavs = n = config.world.num_uavs
         self.destinations = k = n + 1
+        self.learn_power = config.network.power_control == "learned"
         a = config.masac
         self.share_actor_parameters = a.share_actor_parameters
         self.share_critic_parameters = a.share_critic_parameters
@@ -78,8 +79,10 @@ class MASAC(nn.Module):
         logs = logs.masked_fill(probs == 0, 0)
         active = (observation[:, 9] > .5).to(continuous.dtype)
         continuous = continuous * active[:, None]
+        if not self.learn_power:
+            continuous = torch.cat((continuous[:, :2], continuous[:, 2:3] * 0), -1)
         # Power is a control only when the categorical destination is non-silent.
-        conditional_logp = (parts[:, :2].sum(-1) + (1 - probs[:, 0]) * parts[:, 2]) * active
+        conditional_logp = (parts[:, :2].sum(-1) + self.learn_power * (1 - probs[:, 0]) * parts[:, 2]) * active
         return continuous, conditional_logp, probs, logs
 
     def _sample_agents(self, observations, deterministic=False):
@@ -210,7 +213,8 @@ class MASAC(nn.Module):
                     soft = (probs[:, i] * (q - alpha_d[i] * log_probs[:, i])).sum(-1) - alpha_c[i] * logs[:, i]
                     targets.append(soft_bellman_target(data["reward"], data["terminated"], soft, a.gamma))
                 target = torch.stack(targets, 1)
-        replay_joint = joint_action(data["continuous"], data["destination"], self.destinations)
+        replay_joint = joint_action(data["continuous"], data["destination"], self.destinations,
+                                    learn_power=self.learn_power)
         if self.share_critic_parameters:
             q1, q2 = self.critics[0](data["state"], replay_joint)
         else:
@@ -269,7 +273,8 @@ class MASAC(nn.Module):
                 entropies_c.append(-logp.detach().mean())
                 entropies_d.append(-(probs.detach() * log_probs.detach()).sum(-1).mean())
                 active = (obs[:, 9] > .5).float()
-                targets_c.append((a.target_continuous_entropy / 3 * (3 - probs[:, 0].detach()) * active).mean())
+                controls = 3 - probs[:, 0].detach() if self.learn_power else 2
+                targets_c.append((a.target_continuous_entropy / 3 * controls * active).mean())
                 choices = valid_destinations(obs, self.destinations).sum(-1).float()
                 targets_d.append((a.target_discrete_entropy_ratio * choices.log()).mean())
             actor_step = self.precision.step_actors if self.precision.enabled else step_actor_optimizers
