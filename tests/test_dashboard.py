@@ -83,13 +83,29 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(pinned,{"run:displayName","run:state","run:createdAt","run:duration"})
         plots = [p for section in spec["panelBankConfig"]["sections"] for p in section["panels"]
                  if "metrics" in p.get("config",{})]
-        self.assertEqual(len(plots),34)
-        paper_return = [p for p in plots if p.get("config", {}).get("chartTitle") == "Paper-style training return / reward"]
+        self.assertEqual(len(plots),36)
+        paper_return = [p for p in plots if p.get("config", {}).get("chartTitle") == "UAV-paper training return / reward"]
         self.assertEqual(len(paper_return), 1)
-        self.assertEqual(paper_return[0]["config"]["xAxis"], "episode/index")
-        self.assertEqual(paper_return[0]["config"]["smoothingType"], "average")
-        self.assertEqual(paper_return[0]["config"]["smoothingWeight"], 0.9)
-        self.assertFalse(paper_return[0]["config"]["showOriginalAfterSmoothing"])
+        paper_config = paper_return[0]["config"]
+        self.assertEqual(paper_config["xAxis"], "episode/index")
+        self.assertEqual(paper_config["xExpression"], "${episode/index} / 10000")
+        self.assertEqual(paper_config["xAxisTitle"], "Episode (×10⁴)")
+        self.assertEqual(paper_config["smoothingType"], "exponential")
+        self.assertEqual(paper_config["smoothingWeight"], 0.99)
+        self.assertEqual(paper_config["pointVisualizationMethod"], "sampling")
+        self.assertFalse(paper_config["showOriginalAfterSmoothing"])
+
+        sample_return = [p for p in plots if p.get("config", {}).get("chartTitle") == "Sample-efficiency training return / reward"]
+        self.assertEqual(len(sample_return), 1)
+        self.assertEqual(sample_return[0]["config"]["xAxis"], "global_step")
+        self.assertEqual(sample_return[0]["config"]["xExpression"], "${global_step} / 1000000")
+        self.assertEqual(sample_return[0]["config"]["xAxisTitle"], "Environment Steps (M)")
+
+        compute_return = [p for p in plots if p.get("config", {}).get("chartTitle") == "Compute-efficiency training return / reward"]
+        self.assertEqual(len(compute_return), 1)
+        self.assertEqual(compute_return[0]["config"]["xAxis"], "_runtime")
+        self.assertEqual(compute_return[0]["config"]["xExpression"], "${_runtime} / 60")
+        self.assertEqual(compute_return[0]["config"]["xAxisTitle"], "Wall Time (min)")
         for panel in plots:
             config = panel["config"]
             self.assertEqual(config.get("limit"),12)

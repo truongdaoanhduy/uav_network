@@ -21,11 +21,13 @@ PANELS = {
         ("Discovered targets (%) - higher", "cohort/search_rate_percent_mean"),
         ("Completed episodes in outcome window - sample size", "cohort/episodes"),
     ],
-    "Training convergence - paper style": [
-        ("Paper-style training return / reward", "episode/return"),
-        ("Paper-style search rate (%)", "outcome/search_rate_percent"),
-        ("Paper-style delivery rate (%)", "outcome/delivery_rate_percent"),
-        ("Paper-style mission success fraction", "outcome/success"),
+    "Training convergence - paper and benchmark views": [
+        ("UAV-paper training return / reward", "episode/return"),
+        ("UAV-paper search rate (%)", "outcome/search_rate_percent"),
+        ("UAV-paper delivery rate (%)", "outcome/delivery_rate_percent"),
+        ("UAV-paper mission success fraction", "outcome/success"),
+        ("Sample-efficiency training return / reward", "episode/return"),
+        ("Compute-efficiency training return / reward", "episode/return"),
         ("Episode return / reward (raw audit)", "episode/return"),
         ("Rolling return standard deviation", "rolling/return_std"),
     ],
@@ -93,8 +95,12 @@ DIAGNOSTIC_PANELS = {
 }
 
 
-def panel_axis(metric):
+def panel_axis(metric, title=""):
     metric = metric[0] if isinstance(metric, tuple) else metric
+    if title.startswith("Sample-efficiency"):
+        return "global_step"
+    if title.startswith("Compute-efficiency"):
+        return "_runtime"
     if metric == "episode/return" or metric.startswith("outcome/"):
         return "episode/index"
     if metric.startswith("system/"):
@@ -105,11 +111,19 @@ def panel_axis(metric):
 
 
 def panel_options(title, metric):
-    """Display smoothing only; underlying W&B history stays unchanged."""
+    """Display-only transforms; the underlying W&B history stays unchanged."""
     metric = metric[0] if isinstance(metric, tuple) else metric
-    if title.startswith("Paper-style"):
-        return {"smoothing_type": "average", "smoothing_factor": 0.9,
-                "smoothing_show_original": False, "title_x": "Episode"}
+    clean_curve = {"smoothing_type": "exponential", "smoothing_factor": 0.99,
+                   "smoothing_show_original": False, "point_visualization_method": "sampling"}
+    if title.startswith("UAV-paper"):
+        return {**clean_curve, "title_x": "Episode (×10⁴)",
+                "xaxis_expression": "${episode/index} / 10000"}
+    if title.startswith("Sample-efficiency"):
+        return {**clean_curve, "title_x": "Environment Steps (M)",
+                "xaxis_expression": "${global_step} / 1000000"}
+    if title.startswith("Compute-efficiency"):
+        return {**clean_curve, "title_x": "Wall Time (min)",
+                "xaxis_expression": "${_runtime} / 60"}
     if metric in {"learner/critic_loss", "learner/actor_loss", "learner/td_error_abs_mean"}:
         return {"smoothing_type": "average", "smoothing_factor": 0.8,
                 "smoothing_show_original": True}
@@ -219,7 +233,7 @@ def create_dashboard(config, run_ids=(), name="UAV Network 2D - MASAC and MATD3"
     panels = PANELS if profile == "core" else DIAGNOSTIC_PANELS
     workspace.sections = [ws.Section(name=title, is_open=not title.startswith(
         ("Periodic", "Numerical", "Recovery")), panels=[
-        wr.LinePlot(title=label, x=panel_axis(metric),
+        wr.LinePlot(title=label, x=panel_axis(metric, label),
                     y=list(metric) if isinstance(metric, tuple) else [metric],
                     max_runs_to_show=12, aggregate=False, **panel_options(label, metric))
         for label, metric in metrics

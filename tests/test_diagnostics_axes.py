@@ -81,7 +81,7 @@ def test_workspace_run_table_is_compact_and_decision_focused():
         "outcome/search_rate_percent", "outcome/delivery_rate_percent", "outcome/success",
         "learner/actor_loss", "system/gpu.0.gpu", "system/gpu.1.gpu", "recovery/elapsed_seconds",
     } <= all_metrics
-    assert sum(len(panels) for panels in PANELS.values()) == 34
+    assert sum(len(panels) for panels in PANELS.values()) == 36
 
 
 def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source():
@@ -132,13 +132,33 @@ def test_actor_loss_is_available_in_core_and_advanced_diagnostics():
     assert any(metric=='learner/actor_loss' for panels in DIAGNOSTIC_PANELS.values() for _,metric in panels)
 
 
-def test_paper_style_panels_use_visible_smoothing_and_loss_keeps_raw_trace():
-    from uav_network.experiments.dashboard import panel_options
-    reward = panel_options("Paper-style training return / reward", "episode/return")
-    assert reward["smoothing_type"] == "average"
-    assert reward["smoothing_factor"] == 0.9
-    assert reward["smoothing_show_original"] is False
-    assert reward["title_x"] == "Episode"
+def test_paper_and_benchmark_panels_use_scaled_axes_and_clean_rendering():
+    from uav_network.experiments.dashboard import panel_axis, panel_options
+
+    paper_title = "UAV-paper training return / reward"
+    paper = panel_options(paper_title, "episode/return")
+    assert panel_axis("episode/return", paper_title) == "episode/index"
+    assert paper["smoothing_type"] == "exponential"
+    assert paper["smoothing_factor"] == 0.99
+    assert paper["smoothing_show_original"] is False
+    assert paper["title_x"] == "Episode (×10⁴)"
+    assert paper["xaxis_expression"] == "${episode/index} / 10000"
+    assert paper["point_visualization_method"] == "sampling"
+
+    sample_title = "Sample-efficiency training return / reward"
+    sample = panel_options(sample_title, "episode/return")
+    assert panel_axis("episode/return", sample_title) == "global_step"
+    assert sample["title_x"] == "Environment Steps (M)"
+    assert sample["xaxis_expression"] == "${global_step} / 1000000"
+    assert sample["point_visualization_method"] == "sampling"
+
+    compute_title = "Compute-efficiency training return / reward"
+    compute = panel_options(compute_title, "episode/return")
+    assert panel_axis("episode/return", compute_title) == "_runtime"
+    assert compute["title_x"] == "Wall Time (min)"
+    assert compute["xaxis_expression"] == "${_runtime} / 60"
+    assert compute["point_visualization_method"] == "sampling"
+
     loss = panel_options("Critic loss - diagnostic only", "learner/critic_loss")
     assert loss["smoothing_type"] == "average"
     assert loss["smoothing_factor"] == 0.8
