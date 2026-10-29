@@ -1,3 +1,18 @@
+# Shared Actor + Critic FULLGPU profile — VERIFIED / NOT LAUNCHED
+
+Updated 2026-10-29. User requested FULLGPU for the new shared-actor/shared-critic MASAC/MATD3 training profile while retaining HYBRID75 for comparison. Runtime commit `23aa1eafe2d273560bd054c7e491ee05410ef963`.
+
+- Added `configs/comparison-20k-fullgpu-1kb-shared-actor-critic.yaml`. Both MASAC and MATD3 keep `share_actor_parameters=true` and `share_critic_parameters=true`.
+- FULLGPU replay is explicit: `runtime.replay_device=cuda`, `runtime.replay_cpu_fraction=0`. Run identity resolves to `SHARED-ACTOR-CRITIC-FULLGPU`; tag `fullgpu`; no `cpu75-gpu25`.
+- HYBRID shared-both profile remains unchanged for A/B comparison. The FULLGPU profile differs from it only in replay placement and output/group/tag identity; seed44, 20T/15O, 1200 steps, 20k episodes, E4096, B8192, replay1M, updates8, FP32, compile on, BASE, link-budget+3dB remain matched.
+- TDD RED occurred because the FULLGPU profile did not exist; GREEN after creation. Focused verification: 44 passed + 34 subtests. Full suite: 1030 passed, 97 skipped, 8 warnings, 1478 subtests in 228.15s. `compileall` and `git diff --check` pass.
+- No Kaggle/W&B production training was launched by this task. CUDA production feasibility for this exact shared-both FULLGPU profile is not freshly measured in this task; historical FULLGPU E4096/B8192/R1M runs existed, but do not relabel them as this new 20T/15O profile.
+
+Design: `docs/superpowers/specs/2026-10-29-shared-both-fullgpu-design.md`. Plan: `docs/superpowers/plans/2026-10-29-shared-both-fullgpu.md`.
+Next action if launching: fresh-check duplicate jobs/quota/VRAM and start MASAC BASE + MATD3 BASE from the FULLGPU profile; retain the HYBRID shared-both profile as the controlled replay-layout comparator.
+
+---
+
 # Shared actor + shared critic MASAC/MATD3 — CPU VERIFIED / NOT LAUNCHED
 
 Updated 2026-10-29. User selected the full-sharing topology after comparing matched W&B MASAC runs. Added a dedicated controlled profile rather than overwriting the independent baseline:
