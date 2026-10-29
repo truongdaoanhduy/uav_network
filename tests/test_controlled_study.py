@@ -77,6 +77,39 @@ def test_shared_actor_critic_profile_preserves_controlled_baseline():
     assert shared_dict == base_dict
 
 
+def test_shared_actor_critic_fullgpu_profile_matches_hybrid_except_replay_layout():
+    hybrid_path = ROOT / "configs/comparison-20k-hybrid75-1kb-shared-actor-critic.yaml"
+    fullgpu_path = ROOT / "configs/comparison-20k-fullgpu-1kb-shared-actor-critic.yaml"
+    hybrid = load_config(hybrid_path)
+    fullgpu = load_config(fullgpu_path)
+
+    for algorithm in ("masac", "matd3"):
+        group = getattr(fullgpu, algorithm)
+        assert group.share_actor_parameters is True
+        assert group.share_critic_parameters is True
+
+    assert fullgpu.runtime.replay_device == "cuda"
+    assert fullgpu.runtime.replay_cpu_fraction == 0
+    assert hybrid.runtime.replay_device == "cpu"
+    assert hybrid.runtime.replay_cpu_fraction == 0.75
+    assert "fullgpu" in fullgpu.runtime.output_dir.lower()
+    assert "fullgpu" in fullgpu.tracking.group.lower()
+    assert "fullgpu" in {tag.lower() for tag in fullgpu.tracking.tags}
+    assert "cpu75-gpu25" not in {tag.lower() for tag in fullgpu.tracking.tags}
+
+    fullgpu_dict = fullgpu.to_dict()
+    hybrid_dict = hybrid.to_dict()
+    for data in (fullgpu_dict, hybrid_dict):
+        data["runtime"].pop("replay_device")
+        data["runtime"].pop("replay_cpu_fraction")
+        data["runtime"].pop("output_dir")
+        data["tracking"].pop("group")
+    fullgpu_tags = set(fullgpu_dict["tracking"].pop("tags"))
+    hybrid_tags = set(hybrid_dict["tracking"].pop("tags"))
+    assert fullgpu_tags - {"fullgpu"} == hybrid_tags - {"cpu75-gpu25"}
+    assert fullgpu_dict == hybrid_dict
+
+
 def test_default_matrix_is_84_cases_with_independent_seed_banks(tmp_path):
     from uav_network.experiments.study import plan_study
     manifest=plan_study(PROFILE,tmp_path/"study")
