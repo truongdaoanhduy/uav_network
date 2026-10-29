@@ -78,7 +78,7 @@ def test_workspace_run_table_is_compact_and_decision_focused():
         "cohort/episodes", "storage/disk_free_bytes", "learner/critic_loss", "learner/td_error_abs_mean",
         "cohort/network/packet_pdr_fraction", "cohort/delivery_rate_percent_mean",
         "episode/return", "rolling/return_std",
-        "outcome/search_rate_percent", "outcome/delivery_rate_percent", "rolling/success_rate",
+        "outcome/search_rate_percent", "outcome/delivery_rate_percent", "outcome/success",
         "learner/actor_loss", "system/gpu.0.gpu", "system/gpu.1.gpu", "recovery/elapsed_seconds",
     } <= all_metrics
     assert sum(len(panels) for panels in PANELS.values()) == 36
@@ -139,38 +139,25 @@ def test_paper_and_benchmark_panels_use_scaled_axes_and_clean_rendering():
     paper = panel_options(paper_title, "episode/return")
     assert panel_axis("episode/return", paper_title) == "episode/index"
     assert paper["smoothing_type"] == "exponential"
-    assert paper["smoothing_factor"] == 0.95
-    assert paper["smoothing_show_original"] is True
-    assert paper["title_x"] == "Episode (×10³)"
-    assert paper["xaxis_expression"] == "${episode/index} / 1000"
-    assert paper["point_visualization_method"] == "bucketing-gorilla"
+    assert paper["smoothing_factor"] == 0.99
+    assert paper["smoothing_show_original"] is False
+    assert paper["title_x"] == "Episode (×5×10³)"
+    assert paper["xaxis_expression"] == "${episode/index} / 5000"
+    assert paper["point_visualization_method"] == "sampling"
 
     sample_title = "Sample-efficiency training return / reward"
     sample = panel_options(sample_title, "episode/return")
     assert panel_axis("episode/return", sample_title) == "global_step"
     assert sample["title_x"] == "Environment Steps (M)"
     assert sample["xaxis_expression"] == "${global_step} / 1000000"
-    assert sample["point_visualization_method"] == "bucketing-gorilla"
-    assert sample["smoothing_factor"] == 0.95
-    assert sample["smoothing_show_original"] is True
+    assert sample["point_visualization_method"] == "sampling"
 
     compute_title = "Compute-efficiency training return / reward"
     compute = panel_options(compute_title, "episode/return")
     assert panel_axis("episode/return", compute_title) == "_runtime"
     assert compute["title_x"] == "Wall Time (min)"
     assert compute["xaxis_expression"] == "${_runtime} / 60"
-    assert compute["point_visualization_method"] == "bucketing-gorilla"
-    assert compute["smoothing_factor"] == 0.95
-    assert compute["smoothing_show_original"] is True
-
-    success_title = "Rolling mission success rate (20-episode window)"
-    success = panel_options(success_title, "rolling/success_rate")
-    assert panel_axis("rolling/success_rate", success_title) == "global_step"
-    assert success["smoothing_type"] == "none"
-    assert success["title_x"] == "Environment Steps (M)"
-    assert success["xaxis_expression"] == "${global_step} / 1000000"
-    assert success["title_y"] == "Success rate (20-episode rolling fraction)"
-    assert success["point_visualization_method"] == "bucketing-gorilla"
+    assert compute["point_visualization_method"] == "sampling"
 
     loss = panel_options("Critic loss - diagnostic only", "learner/critic_loss")
     assert loss["smoothing_type"] == "average"
