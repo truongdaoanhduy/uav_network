@@ -32,8 +32,11 @@ def test_external_supervisor_workflow_is_scheduled_manual_and_nonoverlapping():
 
 def test_external_supervisor_workflow_references_masked_secrets_not_values():
     source = WORKFLOW.read_text()
-    for index in range(1, 25):
+    active_aliases = {1, 2, 3, 7, *range(11, 24)}
+    for index in active_aliases:
         assert f"secrets.KAGGLE_API_TOKEN_ACCOUNT_{index:02d}" in source
+    for index in set(range(1, 25)) - active_aliases:
+        assert f"secrets.KAGGLE_API_TOKEN_ACCOUNT_{index:02d}" not in source
     for name in ("WANDB_API_KEY", "HF_TOKEN"):
         assert f"secrets.{name}" in source
     for name in ("WANDB_ENTITY", "WANDB_PROJECT", "HF_REPO_ID", "KAGGLE_ENABLED_ACCOUNTS"):
