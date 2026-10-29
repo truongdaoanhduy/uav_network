@@ -25,8 +25,7 @@ PANELS = {
         ("UAV-paper training return / reward", "episode/return"),
         ("UAV-paper search rate (%)", "outcome/search_rate_percent"),
         ("UAV-paper delivery rate (%)", "outcome/delivery_rate_percent"),
-        ("UAV-paper mission success (%)", "outcome/success"),
-        ("Rolling mission success rate (%) - trend", "rolling/success_rate"),
+        ("UAV-paper mission success rate by episode", "outcome/success"),
         ("Sample-efficiency training return / reward", "episode/return"),
         ("Compute-efficiency training return / reward", "episode/return"),
         ("Episode return / reward (raw audit)", "episode/return"),
@@ -98,8 +97,6 @@ DIAGNOSTIC_PANELS = {
 
 def panel_axis(metric, title=""):
     metric = metric[0] if isinstance(metric, tuple) else metric
-    if metric == "rolling/success_rate":
-        return "global_step"
     if title.startswith("Sample-efficiency"):
         return "global_step"
     if title.startswith("Compute-efficiency"):
@@ -118,20 +115,13 @@ def panel_options(title, metric):
     metric = metric[0] if isinstance(metric, tuple) else metric
     clean_curve = {"smoothing_type": "exponential", "smoothing_factor": 0.99,
                    "smoothing_show_original": False, "point_visualization_method": "sampling"}
-    if title == "UAV-paper mission success (%)":
-        return {**clean_curve, "title_x": "Episode (×10²)",
-                "xaxis_expression": "${episode/index} / 100",
-                "title_y": "Mission success (%)",
-                "custom_expressions": ["${outcome/success} * 100"],
-                "range_y": (0, 100)}
-    if title == "Rolling mission success rate (%) - trend":
+    if title == "UAV-paper mission success rate by episode":
         return {"smoothing_type": "average", "smoothing_factor": 0.8,
                 "smoothing_show_original": True, "point_visualization_method": "bucketing-gorilla",
-                "title_x": "Environment Steps (M)",
-                "xaxis_expression": "${global_step} / 1000000",
-                "title_y": "Rolling success rate (%)",
-                "custom_expressions": ["${rolling/success_rate} * 100"],
-                "range_y": (0, 100)}
+                "title_x": "Episode (×10²)",
+                "xaxis_expression": "${episode/index} / 100",
+                "title_y": "Mission success rate (fraction; 1 = 100%)",
+                "range_y": (0, 1)}
     if title.startswith("UAV-paper"):
         return {**clean_curve, "title_x": "Episode (×10²)",
                 "xaxis_expression": "${episode/index} / 100"}

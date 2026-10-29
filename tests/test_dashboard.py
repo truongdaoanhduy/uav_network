@@ -83,7 +83,7 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(pinned,{"run:displayName","run:state","run:createdAt","run:duration"})
         plots = [p for section in spec["panelBankConfig"]["sections"] for p in section["panels"]
                  if "metrics" in p.get("config",{})]
-        self.assertEqual(len(plots),37)
+        self.assertEqual(len(plots),36)
         paper_return = [p for p in plots if p.get("config", {}).get("chartTitle") == "UAV-paper training return / reward"]
         self.assertEqual(len(paper_return), 1)
         paper_config = paper_return[0]["config"]
@@ -96,27 +96,18 @@ class DashboardTests(unittest.TestCase):
         self.assertFalse(paper_config["showOriginalAfterSmoothing"])
 
 
-        success = [p for p in plots if p.get("config", {}).get("chartTitle") == "UAV-paper mission success (%)"]
+        success = [p for p in plots if p.get("config", {}).get("chartTitle") == "UAV-paper mission success rate by episode"]
         self.assertEqual(len(success), 1)
         success_config = success[0]["config"]
         self.assertEqual(success_config["metrics"], ["outcome/success"])
-        self.assertEqual(success_config["expressions"], ["${outcome/success} * 100"])
         self.assertEqual(success_config["xAxis"], "episode/index")
         self.assertEqual(success_config["xExpression"], "${episode/index} / 100")
         self.assertEqual(success_config["xAxisTitle"], "Episode (×10²)")
-        self.assertEqual(success_config["yAxisTitle"], "Mission success (%)")
+        self.assertEqual(success_config["yAxisTitle"], "Mission success rate (fraction; 1 = 100%)")
         self.assertEqual(success_config["yAxisMin"], 0.0)
-        self.assertEqual(success_config["yAxisMax"], 100.0)
-
-        rolling_success = [p for p in plots if p.get("config", {}).get("chartTitle") == "Rolling mission success rate (%) - trend"]
-        self.assertEqual(len(rolling_success), 1)
-        rolling_config = rolling_success[0]["config"]
-        self.assertEqual(rolling_config["metrics"], ["rolling/success_rate"])
-        self.assertEqual(rolling_config["expressions"], ["${rolling/success_rate} * 100"])
-        self.assertEqual(rolling_config["xAxis"], "global_step")
-        self.assertEqual(rolling_config["xExpression"], "${global_step} / 1000000")
-        self.assertEqual(rolling_config["yAxisMin"], 0.0)
-        self.assertEqual(rolling_config["yAxisMax"], 100.0)
+        self.assertEqual(success_config["yAxisMax"], 1.0)
+        self.assertEqual(success_config["smoothingType"], "average")
+        self.assertTrue(success_config["showOriginalAfterSmoothing"])
 
         sample_return = [p for p in plots if p.get("config", {}).get("chartTitle") == "Sample-efficiency training return / reward"]
         self.assertEqual(len(sample_return), 1)

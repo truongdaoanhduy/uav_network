@@ -78,10 +78,10 @@ def test_workspace_run_table_is_compact_and_decision_focused():
         "cohort/episodes", "storage/disk_free_bytes", "learner/critic_loss", "learner/td_error_abs_mean",
         "cohort/network/packet_pdr_fraction", "cohort/delivery_rate_percent_mean",
         "episode/return", "rolling/return_std",
-        "outcome/search_rate_percent", "outcome/delivery_rate_percent", "outcome/success", "rolling/success_rate",
+        "outcome/search_rate_percent", "outcome/delivery_rate_percent", "outcome/success",
         "learner/actor_loss", "system/gpu.0.gpu", "system/gpu.1.gpu", "recovery/elapsed_seconds",
     } <= all_metrics
-    assert sum(len(panels) for panels in PANELS.values()) == 37
+    assert sum(len(panels) for panels in PANELS.values()) == 36
 
 
 def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source():
@@ -153,25 +153,15 @@ def test_paper_and_benchmark_panels_use_scaled_axes_and_clean_rendering():
     assert sample["point_visualization_method"] == "sampling"
 
 
-    success_title = "UAV-paper mission success (%)"
+    success_title = "UAV-paper mission success rate by episode"
     success = panel_options(success_title, "outcome/success")
     assert panel_axis("outcome/success", success_title) == "episode/index"
     assert success["title_x"] == "Episode (×10²)"
     assert success["xaxis_expression"] == "${episode/index} / 100"
-    assert success["title_y"] == "Mission success (%)"
-    assert success["custom_expressions"] == ["${outcome/success} * 100"]
-    assert success["range_y"] == (0, 100)
-
-    rolling_title = "Rolling mission success rate (%) - trend"
-    rolling = panel_options(rolling_title, "rolling/success_rate")
-    assert panel_axis("rolling/success_rate", rolling_title) == "global_step"
-    assert rolling["title_x"] == "Environment Steps (M)"
-    assert rolling["xaxis_expression"] == "${global_step} / 1000000"
-    assert rolling["title_y"] == "Rolling success rate (%)"
-    assert rolling["custom_expressions"] == ["${rolling/success_rate} * 100"]
-    assert rolling["range_y"] == (0, 100)
-    assert rolling["smoothing_type"] == "average"
-    assert rolling["smoothing_show_original"] is True
+    assert success["title_y"] == "Mission success rate (fraction; 1 = 100%)"
+    assert success["range_y"] == (0, 1)
+    assert success["smoothing_type"] == "average"
+    assert success["smoothing_show_original"] is True
 
     compute_title = "Compute-efficiency training return / reward"
     compute = panel_options(compute_title, "episode/return")
