@@ -416,8 +416,8 @@ def main(argv=None):
         args.report.parent.mkdir(parents=True, exist_ok=True)
         args.report.write_text(encoded + "\n")
     print(encoded)
-    blocked = {"reconcile_error", "account_unavailable", "recovery_blocked",
-               "recovery_required", "service_unavailable"}
+    blocked = {"reconcile_error", "account_unavailable", "recovery_required",
+               "service_unavailable"}
     return int(any(item.get("action") in blocked
                    for rows in report.values() for item in rows))
 
