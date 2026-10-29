@@ -38,12 +38,16 @@ def sync_credentials(key_file: str | Path, *, repo: str | None = None,
         if not isinstance(item, dict) or item.get("enabled", True) is not True:
             continue
         name, token = item.get("name"), item.get("token")
-        match = ACCOUNT_RE.fullmatch(str(name or ""))
-        if not match or not isinstance(token, str) or not token:
-            raise ValueError("Enabled Kaggle accounts require account_NN names and tokens")
-        account_name = f"account_{match.group(1)}"
+        local_match = ACCOUNT_RE.fullmatch(str(name or ""))
+        github_name = item.get("github_account", name)
+        github_match = ACCOUNT_RE.fullmatch(str(github_name or ""))
+        if not local_match or not github_match or not isinstance(token, str) or not token:
+            raise ValueError("Enabled Kaggle accounts require account_NN names, GitHub aliases, and tokens")
+        account_name = f"account_{github_match.group(1)}"
+        if account_name in enabled_accounts:
+            raise ValueError("duplicate GitHub Kaggle account alias")
         enabled_accounts.append(account_name)
-        secrets.append((f"KAGGLE_API_TOKEN_ACCOUNT_{match.group(1)}", token))
+        secrets.append((f"KAGGLE_API_TOKEN_ACCOUNT_{github_match.group(1)}", token))
 
     wandb = data.get("wandb", {})
     hf = data.get("huggingface", {})

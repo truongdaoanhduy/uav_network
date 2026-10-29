@@ -63,6 +63,9 @@ class PQLSystem:
         self.initial_collector_rng = None
         if saved:
             validate_pql_checkpoint(saved, config)
+            algorithm_config = saved["config"][config.runtime.algorithm]
+            algorithm_config.setdefault("share_actor_parameters", False)
+            algorithm_config.setdefault("share_critic_parameters", False)
             self.initial_environment = saved["training"].get("environment")
             if self.initial_environment is not None:
                 from .environment_checkpoints import validate_environment
