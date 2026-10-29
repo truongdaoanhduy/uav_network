@@ -59,8 +59,7 @@ def learner_command(spec, algorithm, run, gpu_index, destination, max_seconds=No
         overrides.append("tracking.evaluation_interval=0")
     if algorithm in spec.get("warm_start_paths", {}):
         overrides.append(f"runtime.warm_start_checkpoint={spec['warm_start_paths'][algorithm]}")
-        if spec.get("auto_continue"):
-            env["UAV_STAGED_RESUME_CHECKPOINT"] = str(spec["warm_start_paths"][algorithm])
+        env["UAV_STAGED_RESUME_CHECKPOINT"] = str(spec["warm_start_paths"][algorithm])
     if max_seconds is not None:
         overrides.append(f"runtime.max_train_seconds={max_seconds}")
     for override in overrides:
