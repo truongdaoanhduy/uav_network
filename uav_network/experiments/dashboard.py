@@ -22,6 +22,7 @@ PANELS = {
         ("Completed episodes in outcome window - sample size", "cohort/episodes"),
     ],
     "Training convergence - rolling outcomes": [
+        ("Episode return / reward (raw)", "episode/return"),
         ("Rolling return / reward mean", "rolling/return_mean"),
         ("Rolling return standard deviation", "rolling/return_std"),
         ("Rolling search rate (%)", "rolling/search_rate_percent"),
@@ -50,6 +51,7 @@ PANELS = {
     ],
     "Numerical diagnostics - no universal loss target": [
         ("Critic loss - diagnostic only", "learner/critic_loss"),
+        ("Actor loss - diagnostic only", "learner/actor_loss"),
         ("TD error absolute mean", "learner/td_error_abs_mean"),
         ("Q absolute maximum", "learner/q_abs_max"),
         ("Critic gradient norm", "learner/critic_grad_norm"),
@@ -93,6 +95,8 @@ DIAGNOSTIC_PANELS = {
 
 def panel_axis(metric):
     metric = metric[0] if isinstance(metric, tuple) else metric
+    if metric == "episode/return":
+        return "episode/index"
     if metric.startswith("system/"):
         return "_runtime"
     if metric in CPU_EPISODE_METRICS:
