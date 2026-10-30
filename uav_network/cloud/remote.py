@@ -159,7 +159,7 @@ def pql_benchmarks(spec, config, output, require_pass=True):
     results = {}
     for algorithm in spec["runs"]:
         batch = getattr(config, algorithm).batch_size
-        rounds = max(40, config.pql.warmup_collection_steps + 8,
+        rounds = max(40, spec.get("benchmark_steps", 40), config.pql.warmup_collection_steps + 8,
                      math.ceil(batch / config.runtime.num_envs) + 1)
         path = output / f"{algorithm}-benchmark.json"
         args = [sys.executable, "scripts/benchmark_pql.py", "--config", spec["config"],

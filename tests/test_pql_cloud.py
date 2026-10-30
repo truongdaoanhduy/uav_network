@@ -49,7 +49,8 @@ class PQLCloudTests(unittest.TestCase):
         self.assertTrue(callable(getattr(remote, "pql_benchmarks", None)), "Missing PQL benchmark gate")
         c = load_config("configs/motion-pql.yaml")
         spec = {"stage": "benchmark", "config": "configs/motion-pql.yaml", "overrides": [],
-                "runs": {"masac": {"id": "benchmark-masac"}, "matd3": {"id": "benchmark-matd3"}}}
+                "runs": {"masac": {"id": "benchmark-masac"}, "matd3": {"id": "benchmark-matd3"}},
+                "benchmark_steps": 256}
         seen = []
         def child(args, **kwargs):
             seen.append(args)
@@ -58,6 +59,7 @@ class PQLCloudTests(unittest.TestCase):
             self.assertIn("scripts/benchmark_pql.py", args)
             self.assertEqual(args[args.index("--envs") + 1], "4096")
             self.assertEqual(args[args.index("--batches") + 1], "8192")
+            self.assertEqual(int(args[args.index("--steps") + 1]), 256)
             self.assertGreater(int(args[args.index("--steps") + 1]), c.pql.warmup_collection_steps)
             output = Path(args[args.index("--output") + 1])
             output.write_text(json.dumps({"results": [{"status": "passed", "cuda_pipeline_verified": True}]}))
