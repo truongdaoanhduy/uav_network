@@ -1,40 +1,43 @@
-# XYZ CUDA READINESS — TWO PARALLEL GPU SESSIONS / TRAINING NOT STARTED
+# XYZ — FOUR FIXED ACCOUNTS / FOUR TRAINING ROOTS RUNNING
 
-Updated 2026-10-31T05:09:52.079118+07:00.
-Branch feat/cpu-replay-20261022; published481f81f288d8e84a010dba52e4c8e30b5eebd391.
-Runtime5fee6c7(struct refs); cloud budget0867652; current benchmarks pinned481f81f.
+Updated 2026-10-30T22:29:40.605071+00:00.
+Branch feat/cpu-replay-20261022; runtime source 481f81f288d8e84a010dba52e4c8e30b5eebd391.
+Runtime5fee6c7(struct refs); PQL benchmark budget0867652; published docs c9c746a+.
 
-- Quick BASE/PQL at9e7b88c passed15CUDA(incl4XYZ),scenario4,mission8;PQL11smokes.
-  Full-ring matrix now3/6cases passed;each case runs MASAC/MATD3. E4096,B8192,R1M,
-  256rounds=1048576insertions; PQL diagnostic-only warmup248. Training warmup32.
-- Active monitor:f872767fa8c9. Read outputs/xyz-full-ring-20261031/parallel-current.json,
-  per-case receipt.json/status.json/measured.json and results.json. Source481f81f.
-  Prior local monitor b65a860569c6 stopped; all remote jobs preserved/adopted.
-- User asked4accounts for speed; do not pool accounts. Two GPU commit sessions
-  on account_01 are accepted and currently running,within Kaggle session limits.
-  Terms:https://www.kaggle.com/terms. Latest quota26.60h,observed during05h01check.
-- Three profiles:shared-Hybrid75,shared-FullGPU,independent-Hybrid75;BASE/PQL each.
-  Collector/learner roles use2T4 per job. Keep actual flag definitions and separate
-  Warp world bytes from PyTorch peaks. FullGPU BASE passed; PQL result pending.
-- Preserve6UAV/map1km/20T15O/1200steps,learned RF,XYZ Bayes/FOV/prior0.5,2Dvisualize,
-  FP32/eager overrides. YAMLs unchanged. CPU1146passed,102skipped,1557subtests.
-- GitHub supervisor dry-run41132659573 passed:account01 ownerkesfljhk,W&B/HFok.
-  Enabled-account var pinned01; selected encrypted secrets synchronized,others retained.
-  Existing supervisor handles per-lineage continuation and finalCPU30visualize.
-  Newly drafted four-root cohort plan/spec are NOT implemented yet.
-- No20kXYZ production training launched; no convergence or multi-seed proof.
-  Default study seeds44,100044,200044. Best actor and latestfullresume remain separate.
-  User historical CURRENT_TASK suffix stays unchanged/unstaged.
+- All6 full-ring cases passed: shared Hybrid75, shared FullGPU, independent Hybrid75,
+  BASE/PQL each;12 algorithm benchmarks. E4096/B8192/R1M,256 rounds=1048576 rows.
+  All CUDA15/scenario4/mission8 gates passed;PQL smoke11,48,576 ring overwrites.
+  Emitted learning metrics finite; explicit nonfinite counters were not emitted.
+- User requests4 fixed accounts, one case each. Initial roots all submitted/running:
+  account_01 kesfljhk MASAC BASE:33411b89
+  account_02 cdancsjf MASAC PQL:11cbc295
+  account_03 jyfhjggiy MATD3 BASE:ed7bbd70
+  account_07 ukggyfyy MATD3 PQL:63a462ec
+- Same shared-actor/critic Hybrid75 XYZ profile;seed44,20k,FP32/eager,warmup32.
+  Preserve6UAV/map1km/20T15O/1200steps,learned RF,XYZ prior0.5,FOV/Bayes,2Dvisualize.
+  Production case receipts:outputs/xyz-cohort-20261031/<case>/receipt.json.
+  Submission-attempt means possible acceptance;never blindly resubmit either kind.
+- GitHub four-account dry-run41137502991 passed W&B/HF+all four account checks.
+  Normal reconciliation41137959190 passed,adopted4active roots with no duplicates.
+  Enabled var exactly01/02/03/07;encrypted selected secrets synchronized,others retained.
+  Existing Actions cron continues fixed-account lineages and final CPU30visualize.
+- All4 W&B training configs/hardware verified;each reports positive learner updates.
+  Latest machine record contains actual global steps/updates at the observed timestamp.
+- Best-policy and latest full resume remain separate;no XY warm start.
+  No20k completion,finalCPU30,convergence or multi-training-seed evidence yet.
+  Default future study seeds100044/200044 remain pending.
+- Draft serial cohort queue was superseded before implementation;no product scheduler
+  module/config added. Reuse native launch+existing supervisor. User tail stays unstaged.
+  Prior CPU suite1146passed102skipped1557subtests;current structure2passed512subtests.
 
-[GPU evidence](evidence/2026-10-31-xyz-gpu-benchmarks.md) |
-[Compiler diagnosis](evidence/2026-10-31-xyz-cuda-preflight.md) | [Usage](../xyz-sensing.md).
-Cohort draft:plans/2026-10-31-xyz-github-cohort.md; own ledger in corresponding workspace.
-Earlier raw:outputs/xyz-gpu-refs-20261031/ and xyz-gpu-preflight-42c1dac-20261031/.
+[Four-run evidence](evidence/2026-10-31-xyz-four-account-training.md) |
+[Readiness](evidence/2026-10-31-xyz-full-ring.md) | [Usage](../xyz-sensing.md).
 
-Next:finish current matrix; inspect any parallel-error.json before doing anything.
-Never re-submit a receipt-bearing case. Preserve OOM instead of shrinking hidden E/B/R.
-Once readiness is recorded,finish minimal Actions cohort queue and launch approved
-20kseed44 cohort;server continuation/eval must persist beyond Sandbox.
+Next:refresh live status via PYTHONPATH=. python outputs/xyz-cohort-20261031/observe.py.
+Read outputs/xyz-cohort-20261031/live-status.json and per-case logs before any action.
+All4 configs+learner updates observed;recheck before interpreting completion/convergence.
+Normal continuation/recovery/final CPU publication stays with existing supervisor.
+No remote job was cancelled;do not shrink E/B/R or rotate accounts silently.
 
 ---
 

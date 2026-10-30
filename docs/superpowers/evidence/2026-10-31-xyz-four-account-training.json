@@ -1,0 +1,323 @@
+{
+  "schema": 1,
+  "source_commit": "481f81f288d8e84a010dba52e4c8e30b5eebd391",
+  "config": "configs/comparison-20k-hybrid75-1kb-shared-actor-critic-xyz-sensing.yaml",
+  "episodes": 20000,
+  "seed": 44,
+  "num_envs": 4096,
+  "batch_size": 8192,
+  "replay_capacity": 1000000,
+  "replay_cpu_fraction": 0.75,
+  "compile_models": false,
+  "precision": "FP32",
+  "pql_warmup": 32,
+  "auto_continue": true,
+  "cpu_visualize": true,
+  "eval_episodes": 30,
+  "observed_at": "2026-10-30T22:29:16.345023+00:00",
+  "config_sha256": "f95f0ed3046956baf6e1e2174ee1736f7a74a9f17613ab78f29707a7b9d71c5e",
+  "cases": [
+    {
+      "id": "masac-base-s44",
+      "algorithm": "masac",
+      "mode": "base",
+      "account": "account_01",
+      "owner": "kesfljhk",
+      "group": "uav-xyz-cohort-20261031-v1-masac-base-s44",
+      "kernel_ref": "kesfljhk/gh-tra-g3-masac-base-h75-10302223-997c97",
+      "kernel_url": "https://www.kaggle.com/code/kesfljhk/gh-tra-g3-masac-base-h75-10302223-997c97",
+      "wandb_urls": {
+        "masac": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/33411b89"
+      },
+      "overrides": [
+        "runtime.seed=44",
+        "runtime.episodes=20000",
+        "runtime.compile_models=false",
+        "pql.enabled=false",
+        "tracking.group=uav-xyz-cohort-20261031-v1-masac-base-s44",
+        "tracking.tags=[\"uav-network\", \"scenario-v3\", \"controlled-20t15o\", \"shared-actor-critic\", \"targets20-obstacles15\", \"power-learned\", \"full20k\", \"replay1m\", \"batch8192\", \"env4096\", \"steps1200\", \"seed44\", \"base-pql-comparison\", \"report1kb\", \"radio-energy\", \"cpu-visualize\", \"auto-continue\", \"xyz\", \"bayesian-sensing\", \"grid25m\", \"belief-prior-0.5\", \"amp-off\", \"compile-off\", \"fused-off\", \"actor-shared\", \"critic-shared\", \"replay-hybrid-c75-g25\", \"generation3\"]"
+      ],
+      "cpu_eval": {
+        "episodes": 30,
+        "seed": 2000000044,
+        "frame_stride": 5,
+        "fps": 10
+      },
+      "timeout_seconds": 39600,
+      "kaggle_state": "running",
+      "wandb_state": "running",
+      "config_verified": true,
+      "two_t4_verified": true,
+      "cuda_devices": [
+        {
+          "name": "Tesla T4",
+          "index": 0,
+          "memory_gib": 14.56219482421875,
+          "compute_capability": [
+            7,
+            5
+          ]
+        },
+        {
+          "name": "Tesla T4",
+          "index": 1,
+          "memory_gib": 14.56219482421875,
+          "compute_capability": [
+            7,
+            5
+          ]
+        }
+      ],
+      "progress": {
+        "global_step": 176128,
+        "train/episodes_completed": 0,
+        "train/updates": 88
+      },
+      "best_and_resume_keys": {}
+    },
+    {
+      "id": "masac-pql-s44",
+      "algorithm": "masac",
+      "mode": "pql",
+      "account": "account_02",
+      "owner": "cdancsjf",
+      "group": "uav-xyz-cohort-20261031-v1-masac-pql-s44",
+      "kernel_ref": "cdancsjf/gh-tra-g3-masac-pql-h75-10302223-baef91",
+      "kernel_url": "https://www.kaggle.com/code/cdancsjf/gh-tra-g3-masac-pql-h75-10302223-baef91",
+      "wandb_urls": {
+        "masac": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/11cbc295"
+      },
+      "overrides": [
+        "runtime.seed=44",
+        "runtime.episodes=20000",
+        "runtime.compile_models=false",
+        "pql.enabled=true",
+        "tracking.group=uav-xyz-cohort-20261031-v1-masac-pql-s44",
+        "tracking.tags=[\"uav-network\", \"scenario-v3\", \"controlled-20t15o\", \"shared-actor-critic\", \"targets20-obstacles15\", \"power-learned\", \"full20k\", \"replay1m\", \"batch8192\", \"env4096\", \"steps1200\", \"seed44\", \"base-pql-comparison\", \"report1kb\", \"radio-energy\", \"cpu-visualize\", \"auto-continue\", \"xyz\", \"bayesian-sensing\", \"grid25m\", \"belief-prior-0.5\", \"amp-off\", \"compile-off\", \"fused-off\", \"actor-shared\", \"critic-shared\", \"replay-hybrid-c75-g25\", \"generation3\"]"
+      ],
+      "cpu_eval": {
+        "episodes": 30,
+        "seed": 2000000044,
+        "frame_stride": 5,
+        "fps": 10
+      },
+      "timeout_seconds": 39600,
+      "kaggle_state": "running",
+      "wandb_state": "running",
+      "config_verified": true,
+      "two_t4_verified": true,
+      "cuda_devices": [
+        {
+          "name": "Tesla T4",
+          "index": 0,
+          "memory_gib": 14.56219482421875,
+          "compute_capability": [
+            7,
+            5
+          ]
+        },
+        {
+          "name": "Tesla T4",
+          "index": 1,
+          "memory_gib": 14.56219482421875,
+          "compute_capability": [
+            7,
+            5
+          ]
+        }
+      ],
+      "progress": {
+        "global_step": 167936,
+        "pql/actor_updates": 53,
+        "pql/actor_updates_per_s": 0.9899436076916696,
+        "pql/critic_updates": 56,
+        "pql/critic_updates_per_s": 1.0459781515232736,
+        "pql/queued_policy_updates": 3,
+        "train/episodes_completed": 0,
+        "train/updates": 56
+      },
+      "best_and_resume_keys": {}
+    },
+    {
+      "id": "matd3-base-s44",
+      "algorithm": "matd3",
+      "mode": "base",
+      "account": "account_03",
+      "owner": "jyfhjggiy",
+      "group": "uav-xyz-cohort-20261031-v1-matd3-base-s44",
+      "kernel_ref": "jyfhjggiy/gh-tra-g3-matd3-base-h75-10302223-7459f1",
+      "kernel_url": "https://www.kaggle.com/code/jyfhjggiy/gh-tra-g3-matd3-base-h75-10302223-7459f1",
+      "wandb_urls": {
+        "matd3": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/ed7bbd70"
+      },
+      "overrides": [
+        "runtime.seed=44",
+        "runtime.episodes=20000",
+        "runtime.compile_models=false",
+        "pql.enabled=false",
+        "tracking.group=uav-xyz-cohort-20261031-v1-matd3-base-s44",
+        "tracking.tags=[\"uav-network\", \"scenario-v3\", \"controlled-20t15o\", \"shared-actor-critic\", \"targets20-obstacles15\", \"power-learned\", \"full20k\", \"replay1m\", \"batch8192\", \"env4096\", \"steps1200\", \"seed44\", \"base-pql-comparison\", \"report1kb\", \"radio-energy\", \"cpu-visualize\", \"auto-continue\", \"xyz\", \"bayesian-sensing\", \"grid25m\", \"belief-prior-0.5\", \"amp-off\", \"compile-off\", \"fused-off\", \"actor-shared\", \"critic-shared\", \"replay-hybrid-c75-g25\", \"generation3\"]"
+      ],
+      "cpu_eval": {
+        "episodes": 30,
+        "seed": 2000000044,
+        "frame_stride": 5,
+        "fps": 10
+      },
+      "timeout_seconds": 39600,
+      "kaggle_state": "running",
+      "wandb_state": "running",
+      "config_verified": true,
+      "two_t4_verified": true,
+      "cuda_devices": [
+        {
+          "name": "Tesla T4",
+          "index": 0,
+          "memory_gib": 14.56219482421875,
+          "compute_capability": [
+            7,
+            5
+          ]
+        },
+        {
+          "name": "Tesla T4",
+          "index": 1,
+          "memory_gib": 14.56219482421875,
+          "compute_capability": [
+            7,
+            5
+          ]
+        }
+      ],
+      "progress": {
+        "global_step": 532480,
+        "train/episodes_completed": 0,
+        "train/updates": 784
+      },
+      "best_and_resume_keys": {}
+    },
+    {
+      "id": "matd3-pql-s44",
+      "algorithm": "matd3",
+      "mode": "pql",
+      "account": "account_07",
+      "owner": "ukggyfyy",
+      "group": "uav-xyz-cohort-20261031-v1-matd3-pql-s44",
+      "kernel_ref": "ukggyfyy/gh-tra-g3-matd3-pql-h75-10302223-c53374",
+      "kernel_url": "https://www.kaggle.com/code/ukggyfyy/gh-tra-g3-matd3-pql-h75-10302223-c53374",
+      "wandb_urls": {
+        "matd3": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/63a462ec"
+      },
+      "overrides": [
+        "runtime.seed=44",
+        "runtime.episodes=20000",
+        "runtime.compile_models=false",
+        "pql.enabled=true",
+        "tracking.group=uav-xyz-cohort-20261031-v1-matd3-pql-s44",
+        "tracking.tags=[\"uav-network\", \"scenario-v3\", \"controlled-20t15o\", \"shared-actor-critic\", \"targets20-obstacles15\", \"power-learned\", \"full20k\", \"replay1m\", \"batch8192\", \"env4096\", \"steps1200\", \"seed44\", \"base-pql-comparison\", \"report1kb\", \"radio-energy\", \"cpu-visualize\", \"auto-continue\", \"xyz\", \"bayesian-sensing\", \"grid25m\", \"belief-prior-0.5\", \"amp-off\", \"compile-off\", \"fused-off\", \"actor-shared\", \"critic-shared\", \"replay-hybrid-c75-g25\", \"generation3\"]"
+      ],
+      "cpu_eval": {
+        "episodes": 30,
+        "seed": 2000000044,
+        "frame_stride": 5,
+        "fps": 10
+      },
+      "timeout_seconds": 39600,
+      "kaggle_state": "running",
+      "wandb_state": "running",
+      "config_verified": true,
+      "two_t4_verified": true,
+      "cuda_devices": [
+        {
+          "name": "Tesla T4",
+          "index": 0,
+          "memory_gib": 14.56219482421875,
+          "compute_capability": [
+            7,
+            5
+          ]
+        },
+        {
+          "name": "Tesla T4",
+          "index": 1,
+          "memory_gib": 14.56219482421875,
+          "compute_capability": [
+            7,
+            5
+          ]
+        }
+      ],
+      "progress": {
+        "global_step": 237568,
+        "pql/actor_updates": 95,
+        "pql/actor_updates_per_s": 1.8049359043850344,
+        "pql/critic_updates": 192,
+        "pql/critic_updates_per_s": 3.6478704593887006,
+        "pql/queued_policy_updates": 1,
+        "train/episodes_completed": 0,
+        "train/updates": 192
+      },
+      "best_and_resume_keys": {}
+    }
+  ],
+  "services": {
+    "run_id": 41137502991,
+    "job_id": 124343466379,
+    "url": "https://github.com/truongdaoanhduy/uav_network/actions/runs/41137502991",
+    "conclusion": "success",
+    "enabled_accounts": [
+      "account_01",
+      "account_02",
+      "account_03",
+      "account_07"
+    ],
+    "services": {
+      "kaggle/account_01": {
+        "status": "ok",
+        "username": "kesfljhk"
+      },
+      "kaggle/account_02": {
+        "status": "ok",
+        "username": "cdancsjf"
+      },
+      "kaggle/account_03": {
+        "status": "ok",
+        "username": "jyfhjggiy"
+      },
+      "kaggle/account_07": {
+        "status": "ok",
+        "username": "ukggyfyy"
+      },
+      "wandb": {
+        "status": "ok"
+      },
+      "huggingface": {
+        "status": "ok"
+      }
+    },
+    "action": "service-check and dry-run, no roots submitted by this run"
+  },
+  "reconciliation": {
+    "run_id": 41137959190,
+    "job_id": 124344982374,
+    "conclusion": "success",
+    "observed_at": "2026-10-30T22:25:19Z",
+    "actions": {
+      "account_01": "active",
+      "account_02": "active",
+      "account_03": "active",
+      "account_07": "active"
+    },
+    "url": "https://github.com/truongdaoanhduy/uav_network/actions/runs/41137959190"
+  },
+  "completion": {
+    "training_20k_complete": false,
+    "final_cpu30_complete": false,
+    "convergence_established": false,
+    "multiple_training_seeds_complete": false
+  },
+  "decisions": [
+    "Provider task-start/workspace executables unavailable; manual per-plan brief/ledger used. Cost: bookkeeping must be checked with git.",
+    "User requested four fixed independent accounts. Supersede the unimplemented serial queue; reuse native initial launch and GitHub continuation. Cost: a fixed account can be rejected or suspended by the service; do not silently rotate accounts."
+  ]
+}

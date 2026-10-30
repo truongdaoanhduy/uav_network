@@ -1,3 +1,7 @@
+> Latest: all six full-ring cases passed; see [full-ring evidence](2026-10-31-xyz-full-ring.md).
+> Four fixed-account training roots are recorded in [training evidence](2026-10-31-xyz-four-account-training.md).
+> The observations below retain their original timestamps.
+
 # Đo CUDA XYZ BASE/PQL — 31/10/2026
 
 Source của hai lần preflight: `9e7b88c52637fc5ae3571e3e567271a93cd0c965`.
@@ -29,7 +33,7 @@ E/B/replay cùng update counters. Không chỉ dựa vào trạng thái job.
 
 Bốn test XYZ chạy thật kiểm Native-vs-CUDA camera/motion/belief/observation,
 confirmation chỉ ở độ cao thấp, finite-height RF, exact next-draw snapshot và
-masked reset. PQL learning metrics không có nonfinite flag khác0.
+masked reset. PQL không phát explicit nonfinite counters; các learning metrics nhận được đều hữu hạn.
 Đây là benchmark, không phải run20k hoặc bằng chứng hội tụ; chưa hoàn tất episode1200bước.
 
 W&B đã được API xác nhận `finished`, không phải URL dự kiến từ receipt:

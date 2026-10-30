@@ -1,3 +1,7 @@
+> SUPERSEDED 2026-10-31: user requests four fixed accounts, one case each.
+> Reuse existing launch + GitHub continuation; no cohort queue module/config was implemented.
+> Operational evidence: `../evidence/2026-10-31-xyz-four-account-training.md`.
+
 # XYZ seed44 cohort on GitHub Actions
 
 Ngày31/10/2026. User has explicitly delegated execution choices and asked to finish
