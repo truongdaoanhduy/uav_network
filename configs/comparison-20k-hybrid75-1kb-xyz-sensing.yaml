@@ -1,0 +1,154 @@
+# XYZ Bayesian sensing; legacy XY comparator is preserved.
+world:
+  generation_version: 3
+  num_uavs: 6
+  map_size_m: 1000.0
+  num_targets: 20
+  num_obstacles: 15
+  max_steps: 1200
+  motion_safety: dynamic_window
+  motion_dimensions: 3
+  altitude_min_m: 0
+  altitude_max_m: 150
+  obstacle_height_min_m: 30
+  obstacle_height_max_m: 120
+network:
+  propagation_delay_enabled: true
+  receiver_admission_mask: true
+  peer_range_m: 500.0
+  gcs_range_m: 500.0
+  tx_power_min_w: 0.001
+  tx_power_max_w: 0.4
+  tx_power_mapping: log
+  power_control: learned
+  link_budget_margin_db: 3.0
+  pa_efficiency: 0.35
+  tx_circuit_power_w: 0.1
+  rx_circuit_power_w: 0.1
+  power_limited_admission: true
+  link_state_observation: true
+  report_bytes: 1024
+  payload_bytes: 1024
+  buffer_bytes: 3072
+  report_ttl_s: 300.0
+  max_retries: 5
+reward:
+  communication_efficiency: 1.0
+  shield_correction: 0.1
+masac:
+  hidden_sizes:
+  - 256
+  - 256
+  replay_capacity: 1000000
+  batch_size: 8192
+  learning_starts: 131072
+  updates_per_step: 8
+  target_continuous_entropy: -4.0
+matd3:
+  hidden_sizes:
+  - 256
+  - 256
+  replay_capacity: 1000000
+  batch_size: 8192
+  learning_starts: 131072
+  updates_per_step: 8
+  epsilon_decay_steps: 14745600
+runtime:
+  environment_backend: warp_packet
+  seed: 44
+  eval_seed: 2000000044
+  eval_episodes: 30
+  num_envs: 4096
+  coalesce_idle_polls: true
+  vectorize_critics: true
+  critic_chunk_size: 1024
+  compile_models: true
+  fused_optimizers: false
+  episodes: 20000
+  device: cuda
+  replay_device: cpu
+  replay_cpu_fraction: 0.75
+  deterministic: true
+  torch_threads: 1
+  log_interval_steps: 4096
+  checkpoint_interval: 128
+  max_train_seconds: 36000
+  output_dir: outputs/comparison-20k-steps1200-t20-o15-learnedpower-report1kb-xyz-sensing
+pql:
+  enabled: false
+  mode: async
+  critic_sample_ratio: 8
+  warmup_collection_steps: 32
+  max_pending_collections: 2
+  max_pending_policy_updates: 2
+  collector_device: auto
+  learner_device: auto
+  policy_device: auto
+  worker_timeout_s: 600
+  checkpoint_replay: true
+tracking:
+  resumable_checkpoint_interval_seconds: 3600.0
+  resumable_checkpoint_max_uploads: 4
+  enabled: true
+  artifact_timeout_seconds: 900
+  evaluation_interval: 0
+  evaluation_interval_steps: 3686400
+  evaluation_timeout_seconds: 900
+  periodic_evaluation_episodes: 5
+  periodic_evaluation_seed: 1000000044
+  entity: truongdaoanhduy-uit
+  project: uav_search_target
+  checkpoint_repo: duy95/uav-search-checkpoints
+  checkpoint_repo_private: false
+  group: uav-v3-20t15o-learnedpower-e4096-b8192-accel-policy-20261030-xyz-bayes
+  tags:
+  - uav-network
+  - amp-off
+  - torch-compile
+  - scenario-v3
+  - controlled-20t15o
+  - targets20-obstacles15
+  - power-learned
+  - full20k
+  - replay1m
+  - cpu75-gpu25
+  - batch8192
+  - env4096
+  - steps1200
+  - seed44
+  - base-pql-comparison
+  - report1kb
+  - radio-energy
+  - cpu-visualize
+  - auto-continue
+  - xyz
+  - bayesian-sensing
+  - grid25m
+  - belief-prior-0.5
+  log_checkpoint: true
+  checkpoint_store: huggingface
+sensor:
+  model: bayesian
+  altitude_m: 100
+  grid_cell_m: 25
+  belief_prior: 0.5
+  full_fov_deg: 90
+  altitude_anchors:
+  - 0
+  - 50
+  - 100
+  - 150
+  pd:
+  - 0.99
+  - 0.9
+  - 0.8
+  - 0.7
+  pf:
+  - 0.01
+  - 0.1
+  - 0.2
+  - 0.3
+  fine_altitude_m: 50
+  confirmation_threshold: 0.99
+  belief_patch_cells: 5
+  obstacle_occlusion: true

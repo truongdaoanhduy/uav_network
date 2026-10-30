@@ -1,0 +1,18 @@
+{
+  "controller": "Scripted altitude controller, not a trained policy",
+  "purpose": "Camera/FOV/Bayes/report pipeline demonstration",
+  "initial_image": "outputs/xyz-camera-demo-20261030/high.png",
+  "final_image": "outputs/xyz-camera-demo-20261030/final.png",
+  "animation": "outputs/xyz-camera-demo-20261030/camera.gif",
+  "targets_found": 1,
+  "targets_delivered": 1,
+  "sensing": {
+    "measurements": 5276,
+    "positive": 766,
+    "false_positive": 713,
+    "false_negative": 8,
+    "false_confirmation": 0,
+    "confirmations": 1
+  },
+  "steps": 60
+}

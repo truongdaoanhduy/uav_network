@@ -15,21 +15,29 @@ def _draw(ax, env, paths, positions, battery, found, delivered, title):
     w = env.config.world
     for x, y, radius in env.obstacles:
         ax.add_patch(Circle((x, y), radius, color="slategray", alpha=.8))
-    for label, mask, color in [("Hidden", ~found, "gray"),
+    hidden = "Hidden ground truth (diagnostic)" if env.config.motion_dim==3 else "Hidden"
+    for label, mask, color in [(hidden, ~found, "gray"),
                                ("Found, awaiting GCS", found & ~delivered, "orange"),
                                ("Delivered", delivered, "green")]:
         ax.scatter(*env.targets[mask].T, marker="*", s=110, c=color, label=label)
     paths = np.asarray(paths)
     colors = plt.get_cmap("tab10")
-    for i, xy in enumerate(positions):
+    for i, point in enumerate(positions):
+        xy = point[:2]
         color = colors(i % 10)
         ax.plot(paths[:, i, 0], paths[:, i, 1], color=color, linewidth=1.2, alpha=.7)
         ax.scatter(*xy, color=color, marker="^" if battery[i] > 0 else "X", s=60)
         label_xy = np.clip(xy + .008 * w.map_size_m, .012 * w.map_size_m, .915 * w.map_size_m)
-        ax.text(*label_xy, f"{i}: {battery[i]:.0%}", fontsize=8,
+        altitude = f" z={point[2]:.0f}m" if env.config.motion_dim==3 else ""
+        ax.text(*label_xy, f"{i}: {battery[i]:.0%}{altitude}", fontsize=8,
                 bbox=dict(facecolor="white", alpha=.65, edgecolor="none", pad=.5))
-        ax.add_patch(Circle(xy, env.config.sensor.footprint_radius_m, color=color, alpha=.06))
-    ax.scatter(*env.gcs, color="black", marker="s", s=80, label="GCS")
+        radius = env.config.sensor.footprint_radius_m
+        if env.config.motion_dim==3:
+            from ..environment.bayesian import sensor_profile
+            radius = sensor_profile(env.config.sensor,point[2])[2]
+        if env.config.motion_dim==2 or (radius>0 and (battery[i]>0 or not env.config.energy.enabled)):
+            ax.add_patch(Circle(xy, radius, color=color, alpha=.08))
+    ax.scatter(*env.gcs[:2], color="black", marker="s", s=80, label="GCS")
     ax.set(xlim=(0, w.map_size_m), ylim=(0, w.map_size_m), aspect="equal",
            xlabel="x (m)", ylabel="y (m)", title=title)
     ax.legend(loc="upper right", fontsize=8)
@@ -53,10 +61,31 @@ def _draw_communication(ax, events, now, num_uavs, window_s=COMMUNICATION_WINDOW
     return recent
 
 
+def _draw_belief(ax, config, belief, visited, positive, uav=0):
+    ax.clear()
+    size=config.world.map_size_m
+    image=ax.imshow(belief[uav],origin="lower",extent=(0,size,0,size),
+                    vmin=0,vmax=1,cmap="RdBu_r",interpolation="nearest")
+    cells=np.argwhere(positive[uav])
+    if len(cells):
+        xy=np.minimum((cells[:,::-1]+.5)*config.sensor.grid_cell_m,size)
+        ax.scatter(xy[:,0],xy[:,1],marker="+",color="#dca300",s=18,label="Positive observation")
+        ax.legend(loc="upper right",fontsize=7)
+    coverage=100*float(visited[uav].mean())
+    ax.set(xlabel="x (m)",ylabel="y (m)",aspect="equal",
+           title=f"UAV {uav} local belief | coverage {coverage:.1f}%\n0.5 = unknown; positive evidence is not confirmation")
+    return image
+
+
 def render_episode(env, paths, output):
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(8, 8))
+    if env.config.motion_dim==3:
+        fig,(ax,belief_ax)=plt.subplots(1,2,figsize=(14,7))
+        image=_draw_belief(belief_ax,env.config,env.belief,env.visited,env.positive)
+        fig.colorbar(image,ax=belief_ax,label="P(target in cell); 0.5 unknown",shrink=.75)
+    else:
+        fig, ax = plt.subplots(figsize=(8, 8))
     info, w = env.info(), env.config.world
     try:
         _draw(ax, env, paths, env.positions, env.battery_fraction,
@@ -74,7 +103,11 @@ def animation_frame(env):
     info = env.info()
     energy, network = info.get("energy", {}), info.get("network", {})
     drain = getattr(env, "drain_communication_events", lambda: [])
-    return {"step": env.steps, "positions": env.positions.copy(),
+    extra = {}
+    if env.config.motion_dim==3:
+        extra = {"altitudes_m":env.positions[:,2].copy(),"belief":env.belief.copy(),
+                 "visited":env.visited.copy(),"positive":env.positive.copy()}
+    return {**extra, "step": env.steps, "positions": env.positions.copy(),
             "battery": env.battery_fraction.copy(),
             "found": env.reports.known.any(axis=0).copy(),
             "delivered": env.reports.delivered.copy(),
@@ -117,7 +150,14 @@ def render_animation(env, paths, frames, output, fps=10, video_format="auto"):
     output = Path(output).with_suffix("." + video_format)
     writer = (FFMpegWriter(fps=fps, codec="libx264", extra_args=["-pix_fmt", "yuv420p"])
               if video_format == "mp4" else PillowWriter(fps=fps))
-    fig, (ax, panel) = plt.subplots(1, 2, figsize=(12, 8), gridspec_kw={"width_ratios": [3, 1]})
+    belief_ax = None
+    if env.config.motion_dim==3:
+        fig,(ax,belief_ax,panel)=plt.subplots(1,3,figsize=(18,8),gridspec_kw={"width_ratios":[3,3,1.7]})
+        from matplotlib.cm import ScalarMappable
+        from matplotlib.colors import Normalize
+        fig.colorbar(ScalarMappable(norm=Normalize(0,1),cmap="RdBu_r"),ax=belief_ax,shrink=.7,label="P(target in cell); 0.5 unknown")
+    else:
+        fig, (ax, panel) = plt.subplots(1, 2, figsize=(12, 8), gridspec_kw={"width_ratios": [3, 1]})
     paths, w = np.asarray(paths), env.config.world
     events = []
     try:
@@ -130,6 +170,8 @@ def render_animation(env, paths, frames, output, fps=10, video_format="auto"):
                          f"GCS delivered {frame['delivered'].sum()}/{w.num_targets}")
                 _draw(ax, env, paths[:step + 1], frame["positions"], frame["battery"],
                       frame["found"], frame["delivered"], title)
+                if belief_ax is not None:
+                    _draw_belief(belief_ax,env.config,frame["belief"],frame["visited"],frame["positive"])
                 events.extend(frame.get("communication_events", []))
                 recent = _draw_communication(ax, events, step * w.dt_s, w.num_uavs)
                 _communication_panel(panel, frame, events, recent, w.num_uavs)
