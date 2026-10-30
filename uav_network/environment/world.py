@@ -107,9 +107,9 @@ def validate_scenario(config, scene):
     if np.any(scene.obstacles[:, 2] <= 0):
         raise ValueError("Obstacle radii must be positive")
     for i, p in enumerate(scene.positions):
-        if not _outside(p, scene.obstacles, w.obstacle_clearance_m):
+        if getattr(w, "motion_dimensions", 2) == 2 and not _outside(p, scene.obstacles, w.obstacle_clearance_m):
             raise ValueError("UAV starts inside a forbidden obstacle clearance")
-        if any(np.linalg.norm(p - q) < w.safety_distance_m for q in scene.positions[:i]):
+        if getattr(w, "motion_dimensions", 2) == 2 and any(np.linalg.norm(p - q) < w.safety_distance_m for q in scene.positions[:i]):
             raise ValueError("Initial UAVs violate the safety distance")
     target_clearance = max(0, w.obstacle_clearance_m - config.sensor.footprint_radius_m)
     if any(not _outside(p, scene.obstacles, target_clearance) for p in scene.targets):

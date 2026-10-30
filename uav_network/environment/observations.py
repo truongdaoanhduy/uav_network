@@ -11,14 +11,16 @@ OBSERVATION_VERSION = 3
 def observation_dim(config):
     w, s, n = config.world, config.sensor, config.network
     link = 3 * w.num_uavs if n.link_state_observation else 0
-    return (10 + 2 * w.num_targets + 4 * (s.visible_target_slots + s.visible_obstacle_slots)
+    extra = (2 + s.visible_obstacle_slots + 2*(w.num_uavs-1) + s.belief_patch_cells**2) if config.motion_dim==3 else 0
+    return (extra + 10 + 2 * w.num_targets + 4 * (s.visible_target_slots + s.visible_obstacle_slots)
             + 6 * (w.num_uavs - 1) + link + w.num_uavs + 1
             + s.coverage_grid_cells ** 2)
 
 
 def state_dim(config):
     w = config.world
-    return (7 * w.num_uavs + 3 * w.num_targets + 3 * w.num_obstacles
+    extra = (2*w.num_uavs+w.num_obstacles+w.num_uavs*config.sensor.belief_patch_cells**2) if config.motion_dim==3 else 0
+    return (extra + 7 * w.num_uavs + 3 * w.num_targets + 3 * w.num_obstacles
             + 2 * w.num_uavs * w.num_targets + 1
             + w.num_uavs * config.sensor.coverage_grid_cells ** 2)
 
@@ -99,6 +101,9 @@ def report_status(env):
 
 
 def local_observations(env):
+    if env.config.motion_dim == 3:
+        from .xyz_observations import xyz_features
+        return xyz_features(env)
     c, w, n, s = env.config, env.config.world, env.config.network, env.config.sensor
     rows = []
     masks = destination_mask(env)
@@ -137,11 +142,17 @@ def centralized_state(env):
     w, n = env.config.world, env.config.network
     ages = report_status(env)
     inflight = env.network.inflight_counts() if env.network else np.zeros(w.num_uavs)
-    return np.r_[env.positions.ravel() / w.map_size_m,
-                 env.velocities.ravel() / w.max_speed_mps,
+    extra = np.empty(0)
+    if env.config.motion_dim == 3:
+        from .bayesian import belief_patch
+        extra = np.r_[env.positions[:,2]/w.altitude_max_m, env.velocities[:,2]/w.max_speed_mps,
+                      env.obstacle_heights/w.altitude_max_m,
+                      np.concatenate([belief_patch(env,i) for i in range(w.num_uavs)])]
+    return np.r_[env.positions[:,:2].ravel() / w.map_size_m,
+                 env.velocities[:,:2].ravel() / w.max_speed_mps,
                  env.targets.ravel() / w.map_size_m,
                  env.obstacles.ravel() / w.map_size_m,
                  env.reports.known.ravel(), ages.ravel(), env.reports.delivered,
                  inflight / n.max_queue_packets, env.battery_fraction, env.active,
                  env.steps / w.max_steps,
-                 env.coverage.ravel() if env.config.sensor.coverage_grid_cells else np.empty(0)].astype(np.float32)
+                 env.coverage.ravel() if env.config.sensor.coverage_grid_cells else np.empty(0), extra].astype(np.float32)

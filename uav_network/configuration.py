@@ -8,10 +8,11 @@ from copy import deepcopy
 import re
 
 import yaml
+from .configuration_xyz import FlightSettings, BayesianSettings, validate_xyz, legacy_xyz_defaults
 
 
 @dataclass
-class WorldConfig:
+class WorldConfig(FlightSettings):
     generation_version: int = 3
     map_size_m: float = 1000.0
     num_uavs: int = 6
@@ -34,7 +35,7 @@ class WorldConfig:
 
 
 @dataclass
-class SensorConfig:
+class SensorConfig(BayesianSettings):
     altitude_m: float = 100.0
     full_fov_deg: float = 90.0
     obstacle_occlusion: bool = True
@@ -236,7 +237,16 @@ class Config:
     def algorithm_config(self):
         return getattr(self, self.runtime.algorithm)
 
+    @property
+    def motion_dim(self):
+        return self.world.motion_dimensions
+
+    @property
+    def continuous_dim(self):
+        return self.motion_dim + 1
+
     def validate(self):
+        validate_xyz(self)
         defaults = Config()
         for group in fields(self):
             obj, default = getattr(self, group.name), getattr(defaults, group.name)
@@ -444,6 +454,10 @@ def with_legacy_feature_defaults(values):
         if group in result:
             if not isinstance(result[group], dict):
                 raise ValueError(f"Checkpoint {group} must be a mapping")
+            for key, value in defaults.items():
+                result[group].setdefault(key, value)
+    for group, defaults in legacy_xyz_defaults().items():
+        if group in result:
             for key, value in defaults.items():
                 result[group].setdefault(key, value)
     return result

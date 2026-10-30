@@ -16,11 +16,11 @@ class Action:
     continuous: np.ndarray  # [N,3]: acceleration X/Y and normalized TX power
     destination: np.ndarray  # [N]: silent, ordered peers, GCS
 
-    def validate(self, num_uavs):
+    def validate(self, num_uavs, continuous_dim=3):
         a, d = np.asarray(self.continuous), np.asarray(self.destination)
-        if (a.shape != (num_uavs, 3) or not np.issubdtype(a.dtype, np.number)
+        if (a.shape != (num_uavs, continuous_dim) or not np.issubdtype(a.dtype, np.number)
                 or not np.isfinite(a).all() or np.any(np.abs(a) > 1)):
-            raise ValueError(f"Continuous actions must be finite [-1,1] values of shape ({num_uavs},3)")
+            raise ValueError(f"Continuous actions must be finite [-1,1] values of shape ({num_uavs},{continuous_dim})")
         if (d.shape != (num_uavs,) or not np.issubdtype(d.dtype, np.integer)
                 or np.any(d < 0) or np.any(d > num_uavs)):
             raise ValueError("Destination indices must be integers from 0 through num_uavs")
@@ -69,7 +69,17 @@ class SwarmSearchEnv:
     def reset(self, seed=None, options=None):
         self.close()
         self.seed = self.config.runtime.seed if seed is None else int(seed)
-        scene = generate_scenario(self.config, np.random.default_rng(self.seed), options)
+        selected = options
+        if self.config.motion_dim == 3 and options is not None:
+            selected = dict(options)
+            selected["positions"] = np.asarray(options["positions"])[:, :2]
+            raw = np.asarray(options["obstacles"])
+            selected["obstacles"] = raw[:, :3] if raw.size else []
+        scene = generate_scenario(self.config, np.random.default_rng(self.seed), selected)
+        if self.config.motion_dim == 3:
+            from .xyz_geometry import prepare_scene
+            scene = prepare_scene(scene, self.config, self.seed, options)
+            self.obstacle_heights = scene.obstacle_heights
         self.positions, self.targets, self.obstacles, self.gcs = (
             scene.positions, scene.targets, scene.obstacles, scene.gcs)
         self.generation_fallback = scene.generation_fallback
@@ -94,10 +104,18 @@ class SwarmSearchEnv:
         self.motion_counts["shield_correction"] = 0.0
         self.reward_components = {}
         self.action_counts = {"silent": 0, "peer": 0, "gcs": 0, "saturated": 0}
+        if self.config.motion_dim == 3:
+            from .bayesian import initialize_sensor
+            initialize_sensor(self)
         self._sense()
         return local_observations(self), self.info()
 
     def _sense(self):
+        if self.config.motion_dim == 3:
+            from .bayesian import sense_bayesian
+            sense_bayesian(self)
+            scan_coverage(self)
+            return
         scan_coverage(self)
         for i, position in enumerate(self.positions):
             if not self.active[i]:
@@ -108,14 +126,14 @@ class SwarmSearchEnv:
     def step(self, action):
         if self._ended:
             raise RuntimeError("Call reset before stepping a finished environment")
-        action.validate(self.config.world.num_uavs)
+        action.validate(self.config.world.num_uavs, self.config.continuous_dim)
         before_found = self.reports.known.any(axis=0).sum()
         before_delivery = self.reports.delivered.sum()
         before_expired, before_dropped = self.reports.expired, self.reports.dropped
         motion_details = {}
         self.positions, self.velocities, blocked, clipped, flight_energy = funded_motion(
-            self.positions, self.velocities, np.asarray(action.continuous)[:, :2],
-            self.obstacles, self.battery_j, self.config, diagnostics=motion_details)
+            self.positions, self.velocities, np.asarray(action.continuous)[:, :self.config.motion_dim],
+            self.obstacles, self.battery_j, self.config, diagnostics=motion_details, obstacle_heights=getattr(self, 'obstacle_heights', None))
         for key, value in motion_details.items():
             self.motion_counts[key] += value
         self.propulsion_energy_j += flight_energy
@@ -158,7 +176,7 @@ class SwarmSearchEnv:
         self.action_counts["silent"] += int((dest == 0).sum())
         self.action_counts["gcs"] += int((dest == self.config.world.num_uavs).sum())
         self.action_counts["peer"] += int(((dest > 0) & (dest < self.config.world.num_uavs)).sum())
-        self.action_counts["saturated"] += int((np.abs(np.asarray(action.continuous)[:, :2]) >= .99).sum())
+        self.action_counts["saturated"] += int((np.abs(np.asarray(action.continuous)[:, :self.config.motion_dim]) >= .99).sum())
         # max_steps is the mission deadline, observed by the actor and critic.
         # It is a finite-horizon terminal state, not an external collection cutoff.
         terminated = bool(self.reports.delivered.all() or not self.active.any()
@@ -177,6 +195,9 @@ class SwarmSearchEnv:
         tx_rf = self.network.tx_energy_j[:-1] if self.network else np.zeros_like(self.propulsion_energy_j)
         rx_rf = self.network.rx_energy_j[:-1] if self.network else np.zeros_like(self.propulsion_energy_j)
         return {
+            **({"sensing": dict(self.sensor_counts),
+                 "coverage_percent": 100*float(self.visited.any(axis=0).mean()),
+                 "altitudes_m": self.positions[:,2].tolist()} if self.config.motion_dim==3 else {}),
             "generation_fallback": self.generation_fallback,
             "generation_attempts": self.generation_attempts,
             "report_diagnostics": self.reports.diagnostics(self.time_s),"motion_counts": dict(self.motion_counts), "reward_components": dict(self.reward_components), "action_counts": dict(self.action_counts),

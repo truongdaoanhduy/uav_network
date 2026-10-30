@@ -15,8 +15,13 @@ def scan_coverage(env):
     for i, position in enumerate(env.positions):
         if not env.active[i]:
             continue
-        candidates = np.flatnonzero(np.linalg.norm(points-position, axis=1)
-                                    <= sensor.footprint_radius_m + 1e-9)
+        xyz = env.config.motion_dim == 3
+        from .bayesian import sensor_profile
+        radius = sensor_profile(sensor,position[2])[2] if xyz else sensor.footprint_radius_m
+        candidates = np.flatnonzero(np.linalg.norm(points-position[:2], axis=1)
+                                    <= radius + 1e-9)
         for cell in candidates:
-            if not sensor.obstacle_occlusion or line_is_clear(position, points[cell], env.obstacles):
+            from .xyz_geometry import camera_clear
+            clear = camera_clear(position,points[cell],env.obstacles,env.obstacle_heights) if xyz else line_is_clear(position,points[cell],env.obstacles)
+            if not sensor.obstacle_occlusion or clear:
                 env.coverage[i,cell] = 1
