@@ -1,19 +1,49 @@
-# XYZ / Bayesian sensing — IMPLEMENTATION COMPLETE / CPU VERIFIED / PENDING FINAL COMMIT+PUSH
+# XYZ CPU COMPLETE / RESET ISOLATED / CUDA PREFLIGHT PENDING
 
-Updated 2026-10-30T16:00:24+07:00. User approved the XYZ/Bayesian sensing design and the implementation is complete on the current local worktree. The remaining work is release/finalization only: preserve unrelated dirty history, commit the reviewed final fixes/docs, push the working branch, and verify the remote SHA.
+Updated 2026-10-30T23:44:57.433102+07:00. User approved the reference-based design with “duyệt”.
+Verified runtime `7dd41d01c7b0c0df8af0ff35d0e2a7314f0a71af` on `feat/cpu-replay-20261022`.
+Reference: `/home/aduy/Documents/NCKH/uav_search_target`; visualize remains2D.
 
-- New XYZ profiles keep the controlled 20T/15O/1km/1200-step study, learned RF power, validation-best selection, FP32, and legacy XY compatibility.
-- Policy continuous action is `[ax, ay, az, power]`; altitude is real state used by motion, safety, energy, radio distance/LOS and sensing. Visualization remains 2D with XY trajectories, per-frame altitude/FOV and local-belief heatmap.
-- Bayesian camera uses 25 m cells with prior 0.5, 90-degree FOV and altitude-dependent Pd/Pf anchors. High altitude covers more area but cannot confirm by posterior alone; confirmation requires active UAV, z<=50 m, posterior>=0.99 and a fresh positive observation. Unconfirmed target coordinates remain hidden from the actor.
-- Native and Warp-CPU paths, MASAC/MATD3 BASE/PQL tiny train/eval, checkpoint/resume, radio parity, rendering/demo and legacy compatibility have been exercised. Whole-change review found no Critical issues; four Important issues were fixed, including atomic restore validation, legacy-grid gating, XYZ relay-audit action width and explicit XY-only feasibility handling.
-- Final restore regression also covers the zero-obstacle Warp padding case so the unused height=0 padding slot is not treated as a real invalid obstacle.
-- Authoritative final regression on the current dirty worktree: `1145 passed, 97 skipped, 8 warnings, 1554 subtests passed in 577.22s`; pytest exit code 0 and JUnit failures/errors are 0. `git diff --check` is clean.
-- Current local HEAD is `5ab785e939a3b7843a5fa009755fd352b49274b1`, eight commits ahead of `origin/feat/cpu-replay-20261022` at `c18c65c89630607792c8e6da0b6068b1dbcf6588`, with final review fixes/docs still pending the last commit/push.
-- Scope limit: this is CPU/Native/Warp-CPU correctness evidence only. There is no fresh CUDA XYZ preflight, no 20k XYZ production training, no convergence/multi-seed result, and no claim that Hybrid/FullGPU or sharing topology is superior for XYZ.
+- Added separate XYZ profiles:6UAV,1000m,20T/15O,1200steps,20k episodes,
+  E4096,B8192,replay1M,FP32,learnedRF. Original3 XY YAMLs unchanged.
+- Real XYZ motion/swept safety,finite-height obstacles,3D RF/LOS/range/energy.
+  Four continuous slots[ax,ay,az,power] work across learners/replay/BASE/PQL.
+- Per-UAV25m grid,prior0.5,FOV90deg; high altitude covers more with noisier
+  Pd/Pf. Confirmation only active,z<=50m,posterior>=0.99,fresh positive,
+  actual target in FOV/LOS. False positives retain local posterior evidence.
+- Local cell candidates/5x5 belief patch avoid unconfirmed coordinate leaks.
+  Critic is compact,not full Bayesian Markov state. Full resume stores maps,
+  altitude/velocity,sampling; XYZ schema4 rejects XY schema3 reuse.
+- Native/Warp CPU parity,masked reset isolation,next-measurement resume,
+  serial BASE/synchronous PQL full learner resume verified. Overlap/async
+  interleaving is not promised bitwise equal to an uncut run.
+- 2D frame-specific altitude/FOV/battery/local belief plots. Real scripted
+  demo2UAV/2target/2obstacle,seed44,60steps:1 found,1 delivered toGCS.
+- Warp reset kernel isolated from packet scheduler compilation; body AST
+  unchanged fromc63c8f7. Local targeted93 passed,1 skipped,12 subtests.
+- Final pytest 1146 passed,98 skipped,1555 subtests,648.58s; compileall/diff checks passed.
+  One fresh review:4 Important fixed with RED→GREEN regressions; no Critical.
+  Deferred Minor: obstacle/peer/boundary XYZ intervention categories remain
+  unavailable/zero; total interventions work. Do not use category0 as evidence.
+- Float64 belief/geometry; FP32 learners. Replay~12.085GiB,WarpE4096~2.629GiB
+  plus buffers/models/overheads,placement dependent. No CUDA fit/performance,
+  20k convergence or XYZ20/20 oracle proof. Old feasibility oracle is XY-only.
 
-Design: `docs/superpowers/specs/2026-10-30-xyz-bayesian-sensing-design.md`. Plan: `docs/superpowers/plans/2026-10-30-xyz-bayesian-sensing.md`. Usage: `docs/xyz-sensing.md`. Verification: `outputs/xyz-verification-20261030/`.
+[Usage/configs](../xyz-sensing.md) |
+[Verification/rulings](evidence/2026-10-30-xyz-sensing-verification.md) |
+[Structured evidence](evidence/2026-10-30-xyz-sensing-verification.json) |
+[2D demo](evidence/xyz-camera-demo-20261030.gif).
+Spec:specs/2026-10-30-xyz-bayesian-sensing-design.md.
+Plan:plans/2026-10-30-xyz-bayesian-sensing.md.
 
-Next action: stage only the intended XYZ finalization hunk plus reviewed source/test fixes, preserve the pre-existing CURRENT_TASK historical dirty suffix, commit locally, then push and verify the remote branch. Do not launch cloud training unless explicitly requested.
+Next: finish CUDA preflight only through an allowed GPU execution path.
+Earlier external Kaggle launch was rejected by automatic approval review;
+no new submission/bypass/account change was attempted in this continuation.
+Measure reset cold start,full smoke,VRAM/placement before production training.
+Use several training seeds and periodic validation before paper conclusions.
+Preserve historical lineages,host worktree,outputs and original dirty suffix.
+Do not reuse XY weights as XYZ or call CPU smoke policy convergence.
+
 ---
 
 # Learned RF action and validation-best checkpoint — COMPLETE / CPU VERIFIED

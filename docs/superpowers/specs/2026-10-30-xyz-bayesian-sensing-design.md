@@ -1,6 +1,6 @@
 # XYZ motion and Bayesian camera sensing with 2D visualization
 
-Status: APPROVED by user on 2026-10-30; implementation in progress.
+Status: IMPLEMENTED / CPU VERIFIED on 2026-10-30; approved by user before implementation.
 Date: 2026-10-30 (Asia/Ho_Chi_Minh).
 Base runtime: `3382feee81047c82d000e5c598ef685aec435297`.
 Working branch: `feat/cpu-replay-20261022`.

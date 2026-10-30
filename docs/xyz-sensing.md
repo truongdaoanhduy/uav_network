@@ -123,3 +123,5 @@ trong các số tĩnh này. Không tự giảm E/B/replay hoặc bật AMP.
 Xem [số liệu byte cụ thể](superpowers/evidence/2026-10-30-xyz-resources.json).
 Đã kiểm Native/Warp CPU, train/evaluate nhỏ và render; chưa chạy study20k,
 chưa xác nhận hiệu năng/VRAM CUDA hoặc hội tụ của policy XYZ.
+
+[Bằng chứng kiểm thử, reset kernel và trạng thái CUDA](superpowers/evidence/2026-10-30-xyz-sensing-verification.md).
