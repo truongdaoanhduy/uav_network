@@ -1,0 +1,274 @@
+{
+  "base": {
+    "source_commit": "9e7b88c52637fc5ae3571e3e567271a93cd0c965",
+    "kernel_ref": "kesfljhk/ben-g3-both-base-h75-10301844-63825e",
+    "observed_at": "2026-10-31T01:51:08.688669+07:00",
+    "state": "complete",
+    "stage": "benchmark",
+    "production_started": false,
+    "tests": {
+      "cuda-tests.log": {
+        "passed": 15,
+        "elapsed_s": 100.993
+      },
+      "scenario-v2-cuda-tests.log": {
+        "passed": 4,
+        "elapsed_s": 2.615
+      },
+      "mission-regressions.log": {
+        "passed": 8,
+        "elapsed_s": 3.034
+      }
+    },
+    "algorithms": {
+      "masac": {
+        "status": "passed",
+        "joint_transitions": 16384,
+        "learner_updates": 4,
+        "actor_updates": 6,
+        "joint_transitions_per_s": 19537.701539190686,
+        "learner_updates_per_s": 1.646290988183145,
+        "replay_bytes": 12985000000,
+        "environment_bytes": 2849393696,
+        "devices": {
+          "collector": "cuda:0",
+          "learner": "cuda:1",
+          "replay": "cpu"
+        },
+        "peak_memory": [
+          {
+            "device": 0,
+            "name": "Tesla T4",
+            "total_bytes": 15636037632,
+            "peak_allocated_bytes": 43905536,
+            "peak_reserved_bytes": 62914560
+          },
+          {
+            "device": 1,
+            "name": "Tesla T4",
+            "total_bytes": 15636037632,
+            "peak_allocated_bytes": 4032137728,
+            "peak_reserved_bytes": 4219469824
+          }
+        ],
+        "cuda_pipeline_verified": false,
+        "dual_gpu_verified": false
+      },
+      "matd3": {
+        "status": "passed",
+        "joint_transitions": 16384,
+        "learner_updates": 4,
+        "actor_updates": 3,
+        "joint_transitions_per_s": 20481.993870901308,
+        "learner_updates_per_s": 6.836830863147416,
+        "replay_bytes": 12985000000,
+        "environment_bytes": 2849393696,
+        "devices": {
+          "collector": "cuda:0",
+          "learner": "cuda:1",
+          "replay": "cpu"
+        },
+        "peak_memory": [
+          {
+            "device": 0,
+            "name": "Tesla T4",
+            "total_bytes": 15636037632,
+            "peak_allocated_bytes": 43905536,
+            "peak_reserved_bytes": 62914560
+          },
+          {
+            "device": 1,
+            "name": "Tesla T4",
+            "total_bytes": 15636037632,
+            "peak_allocated_bytes": 4076023296,
+            "peak_reserved_bytes": 4137680896
+          }
+        ],
+        "cuda_pipeline_verified": false,
+        "dual_gpu_verified": false
+      }
+    },
+    "replay_placement": {
+      "type": "HybridMeasuredReplay",
+      "cpu_fraction": 0.75,
+      "cpu_capacity": 750000,
+      "gpu_capacity": 250000,
+      "hot_device": "cuda:1"
+    },
+    "notes": [
+      "BASE cuda_pipeline_verified and dual_gpu_verified remain false because their existing definitions require the configured replay device to be CUDA. Hybrid uses both CPU and a GPU hot store; do not rewrite these flags as true.",
+      "Torch peak memory excludes Warp-owned world arrays and driver context. Environment bytes are reported separately.",
+      "Four early collector steps do not measure full mission/reset-heavy steady-state throughput.",
+      "Actual CUDA sensing/motion/radio and exact snapshot/masked reset tests passed.",
+      "No 20k training or convergence result."
+    ]
+  },
+  "pql": {
+    "kernel_ref": "kesfljhk/ben-g3-both-pql-h75-10301852-575209",
+    "observed_at": "2026-10-31T01:59:21.035841+07:00",
+    "source_commit": "9e7b88c52637fc5ae3571e3e567271a93cd0c965",
+    "stage": "benchmark",
+    "production_started": false,
+    "state": "complete",
+    "algorithms": {
+      "masac": {
+        "status": "passed",
+        "source_git_commit": "9e7b88c52637fc5ae3571e3e567271a93cd0c965",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "replay_capacity": 1000000,
+        "steps": 40,
+        "world": {
+          "motion_dimensions": 3,
+          "altitude_min_m": 0,
+          "altitude_max_m": 150,
+          "obstacle_height_min_m": 30,
+          "obstacle_height_max_m": 120,
+          "generation_version": 3,
+          "map_size_m": 1000.0,
+          "num_uavs": 6,
+          "num_targets": 20,
+          "num_obstacles": 15,
+          "dt_s": 1.0,
+          "max_steps": 1200,
+          "max_speed_mps": 20.0,
+          "max_accel_mps2": 2.0,
+          "safety_distance_m": 15.0,
+          "obstacle_clearance_m": 10.0,
+          "motion_safety": "dynamic_window",
+          "obstacle_radius_min_m": 30.0,
+          "obstacle_radius_max_m": 70.0,
+          "launch_radius_m": 150.0,
+          "launch_min_spacing_m": 30.0,
+          "target_exclusion_radius_m": 200.0,
+          "gcs_position_m": null,
+          "placement_attempts": 5000
+        },
+        "elapsed_s": 47.897335784999996,
+        "joint_transitions_per_s": 3420.649547929757,
+        "critic_updates": 72,
+        "actor_updates": 72,
+        "critic_updates_per_s": 1.503215133367569,
+        "actor_updates_per_s": 1.503215133367569,
+        "devices": {
+          "collector": "cuda:0",
+          "critic": "cuda:1",
+          "policy": "cuda:1"
+        },
+        "peak_memory": [
+          {
+            "device": 0,
+            "name": "Tesla T4",
+            "total_bytes": 15636037632,
+            "peak_allocated_bytes": 307009024,
+            "peak_reserved_bytes": 387973120
+          },
+          {
+            "device": 1,
+            "name": "Tesla T4",
+            "total_bytes": 15636037632,
+            "peak_allocated_bytes": 4743710720,
+            "peak_reserved_bytes": 5119148032
+          }
+        ],
+        "cuda_pipeline_verified": true,
+        "target_t4_scenario_verified": false,
+        "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/4d0c32a3",
+        "replay_size": 163840,
+        "nonfinite_flags": {}
+      },
+      "matd3": {
+        "status": "passed",
+        "source_git_commit": "9e7b88c52637fc5ae3571e3e567271a93cd0c965",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "replay_capacity": 1000000,
+        "steps": 40,
+        "world": {
+          "motion_dimensions": 3,
+          "altitude_min_m": 0,
+          "altitude_max_m": 150,
+          "obstacle_height_min_m": 30,
+          "obstacle_height_max_m": 120,
+          "generation_version": 3,
+          "map_size_m": 1000.0,
+          "num_uavs": 6,
+          "num_targets": 20,
+          "num_obstacles": 15,
+          "dt_s": 1.0,
+          "max_steps": 1200,
+          "max_speed_mps": 20.0,
+          "max_accel_mps2": 2.0,
+          "safety_distance_m": 15.0,
+          "obstacle_clearance_m": 10.0,
+          "motion_safety": "dynamic_window",
+          "obstacle_radius_min_m": 30.0,
+          "obstacle_radius_max_m": 70.0,
+          "launch_radius_m": 150.0,
+          "launch_min_spacing_m": 30.0,
+          "target_exclusion_radius_m": 200.0,
+          "gcs_position_m": null,
+          "placement_attempts": 5000
+        },
+        "elapsed_s": 20.564319279000074,
+        "joint_transitions_per_s": 7967.197833157092,
+        "critic_updates": 72,
+        "actor_updates": 36,
+        "critic_updates_per_s": 3.5012099852741128,
+        "actor_updates_per_s": 1.7506049926370564,
+        "devices": {
+          "collector": "cuda:0",
+          "critic": "cuda:1",
+          "policy": "cuda:1"
+        },
+        "peak_memory": [
+          {
+            "device": 0,
+            "name": "Tesla T4",
+            "total_bytes": 15636037632,
+            "peak_allocated_bytes": 307364864,
+            "peak_reserved_bytes": 385875968
+          },
+          {
+            "device": 1,
+            "name": "Tesla T4",
+            "total_bytes": 15636037632,
+            "peak_allocated_bytes": 4186487296,
+            "peak_reserved_bytes": 4603248640
+          }
+        ],
+        "cuda_pipeline_verified": true,
+        "target_t4_scenario_verified": false,
+        "wandb_url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/d342ba5a",
+        "replay_size": 163840,
+        "nonfinite_flags": {}
+      }
+    },
+    "checks": {
+      "cuda-tests.log": {
+        "passed": 15,
+        "elapsed_s": 96.023
+      },
+      "scenario-v2-cuda-tests.log": {
+        "passed": 4,
+        "elapsed_s": 2.37
+      },
+      "mission-regressions.log": {
+        "passed": 8,
+        "elapsed_s": 2.788
+      },
+      "pql-smoke-tests.log": {
+        "passed": 11,
+        "elapsed_s": 25.931
+      }
+    },
+    "notes": [
+      "Legacy target_t4_scenario_verified stamp requires25T/15O/1000steps/R500k. It correctly stays false for current20T/15O/1200steps/R1M profile.",
+      "40 collections fill163840 rows, below750000 CPU slots; GPU hot-store allocation fit is established but full-ring hot-path stress remains pending.",
+      "PQL end-to-end rates and BASE isolated collector/learner rates are different timing denominators; do not rank them directly.",
+      "W&B runs are real benchmark runs, not20k training."
+    ]
+  },
+  "full_ring_status": "pending",
+  "pql_budget_fix_commit": "08676528d52b578063039379ede4eab9d7217292"
+}

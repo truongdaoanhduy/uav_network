@@ -1,39 +1,42 @@
-# XYZ CUDA PREFLIGHT — REFERENCE FIX / BASE RETRY RUNNING
+# XYZ CUDA BASE/PQL PASSED — FULL-RING REPLAY CHECK NEXT
 
-Updated 2026-10-31T01:39:48.135518+07:00. User authorized Kaggle GPU execution; no new approval needed.
-Runtime fix 5fee6c753b4e7cd86801a68ab5a0fb72521bda86; parent42c1dac.
-Branch feat/cpu-replay-20261022; retry source9e7b88c52637fc5ae3571e3e567271a93cd0c965.
+Updated 2026-10-31T02:02:00.557866+07:00.
+User authorized GPU execution; no repeat approval. Branch feat/cpu-replay-20261022.
+Runtime fix5fee6c753b4e7cd86801a68ab5a0fb72521bda86; preflight source9e7b88c.
+PQL benchmark-step gate fix08676528d52b578063039379ede4eab9d7217292.
 
-- First BASE benchmark:kesfljhk/ben-g3-both-base-h75-10301741-894057,
-  observed cancelled01:11:53+07 near1800s ceiling; cancellation reason not exposed.
-  Actual hardware2TeslaT4;10CUDA/native-world tests passed, last Warp check unfinished.
-  No XYZ E4096 benchmark JSON,20k production training or convergence proof.
-- Root diagnosis:by-value WorldState descriptor copies produce38.69MB PTX,
-  801058local stores; default CUBIN compiler SIGKILL after473.5s (OOM unconfirmed).
-  Prototype uses wp.ref for140arguments/85helpers/17files; kernel signatures,
-  math,RNG,struct layout and checkpoint schemas unchanged. CUBIN AOT passes
-  20.77s,peak646.32MiB without GPU. O1/O2/noinline/PTX knobs not adopted.
-- Final bare pytest1146passed,102skipped,1557subtests,264.89s,exit0.
-  Prototype suite also green; own diagnostic clones moved outside collection.
-  Four new real XYZ CUDA checks will run in existing test_cuda.py cloud gate.
-  No GPU parity claim yet; independent review0Critical/0Important;1Minor fixed.
-- Keep6UAV,1000m,20T/15O,1200steps,E4096,B8192,replay1M,Hybrid75,FP32.
-  Learned RF/action4,movement,routing,prior0.5,FOV/Bayes and visualize2D retained.
-  Benchmark-only compileoff/W&B-checkpoint-store/log_checkpointfalse; YAMLs unchanged.
-- Pin account_01 only; quota27.11h observed01:16:54+07. No account rotation or
-  cancellations. User CURRENT_TASK historical suffix remains unchanged/unstaged.
+- Actual two TeslaT4. Both source9e7b88c Kaggle jobs complete and reports passed:
+  BASE kesfljhk/ben-g3-both-base-h75-10301844-63825e (4rounds/4updates+2warmup),
+  PQL kesfljhk/ben-g3-both-pql-h75-10301852-575209 (40rounds).
+  CUDA15tests (including4XYZ),scenario4,mission8 allpassed; PQL smoke11passed.
+- PQL MASAC72critic/72actor, MATD372critic/36actor; nonfinite flags0.
+  W&B actual finished runs4d0c32a3 andd342ba5a (benchmark,not20ktraining).
+  BASE receipt IDs are not evidence of online BASE runs.
+- E4096/B8192/replay1M/Hybrid75 fit; actor/critic shared,FP32,eager override.
+  Collectorcuda0,learnerscuda1;750kCPU/250kGPU-hot slots. Separate PyTorch peaks
+  from Warp world2.849GB and driver memory. Existing verification flags have
+  different definitions; see measured report before interpreting false flags.
+- Current4/40round data has not reached750kCPU slots. Next256rounds fill/wrap
+  1M replay and exercise actual GPU-hot data,without shrinking E/B/R or AMP.
+  Gate used to ignore large requested PQL budgets; RED40!=256,GREEN5tests.
+  Latest full pytest1146passed,102skipped,1557subtests,258.23s,exit0.
+- Struct references fix compiler copying; math/RNG/struct schema unchanged.
+  Original source42c1dac job cancelled near1800s; do not confuse it with new pass.
+  Keep6UAV/map1km/20T15O/1200steps,learned RF,XYZ Bayesian FOV/prior0.5,
+  local belief/confirmation rules and2Dvisualize. YAMLs unchanged.
+- Pin account_01 only; fresh-check quota/jobs before next launch. No account
+  rotation,cancellation or20kproduction started. User historical tail preserved.
 
-[Usage](../xyz-sensing.md) | [CPU evidence](evidence/2026-10-30-xyz-sensing-verification.md) |
-[CUDA/compiler evidence](evidence/2026-10-31-xyz-cuda-preflight.md).
-Raw:outputs/xyz-gpu-preflight-42c1dac-20261031/.
-Own temporary checkouts:/tmp/uav-xyz-preflight-checkouts-20261031/.
+[GPU measurements](evidence/2026-10-31-xyz-gpu-benchmarks.md) |
+[Compiler evidence](evidence/2026-10-31-xyz-cuda-preflight.md) | [Usage](../xyz-sensing.md).
+Raw:outputs/xyz-gpu-refs-20261031/ (base-measured.json,pql-measured.json,pql-output/).
+Earlier raw:outputs/xyz-gpu-preflight-42c1dac-20261031/.
+Clean old source:/tmp/uav-xyz-preflight-checkouts-20261031/source-9e7b88c.
 
-Live BASE retry:kesfljhk/ben-g3-both-base-h75-10301844-63825e (running).
-https://www.kaggle.com/code/kesfljhk/ben-g3-both-base-h75-10301844-63825e
-Next:poll this job and inspect outputs/xyz-gpu-refs-20261031/base-retry-watch.json.
-Require all15CUDA tests,
-scenario/mission gates and actual profile updates/VRAM. If BASE passes,run PQL
-sequentially on same account; only then decide20k training from measured budget.
+Next:publish gate fix/measurements,clean checkout at new pinned source. Submit
+BASE/PQL256rounds on allthree XYZprofiles sequentially,same account;inspect hot-ring
+updates/VRAM. PQL diagnostic-only warmup248 prefills replay before measured updates;
+production warmup32 is unchanged. Decide20klaunch from measured budget,not this diagnostic.
 
 ---
 
