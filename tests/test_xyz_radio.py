@@ -77,3 +77,31 @@ def test_xyz_real_peer_then_gcs_transfer(backend):
         step(Action(a,np.array([0,2],np.int64)))
         assert delivered()
     finally:env.close()
+
+from uav_network.environment.gpu.state import WorldState,WorldParams
+from uav_network.communication.gpu.phy import nominal_required_power,link_los,link_distance
+
+
+@wp.kernel
+def inspect_xyz_link(s:WorldState,p:WorldParams,out:wp.array(dtype=wp.float64)):
+    out[0]=nominal_required_power(s,p,0,0,1)
+    out[1]=wp.float64(int(link_los(s,p,0,0,1)))
+    out[2]=link_distance(s,p,0,0,1)
+
+
+@pytest.mark.parametrize("z0,z1",[(20,20),(60,60),(25,75)])
+def test_warp_rf_prism_matches_native_budget(z0,z1):
+    from uav_network.environment.gpu.state import allocate_state
+    c=xyz_config(n=2,obstacles=1)
+    s,p=allocate_state(c,1,device="cpu")
+    s.positions.assign(np.array([[[0,500],[100,500]]],float))
+    s.altitudes.assign(np.array([[z0,z1]],float))
+    s.obstacles.assign(np.array([[[50,500,5]]],float))
+    s.obstacle_heights.assign(np.array([[40.]],float))
+    out=wp.zeros(3,dtype=wp.float64,device="cpu")
+    wp.launch(inspect_xyz_link,dim=1,inputs=[s,p,out],device="cpu")
+    a,b=[0,500,z0],[100,500,z1]
+    expected=nominal_required_power_w(a,b,[[50,500,5]],c.network,heights=[40])
+    assert out.numpy()[0]==pytest.approx(expected,rel=1e-10)
+    assert bool(out.numpy()[1])==polygon_line_of_sight(a,b,[[50,500,5]],16,heights=[40])
+    assert out.numpy()[2]==pytest.approx(np.linalg.norm(np.subtract(a,b)))
