@@ -28,7 +28,7 @@ def validate_environment(saved, config, progress):
     current = config.to_dict()
     expected = {key: current[key] for key in ("world", "sensor", "network", "energy", "reward")} | {
         "num_envs": count, "backend": "warp_packet"}
-    if (not isinstance(world, dict) or world.get("version") != 1 or with_legacy_feature_defaults(world.get("config", {})) != expected
+    if (not isinstance(world, dict) or world.get("version") != (2 if config.motion_dim==3 else 1) or with_legacy_feature_defaults(world.get("config", {})) != expected
             or not isinstance(world.get("arrays"), dict)):
         raise ValueError("Invalid environment world/config")
     arrays = world["arrays"]

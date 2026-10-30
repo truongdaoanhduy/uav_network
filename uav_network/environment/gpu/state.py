@@ -10,6 +10,22 @@ from ...communication.link_budget import report_reference_tx_energy_j
 
 @wp.struct
 class WorldParams:
+    xyz: wp.int32
+    continuous_dim: wp.int32
+    grid_n: wp.int32
+    patch_n: wp.int32
+    altitude_min: wp.float64
+    altitude_max: wp.float64
+    obstacle_min_height: wp.float64
+    obstacle_max_height: wp.float64
+    cell_width: wp.float64
+    fov_tangent: wp.float64
+    belief_prior: wp.float64
+    fine_altitude: wp.float64
+    confirmation_threshold: wp.float64
+    sensor_anchors: wp.vec4d
+    sensor_pd: wp.vec4d
+    sensor_pf: wp.vec4d
     n: wp.int32
     targets_count: wp.int32
     obstacles_count: wp.int32
@@ -108,6 +124,15 @@ class WorldParams:
 
 @wp.struct
 class WorldState:
+    altitudes: wp.array2d(dtype=wp.float64)
+    vertical_velocity: wp.array2d(dtype=wp.float64)
+    obstacle_heights: wp.array2d(dtype=wp.float64)
+    belief: wp.array3d(dtype=wp.float64)
+    visited: wp.array3d(dtype=wp.int32)
+    positive: wp.array3d(dtype=wp.int32)
+    sensor_tick: wp.array(dtype=wp.int32)
+    sensor_counts: wp.array2d(dtype=wp.int64)
+    xyz_work: wp.array3d(dtype=wp.vec3d)
     fallback_positions: wp.array2d(dtype=wp.vec2d)
     fallback_targets: wp.array2d(dtype=wp.vec2d)
     fallback_obstacles: wp.array2d(dtype=wp.vec3d)
@@ -265,6 +290,13 @@ def params_from_config(config):
         raise NotImplementedError("warp_packet streaming reports support max_queue_packets<=64")
     nlos_exponent, nlos_excess_db = {"urban": (3.0, 12.0), "suburban": (2.6, 8.0)}[n.nlos_model]
     p = WorldParams()
+    p.xyz = int(config.motion_dim == 3); p.continuous_dim = config.continuous_dim
+    p.grid_n = int(np.ceil(w.map_size_m/c.grid_cell_m)); p.patch_n = c.belief_patch_cells
+    p.altitude_min, p.altitude_max = w.altitude_min_m, w.altitude_max_m
+    p.obstacle_min_height, p.obstacle_max_height = w.obstacle_height_min_m, w.obstacle_height_max_m
+    p.cell_width, p.fov_tangent = c.grid_cell_m, np.tan(np.deg2rad(c.full_fov_deg/2))
+    p.belief_prior, p.fine_altitude, p.confirmation_threshold = c.belief_prior, c.fine_altitude_m, c.confirmation_threshold
+    p.sensor_anchors, p.sensor_pd, p.sensor_pf = wp.vec4d(*c.altitude_anchors), wp.vec4d(*c.pd), wp.vec4d(*c.pf)
     values = dict(n=w.num_uavs, targets_count=w.num_targets, obstacles_count=w.num_obstacles,
                   max_steps=w.max_steps, motion_safety=int(w.motion_safety == "dynamic_window"),
                   occlusion=int(c.obstacle_occlusion), target_slots=c.visible_target_slots,
@@ -316,7 +348,7 @@ def params_from_config(config):
     gcs = w.gcs_position_m or [w.map_size_m/2, 0.]
     ack_timeout = 240/n.bit_rate_bps*1e6+60
     if n.propagation_delay_enabled:
-        max_distance = np.sqrt(2*w.map_size_m**2+c.altitude_m**2)
+        max_distance = np.sqrt(2*w.map_size_m**2+(w.altitude_max_m if config.motion_dim==3 else c.altitude_m)**2)
         ack_timeout += 2*max_distance/299_792_458.0*1e6
     values.update(gcs_x=gcs[0], gcs_y=gcs[1], ack_timeout=ack_timeout,
                   retention=2*(n.payload_bytes*8+192)/n.bit_rate_bps*1e6,
@@ -391,6 +423,12 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False, ce
         "packet_counts": ((e,8), wp.int32), "selection_counts": ((e,5), wp.int32),
         "action_counts": ((e,4), wp.int64), "mt": ((e,n+1,624), wp.uint32),
         "mt_index": ((e,n+1), wp.int32)}
+    xn, xo, xg = (n,o,p.grid_n*p.grid_n) if p.xyz else (0,0,0)
+    shapes.update(altitudes=((e,xn),wp.float64), vertical_velocity=((e,xn),wp.float64),
+        obstacle_heights=((e,xo),wp.float64), belief=((e,xn,xg),wp.float64),
+        visited=((e,xn,xg),wp.int32), positive=((e,xn,xg),wp.int32),
+        sensor_tick=((e,),wp.int32), sensor_counts=((e,6 if p.xyz else 0),wp.int64),
+        xyz_work=((e,xn,3),wp.vec3d))
     for name in ("visible", "known", "recovery", "report_present", "report_origin", "report_hops"):
         shapes[name] = ((e,n,t), wp.int32)
     shapes["report_created"] = ((e,n,t), wp.float64)

@@ -10,6 +10,8 @@ import warp as wp
 
 from .state import allocate_state, params_from_config, seed_rows
 from .motion import motion_step
+from .xyz_motion import motion_xyz
+from .bayesian import reset_xyz, sense_bayesian
 from .world import reset_geometry
 from .validation import validate_actions
 from .geometry import sense, scan_coverage
@@ -119,7 +121,11 @@ class WarpVectorEnv:
         self._launch(reset_network,self.num_envs,self.s,self.p,wp_mask)
         self._launch(reset_geometry,self.num_envs,self.s,self.p,wp_mask)
         self._check_errors()
-        self._launch(sense,(self.num_envs,self.p.n,self.p.targets_count),self.s,self.p)
+        if self.p.xyz:
+            self._launch(reset_xyz,(self.num_envs,self.p.n),self.s,self.p,wp_mask)
+            self._launch(sense_bayesian,(self.num_envs,self.p.n),self.s,self.p,0,wp_mask)
+        else:
+            self._launch(sense,(self.num_envs,self.p.n,self.p.targets_count),self.s,self.p)
         if self.p.coverage_grid_cells:
             self._launch(scan_coverage,(self.num_envs,self.p.n,self.p.coverage_grid_cells**2),self.s,self.p)
         self._launch(masked_sense_reports,self.num_envs,self.s,self.p,wp_mask)
@@ -139,7 +145,7 @@ class WarpVectorEnv:
             raise RuntimeError("Cannot snapshot a closed, waiting, or uninitialized vector")
         self._bind_stream()
         wp.synchronize_device(self.wp_device)
-        return {"version": 1, "config": self._snapshot_config(),
+        return {"version": 2 if self.p.xyz else 1, "config": self._snapshot_config(),
                 "device_type": self.device.type,
                 "arrays": {name: wp.to_torch(value).detach().to(device="cpu", copy=True)
                            for name, value in vars(self.s).items() if isinstance(value, wp.array)},
@@ -150,13 +156,17 @@ class WarpVectorEnv:
         """Validate the complete payload before changing any live world."""
         if self._closed or self._waiting:
             raise RuntimeError("Cannot restore a closed or waiting vector")
-        if (not isinstance(snapshot, dict) or snapshot.get("version") != 1
+        if (not isinstance(snapshot, dict) or snapshot.get("version") != (2 if self.p.xyz else 1)
                 or with_legacy_feature_defaults(snapshot.get("config", {})) != self._snapshot_config()
                 or snapshot.get("device_type") != self.device.type):
             raise ValueError("Incompatible Warp snapshot version/config/device")
         arrays = {name: wp.to_torch(value) for name, value in vars(self.s).items()
                   if isinstance(value, wp.array)}
         incoming = snapshot.get("arrays")
+        if isinstance(incoming,dict) and not self.p.xyz:
+            incoming = dict(incoming)
+            for name in ("altitudes","vertical_velocity","obstacle_heights","belief","visited","positive","sensor_tick","sensor_counts","xyz_work"):
+                incoming.setdefault(name,torch.zeros_like(arrays[name],device="cpu"))
         if (isinstance(incoming, dict) and not self.p.coverage_grid_cells
                 and "coverage" not in incoming):
             incoming = dict(incoming, coverage=torch.empty_like(arrays["coverage"], device="cpu"))
@@ -168,6 +178,13 @@ class WarpVectorEnv:
                     or value.shape != target.shape or value.dtype != target.dtype
                     or value.layout != torch.strided):
                 raise ValueError(f"Warp snapshot array shape/dtype mismatch: {name}")
+        if self.p.xyz:
+            for name,value in incoming.items():
+                if value.is_floating_point() and not torch.isfinite(value).all():
+                    raise ValueError(f"Non-finite XYZ snapshot field: {name}")
+            z=incoming["altitudes"]
+            if bool(((z<self.p.altitude_min)|(z>self.p.altitude_max)).any()) or bool(((incoming["belief"]<0)|(incoming["belief"]>1)).any()):
+                raise ValueError("Invalid XYZ altitude/belief bounds")
         seeds = snapshot.get("seeds")
         if (not isinstance(seeds, torch.Tensor) or seeds.shape != (self.num_envs,)
                 or seeds.dtype != torch.int64 or seeds.device.type != "cpu"
@@ -193,15 +210,15 @@ class WarpVectorEnv:
 
     def random_actions(self, observations):
         shape = observations.shape[:-1]
-        continuous = torch.rand((*shape,3),device=self.device,generator=self.action_generator)*2-1
+        continuous = torch.rand((*shape,self.config.continuous_dim),device=self.device,generator=self.action_generator)*2-1
         scores = torch.rand((*shape,self.p.n+1),device=self.device,generator=self.action_generator)
         mask = observations[..., -(self.p.n+1):] > .5
         mask[...,0] = True
         scores.masked_fill_(~mask,-1)
         destination = scores.argmax(-1)
         active = observations[...,9] > .5
-        continuous[..., :2] *= active[...,None]
-        continuous[..., 2] *= active & (destination != 0)
+        continuous[..., :-1] *= active[...,None]
+        continuous[..., -1] *= active & (destination != 0)
         return Action(continuous,destination)
 
     def step_async(self, actions):
@@ -215,7 +232,7 @@ class WarpVectorEnv:
         if destination.dtype not in integer_types:
             raise ValueError("Destination actions require an integer dtype")
         destination = destination.to(dtype=torch.int64).contiguous()
-        if continuous.shape != (self.num_envs,self.p.n,3) or destination.shape != (self.num_envs,self.p.n):
+        if continuous.shape != (self.num_envs,self.p.n,self.config.continuous_dim) or destination.shape != (self.num_envs,self.p.n):
             raise ValueError("Invalid batched action shape")
         # Native policy validation is performed by checked kernels; no host action copy.
         wc, wd = wp.from_torch(continuous), wp.from_torch(destination)
@@ -227,8 +244,11 @@ class WarpVectorEnv:
         self.s.observation = wp.from_torch(next_buffer["observation"])
         self.s.state = wp.from_torch(next_buffer["state"])
         self._launch(begin_step,self.num_envs,self.s,self.p)
-        self._launch(motion_step,self.num_envs,self.s,self.p,wc)
-        self._launch(sense,(self.num_envs,self.p.n,self.p.targets_count),self.s,self.p)
+        self._launch(motion_xyz if self.p.xyz else motion_step,self.num_envs,self.s,self.p,wc)
+        if self.p.xyz:
+            self._launch(sense_bayesian,(self.num_envs,self.p.n),self.s,self.p,1,self.s.terminated)
+        else:
+            self._launch(sense,(self.num_envs,self.p.n,self.p.targets_count),self.s,self.p)
         if self.p.coverage_grid_cells:
             self._launch(scan_coverage,(self.num_envs,self.p.n,self.p.coverage_grid_cells**2),self.s,self.p)
         self._launch(sense_reports,self.num_envs,self.s,self.p)
@@ -318,6 +338,14 @@ class WarpMissionEnv:
         s = self.vector.s
         self.positions = s.positions.numpy()[0]
         self.velocities = s.velocities.numpy()[0]
+        if self.config.motion_dim == 3:
+            self.positions = np.column_stack((self.positions,s.altitudes.numpy()[0]))
+            self.velocities = np.column_stack((self.velocities,s.vertical_velocity.numpy()[0]))
+            self.obstacle_heights = s.obstacle_heights.numpy()[0,:self.config.world.num_obstacles]
+            g = self.vector.p.grid_n
+            self.belief = s.belief.numpy()[0].reshape(self.config.world.num_uavs,g,g)
+            self.visited = s.visited.numpy()[0].reshape(self.config.world.num_uavs,g,g).astype(bool)
+            self.positive = s.positive.numpy()[0].reshape(self.config.world.num_uavs,g,g).astype(bool)
         self.targets = s.targets.numpy()[0]
         self.obstacles = s.obstacles.numpy()[0,:self.config.world.num_obstacles]
         self.gcs = s.gcs.numpy()[0]

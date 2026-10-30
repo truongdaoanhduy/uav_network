@@ -2,6 +2,9 @@
 import warp as wp
 
 from .state import WorldParams, WorldState
+from .xyz_observations import candidates, extras, centralized_extras
+from .xyz_geometry import range_distance
+from .bayesian import profile
 from ...communication.gpu.phy import xy, nominal_required_power
 from ...communication.gpu.power import power_fraction
 
@@ -55,9 +58,9 @@ def destination_allowed(s: WorldState, p: WorldParams, e: int, i: int, destinati
                and _report_count(s, p, e, i) > 0)
     if destination < p.n:
         allowed = (allowed and _active(s, p, e, destination)
-                   and wp.length(s.positions[e, destination] - s.positions[e, i]) <= p.peer_range)
+                   and range_distance(s,p,e,i,destination) <= p.peer_range)
     else:
-        allowed = allowed and wp.length(s.gcs[e] - s.positions[e, i]) <= p.gcs_range
+        allowed = allowed and range_distance(s,p,e,i,p.n) <= p.gcs_range
     if p.power_limited_admission != 0:
         allowed = allowed and nominal_required_power(s,p,e,i,destination) <= p.tx_power_max
     if p.admission_mask != 0:
@@ -86,7 +89,7 @@ def observe(s: WorldState, p: WorldParams):
     offset = 10 + 2 * p.targets_count
     # Rank visible items by distance and ID; stable ties match Python's sort.
     for t in range(p.targets_count):
-        if active and s.visible[e, i, t] != 0:
+        if p.xyz == 0 and active and s.visible[e, i, t] != 0:
             distance = wp.length(s.targets[e, t] - position)
             rank = int(0)
             for other in range(p.targets_count):
@@ -100,16 +103,21 @@ def observe(s: WorldState, p: WorldParams):
                 s.observation[e, i, offset + 4 * rank + 1] = wp.float32(relative[1])
                 s.observation[e, i, offset + 4 * rank + 2] = wp.float32(s.known[e, i, t])
                 s.observation[e, i, offset + 4 * rank + 3] = wp.float32(1.0)
+    if p.xyz != 0 and active:
+        candidates(s,p,e,i,offset)
     offset = offset + 4 * p.target_slots
+    footprint = p.footprint
+    if p.xyz != 0:
+        footprint = profile(p,s.altitudes[e,i])[2]
     for o in range(p.obstacles_count):
         circle = s.obstacles[e, o]
         distance = wp.length(wp.vec2d(circle[0], circle[1]) - position)
-        if active and distance <= p.footprint + circle[2]:
+        if active and distance <= footprint + circle[2]:
             rank = int(0)
             for other in range(p.obstacles_count):
                 other_circle = s.obstacles[e, other]
                 other_distance = wp.length(wp.vec2d(other_circle[0], other_circle[1]) - position)
-                if other_distance <= p.footprint + other_circle[2]:
+                if other_distance <= footprint + other_circle[2]:
                     if other_distance < distance or (other_distance == distance and other < o):
                         rank = rank + 1
             if rank < p.obstacle_slots:
@@ -122,7 +130,7 @@ def observe(s: WorldState, p: WorldParams):
     slot = int(0)
     for j in range(p.n):
         if j != i:
-            if active and wp.length(s.positions[e, j] - position) <= p.peer_range:
+            if active and range_distance(s,p,e,i,j) <= p.peer_range:
                 relative = (s.positions[e, j] - position) / p.map_size
                 for axis in range(2):
                     s.observation[e, i, offset + 6 * slot + axis] = wp.float32(relative[axis])
@@ -132,14 +140,14 @@ def observe(s: WorldState, p: WorldParams):
             slot = slot + 1
     offset = offset + 6 * (p.n - 1)
     if p.link_state_observation != 0:
-        source_gcs = wp.length(s.positions[e,i]-s.gcs[e])
+        source_gcs = range_distance(s,p,e,i,p.n)
         diagonal = wp.sqrt(wp.float64(2))*p.map_size
         slot = int(0)
         for j in range(p.n):
             if j != i:
-                if active and _active(s,p,e,j) and wp.length(s.positions[e,j]-position) <= p.peer_range:
+                if active and _active(s,p,e,j) and range_distance(s,p,e,i,j) <= p.peer_range:
                     required = nominal_required_power(s,p,e,i,j)
-                    progress = wp.clamp((source_gcs-wp.length(s.positions[e,j]-s.gcs[e]))/diagonal,
+                    progress = wp.clamp((source_gcs-range_distance(s,p,e,j,p.n))/diagonal,
                                         wp.float64(-1),wp.float64(1))
                     free = wp.clamp((wp.float64(p.buffer_bytes)-wp.float64(_report_count(s,p,e,j)*p.report_bytes))
                                     /wp.float64(p.buffer_bytes),wp.float64(0),wp.float64(1))
@@ -156,6 +164,8 @@ def observe(s: WorldState, p: WorldParams):
     for cell in range(p.coverage_grid_cells*p.coverage_grid_cells):
         s.observation[e,i,offset+cell] = wp.float32(s.coverage[e,i,cell])
     offset += p.coverage_grid_cells*p.coverage_grid_cells
+    if p.xyz != 0:
+        offset = extras(s,p,e,i,offset)
     s.observation[e, i, offset] = wp.float32(1.0)
     slot = int(0)
     for j in range(p.n):
@@ -198,3 +208,6 @@ def centralized(s: WorldState, p: WorldParams):
     for i in range(p.n):
         for cell in range(p.coverage_grid_cells*p.coverage_grid_cells):
             s.state[e,offset+3*p.n+1+i*p.coverage_grid_cells*p.coverage_grid_cells+cell] = wp.float32(s.coverage[e,i,cell])
+
+    if p.xyz != 0:
+        centralized_extras(s,p,e,offset+3*p.n+1+p.n*p.coverage_grid_cells*p.coverage_grid_cells)

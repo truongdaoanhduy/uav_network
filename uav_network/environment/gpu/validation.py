@@ -12,7 +12,7 @@ def validate_actions(s: WorldState,p: WorldParams,continuous: wp.array3d(dtype=w
     for i in range(p.n):
         if destination[e,i] < 0 or destination[e,i] > wp.int64(p.n):
             s.errors[e] = 91
-        for j in range(3):
+        for j in range(p.continuous_dim):
             value = continuous[e,i,j]
             if not wp.isfinite(value) or wp.abs(value) > wp.float32(1.0):
                 s.errors[e] = 90
