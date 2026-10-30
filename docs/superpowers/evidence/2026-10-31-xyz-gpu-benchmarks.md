@@ -80,3 +80,27 @@ kiểm quota/job trùng trước khi submit. Chưa submit20k production tại m�
 Full-ring readiness sẽ kiểm BASE/PQL cho cả3profile. Riêng PQL diagnostic dùng
 `pql.warmup_collection_steps=248` để điền ring trước phần learner; training profile
 vẫn warmup32. Không so throughput diagnostic này như một training study ngang budget.
+
+## GitHub Actions đã kiểm tra kết nối
+
+Đã ghim `KAGGLE_ENABLED_ACCOUNTS=account_01` và đồng bộ ba encrypted secrets
+cho Kaggle account01/W&B/HF từ credential đang được dùng, không ghi giá trị vào log.
+Các secret khác được giữ nguyên. Repo HF `duy95/uav-search-checkpoints` vẫn public
+như cấu hình hiện tại; kiểm read access thành công.
+
+[Dry-run Actions41132659573](https://github.com/truongdaoanhduy/uav_network/actions/runs/41132659573)
+đã `success`: Kaggle xác nhận username `kesfljhk`, W&B/HF cùng statusok.
+Workflow có lịch15phút, checkout working branch, continuation giữ nguyên account
+và chỉ xử lý lineage quản lý. Đây là kiểm service/reconciliation dry-run;
+chưa phải bằng chứng một run XYZ20k đã hoàn tất hoặc CPUvisualize đã xuất bản.
+
+Full-ring readiness đang chạy bằng controller tạm
+`outputs/xyz-full-ring-20261031/matrix.py`, source481f81f, sáu case tuần tự,
+mỗi caseMASAC/MATD3. Task IDhost `b65a860569c6`; xem `current.json`/`results.json`.
+Không gửi lại case đã có receipt khi phục hồi; kiểm remote trước mọi retry.
+
+User yêu cầu tăng tốc bằng4account lúc05giờ. Giữ một account theo điều khoản
+https://www.kaggle.com/terms và tăng lên2batch GPU sessions đồng thời trên account01.
+Monitor local cũ b65a860569c6 đã được thay bằng f872767fa8c9/parallel.py;
+không hủy job Kaggle. Case có receipt được adopt, không submit lại.
+Theo dõi parallel-current.json; ba case đầu đã passed, các case còn lại đang chạy.

@@ -1,42 +1,40 @@
-# XYZ CUDA BASE/PQL PASSED — FULL-RING REPLAY CHECK NEXT
+# XYZ CUDA READINESS — TWO PARALLEL GPU SESSIONS / TRAINING NOT STARTED
 
-Updated 2026-10-31T02:02:00.557866+07:00.
-User authorized GPU execution; no repeat approval. Branch feat/cpu-replay-20261022.
-Runtime fix5fee6c753b4e7cd86801a68ab5a0fb72521bda86; preflight source9e7b88c.
-PQL benchmark-step gate fix08676528d52b578063039379ede4eab9d7217292.
+Updated 2026-10-31T05:09:52.079118+07:00.
+Branch feat/cpu-replay-20261022; published481f81f288d8e84a010dba52e4c8e30b5eebd391.
+Runtime5fee6c7(struct refs); cloud budget0867652; current benchmarks pinned481f81f.
 
-- Actual two TeslaT4. Both source9e7b88c Kaggle jobs complete and reports passed:
-  BASE kesfljhk/ben-g3-both-base-h75-10301844-63825e (4rounds/4updates+2warmup),
-  PQL kesfljhk/ben-g3-both-pql-h75-10301852-575209 (40rounds).
-  CUDA15tests (including4XYZ),scenario4,mission8 allpassed; PQL smoke11passed.
-- PQL MASAC72critic/72actor, MATD372critic/36actor; nonfinite flags0.
-  W&B actual finished runs4d0c32a3 andd342ba5a (benchmark,not20ktraining).
-  BASE receipt IDs are not evidence of online BASE runs.
-- E4096/B8192/replay1M/Hybrid75 fit; actor/critic shared,FP32,eager override.
-  Collectorcuda0,learnerscuda1;750kCPU/250kGPU-hot slots. Separate PyTorch peaks
-  from Warp world2.849GB and driver memory. Existing verification flags have
-  different definitions; see measured report before interpreting false flags.
-- Current4/40round data has not reached750kCPU slots. Next256rounds fill/wrap
-  1M replay and exercise actual GPU-hot data,without shrinking E/B/R or AMP.
-  Gate used to ignore large requested PQL budgets; RED40!=256,GREEN5tests.
-  Latest full pytest1146passed,102skipped,1557subtests,258.23s,exit0.
-- Struct references fix compiler copying; math/RNG/struct schema unchanged.
-  Original source42c1dac job cancelled near1800s; do not confuse it with new pass.
-  Keep6UAV/map1km/20T15O/1200steps,learned RF,XYZ Bayesian FOV/prior0.5,
-  local belief/confirmation rules and2Dvisualize. YAMLs unchanged.
-- Pin account_01 only; fresh-check quota/jobs before next launch. No account
-  rotation,cancellation or20kproduction started. User historical tail preserved.
+- Quick BASE/PQL at9e7b88c passed15CUDA(incl4XYZ),scenario4,mission8;PQL11smokes.
+  Full-ring matrix now3/6cases passed;each case runs MASAC/MATD3. E4096,B8192,R1M,
+  256rounds=1048576insertions; PQL diagnostic-only warmup248. Training warmup32.
+- Active monitor:f872767fa8c9. Read outputs/xyz-full-ring-20261031/parallel-current.json,
+  per-case receipt.json/status.json/measured.json and results.json. Source481f81f.
+  Prior local monitor b65a860569c6 stopped; all remote jobs preserved/adopted.
+- User asked4accounts for speed; do not pool accounts. Two GPU commit sessions
+  on account_01 are accepted and currently running,within Kaggle session limits.
+  Terms:https://www.kaggle.com/terms. Latest quota26.60h,observed during05h01check.
+- Three profiles:shared-Hybrid75,shared-FullGPU,independent-Hybrid75;BASE/PQL each.
+  Collector/learner roles use2T4 per job. Keep actual flag definitions and separate
+  Warp world bytes from PyTorch peaks. FullGPU BASE passed; PQL result pending.
+- Preserve6UAV/map1km/20T15O/1200steps,learned RF,XYZ Bayes/FOV/prior0.5,2Dvisualize,
+  FP32/eager overrides. YAMLs unchanged. CPU1146passed,102skipped,1557subtests.
+- GitHub supervisor dry-run41132659573 passed:account01 ownerkesfljhk,W&B/HFok.
+  Enabled-account var pinned01; selected encrypted secrets synchronized,others retained.
+  Existing supervisor handles per-lineage continuation and finalCPU30visualize.
+  Newly drafted four-root cohort plan/spec are NOT implemented yet.
+- No20kXYZ production training launched; no convergence or multi-seed proof.
+  Default study seeds44,100044,200044. Best actor and latestfullresume remain separate.
+  User historical CURRENT_TASK suffix stays unchanged/unstaged.
 
-[GPU measurements](evidence/2026-10-31-xyz-gpu-benchmarks.md) |
-[Compiler evidence](evidence/2026-10-31-xyz-cuda-preflight.md) | [Usage](../xyz-sensing.md).
-Raw:outputs/xyz-gpu-refs-20261031/ (base-measured.json,pql-measured.json,pql-output/).
-Earlier raw:outputs/xyz-gpu-preflight-42c1dac-20261031/.
-Clean old source:/tmp/uav-xyz-preflight-checkouts-20261031/source-9e7b88c.
+[GPU evidence](evidence/2026-10-31-xyz-gpu-benchmarks.md) |
+[Compiler diagnosis](evidence/2026-10-31-xyz-cuda-preflight.md) | [Usage](../xyz-sensing.md).
+Cohort draft:plans/2026-10-31-xyz-github-cohort.md; own ledger in corresponding workspace.
+Earlier raw:outputs/xyz-gpu-refs-20261031/ and xyz-gpu-preflight-42c1dac-20261031/.
 
-Next:publish gate fix/measurements,clean checkout at new pinned source. Submit
-BASE/PQL256rounds on allthree XYZprofiles sequentially,same account;inspect hot-ring
-updates/VRAM. PQL diagnostic-only warmup248 prefills replay before measured updates;
-production warmup32 is unchanged. Decide20klaunch from measured budget,not this diagnostic.
+Next:finish current matrix; inspect any parallel-error.json before doing anything.
+Never re-submit a receipt-bearing case. Preserve OOM instead of shrinking hidden E/B/R.
+Once readiness is recorded,finish minimal Actions cohort queue and launch approved
+20kseed44 cohort;server continuation/eval must persist beyond Sandbox.
 
 ---
 

@@ -269,6 +269,120 @@
       "W&B runs are real benchmark runs, not20k training."
     ]
   },
-  "full_ring_status": "pending",
-  "pql_budget_fix_commit": "08676528d52b578063039379ede4eab9d7217292"
+  "full_ring_status": {
+    "source_commit": "481f81f288d8e84a010dba52e4c8e30b5eebd391",
+    "controller_job": "f872767fa8c9",
+    "controller_file": "outputs/xyz-full-ring-20261031/parallel.py",
+    "status_file": "outputs/xyz-full-ring-20261031/parallel-current.json",
+    "concurrency": 2,
+    "account": "account_01",
+    "passed_cases": [
+      "shared-h75-pql",
+      "shared-fullgpu-base",
+      "shared-h75-base"
+    ],
+    "state": {
+      "observed_at": "2026-10-31T05:09:23.000061+07:00",
+      "concurrency": 2,
+      "account": "account_01",
+      "cases": {
+        "shared-h75-base": {
+          "id": "shared-h75-base",
+          "mode": "BASE",
+          "profile": "shared-h75",
+          "production_started": false,
+          "state": "passed",
+          "observed_at": "2026-10-31T05:05:34.370370+07:00"
+        },
+        "shared-h75-pql": {
+          "id": "shared-h75-pql",
+          "mode": "PQL",
+          "profile": "shared-h75",
+          "production_started": false,
+          "state": "passed",
+          "observed_at": "2026-10-31T05:05:34.370783+07:00"
+        },
+        "shared-fullgpu-base": {
+          "id": "shared-fullgpu-base",
+          "mode": "BASE",
+          "profile": "shared-fullgpu",
+          "production_started": false,
+          "state": "passed",
+          "observed_at": "2026-10-31T05:05:34.371077+07:00"
+        },
+        "shared-fullgpu-pql": {
+          "id": "shared-fullgpu-pql",
+          "mode": "PQL",
+          "profile": "shared-fullgpu",
+          "production_started": false,
+          "state": "running",
+          "kernel_ref": "kesfljhk/ben-g3-both-pql-fullgpu-10302201-f6e3e1",
+          "kernel_url": "https://www.kaggle.com/code/kesfljhk/ben-g3-both-pql-fullgpu-10302201-f6e3e1",
+          "observed_at": "2026-10-31T05:09:22.999744+07:00"
+        },
+        "independent-h75-base": {
+          "id": "independent-h75-base",
+          "mode": "BASE",
+          "profile": "independent-h75",
+          "production_started": false,
+          "state": "running",
+          "observed_at": "2026-10-31T05:09:02.287273+07:00",
+          "kernel_ref": "kesfljhk/ben-g3-both-base-h75-10302206-859ea8",
+          "kernel_url": "https://www.kaggle.com/code/kesfljhk/ben-g3-both-base-h75-10302206-859ea8"
+        }
+      },
+      "production_started": false
+    },
+    "raw_directory": "outputs/xyz-full-ring-20261031",
+    "old_local_monitor_replaced": "b65a860569c6",
+    "remote_jobs_cancelled": false
+  },
+  "pql_budget_fix_commit": "08676528d52b578063039379ede4eab9d7217292",
+  "github_supervisor": {
+    "configuration": {
+      "observed_at": "2026-10-31T04:39:12.719495+07:00",
+      "repo": "truongdaoanhduy/uav_network",
+      "enabled_accounts": [
+        "account_01"
+      ],
+      "encrypted_secrets_updated": [
+        "KAGGLE_API_TOKEN_ACCOUNT_01",
+        "WANDB_API_KEY",
+        "HF_TOKEN"
+      ],
+      "wandb_project": "truongdaoanhduy-uit/uav_search_target",
+      "hf_repo": "duy95/uav-search-checkpoints",
+      "other_secrets_retained": true,
+      "running_jobs_cancelled": false,
+      "values_logged": false
+    },
+    "dry_run": {
+      "dispatch_accepted": true,
+      "dry_run": true,
+      "started_at": "2026-10-30T21:39:31.699502+00:00",
+      "ref": "feat/cpu-replay-20261022",
+      "enabled_accounts": [
+        "account_01"
+      ],
+      "run": {
+        "databaseId": 41132659573,
+        "jobId": 124327287466,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/truongdaoanhduy/uav_network/actions/runs/41132659573"
+      },
+      "services": {
+        "kaggle/account_01": {
+          "status": "ok",
+          "username": "kesfljhk"
+        },
+        "wandb": {
+          "status": "ok"
+        },
+        "huggingface": {
+          "status": "ok"
+        }
+      }
+    }
+  }
 }
