@@ -32,7 +32,7 @@ def _nominal_required(env, source, destination):
     count = env.config.world.num_uavs
     target = env.gcs if destination == count else env.positions[destination]
     return nominal_required_power_w(env.positions[source], target, env.obstacles, env.config.network,
-                                    env.config.sensor.altitude_m, destination == count)
+                                    env.config.sensor.altitude_m, destination == count, heights=getattr(env, 'obstacle_heights', None))
 
 
 def _power_feasible(env, source, destination):

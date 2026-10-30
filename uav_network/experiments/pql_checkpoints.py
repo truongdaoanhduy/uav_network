@@ -14,6 +14,13 @@ def validate_pql_checkpoint(saved, config):
     validate_observation_version(saved)
     progress = validate_progress(saved.get("progress"), config.runtime.episodes)
     training = saved["training"]
+    diagnostic = training.get("diagnostics")
+    if diagnostic is not None and (not isinstance(diagnostic,dict)
+            or diagnostic.keys() != {"latest","next_metric_update","metric_interval"}
+            or not isinstance(diagnostic["latest"],dict)
+            or type(diagnostic["next_metric_update"]) is not int or diagnostic["next_metric_update"] < 0
+            or type(diagnostic["metric_interval"]) is not int or diagnostic["metric_interval"] < 1):
+        raise ValueError("Invalid PQL diagnostic checkpoint state")
     before, current = saved["config"]["runtime"], config.to_dict()["runtime"]
     if before.get("replay_cpu_fraction", 0.0) != config.runtime.replay_cpu_fraction:
         raise ValueError("PQL resume runtime.replay_cpu_fraction differs from checkpoint")

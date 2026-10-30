@@ -10,18 +10,25 @@ import torch
 
 from ..configuration import Config, _apply, config_fingerprint
 from .comparison_metrics import evaluation_protocol
+from ..configuration_xyz import strip_legacy_xyz_defaults
 
 CRITERIA = ("success_rate", "mean_delivery_rate_percent", "mean_search_rate_percent", "mean_return")
 
 
 def selection_identity(config):
-    d = config.to_dict()
+    d = strip_legacy_xyz_defaults(config.to_dict())
     value = {k:d[k] for k in ("world", "sensor", "network", "energy", "reward", config.runtime.algorithm, "pql")}
     value["runtime"] = {k:d["runtime"][k] for k in
                         ("algorithm", "seed", "amp_mode", "num_envs", "environment_backend")}
     value["validation"] = [config.tracking.periodic_evaluation_seed,
                            config.tracking.periodic_evaluation_episodes]
     return hashlib.sha256(json.dumps(value, sort_keys=True, allow_nan=False).encode()).hexdigest()
+
+
+def _config_hashes(config):
+    legacy = strip_legacy_xyz_defaults(config.to_dict())
+    return {config_fingerprint(config),
+            hashlib.sha256(json.dumps(legacy,sort_keys=True,allow_nan=False).encode()).hexdigest()}
 
 
 def _validation_seeds(config):
@@ -70,7 +77,7 @@ class BestCheckpoint:
             saved, before = _snapshot(data)
             if (meta.get("identity") != self.identity or selection_identity(before) != self.identity
                     or hashlib.sha256(data).hexdigest() != meta.get("checkpoint_sha256")
-                    or config_fingerprint(before) != meta.get("config_sha256")
+                    or meta.get("config_sha256") not in _config_hashes(before)
                     or meta.get("global_step") != saved["progress"]["global_step"]
                     or meta.get("episode") != saved["progress"]["episodes"]
                     or meta.get("kind") != "validation_best"

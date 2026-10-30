@@ -35,6 +35,7 @@ def run_name(config, algorithm, mode, stage, suffix):
     stage = {"benchmark": "BENCH", "train": "TRAIN", "validate": "VALIDATE"}.get(stage, stage.upper())
     sharing = sharing_marker(config, algorithm)
     sharing = f"-{sharing}" if sharing else ""
+    sharing += "-XYZ-BAYES" if config.motion_dim==3 else ""
     return (f"{stage}-{algorithm.upper()}-{mode.upper()}{sharing}-{replay_layout(config)}"
             f"-E{config.runtime.num_envs}-B{settings.batch_size}"
             f"-R{compact_count(settings.replay_capacity)}-G{config.world.generation_version}"

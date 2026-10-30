@@ -44,7 +44,7 @@ def validate_xyz(config):
             or any(a>=b for a,b in zip(s.altitude_anchors,s.altitude_anchors[1:]))
             or any(not 0<pf<pd<1 for pd,pf in zip(s.pd,s.pf))):
         raise ValueError("Camera needs four ordered altitude anchors and 0<Pf<Pd<1")
-    if not (w.altitude_min_m<=s.fine_altitude_m<=w.altitude_max_m
+    if w.motion_dimensions==3 and not (w.altitude_min_m<=s.fine_altitude_m<=w.altitude_max_m
             and w.altitude_min_m<=s.altitude_m<=w.altitude_max_m):
         raise ValueError("Initial/fine altitude outside flight bounds")
     if type(s.belief_patch_cells) is not int or not 1<=s.belief_patch_cells<=13 or s.belief_patch_cells%2!=1:
@@ -55,3 +55,13 @@ def validate_xyz(config):
 
 def legacy_xyz_defaults():
     return {"world":asdict(FlightSettings()),"sensor":asdict(BayesianSettings())}
+
+
+def strip_legacy_xyz_defaults(values):
+    """Normalize only unused defaults, so existing XY scientific identities survive."""
+    if values.get("world",{}).get("motion_dimensions",2)==2:
+        for group,defaults in legacy_xyz_defaults().items():
+            for key,value in defaults.items():
+                if values[group].get(key)==value:
+                    values[group].pop(key,None)
+    return values

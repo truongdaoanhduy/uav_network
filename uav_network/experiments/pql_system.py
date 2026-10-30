@@ -128,6 +128,11 @@ class PQLSystem:
         self.next_metric_update = self.critic.updates + 1
         self.metric_interval = max(1, math.ceil(config.runtime.log_interval_steps /
                                                config.runtime.num_envs * config.pql.critic_sample_ratio))
+        if saved and saved["training"].get("diagnostics"):
+            diagnostic = saved["training"]["diagnostics"]
+            self.latest = deepcopy(diagnostic["latest"])
+            if diagnostic["metric_interval"] == self.metric_interval:
+                self.next_metric_update = diagnostic["next_metric_update"]
         if self.asynchronous:
             # Optimizers and live parameters have exactly one writer.
             del self.critic.actor_optimizers
@@ -361,6 +366,9 @@ class PQLSystem:
                             "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else [],
                             "python": random.getstate(), "collector": collector_rng,
                             "numpy": (numpy_state[0], numpy_state[1].tolist(), *numpy_state[2:])}}
+        training["diagnostics"] = {"latest":deepcopy(self.latest),
+                                   "next_metric_update":self.next_metric_update,
+                                   "metric_interval":self.metric_interval}
         if environment is not None:
             training["environment"] = environment
         if selection_state is not None:

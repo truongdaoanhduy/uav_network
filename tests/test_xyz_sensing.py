@@ -109,3 +109,13 @@ def test_config_rejects_bad_xyz_sensor_settings():
     c = xyz_config()
     c.sensor.belief_prior = float("nan")
     with pytest.raises(ValueError): c.validate()
+
+def test_bayesian_actor_does_not_see_unconfirmed_target_coordinates():
+    c=xyz_config()
+    first=world(c,z=100,target=(511,511))
+    from uav_network.environment.observations import local_observations
+    a=local_observations(first)
+    second=world(c,z=100,target=(514,514))
+    b=local_observations(second)
+    assert not first.reports.known.any() and not second.reports.known.any()
+    np.testing.assert_array_equal(a,b)

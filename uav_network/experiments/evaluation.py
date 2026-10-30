@@ -38,10 +38,12 @@ def run_episode(env, learner, *, seed, episode=1, action_control=None, trace=Fal
     obs, _ = env.reset(seed=seed)
     layout = {"positions": env.positions.tolist(), "targets": env.targets.tolist(),
               "obstacles": env.obstacles.tolist(), "gcs": env.gcs.tolist()}
+    if env.config.motion_dim==3:
+        layout["obstacle_heights"] = env.obstacle_heights.tolist()
     layout_hash = hashlib.sha256(json.dumps(layout, sort_keys=True, allow_nan=False).encode()).hexdigest()
     paths = [env.positions.copy()] if capture_paths or animate else []
     mission = MissionMetrics(env.config, env.positions, env.obstacles,
-                             env.reports.known.any(axis=0), env.reports.delivered)
+                             env.reports.known.any(axis=0), env.reports.delivered, obstacle_heights=getattr(env,'obstacle_heights',None))
     frames = [animation_frame(env)] if animate else []
     events = []
     episode_return = 0.0

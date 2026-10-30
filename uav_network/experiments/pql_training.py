@@ -123,7 +123,7 @@ def train_pql(config):
                 warmup = engine.collections - engine.warmup_origin < config.pql.warmup_collection_steps
                 if warmup:
                     action = (vector.random_actions(obs["observation"]) if device_env else
-                              random_actions(obs["observation"], rng, config.world.num_uavs + 1))
+                              random_actions(obs["observation"], rng, config.world.num_uavs + 1, config.continuous_dim))
                 else:
                     action = engine.act_batch(obs["observation"], step=global_step, return_tensors=device_env)
                 following, reward, terminated, truncated, infos = vector.step({

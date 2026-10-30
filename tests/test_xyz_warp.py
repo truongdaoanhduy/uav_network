@@ -61,3 +61,35 @@ def test_xyz_resume_preserves_next_sensor_draw_and_rejects_nan_atomically():
         with pytest.raises(ValueError):v.restore_state(bad)
         for name,val in before["arrays"].items():assert torch.equal(wp.to_torch(getattr(v.s,name)).cpu(),val),name
     finally:v.close()
+
+@pytest.mark.parametrize("z,confirm",[(100,False),(25,True)])
+def test_warp_confirmation_requires_low_altitude_and_fresh_positive(z,confirm):
+    from uav_network.environment.bayesian import sensor_uniform
+    c=cfg();c.world.num_uavs=c.world.num_targets=1;c.world.num_obstacles=0
+    v=WarpVectorEnv(c,"cpu")
+    try:
+        seed=next(s for s in range(1,1000) if sensor_uniform(s,1,0,820)<.945)
+        v.reset(seed=seed)
+        wp.to_torch(v.s.positions)[0]=torch.tensor([[512.5,512.5]])
+        wp.to_torch(v.s.altitudes)[0]=z
+        wp.to_torch(v.s.targets)[0]=torch.tensor([[512.5,512.5]])
+        wp.to_torch(v.s.belief).fill_(.9999)
+        v.step(dict(continuous=np.zeros((1,1,4),np.float32),destination=np.zeros((1,1),np.int64)))
+        assert bool(wp.to_torch(v.s.known)[0,0,0])==confirm
+        assert bool(wp.to_torch(v.s.report_present)[0,0,0])==confirm
+    finally:v.close()
+
+
+def test_xyz_battery_exhaustion_stops_vertical_velocity():
+    c=cfg();c.energy.battery_capacity_j=160
+    v=WarpVectorEnv(c,"cpu")
+    try:
+        v.reset(seed=44)
+        action=np.zeros((1,2,4),np.float32);action[:,:,2]=1
+        v.step(dict(continuous=action,destination=np.zeros((1,2),np.int64)))
+        # A packet energy debit can exhaust an otherwise completed motion.
+        wp.to_torch(v.s.battery).zero_()
+        from uav_network.communication.gpu.reports import end_step
+        v._launch(end_step,1,v.s,v.p)
+        assert not wp.to_torch(v.s.vertical_velocity).any()
+    finally:v.close()

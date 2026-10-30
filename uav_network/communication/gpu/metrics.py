@@ -59,7 +59,15 @@ def world_info(s, p, index=0):
     motion = row(s.motion_counts,index)
     reward = row(s.reward_components,index)
     actions = row(s.action_counts,index)
+    velocity = row(s.velocities,index)
+    extra = {}
+    if p.xyz:
+        velocity = np.column_stack((velocity,row(s.vertical_velocity,index)))
+        extra = {"sensing": dict(zip(("measurements","positive","false_positive","false_negative","false_confirmation","confirmations"),map(int,row(s.sensor_counts,index)))),
+                 "coverage_percent": 100*float(row(s.visited,index).any(axis=0).mean()),
+                 "altitudes_m": row(s.altitudes,index).tolist()}
     return {
+        **extra,
         "generation_fallback": bool(row(s.generation_fallback,index)),
         "generation_attempts": int(row(s.generation_attempts,index)),
         "report_diagnostics": report_diagnostics(row(s.first_discovery,index),row(s.first_delivery,index),
@@ -73,7 +81,7 @@ def world_info(s, p, index=0):
                                "battery_exhausted" if not active.any() else
                                "time_limit" if steps >= p.max_steps else None),
         "buffer_reports": int(present.sum()), "buffer_bytes": int(present.sum())*p.report_bytes,
-        "mean_speed_mps": float(np.linalg.norm(row(s.velocities,index),axis=1).mean()),
+        "mean_speed_mps": float(np.linalg.norm(velocity,axis=1).mean()),
         "blocked_moves": int(row(s.blocked,index)), "boundary_clips": int(row(s.clipped,index)),
         "expired_reports": int(report_counts[0]), "dropped_reports": int(report_counts[1]),
         "regenerated_reports": int(report_counts[2]),

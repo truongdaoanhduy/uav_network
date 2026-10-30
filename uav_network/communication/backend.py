@@ -62,7 +62,7 @@ class UavNetSimNetwork:
     def sync_positions(self, positions):
         for i, drone in enumerate(self.simulator.drones):
             xy = positions[i] if i < len(positions) else self.scene.gcs
-            z = self.config.sensor.altitude_m if i < len(positions) else 0.0
+            z = (float(xy[2]) if len(xy)==3 else self.config.sensor.altitude_m) if i < len(positions) else 0.0
             # Mission geometry already validated; the native coords setter tests
             # a previous random spawn-to-current path, not this mission movement.
             drone._coords = [float(xy[0]), float(xy[1]), z]
@@ -92,7 +92,7 @@ class UavNetSimNetwork:
         feasible = True
         if n.power_limited_admission:
             feasible = nominal_required_power_w(positions[source], xy, self.scene.obstacles, n,
-                                                self.config.sensor.altitude_m, not peer) <= n.tx_power_max_w
+                                                self.config.sensor.altitude_m, not peer, heights=getattr(self.scene, 'obstacle_heights', None)) <= n.tx_power_max_w
         return (self.node_active(source) and self.node_active(destination)
                 and np.linalg.norm(positions[source] - xy) <= reach and feasible
                 and self.reports.can_forward(source, destination, report, self.clock.now / 1e6))
@@ -176,8 +176,8 @@ class UavNetSimNetwork:
             if next_start >= self._fragment_count(transfer.report):
                 if self.reports.transfer(transfer.source, receiver, transfer.report, now):
                     if receiver < self.config.world.num_uavs:
-                        source_xy = np.asarray(self.simulator.drones[transfer.source].coords[:2], dtype=float)
-                        destination_xy = np.asarray(self.simulator.drones[receiver].coords[:2], dtype=float)
+                        source_xy = np.asarray(self.simulator.drones[transfer.source].coords[:(3 if self.config.motion_dim==3 else 2)], dtype=float)
+                        destination_xy = np.asarray(self.simulator.drones[receiver].coords[:(3 if self.config.motion_dim==3 else 2)], dtype=float)
                         progress = float(np.linalg.norm(source_xy - self.scene.gcs) - np.linalg.norm(destination_xy - self.scene.gcs))
                         counter = "relay_toward_gcs_transfers" if progress > 0 else "relay_away_from_gcs_transfers"
                         self.diagnostic_counts[COUNT[counter]] += 1
@@ -227,7 +227,7 @@ class UavNetSimNetwork:
                     del transfer.pending[offset]
 
     def step(self, action, positions, time_s):
-        action.validate(self.config.world.num_uavs)
+        action.validate(self.config.world.num_uavs,self.config.continuous_dim)
         if abs(time_s - self.clock.now / 1e6 - self.config.world.dt_s) > 1e-8:
             raise ValueError("Mission and packet simulator clocks must advance by exactly dt_s")
         self.sync_positions(positions)
@@ -271,10 +271,10 @@ class UavNetSimNetwork:
                     receiver = self.scene.gcs if destination == self.config.world.num_uavs else positions[destination]
                     required = nominal_required_power_w(
                         positions[source], receiver, self.scene.obstacles, self.config.network,
-                        self.config.sensor.altitude_m, destination == self.config.world.num_uavs)
+                        self.config.sensor.altitude_m, destination == self.config.world.num_uavs, heights=getattr(self.scene, 'obstacle_heights', None))
                     power = link_budget_power_w(required, self.config.network)
                 else:
-                    power = power_from_action(float(action.continuous[source, 2]), self.config.network)
+                    power = power_from_action(float(action.continuous[source, -1]), self.config.network)
                 self.selection_counts["accepted"] += 1
                 self._inject(source, destination, power, report)
             elif all(not self.reports.can_forward(source, destination, r, self.clock.now / 1e6)

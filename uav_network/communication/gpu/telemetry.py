@@ -3,6 +3,7 @@ import warp as wp
 from ...environment.gpu.state import WorldParams, WorldState
 from .reports import active, bytes_used, can_receive
 from .phy import xy
+from ...environment.gpu.xyz_geometry import range_distance
 from .power import link_power_feasible
 from . import diagnostics as diag
 
@@ -19,7 +20,7 @@ def record_action(s: WorldState, p: WorldParams, e: int, source: int, index: int
         s.action_counts[e,2] += wp.int64(1)
     else:
         s.action_counts[e,1] += wp.int64(1)
-    for j in range(2):
+    for j in range(p.continuous_dim-1):
         if wp.abs(continuous[e,source,j]) >= wp.float32(0.99):
             s.action_counts[e,3] += wp.int64(1)
     if p.network_enabled != 0:
@@ -40,7 +41,7 @@ def record_action(s: WorldState, p: WorldParams, e: int, source: int, index: int
                     reach = p.peer_range
                     if receiver == p.n:
                         reach = p.gcs_range
-                    if (wp.length(xy(s,p,e,source)-xy(s,p,e,receiver)) <= reach
+                    if (range_distance(s,p,e,source,receiver) <= reach
                         and link_power_feasible(s,p,e,source,receiver)):
                         for target in range(p.targets_count):
                             if (s.report_present[e,source,target] != 0
@@ -49,8 +50,8 @@ def record_action(s: WorldState, p: WorldParams, e: int, source: int, index: int
                                 eligible = True
                                 if receiver == p.n:
                                     direct_eligible = True
-                                elif (wp.length(xy(s,p,e,receiver)-xy(s,p,e,p.n))
-                                      < wp.length(xy(s,p,e,source)-xy(s,p,e,p.n))-wp.float64(1e-9)):
+                                elif (range_distance(s,p,e,receiver,p.n)
+                                      < range_distance(s,p,e,source,p.n)-wp.float64(1e-9)):
                                     closer_peer = True
         if eligible:
             s.diagnostic_counts[e,diag.ACTION_RECEIVER_ELIGIBLE] += wp.int64(1)

@@ -2,6 +2,8 @@
 import warp as wp
 
 from .state import WorldParams, WorldState
+from .bayesian import profile
+from .xyz_geometry import position3,camera_clear
 
 # Keep native NumPy operation rounding; these simulator kernels need no gradients.
 wp.set_module_options({"enable_backward": False, "fuse_fp": False})
@@ -112,10 +114,16 @@ def scan_coverage(s: WorldState, p: WorldParams):
     point = wp.vec2d((wp.float64(cell % p.coverage_grid_cells)+wp.float64(.5))*width,
                      (wp.float64(cell // p.coverage_grid_cells)+wp.float64(.5))*width)
     position = s.positions[e,i]
-    if wp.length(point-position) > p.footprint + wp.float64(1e-9):
+    footprint=p.footprint
+    if p.xyz!=0:
+        if s.altitudes[e,i]<=wp.float64(0):return
+        footprint=profile(p,s.altitudes[e,i])[2]
+    if wp.length(point-position) > footprint + wp.float64(1e-9):
         return
     visible = bool(True)
-    if p.occlusion != 0:
+    if p.occlusion != 0 and p.xyz!=0:
+        visible=camera_clear(s,p,e,position3(s,e,i),point)
+    elif p.occlusion != 0:
         for o in range(p.obstacles_count):
             circle = s.obstacles[e,o]
             if segment_distance(position,point,wp.vec2d(circle[0],circle[1])) < circle[2]+wp.float64(1e-9):

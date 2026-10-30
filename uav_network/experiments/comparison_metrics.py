@@ -4,7 +4,8 @@ import json
 import numpy as np
 
 from ..environment.geometry import segment_distance
-from ..environment.observations import OBSERVATION_VERSION
+from ..environment.observations import OBSERVATION_VERSION, observation_version
+from ..configuration_xyz import legacy_xyz_defaults
 
 
 # Units and preferred direction are explicit; no aggregate 'best algorithm' score.
@@ -59,7 +60,12 @@ def evaluation_protocol(config, seeds, progress):
         for key in ("pa_efficiency", "tx_circuit_power_w", "rx_circuit_power_w"):
             network.pop(key, None)
     scenario["environment_backend"] = config.runtime.environment_backend
-    scenario["observation_version"] = OBSERVATION_VERSION
+    if config.motion_dim == 2:
+        for group, defaults in legacy_xyz_defaults().items():
+            for key,value in defaults.items():
+                if scenario[group].get(key) == value:
+                    scenario[group].pop(key,None)
+    scenario["observation_version"] = observation_version(config)
     digest = hashlib.sha256(json.dumps(scenario, sort_keys=True, allow_nan=False).encode()).hexdigest()
     next_seed = progress.get("next_seed")
     history_seeds = [r["seed"] for r in progress.get("records", []) if type(r.get("seed")) is int]
@@ -98,10 +104,13 @@ def evaluation_protocol(config, seeds, progress):
 
 
 class MissionMetrics:
-    def __init__(self, config, positions, obstacles, found, delivered):
+    def __init__(self, config, positions, obstacles, found, delivered, obstacle_heights=None):
         self.config = config
         self.previous = np.asarray(positions, dtype=float).copy()
         self.obstacles = np.asarray(obstacles, dtype=float).copy()
+        self.obstacle_heights = None if obstacle_heights is None else np.asarray(obstacle_heights,float)
+        if config.motion_dim==3 and (self.obstacle_heights is None or self.obstacle_heights.shape!=(config.world.num_obstacles,) or not np.isfinite(self.obstacle_heights).all()):
+            raise ValueError("XYZ metrics require finite obstacle heights")
         self.discovered = np.full(config.world.num_targets, np.nan)
         self.delivered = np.full(config.world.num_targets, np.nan)
         self.step = 0
@@ -122,15 +131,21 @@ class MissionMetrics:
 
     def _safety(self, start, end):
         w = self.config.world
-        if end.shape != (w.num_uavs, 2) or not np.isfinite(end).all():
-            raise ValueError("Mission positions must be finite [num_uavs,2] coordinates")
+        if end.shape != (w.num_uavs, self.config.motion_dim) or not np.isfinite(end).all():
+            raise ValueError("Mission positions must be finite with the configured motion dimension")
         tolerance = 1e-3
-        obstacle = sum(segment_distance(a, b, o[:2]) < o[2] + w.obstacle_clearance_m - tolerance
+        obstacle = sum(segment_distance(a[:2], b[:2], o[:2]) < o[2] + w.obstacle_clearance_m - tolerance
                        for a, b in zip(start, end) for o in self.obstacles)
-        peer = sum(segment_distance(start[i] - start[j], end[i] - end[j], [0, 0]) <
+        if self.config.motion_dim==3:
+            from ..environment.xyz_geometry import cylinder_hit
+            obstacle = sum(cylinder_hit(a,b,np.r_[o,h],w.obstacle_clearance_m-tolerance)
+                           for a,b in zip(start,end) for o,h in zip(self.obstacles,self.obstacle_heights))
+        peer = sum(segment_distance(start[i] - start[j], end[i] - end[j], np.zeros(self.config.motion_dim)) <
                    w.safety_distance_m - tolerance
                    for i in range(w.num_uavs) for j in range(i))
-        boundary = int(np.any((end < -tolerance) | (end > w.map_size_m + tolerance), axis=1).sum())
+        lo=np.zeros(self.config.motion_dim);hi=np.full(self.config.motion_dim,w.map_size_m)
+        if self.config.motion_dim==3:lo[2],hi[2]=w.altitude_min_m,w.altitude_max_m
+        boundary = int(np.any((end < lo-tolerance) | (end > hi+tolerance), axis=1).sum())
         self.obstacle_violations += int(obstacle)
         self.peer_violations += int(peer)
         self.boundary_violations += boundary

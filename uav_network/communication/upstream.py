@@ -58,7 +58,7 @@ def scene_payload(scene, config):
     features = []
     for i, (x, y, radius) in enumerate(scene.obstacles):
         features.append({"id": f"obstacle-{i}", "category": "building",
-                         "height": config.sensor.altitude_m + 20,
+                         "height": float(scene.obstacle_heights[i]) if config.motion_dim==3 else config.sensor.altitude_m + 20,
                          "material": "itu_concrete", "source": "uav_network",
                          "footprint": [{"x": x + radius * np.cos(a),
                                         "y": y + radius * np.sin(a), "z": 0.0}
@@ -70,13 +70,14 @@ def scene_payload(scene, config):
 
 def configure_native(native, config, scene_path):
     w, n = config.world, config.network
+    ceiling = w.altitude_max_m if config.motion_dim==3 else config.sensor.altitude_m
     values = dict(NUMBER_OF_DRONES=w.num_uavs + 1, MAX_TTL=w.num_uavs + 2,
                   ROUTING_PROTOCOL="DRL", DRL_ROUTING_PROTOCOL_CLASS=SelectedNextHopRouting,
                   MAC_PROTOCOL="CSMA_CA", STATIC_CASE=1, HETEROGENEOUS=0,
                   MOBILITY_MODEL="GaussMarkov3D", TRAFFIC_PATTERN="UNIFORM",
                   PACKET_ARRIVAL_RATE=1e-12, MAP_LENGTH=w.map_size_m, MAP_WIDTH=w.map_size_m,
-                  MAP_HEIGHT=config.sensor.altitude_m + 20, UAV_MIN_ALTITUDE=0,
-                  UAV_MAX_ALTITUDE=config.sensor.altitude_m + 20,
+                  MAP_HEIGHT=ceiling + 20, UAV_MIN_ALTITUDE=0,
+                  UAV_MAX_ALTITUDE=ceiling + 20,
                   UAV_BUILDING_CLEARANCE=0, UAV_BOUNDARY_CLEARANCE=0,
                   SIONNA_SCENE_PATH=str(scene_path / "scene.xml"), CHANNEL_MODE="a2a",
                   LOS_A2A_MODEL="free_space", NLOS_A2A_MODEL=n.nlos_model,
@@ -91,7 +92,7 @@ def configure_native(native, config, scene_path):
     values["BIT_TRANSMISSION_TIME"] = 1e6 / n.bit_rate_bps
     ack_timeout = native.ACK_PACKET_LENGTH / n.bit_rate_bps * 1e6 + native.SIFS_DURATION + 50
     if n.propagation_delay_enabled:
-        max_distance = math.sqrt(2 * w.map_size_m**2 + config.sensor.altitude_m**2)
+        max_distance = math.sqrt(2 * w.map_size_m**2 + ceiling**2)
         ack_timeout += 2 * max_distance / SPEED_OF_LIGHT_MPS * 1e6
     values["ACK_TIMEOUT"] = ack_timeout
     previous = {name: getattr(native, name) for name in values}

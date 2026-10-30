@@ -88,7 +88,8 @@ def plan_study(config_path=DEFAULT_CONFIG, output_dir=None, *, seeds=DEFAULT_SEE
                     case.pql.enabled = mode == "pql"
                     if case.pql.enabled and algorithm=="matd3":
                         case.runtime.compile_models = False
-                    identity = f"20t15o-{variant}-{algorithm}-{mode}-s{seed}"
+                    geometry = "-xyz-bayes" if c.motion_dim==3 else ""
+                    identity = f"20t15o{geometry}-{variant}-{algorithm}-{mode}-s{seed}"
                     config_file = f"configs/{identity}.yaml"
                     train_output,evaluation_output = f"runs/{identity}/train",f"runs/{identity}/evaluation"
                     case.runtime.output_dir = str(root/train_output)
@@ -98,7 +99,8 @@ def plan_study(config_path=DEFAULT_CONFIG, output_dir=None, *, seeds=DEFAULT_SEE
                         "uav-network","scenario-v3","controlled-20t15o",f"ablation-{variant}",
                         f"training-seed-{seed}",f"env{case.runtime.num_envs}",
                         f"batch{getattr(case,algorithm).batch_size}",f"steps{case.world.max_steps}",
-                        f"power-{case.network.power_control}","amp-off"]))
+                        f"power-{case.network.power_control}","amp-off",
+                        *(["xyz","bayesian-sensing"] if c.motion_dim==3 else [])]))
                     case.validate()
                     cases.append({"id":identity,"variant":variant,"algorithm":algorithm,"mode":mode,
                                   "seed":seed,"config_path":config_file,"train_output":train_output,
@@ -110,7 +112,7 @@ def plan_study(config_path=DEFAULT_CONFIG, output_dir=None, *, seeds=DEFAULT_SEE
     (root/"configs").mkdir()
     for case in cases:
         (root/case["config_path"]).write_text(yaml.safe_dump(case.pop("config"),sort_keys=False))
-    manifest = {"version":1,"study":"controlled-20t15o","training_seeds":seeds,
+    manifest = {"version":1,"study":"controlled-20t15o"+("-xyz-bayes" if c.motion_dim==3 else ""),"training_seeds":seeds,
                 "variants":variants,"algorithms":algorithms,"modes":modes,
                 "submitted_cloud_jobs":0,"case_count":len(cases),"cases":cases,
                 "execution":"Explicit sequential local run; plan does not launch jobs",
@@ -129,7 +131,7 @@ def _inside(root, relative):
 def _load(manifest_path):
     path=Path(manifest_path).resolve()
     m=json.loads(path.read_text())
-    if m.get("version")!=1 or m.get("study")!="controlled-20t15o" or not isinstance(m.get("cases"),list):
+    if m.get("version")!=1 or m.get("study") not in {"controlled-20t15o","controlled-20t15o-xyz-bayes"} or not isinstance(m.get("cases"),list):
         raise ValueError("Unsupported study manifest")
     ids=[case["id"] for case in m["cases"]]
     if len(ids)!=len(set(ids)):

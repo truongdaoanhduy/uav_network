@@ -129,7 +129,7 @@ def validate_fixed_checkpoint(saved, config):
     names = {"critic", "actors", "alpha"} if saved["algorithm"] == "masac" else {"critic", "actors"}
     if (not isinstance(optimizers, dict) or optimizers.keys() != names
             or not isinstance(optimizers["actors"], list)
-            or len(optimizers["actors"]) != config.world.num_uavs):
+            or len(optimizers["actors"]) != (1 if config.algorithm_config.share_actor_parameters else config.world.num_uavs)):
         raise ValueError("Fixed-schedule checkpoint optimizer state is incomplete")
     for state in [optimizers["critic"], *optimizers["actors"], *([optimizers["alpha"]] if "alpha" in names else [])]:
         if not isinstance(state, dict) or not {"state", "param_groups"} <= state.keys():

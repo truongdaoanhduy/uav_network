@@ -1,5 +1,6 @@
 """Native FIFO report custody and source TTL, serial within each world."""
 import warp as wp
+from ...environment.gpu.xyz_geometry import range_distance
 from ...environment.gpu.state import WorldParams, WorldState
 from . import diagnostics as diag
 
@@ -82,8 +83,8 @@ def transfer(s: WorldState, p: WorldParams, e: int, source: int, destination: in
             s.report_hop_sum[e] += wp.float64(hops+1)
     else:
         s.diagnostic_counts[e,diag.CUSTODY_PEER_TRANSFERS] += wp.int64(1)
-        source_distance = wp.length(s.positions[e,source]-s.gcs[e])
-        destination_distance = wp.length(s.positions[e,destination]-s.gcs[e])
+        source_distance = range_distance(s,p,e,source,p.n)
+        destination_distance = range_distance(s,p,e,destination,p.n)
         progress = source_distance-destination_distance
         if progress > wp.float64(0):
             s.diagnostic_counts[e,diag.RELAY_TOWARD_GCS_TRANSFERS] += wp.int64(1)
@@ -220,6 +221,7 @@ def end_step(s: WorldState, p: WorldParams):
             live += 1
         else:
             s.velocities[e,i] = wp.vec2d(wp.float64(0),wp.float64(0))
+            if p.xyz!=0:s.vertical_velocity[e,i]=wp.float64(0)
         pending = int(0)
         for packet in range(p.packet_capacity):
             if (s.pkt_source[e,packet] == i

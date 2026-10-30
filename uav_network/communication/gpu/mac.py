@@ -5,6 +5,7 @@ from .rng import seed_mt, randbelow
 from .reports import (active, bytes_used, can_receive, transfer, begin_step, sense_reports,
                       masked_sense_reports, end_step, reset_reward_state)
 from .phy import xy, busy, emit, evaluate, arrival_start, arrival_end, latest_arrival_end
+from ...environment.gpu.xyz_geometry import range_distance
 from .events import push, pop, replace_root, next_time_after_root
 from .telemetry import record_action
 from .power import selected_power, link_power_feasible
@@ -376,11 +377,11 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
             if dest == p.n:
                 reach = p.gcs_range
             if (forward and active(s,p,e,source) and active(s,p,e,dest)
-                and wp.length(xy(s,p,e,source)-xy(s,p,e,dest)) <= reach and link_power_feasible(s,p,e,source,dest)):
+                and range_distance(s,p,e,source,dest) <= reach and link_power_feasible(s,p,e,source,dest)):
                 if selected < 0 or s.report_order[e,source,t] < s.report_order[e,source,selected]:
                     selected = t
         if selected >= 0:
-            power = selected_power(s,p,e,source,dest,continuous[e,source,2])
+            power = selected_power(s,p,e,source,dest,continuous[e,source,p.continuous_dim-1])
             s.selection_counts[e,1] += 1
             inject(s,p,e,source,dest,selected,power,now)
         elif can_forward:

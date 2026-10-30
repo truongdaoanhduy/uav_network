@@ -13,7 +13,7 @@ from .hardware import hardware_info
 from .telemetry import episode_telemetry
 from .run_journal import RunJournal, select_evidence
 from .evidence import resource_snapshot
-from ..environment.observations import OBSERVATION_VERSION
+from ..environment.observations import OBSERVATION_VERSION, observation_version
 
 CPU_EPISODE_METRICS = ("evaluation/return", "evaluation/search_rate_percent",
                        "evaluation/delivery_rate_percent", "evaluation/success",
@@ -154,7 +154,7 @@ class OnlineTracker:
             name = os.environ.get("WANDB_NAME") or run_name(
                 config, config.runtime.algorithm, "PQL" if config.pql.enabled else "BASE",
                 os.environ.get("UAV_STAGE", "train"), run_id)
-        metadata = {"observation_version": initial.get("observation_version", OBSERVATION_VERSION), "source_git_commit": os.environ.get("UAV_GIT_COMMIT", "local"),
+        metadata = {"observation_version": initial.get("observation_version", observation_version(config)), "source_git_commit": os.environ.get("UAV_GIT_COMMIT", "local"),
                     "kaggle_account": os.environ.get("UAV_KAGGLE_ACCOUNT", "local"),
                     "kaggle_kernel": os.environ.get("UAV_KAGGLE_KERNEL", "local"),
                     "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES", "all"),

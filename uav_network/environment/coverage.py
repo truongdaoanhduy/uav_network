@@ -18,6 +18,7 @@ def scan_coverage(env):
         xyz = env.config.motion_dim == 3
         from .bayesian import sensor_profile
         radius = sensor_profile(sensor,position[2])[2] if xyz else sensor.footprint_radius_m
+        if xyz and position[2]<=0:continue
         candidates = np.flatnonzero(np.linalg.norm(points-position[:2], axis=1)
                                     <= radius + 1e-9)
         for cell in candidates:

@@ -2,6 +2,7 @@
 import warp as wp
 from ...environment.gpu.state import WorldParams, WorldState
 from .reports import active
+from ...environment.gpu.xyz_geometry import node_z, node3
 from . import diagnostics as diag
 
 PI = wp.constant(wp.float64(3.141592653589793))
@@ -20,9 +21,7 @@ def xy(s: WorldState, p: WorldParams, e: int, node: int) -> wp.vec2d:
 def link_distance(s: WorldState, p: WorldParams, e: int, first: int, second: int) -> wp.float64:
     a = xy(s,p,e,first)
     b = xy(s,p,e,second)
-    dz = wp.float64(0)
-    if (first == p.n) != (second == p.n):
-        dz = p.altitude
+    dz = node_z(s,p,e,first)-node_z(s,p,e,second)
     return wp.sqrt(wp.dot(a-b,a-b)+dz*dz)
 
 
@@ -61,6 +60,34 @@ def los(s: WorldState, p: WorldParams, e: int, a: wp.vec2d, b: wp.vec2d) -> bool
 
 
 @wp.func
+def link_los(s:WorldState,p:WorldParams,e:int,first:int,second:int):
+    if p.xyz==0:
+        return los(s,p,e,xy(s,p,e,first),xy(s,p,e,second))
+    start=node3(s,p,e,first);end=node3(s,p,e,second)
+    a=wp.vec2d(start[0],start[1]);b=wp.vec2d(end[0],end[1]);d=b-a;dz=end[2]-start[2]
+    for o in range(p.obstacles_count):
+        obstacle=s.obstacles[e,o];center=wp.vec2d(obstacle[0],obstacle[1]);radius=obstacle[2]
+        low=wp.float64(0);high=wp.float64(1);intersects=bool(True)
+        if wp.abs(dz)<wp.float64(1e-15):
+            if start[2]<wp.float64(0) or start[2]>s.obstacle_heights[e,o]:intersects=False
+        else:
+            u=-start[2]/dz;v=(s.obstacle_heights[e,o]-start[2])/dz
+            low=wp.max(low,wp.min(u,v));high=wp.min(high,wp.max(u,v))
+        for j in range(p.polygon_sides):
+            angle=wp.float64(j)*wp.float64(2)*PI/wp.float64(p.polygon_sides)
+            next_angle=wp.float64(j+1)*wp.float64(2)*PI/wp.float64(p.polygon_sides)
+            edge_start=center+radius*wp.vec2d(wp.cos(angle),wp.sin(angle))
+            edge_end=center+radius*wp.vec2d(wp.cos(next_angle),wp.sin(next_angle))
+            f=cross(edge_end-edge_start,a-edge_start);slope=cross(edge_end-edge_start,d)
+            if slope==wp.float64(0):
+                if f<wp.float64(0):intersects=False
+            elif slope>wp.float64(0):low=wp.max(low,-f/slope)
+            else:high=wp.min(high,-f/slope)
+        if intersects and low<=high:return False
+    return True
+
+
+@wp.func
 def gain(s: WorldState, p: WorldParams, e: int, transmitter: int, receiver: int,
          now: wp.float64) -> wp.float64:
     if transmitter == receiver:
@@ -74,7 +101,7 @@ def gain(s: WorldState, p: WorldParams, e: int, transmitter: int, receiver: int,
         distance = wp.max(wp.float64(1),link_distance(s,p,e,transmitter,receiver))
         reference = (C/p.frequency/(wp.float64(4)*PI))**wp.float64(2)
         result = reference*distance**wp.float64(-2)
-        if not los(s,p,e,a,b):
+        if not link_los(s,p,e,transmitter,receiver):
             result = reference*distance**(-p.nlos_exponent)*p.nlos_scale
         s.pair_gain[e,index] = result
         s.pair_time[e,index] = now
@@ -91,7 +118,7 @@ def nominal_required_power(s: WorldState, p: WorldParams, e: int, transmitter: i
     distance = wp.max(wp.float64(1), link_distance(s,p,e,transmitter,receiver))
     reference = (C/p.frequency/(wp.float64(4)*PI))**wp.float64(2)
     nominal = reference*distance**wp.float64(-2)
-    if not los(s,p,e,a,b):
+    if not link_los(s,p,e,transmitter,receiver):
         nominal = reference*distance**(-p.nlos_exponent)*p.nlos_scale
     threshold = wp.pow(wp.float64(10), p.sinr_threshold/wp.float64(10))
     return threshold*p.noise_power/nominal
@@ -272,7 +299,7 @@ def evaluate(s: WorldState, p: WorldParams, e: int, frame: int, now: wp.float64)
         rssi = wp.float64(10)*wp.log10(signal*wp.float64(1000))
     pair = s.tx_source[e,frame]*(p.n+1)+receiver
     # Classify the cached gain's geometry, matching native A2A snapshot LOS.
-    line_of_sight = los(s,p,e,s.pair_transmitter[e,pair],s.pair_receiver[e,pair])
+    line_of_sight = link_los(s,p,e,s.tx_source[e,frame],receiver)
     diag.decode(s,p,e,s.tx_kind[e,frame],receiver,snr,sinr,rssi,
                 link_distance(s,p,e,s.tx_source[e,frame],receiver),line_of_sight,collided,success)
     if success:
