@@ -93,3 +93,28 @@ def test_xyz_battery_exhaustion_stops_vertical_velocity():
         v._launch(end_step,1,v.s,v.p)
         assert not wp.to_torch(v.s.vertical_velocity).any()
     finally:v.close()
+
+@pytest.mark.parametrize("z",[25.,60.])
+def test_xyz_swept_motion_matches_native_around_finite_height_obstacle(z):
+    from uav_network.environment.xyz_geometry import cylinder_hit
+    c=cfg();c.world.num_uavs=c.world.num_targets=1;c.energy.enabled=False
+    native=SwarmSearchEnv(c);v=WarpVectorEnv(c,"cpu")
+    try:
+        native.reset(seed=44,options=dict(positions=[[350,500,z]],targets=[[950,950]],obstacles=[[500,500,10,40]]))
+        native.velocities[:]=[20,0,0]
+        v.reset(seed=44)
+        wp.to_torch(v.s.positions)[0]=torch.tensor([[350.,500.]])
+        wp.to_torch(v.s.altitudes)[0]=z
+        wp.to_torch(v.s.velocities)[0]=torch.tensor([[20.,0.]])
+        wp.to_torch(v.s.targets)[0]=torch.tensor([[950.,950.]])
+        wp.to_torch(v.s.obstacles)[0]=torch.tensor([[500.,500.,10.]])
+        wp.to_torch(v.s.obstacle_heights)[0]=40
+        for _ in range(15):
+            start=native.positions.copy()
+            a=Action(np.zeros((1,4),np.float32),np.zeros(1,np.int64))
+            native.step(a);v.step(dict(continuous=a.continuous[None],destination=a.destination[None]))
+            actual=np.column_stack((v.s.positions.numpy()[0],v.s.altitudes.numpy()[0]))
+            np.testing.assert_allclose(actual,native.positions,atol=1e-7)
+            assert not cylinder_hit(start[0],native.positions[0],[500,500,10,40],c.world.obstacle_clearance_m-1e-8)
+        if z==60:assert native.positions[0,0]>500
+    finally:native.close();v.close()
