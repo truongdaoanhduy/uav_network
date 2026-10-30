@@ -1,3 +1,64 @@
+# Learned RF action and validation-best checkpoint — COMPLETE / CPU VERIFIED
+
+Updated 2026-10-30T09:26:32.602395+07:00. User requested rechecking27–29Oct MASAC/MATD3 at matched
+budgets, restoring the original learned-power action and selecting best
+rather than blindly using last policy. Verified runtime `951a396a41bc451d2716b7dedcb46b74b9e5677a`
+on `feat/cpu-replay-20261022`; profile restoration commit `3ca8f51`.
+
+- Three current20T/15O/1200 profiles now use `power_control=learned`;
+  movement/routing/sharing/replay/FP32 remain as before. Guided+3dB stays
+  separate `link_budget` ablation. Historical configs/manifests preserved.
+- Periodic validation alone ranks success→delivery→search→return; ties keep
+  earlier candidate. Exact evaluated actor bytes become best.pt/best.json.
+  Model artifact/final CPU eval use selected best, with best alias. No valid
+  validation produces explicitly labeled unvalidated_final_fallback.
+- Full last learner/replay/optimizer/RNG/environment stays resume_latest.pt,
+  with optional best bytes/metadata carried to BASE/PQL continuation. Bank,
+  hash, score/metrics and source-step guards remain strict. Manual BASE
+  actor-only warm-start is labeled a NEW lineage with fresh critics,
+  optimizer/replay/counters; it is not exact resume or35/25→20/15 migration.
+- W&B index132 runs;37 unsampled training histories,32 stitched lineages.
+  Exact8193–12288 outcomes:shared-both MASAC Hybrid delivery78.87%,
+  FullGPU73.01%; shared-critic66.30%/64.48%. Some training episodes succeed;
+  success0 does not mean no discovery/relay or no completed train episodes.
+  Sources/precision/E/B/rewinds and actual steps are disclosed in report.
+- Seven historical checkpoints were downloaded and re-evaluated on the
+  same5 validation seeds. Shared-both Hybrid:8192 delivery81.14%,12288
+  80.57%,final12353 72.00%; FullGPU:12288 60.57%,final16384 56.57%.
+  Shared-actor Hybrid8192 validates32.00% despite strong training; MATD3
+  PQL Hybrid12421 validates49.71%. All7 success0/5; small posthoc evidence,
+  not an exhaustive or universal architecture winner. Best-of-tested
+  copies and scoped selection metadata saved locally per historical run.
+- Final pytest1061 passed,97 skipped,1483 subtests,8 warnings,563.24s;
+  unittest628 run,71 skipped,OK442.258s. compileall/diff checks clean.
+  Independent review3 Important plus one regraded sidecar issue fixed
+  with7 RED→GREEN cases. Two old test contracts updated for deferred final
+  resume timing/new optional selector state; both pass. Full suite green.
+- No production launch/cancel, new sensing/XYZ, or CUDA hardware check.
+  Historical model downloads/evaluations were real; new publication tested
+  at tracker/SDK boundary only. No remote historical best aliases mutated.
+
+[Matched-run report](evidence/2026-10-30-matched-runs-and-best-checkpoint.md) |
+[Structured data](evidence/2026-10-30-matched-run-data.json) |
+[Verification](evidence/2026-10-30-learned-power-best.json) |
+[Current usage](../controlled-20t15o-study.md).
+Plan:plans/2026-10-30-learned-power-best.md.
+Local raw audit:outputs/learned-power-best-20261030/.
+Historical selected copies:outputs/learned-power-best-20261030/historical-validation/selected/.
+Fresh84-case learned-power manifest:outputs/controlled-20t15o-learnedpower-20261030/manifest.json;
+prepared only, not submitted. Older guided-power matrices remain historical.
+
+Next action follows the user's new request. Before any requested cloud
+launch recheck live jobs/quota/CUDA, pin this source and the intended current
+YAML, and preserve old lineages. Do not call these CPU/small-bank results
+production convergence or copy35/25 checkpoints into20/15. Broader historical
+best search needs more candidate validation; reserve final test bank for
+assessment. No main merge/PR requested. Preserve host worktree and initial
+uncommitted continuation-record suffix. Read current live state before
+operational decisions; the audit is a dated snapshot.
+
+---
+
 # Shared Actor + Critic FULLGPU profile — VERIFIED / NOT LAUNCHED
 
 Updated 2026-10-29. User requested FULLGPU for the new shared-actor/shared-critic MASAC/MATD3 training profile while retaining HYBRID75 for comparison. Runtime commit `23aa1eafe2d273560bd054c7e491ee05410ef963`.

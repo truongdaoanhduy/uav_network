@@ -11,21 +11,21 @@ Inline execution authorized by explicit implementation request; keep existing fe
 No file over500 source lines; preserve current dirty continuation record; no cloud launches.
 
 ## Task1: Evidence and learned-power baseline
-- [ ] Fetch sanitized live run index and unsampled histories, compare common episode windows across all substantive runs; inventory best historical candidate artifacts.
-- [ ] Exercise current-profile learned actions and generated guided-power ablation (RED before profile change).
-- [ ] Change the three current profile modes/names/tags, baseline validation and default guided ablation name; preserve historical manifests.
-- [ ] Run controlled-power/study/sharing/production-identity tests and commit.
+- [x] Fetch sanitized live run index and unsampled histories, compare common episode windows across all substantive runs; inventory best historical candidate artifacts.
+- [x] Exercise current-profile learned actions and generated guided-power ablation (RED before profile change).
+- [x] Change the three current profile modes/names/tags, baseline validation and default guided ablation name; preserve historical manifests.
+- [x] Run controlled-power/study/sharing/production-identity tests and commit.
 
 ## Task2: Best-policy selection and exact continuation
 Interfaces:BestCheckpoint(config,output,state=None), consider(result,source), state_dict(), result(last_path). AsyncCheckpointEvaluator(selection_state=None) owns it. Optional training.best_checkpoint in fixed/PQL full state.
-- [ ] Write RED behavioral tests for ranking, exact actor bytes, strict provenance/banks, resumed earlier winner, corruption and RNG.
-- [ ] Implement atomic best selection/metadata and async promotion/upload, optional full-state serialization/restore.
-- [ ] Route trainer result checkpoint to selected best and label fallback; preserve final learner resume state. Add truthful W&B best metadata/alias.
-- [ ] Validate study against selected source step/hash and completed training budget.
-- [ ] Verify real evaluator, BASE/PQL, exact-resume, tracking,study suites and commit.
+- [x] Write RED behavioral tests for ranking, exact actor bytes, strict provenance/banks, resumed earlier winner, corruption and RNG.
+- [x] Implement atomic best selection/metadata and async promotion/upload, optional full-state serialization/restore.
+- [x] Route trainer result checkpoint to selected best and label fallback; preserve final learner resume state. Add truthful W&B best metadata/alias.
+- [x] Validate study against selected source step/hash and completed training budget.
+- [x] Verify real evaluator, BASE/PQL, exact-resume, tracking,study suites and commit.
 
 ## Task3: Review and handoff
-- [ ] Report matched-window results, transmission/relay assumptions and available-vs-missing historical checkpoints with timestamps.
-- [ ] Full pytest, compileall,diff check and credential-value scan.
-- [ ] One fresh whole-change review; fix important findings with RED→GREEN.
-- [ ] Commit evidence/current task record and push normal feature branch; verify remote SHA.
+- [x] Report matched-window results, transmission/relay assumptions and available-vs-missing historical checkpoints with timestamps.
+- [x] Full pytest, compileall,diff check and credential-value scan.
+- [x] One fresh whole-change review; fix important findings with RED→GREEN.
+- [x] Commit evidence/current task record and push normal feature branch; verify remote SHA.
