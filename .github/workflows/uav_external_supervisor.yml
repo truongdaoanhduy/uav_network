@@ -23,7 +23,6 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      KAGGLE_API_TOKEN_ACCOUNT_01: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_01 }}
       KAGGLE_API_TOKEN_ACCOUNT_17: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_17 }}
       KAGGLE_API_TOKEN_ACCOUNT_18: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_18 }}
       KAGGLE_API_TOKEN_ACCOUNT_19: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_19 }}
@@ -36,7 +35,7 @@ jobs:
       WANDB_ENTITY: ${{ vars.WANDB_ENTITY }}
       WANDB_PROJECT: ${{ vars.WANDB_PROJECT }}
       HF_REPO_ID: ${{ vars.HF_REPO_ID }}
-      KAGGLE_ENABLED_ACCOUNTS: account_01,account_17,account_18,account_19,account_20,account_21,account_22,account_23
+      KAGGLE_ENABLED_ACCOUNTS: account_17,account_18,account_19,account_20,account_21,account_22,account_23
       PYTHONUNBUFFERED: "1"
     steps:
       - name: Checkout pinned supervisor source
