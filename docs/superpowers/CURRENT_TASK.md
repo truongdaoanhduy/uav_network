@@ -1,3 +1,30 @@
+# XYZ / Bayesian sensing — DESIGN PROPOSED / AWAITING USER APPROVAL
+
+Updated 2026-10-30T12:56:01.162400+07:00. User requested XYZ target search, altitude-dependent
+camera FOV and local Bayesian belief initialized at0.5, following reference
+`/home/aduy/Documents/NCKH/uav_search_target`; visualization must stay2D.
+Current runtime remains `3382feee81047c82d000e5c598ef685aec435297`.
+
+- Read actual reference sensing/config/confirmation handling and current
+  Native/Warp sensing, observations, motion, radio, replay and rendering.
+- Proposed full XYZ as a separate20T/15O/1200 profile; legacy XY retained.
+  Reference25-m grid,90-degree FOV, Pd/Pf by altitude, <=50-m/0.99/fresh-positive
+  confirmation, learned RF, report custody and best-checkpoint protocol retained.
+- Design covers real3D motion/safety/LOS/energy, local sensor evidence without
+  unconfirmed target-coordinate leaks, deterministic sensor RNG/masked reset,
+  compact actor/critic belief patches, full-map resume, schema incompatibility,
+  memory checks and2D XY projection with frame-specific altitude/FOV/belief.
+- Independent builder check: "nothing important left". Structure verification:
+  2 passed,479 subtests passed. This verifies documentation/source contracts,
+  not XYZ runtime behavior. No product code/dependency/job changes in this task.
+- Superpowers brainstorming explicitly requires design approval before build.
+  Next: obtain approval/corrections, invoke writing-plans, then implement/test.
+  No XYZ convergence/CUDA claim. Preserve all historical lineages and host worktree.
+
+[Proposed design](specs/2026-10-30-xyz-bayesian-sensing-design.md).
+
+---
+
 # Learned RF action and validation-best checkpoint — COMPLETE / CPU VERIFIED
 
 Updated 2026-10-30T09:26:32.602395+07:00. User requested rechecking27–29Oct MASAC/MATD3 at matched
