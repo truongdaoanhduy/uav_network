@@ -15,11 +15,12 @@ when its local posterior and a new positive observation meet the thresholds.
 Each UAV has its own grid initialized to probability 0.5.
 
 This is implementation scope, not an instruction to launch cloud training.
-The design below records proposed engineering choices, not prior user approval.
+The design below records engineering choices approved by the user's “duyệt”
+after review. Baseline descriptions below refer to the pre-implementation runtime.
 
 ## Current implementation and inspected sources
 
-The current runtime has XY positions/velocities and a fixed sensor height of
+The baseline runtime inspected before implementation has XY positions/velocities and a fixed sensor height of
 100 m. Native `environment/sensing.py` and Warp `environment/gpu/geometry.py`
 perform exact geometric target detection. `env._sense()`/Warp report sensing
 can immediately create a report. Native actor observations also call the
@@ -55,9 +56,9 @@ APF implementation or training hyperparameters.
 3. Replace every legacy environment/checkpoint with XYZ. This removes a branch
    but invalidates historical checkpoints and comparisons.
 
-Approach 2 is proposed. The requested XYZ behavior rules out approach 1;
+Approach 2 was approved and implemented. The requested XYZ behavior rules out approach 1;
 retaining existing research evidence rules out silently replacing approach 3.
-The user will approve or correct this choice before product code is written.
+The approval was received before product code was written.
 
 ## Scenario and configuration
 
@@ -192,7 +193,10 @@ This is an explicitly compact critic representation, not a claim that its input
 contains the complete Bayesian simulator state. Critic-only global geometry and
 delivery state stay privileged as before.
 
-At E4096/N6, float32 full belief storage alone is 157,286,400 bytes (~150 MiB).
+At E4096/N6, float32 full belief storage alone would be157,286,400 bytes (~150 MiB).
+The implementation uses float64 beliefs for reference/parity,314,572,800 bytes
+(~300MiB); learner precision remainsFP32. Actual allocations are recorded in
+[resource evidence](../evidence/2026-10-30-xyz-resources.json).
 Putting full maps in both replay observations would add 76.8 GB at replay1M;
 therefore do not copy the reference's full maps into replay. Calculate all actual
 replay/state/model/working allocations after final feature shapes. Keep existing

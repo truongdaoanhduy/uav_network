@@ -158,7 +158,7 @@ các ablation theo nút thắt quan sát được. Không tự thay reward hoặ
   kernel parity/performance trên GPU cho thay đổi này, chưa train 20k
   hoặc kết luận hội tụ của study mới.
 
-## Giai đoạn tiếp theo: sensing và XYZ
+## Profile mở rộng: sensing và XYZ
 
 Đã đọc reference, không sửa:
 `/home/aduy/Documents/NCKH/uav_search_target/uav_marl/world/sensing.py`
@@ -169,9 +169,9 @@ Bayes cập nhật posterior. Confirmation yêu cầu UAV active, altitude<=50 m
 posterior>=0.99 và có positive observation; false confirmation vẫn được phân biệt.
 Không sao chép cả profile tham chiếu nặng hơn (map 3 km, 50 target, 30 obstacle).
 
-Sau khi baseline 2D có số đo đủ tin cậy, đưa sensing xác suất/belief map vào
-một bước riêng, kiểm false positives/negatives và confirmation/report custody.
-Sau đó chuyển XYZ đồng bộ: action và motion theo z, giới hạn độ cao,
-vật cản có chiều cao và LOS, propulsion/energy, FOV footprint,
-observation/state, replay và checkpoint. Không chỉ thêm cột z vào position.
-Giữ 20/15 cho giai đoạn đầu để biết thay đổi nào làm việc học khó hơn.
+Ngày30/10 đã triển khai [profile XYZ/Bayesian riêng](xyz-sensing.md), giữ20/15:
+action/motion theo z, vật cản có chiều cao, LOS/radio/energy theo XYZ,
+camera/belief/confirmation, observation/replay/checkpoint và visualize2D.
+Baseline XY trong tài liệu này vẫn giữ nguyên để đối chiếu. Kiểm tra CPU nhỏ
+không thay thế số đo training dài hoặc xác nhận khả thi20/20 của XYZ.
+Oracle cũ chỉ hỗ trợ XY và báo rõ khi nhận profile XYZ.

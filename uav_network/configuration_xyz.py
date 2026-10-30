@@ -49,7 +49,7 @@ def validate_xyz(config):
         raise ValueError("Initial/fine altitude outside flight bounds")
     if type(s.belief_patch_cells) is not int or not 1<=s.belief_patch_cells<=13 or s.belief_patch_cells%2!=1:
         raise ValueError("belief_patch_cells must be an odd integer in [1,13]")
-    if math.ceil(w.map_size_m/s.grid_cell_m)>128:
+    if w.motion_dimensions==3 and math.ceil(w.map_size_m/s.grid_cell_m)>128:
         raise ValueError("Bayesian grid exceeds 128 cells per axis")
 
 

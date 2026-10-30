@@ -1,28 +1,19 @@
-# XYZ / Bayesian sensing — DESIGN PROPOSED / AWAITING USER APPROVAL
+# XYZ / Bayesian sensing — IMPLEMENTATION COMPLETE / CPU VERIFIED / PENDING FINAL COMMIT+PUSH
 
-Updated 2026-10-30T12:56:01.162400+07:00. User requested XYZ target search, altitude-dependent
-camera FOV and local Bayesian belief initialized at0.5, following reference
-`/home/aduy/Documents/NCKH/uav_search_target`; visualization must stay2D.
-Current runtime remains `3382feee81047c82d000e5c598ef685aec435297`.
+Updated 2026-10-30T16:00:24+07:00. User approved the XYZ/Bayesian sensing design and the implementation is complete on the current local worktree. The remaining work is release/finalization only: preserve unrelated dirty history, commit the reviewed final fixes/docs, push the working branch, and verify the remote SHA.
 
-- Read actual reference sensing/config/confirmation handling and current
-  Native/Warp sensing, observations, motion, radio, replay and rendering.
-- Proposed full XYZ as a separate20T/15O/1200 profile; legacy XY retained.
-  Reference25-m grid,90-degree FOV, Pd/Pf by altitude, <=50-m/0.99/fresh-positive
-  confirmation, learned RF, report custody and best-checkpoint protocol retained.
-- Design covers real3D motion/safety/LOS/energy, local sensor evidence without
-  unconfirmed target-coordinate leaks, deterministic sensor RNG/masked reset,
-  compact actor/critic belief patches, full-map resume, schema incompatibility,
-  memory checks and2D XY projection with frame-specific altitude/FOV/belief.
-- Independent builder check: "nothing important left". Structure verification:
-  2 passed,479 subtests passed. This verifies documentation/source contracts,
-  not XYZ runtime behavior. No product code/dependency/job changes in this task.
-- Superpowers brainstorming explicitly requires design approval before build.
-  Next: obtain approval/corrections, invoke writing-plans, then implement/test.
-  No XYZ convergence/CUDA claim. Preserve all historical lineages and host worktree.
+- New XYZ profiles keep the controlled 20T/15O/1km/1200-step study, learned RF power, validation-best selection, FP32, and legacy XY compatibility.
+- Policy continuous action is `[ax, ay, az, power]`; altitude is real state used by motion, safety, energy, radio distance/LOS and sensing. Visualization remains 2D with XY trajectories, per-frame altitude/FOV and local-belief heatmap.
+- Bayesian camera uses 25 m cells with prior 0.5, 90-degree FOV and altitude-dependent Pd/Pf anchors. High altitude covers more area but cannot confirm by posterior alone; confirmation requires active UAV, z<=50 m, posterior>=0.99 and a fresh positive observation. Unconfirmed target coordinates remain hidden from the actor.
+- Native and Warp-CPU paths, MASAC/MATD3 BASE/PQL tiny train/eval, checkpoint/resume, radio parity, rendering/demo and legacy compatibility have been exercised. Whole-change review found no Critical issues; four Important issues were fixed, including atomic restore validation, legacy-grid gating, XYZ relay-audit action width and explicit XY-only feasibility handling.
+- Final restore regression also covers the zero-obstacle Warp padding case so the unused height=0 padding slot is not treated as a real invalid obstacle.
+- Authoritative final regression on the current dirty worktree: `1145 passed, 97 skipped, 8 warnings, 1554 subtests passed in 577.22s`; pytest exit code 0 and JUnit failures/errors are 0. `git diff --check` is clean.
+- Current local HEAD is `5ab785e939a3b7843a5fa009755fd352b49274b1`, eight commits ahead of `origin/feat/cpu-replay-20261022` at `c18c65c89630607792c8e6da0b6068b1dbcf6588`, with final review fixes/docs still pending the last commit/push.
+- Scope limit: this is CPU/Native/Warp-CPU correctness evidence only. There is no fresh CUDA XYZ preflight, no 20k XYZ production training, no convergence/multi-seed result, and no claim that Hybrid/FullGPU or sharing topology is superior for XYZ.
 
-[Proposed design](specs/2026-10-30-xyz-bayesian-sensing-design.md).
+Design: `docs/superpowers/specs/2026-10-30-xyz-bayesian-sensing-design.md`. Plan: `docs/superpowers/plans/2026-10-30-xyz-bayesian-sensing.md`. Usage: `docs/xyz-sensing.md`. Verification: `outputs/xyz-verification-20261030/`.
 
+Next action: stage only the intended XYZ finalization hunk plus reviewed source/test fixes, preserve the pre-existing CURRENT_TASK historical dirty suffix, commit locally, then push and verify the remote branch. Do not launch cloud training unless explicitly requested.
 ---
 
 # Learned RF action and validation-best checkpoint — COMPLETE / CPU VERIFIED

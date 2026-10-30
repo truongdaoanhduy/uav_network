@@ -195,8 +195,14 @@ def _warp_oracle_view(env, observation):
         network=SimpleNamespace(_eligible=eligible))
 
 
+def _require_xy(config):
+    if config.motion_dim != 2:
+        raise NotImplementedError("The privileged feasibility oracle is XY-only; XYZ sensing requires a separate oracle study")
+
+
 def oracle_action(env, margin_db=3.0, observation=None):
     """Construct a privileged search/relay/power action for the selected backend."""
+    _require_xy(env.config)
     if hasattr(env, "vector"):
         env = _warp_oracle_view(env, observation)
     n = env.config.world.num_uavs
@@ -258,6 +264,7 @@ def _finish_result(env, seed):
 
 def run_explicit_feasibility(config, seed, positions, targets, obstacles, margin_db=3.0):
     """Run one explicit native scenario with the privileged oracle."""
+    _require_xy(config)
     env = SwarmSearchEnv(config)
     try:
         env.reset(seed=seed, options={"positions": np.asarray(positions, dtype=float),
@@ -277,6 +284,7 @@ def run_feasibility(config, seeds, margin_db=3.0, on_progress=None):
     Warp runs one CPU world. Equal native/Warp seeds do not imply equal layouts.
     Failure describes this privileged controller, not mission impossibility.
     """
+    _require_xy(config)
     seeds = list(seeds)
     if not seeds or any(type(seed) is not int or not 0 <= seed < 2**32 for seed in seeds):
         raise ValueError("seeds must contain unsigned 32-bit integers")

@@ -34,7 +34,8 @@ xác nhận vừa VRAM trên phần cứng CUDA trong lần triển khai này.
 - False positives vẫn có thể xảy ra. Không dùng target truth để âm thầm sửa
   posterior về0.01. Simulator chỉ dùng truth để sinh phép đo và ghi đánh giá;
   actor nhận ô/cell-center quan sát được, không nhận tọa độ target chưa xác nhận.
-- Full map lưu trong simulator/full resume. Actor dùng patch belief5x5;
+- Belief/geometry dùng float64 để khớp mô hình tham chiếu; learner vẫn FP32.
+  Full map lưu trong simulator/full resume. Actor dùng patch belief5x5;
   critic dùng biểu diễn gọn có các patch này, không phải toàn bộ trạng thái Bayes.
 
 Native và Warp cùng dùng sensing theo tick/seed/UAV/cell. Đọc observation,
@@ -57,6 +58,14 @@ Relay tiếp tục là quyết định policy.
 Giữ periodic validation và validation-best checkpoint. Full checkpoint cuối
 dùng để resume; best actor dùng cho đánh giá. Không chọn best bằng final-test bank.
 Study manifest XYZ có tên và case ID chứa `xyz-bayes`; không ghi đè study XY.
+
+Oracle feasibility cũ chỉ hỗ trợ XY và sẽ báo rõ khi nhận profile XYZ.
+Chưa có kết quả oracle chứng minh giao đủ20/20 cho XYZ; demo dưới đây chỉ
+kiểm tra đường đi sensing → report → GCS.
+
+Tổng số can thiệp an toàn XYZ được ghi nhận. Các trường phân loại riêng
+obstacle/peer/boundary chưa được triển khai cho XYZ và hiện giữ giá trị0;
+không dùng các số0 này để kết luận không có tránh vật cản hay tránh UAV.
 
 ## Chạy
 

@@ -185,6 +185,14 @@ class WarpVectorEnv:
             z=incoming["altitudes"]
             if bool(((z<self.p.altitude_min)|(z>self.p.altitude_max)).any()) or bool(((incoming["belief"]<0)|(incoming["belief"]>1)).any()):
                 raise ValueError("Invalid XYZ altitude/belief bounds")
+            if bool((incoming["obstacle_heights"][:,:self.p.obstacles_count]<=0).any()):
+                raise ValueError("Invalid XYZ obstacle heights")
+            for name in ("visited","positive"):
+                if bool(((incoming[name]!=0)&(incoming[name]!=1)).any()):
+                    raise ValueError(f"Invalid XYZ binary sensor field: {name}")
+            for name in ("sensor_tick","sensor_counts"):
+                if bool((incoming[name]<0).any()):
+                    raise ValueError(f"Invalid XYZ nonnegative sensor field: {name}")
         seeds = snapshot.get("seeds")
         if (not isinstance(seeds, torch.Tensor) or seeds.shape != (self.num_envs,)
                 or seeds.dtype != torch.int64 or seeds.device.type != "cpu"
