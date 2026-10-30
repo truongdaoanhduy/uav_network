@@ -185,5 +185,110 @@ class CUDATests(unittest.TestCase):
                 self.assertTrue(all(torch.isfinite(v).all() for v in saved["model"].values()))
 
 
+@unittest.skipUnless(torch.cuda.is_available(), "requires real CUDA")
+class XYZCUDATests(unittest.TestCase):
+    def config(self, count=1):
+        from test_xyz_sensing import xyz_config
+        c = xyz_config(n=2, targets=2, obstacles=1)
+        c.runtime.num_envs = count
+        c.runtime.device = "cuda"
+        c.runtime.environment_backend = "warp_packet"
+        return c
+
+    def vector(self, c):
+        from uav_network.environment.gpu.vector import WarpVectorEnv
+        v = WarpVectorEnv(c, device="cuda")
+        self.addCleanup(v.close)
+        self.assertTrue(v.s.positions.device.is_cuda)
+        return v
+
+    def test_xyz_camera_motion_and_belief_match_native_on_cuda(self):
+        c = self.config()
+        native = SwarmSearchEnv(c)
+        self.addCleanup(native.close)
+        v = self.vector(c)
+        expected, _ = native.reset(seed=44)
+        actual, _ = v.reset(seed=44)
+        rng = np.random.default_rng(7)
+        for step in range(9):
+            np.testing.assert_allclose(actual["observation"][0].cpu().numpy(),
+                                       expected, rtol=0, atol=1e-6)
+            np.testing.assert_allclose(v.s.positions.numpy()[0], native.positions[:, :2], rtol=0, atol=2e-8)
+            np.testing.assert_allclose(v.s.altitudes.numpy()[0], native.positions[:, 2], rtol=0, atol=2e-8)
+            np.testing.assert_allclose(v.s.belief.numpy()[0].reshape(native.belief.shape),
+                                       native.belief, rtol=0, atol=1e-9)
+            if step == 8:
+                break
+            a = Action(rng.uniform(-.3, .3, (2, 4)).astype(np.float32), np.zeros(2, np.int64))
+            expected, reward, _, _, _ = native.step(a)
+            actual, cuda_reward, _, _, _ = v.step(dict(
+                continuous=a.continuous[None], destination=a.destination[None]))
+            self.assertAlmostEqual(float(cuda_reward[0]), reward, places=5)
+
+    def test_xyz_cuda_masked_reset_and_exact_next_sensor_draw(self):
+        v = self.vector(self.config(2))
+        v.reset(seed=44)
+        saved = v.snapshot_state()
+        action = dict(continuous=np.zeros((2, 2, 4), np.float32),
+                      destination=np.zeros((2, 2), np.int64))
+        v.step(action)
+        expected = v.snapshot_state()
+        v.restore_state(saved)
+        v.step(action)
+        actual = v.snapshot_state()
+        for name, value in expected["arrays"].items():
+            self.assertTrue(torch.equal(value, actual["arrays"][name]), name)
+        v.reset(seed=[99, None], options={"reset_mask": [True, False]})
+        after = v.snapshot_state()
+        for name, value in actual["arrays"].items():
+            retained = after["arrays"][name]
+            if name.startswith("fallback_"):
+                self.assertTrue(torch.equal(value, retained), name)
+            else:
+                self.assertTrue(torch.equal(value[1], retained[1]), name)
+
+    def test_xyz_cuda_confirmation_requires_low_altitude(self):
+        import warp as wp
+        from uav_network.environment.bayesian import sensor_uniform
+        c = self.config()
+        c.world.num_uavs = c.world.num_targets = 1
+        c.world.num_obstacles = 0
+        seed = next(s for s in range(1, 1000) if sensor_uniform(s, 1, 0, 820) < .945)
+        for z, confirmed in ((100., False), (25., True)):
+            with self.subTest(altitude=z):
+                v = self.vector(c)
+                v.reset(seed=seed)
+                wp.to_torch(v.s.positions)[0] = torch.tensor([[512.5, 512.5]], device="cuda")
+                wp.to_torch(v.s.altitudes)[0] = z
+                wp.to_torch(v.s.targets)[0] = torch.tensor([[512.5, 512.5]], device="cuda")
+                wp.to_torch(v.s.belief).fill_(.9999)
+                v.step(dict(continuous=np.zeros((1, 1, 4), np.float32),
+                            destination=np.zeros((1, 1), np.int64)))
+                self.assertEqual(bool(wp.to_torch(v.s.known)[0, 0, 0]), confirmed)
+                self.assertEqual(bool(wp.to_torch(v.s.report_present)[0, 0, 0]), confirmed)
+
+    def test_xyz_cuda_finite_height_radio_matches_native(self):
+        import warp as wp
+        from test_xyz_radio import inspect_xyz_link
+        from uav_network.environment.gpu.state import allocate_state
+        from uav_network.communication.link_budget import nominal_required_power_w, polygon_line_of_sight
+        c = self.config()
+        s, p = allocate_state(c, 1, device="cuda")
+        s.positions.assign(np.array([[[0, 500], [100, 500]]], float))
+        s.obstacles.assign(np.array([[[50, 500, 5]]], float))
+        s.obstacle_heights.assign(np.array([[40.]], float))
+        out = wp.zeros(3, dtype=wp.float64, device="cuda")
+        for z0, z1 in ((20., 20.), (60., 60.), (25., 75.)):
+            with self.subTest(heights=(z0, z1)):
+                s.altitudes.assign(np.array([[z0, z1]], float))
+                wp.launch(inspect_xyz_link, dim=1, inputs=[s, p, out], device="cuda")
+                actual = out.numpy()
+                a, b = [0, 500, z0], [100, 500, z1]
+                expected = nominal_required_power_w(a, b, [[50, 500, 5]], c.network, heights=[40])
+                np.testing.assert_allclose(actual[0], expected, rtol=1e-10, atol=0)
+                self.assertEqual(bool(actual[1]), polygon_line_of_sight(a, b, [[50, 500, 5]], 16, heights=[40]))
+                self.assertAlmostEqual(actual[2], np.linalg.norm(np.subtract(a, b)), places=10)
+
+
 if __name__ == "__main__":
     unittest.main()

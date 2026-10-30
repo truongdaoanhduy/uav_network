@@ -8,7 +8,7 @@ wp.set_module_options({"enable_backward": False})
 
 
 @wp.func
-def seed_mt(s: WorldState, e: int, node: int):
+def seed_mt(s: wp.ref[WorldState], e: int, node: int):
     seed = wp.uint64(s.seeds[e]) + wp.uint64(node + 5)
     if s.seeds[e] < wp.int64(0):
         signed_seed = s.seeds[e]+wp.int64(node+5)
@@ -51,7 +51,7 @@ def seed_mt(s: WorldState, e: int, node: int):
 
 
 @wp.func
-def mt_word(s: WorldState, e: int, node: int) -> wp.uint32:
+def mt_word(s: wp.ref[WorldState], e: int, node: int) -> wp.uint32:
     index = s.mt_index[e,node]
     if index >= 624:
         for k in range(624):
@@ -70,7 +70,7 @@ def mt_word(s: WorldState, e: int, node: int) -> wp.uint32:
 
 
 @wp.func
-def randbelow(s: WorldState, e: int, node: int, bound: int) -> int:
+def randbelow(s: wp.ref[WorldState], e: int, node: int, bound: int) -> int:
     bits = int(0)
     b = bound
     while b > 0:

@@ -6,19 +6,19 @@ wp.set_module_options({"enable_backward":False,"fuse_fp":False})
 
 
 @wp.func
-def position3(s:WorldState,e:int,i:int):
+def position3(s:wp.ref[WorldState],e:int,i:int):
     a=s.positions[e,i]
     return wp.vec3d(a[0],a[1],s.altitudes[e,i])
 
 
 @wp.func
-def velocity3(s:WorldState,e:int,i:int):
+def velocity3(s:wp.ref[WorldState],e:int,i:int):
     a=s.velocities[e,i]
     return wp.vec3d(a[0],a[1],s.vertical_velocity[e,i])
 
 
 @wp.func
-def node_z(s:WorldState,p:WorldParams,e:int,i:int):
+def node_z(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,i:int):
     z=wp.float64(0)
     if i<p.n:
         z=p.altitude
@@ -27,14 +27,14 @@ def node_z(s:WorldState,p:WorldParams,e:int,i:int):
 
 
 @wp.func
-def node3(s:WorldState,p:WorldParams,e:int,i:int):
+def node3(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,i:int):
     a=s.gcs[e]
     if i<p.n:a=s.positions[e,i]
     return wp.vec3d(a[0],a[1],node_z(s,p,e,i))
 
 
 @wp.func
-def range_distance(s:WorldState,p:WorldParams,e:int,i:int,j:int):
+def range_distance(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,i:int,j:int):
     a,b=node3(s,p,e,i),node3(s,p,e,j)
     delta=a-b
     if p.xyz==0:delta[2]=wp.float64(0)
@@ -64,7 +64,7 @@ def cylinder_hit(a:wp.vec3d,b:wp.vec3d,o:wp.vec4d,margin:wp.float64):
 
 
 @wp.func
-def camera_clear(s:WorldState,p:WorldParams,e:int,a:wp.vec3d,xy:wp.vec2d):
+def camera_clear(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,a:wp.vec3d,xy:wp.vec2d):
     b=wp.vec3d(xy[0],xy[1],0.0);clear=bool(True)
     for o in range(p.obstacles_count):
         v=s.obstacles[e,o]

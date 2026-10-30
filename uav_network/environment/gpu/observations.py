@@ -13,12 +13,12 @@ wp.set_module_options({"enable_backward": False, "fuse_fp": False})
 
 
 @wp.func
-def _active(s: WorldState, p: WorldParams, e: int, i: int):
+def _active(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, i: int):
     return p.energy_enabled == 0 or s.battery[e, i] > wp.float64(0.0)
 
 
 @wp.func
-def _report_count(s: WorldState, p: WorldParams, e: int, i: int):
+def _report_count(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, i: int):
     count = int(0)
     for t in range(p.targets_count):
         count = count + s.report_present[e, i, t]
@@ -26,7 +26,7 @@ def _report_count(s: WorldState, p: WorldParams, e: int, i: int):
 
 
 @wp.func
-def report_age(s: WorldState, p: WorldParams, e: int, i: int, t: int):
+def report_age(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, i: int, t: int):
     age = wp.float64(0.0)
     if p.recovery_enabled != 0 and s.recovery[e, i, t] != 0:
         age = wp.float64(-1.0)
@@ -37,7 +37,7 @@ def report_age(s: WorldState, p: WorldParams, e: int, i: int, t: int):
 
 
 @wp.func
-def _admissible(s: WorldState, p: WorldParams, e: int, i: int, destination: int):
+def _admissible(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, i: int, destination: int):
     available = bool(False)
     receiver_space = True
     if destination < p.n:
@@ -53,7 +53,7 @@ def _admissible(s: WorldState, p: WorldParams, e: int, i: int, destination: int)
 
 
 @wp.func
-def destination_allowed(s: WorldState, p: WorldParams, e: int, i: int, destination: int):
+def destination_allowed(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, i: int, destination: int):
     allowed = (p.network_enabled != 0 and _active(s, p, e, i)
                and _report_count(s, p, e, i) > 0)
     if destination < p.n:

@@ -66,7 +66,7 @@ STAT_RELAY_GCS_DISTANCE_IMPROVEMENT_M = wp.constant(10)
 
 
 @wp.func
-def reset(s: WorldState, e: int):
+def reset(s: wp.ref[WorldState], e: int):
     for j in range(COUNTER_COUNT):
         s.diagnostic_counts[e,j] = wp.int64(0)
     for j in range(STAT_COUNT):
@@ -79,7 +79,7 @@ def reset(s: WorldState, e: int):
             s.power_histogram[e,j,k] = wp.int64(0)
 
 @wp.func
-def sample(s: WorldState, e: int, index: int, value: wp.float64):
+def sample(s: wp.ref[WorldState], e: int, index: int, value: wp.float64):
     if s.diagnostic_stats[e,index,0] == wp.float64(0):
         s.diagnostic_stats[e,index,2] = value
         s.diagnostic_stats[e,index,3] = value
@@ -91,7 +91,7 @@ def sample(s: WorldState, e: int, index: int, value: wp.float64):
 
 
 @wp.func
-def emission(s: WorldState, p: WorldParams, e: int, packet: int, destination: int,
+def emission(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, packet: int, destination: int,
              kind: int, power: wp.float64):
     stat = STAT_DATA_TX_POWER_W
     count = DATA_ATTEMPTS
@@ -122,7 +122,7 @@ def emission(s: WorldState, p: WorldParams, e: int, packet: int, destination: in
 
 
 @wp.func
-def decode(s: WorldState, p: WorldParams, e: int, kind: int, destination: int,
+def decode(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, kind: int, destination: int,
            snr: wp.float64, sinr: wp.float64, rssi: wp.float64, distance: wp.float64,
            line_of_sight: bool, collided: bool, success: bool):
     result = DATA_PHY_FAILURES

@@ -22,7 +22,7 @@ def clip3(v:wp.vec3d,low:wp.vec3d,high:wp.vec3d):
 
 
 @wp.func
-def project(desired:wp.vec3d,previous:wp.vec3d,p:WorldParams):
+def project(desired:wp.vec3d,previous:wp.vec3d,p:wp.ref[WorldParams]):
     step=p.max_accel*p.dt
     lower=previous-wp.vec3d(step);upper=previous+wp.vec3d(step)
     result=clip3(desired,lower,upper)
@@ -46,7 +46,7 @@ def distance(a:wp.vec3d,b:wp.vec3d):
 
 
 @wp.func
-def static_path(s:WorldState,p:WorldParams,e:int,pos:wp.vec3d,velocity:wp.vec3d):
+def static_path(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,pos:wp.vec3d,velocity:wp.vec3d):
     lo=wp.vec3d(0.0,0.0,p.altitude_min);hi=wp.vec3d(p.map_size,p.map_size,p.altitude_max)
     point=pos;speed=velocity;valid=bool(True)
     for k in range(int(wp.ceil(p.max_speed/(p.max_accel*p.dt)))+1):
@@ -61,7 +61,7 @@ def static_path(s:WorldState,p:WorldParams,e:int,pos:wp.vec3d,velocity:wp.vec3d)
 
 
 @wp.func
-def peer_path(a:wp.vec3d,av:wp.vec3d,b:wp.vec3d,bv:wp.vec3d,p:WorldParams):
+def peer_path(a:wp.vec3d,av:wp.vec3d,b:wp.vec3d,bv:wp.vec3d,p:wp.ref[WorldParams]):
     pos=a;other=b;v=av;ov=bv;valid=bool(True)
     for k in range(int(wp.ceil(p.max_speed/(p.max_accel*p.dt)))+1):
         end=pos+v*p.dt;oe=other+ov*p.dt
@@ -71,7 +71,7 @@ def peer_path(a:wp.vec3d,av:wp.vec3d,b:wp.vec3d,bv:wp.vec3d,p:WorldParams):
 
 
 @wp.func
-def cost(prev:wp.vec3d,actual:wp.vec3d,p:WorldParams):
+def cost(prev:wp.vec3d,actual:wp.vec3d,p:wp.ref[WorldParams]):
     a=(actual-prev)/p.dt
     return (p.idle_power+p.hover_power+p.speed_coefficient*wp.dot(actual,actual)+p.accel_coefficient*wp.dot(a,a))*p.dt
 

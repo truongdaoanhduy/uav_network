@@ -33,12 +33,12 @@ def brake(velocity: wp.vec2d, step: wp.float64):
 
 
 @wp.func
-def outside_map(point: wp.vec2d, p: WorldParams):
+def outside_map(point: wp.vec2d, p: wp.ref[WorldParams]):
     return point[0] < wp.float64(0.0) or point[1] < wp.float64(0.0) or point[0] > p.map_size or point[1] > p.map_size
 
 
 @wp.func
-def static_point(s: WorldState, p: WorldParams, e: int, point: wp.vec2d):
+def static_point(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, point: wp.vec2d):
     valid = not outside_map(point, p)
     for o in range(p.obstacles_count):
         circle = s.obstacles[e, o]
@@ -48,7 +48,7 @@ def static_point(s: WorldState, p: WorldParams, e: int, point: wp.vec2d):
 
 
 @wp.func
-def static_path(s: WorldState, p: WorldParams, e: int, position: wp.vec2d, velocity: wp.vec2d):
+def static_path(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, position: wp.vec2d, velocity: wp.vec2d):
     valid = not outside_map(position, p)
     point = position
     speed = velocity
@@ -69,7 +69,7 @@ def static_path(s: WorldState, p: WorldParams, e: int, position: wp.vec2d, veloc
 
 
 @wp.func
-def peer_path(p: WorldParams, position: wp.vec2d, velocity: wp.vec2d,
+def peer_path(p: wp.ref[WorldParams], position: wp.vec2d, velocity: wp.vec2d,
               other_position: wp.vec2d, other_velocity: wp.vec2d):
     valid = bool(True)
     point, other = position, other_position
@@ -86,7 +86,7 @@ def peer_path(p: WorldParams, position: wp.vec2d, velocity: wp.vec2d,
 
 
 @wp.func
-def target_visible(s: WorldState, p: WorldParams, e: int, i: int, t: int):
+def target_visible(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, i: int, t: int):
     visible = p.energy_enabled == 0 or s.battery[e, i] > wp.float64(0.0)
     position, target = s.positions[e, i], s.targets[e, t]
     if wp.length(target - position) > p.footprint + wp.float64(1e-9):

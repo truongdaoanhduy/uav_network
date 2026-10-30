@@ -6,7 +6,7 @@ from .bayesian import profile
 
 
 @wp.func
-def patch_value(s:WorldState,p:WorldParams,e:int,i:int,cell:int):
+def patch_value(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,i:int,cell:int):
     xy=s.positions[e,i];half=p.patch_n//2
     gx=wp.min(int(xy[0]/p.cell_width),p.grid_n-1)+cell%p.patch_n-half
     gy=wp.min(int(xy[1]/p.cell_width),p.grid_n-1)+cell//p.patch_n-half
@@ -16,7 +16,7 @@ def patch_value(s:WorldState,p:WorldParams,e:int,i:int,cell:int):
 
 
 @wp.func
-def candidates(s:WorldState,p:WorldParams,e:int,i:int,offset:int):
+def candidates(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,i:int,offset:int):
     previous=wp.float64(-1);previous_id=int(-1)
     for rank in range(p.target_slots):
         best=wp.float64(1e100);best_id=int(-1)
@@ -37,7 +37,7 @@ def candidates(s:WorldState,p:WorldParams,e:int,i:int,offset:int):
 
 
 @wp.func
-def extras(s:WorldState,p:WorldParams,e:int,i:int,offset:int):
+def extras(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,i:int,offset:int):
     s.observation[e,i,offset]=wp.float32(s.altitudes[e,i]/p.altitude_max)
     s.observation[e,i,offset+1]=wp.float32(s.vertical_velocity[e,i]/p.max_speed)
     offset+=2
@@ -65,7 +65,7 @@ def extras(s:WorldState,p:WorldParams,e:int,i:int,offset:int):
 
 
 @wp.func
-def centralized_extras(s:WorldState,p:WorldParams,e:int,offset:int):
+def centralized_extras(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,offset:int):
     for i in range(p.n):
         s.state[e,offset+i]=wp.float32(s.altitudes[e,i]/p.altitude_max)
         s.state[e,offset+p.n+i]=wp.float32(s.vertical_velocity[e,i]/p.max_speed)

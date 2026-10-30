@@ -44,12 +44,12 @@ def pcg_uniform(rows: wp.array2d(dtype=wp.uint64), e: int):
 
 
 @wp.func
-def _uniform(s: WorldState, e: int, low: wp.float64, high: wp.float64):
+def _uniform(s: wp.ref[WorldState], e: int, low: wp.float64, high: wp.float64):
     return low + (high - low) * pcg_uniform(s.pcg_state, e)
 
 
 @wp.func
-def _outside(s: WorldState, e: int, point: wp.vec2d, count: int, clearance: wp.float64):
+def _outside(s: wp.ref[WorldState], e: int, point: wp.vec2d, count: int, clearance: wp.float64):
     valid = bool(True)
     for o in range(count):
         circle = s.obstacles[e, o]
@@ -59,7 +59,7 @@ def _outside(s: WorldState, e: int, point: wp.vec2d, count: int, clearance: wp.f
 
 
 @wp.func
-def _place_geometry(s: WorldState, p: WorldParams, e: int):
+def _place_geometry(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int):
     s.errors[e] = 0
     s.gcs[e] = wp.vec2d(p.gcs_x, p.gcs_y)
     s.steps[e] = 0

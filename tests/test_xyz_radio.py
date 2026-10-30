@@ -82,7 +82,7 @@ from uav_network.environment.gpu.state import WorldState,WorldParams
 from uav_network.communication.gpu.phy import nominal_required_power,link_los,link_distance
 
 
-@wp.kernel
+@wp.kernel(enable_backward=False)
 def inspect_xyz_link(s:WorldState,p:WorldParams,out:wp.array(dtype=wp.float64)):
     out[0]=nominal_required_power(s,p,0,0,1)
     out[1]=wp.float64(int(link_los(s,p,0,0,1)))

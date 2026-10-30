@@ -148,7 +148,7 @@ try:
     import warp as wp
     from uav_network.environment.gpu.state import WorldParams, WorldState
 
-    @wp.kernel
+    @wp.kernel(enable_backward=False)
     def power_probe(s: WorldState, p: WorldParams, out: wp.array(dtype=wp.float64)):
         from_value = wp.float32(-1.)
         if wp.tid() == 1:

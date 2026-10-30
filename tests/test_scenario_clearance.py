@@ -54,7 +54,7 @@ if importlib.util.find_spec("warp"):
     from uav_network.environment.gpu.state import WorldState
     from uav_network.environment.gpu.world import _outside
 
-    @wp.kernel
+    @wp.kernel(enable_backward=False)
     def placement_allowed(s: WorldState, points: wp.array(dtype=wp.vec2d),
                           clearance: wp.float64, result: wp.array(dtype=wp.int32)):
         i = wp.tid()

@@ -8,12 +8,12 @@ wp.set_module_options({"enable_backward": False})
 
 
 @wp.func
-def active(s: WorldState, p: WorldParams, e: int, node: int) -> bool:
+def active(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, node: int) -> bool:
     return node == p.n or p.energy_enabled == 0 or s.battery[e,node] > wp.float64(0)
 
 
 @wp.func
-def bytes_used(s: WorldState, p: WorldParams, e: int, node: int) -> int:
+def bytes_used(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, node: int) -> int:
     count = int(0)
     for t in range(p.targets_count):
         count += s.report_present[e,node,t]
@@ -21,14 +21,14 @@ def bytes_used(s: WorldState, p: WorldParams, e: int, node: int) -> int:
 
 
 @wp.func
-def can_receive(s: WorldState, p: WorldParams, e: int, node: int, target: int) -> bool:
+def can_receive(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, node: int, target: int) -> bool:
     if node == p.n:
         return True
     return s.known[e,node,target] == 0 and bytes_used(s,p,e,node)+p.report_bytes <= p.buffer_bytes
 
 
 @wp.func
-def discard_sessions(s: WorldState, p: WorldParams, e: int, source: int, target: int):
+def discard_sessions(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, source: int, target: int):
     for dest in range(p.n+1):
         session = (source*p.targets_count+target)*(p.n+1)+dest
         s.session_active[e,session] = 0
@@ -39,7 +39,7 @@ def discard_sessions(s: WorldState, p: WorldParams, e: int, source: int, target:
 
 
 @wp.func
-def expire(s: WorldState, p: WorldParams, e: int, now: wp.float64):
+def expire(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, now: wp.float64):
     for i in range(p.n):
         for t in range(p.targets_count):
             if s.report_present[e,i,t] != 0 and now-s.report_created[e,i,t] >= p.report_ttl:
@@ -49,7 +49,7 @@ def expire(s: WorldState, p: WorldParams, e: int, now: wp.float64):
 
 
 @wp.func
-def insert(s: WorldState, p: WorldParams, e: int, node: int, target: int,
+def insert(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, node: int, target: int,
            origin: int, created: wp.float64, hops: int):
     s.report_sequence[e] += wp.int64(1)
     s.report_present[e,node,target] = 1
@@ -61,7 +61,7 @@ def insert(s: WorldState, p: WorldParams, e: int, node: int, target: int,
 
 
 @wp.func
-def transfer(s: WorldState, p: WorldParams, e: int, source: int, destination: int,
+def transfer(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, source: int, destination: int,
              target: int, origin: int, created: wp.float64, hops: int, now: wp.float64,
              power: wp.float64) -> bool:
     if (s.report_present[e,source,target] == 0 or s.report_origin[e,source,target] != origin
@@ -123,7 +123,7 @@ def transfer(s: WorldState, p: WorldParams, e: int, source: int, destination: in
 
 
 @wp.func
-def reset_reward_state(s: WorldState, e: int):
+def reset_reward_state(s: wp.ref[WorldState], e: int):
     s.reward[e] = wp.float32(0)
     s.shield_correction_step[e] = wp.float64(0)
     s.shield_correction[e] = wp.float64(0)
@@ -164,7 +164,7 @@ def begin_step(s: WorldState, p: WorldParams):
 
 
 @wp.func
-def sense_reports_at(s: WorldState, p: WorldParams, e: int):
+def sense_reports_at(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int):
     now = wp.float64(s.steps[e])*p.dt
     for i in range(p.n):
         for t in range(p.targets_count):

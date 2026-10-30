@@ -10,7 +10,7 @@ C = wp.constant(wp.float64(299792458.0))
 
 
 @wp.func
-def xy(s: WorldState, p: WorldParams, e: int, node: int) -> wp.vec2d:
+def xy(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, node: int) -> wp.vec2d:
     point = wp.vec2d(s.gcs[e])
     if node < p.n:
         point = wp.vec2d(s.positions[e,node])
@@ -18,7 +18,7 @@ def xy(s: WorldState, p: WorldParams, e: int, node: int) -> wp.vec2d:
 
 
 @wp.func
-def link_distance(s: WorldState, p: WorldParams, e: int, first: int, second: int) -> wp.float64:
+def link_distance(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, first: int, second: int) -> wp.float64:
     a = xy(s,p,e,first)
     b = xy(s,p,e,second)
     dz = node_z(s,p,e,first)-node_z(s,p,e,second)
@@ -31,7 +31,7 @@ def cross(a: wp.vec2d, b: wp.vec2d) -> wp.float64:
 
 
 @wp.func
-def los(s: WorldState, p: WorldParams, e: int, a: wp.vec2d, b: wp.vec2d) -> bool:
+def los(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, a: wp.vec2d, b: wp.vec2d) -> bool:
     d = b-a
     for o in range(p.obstacles_count):
         obstacle = s.obstacles[e,o]
@@ -60,7 +60,7 @@ def los(s: WorldState, p: WorldParams, e: int, a: wp.vec2d, b: wp.vec2d) -> bool
 
 
 @wp.func
-def link_los(s:WorldState,p:WorldParams,e:int,first:int,second:int):
+def link_los(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,first:int,second:int):
     if p.xyz==0:
         return los(s,p,e,xy(s,p,e,first),xy(s,p,e,second))
     start=node3(s,p,e,first);end=node3(s,p,e,second)
@@ -88,7 +88,7 @@ def link_los(s:WorldState,p:WorldParams,e:int,first:int,second:int):
 
 
 @wp.func
-def gain(s: WorldState, p: WorldParams, e: int, transmitter: int, receiver: int,
+def gain(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, transmitter: int, receiver: int,
          now: wp.float64) -> wp.float64:
     if transmitter == receiver:
         return wp.float64(1)
@@ -112,7 +112,7 @@ def gain(s: WorldState, p: WorldParams, e: int, transmitter: int, receiver: int,
 
 
 @wp.func
-def nominal_required_power(s: WorldState, p: WorldParams, e: int, transmitter: int, receiver: int) -> wp.float64:
+def nominal_required_power(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, transmitter: int, receiver: int) -> wp.float64:
     a = xy(s,p,e,transmitter)
     b = xy(s,p,e,receiver)
     distance = wp.max(wp.float64(1), link_distance(s,p,e,transmitter,receiver))
@@ -124,24 +124,24 @@ def nominal_required_power(s: WorldState, p: WorldParams, e: int, transmitter: i
     return threshold*p.noise_power/nominal
 
 @wp.func
-def propagation_delay_us(s: WorldState, p: WorldParams, e: int, frame: int, node: int) -> wp.float64:
+def propagation_delay_us(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, frame: int, node: int) -> wp.float64:
     if p.propagation_delay_enabled != 0:
         return s.tx_propagation_delay[e,frame,node]
     return wp.float64(0)
 
 
 @wp.func
-def arrival_start(s: WorldState, p: WorldParams, e: int, frame: int, node: int) -> wp.float64:
+def arrival_start(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, frame: int, node: int) -> wp.float64:
     return s.tx_start[e,frame]+propagation_delay_us(s,p,e,frame,node)
 
 
 @wp.func
-def arrival_end(s: WorldState, p: WorldParams, e: int, frame: int, node: int) -> wp.float64:
+def arrival_end(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, frame: int, node: int) -> wp.float64:
     return s.tx_end[e,frame]+propagation_delay_us(s,p,e,frame,node)
 
 
 @wp.func
-def latest_arrival_end(s: WorldState, p: WorldParams, e: int, frame: int) -> wp.float64:
+def latest_arrival_end(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, frame: int) -> wp.float64:
     result = s.tx_end[e,frame]
     if p.propagation_delay_enabled != 0:
         for node in range(p.n+1):
@@ -150,7 +150,7 @@ def latest_arrival_end(s: WorldState, p: WorldParams, e: int, frame: int) -> wp.
 
 
 @wp.func
-def busy(s: WorldState, p: WorldParams, e: int, node: int, now: wp.float64) -> bool:
+def busy(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, node: int, now: wp.float64) -> bool:
     s.diagnostic_counts[e,diag.CCA_CHECKS] += wp.int64(1)
     power = wp.float64(0)
     for k in range(s.frame_count[e]):
@@ -167,7 +167,7 @@ def busy(s: WorldState, p: WorldParams, e: int, node: int, now: wp.float64) -> b
 
 
 @wp.func
-def emit(s: WorldState, p: WorldParams, e: int, packet: int, source: int, destination: int,
+def emit(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, packet: int, source: int, destination: int,
          kind: int, now: wp.float64) -> int:
     power = s.pkt_power[e,packet]
     bits = wp.float64(wp.min(p.payload_bytes,p.report_bytes-s.pkt_fragment[e,packet]*p.payload_bytes)*8)+p.header_bits
@@ -259,7 +259,7 @@ def emit(s: WorldState, p: WorldParams, e: int, packet: int, source: int, destin
 
 
 @wp.func
-def evaluate(s: WorldState, p: WorldParams, e: int, frame: int, now: wp.float64) -> bool:
+def evaluate(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, frame: int, now: wp.float64) -> bool:
     receiver = s.tx_destination[e,frame]
     start = arrival_start(s,p,e,frame,receiver)
     end = arrival_end(s,p,e,frame,receiver)

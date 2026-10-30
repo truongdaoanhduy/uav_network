@@ -12,7 +12,7 @@ wp.set_module_options({"enable_fp_fma": False, "enable_backward": False})
 
 
 @wp.func
-def record_action(s: WorldState, p: WorldParams, e: int, source: int, index: int,
+def record_action(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, source: int, index: int,
                   continuous: wp.array3d(dtype=wp.float32), now: wp.float64):
     if index == 0:
         s.action_counts[e,0] += wp.int64(1)

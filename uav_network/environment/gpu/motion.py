@@ -16,7 +16,7 @@ def _clip_box(value: wp.vec2d, lower: wp.vec2d, upper: wp.vec2d):
 
 
 @wp.func
-def reachable(desired: wp.vec2d, previous: wp.vec2d, p: WorldParams):
+def reachable(desired: wp.vec2d, previous: wp.vec2d, p: wp.ref[WorldParams]):
     step = p.max_accel * p.dt
     lower, upper = previous - wp.vec2d(step, step), previous + wp.vec2d(step, step)
     result = _clip_box(desired, lower, upper)
@@ -38,13 +38,13 @@ def reachable(desired: wp.vec2d, previous: wp.vec2d, p: WorldParams):
 
 
 @wp.func
-def _reachable(candidate: wp.vec2d, previous: wp.vec2d, p: WorldParams):
+def _reachable(candidate: wp.vec2d, previous: wp.vec2d, p: wp.ref[WorldParams]):
     step = p.max_accel * p.dt + wp.float64(1e-9)
     return wp.abs(candidate[0] - previous[0]) <= step and wp.abs(candidate[1] - previous[1]) <= step
 
 
 @wp.func
-def _others_safe(s: WorldState, p: WorldParams, e: int, i: int, velocity: wp.vec2d):
+def _others_safe(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, i: int, velocity: wp.vec2d):
     valid = bool(True)
     for j in range(p.n):
         if j != i and not peer_path(p, s.positions[e, i], velocity,
@@ -67,7 +67,7 @@ def _tangent(normal: wp.vec2d, previous: wp.vec2d, nominal: wp.vec2d):
 
 
 @wp.func
-def _guidance(s: WorldState, p: WorldParams, e: int, i: int):
+def _guidance(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, i: int):
     position, previous = wp.vec2d(s.positions[e, i]), wp.vec2d(s.velocities[e, i])
     nominal = wp.vec2d(s.motion_work[e, i, 0])
     step = p.max_accel * p.dt
@@ -165,7 +165,7 @@ def _guidance(s: WorldState, p: WorldParams, e: int, i: int):
 
 
 @wp.func
-def _move(s: WorldState, p: WorldParams, e: int, actions: wp.array3d(dtype=wp.float32)):
+def _move(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, actions: wp.array3d(dtype=wp.float32)):
     first_counts, shield_counts = wp.vec4i(0, 0, 0, 0), wp.vec4i(0, 0, 0, 0)
     step = p.max_accel * p.dt
     all_safe = bool(True)
@@ -284,7 +284,7 @@ def _move(s: WorldState, p: WorldParams, e: int, actions: wp.array3d(dtype=wp.fl
 
 
 @wp.func
-def _cost(previous: wp.vec2d, realized: wp.vec2d, p: WorldParams):
+def _cost(previous: wp.vec2d, realized: wp.vec2d, p: wp.ref[WorldParams]):
     acceleration = (realized - previous) / p.dt
     power = (p.idle_power + p.hover_power + p.speed_coefficient * wp.dot(realized, realized)
              + p.accel_coefficient * wp.dot(acceleration, acceleration))

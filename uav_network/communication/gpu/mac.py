@@ -21,7 +21,7 @@ BACKOFF_DONE, TX_START, DATA_END, DELIVER, ACK_TIMEOUT, RELEASE = range(8,14)
 RECEIVE, ACK_START, RECEIVE_DONE = range(14,17)
 
 @wp.func
-def next_receive(s: WorldState, p: WorldParams, e: int, node: int, now: wp.float64):
+def next_receive(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, node: int, now: wp.float64):
     if s.node_receiving[e,node] == 0:
         frame = int(-1)
         for j in range(p.frame_capacity):
@@ -34,7 +34,7 @@ def next_receive(s: WorldState, p: WorldParams, e: int, node: int, now: wp.float
             push(s,p,e,now,14,frame,0,0)
 
 @wp.func
-def receive_data(s: WorldState, p: WorldParams, e: int, frame: int, now: wp.float64):
+def receive_data(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, frame: int, now: wp.float64):
     packet = s.tx_packet[e,frame]
     if s.pkt_generation[e,packet] == s.tx_generation[e,frame] and s.pkt_delivered[e,packet] == 0:
         s.pkt_delivered[e,packet] = 1
@@ -75,7 +75,7 @@ def receive_data(s: WorldState, p: WorldParams, e: int, frame: int, now: wp.floa
                     fill_session(s,p,e,session,source,dest,target,now)
 
 @wp.func
-def poll_delay(s: WorldState, p: WorldParams, e: int, now: wp.float64) -> wp.float64:
+def poll_delay(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, now: wp.float64) -> wp.float64:
     delay = p.queue_poll
     if (s.coalesce_step[e] != 0 and wp.floor(p.queue_poll) == p.queue_poll
         and wp.floor(now) == now):
@@ -85,7 +85,7 @@ def poll_delay(s: WorldState, p: WorldParams, e: int, now: wp.float64) -> wp.flo
 
 
 @wp.func
-def event(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
+def event(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, kind: int, arg: int,
           generation: int, now: wp.float64):
     if kind == 1:
         node = arg

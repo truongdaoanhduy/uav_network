@@ -8,12 +8,12 @@ from .phy import latest_arrival_end
 wp.set_module_options({"enable_fp_fma": False, "enable_backward": False})
 
 @wp.func
-def window_count(p: WorldParams, start: int) -> int:
+def window_count(p: wp.ref[WorldParams], start: int) -> int:
     return wp.min(p.max_queue_packets, p.fragments-start)
 
 
 @wp.func
-def window_mask(p: WorldParams, start: int) -> wp.uint64:
+def window_mask(p: wp.ref[WorldParams], start: int) -> wp.uint64:
     count = window_count(p,start)
     mask = wp.uint64(0)
     for bit_index in range(64):
@@ -23,7 +23,7 @@ def window_mask(p: WorldParams, start: int) -> wp.uint64:
 
 
 @wp.func
-def fragment_bit(s: WorldState, e: int, session: int, fragment: int) -> wp.uint64:
+def fragment_bit(s: wp.ref[WorldState], e: int, session: int, fragment: int) -> wp.uint64:
     offset = fragment-s.session_window_start[e,session]
     if offset < 0 or offset >= 64:
         return wp.uint64(0)
@@ -31,7 +31,7 @@ def fragment_bit(s: WorldState, e: int, session: int, fragment: int) -> wp.uint6
 
 
 @wp.func
-def clear_pending(s: WorldState, p: WorldParams, e: int, now: wp.float64):
+def clear_pending(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, now: wp.float64):
     # Rebuild at policy boundaries: another streaming session may already have
     # reused a terminal packet slot. Deferring this reconciliation preserves the
     # rule that retry exhaustion needs a later policy action.
@@ -60,7 +60,7 @@ def clear_pending(s: WorldState, p: WorldParams, e: int, now: wp.float64):
 
 
 @wp.func
-def fill_session(s: WorldState, p: WorldParams, e: int, session: int,
+def fill_session(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, session: int,
                  source: int, dest: int, target: int, now: wp.float64):
     start = s.session_window_start[e,session]
     count = window_count(p,start)
@@ -124,7 +124,7 @@ def fill_session(s: WorldState, p: WorldParams, e: int, session: int,
 
 
 @wp.func
-def inject(s: WorldState, p: WorldParams, e: int, source: int, dest: int,
+def inject(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, source: int, dest: int,
            target: int, power: wp.float64, now: wp.float64):
     session = (source*p.targets_count+target)*(p.n+1)+dest
     if s.session_active[e,session] == 0:

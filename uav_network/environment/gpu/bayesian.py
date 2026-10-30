@@ -16,7 +16,7 @@ def sensor_uniform(seed:wp.int64,tick:int,agent:int,cell:int):
 
 
 @wp.func
-def profile(p:WorldParams,z:wp.float64):
+def profile(p:wp.ref[WorldParams],z:wp.float64):
     pd=p.sensor_pd[3];pf=p.sensor_pf[3]
     if z<=p.sensor_anchors[0]:
         pd=p.sensor_pd[0];pf=p.sensor_pf[0]
@@ -36,7 +36,7 @@ def integral(x:wp.float64,r:wp.float64):
 
 
 @wp.func
-def cell_coverage(p:WorldParams,gx:int,gy:int,xy:wp.vec2d,r:wp.float64):
+def cell_coverage(p:wp.ref[WorldParams],gx:int,gy:int,xy:wp.vec2d,r:wp.float64):
     area=wp.float64(0)
     if r>wp.float64(0):
         x0=wp.float64(gx)*p.cell_width-xy[0];x1=wp.min(wp.float64(gx+1)*p.cell_width,p.map_size)-xy[0]
