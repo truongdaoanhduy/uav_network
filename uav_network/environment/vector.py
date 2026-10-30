@@ -23,7 +23,7 @@ class GymMissionEnv(gym.Env):
             "observation": spaces.Box(-np.inf, np.inf, (n, observation_dim(config)), np.float32),
             "state": spaces.Box(-np.inf, np.inf, (state_dim(config),), np.float32)})
         self.action_space = spaces.Dict({
-            "continuous": spaces.Box(-1., 1., (n, 3), np.float32),
+            "continuous": spaces.Box(-1., 1., (n, config.continuous_dim), np.float32),
             "destination": spaces.MultiDiscrete(np.full(n, n + 1))})
 
     def reset(self, *, seed=None, options=None):
@@ -56,17 +56,17 @@ def make_vector(config, *, device=None):
                           copy=True, autoreset_mode=AutoresetMode.DISABLED)
 
 
-def random_actions(observation, rng, destinations):
+def random_actions(observation, rng, destinations, continuous_dim=3):
     shape = observation.shape[:-1]
-    continuous = rng.uniform(-1, 1, (*shape, 3)).astype(np.float32)
+    continuous = rng.uniform(-1, 1, (*shape, continuous_dim)).astype(np.float32)
     mask = observation[..., -destinations:] > .5
     mask[..., 0] = True
     # Independent uniform choice over valid destinations, including silent.
     random_scores = np.where(mask, rng.random(mask.shape), -1)
     destination = random_scores.argmax(-1).astype(np.int64)
     active = observation[..., 9] > .5
-    continuous[..., :2] *= active[..., None]
-    continuous[..., 2] *= active & (destination != 0)
+    continuous[..., :-1] *= active[..., None]
+    continuous[..., -1] *= active & (destination != 0)
     return Action(continuous, destination)
 
 

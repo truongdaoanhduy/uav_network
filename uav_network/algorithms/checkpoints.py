@@ -4,7 +4,7 @@ from pathlib import Path
 import torch
 
 from ..configuration import Config, WorldConfig, _apply
-from ..environment.observations import OBSERVATION_VERSION, observation_dim, state_dim
+from ..environment.observations import OBSERVATION_VERSION, observation_version, observation_dim, state_dim
 
 
 def make_learner(config, obs_dim, critic_dim, device="cpu"):
@@ -17,7 +17,8 @@ def make_learner(config, obs_dim, critic_dim, device="cpu"):
 def validate_observation_version(saved):
     """Guard observation and seeded scene-generator semantics at every load path."""
     version = saved.get("observation_version")
-    if type(version) is not int or version != OBSERVATION_VERSION:
+    expected = 4 if saved.get('config',{}).get('world',{}).get('motion_dimensions',2)==3 else OBSERVATION_VERSION
+    if type(version) is not int or version != expected:
         raise ValueError("Checkpoint observation semantics differ; use its pinned historical source "
                          "or retrain from episode 0")
     generation = saved.get("config", {}).get("world", {}).get("generation_version")
@@ -35,7 +36,7 @@ def save_policy(learner, path, progress=None, *, training=None):
     temporary = path.with_suffix(path.suffix + ".tmp")
     saved = {"version": 3 if training is not None else 2, "algorithm": learner.algorithm,
                 "config": learner.config.to_dict(), "observation_dim": learner.observation_dim,
-                "state_dim": learner.state_dim, "observation_version": OBSERVATION_VERSION,
+                "state_dim": learner.state_dim, "observation_version": observation_version(learner.config),
                 "model": learner.state_dict(),
                 "updates": learner.updates}
     if training is not None:

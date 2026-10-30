@@ -3,7 +3,7 @@ import torch
 from .replay import transition_shapes
 
 
-def validate_hybrid_state(saved, capacity, observation_shape, state_dim, cpu_fraction, hot_device_type=None):
+def validate_hybrid_state(saved, capacity, observation_shape, state_dim, cpu_fraction, hot_device_type=None, continuous_dim=3):
     if (not isinstance(saved, dict) or saved.get("layout") != "hybrid"
             or saved.get("capacity") != capacity
             or saved.get("cpu_capacity") != round(capacity * cpu_fraction)
@@ -25,7 +25,7 @@ def validate_hybrid_state(saved, capacity, observation_shape, state_dim, cpu_fra
         torch.Generator(device="cpu").set_state(saved["rng"].cpu())
     except (KeyError, RuntimeError, TypeError, AttributeError) as error:
         raise ValueError("Hybrid replay RNG checkpoint is invalid") from error
-    shapes = transition_shapes(observation_shape, state_dim)
+    shapes = transition_shapes(observation_shape, state_dim, continuous_dim)
     sizes = {"cpu_data": min(saved["size"], saved["cpu_capacity"]),
              "hot_data": max(0, saved["size"] - saved["cpu_capacity"])}
     for group, size in sizes.items():
@@ -49,10 +49,11 @@ def validate_hybrid_state(saved, capacity, observation_shape, state_dim, cpu_fra
 
 class HybridMeasuredReplay:
     """CPU + hot-device replay with one global ring/RNG."""
-    def __init__(self, capacity, observation_shape, state_dim_value, seed=44, hot_device="cuda:1", cpu_fraction=0.5):
+    def __init__(self, capacity, observation_shape, state_dim_value, seed=44, hot_device="cuda:1", cpu_fraction=0.5, continuous_dim=3):
         if capacity < 2 or not 0 < cpu_fraction < 1:
             raise ValueError("Hybrid replay requires capacity >= 2 and 0 < cpu_fraction < 1")
         self.capacity = capacity
+        self.continuous_dim = continuous_dim
         self.observation_shape, self.state_dim = observation_shape, state_dim_value
         self.cpu_capacity = round(capacity * cpu_fraction)
         self.hot_capacity = capacity - self.cpu_capacity
@@ -62,7 +63,7 @@ class HybridMeasuredReplay:
         self.device = self.hot_device
         self.index = self.size = 0
         self.rng = torch.Generator(device="cpu").manual_seed(seed)
-        shapes = transition_shapes(observation_shape, state_dim_value)
+        shapes = transition_shapes(observation_shape, state_dim_value, continuous_dim)
         self.cpu_data = {name: torch.empty((self.cpu_capacity, *shape), device="cpu",
                                            dtype=torch.long if name == "destination" else torch.float32)
                          for name, shape in shapes.items()}
@@ -193,7 +194,7 @@ class HybridMeasuredReplay:
 
     def load_state_dict(self, saved):
         validate_hybrid_state(saved, self.capacity, self.observation_shape, self.state_dim,
-                              self.cpu_capacity / self.capacity, self.hot_device.type)
+                              self.cpu_capacity / self.capacity, self.hot_device.type, self.continuous_dim)
         if (saved.get("layout") != "hybrid" or saved["capacity"] != self.capacity
                 or saved["cpu_capacity"] != self.cpu_capacity or not 0 <= saved["size"] <= self.capacity
                 or not 0 <= saved["index"] < self.capacity):

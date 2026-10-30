@@ -18,11 +18,11 @@ def masked_log_probabilities(logits, mask=None):
 
 def canonical_continuous(continuous, observation, destination, *, learn_power=True):
     active = (observation[..., 9] > .5).to(continuous.dtype)
-    return torch.cat((continuous[..., :2] * active[..., None],
-                      continuous[..., 2:3] * (active * (destination != 0) * learn_power)[..., None]), -1)
+    return torch.cat((continuous[..., :-1] * active[..., None],
+                      continuous[..., -1:] * (active * (destination != 0) * learn_power)[..., None]), -1)
 
 
 def joint_action(continuous, destination, destinations, *, learn_power=True):
     if not learn_power:
-        continuous = torch.cat((continuous[..., :2], continuous[..., 2:3] * 0), -1)
+        continuous = torch.cat((continuous[..., :-1], continuous[..., -1:] * 0), -1)
     return torch.cat((continuous, F.one_hot(destination, destinations)), -1)

@@ -213,7 +213,7 @@ def _train(config):
             while completed < config.runtime.episodes:
                 if global_step < settings.learning_starts and random_warmup:
                     action = (vector.random_actions(obs["observation"]) if device_env else
-                              random_actions(obs["observation"],rng,config.world.num_uavs+1))
+                              random_actions(obs["observation"],rng,config.world.num_uavs+1,config.continuous_dim))
                 else:
                     action = collector.act_batch(obs["observation"],step=global_step,return_tensors=device_env)
                 actions = {"continuous": action.continuous, "destination": action.destination}

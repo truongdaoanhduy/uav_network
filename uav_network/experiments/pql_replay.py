@@ -140,8 +140,8 @@ def make_replay(config, observation_shape, state_dim, learner_device, *, measure
         from ..algorithms.hybrid_replay import HybridMeasuredReplay
         return HybridMeasuredReplay(settings.replay_capacity, observation_shape, state_dim,
                                     config.runtime.seed, hot_device=learner_device,
-                                    cpu_fraction=config.runtime.replay_cpu_fraction)
+                                    cpu_fraction=config.runtime.replay_cpu_fraction, continuous_dim=config.continuous_dim)
     device = resolve_replay_device(config.runtime.replay_device, learner_device)
     cls = MeasuredReplay if measured else TensorReplayBuffer
     return cls(settings.replay_capacity, observation_shape, state_dim, config.runtime.seed, device,
-               pin_memory=device.type == "cpu" and torch.device(learner_device).type == "cuda")
+               pin_memory=device.type == "cpu" and torch.device(learner_device).type == "cuda", continuous_dim=config.continuous_dim)

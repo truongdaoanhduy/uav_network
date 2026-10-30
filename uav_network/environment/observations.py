@@ -7,6 +7,9 @@ from ..communication.link_budget import nominal_required_power_w, power_fraction
 # Local-radio link metadata and report sensing without remote GCS receipts.
 OBSERVATION_VERSION = 3
 
+def observation_version(config):
+    return 4 if config.motion_dim == 3 else OBSERVATION_VERSION
+
 
 def observation_dim(config):
     w, s, n = config.world, config.sensor, config.network

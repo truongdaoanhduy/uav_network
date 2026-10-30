@@ -17,11 +17,11 @@ def mlp(input_dim, hidden_sizes, output_dim):
 
 
 class HybridActor(nn.Module):
-    def __init__(self, observation_dim, destinations, hidden_sizes):
+    def __init__(self, observation_dim, destinations, hidden_sizes, continuous_dim=3):
         super().__init__()
         self.encoder = mlp(observation_dim, hidden_sizes[:-1], hidden_sizes[-1])
-        self.mean = nn.Linear(hidden_sizes[-1], 3)
-        self.log_std = nn.Linear(hidden_sizes[-1], 3)
+        self.mean = nn.Linear(hidden_sizes[-1], continuous_dim)
+        self.log_std = nn.Linear(hidden_sizes[-1], continuous_dim)
         self.destination = nn.Linear(hidden_sizes[-1], destinations)
 
     def sample(self, observations, deterministic=False, mask=None, return_parts=False):
@@ -40,10 +40,10 @@ class HybridActor(nn.Module):
 
 
 class DeterministicActor(nn.Module):
-    def __init__(self, observation_dim, destinations, hidden_sizes):
+    def __init__(self, observation_dim, destinations, hidden_sizes, continuous_dim=3):
         super().__init__()
         self.encoder = mlp(observation_dim, hidden_sizes[:-1], hidden_sizes[-1])
-        self.continuous = nn.Linear(hidden_sizes[-1], 3)
+        self.continuous = nn.Linear(hidden_sizes[-1], continuous_dim)
         self.destination = nn.Linear(hidden_sizes[-1], destinations)
 
     def forward(self, observations, mask):
@@ -52,9 +52,9 @@ class DeterministicActor(nn.Module):
 
 
 class TwinCritic(nn.Module):
-    def __init__(self, state_dim, num_uavs, destinations, hidden_sizes):
+    def __init__(self, state_dim, num_uavs, destinations, hidden_sizes, continuous_dim=3):
         super().__init__()
-        input_dim = state_dim + num_uavs * (3 + destinations)
+        input_dim = state_dim + num_uavs * (continuous_dim + destinations)
         self.q1 = mlp(input_dim, hidden_sizes, 1)
         self.q2 = mlp(input_dim, hidden_sizes, 1)
 

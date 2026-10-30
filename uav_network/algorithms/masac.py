@@ -33,6 +33,7 @@ class MASAC(nn.Module):
         self.device = torch.device(device)
         self.num_uavs = n = config.world.num_uavs
         self.destinations = k = n + 1
+        self.continuous_dim = config.continuous_dim
         self.learn_power = config.network.power_control == "learned"
         a = config.masac
         self.share_actor_parameters = a.share_actor_parameters
@@ -40,8 +41,8 @@ class MASAC(nn.Module):
         actor_input_dim = observation_dim + n if self.share_actor_parameters else observation_dim
         actor_count = 1 if self.share_actor_parameters else n
         critic_count = 1 if self.share_critic_parameters else n
-        self.actors = nn.ModuleList(HybridActor(actor_input_dim, k, a.hidden_sizes) for _ in range(actor_count))
-        self.critics = nn.ModuleList(TwinCritic(state_dim, n, k, a.hidden_sizes) for _ in range(critic_count))
+        self.actors = nn.ModuleList(HybridActor(actor_input_dim, k, a.hidden_sizes, config.continuous_dim) for _ in range(actor_count))
+        self.critics = nn.ModuleList(TwinCritic(state_dim, n, k, a.hidden_sizes, config.continuous_dim) for _ in range(critic_count))
         self.target_critics = deepcopy(self.critics)
         self.target_critics.requires_grad_(False)
         self.log_alpha_continuous = nn.Parameter(torch.full((n,), math.log(a.initial_alpha)))
@@ -80,9 +81,9 @@ class MASAC(nn.Module):
         active = (observation[:, 9] > .5).to(continuous.dtype)
         continuous = continuous * active[:, None]
         if not self.learn_power:
-            continuous = torch.cat((continuous[:, :2], continuous[:, 2:3] * 0), -1)
+            continuous = torch.cat((continuous[:, :-1], continuous[:, -1:] * 0), -1)
         # Power is a control only when the categorical destination is non-silent.
-        conditional_logp = (parts[:, :2].sum(-1) + self.learn_power * (1 - probs[:, 0]) * parts[:, 2]) * active
+        conditional_logp = (parts[:, :-1].sum(-1) + self.learn_power * (1 - probs[:, 0]) * parts[:, -1]) * active
         return continuous, conditional_logp, probs, logs
 
     def _sample_agents(self, observations, deterministic=False):
@@ -125,9 +126,9 @@ class MASAC(nn.Module):
         obs = torch.as_tensor(observations, dtype=torch.float32, device=self.device)
         joint, *_ = self._joint_sample(obs, deterministic)
         if return_tensors:
-            return Action(joint[..., :3].contiguous(), joint[..., 3:].argmax(-1))
+            return Action(joint[..., :self.continuous_dim].contiguous(), joint[..., self.continuous_dim:].argmax(-1))
         values = joint.cpu().numpy()
-        return Action(values[..., :3], values[..., 3:].argmax(-1).astype(np.int64))
+        return Action(values[..., :self.continuous_dim], values[..., self.continuous_dim:].argmax(-1).astype(np.int64))
 
     def act(self, observations, deterministic=False, step=0):
         action = self.act_batch(np.asarray(observations)[None], deterministic, step)
@@ -143,9 +144,9 @@ class MASAC(nn.Module):
         b, k = len(state), self.destinations
         alternatives = joint.detach()[:, None].expand(-1, k, -1, -1).clone()
         choices = continuous[:, None].expand(-1, k, -1).clone()
-        choices[:, 0, 2] = 0
-        alternatives[:, :, index, :3] = choices
-        alternatives[:, :, index, 3:] = torch.eye(k, device=self.device, dtype=alternatives.dtype)[None]
+        choices[:, 0, -1] = 0
+        alternatives[:, :, index, :self.continuous_dim] = choices
+        alternatives[:, :, index, self.continuous_dim:] = torch.eye(k, device=self.device, dtype=alternatives.dtype)[None]
         repeated_state = state[:, None].expand(-1, k, -1).reshape(b * k, -1)
         q1, q2 = critic(repeated_state, alternatives.reshape(b * k, self.num_uavs, -1))
         return torch.minimum(q1, q2).reshape(b, k)
@@ -160,10 +161,10 @@ class MASAC(nn.Module):
         b, n, k = len(state), self.num_uavs, self.destinations
         alternatives = joint.detach()[None, :, None].expand(n, -1, k, -1, -1).clone()
         choices = continuous.transpose(0, 1)[:, :, None].expand(-1, -1, k, -1).clone()
-        choices[:, :, 0, 2] = 0
+        choices[:, :, 0, -1] = 0
         indices = torch.arange(n, device=self.device)
-        alternatives[indices, :, :, indices, :3] = choices
-        alternatives[indices, :, :, indices, 3:] = torch.eye(k, device=self.device, dtype=alternatives.dtype)
+        alternatives[indices, :, :, indices, :self.continuous_dim] = choices
+        alternatives[indices, :, :, indices, self.continuous_dim:] = torch.eye(k, device=self.device, dtype=alternatives.dtype)
         repeated_state = state[:, None].expand(-1, k, -1).reshape(b * k, -1)
         q1, q2 = self._critic_values(critics, repeated_state, alternatives.reshape(n, b * k, n, -1), True, True)
         return torch.minimum(q1, q2).reshape(b, k, n).transpose(1, 2)
@@ -178,10 +179,10 @@ class MASAC(nn.Module):
         b, n, k = len(state), self.num_uavs, self.destinations
         alternatives = joint.detach()[None, :, None].expand(n, -1, k, -1, -1).clone()
         choices = continuous.transpose(0, 1)[:, :, None].expand(-1, -1, k, -1).clone()
-        choices[:, :, 0, 2] = 0
+        choices[:, :, 0, -1] = 0
         indices = torch.arange(n, device=self.device)
-        alternatives[indices, :, :, indices, :3] = choices
-        alternatives[indices, :, :, indices, 3:] = torch.eye(
+        alternatives[indices, :, :, indices, :self.continuous_dim] = choices
+        alternatives[indices, :, :, indices, self.continuous_dim:] = torch.eye(
             k, device=self.device, dtype=alternatives.dtype)
         repeated_state = state[None, :, None].expand(n, -1, k, -1).reshape(n * b * k, -1)
         q1, q2 = critic(repeated_state, alternatives.reshape(n * b * k, n, -1))
@@ -273,8 +274,8 @@ class MASAC(nn.Module):
                 entropies_c.append(-logp.detach().mean())
                 entropies_d.append(-(probs.detach() * log_probs.detach()).sum(-1).mean())
                 active = (obs[:, 9] > .5).float()
-                controls = 3 - probs[:, 0].detach() if self.learn_power else 2
-                targets_c.append((a.target_continuous_entropy / 3 * controls * active).mean())
+                controls = self.continuous_dim - probs[:, 0].detach() if self.learn_power else self.continuous_dim - 1
+                targets_c.append((a.target_continuous_entropy / self.continuous_dim * controls * active).mean())
                 choices = valid_destinations(obs, self.destinations).sum(-1).float()
                 targets_d.append((a.target_discrete_entropy_ratio * choices.log()).mean())
             actor_step = self.precision.step_actors if self.precision.enabled else step_actor_optimizers

@@ -30,6 +30,7 @@ class MATD3(nn.Module):
         self.device = torch.device(device)
         self.num_uavs = n = config.world.num_uavs
         self.destinations = k = n + 1
+        self.continuous_dim = config.continuous_dim
         self.learn_power = config.network.power_control == "learned"
         a = config.matd3
         self.share_actor_parameters = a.share_actor_parameters
@@ -37,8 +38,8 @@ class MATD3(nn.Module):
         actor_input_dim = observation_dim + n if self.share_actor_parameters else observation_dim
         actor_count = 1 if self.share_actor_parameters else n
         critic_count = 1 if self.share_critic_parameters else n
-        self.actors = nn.ModuleList(DeterministicActor(actor_input_dim, k, a.hidden_sizes) for _ in range(actor_count))
-        self.critics = nn.ModuleList(TwinCritic(state_dim, n, k, a.hidden_sizes) for _ in range(critic_count))
+        self.actors = nn.ModuleList(DeterministicActor(actor_input_dim, k, a.hidden_sizes, config.continuous_dim) for _ in range(actor_count))
+        self.critics = nn.ModuleList(TwinCritic(state_dim, n, k, a.hidden_sizes, config.continuous_dim) for _ in range(critic_count))
         self.target_actors, self.target_critics = deepcopy(self.actors), deepcopy(self.critics)
         self.target_actors.requires_grad_(False)
         self.target_critics.requires_grad_(False)
@@ -89,7 +90,7 @@ class MATD3(nn.Module):
             actor = self._actor_at(0, target=target)
             continuous, probs = actor(self._actor_input(flat, indices),
                                       valid_destinations(flat, self.destinations))
-            return continuous.reshape(b, n, 3), probs.reshape(b, n, self.destinations)
+            return continuous.reshape(b, n, self.continuous_dim), probs.reshape(b, n, self.destinations)
         actors = self.target_actors if target else self.actors
         values = [actor(observations[:, i], valid_destinations(observations[:, i], self.destinations))
                   for i, actor in enumerate(actors)]
@@ -157,9 +158,9 @@ class MATD3(nn.Module):
             continuous = canonical_continuous(continuous, obs, destination, learn_power=self.learn_power)
             joint = joint_action(continuous, destination, self.destinations)
         if return_tensors:
-            return Action(joint[..., :3].contiguous(), joint[..., 3:].argmax(-1))
+            return Action(joint[..., :self.continuous_dim].contiguous(), joint[..., self.continuous_dim:].argmax(-1))
         values = joint.cpu().numpy()
-        return Action(values[..., :3], values[..., 3:].argmax(-1).astype(np.int64))
+        return Action(values[..., :self.continuous_dim], values[..., self.continuous_dim:].argmax(-1).astype(np.int64))
 
     def act(self, observations, deterministic=False, step=0):
         action = self.act_batch(np.asarray(observations)[None], deterministic, step)

@@ -150,11 +150,11 @@ def validate_fixed_checkpoint(saved, config):
             or replay["size"] != min(capacity, inserted) or type(replay["index"]) is not int
             or replay["index"] != inserted % capacity):
         raise ValueError("Fixed-schedule checkpoint replay cursor differs from verified progress")
-    shapes = transition_shapes((config.world.num_uavs, saved["observation_dim"]), saved["state_dim"])
+    shapes = transition_shapes((config.world.num_uavs, saved["observation_dim"]), saved["state_dim"], config.continuous_dim)
     if hybrid:
         from ..algorithms.hybrid_replay import validate_hybrid_state
         validate_hybrid_state(replay, capacity, (config.world.num_uavs, saved["observation_dim"]),
-                              saved["state_dim"], config.runtime.replay_cpu_fraction)
+                              saved["state_dim"], config.runtime.replay_cpu_fraction, continuous_dim=config.continuous_dim)
     elif not isinstance(replay["data"], dict) or replay["data"].keys() != shapes.keys():
         raise ValueError("Fixed-schedule checkpoint replay fields are incomplete")
     for name, shape in (() if hybrid else shapes.items()):
