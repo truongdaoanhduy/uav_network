@@ -319,5 +319,27 @@
   "decisions": [
     "Provider task-start/workspace executables unavailable; manual per-plan brief/ledger used. Cost: bookkeeping must be checked with git.",
     "User requested four fixed independent accounts. Supersede the unimplemented serial queue; reuse native initial launch and GitHub continuation. Cost: a fixed account can be rejected or suspended by the service; do not silently rotate accounts."
-  ]
+  ],
+  "scheduled_default_workflow": {
+    "commit": "d98827d69733755ee35020297be763be2f20e0c7",
+    "content_sha": "f1b95b04b884f63a9f7dc7d05b92a49310bd665a",
+    "url": "https://github.com/truongdaoanhduy/uav_network/commit/d98827d69733755ee35020297be763be2f20e0c7",
+    "path": ".github/workflows/uav_external_supervisor.yml",
+    "branch": "main",
+    "previous_commit": "ecbdfb7f015419fc232528418b4d869f1c7c12ea",
+    "purpose": "cron and manual workflows use same selected accounts01/02/03/07",
+    "observed_at": "2026-10-30T22:37:38.902682+00:00",
+    "root_cause": "main scheduled workflow used stale hardcoded accounts17-23 and lacked secret bindings01/02/03/07; working-branch manual dispatch used correct variable",
+    "test_before": "RED assertion reproduced missing current account bindings",
+    "test_after": "GREEN semantic comparison: only four secret references and account variable changed; 34 supervisor tests passed",
+    "dry_run_id": 41139172161,
+    "normal_run_id": 41139219837,
+    "terminal_verification": "default-branch dry-run and normal reconciliation both succeeded; four current roots adopted active",
+    "gpu_jobs_cancelled": 0,
+    "dry_run_conclusion": "success",
+    "dry_run_job_id": 124348955882,
+    "normal_run_conclusion": "success",
+    "normal_run_job_id": 124349204123,
+    "e2e_completion_observed": false
+  }
 }

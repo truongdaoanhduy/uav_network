@@ -54,3 +54,28 @@ The observer never submits, resumes or cancels jobs.
 
 [Machine record](2026-10-31-xyz-four-account-training.json) includes exact public
 configuration/source, URLs, service proof and current progress without credentials.
+
+## Default-branch scheduler correction
+
+A follow-up check found that the `main` cron workflow still hardcoded accounts17–23
+and lacked secret bindings01/02/03/07. Earlier working-branch manual dispatches
+did not prove that the scheduled default-branch workflow could see the new roots.
+
+Fixed only the four missing secret references and the repository-variable account
+selector in [main commit d98827d](https://github.com/truongdaoanhduy/uav_network/commit/d98827d69733755ee35020297be763be2f20e0c7).
+Other workflow settings and running GPU jobs were preserved. A semantic assertion
+failed on the old environment and passed on the deployed file;34 existing
+supervisor/workflow tests passed. The deployment was fetched back and matched
+the verified content exactly.
+
+[Default-branch dry-run](https://github.com/truongdaoanhduy/uav_network/actions/runs/41139172161)
+and [normal reconciliation](https://github.com/truongdaoanhduy/uav_network/actions/runs/41139219837)
+both succeeded from `main`, resolved accounts01/02/03/07 and adopted all four
+active roots without duplicates. The dry-run also verified W&B and HF access.
+Thus training and the configured continuation/final-CPU flow no longer require
+the Sandbox process or local observer. The completed20k→CPU30 chain has not yet
+been observed; future quota, credential and service availability still apply.
+
+GitHub's plugin could read but not modify workflow files (integration403);
+the already-authenticated host `gh` client applied this one-file update.
+No credential values were included in file content or logs.

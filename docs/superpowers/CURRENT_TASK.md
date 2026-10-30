@@ -1,8 +1,8 @@
 # XYZ — FOUR FIXED ACCOUNTS / FOUR TRAINING ROOTS RUNNING
 
-Updated 2026-10-30T22:29:40.605071+00:00.
+Updated 2026-10-30T22:37:38.903549+00:00.
 Branch feat/cpu-replay-20261022; runtime source 481f81f288d8e84a010dba52e4c8e30b5eebd391.
-Runtime5fee6c7(struct refs); PQL benchmark budget0867652; published docs c9c746a+.
+Runtime5fee6c7(struct refs); PQL benchmark budget0867652; published training evidence7a268e8;main workflow fixd98827d.
 
 - All6 full-ring cases passed: shared Hybrid75, shared FullGPU, independent Hybrid75,
   BASE/PQL each;12 algorithm benchmarks. E4096/B8192/R1M,256 rounds=1048576 rows.
@@ -20,7 +20,9 @@ Runtime5fee6c7(struct refs); PQL benchmark budget0867652; published docs c9c746a
 - GitHub four-account dry-run41137502991 passed W&B/HF+all four account checks.
   Normal reconciliation41137959190 passed,adopted4active roots with no duplicates.
   Enabled var exactly01/02/03/07;encrypted selected secrets synchronized,others retained.
-  Existing Actions cron continues fixed-account lineages and final CPU30visualize.
+  Default-main cron had stale17–23accounts;fixed atd98827d to use account variable.
+  Main dry-run41139172161 and normal41139219837 passed and adopted all4active roots.
+  Configured continuation/finalCPU30 is independent of Sandbox;full20k chain still pending.
 - All4 W&B training configs/hardware verified;each reports positive learner updates.
   Latest machine record contains actual global steps/updates at the observed timestamp.
 - Best-policy and latest full resume remain separate;no XY warm start.
