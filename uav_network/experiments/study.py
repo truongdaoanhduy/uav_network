@@ -11,6 +11,7 @@ import yaml
 from ..configuration import _apply, load_config, config_fingerprint
 from .comparison_metrics import evaluation_protocol
 from .checkpoint_store import file_sha256
+from .best_checkpoints import selection_identity, CRITERIA
 
 VARIANTS = {
     "baseline": {},
@@ -220,7 +221,24 @@ def summarize_study(manifest_path):
             ev=json.loads(ep.read_text())
             protocol=ev.get("protocol",{})
             policy=ev.get("policy_provenance",{})
-            checkpoint=_inside(root,case["train_output"])/"final.pt"
+            selection=trained.get("checkpoint_selection",{})
+            checkpoint=tp.parent/"final.pt"
+            policy_step=trained.get("global_step")
+            if selection.get("kind")=="validation_best":
+                checkpoint=tp.parent/"best.pt"
+                policy_step=selection["global_step"]
+                if (json.loads((tp.parent/"best.json").read_text())!=selection
+                        or selection.get("identity")!=selection_identity(c)
+                        or selection.get("criteria")!=list(CRITERIA)
+                        or selection.get("checkpoint_sha256")!=file_sha256(checkpoint)
+                        or selection.get("validation_seeds")!=list(range(c.tracking.periodic_evaluation_seed,
+                            c.tracking.periodic_evaluation_seed+c.tracking.periodic_evaluation_episodes))
+                        or type(policy_step) is not int or not 0<=policy_step<=trained["global_step"]
+                        or type(selection.get("episode")) is not int
+                        or not 0<=selection["episode"]<=trained["episodes"]):
+                    raise ValueError("Selected validation policy differs from study")
+            elif selection.get("kind") not in (None,"unvalidated_final_fallback"):
+                raise ValueError("Unsupported checkpoint selection")
             expected_seeds=list(range(c.runtime.eval_seed,c.runtime.eval_seed+c.runtime.eval_episodes))
             if (Path(trained.get("checkpoint","")).resolve()!=checkpoint
                     or policy.get("config_sha256")!=case["config_hash"]
@@ -234,14 +252,14 @@ def summarize_study(manifest_path):
                     or protocol.get("seeds")!=expected_seeds
                     or protocol.get("training_seed")!=case["seed"]
                     or protocol.get("scenario_hash")!=case["scenario_hash"]
-                    or protocol.get("training_global_step")!=trained.get("global_step")
+                    or protocol.get("training_global_step")!=policy_step
                     or protocol.get("deterministic_policy") is not True
                     or protocol.get("training_seed_overlap") is not False
                     or protocol.get("validation_seed_overlap") is not False
                     or any(type(ev.get(k)) not in (int,float) or not np.isfinite(ev[k]) for k in METRICS)):
                 raise ValueError("Final evaluation provenance/metrics differ")
             groups[key].append({"seed":case["seed"],"episodes":ev["episodes"],
-                                "global_step":trained["global_step"],"values":{k:ev[k] for k in METRICS}})
+                                "global_step":trained["global_step"],"policy_step":policy_step,"values":{k:ev[k] for k in METRICS}})
         except (ValueError,KeyError,TypeError,OSError) as error:
             rejected.append({"id":case["id"],"reason":"invalid_provenance_or_config",
                              "error_type":type(error).__name__})
@@ -256,7 +274,9 @@ def summarize_study(manifest_path):
                         "protocol":protocols.get(key),
                         "expected_training_seeds":seeds,"training_seeds":[r["seed"] for r in rows],
                         "training_seed_count":len(rows),"evaluation_episodes_per_seed":[r["episodes"] for r in rows],
-                        "training_global_steps":steps,"equal_environment_interaction_budget":
+                        "training_global_steps":steps,
+                        "selected_policy_global_steps":[r["policy_step"] for r in rows],
+                        "equal_environment_interaction_budget":
                             len(set(steps))==1 if steps else None,"metrics":values})
     return {"study":m["study"],"complete":not missing and not rejected,"groups":results,
             "missing_cases":missing,"rejected_cases":rejected,

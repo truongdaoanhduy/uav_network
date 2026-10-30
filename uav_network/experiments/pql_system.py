@@ -61,6 +61,7 @@ class PQLSystem:
                                  "next_seed": config.runtime.seed, "records": []}
         saved = torch.load(checkpoint, map_location="cpu", weights_only=True, mmap=True) if checkpoint else None
         self.initial_environment = None
+        self.initial_selection = None
         self.initial_collector_rng = None
         if saved:
             validate_pql_checkpoint(saved, config)
@@ -68,6 +69,7 @@ class PQLSystem:
             algorithm_config.setdefault("share_actor_parameters", False)
             algorithm_config.setdefault("share_critic_parameters", False)
             self.initial_environment = saved["training"].get("environment")
+            self.initial_selection = saved["training"].get("best_checkpoint")
             if self.initial_environment is not None:
                 from .environment_checkpoints import validate_environment
                 validate_environment(self.initial_environment, config, saved["progress"])
@@ -343,7 +345,7 @@ class PQLSystem:
                     "pql/ratio_credit": self.credit,
                     "pql/scheduling_deterministic": int(not self.asynchronous)}
 
-    def save(self, path, progress, collector_rng=None, environment=None):
+    def save(self, path, progress, collector_rng=None, environment=None, selection_state=None):
         self.flush()
         numpy_state = np.random.get_state()
         training = {"optimizers": optimizer_states(self.critic, self.policy),
@@ -361,6 +363,8 @@ class PQLSystem:
                             "numpy": (numpy_state[0], numpy_state[1].tolist(), *numpy_state[2:])}}
         if environment is not None:
             training["environment"] = environment
+        if selection_state is not None:
+            training["best_checkpoint"] = selection_state
         save_policy(self.critic, path, progress, training=training)
 
     def close(self):

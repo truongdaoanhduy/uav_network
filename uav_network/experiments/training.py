@@ -143,7 +143,8 @@ def _train(config):
             restore_replay(replay, restored_training["replay"])
         initial["optimizer_replay_restored"] = resumed
         tracker = start_tracking(config, output, initial_progress=initial)
-        evaluator = AsyncCheckpointEvaluator(config, output, tracker, diagnostics, global_step, completed)
+        evaluator = AsyncCheckpointEvaluator(config, output, tracker, diagnostics, global_step, completed,
+            selection_state=restored_training.get("best_checkpoint") if restored_training else None)
         if restored_training:
             restore_runtime_rng(restored_training["rng"], rng, action_generator=getattr(vector, "action_generator", None))
         restored_training = None  # Release the CPU checkpoint copy after restoring replay.
@@ -202,11 +203,10 @@ def _train(config):
                                       warmup_origin=warmup_origin, random_warmup=random_warmup,
                                       next_metrics_at=next_metrics_at, latest=latest, pending_learning=pending_learning,
                                       action_generator=getattr(vector, "action_generator", None),
-                                      environment=environment)
+                                      environment=environment, selection_state=evaluator.best.state_dict())
             return progress
 
         time_limit = False
-        final_resume_saved = False
         with (output / "episodes.jsonl").open("w") as stream:
             for old_record in history:
                 stream.write(json.dumps(old_record, allow_nan=False) + "\n")
@@ -289,8 +289,7 @@ def _train(config):
                 if completed // config.runtime.checkpoint_interval > before_completed // config.runtime.checkpoint_interval:
                     path = output / f"episode_{completed:06d}.pt"
                     progress = save(path, full_state=False)
-                    save(output / "latest.pt", final=final_batch, full_state=final_batch)
-                    final_resume_saved = final_batch
+                    save(output / "latest.pt", final=final_batch, full_state=False)
                     if tracker:
                         tracker.checkpoint(path, progress)
                     prune_episode_checkpoints(output, config.tracking.local_checkpoints_to_keep)
@@ -313,9 +312,9 @@ def _train(config):
                     obs, _ = vector.reset(seed=seeds, options={"reset_mask": reset_mask})
                 recovery.maybe_save(save, tracker, step=global_step)
         checkpoint = output / "final.pt"
-        save(checkpoint, final=True, full_state=not final_resume_saved)
         drain = min(10., max(0., config.runtime.max_train_seconds - (time.perf_counter() - start))) if config.runtime.max_train_seconds else 10.
         evaluator.close(global_step, drain_seconds=drain)
+        save(checkpoint, final=True, full_state=True)
         elapsed = time.perf_counter() - start
         result = {"checkpoint": str(checkpoint), "resume_checkpoint": str(output / "resume_latest.pt"),
                   "algorithm": learner.algorithm,
@@ -339,6 +338,9 @@ def _train(config):
                   "startup_s": startup_s, "collection_wait_s": collection_wait_s, "learner_s": update_s,
                   "elapsed_s": elapsed, "joint_transitions_per_s": (global_step - initial["global_step"]) / elapsed,
                   "final_episode": history[-1] if history else None}
+        if "policy_warm_start" in initial:
+            result["policy_warm_start"] = initial["policy_warm_start"]
+        result.update(evaluator.best.result(checkpoint))
         result["periodic_evaluation"] = dict(evaluator.counts)
         result["storage"] = disk_metrics(output)
         result["replay"] = replay.stats()

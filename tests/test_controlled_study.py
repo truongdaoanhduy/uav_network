@@ -328,3 +328,25 @@ def test_summary_exposes_the_actual_protocol_even_before_training(tmp_path):
     assert protocol["max_steps"]==1200
     assert protocol["num_targets"]==20 and protocol["num_obstacles"]==15
     assert protocol["evaluation_episodes"]==30
+
+
+def test_study_accepts_earlier_validation_selected_policy_after_full_training_budget(tmp_path):
+    from uav_network.experiments.study import plan_study,run_study,summarize_study
+    dest=tmp_path/"best_study"
+    m=plan_study(PROFILE,dest,seeds=[44],variants=["baseline"],algorithms=["masac"],modes=["base"],
+        overrides=["runtime.device=cpu","runtime.replay_device=cpu","runtime.replay_cpu_fraction=0",
+                   "runtime.num_envs=1","runtime.episodes=2","world.max_steps=4","runtime.eval_episodes=2",
+                   "runtime.compile_models=false","runtime.max_train_seconds=0","tracking.enabled=false",
+                   "tracking.evaluation_interval_steps=2","tracking.periodic_evaluation_episodes=1",
+                   "masac.hidden_sizes=[8,8]","masac.batch_size=2","masac.replay_capacity=16",
+                   "masac.learning_starts=1","masac.updates_per_step=1"])
+    execution=run_study(dest/"manifest.json")
+    assert execution["cases"][0]["status"]=="completed",execution
+    c=m["cases"][0]
+    trained=json.loads((dest/c["train_output"]/"summary.json").read_text())
+    assert trained["checkpoint_selection"]["kind"]=="validation_best"
+    assert trained["checkpoint_selection"]["global_step"]<trained["global_step"]
+    summary=summarize_study(dest/"manifest.json")
+    assert summary["complete"],summary["rejected_cases"]
+    group=summary["groups"][0]
+    assert group["selected_policy_global_steps"]==[trained["checkpoint_selection"]["global_step"]]

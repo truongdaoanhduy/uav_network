@@ -1,6 +1,6 @@
 # Kịch bản 2D có kiểm soát: 20 target / 15 obstacle
 
-Ngày triển khai: 2026-10-29. Cấu hình chính:
+Cập nhật 2026-10-30: khôi phục action học công suất và chọn best bằng validation. Cấu hình chính:
 `configs/comparison-20k-hybrid75-1kb.yaml`.
 Bản 35/25 trước đây được giữ tại
 `configs/comparison-20k-hybrid75-1kb-35t25o.yaml`.
@@ -14,8 +14,9 @@ Phần audit trước thấy nhiều lần phát dưới công suất yêu cầu
 cùng khoảng cách giữa discovery và delivery. Đây là giả thuyết cần ablation;
 chưa đủ để kết luận toàn bộ nguyên nhân chưa ổn định nằm ở kịch bản.
 
-Bản mới giảm target/obstacle và giao công suất phát cho bộ điều khiển.
-Movement và routing/silence vẫn do policy học. Vẫn giữ mục tiêu
+Bản mới giảm target/obstacle. Theo yêu cầu 30/10, baseline tiếp tục học
+movement, công suất và routing/silence như action cũ; link-budget power
+được giữ làm một ablation riêng. Vẫn giữ mục tiêu
 tìm target -> tạo/chuyển tiếp report -> GCS, liên lạc hữu hạn, pin, queue,
 TTL, CSMA/retry/ACK và dynamic-window shield.
 
@@ -28,8 +29,8 @@ không bảo đảm số transition bằng nhau khi kết thúc episode sớm.
 
 | Variant | Thay đổi so với baseline |
 | --- | --- |
-| baseline | Link budget +3 dB; buffer 3072 B; TTL 300 s; pin 277200 J; coverage tắt |
-| learned_power | Chỉ trả quyết định công suất về actor |
+| baseline | Learned power; buffer 3072 B; TTL 300 s; pin 277200 J; coverage tắt |
+| link_budget | Chỉ thay power bằng bộ điều khiển nominal +3 dB |
 | buffer16 | Chỉ buffer 16384 B = 16 report |
 | buffer32 | Chỉ buffer 32768 B = 32 report |
 | ttl600 | Chỉ TTL 600 s |
@@ -39,7 +40,7 @@ không bảo đảm số transition bằng nhau khi kết thúc episode sớm.
 Không gộp buffer/TTL/coverage/pin vào cùng một variant. So từng variant
 với baseline mới cho biết yếu tố nào giúp ích.
 
-Công suất là `clip(P_required * 10^(3/10), P_min, P_max)`, tính theo
+Trong ablation link_budget, công suất là `clip(P_required * 10^(3/10), P_min, P_max)`, tính theo
 receiver đã chọn và vị trí sau di chuyển. Nó dùng nominal link budget;
 interference, contention hoặc chạm giới hạn công suất vẫn có thể làm mất gói.
 Bộ điều khiển này cần cùng giả định ước lượng link/geometry đang dùng cho
@@ -69,11 +70,36 @@ budget chưa đủ và số transition thực tế. Chỉ nhận final evaluatio
 SHA256 checkpoint, toàn bộ config, thuật toán, BASE/PQL, FP32, seed bank và
 training step. Không tự chọn winner khi budget chưa tương đương.
 
+
+## Chọn checkpoint tốt nhất
+
+`best.pt` là actor snapshot thực sự đã được periodic validation, không phải
+weights mới hơn tại thời điểm child trả kết quả. Thứ tự chọn là success,
+delivery, search, return; bằng điểm giữ candidate sớm hơn. Chỉ dùng bank
+validation, không dùng final-test seeds hoặc peak reward training.
+`best.json` ghi seed bank, score, SHA256, source episode/global_step.
+
+Train result `checkpoint`, final model artifact và CPU evaluation/visualize
+dùng best khi có candidate hợp lệ. Artifact thêm alias `best`; metadata
+phân biệt episode cuối đã train với episode của policy được chọn.
+`resume_latest.pt` vẫn giữ learner/optimizer/replay/RNG/environment cuối để
+continuation chính xác, kèm bản best từ segment trước. `best.pt` dùng inference/evaluation; manual BASE warm-start có thể lấy
+actors từ best nhưng bắt đầu lineage mới với critics/optimizer/replay và
+counters mới, ghi rõ `actor_only_warm_start_fresh_training`. Không dùng
+nó thay full resume.
+
+Nếu không có validation hoàn tất hợp lệ, summary ghi
+`unvalidated_final_fallback`; không gọi checkpoint cuối là best. Shutdown
+vẫn có giới hạn thời gian; xem evaluations/events.jsonl nếu child bị skip,
+timeout hoặc cancelled. Summary study tách final training steps khỏi
+selected_policy_global_steps, vì best có thể nằm sớm hơn cuối training.
+
 ## Lệnh sử dụng
 
 Chạy từ repository root, trong môi trường đã cài dependencies của project.
 Bộ 84 YAML cũ trong `outputs/controlled-20t15o-study-20261029/` được tạo khi horizon còn 1800 và chỉ nên coi là lịch sử.
-Sau thay đổi 1200, phải tạo manifest mới từ canonical YAML trước khi chạy.
+Các manifest guided-power/1200 cũ cũng giữ làm lịch sử. Sau khi đổi learned
+power, tạo manifest mới; không sửa YAML resolved cũ rồi bỏ qua fingerprint.
 Đây vẫn là 7 variant x 2 thuật toán x 2 mode x 3 seed; chưa submit cloud job.
 
 Tạo một study mới (thư mục đích phải chưa tồn tại):
@@ -119,7 +145,7 @@ các ablation theo nút thắt quan sát được. Không tự thay reward hoặ
   các trajectory đó cũng nằm trong giới hạn 1200, nhưng đây không phải một lần chạy feasibility mới.
 - Đây là khả thi trên các scene đã thử, không phải kết quả policy học,
   không bảo đảm mọi scene hoặc khả năng hội tụ của MASAC/MATD3.
-- Smoke cuối: 18 case train+evaluate, baseline đủ 4 thuật toán/mode trên
+- Smoke lịch sử 29/10 (baseline guided power): 18 case train+evaluate, baseline đủ 4 thuật toán/mode trên
   3 seed, thêm 6 ablation MATD3 BASE seed 44. Mỗi case 2 episode,
   E2, horizon 8, hidden 8x8, global_step 16, learner update 5, final eval 2.
   Tracking tắt; không dùng số smoke cho paper. Periodic CPU evaluation

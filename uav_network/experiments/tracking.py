@@ -418,7 +418,8 @@ class OnlineTracker:
                                                 "resumable": bool(full_state),
                                                 "environment_state_saved": bool(full_state and progress.get("environment_state_saved") is True),
                                                 "source_git_commit": os.environ.get("UAV_GIT_COMMIT", "local"),
-                                                "source_run_id": self.run.id})
+                                                "source_run_id": self.run.id,
+                                                "checkpoint_selection": progress.get("checkpoint_selection")})
         files = {"checkpoint.pt": Path(path)}
         if full_state:
             resume = progress.get("resume_checkpoint")
@@ -439,6 +440,8 @@ class OnlineTracker:
             for name, file in files.items():
                 artifact.add_file(str(file), name=name)
         aliases = ["latest", "final"] if final else ["latest"]
+        if progress.get("checkpoint_selection", {}).get("kind") == "validation_best":
+            aliases.append("best")
         logged = self.run.log_artifact(artifact, aliases=aliases)
         logged.wait(timeout=self.config.tracking.artifact_timeout_seconds)
         if "resume.pt" in files:
@@ -467,6 +470,7 @@ class OnlineTracker:
                                  "session_status": session_status,
                                  "initial_global_step": result.get("initial_global_step", self.initial_step),
                                  "environment_state_saved": result.get("environment_state_saved", False)})
+        self.run.summary["checkpoint_selection"] = result.get("checkpoint_selection")
         if "reproducibility" in result:
             self.run.summary["reproducibility"] = result["reproducibility"]
         artifact = self.checkpoint(result["checkpoint"], result, final=True)

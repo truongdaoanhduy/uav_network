@@ -2,7 +2,8 @@
 from copy import deepcopy
 import torch
 
-from ..algorithms.checkpoints import load_policy, make_learner
+from ..algorithms.checkpoints import load_policy, make_learner, validate_observation_version
+from ..configuration import Config, _apply
 from ..environment.observations import observation_dim, state_dim
 
 
@@ -26,6 +27,37 @@ def validate_progress(progress, episode_budget=None):
     return progress
 
 
+def _restore_actor_only(config, device, saved):
+    """Manual BASE warm-start: selected actors, fresh critics and training lineage."""
+    validate_observation_version(saved)
+    before = Config()
+    _apply(before, saved["config"])
+    before.validate()
+    if (saved.get("version") != 1 or saved.get("algorithm") != config.runtime.algorithm
+            or saved.get("observation_dim") != observation_dim(config)
+            or saved.get("state_dim") != state_dim(config)):
+        raise ValueError("Actor-only warm-start algorithm/observations differ")
+    old, current = before.to_dict(), config.to_dict()
+    for group in ("world", "sensor", "network", "energy", "reward", config.runtime.algorithm):
+        if old[group] != current[group]:
+            raise ValueError(f"Actor-only warm-start {group} differs")
+    if (before.runtime.environment_backend != config.runtime.environment_backend
+            or before.runtime.seed != config.runtime.seed):
+        raise ValueError("Actor-only warm-start backend/seed differs")
+    actors = saved.get("actors")
+    if not actors or any(not torch.isfinite(v).all() for v in actors.values()):
+        raise ValueError("Actor-only warm-start actors must be finite")
+    learner = make_learner(config, observation_dim(config), state_dim(config), device)
+    learner.actors.load_state_dict(actors, strict=True)
+    if hasattr(learner, "target_actors"):
+        learner.target_actors.load_state_dict(actors, strict=True)
+    return learner, {"episodes":0, "global_step":0, "collection_steps":0,
+                     "next_seed":config.runtime.seed, "records":[],
+                     "state_restore":"actor_only_warm_start_fresh_training",
+                     "policy_warm_start":{"source_progress":saved.get("progress", {}),
+                                          "critics_optimizer_replay":"fresh"}}
+
+
 def restore_learner(config, device):
     if config.runtime.warm_start_checkpoint == "none":
         return make_learner(config, observation_dim(config), state_dim(config), device), {
@@ -34,6 +66,8 @@ def restore_learner(config, device):
         }
     path = config.runtime.warm_start_checkpoint
     saved = torch.load(path, map_location="cpu", weights_only=True, mmap=True)
+    if saved.get("purpose") == "evaluation_only":
+        return _restore_actor_only(config, device, saved)
     progress = saved.get("progress")
     if saved.get("version") == 3:
         from .fixed_checkpoints import validate_fixed_checkpoint

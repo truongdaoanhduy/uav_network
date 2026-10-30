@@ -10,6 +10,7 @@ import sys
 import time
 
 from .evaluation_snapshots import save_evaluation_snapshot
+from .best_checkpoints import BestCheckpoint
 from .evidence import json_safe, secret_values, write_evidence
 
 
@@ -22,7 +23,7 @@ def sha256(path):
 
 
 class AsyncCheckpointEvaluator:
-    def __init__(self, config, output, tracker, diagnostics, initial_step=0, initial_episodes=0):
+    def __init__(self, config, output, tracker, diagnostics, initial_step=0, initial_episodes=0, selection_state=None):
         self.config, self.output = config, Path(output)
         self.tracker, self.diagnostics = tracker, diagnostics
         self.secrets = secret_values(config)
@@ -35,6 +36,7 @@ class AsyncCheckpointEvaluator:
         self.folder.mkdir(parents=True, exist_ok=True)
         self.events_path = self.folder / "events.jsonl"
         self.active = self.last_result = None
+        self.best = BestCheckpoint(config, self.output, state=selection_state)
         self.closed = False
         self.counts = dict.fromkeys(("submitted", "completed", "failed", "invalid_result", "timed_out",
                                     "cancelled", "reaped", "skipped_busy", "skipped_deadline", "skipped_thresholds"), 0)
@@ -149,6 +151,7 @@ class AsyncCheckpointEvaluator:
         if status is None and time.monotonic() - task["started"] < self.config.tracking.evaluation_timeout_seconds:
             return
         result = None
+        promoted = False
         detail = {"log": str(task["log"])}
         if status is None:
             reaped = self._stop(process)
@@ -187,6 +190,7 @@ class AsyncCheckpointEvaluator:
                         or not isinstance(pooled, dict)):
                     raise ValueError("Invalid evaluation summary shape")
                 json.dumps(result, allow_nan=False)
+                promoted = self.best.consider(result, task["source"])
                 outcome = "completed"
             except (OSError, ValueError, TypeError) as error:
                 outcome = "invalid_result"
@@ -198,6 +202,9 @@ class AsyncCheckpointEvaluator:
             path = task["folder"] / "metrics.json"
             path.write_text(json.dumps(result, indent=2, allow_nan=False))
             self.last_result = result
+            if promoted:
+                self._upload(self.best.path, step)
+                self._upload(self.output / "best.json", step)
             if self.tracker:
                 values = {f"evaluation/{key}": result[key] for key in
                           ("mean_return", "success_rate", "mean_search_rate_percent", "mean_delivery_rate_percent", "episodes")}
@@ -220,6 +227,10 @@ class AsyncCheckpointEvaluator:
                                "eval/episodes": result["episodes"], "eval/seed": source["seed_first"],
                                "eval/checkpoint_episode": source["episodes"]})
                 try:
+                    if self.best.metadata is not None:
+                        values.update({f"best/{key}":value for key,value in self.best.metadata["metrics"].items()})
+                        values["best/checkpoint_global_step"] = self.best.metadata["global_step"]
+                        values["best/checkpoint_episode"] = self.best.metadata["episode"]
                     self.tracker.diagnostic(values, step)
                 except Exception as error:
                     self.diagnostics.event("evaluation_result_logging_failed", step, {"error_type": type(error).__name__})

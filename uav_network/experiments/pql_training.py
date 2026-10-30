@@ -59,7 +59,9 @@ def train_pql(config):
         initial["state_restore"] = ("training_state_exact_environment" if engine.initial_environment is not None
                                     else "training_state_environment_reset" if resumed else "fresh")
         tracker = start_tracking(config, output, initial_progress=initial)
-        evaluator = AsyncCheckpointEvaluator(config, output, tracker, diagnostics, global_step, completed)
+        evaluator = AsyncCheckpointEvaluator(config, output, tracker, diagnostics, global_step, completed,
+            selection_state=engine.initial_selection)
+        engine.initial_selection = None
         vector = make_vector(config, device=engine.collector_device)
         count = config.runtime.num_envs
         obs, returns, lengths, seeds, next_seed = initialize_environment(
@@ -101,7 +103,8 @@ def train_pql(config):
                 engine.flush()
                 environment = snapshot_environment(vector, returns, lengths, seeds, next_seed)
                 state["environment_state_saved"] = environment is not None
-                engine.save(resume_path or output / "resume_latest.pt", state, collector_rng=collector_rng, environment=environment)
+                engine.save(resume_path or output / "resume_latest.pt", state, collector_rng=collector_rng,
+                            environment=environment, selection_state=evaluator.best.state_dict())
             else:
                 # vmap temporarily swaps live critic parameters; light snapshots
                 # need the same drained boundary as a full resume checkpoint.
@@ -216,9 +219,9 @@ def train_pql(config):
                     lambda path, resume_path: save(path, resume_path=resume_path, publish=False),
                     tracker, step=global_step)
         final = output / "final.pt"
-        save(final, final=True)
         drain = min(10., max(0., config.runtime.max_train_seconds - (time.perf_counter() - started))) if config.runtime.max_train_seconds else 10.
         evaluator.close(global_step, drain_seconds=drain)
+        save(final, final=True)
         elapsed = time.perf_counter() - started
         result = {"checkpoint": str(final), "resume_checkpoint": str(output / "resume_latest.pt"),
                   "training_architecture": "pql-inspired", "pql_mode": config.pql.mode,
@@ -243,6 +246,7 @@ def train_pql(config):
                   "startup_s": startup_s, "elapsed_s": elapsed,
                   "joint_transitions_per_s": (global_step - initial["global_step"]) / max(elapsed, 1e-9),
                   "pql": engine.metrics(), "final_episode": history[-1] if history else None}
+        result.update(evaluator.best.result(final))
         result["periodic_evaluation"] = dict(evaluator.counts)
         result["storage"] = disk_metrics(output)
         result["replay"] = engine.replay.stats()

@@ -58,8 +58,8 @@ class PQLTrainingTests(unittest.TestCase):
             c.runtime.checkpoint_interval = 4
             writes = []
             real_save = PQLSystem.save
-            def record_save(engine, path, progress, collector_rng=None, environment=None):
-                result = real_save(engine, path, progress, collector_rng=collector_rng, environment=environment)
+            def record_save(engine, path, progress, collector_rng=None, environment=None, selection_state=None):
+                result = real_save(engine, path, progress, collector_rng=collector_rng, environment=environment, selection_state=selection_state)
                 writes.append(progress["episodes"])
                 return result
             with patch.object(PQLSystem, "save", record_save):

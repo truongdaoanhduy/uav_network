@@ -188,7 +188,7 @@ def restore_fixed_learner(saved, learner):
 
 
 def save_fixed_checkpoint(learner, path, progress, replay, rng, *, warmup_origin, random_warmup,
-                          next_metrics_at, latest, pending_learning, action_generator=None, environment=None):
+                          next_metrics_at, latest, pending_learning, action_generator=None, environment=None, selection_state=None):
     training = {"trainer": "fixed_schedule", "optimizers": optimizer_states(learner, learner),
                 "precision": learner.precision.state_dict(),
                 "replay": replay_state(replay, copy=False), "rng": runtime_rng_state(rng, action_generator=action_generator),
@@ -198,4 +198,6 @@ def save_fixed_checkpoint(learner, path, progress, replay, rng, *, warmup_origin
                 "learner_device_type": learner.device.type}
     if environment is not None:
         training["environment"] = environment
+    if selection_state is not None:
+        training["best_checkpoint"] = selection_state
     save_policy(learner, path, progress, training=training)

@@ -421,3 +421,33 @@ def test_v2_reward_and_shield_metrics_are_scalar_episode_fields():
     assert metrics["motion/shield_correction"] == .125
     assert metrics["reward/communication_efficiency"] == -.25
     assert metrics["reward/shield_correction"] == -.0125
+
+
+def test_best_publication_keeps_selected_policy_and_last_resume_separate(tmp_path):
+    run=OnlineRun();artifacts=[];aliases=[];published={}
+    def artifact(name,type,metadata):
+        a=StoredArtifact(name,type,metadata);artifacts.append(a);return a
+    def log_artifact(a,aliases):
+        a.aliases=list(aliases);return a
+    run.log_artifact=log_artifact
+    sdk=SimpleNamespace(init=lambda **kw:run,Settings=lambda **kw:kw,Artifact=artifact)
+    c=Config();c.tracking.credentials_file=str(tmp_path/"absent.txt")
+    policy=tmp_path/"best.pt";policy.write_bytes(b"selected earlier actors")
+    resume=tmp_path/"resume_latest.pt";resume.write_bytes(b"last learner replay optimizer RNG")
+    descriptor={"schema":1,"backend":"huggingface","repo_id":"owner/public","revision":"a"*40,
+                "files":{"checkpoint.pt":{"path":"run/checkpoint.pt","size":23,"sha256":"b"*64}}}
+    def upload(config,files,prefix):
+        published.update({k:Path(v).read_bytes() for k,v in files.items()});return descriptor
+    with patch.dict(sys.modules,{"wandb":sdk}), patch.dict(os.environ,{
+            "WANDB_API_KEY":"test-key","WANDB_ENTITY":"owner","WANDB_PROJECT":"project"}), \
+         patch("uav_network.experiments.checkpoint_store.upload_checkpoint_files",side_effect=upload):
+        tracker=OnlineTracker(c,tmp_path)
+        tracker.checkpoint(policy,{"episodes":20000,"global_step":35000000,
+            "resume_checkpoint":str(resume),"checkpoint_selection":{
+                "kind":"validation_best","global_step":21000000,"episode":12288}},final=True)
+        tracker.close()
+    assert published["checkpoint.pt"]==b"selected earlier actors"
+    assert published["resume.pt"]==b"last learner replay optimizer RNG"
+    assert "best" in artifacts[0].aliases and "resumable" in artifacts[0].aliases
+    assert artifacts[0].metadata["completed_episodes"]==20000
+    assert artifacts[0].metadata["checkpoint_selection"]["episode"]==12288
