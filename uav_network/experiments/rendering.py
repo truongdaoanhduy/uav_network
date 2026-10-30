@@ -12,10 +12,11 @@ COMMUNICATION_WINDOW_S = 20.
 
 
 def _draw(ax, env, paths, positions, battery, found, delivered, title):
+    xyz = np.asarray(positions).shape[-1]==3
     w = env.config.world
     for x, y, radius in env.obstacles:
         ax.add_patch(Circle((x, y), radius, color="slategray", alpha=.8))
-    hidden = "Hidden ground truth (diagnostic)" if env.config.motion_dim==3 else "Hidden"
+    hidden = "Hidden ground truth (diagnostic)" if xyz else "Hidden"
     for label, mask, color in [(hidden, ~found, "gray"),
                                ("Found, awaiting GCS", found & ~delivered, "orange"),
                                ("Delivered", delivered, "green")]:
@@ -28,14 +29,14 @@ def _draw(ax, env, paths, positions, battery, found, delivered, title):
         ax.plot(paths[:, i, 0], paths[:, i, 1], color=color, linewidth=1.2, alpha=.7)
         ax.scatter(*xy, color=color, marker="^" if battery[i] > 0 else "X", s=60)
         label_xy = np.clip(xy + .008 * w.map_size_m, .012 * w.map_size_m, .915 * w.map_size_m)
-        altitude = f" z={point[2]:.0f}m" if env.config.motion_dim==3 else ""
+        altitude = f" z={point[2]:.0f}m" if xyz else ""
         ax.text(*label_xy, f"{i}: {battery[i]:.0%}{altitude}", fontsize=8,
                 bbox=dict(facecolor="white", alpha=.65, edgecolor="none", pad=.5))
         radius = env.config.sensor.footprint_radius_m
-        if env.config.motion_dim==3:
+        if xyz:
             from ..environment.bayesian import sensor_profile
             radius = sensor_profile(env.config.sensor,point[2])[2]
-        if env.config.motion_dim==2 or (radius>0 and (battery[i]>0 or not env.config.energy.enabled)):
+        if not xyz or (radius>0 and (battery[i]>0 or not env.config.energy.enabled)):
             ax.add_patch(Circle(xy, radius, color=color, alpha=.08))
     ax.scatter(*env.gcs[:2], color="black", marker="s", s=80, label="GCS")
     ax.set(xlim=(0, w.map_size_m), ylim=(0, w.map_size_m), aspect="equal",
@@ -80,7 +81,7 @@ def _draw_belief(ax, config, belief, visited, positive, uav=0):
 def render_episode(env, paths, output):
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    if env.config.motion_dim==3:
+    if env.positions.shape[-1]==3:
         fig,(ax,belief_ax)=plt.subplots(1,2,figsize=(14,7))
         image=_draw_belief(belief_ax,env.config,env.belief,env.visited,env.positive)
         fig.colorbar(image,ax=belief_ax,label="P(target in cell); 0.5 unknown",shrink=.75)
@@ -104,7 +105,7 @@ def animation_frame(env):
     energy, network = info.get("energy", {}), info.get("network", {})
     drain = getattr(env, "drain_communication_events", lambda: [])
     extra = {}
-    if env.config.motion_dim==3:
+    if env.positions.shape[-1]==3:
         extra = {"altitudes_m":env.positions[:,2].copy(),"belief":env.belief.copy(),
                  "visited":env.visited.copy(),"positive":env.positive.copy()}
     return {**extra, "step": env.steps, "positions": env.positions.copy(),
@@ -151,7 +152,7 @@ def render_animation(env, paths, frames, output, fps=10, video_format="auto"):
     writer = (FFMpegWriter(fps=fps, codec="libx264", extra_args=["-pix_fmt", "yuv420p"])
               if video_format == "mp4" else PillowWriter(fps=fps))
     belief_ax = None
-    if env.config.motion_dim==3:
+    if env.positions.shape[-1]==3:
         fig,(ax,belief_ax,panel)=plt.subplots(1,3,figsize=(18,8),gridspec_kw={"width_ratios":[3,3,1.7]})
         from matplotlib.cm import ScalarMappable
         from matplotlib.colors import Normalize
