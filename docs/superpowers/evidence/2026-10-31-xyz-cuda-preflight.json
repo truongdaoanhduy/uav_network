@@ -160,7 +160,17 @@
       "elapsed_s": 264.89,
       "exit_code": 0
     },
-    "cuda_retry": "not_submitted_yet",
+    "cuda_retry": {
+      "observed_at": "2026-10-31T01:45:52.168721+07:00",
+      "ref": "kesfljhk/ben-g3-both-base-h75-10301844-63825e",
+      "state": "running",
+      "source_commit": "9e7b88c52637fc5ae3571e3e567271a93cd0c965",
+      "stage": "benchmark",
+      "production_started": false,
+      "kernel_url": "https://www.kaggle.com/code/kesfljhk/ben-g3-both-base-h75-10301844-63825e",
+      "output_directory": "outputs/xyz-gpu-refs-20261031/base-retry-output",
+      "profile": "configs/comparison-20k-hybrid75-1kb-shared-actor-critic-xyz-sensing.yaml"
+    },
     "runtime_commit": "5fee6c753b4e7cd86801a68ab5a0fb72521bda86"
   },
   "independent_review": {

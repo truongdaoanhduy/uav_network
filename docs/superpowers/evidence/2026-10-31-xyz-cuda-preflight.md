@@ -81,7 +81,11 @@ Lần chạy root đầu gặp258 collection errors vì hai checkout chẩn đo�
 Đã chuyển hai checkout do phiên này tạo sang `/tmp/uav-xyz-preflight-checkouts-20261031/`
 và chạy lại bare pytest; không sửa test discovery toàn repo để che lỗi.
 Final bare pytest trên source mới: **1146 passed,102 skipped,8 warnings,1557 subtests,264.89s**, exit0.
-Bốn skip mới là test yêu cầu CUDA thật; GPU retry chưa được gửi tại commit này.
+Bốn skip mới là test yêu cầu CUDA thật.
+
+GPU retry đã được Kaggle nhận, source `9e7b88c52637fc5ae3571e3e567271a93cd0c965`,
+[BASE MASAC/MATD3 mới](https://www.kaggle.com/code/kesfljhk/ben-g3-both-base-h75-10301844-63825e).
+Quan sát 2026-10-31T01:45:52.168721+07:00: `running`; chưa có kết quả CUDA/benchmark.
 
 AOT tối thiểu (máy cần cài optional GPU dependencies, không cần driver/GPU):
 

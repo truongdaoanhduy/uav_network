@@ -1,8 +1,8 @@
-# XYZ CUDA PREFLIGHT — COMPILER FIX / GPU RETRY PENDING
+# XYZ CUDA PREFLIGHT — REFERENCE FIX / BASE RETRY RUNNING
 
 Updated 2026-10-31T01:39:48.135518+07:00. User authorized Kaggle GPU execution; no new approval needed.
 Runtime fix 5fee6c753b4e7cd86801a68ab5a0fb72521bda86; parent42c1dac.
-Branch feat/cpu-replay-20261022.
+Branch feat/cpu-replay-20261022; retry source9e7b88c52637fc5ae3571e3e567271a93cd0c965.
 
 - First BASE benchmark:kesfljhk/ben-g3-both-base-h75-10301741-894057,
   observed cancelled01:11:53+07 near1800s ceiling; cancellation reason not exposed.
@@ -28,8 +28,10 @@ Branch feat/cpu-replay-20261022.
 Raw:outputs/xyz-gpu-preflight-42c1dac-20261031/.
 Own temporary checkouts:/tmp/uav-xyz-preflight-checkouts-20261031/.
 
-Next:push verified source; fresh-check jobs/quota,
-then retry BASE benchmark on clean pinned checkout. Require all15CUDA tests,
+Live BASE retry:kesfljhk/ben-g3-both-base-h75-10301844-63825e (running).
+https://www.kaggle.com/code/kesfljhk/ben-g3-both-base-h75-10301844-63825e
+Next:poll this job and inspect outputs/xyz-gpu-refs-20261031/base-retry-watch.json.
+Require all15CUDA tests,
 scenario/mission gates and actual profile updates/VRAM. If BASE passes,run PQL
 sequentially on same account; only then decide20k training from measured budget.
 
