@@ -14,7 +14,7 @@ from .checkpoint_store import file_sha256
 
 VARIANTS = {
     "baseline": {},
-    "learned_power": {"network": {"power_control": "learned"}},
+    "link_budget": {"network": {"power_control": "link_budget"}},
     "buffer16": {"network": {"buffer_bytes": 16384}},
     "buffer32": {"network": {"buffer_bytes": 32768}},
     "ttl600": {"network": {"report_ttl_s": 600.}},
@@ -63,7 +63,7 @@ def plan_study(config_path=DEFAULT_CONFIG, output_dir=None, *, seeds=DEFAULT_SEE
     w,n,s,e = c.world,c.network,c.sensor,c.energy
     if ((w.num_uavs,w.map_size_m,w.num_targets,w.num_obstacles)!=(6,1000,20,15)
             or (n.power_control,n.link_budget_margin_db,n.buffer_bytes,n.report_ttl_s)
-                !=("link_budget",3.,3072,300.)
+                !=("learned",3.,3072,300.)
             or s.coverage_grid_cells != 0 or e.battery_capacity_j != 277200
             or not n.enabled or not e.enabled):
         raise ValueError("Study baseline must be the controlled 6-UAV/1-km/20-target/15-obstacle profile")

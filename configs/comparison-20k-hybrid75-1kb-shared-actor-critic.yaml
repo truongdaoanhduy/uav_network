@@ -16,7 +16,7 @@ network:
   tx_power_min_w: 0.001
   tx_power_max_w: 0.4
   tx_power_mapping: log
-  power_control: link_budget
+  power_control: learned
   link_budget_margin_db: 3.0
   pa_efficiency: 0.35
   tx_circuit_power_w: 0.1
@@ -72,7 +72,7 @@ runtime:
   log_interval_steps: 4096
   checkpoint_interval: 128
   max_train_seconds: 36000
-  output_dir: outputs/comparison-20k-steps1200-t20-o15-linkbudget3db-report1kb-shared-actor-critic
+  output_dir: outputs/comparison-20k-steps1200-t20-o15-learnedpower-report1kb-shared-actor-critic
 pql:
   enabled: false
   mode: async
@@ -99,7 +99,7 @@ tracking:
   project: uav_search_target
   checkpoint_repo: duy95/uav-search-checkpoints
   checkpoint_repo_private: false
-  group: uav-v3-20t15o-linkbudget3db-e4096-b8192-shared-actor-critic-20261029
+  group: uav-v3-20t15o-learnedpower-e4096-b8192-shared-actor-critic-20261030
   tags:
   - uav-network
   - amp-off
@@ -108,7 +108,7 @@ tracking:
   - controlled-20t15o
   - shared-actor-critic
   - targets20-obstacles15
-  - power-link-budget-3db
+  - power-learned
   - full20k
   - replay1m
   - cpu75-gpu25

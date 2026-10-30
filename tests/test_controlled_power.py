@@ -187,3 +187,24 @@ def test_warp_real_packet_custody_uses_selected_link_budget(power_action):
                                         np.empty((0,3)), c.network, 100., True)
     powers = s.trace_report.numpy()[0,:count,4][complete]
     np.testing.assert_allclose(powers,np.clip(required*10**.3,.001,.4),rtol=1e-6)
+
+
+@pytest.mark.parametrize("profile", [
+    "configs/comparison-20k-hybrid75-1kb.yaml",
+    "configs/comparison-20k-hybrid75-1kb-shared-actor-critic.yaml",
+    "configs/comparison-20k-fullgpu-1kb-shared-actor-critic.yaml",
+])
+@pytest.mark.parametrize("algorithm", ["masac", "matd3"])
+def test_production_profiles_keep_actor_owned_rf_action(profile, algorithm):
+    c=load_config(profile, ["runtime.device=cpu", "runtime.compile_models=false",
+                            "masac.hidden_sizes=[8,8]", "matd3.hidden_sizes=[8,8]"])
+    c.runtime.algorithm=algorithm
+    learner=make_learner(c, observation_dim(c), state_dim(c))
+    for actor in learner.actors:
+        head=actor.mean if algorithm=="masac" else actor.continuous
+        with torch.no_grad():
+            head.weight.zero_(); head.bias[2]=2.
+            actor.destination.weight.zero_(); actor.destination.bias.fill_(-10.)
+            actor.destination.bias[-1]=10.
+    action=learner.act_batch(batch(c)["observation"], deterministic=True, return_tensors=True)
+    torch.testing.assert_close(action.continuous[...,2], torch.full_like(action.continuous[...,2],0.9640275801))

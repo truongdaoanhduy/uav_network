@@ -28,7 +28,7 @@ def test_canonical_easier_profile_and_historical_profile_are_distinct():
     assert (c.world.num_uavs,c.world.map_size_m,c.world.num_targets,c.world.num_obstacles)==(6,1000,20,15)
     assert c.world.max_steps==1200
     assert "steps1200" in c.tracking.tags and "steps1800" not in c.tracking.tags
-    assert c.network.power_control=="link_budget"
+    assert c.network.power_control=="learned"
     assert c.network.link_budget_margin_db==3.
     assert c.network.buffer_bytes==3072 and c.network.report_ttl_s==300
     assert c.energy.enabled and c.network.enabled
@@ -131,7 +131,7 @@ def test_default_matrix_is_84_cases_with_independent_seed_banks(tmp_path):
 def test_each_variant_changes_only_one_scientific_factor(tmp_path):
     from uav_network.experiments.study import plan_study
     m=plan_study(PROFILE,tmp_path/"study",seeds=[44],algorithms=["masac"],modes=["base"])
-    expected={"learned_power":"network.power_control","buffer16":"network.buffer_bytes",
+    expected={"link_budget":"network.power_control","buffer16":"network.buffer_bytes",
               "buffer32":"network.buffer_bytes","ttl600":"network.report_ttl_s",
               "coverage8":"sensor.coverage_grid_cells","battery2x":"energy.battery_capacity_j"}
     science={}
@@ -275,7 +275,7 @@ def test_new_profile_periodic_evaluator_completes_a_real_child(tmp_path):
         result=manager.last_result
         assert result["episodes"]==1
         assert result["protocol"]["scenario"]["world"]["num_targets"]==20
-        assert result["protocol"]["scenario"]["network"]["power_control"]=="link_budget"
+        assert result["protocol"]["scenario"]["network"].get("power_control","learned")=="learned"
         assert result["protocol"]["scenario"]["sensor"]["coverage_grid_cells"]==8
     finally:
         manager.close(2)
