@@ -1,48 +1,37 @@
-# XYZ CPU COMPLETE / RESET ISOLATED / CUDA PREFLIGHT PENDING
+# XYZ CUDA PREFLIGHT — COMPILER FIX / GPU RETRY PENDING
 
-Updated 2026-10-30T23:44:57.433102+07:00. User approved the reference-based design with “duyệt”.
-Verified runtime `7dd41d01c7b0c0df8af0ff35d0e2a7314f0a71af` on `feat/cpu-replay-20261022`.
-Reference: `/home/aduy/Documents/NCKH/uav_search_target`; visualize remains2D.
+Updated 2026-10-31T01:39:48.135518+07:00. User authorized Kaggle GPU execution; no new approval needed.
+Runtime fix 5fee6c753b4e7cd86801a68ab5a0fb72521bda86; parent42c1dac.
+Branch feat/cpu-replay-20261022.
 
-- Added separate XYZ profiles:6UAV,1000m,20T/15O,1200steps,20k episodes,
-  E4096,B8192,replay1M,FP32,learnedRF. Original3 XY YAMLs unchanged.
-- Real XYZ motion/swept safety,finite-height obstacles,3D RF/LOS/range/energy.
-  Four continuous slots[ax,ay,az,power] work across learners/replay/BASE/PQL.
-- Per-UAV25m grid,prior0.5,FOV90deg; high altitude covers more with noisier
-  Pd/Pf. Confirmation only active,z<=50m,posterior>=0.99,fresh positive,
-  actual target in FOV/LOS. False positives retain local posterior evidence.
-- Local cell candidates/5x5 belief patch avoid unconfirmed coordinate leaks.
-  Critic is compact,not full Bayesian Markov state. Full resume stores maps,
-  altitude/velocity,sampling; XYZ schema4 rejects XY schema3 reuse.
-- Native/Warp CPU parity,masked reset isolation,next-measurement resume,
-  serial BASE/synchronous PQL full learner resume verified. Overlap/async
-  interleaving is not promised bitwise equal to an uncut run.
-- 2D frame-specific altitude/FOV/battery/local belief plots. Real scripted
-  demo2UAV/2target/2obstacle,seed44,60steps:1 found,1 delivered toGCS.
-- Warp reset kernel isolated from packet scheduler compilation; body AST
-  unchanged fromc63c8f7. Local targeted93 passed,1 skipped,12 subtests.
-- Final pytest 1146 passed,98 skipped,1555 subtests,648.58s; compileall/diff checks passed.
-  One fresh review:4 Important fixed with RED→GREEN regressions; no Critical.
-  Deferred Minor: obstacle/peer/boundary XYZ intervention categories remain
-  unavailable/zero; total interventions work. Do not use category0 as evidence.
-- Float64 belief/geometry; FP32 learners. Replay~12.085GiB,WarpE4096~2.629GiB
-  plus buffers/models/overheads,placement dependent. No CUDA fit/performance,
-  20k convergence or XYZ20/20 oracle proof. Old feasibility oracle is XY-only.
+- First BASE benchmark:kesfljhk/ben-g3-both-base-h75-10301741-894057,
+  observed cancelled01:11:53+07 near1800s ceiling; cancellation reason not exposed.
+  Actual hardware2TeslaT4;10CUDA/native-world tests passed, last Warp check unfinished.
+  No XYZ E4096 benchmark JSON,20k production training or convergence proof.
+- Root diagnosis:by-value WorldState descriptor copies produce38.69MB PTX,
+  801058local stores; default CUBIN compiler SIGKILL after473.5s (OOM unconfirmed).
+  Prototype uses wp.ref for140arguments/85helpers/17files; kernel signatures,
+  math,RNG,struct layout and checkpoint schemas unchanged. CUBIN AOT passes
+  20.77s,peak646.32MiB without GPU. O1/O2/noinline/PTX knobs not adopted.
+- Final bare pytest1146passed,102skipped,1557subtests,264.89s,exit0.
+  Prototype suite also green; own diagnostic clones moved outside collection.
+  Four new real XYZ CUDA checks will run in existing test_cuda.py cloud gate.
+  No GPU parity claim yet; independent review0Critical/0Important;1Minor fixed.
+- Keep6UAV,1000m,20T/15O,1200steps,E4096,B8192,replay1M,Hybrid75,FP32.
+  Learned RF/action4,movement,routing,prior0.5,FOV/Bayes and visualize2D retained.
+  Benchmark-only compileoff/W&B-checkpoint-store/log_checkpointfalse; YAMLs unchanged.
+- Pin account_01 only; quota27.11h observed01:16:54+07. No account rotation or
+  cancellations. User CURRENT_TASK historical suffix remains unchanged/unstaged.
 
-[Usage/configs](../xyz-sensing.md) |
-[Verification/rulings](evidence/2026-10-30-xyz-sensing-verification.md) |
-[Structured evidence](evidence/2026-10-30-xyz-sensing-verification.json) |
-[2D demo](evidence/xyz-camera-demo-20261030.gif).
-Spec:specs/2026-10-30-xyz-bayesian-sensing-design.md.
-Plan:plans/2026-10-30-xyz-bayesian-sensing.md.
+[Usage](../xyz-sensing.md) | [CPU evidence](evidence/2026-10-30-xyz-sensing-verification.md) |
+[CUDA/compiler evidence](evidence/2026-10-31-xyz-cuda-preflight.md).
+Raw:outputs/xyz-gpu-preflight-42c1dac-20261031/.
+Own temporary checkouts:/tmp/uav-xyz-preflight-checkouts-20261031/.
 
-Next: finish CUDA preflight only through an allowed GPU execution path.
-Earlier external Kaggle launch was rejected by automatic approval review;
-no new submission/bypass/account change was attempted in this continuation.
-Measure reset cold start,full smoke,VRAM/placement before production training.
-Use several training seeds and periodic validation before paper conclusions.
-Preserve historical lineages,host worktree,outputs and original dirty suffix.
-Do not reuse XY weights as XYZ or call CPU smoke policy convergence.
+Next:push verified source; fresh-check jobs/quota,
+then retry BASE benchmark on clean pinned checkout. Require all15CUDA tests,
+scenario/mission gates and actual profile updates/VRAM. If BASE passes,run PQL
+sequentially on same account; only then decide20k training from measured budget.
 
 ---
 

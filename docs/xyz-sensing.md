@@ -125,3 +125,5 @@ Xem [số liệu byte cụ thể](superpowers/evidence/2026-10-30-xyz-resources.
 chưa xác nhận hiệu năng/VRAM CUDA hoặc hội tụ của policy XYZ.
 
 [Bằng chứng kiểm thử, reset kernel và trạng thái CUDA](superpowers/evidence/2026-10-30-xyz-sensing-verification.md).
+
+[CUDA preflight và sửa sao chép struct](superpowers/evidence/2026-10-31-xyz-cuda-preflight.md).
