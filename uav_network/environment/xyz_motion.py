@@ -3,6 +3,7 @@ from itertools import product
 import numpy as np
 from .avoidance import reachable_velocities, braking_paths
 from .xyz_geometry import cylinder_hit
+from .cbf import filter_xyz_acceleration
 
 
 def _peer_clear(a,b,distance):
@@ -25,7 +26,21 @@ def move_xyz(positions,velocities,acceleration,obstacles,heights,config,disabled
     chosen=velocities*np.maximum(0,1-step/np.maximum(speed,1e-12));chosen[disabled]=0
     paths=braking_paths(positions,chosen,w)
     counts={f"shield_{k}":0 for k in ("interventions","obstacle_interventions","peer_interventions","boundary_interventions","infeasible")}
-    if w.motion_safety=="dynamic_window":
+    if w.motion_safety=="cbf":
+        physical_nominal=np.clip(acceleration,-1.,1.)*w.max_accel_mps2
+        physical_nominal[disabled]=0.
+        safe_accel,cbf=filter_xyz_acceleration(positions,velocities,physical_nominal,obstacles,heights,w,disabled)
+        nominal=reachable_velocities(velocities+physical_nominal*w.dt_s,velocities,w);nominal[disabled]=0
+        chosen=reachable_velocities(velocities+safe_accel*w.dt_s,velocities,w);chosen[disabled]=0
+        paths=braking_paths(positions,chosen,w)
+        counts.update(
+            shield_interventions=cbf["cbf_interventions"],
+            shield_obstacle_interventions=cbf["cbf_obstacle_interventions"],
+            shield_peer_interventions=cbf["cbf_peer_interventions"],
+            shield_boundary_interventions=cbf["cbf_boundary_interventions"],
+            shield_infeasible=cbf["cbf_infeasible"],
+        )
+    elif w.motion_safety=="dynamic_window":
         # Pass the policy through unchanged when the complete joint nominal
         # braking trajectories are already safe.  Without this fast path, an
         # early-ID UAV is compared with later peers' fallback braking paths,
