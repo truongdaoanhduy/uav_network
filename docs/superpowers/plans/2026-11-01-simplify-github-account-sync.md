@@ -30,20 +30,26 @@
 - Modify: `scripts/sync_github_supervisor_secrets.py`
 - Modify: `tests/test_github_supervisor_workflow.py`
 
-- [ ] Write RED tests for rejecting `github_account` and duplicate local names.
-- [ ] Implement direct `name` -> same-number GitHub secret mapping.
-- [ ] Run targeted supervisor/workflow tests.
+- [x] Write RED tests for rejecting `github_account` and duplicate local names.
+- [x] Implement direct `name` -> same-number GitHub secret mapping.
+- [x] Run targeted supervisor/workflow tests.
 
 ### Task 2: Normalize credentials and resync GitHub
 **Files:**
 - Modify external/private: `key.txt` only if legacy fields exist.
 
-- [ ] Ensure enabled accounts are named sequentially and contain no `github_account` field.
-- [ ] Run sync script against `truongdaoanhduy/uav_network`.
-- [ ] Remove stale Kaggle secrets not represented by enabled `key.txt` names.
-- [ ] Verify actual secret-name set equals expected set.
+- [x] Ensure enabled accounts are named sequentially and contain no `github_account` field.
+- [x] Run sync script against `truongdaoanhduy/uav_network`.
+- [x] Remove stale Kaggle secrets not represented by enabled `key.txt` names.
+- [x] Verify actual secret-name set equals expected set.
 
 ### Task 3: End-to-end verification
-- [ ] Run cloud-related regression tests and `git diff --check`.
-- [ ] Commit/push code changes without `CURRENT_TASK.md`.
-- [ ] Run GitHub supervisor dry-run and verify existing running lineages are still recognized.
+- [x] Run cloud-related regression tests and `git diff --check`.
+- [x] Commit/push code changes without `CURRENT_TASK.md`.
+- [x] Run GitHub supervisor dry-run and verify existing running lineages are still recognized.
+
+## Verification
+- Cloud regression: 55 passed, 23 subtests passed.
+- GitHub supervisor dry-run: run `41239997446`, conclusion `success`, head `d07a2a2`.
+- Supervisor account set: `account_01` through `account_16`.
+- Running lineages remained active on accounts 01, 02, 03, 04, 05, and 07.
