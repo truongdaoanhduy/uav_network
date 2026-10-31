@@ -61,7 +61,9 @@ def extras(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,i:int,offset:int):
             slot+=1
     offset+=2*(p.n-1)
     for cell in range(p.patch_n*p.patch_n):s.observation[e,i,offset+cell]=wp.float32(patch_value(s,p,e,i,cell))
-    return offset+p.patch_n*p.patch_n
+    offset+=p.patch_n*p.patch_n
+    for cell in range(p.coarse_n*p.coarse_n):s.observation[e,i,offset+cell]=wp.float32(s.belief_coarse[e,i,cell])
+    return offset+p.coarse_n*p.coarse_n
 
 
 @wp.func

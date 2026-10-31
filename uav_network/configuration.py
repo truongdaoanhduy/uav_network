@@ -111,6 +111,10 @@ class RewardConfig:
     propulsion_energy_per_kj: float = 0.01
     communication_efficiency: float = 0.0
     shield_correction: float = 0.0
+    information_gain: float = 0.0
+    investigation_shaping: float = 0.0
+    shaping_gamma: float = 0.99
+    investigation_belief_threshold: float = 0.8
 
 
 @dataclass
@@ -141,6 +145,7 @@ class MATD3Config(OffPolicyConfig):
     target_noise_std: float = 0.2
     target_noise_clip: float = 0.5
     exploration_noise_std: float = 0.1
+    output_normalization: bool = False
     initial_epsilon: float = 1.0
     final_epsilon: float = 0.05
     epsilon_decay_steps: int = 100_000
@@ -388,8 +393,15 @@ class Config:
                 e.idle_power_w, e.hover_power_w, e.speed_squared_coefficient,
                 e.acceleration_squared_coefficient, n.obstacle_extra_loss_db,
                 self.reward.propulsion_energy_per_kj, self.reward.communication_efficiency,
-                self.reward.shield_correction)):
+                self.reward.shield_correction, self.reward.information_gain,
+                self.reward.investigation_shaping)):
             raise ValueError("Battery capacity must be positive and energy/reward/loss coefficients nonnegative")
+        if not 0 <= self.reward.shaping_gamma <= 1:
+            raise ValueError("reward.shaping_gamma must be in [0,1]")
+        if (self.motion_dim == 3 and self.reward.investigation_shaping > 0
+                and not self.sensor.belief_prior < self.reward.investigation_belief_threshold
+                < self.sensor.confirmation_threshold):
+            raise ValueError("investigation belief threshold must lie between prior and confirmation")
         for learner in (self.masac, self.matd3):
             if (not 0 <= learner.gamma <= 1 or not 0 < learner.tau <= 1
                     or any(v <= 0 for v in (learner.replay_capacity, learner.batch_size,
@@ -449,6 +461,8 @@ def with_legacy_feature_defaults(values):
     result = deepcopy(values)
     for group, defaults in (
         ("sensor", {"coverage_grid_cells": 0}),
+        ("reward", {"information_gain": 0.0, "investigation_shaping": 0.0,
+                    "shaping_gamma": 0.99, "investigation_belief_threshold": 0.8}),
         ("network", {"power_control": "learned", "link_budget_margin_db": 3.0}),
     ):
         if group in result:

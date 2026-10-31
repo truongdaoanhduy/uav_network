@@ -156,7 +156,7 @@ def train_pql(config):
                               "global_step": global_step, "return": float(returns[i]),
                               "episode_length": int(lengths[i]), "terminated": bool(terminated[i]),
                               "truncated": bool(truncated[i]), **info, "learner": learner_telemetry(latest),
-                              "num_uavs": config.world.num_uavs}
+                              "num_uavs": config.world.num_uavs, "motion_dim": config.motion_dim}
                     encoded = json.dumps(record, allow_nan=False)
                     stream.write(encoded + "\n")
                     history.append(json.loads(encoded))

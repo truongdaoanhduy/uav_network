@@ -2,6 +2,7 @@
 import warp as wp
 from ...environment.gpu.xyz_geometry import range_distance
 from ...environment.gpu.state import WorldParams, WorldState
+from ...environment.gpu.bayesian import investigation_potential
 from . import diagnostics as diag
 
 wp.set_module_options({"enable_backward": False})
@@ -129,7 +130,7 @@ def reset_reward_state(s: wp.ref[WorldState], e: int):
     s.shield_correction[e] = wp.float64(0)
     for j in range(8):
         s.before[e,j] = wp.float64(0)
-    for j in range(10):
+    for j in range(12):
         s.reward_components[e,j] = wp.float64(0)
 
 @wp.kernel
@@ -155,7 +156,8 @@ def begin_step(s: WorldState, p: WorldParams):
     s.before[e,4] = wp.float64(s.blocked[e])
     s.before[e,5] = flight
     s.before[e,6] = comm
-    s.before[e,7] = wp.float64(s.clipped[e])
+    s.before[e,7] = s.belief_potential[e] if p.xyz!=0 else wp.float64(0)
+    s.reward[e] = wp.float32(investigation_potential(s,p,e) if p.xyz!=0 else wp.float64(0))
     s.trace_count[e] = 0
     # Materialize native mission time in a prior kernel so CUDA cannot contract
     # steps*dt + dt into an FMA with different IEEE-754 rounding than Python.
@@ -238,7 +240,15 @@ def end_step(s: WorldState, p: WorldParams):
     c7 = -p.reward_propulsion*(flight-s.before[e,5])/wp.float64(1000)
     c8 = -p.reward_communication_efficiency*(comm-s.before[e,6])/p.report_reference_tx_energy
     c9 = -p.reward_shield_correction*s.shield_correction_step[e]
-    s.reward[e] = wp.float32(c0+c1+c2+c3+c4+c5+c6+c7+c8+c9)
+    terminal = delivered == p.targets_count or live == 0 or s.steps[e] >= p.max_steps
+    old_investigation=wp.float64(s.reward[e]);next_belief=s.belief_potential[e];next_investigation=investigation_potential(s,p,e)
+    if terminal:
+        next_belief=wp.float64(0);next_investigation=wp.float64(0)
+    c10=wp.float64(0);c11=wp.float64(0)
+    if p.xyz!=0:
+        c10=p.reward_information_gain*(p.reward_shaping_gamma*next_belief-s.before[e,7])
+        c11=p.reward_investigation*(p.reward_shaping_gamma*next_investigation-old_investigation)
+    s.reward[e] = wp.float32(c0+c1+c2+c3+c4+c5+c6+c7+c8+c9+c10+c11)
     s.reward_components[e,0] += c0
     s.reward_components[e,1] += c1
     s.reward_components[e,2] += c2
@@ -249,4 +259,6 @@ def end_step(s: WorldState, p: WorldParams):
     s.reward_components[e,7] += c7
     s.reward_components[e,8] += c8
     s.reward_components[e,9] += c9
-    s.terminated[e] = int(delivered == p.targets_count or live == 0 or s.steps[e] >= p.max_steps)
+    s.reward_components[e,10] += c10
+    s.reward_components[e,11] += c11
+    s.terminated[e] = int(terminal)

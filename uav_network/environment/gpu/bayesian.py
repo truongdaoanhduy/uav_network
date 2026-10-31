@@ -71,6 +71,42 @@ def cell_coverage(p:wp.ref[WorldParams],gx:int,gy:int,xy:wp.vec2d,r:wp.float64):
     return area
 
 
+@wp.func
+def entropy_bits(value:wp.float64):
+    q=wp.clamp(value,wp.float64(1e-12),wp.float64(1)-wp.float64(1e-12))
+    return -(q*wp.log(q)+(wp.float64(1)-q)*wp.log(wp.float64(1)-q))/wp.log(wp.float64(2))
+
+
+@wp.func
+def investigation_potential(s:WorldState,p:WorldParams,e:int):
+    total=wp.float64(0)
+    if p.xyz!=0 and p.reward_investigation!=wp.float64(0):
+        radius=p.patch_n//2
+        altitude_span=wp.max(p.altitude_max-p.fine_altitude,wp.float64(1e-6))
+        for i in range(p.n):
+            active=p.energy_enabled==0 or s.battery[e,i]>wp.float64(0)
+            if active:
+                xy=s.positions[e,i]
+                gx=wp.clamp(int(wp.floor(xy[0]/p.cell_width)),0,p.grid_n-1)
+                gy=wp.clamp(int(wp.floor(xy[1]/p.cell_width)),0,p.grid_n-1)
+                best=wp.float64(-1);best_gx=gx;best_gy=gy
+                for dy in range(-6,7):
+                    for dx in range(-6,7):
+                        if wp.abs(dx)<=radius and wp.abs(dy)<=radius:
+                            xx=gx+dx;yy=gy+dy
+                            if xx>=0 and xx<p.grid_n and yy>=0 and yy<p.grid_n:
+                                value=s.belief[e,i,yy*p.grid_n+xx]
+                                if value>best:
+                                    best=value;best_gx=xx;best_gy=yy
+                evidence=wp.clamp((best-p.investigation_threshold)/wp.max(p.confirmation_threshold-p.investigation_threshold,wp.float64(1e-6)),wp.float64(0),wp.float64(1))
+                peak=wp.vec2d((wp.float64(best_gx)+wp.float64(.5))*p.cell_width,(wp.float64(best_gy)+wp.float64(.5))*p.cell_width)
+                max_distance=wp.max(wp.sqrt(wp.float64(2))*(wp.float64(radius)+wp.float64(.5))*p.cell_width,wp.float64(1e-6))
+                proximity=wp.clamp(wp.float64(1)-wp.length(peak-xy)/max_distance,wp.float64(0),wp.float64(1))
+                descent=wp.clamp((p.altitude_max-s.altitudes[e,i])/altitude_span,wp.float64(0),wp.float64(1))
+                total+=evidence*wp.float64(.5)*(proximity+descent)
+    return total/wp.float64(p.n)
+
+
 @wp.kernel
 def reset_xyz(s:WorldState,p:WorldParams,mask:wp.array(dtype=wp.int32)):
     e,i=wp.tid()
@@ -78,7 +114,10 @@ def reset_xyz(s:WorldState,p:WorldParams,mask:wp.array(dtype=wp.int32)):
     s.altitudes[e,i]=p.altitude;s.vertical_velocity[e,i]=wp.float64(0)
     for cell in range(p.grid_n*p.grid_n):
         s.belief[e,i,cell]=p.belief_prior;s.visited[e,i,cell]=0;s.positive[e,i,cell]=0
+    prior_entropy=entropy_bits(p.belief_prior)
+    for coarse in range(p.coarse_n*p.coarse_n):s.belief_coarse[e,i,coarse]=prior_entropy
     if i==0:
+        s.belief_potential[e]=wp.float64(1)-prior_entropy
         s.sensor_tick[e]=0
         for k in range(6):s.sensor_counts[e,k]=wp.int64(0)
         for o in range(p.obstacles_count):
@@ -116,7 +155,15 @@ def sense_bayesian(s:WorldState,p:WorldParams,advance:int,mask:wp.array(dtype=wp
                     a=ed;b=ef
                     if not yes:a=wp.float64(1)-ed;b=wp.float64(1)-ef
                     posterior=wp.clamp(a*prior/wp.max(a*prior+b*(wp.float64(1)-prior),wp.float64(1e-8)),wp.float64(1e-8),wp.float64(1)-wp.float64(1e-8))
-                    s.belief[e,i,cell]=posterior;s.visited[e,i,cell]=1;s.positive[e,i,cell]=int(yes)
+                    final_belief=posterior
+                    false_confirmation=yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold and not has
+                    if false_confirmation and p.verified_empty_belief>wp.float64(0):final_belief=p.verified_empty_belief
+                    s.belief[e,i,cell]=final_belief;s.visited[e,i,cell]=1;s.positive[e,i,cell]=int(yes)
+                    old_entropy=entropy_bits(prior);new_entropy=entropy_bits(final_belief)
+                    wp.atomic_add(s.belief_potential,e,(old_entropy-new_entropy)/(wp.float64(p.n)*wp.float64(p.grid_n*p.grid_n)))
+                    if p.coarse_n>0:
+                        group=p.grid_n//p.coarse_n;coarse=(gy//group)*p.coarse_n+(gx//group)
+                        s.belief_coarse[e,i,coarse]=wp.clamp(s.belief_coarse[e,i,coarse]+(new_entropy-old_entropy)/wp.float64(group*group),wp.float64(0),wp.float64(1))
                     wp.atomic_add(s.sensor_counts,e,0,wp.int64(1))
                     wp.atomic_add(s.sensor_counts,e,1,wp.int64(int(yes)))
                     wp.atomic_add(s.sensor_counts,e,2,wp.int64(int(yes and not has)))

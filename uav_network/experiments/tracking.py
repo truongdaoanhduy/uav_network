@@ -40,7 +40,7 @@ def progress_metrics(observations, config):
             "progress/mean_active_uavs": float(local[:, :, 9].sum(1).mean())}
 
 
-def episode_metrics(record, num_uavs):
+def episode_metrics(record, num_uavs, motion_dim=2):
     energy, network = record["energy"], record["network"]
     opportunities = max(1, record["episode_length"] * num_uavs)
     result = {"global_step": record["global_step"], "episode/index": record["episode"],
@@ -78,7 +78,7 @@ def episode_metrics(record, num_uavs):
     counts = record.get("action_counts", {})
     result.update({f"action/{k}_fraction": counts[k] / opportunities for k in ("silent", "peer", "gcs") if k in counts})
     if "saturated" in counts:
-        result["action/movement_saturation_fraction"] = counts["saturated"] / (2 * opportunities)
+        result["action/movement_saturation_fraction"] = counts["saturated"] / (motion_dim * opportunities)
     result["reports/buffer_bytes"] = record.get("buffer_bytes", 0)
     result["reports/buffer_count"] = record.get("buffer_reports", 0)
     result["motion/final_mean_speed_mps"] = record.get("mean_speed_mps", 0)
@@ -372,7 +372,7 @@ class OnlineTracker:
 
     def episode(self, record):
         self.records.append(record)
-        values = episode_metrics(record, self.config.world.num_uavs)
+        values = episode_metrics(record, self.config.world.num_uavs, self.config.motion_dim)
         self.latest_evidence.update(select_evidence(values))
         self.latest_evidence.update({"evidence/episode_global_step":record.get("global_step"),
                                      "evidence/episode_seed":record.get("seed"),

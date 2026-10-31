@@ -119,3 +119,69 @@ def test_bayesian_actor_does_not_see_unconfirmed_target_coordinates():
     b=local_observations(second)
     assert not first.reports.known.any() and not second.reports.known.any()
     np.testing.assert_array_equal(a,b)
+
+
+def test_false_confirmation_marks_verified_empty_cell():
+    from uav_network.environment.bayesian import sensor_uniform
+    c = xyz_config()
+    c.sensor.verified_empty_belief = .01
+    cell = 20 * 40 + 20
+    seed = next(i for i in range(1, 10000) if sensor_uniform(i, 1, 0, cell) < .055)
+    env = world(c, z=25, seed=seed, target=(950, 950))
+    env.belief[:] = .5
+    env.belief[0, 20, 20] = .9999
+    env.step(Action(np.zeros((1, 4)), np.zeros(1, dtype=int)))
+    assert env.sensor_counts["false_confirmation"] >= 1
+    assert env.belief[0, 20, 20] == pytest.approx(.01)
+
+
+def test_coarse_belief_uncertainty_is_global_and_compact():
+    from uav_network.environment.bayesian import coarse_belief_uncertainty_map
+    belief = np.full((40, 40), .5)
+    coarse = coarse_belief_uncertainty_map(belief, 5)
+    assert coarse.shape == (5, 5)
+    np.testing.assert_allclose(coarse, 1.0)
+    belief[:8, :8] = .01
+    coarse = coarse_belief_uncertainty_map(belief, 5)
+    assert coarse[0, 0] < .1
+    np.testing.assert_allclose(coarse[1:, 1:], 1.0)
+
+
+def test_xyz_observation_can_include_coarse_belief_without_hidden_targets():
+    from uav_network.environment.observations import local_observations, observation_dim
+    c = xyz_config()
+    base_dim = observation_dim(c)
+    c.sensor.belief_coarse_cells = 5
+    first = world(c, z=100, target=(511, 511))
+    second = world(c, z=100, target=(514, 514))
+    a, b = local_observations(first), local_observations(second)
+    assert a.shape == (1, observation_dim(c))
+    assert observation_dim(c) == base_dim + 25
+    np.testing.assert_array_equal(a, b)
+
+
+def test_information_and_investigation_shaping_make_sensing_progress_dense():
+    from uav_network.environment.bayesian import investigation_potential
+    c = xyz_config()
+    c.reward.discovery = c.reward.delivery = 0
+    c.reward.blocked_motion = c.reward.expired_report = c.reward.dropped_report = 0
+    c.reward.step_cost = c.reward.communication_energy = c.reward.propulsion_energy_per_kj = 0
+    c.reward.shield_correction = c.reward.communication_efficiency = 0
+    c.reward.information_gain = 10
+    c.reward.investigation_shaping = 10
+    c.reward.shaping_gamma = .99
+    c.reward.investigation_belief_threshold = .8
+    env = world(c, z=100, target=(950, 950))
+    env.belief[:] = .5
+    before = investigation_potential(env)
+    _, reward, *_ = env.step(Action(np.zeros((1, 4)), np.zeros(1, dtype=int)))
+    assert reward > 0
+    assert env.reward_components["information_gain"] > 0
+    env.belief[:] = .5
+    env.belief[0, 20, 20] = .95
+    env.positions[0, 2] = 100
+    high = investigation_potential(env)
+    env.positions[0, 2] = 25
+    low = investigation_potential(env)
+    assert before == 0
+    assert 0 < high < low

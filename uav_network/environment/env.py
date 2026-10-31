@@ -130,6 +130,11 @@ class SwarmSearchEnv:
         before_found = self.reports.known.any(axis=0).sum()
         before_delivery = self.reports.delivered.sum()
         before_expired, before_dropped = self.reports.expired, self.reports.dropped
+        belief_before = investigation_before = 0.0
+        if self.config.motion_dim == 3:
+            from .bayesian import belief_certainty_potential, investigation_potential
+            belief_before = belief_certainty_potential(self.belief)
+            investigation_before = investigation_potential(self)
         motion_details = {}
         self.positions, self.velocities, blocked, clipped, flight_energy = funded_motion(
             self.positions, self.velocities, np.asarray(action.continuous)[:, :self.config.motion_dim],
@@ -152,6 +157,17 @@ class SwarmSearchEnv:
         communication_efficiency = (comm_energy / report_reference_tx_energy_j(self.config.network)
                                     if comm_energy else 0.0)
         shield_correction = float(motion_details.get("shield_correction", 0.0))
+        terminated = bool(self.reports.delivered.all() or not self.active.any()
+                          or self.steps >= self.config.world.max_steps)
+        information_gain = investigation_shaping = 0.0
+        if self.config.motion_dim == 3:
+            from .bayesian import belief_certainty_potential, investigation_potential
+            belief_after = belief_certainty_potential(self.belief)
+            investigation_after = investigation_potential(self)
+            next_belief = 0.0 if terminated else belief_after
+            next_investigation = 0.0 if terminated else investigation_after
+            information_gain = r.information_gain * (r.shaping_gamma * next_belief - belief_before)
+            investigation_shaping = r.investigation_shaping * (r.shaping_gamma * next_investigation - investigation_before)
         reward = (r.discovery * (self.reports.known.any(axis=0).sum() - before_found)
                   + r.delivery * (self.reports.delivered.sum() - before_delivery)
                   - r.blocked_motion * blocked - r.step_cost
@@ -160,7 +176,8 @@ class SwarmSearchEnv:
                   - r.communication_energy * comm_energy
                   - r.propulsion_energy_per_kj * flight_energy.sum() / 1000
                   - r.communication_efficiency * communication_efficiency
-                  - r.shield_correction * shield_correction)
+                  - r.shield_correction * shield_correction
+                  + information_gain + investigation_shaping)
         components = {"discovery": r.discovery * (self.reports.known.any(axis=0).sum() - before_found),
                       "delivery": r.delivery * (self.reports.delivered.sum() - before_delivery),
                       "blocked_motion": -r.blocked_motion * blocked, "step_cost": -r.step_cost,
@@ -169,7 +186,9 @@ class SwarmSearchEnv:
                       "communication_energy": -r.communication_energy * comm_energy,
                       "propulsion_energy": -r.propulsion_energy_per_kj * flight_energy.sum() / 1000,
                       "communication_efficiency": -r.communication_efficiency * communication_efficiency,
-                      "shield_correction": -r.shield_correction * shield_correction}
+                      "shield_correction": -r.shield_correction * shield_correction,
+                      "information_gain": information_gain,
+                      "investigation_shaping": investigation_shaping}
         for key, value in components.items():
             self.reward_components[key] = self.reward_components.get(key, 0.0) + float(value)
         dest = np.asarray(action.destination)
@@ -179,8 +198,6 @@ class SwarmSearchEnv:
         self.action_counts["saturated"] += int((np.abs(np.asarray(action.continuous)[:, :self.config.motion_dim]) >= .99).sum())
         # max_steps is the mission deadline, observed by the actor and critic.
         # It is a finite-horizon terminal state, not an external collection cutoff.
-        terminated = bool(self.reports.delivered.all() or not self.active.any()
-                          or self.steps >= self.config.world.max_steps)
         truncated = False
         self._ended = terminated or truncated
         return local_observations(self), float(reward), terminated, truncated, self.info()

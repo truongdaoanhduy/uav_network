@@ -23,6 +23,8 @@ class BayesianSettings:
     confirmation_threshold: float = .99
     fine_altitude_m: float = 50.0
     belief_patch_cells: int = 5
+    belief_coarse_cells: int = 0
+    verified_empty_belief: float = 0.0
 
 
 def validate_xyz(config):
@@ -33,12 +35,14 @@ def validate_xyz(config):
         raise ValueError("XYZ motion requires Bayesian sensing; legacy XY uses exact sensing")
     numbers = [w.altitude_min_m,w.altitude_max_m,w.obstacle_height_min_m,
                w.obstacle_height_max_m,s.grid_cell_m,s.belief_prior,
-               s.confirmation_threshold,s.fine_altitude_m,*s.altitude_anchors,*s.pd,*s.pf]
+               s.confirmation_threshold,s.fine_altitude_m,s.verified_empty_belief,
+               *s.altitude_anchors,*s.pd,*s.pf]
     if any(type(v) not in (float,int) or not math.isfinite(v) for v in numbers):
         raise ValueError("XYZ camera settings must be finite numbers")
     if not (0<=w.altitude_min_m<w.altitude_max_m and
             0<w.obstacle_height_min_m<=w.obstacle_height_max_m and
-            s.grid_cell_m>0 and 0<s.belief_prior<1 and 0<s.confirmation_threshold<1):
+            s.grid_cell_m>0 and 0<=s.verified_empty_belief<s.belief_prior<1
+            and s.belief_prior<s.confirmation_threshold<1):
         raise ValueError("Invalid XYZ bounds, grid or probabilities")
     if (len(s.altitude_anchors)!=4 or len(s.pd)!=4 or len(s.pf)!=4
             or any(a>=b for a,b in zip(s.altitude_anchors,s.altitude_anchors[1:]))
@@ -49,6 +53,11 @@ def validate_xyz(config):
         raise ValueError("Initial/fine altitude outside flight bounds")
     if type(s.belief_patch_cells) is not int or not 1<=s.belief_patch_cells<=13 or s.belief_patch_cells%2!=1:
         raise ValueError("belief_patch_cells must be an odd integer in [1,13]")
+    grid_n = math.ceil(w.map_size_m/s.grid_cell_m)
+    if type(s.belief_coarse_cells) is not int or not 0<=s.belief_coarse_cells<=grid_n:
+        raise ValueError("belief_coarse_cells must be an integer in [0, grid_n]")
+    if s.belief_coarse_cells and grid_n % s.belief_coarse_cells:
+        raise ValueError("belief_coarse_cells must evenly divide the Bayesian grid")
     if w.motion_dimensions==3 and math.ceil(w.map_size_m/s.grid_cell_m)>128:
         raise ValueError("Bayesian grid exceeds 128 cells per axis")
 

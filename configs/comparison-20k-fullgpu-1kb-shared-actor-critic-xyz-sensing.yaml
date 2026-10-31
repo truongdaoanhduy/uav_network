@@ -33,6 +33,10 @@ network:
   report_ttl_s: 300.0
   max_retries: 5
 reward:
+  information_gain: 10.0
+  investigation_shaping: 10.0
+  shaping_gamma: 0.99
+  investigation_belief_threshold: 0.8
   communication_efficiency: 1.0
   shield_correction: 0.1
 masac:
@@ -47,6 +51,7 @@ masac:
   updates_per_step: 8
   target_continuous_entropy: -4.0
 matd3:
+  output_normalization: true
   share_actor_parameters: true
   share_critic_parameters: true
   hidden_sizes:
@@ -156,4 +161,6 @@ sensor:
   fine_altitude_m: 50
   confirmation_threshold: 0.99
   belief_patch_cells: 5
+  belief_coarse_cells: 5
+  verified_empty_belief: 0.01
   obstacle_occlusion: true

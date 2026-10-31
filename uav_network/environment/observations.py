@@ -8,13 +8,15 @@ from ..communication.link_budget import nominal_required_power_w, power_fraction
 OBSERVATION_VERSION = 3
 
 def observation_version(config):
-    return 4 if config.motion_dim == 3 else OBSERVATION_VERSION
+    if config.motion_dim == 3:
+        return 5 if config.sensor.belief_coarse_cells else 4
+    return OBSERVATION_VERSION
 
 
 def observation_dim(config):
     w, s, n = config.world, config.sensor, config.network
     link = 3 * w.num_uavs if n.link_state_observation else 0
-    extra = (2 + s.visible_obstacle_slots + 2*(w.num_uavs-1) + s.belief_patch_cells**2) if config.motion_dim==3 else 0
+    extra = (2 + s.visible_obstacle_slots + 2*(w.num_uavs-1) + s.belief_patch_cells**2 + s.belief_coarse_cells**2) if config.motion_dim==3 else 0
     return (extra + 10 + 2 * w.num_targets + 4 * (s.visible_target_slots + s.visible_obstacle_slots)
             + 6 * (w.num_uavs - 1) + link + w.num_uavs + 1
             + s.coverage_grid_cells ** 2)

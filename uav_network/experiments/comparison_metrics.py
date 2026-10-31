@@ -54,6 +54,12 @@ def evaluation_protocol(config, seeds, progress):
         network.pop("link_budget_margin_db", None)
     if not scenario["sensor"].get("coverage_grid_cells", 0):
         scenario["sensor"].pop("coverage_grid_cells", None)
+    # Optional XYZ belief shaping must not relabel legacy scenario physics when disabled.
+    reward = scenario["reward"]
+    if not reward.get("information_gain", 0) and not reward.get("investigation_shaping", 0):
+        for key in ("information_gain", "investigation_shaping", "shaping_gamma",
+                    "investigation_belief_threshold"):
+            reward.pop(key, None)
     if (network.get("pa_efficiency") == 1.0
             and network.get("tx_circuit_power_w") == 0.0
             and network.get("rx_circuit_power_w") == 0.0):

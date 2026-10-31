@@ -41,7 +41,7 @@ def test_masked_xyz_reset_leaves_other_world_untouched():
         v.reset(seed=44);before=v.snapshot_state()
         v.reset(seed=[99,None],options={"reset_mask":[True,False]})
         after=v.snapshot_state()
-        for name in ("belief","visited","positive","altitudes","vertical_velocity","sensor_tick","sensor_counts"):
+        for name in ("belief","belief_coarse","belief_potential","visited","positive","altitudes","vertical_velocity","sensor_tick","sensor_counts"):
             assert torch.equal(before["arrays"][name][1],after["arrays"][name][1]),name
     finally:v.close()
 
@@ -118,3 +118,56 @@ def test_xyz_swept_motion_matches_native_around_finite_height_obstacle(z):
             assert not cylinder_hit(start[0],native.positions[0],[500,500,10,40],c.world.obstacle_clearance_m-1e-8)
         if z==60:assert native.positions[0,0]>500
     finally:native.close();v.close()
+
+
+def test_warp_false_confirmation_resets_verified_empty_belief():
+    from uav_network.environment.bayesian import sensor_uniform
+    c=cfg();c.world.num_uavs=c.world.num_targets=1;c.world.num_obstacles=0
+    c.sensor.verified_empty_belief=.01
+    v=WarpVectorEnv(c,"cpu")
+    try:
+        cell=20*40+20
+        seed=next(s for s in range(1,10000) if sensor_uniform(s,1,0,cell)<.055)
+        v.reset(seed=seed)
+        wp.to_torch(v.s.positions)[0]=torch.tensor([[512.5,512.5]])
+        wp.to_torch(v.s.altitudes)[0]=25
+        wp.to_torch(v.s.targets)[0]=torch.tensor([[950.,950.]])
+        wp.to_torch(v.s.belief).fill_(.5)
+        wp.to_torch(v.s.belief)[0,0,cell]=.9999
+        v.step(dict(continuous=np.zeros((1,1,4),np.float32),destination=np.zeros((1,1),np.int64)))
+        assert int(wp.to_torch(v.s.sensor_counts)[0,4]) >= 1
+        assert float(wp.to_torch(v.s.belief)[0,0,cell]) == pytest.approx(.01)
+    finally:v.close()
+
+
+def test_warp_native_coarse_belief_and_shaping_agree():
+    c=cfg();c.sensor.belief_coarse_cells=5
+    c.reward.information_gain=10;c.reward.investigation_shaping=10
+    c.reward.shaping_gamma=.99;c.reward.investigation_belief_threshold=.8
+    native=SwarmSearchEnv(c);gpu=WarpVectorEnv(c,device="cpu")
+    try:
+        no,_=native.reset(seed=44);go,_=gpu.reset(seed=44)
+        np.testing.assert_allclose(go["observation"][0].numpy(),no,atol=1e-6)
+        a=Action(np.zeros((2,4),np.float32),np.zeros(2,np.int64))
+        no,nr,_,_,_=native.step(a)
+        go,gr,_,_,_=gpu.step(dict(continuous=a.continuous[None],destination=a.destination[None]))
+        np.testing.assert_allclose(go["observation"][0].numpy(),no,atol=1e-6)
+        assert float(gr[0]) == pytest.approx(nr,abs=1e-5)
+    finally:native.close();gpu.close()
+
+
+def test_warp_shaping_components_are_exported_in_episode_info():
+    c=cfg();c.world.max_steps=1;c.sensor.belief_coarse_cells=5
+    c.reward.information_gain=10;c.reward.investigation_shaping=10
+    c.reward.shaping_gamma=.99;c.reward.investigation_belief_threshold=.8
+    v=WarpVectorEnv(c,"cpu")
+    try:
+        v.reset(seed=44)
+        action=dict(continuous=np.zeros((1,2,4),np.float32),destination=np.zeros((1,2),np.int64))
+        _,reward,_,_,infos=v.step(action)
+        info=infos["device_episode_infos"][0]
+        components=info["reward_components"]
+        assert "information_gain" in components
+        assert "investigation_shaping" in components
+        assert sum(components.values()) == pytest.approx(float(reward[0]),abs=1e-5)
+    finally:v.close()

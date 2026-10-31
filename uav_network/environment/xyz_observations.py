@@ -1,6 +1,6 @@
 """Local Bayesian evidence features; never query hidden targets for actor slots."""
 import numpy as np
-from .bayesian import belief_patch,sensor_profile
+from .bayesian import belief_patch,coarse_belief_uncertainty_map,sensor_profile
 
 
 def xyz_features(env):
@@ -33,7 +33,9 @@ def xyz_features(env):
                 vertical[slot]=[(env.positions[j,2]-p[2])/w.altitude_max_m,env.velocities[j,2]/w.max_speed_mps]
         link=link_state_features(env,i) if n.link_state_observation else []
         extra=np.r_[p[2]/w.altitude_max_m,env.velocities[i,2]/w.max_speed_mps,
-                    heights,vertical.ravel(),belief_patch(env,i)]
+                    heights,vertical.ravel(),belief_patch(env,i),
+                    coarse_belief_uncertainty_map(env.belief[i],s.belief_coarse_cells).ravel()
+                    if s.belief_coarse_cells else np.empty(0)]
         rows.append(np.r_[own,env.reports.known[i],status[i],targets.ravel(),obs.ravel(),
                           peers.ravel(),link,env.coverage[i],extra,masks[i]])
     return np.asarray(rows,dtype=np.float32)

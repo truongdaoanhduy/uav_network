@@ -62,6 +62,20 @@ class DiagnosticsTests(unittest.TestCase):
             finally:
                 env.close()
 
+    def test_xyz_saturation_warning_uses_three_motion_axes(self):
+        from uav_network.experiments.diagnostics import TrainingDiagnostics
+        with TemporaryDirectory() as folder:
+            c = Config(); c.tracking.diagnostic_window = 2
+            d = TrainingDiagnostics(c, Path(folder))
+            record = {"global_step": 1, "return": 0., "search_rate_percent": 0.,
+                      "delivery_rate_percent": 0., "success": False,
+                      "episode_length": 2, "num_uavs": 1, "motion_dim": 3,
+                      "action_counts": {"saturated": 3}}
+            record["episode"] = 1; d.episode(record)
+            record["episode"] = 2; record["global_step"] = 2
+            values = d.episode(record)
+            self.assertEqual(values["rolling/movement_saturation_rate"], .5)
+
     def test_real_training_logs_q_gradients_and_last_actual_td3_actor_update(self):
         from test_continuation import small_config
         from uav_network.experiments.training import train

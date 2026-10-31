@@ -253,6 +253,7 @@ def _train(config):
                               "episode_length": int(episode_lengths[i]), "terminated": bool(terminated[i]),
                               "truncated": bool(truncated[i]), **info, "learner": learner_telemetry(latest)}
                     record["num_uavs"] = config.world.num_uavs
+                    record["motion_dim"] = config.motion_dim
                     diagnostic_values = diagnostics.episode(record)
                     encoded = json.dumps(record, allow_nan=False)
                     stream.write(encoded + "\n")

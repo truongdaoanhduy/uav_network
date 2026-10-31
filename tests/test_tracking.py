@@ -406,6 +406,18 @@ if __name__ == "__main__":
     unittest.main()
 
 
+def test_xyz_movement_saturation_uses_three_motion_axes():
+    record = {"episode":1,"global_step":1,"return":0.,"episode_length":2,
+              "search_rate_percent":0.,"delivery_rate_percent":0.,"success":False,
+              "blocked_moves":0,"boundary_clips":0,"expired_reports":0,"dropped_reports":0,
+              "energy":{"propulsion_energy_j":0.,"battery_fraction":[1.],"active_uavs":1},
+              "network":{},"motion_counts":{},"reward_components":{},
+              "action_counts":{"saturated":3}}
+    # Three saturated XYZ components over two UAV-steps = 50%, not 75%.
+    metrics = episode_metrics(record, 1, motion_dim=3)
+    assert metrics["action/movement_saturation_fraction"] == .5
+
+
 def test_v2_reward_and_shield_metrics_are_scalar_episode_fields():
     record = {"episode":1,"global_step":1,"return":0.,"episode_length":2,
               "search_rate_percent":0.,"delivery_rate_percent":0.,"success":False,

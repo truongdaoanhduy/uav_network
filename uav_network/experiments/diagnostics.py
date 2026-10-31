@@ -107,8 +107,9 @@ class TrainingDiagnostics:
                 ("commanded_stall", "motion_counts", "commanded_stalls", 1),
                 ("movement_saturation", "action_counts", "saturated", 2)):
             values[f"rolling/{name}_rate"] = float(np.mean([
-                r.get(group, {}).get(count, 0) / max(1, components * r.get("episode_length", 1)
-                                                  * r.get("num_uavs", 6)) for r in recent]))
+                r.get(group, {}).get(count, 0) / max(1,
+                    (r.get("motion_dim", 2) if name == "movement_saturation" else components)
+                    * r.get("episode_length", 1) * r.get("num_uavs", 6)) for r in recent]))
         if len(self.window) == 2 * n:
             previous = list(self.window)[:n]
             # Descriptive compatibility metric; regression warnings use closed cohorts.

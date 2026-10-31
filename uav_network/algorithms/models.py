@@ -40,15 +40,27 @@ class HybridActor(nn.Module):
 
 
 class DeterministicActor(nn.Module):
-    def __init__(self, observation_dim, destinations, hidden_sizes, continuous_dim=3):
+    def __init__(self, observation_dim, destinations, hidden_sizes, continuous_dim=3,
+                 output_normalization=False, normalization_dims=None):
         super().__init__()
         self.encoder = mlp(observation_dim, hidden_sizes[:-1], hidden_sizes[-1])
         self.continuous = nn.Linear(hidden_sizes[-1], continuous_dim)
         self.destination = nn.Linear(hidden_sizes[-1], destinations)
+        self.output_normalization = output_normalization
+        self.normalization_dims = continuous_dim if normalization_dims is None else normalization_dims
 
     def forward(self, observations, mask):
         hidden = F.relu(self.encoder(observations))
-        return self.continuous(hidden).tanh(), masked_log_probabilities(self.destination(hidden), mask).exp()
+        raw = self.continuous(hidden)
+        if self.output_normalization:
+            # Wang et al. (ICML 2020): when the mean pre-tanh magnitude is >1,
+            # divide by that mean. Normalize motion only; learned RF power is a
+            # separate control and should not rescale XYZ flight commands.
+            motion = raw[..., :self.normalization_dims]
+            scale = motion.abs().mean(-1, keepdim=True).clamp_min(1.0)
+            motion = motion / scale
+            raw = torch.cat((motion, raw[..., self.normalization_dims:]), -1)
+        return raw.tanh(), masked_log_probabilities(self.destination(hidden), mask).exp()
 
 
 class TwinCritic(nn.Module):
