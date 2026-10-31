@@ -22,4 +22,4 @@ Launch one second MASAC PQL training root on a different Kaggle account to test 
 3. Manual GitHub Actions root launcher using already-synced GitHub Secrets: selected. It keeps credentials inside GitHub, checks out the exact scientific commit, and produces a sanitized launch artifact.
 
 ## Selected architecture
-Create a manual-only workflow dedicated to this replicate. It checks out commit `0ac776b`, reconstructs a temporary one-account credential file from GitHub Secrets inside the runner, invokes the existing cloud launcher with the exact original MASAC PQL overrides, uploads only the sanitized launch manifest, and then lets the existing GitHub supervisor manage continuation.
+Add a manual replicate mode to the existing external-supervisor workflow, which already has a dispatch identity on the default branch. It checks out commit `0ac776b`, reconstructs a temporary one-account credential file from GitHub Secrets inside the runner, invokes the existing cloud launcher with the exact original MASAC PQL overrides, uploads only the sanitized launch manifest, and then lets the existing GitHub supervisor manage continuation.

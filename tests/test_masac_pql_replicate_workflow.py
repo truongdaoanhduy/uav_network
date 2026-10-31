@@ -3,16 +3,24 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW = ROOT / ".github/workflows/uav_masac_pql_replicate.yml"
+WORKFLOW = ROOT / ".github/workflows/uav_external_supervisor.yml"
 PINNED_COMMIT = "0ac776bd20f1abd472c0ed016bb9e3d95f7a95b4"
 
 
-def test_replicate_workflow_is_manual_only_and_pins_scientific_identity():
-    assert WORKFLOW.is_file()
+def _workflow_data():
     source = WORKFLOW.read_text()
-    data = yaml.safe_load(source)
+    return source, yaml.safe_load(source)
+
+
+def test_supervisor_workflow_has_manual_masac_pql_replicate_mode():
+    source, data = _workflow_data()
     events = data.get("on", data.get(True))
-    assert set(events) == {"workflow_dispatch"}
+    dispatch = events["workflow_dispatch"]
+    assert dispatch["inputs"]["launch_masac_pql_replicate"]["type"] == "boolean"
+    assert dispatch["inputs"]["launch_masac_pql_replicate"]["default"] is False
+    assert set(data["jobs"]) == {"supervise", "replicate"}
+    replicate = data["jobs"]["replicate"]
+    assert "inputs.launch_masac_pql_replicate" in replicate["if"]
     assert f"ref: {PINNED_COMMIT}" in source
     assert "KAGGLE_API_TOKEN_ACCOUNT_06" in source
     assert "--account', 'account_06'" in source
@@ -28,8 +36,11 @@ def test_replicate_workflow_is_manual_only_and_pins_scientific_identity():
     assert "KGAT_" not in source
 
 
-def test_replicate_workflow_keeps_ephemeral_credentials_outside_repo():
-    source = WORKFLOW.read_text()
+def test_supervisor_replicate_mode_does_not_change_scheduled_supervision():
+    source, data = _workflow_data()
+    supervise = data["jobs"]["supervise"]
+    assert "launch_masac_pql_replicate" in supervise["if"]
+    assert data.get("on", data.get(True))["schedule"] == [{"cron": "*/15 * * * *"}]
     assert "/tmp/uav-replicate-key.json" in source
     assert "unlink(missing_ok=True)" in source
     assert "outputs/masac-pql-replicate-launch.json" in source

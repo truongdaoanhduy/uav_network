@@ -28,11 +28,11 @@
 
 ### Task 1: Pin the replicate workflow contract
 **Files:**
-- Create: `.github/workflows/uav_masac_pql_replicate.yml`
+- Modify: `.github/workflows/uav_external_supervisor.yml`
 - Create: `tests/test_masac_pql_replicate_workflow.py`
 
 - [ ] Write failing workflow contract test.
-- [ ] Create the minimal manual workflow pinned to account_06 and commit `0ac776b`.
+- [ ] Add the minimal manual replicate job pinned to account_06 and commit `0ac776b`, while preserving scheduled supervision.
 - [ ] Run targeted workflow tests.
 - [ ] Commit and push.
 
