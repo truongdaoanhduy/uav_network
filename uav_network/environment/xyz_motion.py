@@ -26,18 +26,31 @@ def move_xyz(positions,velocities,acceleration,obstacles,heights,config,disabled
     paths=braking_paths(positions,chosen,w)
     counts={f"shield_{k}":0 for k in ("interventions","obstacle_interventions","peer_interventions","boundary_interventions","infeasible")}
     if w.motion_safety=="dynamic_window":
-        grid=np.array(list(product((-1.,0.,1.),repeat=3)))*step
-        for i in range(n):
-            if disabled[i]:continue
-            candidates=reachable_velocities(np.vstack([nominal[i],chosen[i],velocities[i]+grid]),velocities[i],w)
-            order=np.argsort(np.square(candidates-nominal[i]).sum(1),kind="stable")
-            selected=False
-            for j in order:
-                path=braking_paths(positions[i:i+1],candidates[j:j+1],w)[0]
-                if static(path) and all(_peer_clear(path,paths[k],w.safety_distance_m) for k in range(n) if k!=i):
-                    chosen[i]=candidates[j];paths[i]=path;selected=True;break
-            counts["shield_infeasible"]+=int(not selected)
-            counts["shield_interventions"]+=int(not np.allclose(chosen[i],nominal[i],rtol=0,atol=1e-9))
+        # Pass the policy through unchanged when the complete joint nominal
+        # braking trajectories are already safe.  Without this fast path, an
+        # early-ID UAV is compared with later peers' fallback braking paths,
+        # which can create a correction even though all peers following their
+        # nominal commands would remain collision-free.
+        nominal_paths=braking_paths(positions,nominal,w)
+        joint_safe=all(static(path) for path in nominal_paths)
+        if joint_safe:
+            joint_safe=all(_peer_clear(nominal_paths[i],nominal_paths[j],w.safety_distance_m)
+                           for i in range(n) for j in range(i))
+        if joint_safe:
+            chosen=nominal.copy();paths=nominal_paths
+        else:
+            grid=np.array(list(product((-1.,0.,1.),repeat=3)))*step
+            for i in range(n):
+                if disabled[i]:continue
+                candidates=reachable_velocities(np.vstack([nominal[i],chosen[i],velocities[i]+grid]),velocities[i],w)
+                order=np.argsort(np.square(candidates-nominal[i]).sum(1),kind="stable")
+                selected=False
+                for j in order:
+                    path=braking_paths(positions[i:i+1],candidates[j:j+1],w)[0]
+                    if static(path) and all(_peer_clear(path,paths[k],w.safety_distance_m) for k in range(n) if k!=i):
+                        chosen[i]=candidates[j];paths[i]=path;selected=True;break
+                counts["shield_infeasible"]+=int(not selected)
+                counts["shield_interventions"]+=int(not np.allclose(chosen[i],nominal[i],rtol=0,atol=1e-9))
     else: chosen=nominal.copy()
     end=np.clip(positions+chosen*w.dt_s,lo,hi);end[disabled]=positions[disabled]
     clipped=np.any(end!=positions+chosen*w.dt_s,axis=1)

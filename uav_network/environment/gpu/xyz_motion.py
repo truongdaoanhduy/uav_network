@@ -91,25 +91,39 @@ def motion_xyz(s:WorldState,p:WorldParams,actions:wp.array3d(dtype=wp.float32)):
             if s.motion_flags[e,i,0]!=0:nominal=wp.vec3d(0.0);chosen=wp.vec3d(0.0)
             s.xyz_work[e,i,0]=nominal;s.xyz_work[e,i,1]=chosen
             s.motion_flags[e,i,1]=0
-        for i in range(p.n):
-            if s.motion_flags[e,i,0]==0:
-                previous=velocity3(s,e,i);pos=position3(s,e,i);nominal=s.xyz_work[e,i,0]
-                best=wp.float64(1e100);selected=bool(False)
-                if p.motion_safety!=0:
-                    for candidate in range(29):
-                        v=nominal
-                        if candidate==1:v=s.xyz_work[e,i,1]
-                        elif candidate>=2:
-                            q=candidate-2
-                            v=project(previous+step*wp.vec3d(wp.float64(q//9-1),wp.float64((q//3)%3-1),wp.float64(q%3-1)),previous,p)
-                        score=wp.dot(v-nominal,v-nominal)
-                        if score<best and static_path(s,p,e,pos,v):
-                            safe=bool(True)
-                            for j in range(p.n):
-                                if j!=i and not peer_path(pos,v,position3(s,e,j),s.xyz_work[e,j,1],p):safe=False
-                            if safe:best=score;s.xyz_work[e,i,1]=v;selected=True
-                    s.motion_flags[e,i,1]=int(not selected)
-                else:s.xyz_work[e,i,1]=nominal
+        joint_safe=bool(True)
+        if p.motion_safety!=0:
+            for i in range(p.n):
+                if s.motion_flags[e,i,0]==0 and not static_path(s,p,e,position3(s,e,i),s.xyz_work[e,i,0]):
+                    joint_safe=False
+                for j in range(i):
+                    if not peer_path(position3(s,e,i),s.xyz_work[e,i,0],
+                                     position3(s,e,j),s.xyz_work[e,j,0],p):
+                        joint_safe=False
+        if p.motion_safety!=0 and joint_safe:
+            for i in range(p.n):
+                s.xyz_work[e,i,1]=s.xyz_work[e,i,0]
+                s.motion_flags[e,i,1]=0
+        else:
+            for i in range(p.n):
+                if s.motion_flags[e,i,0]==0:
+                    previous=velocity3(s,e,i);pos=position3(s,e,i);nominal=s.xyz_work[e,i,0]
+                    best=wp.float64(1e100);selected=bool(False)
+                    if p.motion_safety!=0:
+                        for candidate in range(29):
+                            v=nominal
+                            if candidate==1:v=s.xyz_work[e,i,1]
+                            elif candidate>=2:
+                                q=candidate-2
+                                v=project(previous+step*wp.vec3d(wp.float64(q//9-1),wp.float64((q//3)%3-1),wp.float64(q%3-1)),previous,p)
+                            score=wp.dot(v-nominal,v-nominal)
+                            if score<best and static_path(s,p,e,pos,v):
+                                safe=bool(True)
+                                for j in range(p.n):
+                                    if j!=i and not peer_path(pos,v,position3(s,e,j),s.xyz_work[e,j,1],p):safe=False
+                                if safe:best=score;s.xyz_work[e,i,1]=v;selected=True
+                        s.motion_flags[e,i,1]=int(not selected)
+                    else:s.xyz_work[e,i,1]=nominal
         for i in range(p.n):
             pos=position3(s,e,i);end=clip3(pos+s.xyz_work[e,i,1]*p.dt,wp.vec3d(0.0,0.0,p.altitude_min),wp.vec3d(p.map_size,p.map_size,p.altitude_max))
             if s.motion_flags[e,i,0]!=0:end=pos

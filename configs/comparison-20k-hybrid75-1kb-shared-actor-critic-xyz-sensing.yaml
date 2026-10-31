@@ -5,7 +5,7 @@ world:
   map_size_m: 1000.0
   num_targets: 20
   num_obstacles: 15
-  max_steps: 1200
+  max_steps: 1500
   motion_safety: dynamic_window
   motion_dimensions: 3
   altitude_min_m: 0
@@ -82,7 +82,7 @@ runtime:
   log_interval_steps: 4096
   checkpoint_interval: 128
   max_train_seconds: 36000
-  output_dir: outputs/comparison-20k-steps1200-t20-o15-learnedpower-report1kb-shared-actor-critic-xyz-sensing
+  output_dir: outputs/comparison-20k-steps1500-t20-o15-learnedpower-report1kb-shared-actor-critic-xyz-sensing
 pql:
   enabled: false
   mode: async
@@ -124,7 +124,7 @@ tracking:
   - cpu75-gpu25
   - batch8192
   - env4096
-  - steps1200
+  - steps1500
   - seed44
   - base-pql-comparison
   - report1kb

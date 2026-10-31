@@ -18,7 +18,7 @@ def test_xyz_profiles_preserve_controlled_budget(name):
     c=load_config("configs/"+name+"-xyz-sensing.yaml")
     old=load_config("configs/"+name+".yaml")
     assert c.motion_dim==3 and c.continuous_dim==4 and old.motion_dim==2
-    assert (c.world.num_uavs,c.world.map_size_m,c.world.num_targets,c.world.num_obstacles,c.world.max_steps)==(6,1000,20,15,1200)
+    assert (c.world.num_uavs,c.world.map_size_m,c.world.num_targets,c.world.num_obstacles,c.world.max_steps)==(6,1000,20,15,1500)
     assert (c.runtime.num_envs,c.masac.batch_size,c.masac.replay_capacity)==(4096,8192,1000000)
     assert c.runtime.amp_mode=="off" and c.network.power_control=="learned"
     assert c.masac.target_continuous_entropy==-4
