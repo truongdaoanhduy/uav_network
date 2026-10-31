@@ -55,7 +55,7 @@
 - [x] Remove XYZ DWA candidate search after parity passes.
 
 ### Task 4: Verification and ablation
-- [ ] Full test suite and diff check.
-- [ ] Deterministic obstacle/peer/boundary stress tests.
-- [ ] Short MASAC/MATD3 micro-training comparing intervention/stall/collision metrics.
-- [ ] Commit/push only after all checks pass.
+- [x] Full test suite and diff check.
+- [x] Deterministic obstacle/peer/boundary stress tests.
+- [x] Short MASAC/MATD3 micro-training comparing intervention/stall/collision metrics.
+- [x] Commit/push only after all checks pass.
