@@ -88,7 +88,8 @@ def test_secret_sync_uses_stdin_and_skips_disabled_accounts(tmp_path):
     assert "KAGGLE_ENABLED_ACCOUNTS" in result["variables"]
 
 
-def test_secret_sync_preserves_stable_github_alias_after_local_renumber(tmp_path):
+def test_secret_sync_rejects_legacy_github_account_alias(tmp_path):
+    import pytest
     from scripts.sync_github_supervisor_secrets import sync_credentials
 
     key = tmp_path / "key.txt"
@@ -100,37 +101,24 @@ def test_secret_sync_preserves_stable_github_alias_after_local_renumber(tmp_path
         "wandb": {"api_key": "wandb-secret", "entity": "owner", "project": "project"},
         "huggingface": {"token": "hf-secret", "repo_id": "owner/checkpoints"},
     }))
-    calls = []
-
-    def run(command, **kwargs):
-        calls.append((list(command), dict(kwargs)))
-        class Result:
-            stdout = ""
-        return Result()
-
-    sync_credentials(key, repo="owner/repo", run=run)
-    secret_names = {command[3] for command, _ in calls if command[1:3] == ["secret", "set"]}
-    assert "KAGGLE_API_TOKEN_ACCOUNT_07" in secret_names
-    assert "KAGGLE_API_TOKEN_ACCOUNT_04" not in secret_names
-    enabled_call = next(kwargs for command, kwargs in calls
-                        if command[1:4] == ["variable", "set", "KAGGLE_ENABLED_ACCOUNTS"])
-    assert enabled_call["input"] == "account_07"
+    with pytest.raises(ValueError, match="github_account is no longer supported"):
+        sync_credentials(key, repo="owner/repo", run=lambda *args, **kwargs: None)
 
 
-def test_secret_sync_rejects_duplicate_github_aliases(tmp_path):
+def test_secret_sync_rejects_duplicate_local_account_names(tmp_path):
     import pytest
     from scripts.sync_github_supervisor_secrets import sync_credentials
 
     key = tmp_path / "key.txt"
     key.write_text(json.dumps({
         "kaggle": {"accounts": [
-            {"name": "account_04", "github_account": "account_07", "token": "one", "enabled": True},
-            {"name": "account_05", "github_account": "account_07", "token": "two", "enabled": True},
+            {"name": "account_04", "token": "one", "enabled": True},
+            {"name": "account_04", "token": "two", "enabled": True},
         ]},
         "wandb": {"api_key": "wandb-secret", "entity": "owner", "project": "project"},
         "huggingface": {"token": "hf-secret", "repo_id": "owner/checkpoints"},
     }))
-    with pytest.raises(ValueError, match="duplicate GitHub Kaggle account alias"):
+    with pytest.raises(ValueError, match="duplicate Kaggle account name"):
         sync_credentials(key, repo="owner/repo", run=lambda *args, **kwargs: None)
 
 
