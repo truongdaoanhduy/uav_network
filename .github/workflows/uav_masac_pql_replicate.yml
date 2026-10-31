@@ -1,0 +1,115 @@
+name: UAV MASAC PQL Reproducibility Replicate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uav-masac-pql-replicate-launch
+  cancel-in-progress: false
+
+jobs:
+  launch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      KAGGLE_API_TOKEN_ACCOUNT_06: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_06 }}
+      WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      WANDB_ENTITY: ${{ vars.WANDB_ENTITY }}
+      WANDB_PROJECT: ${{ vars.WANDB_PROJECT }}
+      HF_REPO_ID: ${{ vars.HF_REPO_ID }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - name: Checkout pinned scientific source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: 0ac776bd20f1abd472c0ed016bb9e3d95f7a95b4
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Install orchestration dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "numpy>=2.2,<3" "kaggle>=2.2,<3" "wandb>=0.25,<1" "huggingface-hub>=0.34,<2" "PyYAML>=6,<7"
+
+      - name: Launch exact MASAC PQL replicate on account_06
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=. python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          key_path = Path("/tmp/uav-replicate-key.json")
+          key_path.write_text(json.dumps({
+              "kaggle": {"accounts": [{
+                  "name": "account_06",
+                  "token": os.environ["KAGGLE_API_TOKEN_ACCOUNT_06"],
+                  "enabled": True,
+              }]},
+              "wandb": {
+                  "api_key": os.environ["WANDB_API_KEY"],
+                  "entity": os.environ["WANDB_ENTITY"],
+                  "project": os.environ["WANDB_PROJECT"],
+              },
+              "huggingface": {
+                  "token": os.environ["HF_TOKEN"],
+                  "repo_id": os.environ["HF_REPO_ID"],
+              },
+          }))
+          key_path.chmod(0o600)
+          try:
+              from uav_network.cloud.cli import main
+              from uav_network.cloud.client import resolve_username
+              from uav_network.cloud.credentials import load_credentials
+
+              credentials = load_credentials(key_path)
+              username = resolve_username(credentials.accounts[0])
+              result = main([
+                  '--key-file', str(key_path),
+                  'launch',
+                  '--stage', 'train',
+                  '--account', 'account_06',
+                  '--credential-dataset', f'{username}/uav-cpu-wandb-credential',
+                  '--algorithm', 'masac',
+                  '--config', 'configs/comparison-20k-hybrid75-1kb-shared-actor-critic-xyz-sensing.yaml',
+                  '--auto-continue',
+                  '--gpus-per-run', '2',
+                  '--accelerator', 'NvidiaTeslaT4',
+                  '--timeout-seconds', '39600',
+                  '--set', 'runtime.seed=44',
+                  '--set', 'runtime.episodes=20000',
+                  '--set', 'runtime.compile_models=false',
+                  '--set', 'pql.enabled=true',
+                  '--set', 'tracking.group=uav-xyz-cbf1500-0ac776b-masac-pql-s44',
+              ])
+              output = Path('outputs/masac-pql-replicate-launch.json')
+              output.parent.mkdir(parents=True, exist_ok=True)
+              output.write_text(json.dumps(result, indent=2))
+              print(json.dumps({
+                  "account": result["account"],
+                  "commit": result["commit"],
+                  "kernel_ref": result["kernel_ref"],
+                  "run_id": result["runs"]["masac"]["id"],
+                  "wandb_url": result["wandb_urls"]["masac"],
+              }, indent=2))
+          finally:
+              key_path.unlink(missing_ok=True)
+          PY
+
+      - name: Preserve sanitized launch manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: masac-pql-replicate-launch
+          path: outputs/masac-pql-replicate-launch.json
+          if-no-files-found: error
+          retention-days: 14
