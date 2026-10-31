@@ -20,6 +20,26 @@ def controls(parent, results):
             "continuation.json": {"status": "external_pending"}}
 
 
+def test_validate_job_accepts_manifest_alias_when_authenticated_owner_matches():
+    s, _account, _credentials, parent = fixtures()
+    account = Account("account_19", "synthetic-token")
+    parent["account"] = "account_03"
+    parent["kernel_ref"] = parent["root_kernel_ref"] = "owner/gh-tra-g3-masac-base-test"
+    with patch.object(s, "resolve_username", return_value="owner"):
+        s._validate_job(parent["kernel_ref"], parent, account)
+
+
+def test_validate_job_rejects_alias_when_authenticated_owner_differs():
+    import pytest
+    s, _account, _credentials, parent = fixtures()
+    account = Account("account_19", "synthetic-token")
+    parent["account"] = "account_03"
+    parent["kernel_ref"] = parent["root_kernel_ref"] = "owner/gh-tra-g3-masac-base-test"
+    with patch.object(s, "resolve_username", return_value="different-owner"):
+        with pytest.raises(ValueError, match="selected account/lineage"):
+            s._validate_job(parent["kernel_ref"], parent, account)
+
+
 def test_active_kernel_is_observed_without_reading_outputs_or_submitting():
     s, account, credentials, parent = fixtures()
     with patch.object(s, "kernel_status", return_value="running"), \

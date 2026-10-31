@@ -89,8 +89,12 @@ def read_controls(ref, account):
 
 def _validate_job(ref, job, account):
     root = job.get("root_kernel_ref", ref)
-    if (job.get("kernel_ref") != ref or job.get("account") != account.name
-            or ref.split("/", 1)[0] != root.split("/", 1)[0]):
+    ref_owner = ref.split("/", 1)[0]
+    root_owner = root.split("/", 1)[0]
+    account_matches = job.get("account") == account.name
+    if not account_matches:
+        account_matches = resolve_username(account) == ref_owner
+    if (job.get("kernel_ref") != ref or not account_matches or ref_owner != root_owner):
         raise ValueError("Cloud receipt differs from the selected account/lineage")
 
 
