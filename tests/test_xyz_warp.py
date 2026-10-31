@@ -11,6 +11,7 @@ from uav_network.environment.gpu.vector import WarpVectorEnv
 
 def cfg(count=1):
     c=xyz_config(n=2,targets=2,obstacles=1)
+    c.world.motion_safety="cbf"
     c.runtime.num_envs=count;c.runtime.device="cpu";c.runtime.environment_backend="warp_packet"
     return c
 

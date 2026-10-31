@@ -1,7 +1,6 @@
 """Bounded XYZ dynamic-window motion with swept cylinder/peer certificates."""
-from itertools import product
 import numpy as np
-from .avoidance import reachable_velocities, braking_paths
+from .avoidance import reachable_velocities
 from .xyz_geometry import cylinder_hit
 from .cbf import filter_xyz_acceleration
 
@@ -14,25 +13,20 @@ def _peer_clear(a,b,distance):
 
 def move_xyz(positions,velocities,acceleration,obstacles,heights,config,disabled=None,diagnostics=None):
     w=config.world;n=len(positions);step=w.max_accel_mps2*w.dt_s
+    if w.motion_safety=="dynamic_window":
+        raise NotImplementedError("XYZ dynamic-window safety was retired; use its pinned historical source")
     disabled=np.zeros(n,bool) if disabled is None else disabled
     nominal=reachable_velocities(velocities+acceleration*step,velocities,w);nominal[disabled]=0
     lo=np.array([0.,0.,w.altitude_min_m]);hi=np.array([w.map_size_m,w.map_size_m,w.altitude_max_m])
     cylinders=[np.r_[o,h] for o,h in zip(obstacles,heights)]
-    def static(path):
-        return bool(((path>=lo)&(path<=hi)).all() and
-                    not any(cylinder_hit(a,b,o,w.obstacle_clearance_m)
-                            for a,b in zip(path,path[1:]) for o in cylinders))
-    speed=np.linalg.norm(velocities,axis=1,keepdims=True)
-    chosen=velocities*np.maximum(0,1-step/np.maximum(speed,1e-12));chosen[disabled]=0
-    paths=braking_paths(positions,chosen,w)
     counts={f"shield_{k}":0 for k in ("interventions","obstacle_interventions","peer_interventions","boundary_interventions","infeasible")}
+    chosen=nominal.copy()
     if w.motion_safety=="cbf":
         physical_nominal=np.clip(acceleration,-1.,1.)*w.max_accel_mps2
         physical_nominal[disabled]=0.
         safe_accel,cbf=filter_xyz_acceleration(positions,velocities,physical_nominal,obstacles,heights,w,disabled)
         nominal=reachable_velocities(velocities+physical_nominal*w.dt_s,velocities,w);nominal[disabled]=0
         chosen=reachable_velocities(velocities+safe_accel*w.dt_s,velocities,w);chosen[disabled]=0
-        paths=braking_paths(positions,chosen,w)
         counts.update(
             shield_interventions=cbf["cbf_interventions"],
             shield_obstacle_interventions=cbf["cbf_obstacle_interventions"],
@@ -40,33 +34,6 @@ def move_xyz(positions,velocities,acceleration,obstacles,heights,config,disabled
             shield_boundary_interventions=cbf["cbf_boundary_interventions"],
             shield_infeasible=cbf["cbf_infeasible"],
         )
-    elif w.motion_safety=="dynamic_window":
-        # Pass the policy through unchanged when the complete joint nominal
-        # braking trajectories are already safe.  Without this fast path, an
-        # early-ID UAV is compared with later peers' fallback braking paths,
-        # which can create a correction even though all peers following their
-        # nominal commands would remain collision-free.
-        nominal_paths=braking_paths(positions,nominal,w)
-        joint_safe=all(static(path) for path in nominal_paths)
-        if joint_safe:
-            joint_safe=all(_peer_clear(nominal_paths[i],nominal_paths[j],w.safety_distance_m)
-                           for i in range(n) for j in range(i))
-        if joint_safe:
-            chosen=nominal.copy();paths=nominal_paths
-        else:
-            grid=np.array(list(product((-1.,0.,1.),repeat=3)))*step
-            for i in range(n):
-                if disabled[i]:continue
-                candidates=reachable_velocities(np.vstack([nominal[i],chosen[i],velocities[i]+grid]),velocities[i],w)
-                order=np.argsort(np.square(candidates-nominal[i]).sum(1),kind="stable")
-                selected=False
-                for j in order:
-                    path=braking_paths(positions[i:i+1],candidates[j:j+1],w)[0]
-                    if static(path) and all(_peer_clear(path,paths[k],w.safety_distance_m) for k in range(n) if k!=i):
-                        chosen[i]=candidates[j];paths[i]=path;selected=True;break
-                counts["shield_infeasible"]+=int(not selected)
-                counts["shield_interventions"]+=int(not np.allclose(chosen[i],nominal[i],rtol=0,atol=1e-9))
-    else: chosen=nominal.copy()
     end=np.clip(positions+chosen*w.dt_s,lo,hi);end[disabled]=positions[disabled]
     clipped=np.any(end!=positions+chosen*w.dt_s,axis=1)
     blocked=np.array([any(cylinder_hit(a,b,o,w.obstacle_clearance_m) for o in cylinders)

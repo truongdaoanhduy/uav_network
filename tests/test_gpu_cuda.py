@@ -70,6 +70,47 @@ class CudaDeviceIntegrationTests(unittest.TestCase):
             cpu.close()
             cuda.close()
 
+    def test_xyz_cbf_cpu_cuda_worlds_match_random_actions(self):
+        from uav_network.configuration import Config
+        from uav_network.environment.gpu.vector import WarpVectorEnv
+
+        c = Config()
+        c.world.motion_dimensions = 3
+        c.world.motion_safety = "cbf"
+        c.sensor.model = "bayesian"
+        c.network.enabled = False
+        c.energy.enabled = False
+        c.runtime.environment_backend = "warp_packet"
+        c.runtime.num_envs = 4
+        c.world.num_targets = 2
+        c.world.num_obstacles = 2
+        c.world.max_steps = 40
+        cpu, cuda = WarpVectorEnv(c, device="cpu"), WarpVectorEnv(c, device="cuda")
+        try:
+            expected, _ = cpu.reset(seed=44)
+            actual, _ = cuda.reset(seed=44)
+            for key in actual:
+                torch.testing.assert_close(actual[key].cpu(), expected[key], rtol=0, atol=2e-6)
+            rng = np.random.default_rng(20261101)
+            for _ in range(16):
+                continuous = rng.uniform(-1, 1, (4, c.world.num_uavs, c.continuous_dim)).astype(np.float32)
+                destination = np.zeros((4, c.world.num_uavs), dtype=np.int64)
+                expected, reward, done, _, _ = cpu.step(dict(continuous=continuous, destination=destination))
+                actual, cuda_reward, cuda_done, _, _ = cuda.step(dict(
+                    continuous=torch.as_tensor(continuous, device="cuda"),
+                    destination=torch.as_tensor(destination, device="cuda")))
+                for key in actual:
+                    torch.testing.assert_close(actual[key].cpu(), expected[key], rtol=0, atol=2e-6)
+                torch.testing.assert_close(cuda_reward.cpu(), reward, rtol=0, atol=2e-6)
+                torch.testing.assert_close(cuda_done.cpu(), done, rtol=0, atol=0)
+                torch.testing.assert_close(wp.to_torch(cuda.s.motion_counts).cpu(),
+                                           wp.to_torch(cpu.s.motion_counts).cpu(), rtol=0, atol=0)
+                torch.testing.assert_close(wp.to_torch(cuda.s.shield_correction).cpu(),
+                                           wp.to_torch(cpu.s.shield_correction).cpu(), rtol=0, atol=2e-10)
+        finally:
+            cpu.close()
+            cuda.close()
+
     def test_vector_follows_nondefault_torch_stream_and_waits_for_async_step(self):
         from uav_network.environment.gpu.vector import WarpVectorEnv
         c = small_config()

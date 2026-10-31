@@ -2,6 +2,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import torch
+import pytest
 
 from uav_network.configuration import Config, load_config
 from uav_network.algorithms.checkpoints import make_learner, load_policy
@@ -121,14 +122,34 @@ def test_cbf_training_diagnostics_use_canonical_warning_names(tmp_path):
     assert "diagnostics/cbf_intervention_warning" in values
 
 
-def test_gpu_cbf_fails_closed_until_warp_parity_exists():
+def test_gpu_cbf_is_encoded_explicitly_and_legacy_xyz_dwa_fails_closed():
     from uav_network.environment.gpu.state import params_from_config
 
     c = load_config(XYZ_CONFIGS[1])
     assert c.world.motion_safety == "cbf"
+    assert int(params_from_config(c).motion_safety) == 2
+
+    c.world.motion_safety = "dynamic_window"
     try:
         params_from_config(c)
     except NotImplementedError as exc:
-        assert "CBF" in str(exc) and "Warp" in str(exc)
+        assert "dynamic-window" in str(exc) and "historical source" in str(exc)
     else:
-        raise AssertionError("Warp must not silently execute a different safety mode for CBF configs")
+        raise AssertionError("Retired XYZ DWA must not silently execute in the new Warp backend")
+
+
+def test_native_xyz_dynamic_window_is_retired_from_new_source():
+    import numpy as np
+    from uav_network.environment.xyz_motion import move_xyz
+
+    c = load_config(XYZ_CONFIGS[1])
+    c.world.motion_safety = "dynamic_window"
+    with pytest.raises(NotImplementedError, match="historical source"):
+        move_xyz(
+            np.array([[500.0, 500.0, 80.0]]),
+            np.zeros((1, 3)),
+            np.zeros((1, 3)),
+            np.empty((0, 3)),
+            np.empty((0,)),
+            c,
+        )

@@ -292,8 +292,8 @@ class WorldState:
 def params_from_config(config):
     config.validate()
     w, c, n, en, r = config.world, config.sensor, config.network, config.energy, config.reward
-    if config.motion_dim == 3 and w.motion_safety == "cbf":
-        raise NotImplementedError("XYZ CBF Warp parity is not implemented yet; use native CPU until Task 3")
+    if config.motion_dim == 3 and w.motion_safety == "dynamic_window":
+        raise NotImplementedError("XYZ dynamic-window safety was retired; evaluate legacy runs with their pinned historical source")
     if n.max_retries > 26:
         raise NotImplementedError("warp_packet supports max_retries<=26; larger retries need multiword getrandbits")
     if n.max_queue_packets > 64:
@@ -309,7 +309,7 @@ def params_from_config(config):
     p.verified_empty_belief, p.investigation_threshold = c.verified_empty_belief, r.investigation_belief_threshold
     p.sensor_anchors, p.sensor_pd, p.sensor_pf = wp.vec4d(*c.altitude_anchors), wp.vec4d(*c.pd), wp.vec4d(*c.pf)
     values = dict(n=w.num_uavs, targets_count=w.num_targets, obstacles_count=w.num_obstacles,
-                  max_steps=w.max_steps, motion_safety=int(w.motion_safety == "dynamic_window"),
+                  max_steps=w.max_steps, motion_safety={"reject":0,"dynamic_window":1,"cbf":2}[w.motion_safety],
                   occlusion=int(c.obstacle_occlusion), target_slots=c.visible_target_slots,
                   obstacle_slots=c.visible_obstacle_slots, report_bytes=n.report_bytes,
                   coverage_grid_cells=c.coverage_grid_cells,

@@ -40,7 +40,7 @@ def test_xyz_train_eval_checkpoint_roundtrip(tmp_path,algorithm,mode,shared):
 def test_xyz_best_selector_accepts_schema4_snapshot(tmp_path):
     from test_best_checkpoints import config,candidate
     from uav_network.experiments.best_checkpoints import BestCheckpoint
-    c=config();c.world.motion_dimensions=3;c.sensor.model="bayesian"
+    c=config();c.world.motion_dimensions=3;c.world.motion_safety="cbf";c.sensor.model="bayesian"
     result,source=candidate(c,tmp_path/"candidate")
     selector=BestCheckpoint(c,tmp_path/"selection")
     assert selector.consider(result,source)

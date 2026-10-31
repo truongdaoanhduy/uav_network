@@ -15,7 +15,7 @@ from uav_network.environment.env import Action
 @pytest.mark.parametrize("power",["learned","link_budget"])
 def test_xyz_policy_replay_and_real_updates(tmp_path,algorithm,actor,critic,power):
     torch.set_num_threads(1);torch.manual_seed(44)
-    c=Config();c.world.motion_dimensions=3;c.sensor.model="bayesian";c.world.num_uavs=2
+    c=Config();c.world.motion_dimensions=3;c.world.motion_safety="cbf";c.sensor.model="bayesian";c.world.num_uavs=2
     c.runtime.algorithm=algorithm;c.runtime.vectorize_critics=True;c.runtime.critic_chunk_size=2
     c.network.power_control=power
     a=c.algorithm_config;a.hidden_sizes=[8,8];a.batch_size=4;a.replay_capacity=16

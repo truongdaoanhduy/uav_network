@@ -9,6 +9,7 @@ from uav_network.environment.env import Action, SwarmSearchEnv
 def xyz_config(n=1, targets=1, obstacles=0):
     c = Config()
     c.world.motion_dimensions = 3
+    c.world.motion_safety = "cbf"
     c.sensor.model = "bayesian"
     c.world.num_uavs, c.world.num_targets, c.world.num_obstacles = n, targets, obstacles
     c.network.enabled = False

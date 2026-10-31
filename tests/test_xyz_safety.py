@@ -10,7 +10,7 @@ from uav_network.environment.gpu.vector import WarpVectorEnv
 
 def _config():
     c = xyz_config(n=2, targets=1, obstacles=0)
-    c.world.motion_safety = "dynamic_window"
+    c.world.motion_safety = "cbf"
     c.energy.enabled = False
     return c
 
