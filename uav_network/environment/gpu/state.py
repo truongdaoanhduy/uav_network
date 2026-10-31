@@ -292,6 +292,8 @@ class WorldState:
 def params_from_config(config):
     config.validate()
     w, c, n, en, r = config.world, config.sensor, config.network, config.energy, config.reward
+    if config.motion_dim == 3 and w.motion_safety == "cbf":
+        raise NotImplementedError("XYZ CBF Warp parity is not implemented yet; use native CPU until Task 3")
     if n.max_retries > 26:
         raise NotImplementedError("warp_packet supports max_retries<=26; larger retries need multiword getrandbits")
     if n.max_queue_packets > 64:

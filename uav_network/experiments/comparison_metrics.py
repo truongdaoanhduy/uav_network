@@ -30,6 +30,7 @@ METRICS = {
     "swept_peer_violation_pairs": ("pair segments including reset", "lower"),
     "swept_obstacle_violation_segments": ("UAV-obstacle segments including reset", "lower"),
     "boundary_violation_samples": ("UAV samples including reset", "lower"),
+    "cbf_interventions_per_uav_step": ("interventions/UAV-step", "lower"),
     "shield_interventions_per_uav_step": ("interventions/UAV-step", "lower"),
     "blocked_moves_per_uav_step": ("blocks/UAV-step", "lower"),
     "packet_pdr_fraction": ("fraction of per-hop generated packets", "higher"),
@@ -37,7 +38,8 @@ METRICS = {
     "relay_toward_gcs_fraction": ("fraction of peer custody transfers", "higher"),
     "tx_power_margin_db_mean": ("dB", "descriptive"),
     "relay_gcs_distance_improvement_mean_m": ("m/peer custody transfer", "higher"),
-    "shield_correction_mean_per_step": ("normalized velocity correction/step", "lower"),
+    "cbf_correction_mean_per_step": ("normalized correction/step", "lower"),
+    "shield_correction_mean_per_step": ("normalized correction/step", "lower"),
     "return": ("configured reward units", "higher"),
 }
 
@@ -187,7 +189,7 @@ class MissionMetrics:
         power_margin = diagnostics.get("data_power_margin_db") or {}
         relay_progress = diagnostics.get("relay_gcs_distance_improvement_m") or {}
         motion = info.get("motion_counts", {})
-        return {
+        result = {
             "targets_found": f, "targets_delivered": d, "target_discovery_fraction": f / w.num_targets,
             "gcs_delivery_fraction": d / w.num_targets,
             "delivery_given_discovery_fraction": d / f if f else None,
@@ -222,6 +224,10 @@ class MissionMetrics:
             "first_discovery_observed_s": [float(t) if np.isfinite(t) else None for t in self.discovered],
             "first_gcs_delivery_observed_s": [float(t) if np.isfinite(t) else None for t in self.delivered],
         }
+        if self.config.world.motion_safety == "cbf":
+            result["cbf_correction_mean_per_step"] = result["shield_correction_mean_per_step"]
+            result["cbf_interventions_per_uav_step"] = result["shield_interventions_per_uav_step"]
+        return result
 
 
 def summarize_metrics(records, bootstrap_samples=2000, seed=44):

@@ -40,7 +40,7 @@ def progress_metrics(observations, config):
             "progress/mean_active_uavs": float(local[:, :, 9].sum(1).mean())}
 
 
-def episode_metrics(record, num_uavs, motion_dim=2):
+def episode_metrics(record, num_uavs, motion_dim=2, motion_safety=None):
     energy, network = record["energy"], record["network"]
     opportunities = max(1, record["episode_length"] * num_uavs)
     result = {"global_step": record["global_step"], "episode/index": record["episode"],
@@ -73,6 +73,11 @@ def episode_metrics(record, num_uavs, motion_dim=2):
     result.update({f"safety/{name}_rate": motion.get(key, 0) / opportunities for name, key in (
         ("shield_intervention", "shield_interventions"),
         ("shield_infeasible", "shield_infeasible"), ("commanded_stall", "commanded_stalls"))})
+    if motion_safety == "cbf":
+        result.update({"safety/cbf_intervention_rate": motion.get("shield_interventions", 0) / opportunities,
+            "safety/cbf_infeasible_rate": motion.get("shield_infeasible", 0) / opportunities,
+            **{f"motion/cbf_{key}": motion.get(f"shield_{key}", 0) for key in ("correction", "interventions",
+                "obstacle_interventions", "peer_interventions", "boundary_interventions")}})
     result.update({f"routing/{k}": v for k, v in network.get("selection_counts", {}).items()})
     result.update({f"reward/{k}": v for k, v in record.get("reward_components", {}).items()})
     counts = record.get("action_counts", {})
@@ -372,7 +377,7 @@ class OnlineTracker:
 
     def episode(self, record):
         self.records.append(record)
-        values = episode_metrics(record, self.config.world.num_uavs, self.config.motion_dim)
+        values = episode_metrics(record, self.config.world.num_uavs, self.config.motion_dim, self.config.world.motion_safety)
         self.latest_evidence.update(select_evidence(values))
         self.latest_evidence.update({"evidence/episode_global_step":record.get("global_step"),
                                      "evidence/episode_seed":record.get("seed"),

@@ -43,10 +43,10 @@
 
 ### Task 2: Configuration and telemetry migration
 **Files:** configuration/defaults/config YAMLs/checkpoint compatibility/metrics tests.
-- [ ] Make `cbf` the canonical safety mode and remove production DWA selection.
-- [ ] Rename/alias safety telemetry so W&B describes CBF corrections accurately.
-- [ ] Preserve legacy checkpoint load behavior explicitly.
-- [ ] Verify controlled-study configs.
+- [x] Make `cbf` the canonical safety mode and remove production DWA selection.
+- [x] Rename/alias safety telemetry so W&B describes CBF corrections accurately.
+- [x] Preserve legacy checkpoint load behavior explicitly.
+- [x] Verify controlled-study configs.
 
 ### Task 3: Warp/GPU CBF parity
 **Files:** `uav_network/environment/gpu/xyz_motion.py`, GPU state/config plumbing, parity tests.

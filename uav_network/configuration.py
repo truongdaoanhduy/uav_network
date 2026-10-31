@@ -290,8 +290,10 @@ class Config:
         if (w.obstacle_clearance_m < 0 or w.target_exclusion_radius_m < 0
                 or w.obstacle_radius_min_m > w.obstacle_radius_max_m):
             raise ValueError("Invalid world clearances or obstacle radius range")
-        if w.motion_safety not in {"dynamic_window", "reject"}:
-            raise ValueError("motion_safety must be dynamic_window or reject")
+        if w.motion_safety not in {"cbf", "dynamic_window", "reject"}:
+            raise ValueError("motion_safety must be cbf, dynamic_window or reject")
+        if w.motion_safety == "cbf" and w.motion_dimensions != 3:
+            raise ValueError("motion_safety=cbf is supported only for XYZ motion")
         if w.launch_min_spacing_m < w.safety_distance_m:
             raise ValueError("Launch spacing must be at least the safety distance")
         if not 0 < s.full_fov_deg < 180:

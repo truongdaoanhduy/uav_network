@@ -18,6 +18,7 @@ from .evidence import (exception_category, exception_chain, json_safe, print_evi
 class TrainingDiagnostics:
     def __init__(self, config, output, initial_step=0):
         self.settings = config.tracking
+        self.motion_safety = config.world.motion_safety
         self.output = Path(output)
         self.path = self.output / "diagnostics.jsonl"
         self.cohorts_path = self.output / "cohorts.jsonl"
@@ -110,6 +111,8 @@ class TrainingDiagnostics:
                 r.get(group, {}).get(count, 0) / max(1,
                     (r.get("motion_dim", 2) if name == "movement_saturation" else components)
                     * r.get("episode_length", 1) * r.get("num_uavs", 6)) for r in recent]))
+        if self.motion_safety == "cbf":
+            values["rolling/cbf_intervention_rate"] = values["rolling/shield_intervention_rate"]
         if len(self.window) == 2 * n:
             previous = list(self.window)[:n]
             # Descriptive compatibility metric; regression warnings use closed cohorts.
@@ -129,6 +132,8 @@ class TrainingDiagnostics:
             "reward_accounting": any("reward_components" in r and not math.isclose(
                 sum(r["reward_components"].values()), r["return"], rel_tol=1e-6, abs_tol=1e-5) for r in recent),
         }
+        if self.motion_safety == "cbf":
+            checks["cbf_intervention"] = checks["shield_intervention"]
         for code, condition in checks.items():
             active = bool(condition and (len(recent) >= n or code == "reward_accounting"))
             values[f"diagnostics/{code}_warning"] = int(active)

@@ -6,7 +6,7 @@ world:
   num_targets: 20
   num_obstacles: 15
   max_steps: 1500
-  motion_safety: dynamic_window
+  motion_safety: cbf
   motion_dimensions: 3
   altitude_min_m: 0
   altitude_max_m: 150
