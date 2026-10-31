@@ -153,3 +153,12 @@ def test_native_xyz_dynamic_window_is_retired_from_new_source():
             np.empty((0,)),
             c,
         )
+
+
+def test_cuda_cbf_parity_test_has_warp_namespace_available():
+    import importlib.util
+    path = ROOT / "tests/test_gpu_cuda.py"
+    spec = importlib.util.spec_from_file_location("cbf_gpu_cuda_test_module", path)
+    gpu_cuda = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(gpu_cuda)
+    assert hasattr(gpu_cuda, "wp"), "CUDA CBF parity test uses wp.to_torch and must import warp as wp"

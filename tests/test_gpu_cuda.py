@@ -10,6 +10,7 @@ import unittest
 
 import numpy as np
 import torch
+import warp as wp
 
 import test_gpu_packets as packets
 from test_gpu_vector import small_config
