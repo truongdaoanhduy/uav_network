@@ -50,9 +50,9 @@
 
 ### Task 3: Warp/GPU CBF parity
 **Files:** `uav_network/environment/gpu/xyz_motion.py`, GPU state/config plumbing, parity tests.
-- [ ] Port the same half-space construction and projection to Warp.
-- [ ] Verify CPU/Warp numeric and behavioral parity.
-- [ ] Remove XYZ DWA candidate search after parity passes.
+- [x] Port the same half-space construction and projection to Warp.
+- [x] Verify CPU/Warp numeric and behavioral parity.
+- [x] Remove XYZ DWA candidate search after parity passes.
 
 ### Task 4: Verification and ablation
 - [ ] Full test suite and diff check.
