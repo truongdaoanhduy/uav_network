@@ -30,6 +30,15 @@ def test_external_supervisor_workflow_is_scheduled_manual_and_nonoverlapping():
     assert "continuation-watch" not in source
 
 
+
+def test_supervisor_installs_kaggle_runtime_dependency_six():
+    data = yaml.safe_load(WORKFLOW.read_text())
+    for job_name in ("supervise", "replicate"):
+        install = next(step for step in data["jobs"][job_name]["steps"]
+                       if step.get("name", "").startswith("Install orchestration"))
+        assert '"six>=1.16,<2"' in install["run"]
+
+
 def test_external_supervisor_workflow_references_masked_secrets_not_values():
     source = WORKFLOW.read_text()
     active_aliases = set(range(1, 25))
