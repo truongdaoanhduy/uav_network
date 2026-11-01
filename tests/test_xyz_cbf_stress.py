@@ -64,7 +64,7 @@ def test_hostile_head_on_peers_never_violate_separation_over_many_steps():
                    for before, after, *_ in records]
     assert min(separations) >= c.world.safety_distance_m - 1e-9
     assert sum(r[3] for r in records) == 0
-    assert np.linalg.norm(v, axis=1).max() == 0
+    assert np.linalg.norm(v, axis=1).max() < 1e-9
 
 
 def test_hostile_boundary_command_stays_inside_without_clipping():

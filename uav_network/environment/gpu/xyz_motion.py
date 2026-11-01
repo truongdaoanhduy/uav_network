@@ -47,14 +47,13 @@ def cost(prev:wp.vec3d,actual:wp.vec3d,p:wp.ref[WorldParams]):
 
 
 @wp.func
-def cbf_horizon(closing:wp.float64,decel:wp.float64,p:wp.ref[WorldParams]):
-    return wp.max(p.dt,closing/wp.max(decel,wp.float64(1e-12)))
-
-
-@wp.func
-def cbf_bound(gap:wp.float64,closing:wp.float64,horizon:wp.float64,p:wp.ref[WorldParams]):
-    coefficient=wp.float64(.5)*horizon*(horizon+p.dt)
-    return (gap-closing*horizon)/coefficient
+def cbf_bound(gap:wp.float64,closing:wp.float64,decel:wp.float64,p:wp.ref[WorldParams]):
+    dt=wp.max(p.dt,wp.float64(1e-12));d=wp.max(decel,wp.float64(1e-12));c=wp.max(closing,wp.float64(0))
+    if gap<=wp.float64(0):return gap/(dt*dt)-c/dt
+    speed_step=d*dt;distance_step=d*dt*dt
+    braking_steps=wp.max(wp.float64(1),wp.ceil((wp.sqrt(wp.float64(1)+wp.float64(8)*gap/distance_step)-wp.float64(1))/wp.float64(2)))
+    safe_next=(gap/dt+wp.float64(.5)*speed_step*braking_steps*(braking_steps-wp.float64(1)))/braking_steps
+    return (safe_next-c)/dt
 
 
 @wp.func
@@ -85,11 +84,11 @@ def project_cbf(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int):
             for axis in range(3):
                 low=wp.float64(0.0);high=p.map_size
                 if axis==2:low=p.altitude_min;high=p.altitude_max
-                closing=wp.max(wp.float64(0),-vel[axis]);H=cbf_horizon(closing,p.max_accel,p)
-                b=cbf_bound(pos[axis]-low,closing,H,p)
+                closing=wp.max(wp.float64(0),-vel[axis])
+                b=cbf_bound(pos[axis]-low,closing,p.max_accel,p)
                 if -nominal[axis]-b>tol:boundary_active=True
-                closing=wp.max(wp.float64(0),vel[axis]);H=cbf_horizon(closing,p.max_accel,p)
-                b=cbf_bound(high-pos[axis],closing,H,p)
+                closing=wp.max(wp.float64(0),vel[axis])
+                b=cbf_bound(high-pos[axis],closing,p.max_accel,p)
                 if nominal[axis]-b>tol:boundary_active=True
             if boundary_active:boundary_count+=1
 
@@ -99,10 +98,10 @@ def project_cbf(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int):
                 radial=wp.sqrt(dx*dx+dy*dy);direction=wp.vec3d(1.0,0.0,0.0)
                 if radial>wp.float64(1e-12):direction=wp.vec3d(dx/radial,dy/radial,0.0)
                 radius=obs[2]+p.obstacle_clearance;top=s.obstacle_heights[e,o]+p.obstacle_clearance
-                side_closing=wp.max(wp.float64(0),wp.dot(vel,direction));H=cbf_horizon(side_closing,p.max_accel,p)
-                side_b=cbf_bound(radial-radius,side_closing,H,p);side_v=wp.dot(nominal,direction)-side_b
-                top_closing=wp.max(wp.float64(0),-vel[2]);H=cbf_horizon(top_closing,p.max_accel,p)
-                top_b=cbf_bound(pos[2]-top,top_closing,H,p);top_v=-nominal[2]-top_b
+                side_closing=wp.max(wp.float64(0),wp.dot(vel,direction))
+                side_b=cbf_bound(radial-radius,side_closing,p.max_accel,p);side_v=wp.dot(nominal,direction)-side_b
+                top_closing=wp.max(wp.float64(0),-vel[2])
+                top_b=cbf_bound(pos[2]-top,top_closing,p.max_accel,p);top_v=-nominal[2]-top_b
                 use_side=bool(False);use_top=bool(False)
                 if pos[2]<=top and radial>=radius:use_side=True
                 elif radial<=radius and pos[2]>=top:use_top=True
@@ -119,8 +118,7 @@ def project_cbf(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int):
             direction=wp.vec3d(1.0,0.0,0.0)
             if dist>wp.float64(1e-12):direction=delta/dist
             closing=wp.max(wp.float64(0),wp.dot(velocity3(s,e,i)-velocity3(s,e,j),direction))
-            H=cbf_horizon(closing,wp.float64(2)*p.max_accel,p)
-            b=cbf_bound(dist-p.safety_distance,closing,H,p)
+            b=cbf_bound(dist-p.safety_distance,closing,wp.float64(2)*p.max_accel,p)
             violation=wp.dot(s.xyz_work[e,i,0],direction)-wp.dot(s.xyz_work[e,j,0],direction)-b
             if violation>tol:s.motion_flags[e,i,1]=1;s.motion_flags[e,j,1]=1
     peer_count=int(0)
@@ -135,11 +133,11 @@ def project_cbf(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int):
                 for axis in range(3):
                     low=wp.float64(0.0);high=p.map_size
                     if axis==2:low=p.altitude_min;high=p.altitude_max
-                    closing=wp.max(wp.float64(0),-vel[axis]);H=cbf_horizon(closing,p.max_accel,p)
-                    b=cbf_bound(pos[axis]-low,closing,H,p);v=-safe[axis]-b
+                    closing=wp.max(wp.float64(0),-vel[axis])
+                    b=cbf_bound(pos[axis]-low,closing,p.max_accel,p);v=-safe[axis]-b
                     if v>worst:worst=v;kind=1;bi=i;bj=-1;direction=axis_direction(axis,wp.float64(-1))
-                    closing=wp.max(wp.float64(0),vel[axis]);H=cbf_horizon(closing,p.max_accel,p)
-                    b=cbf_bound(high-pos[axis],closing,H,p);v=safe[axis]-b
+                    closing=wp.max(wp.float64(0),vel[axis])
+                    b=cbf_bound(high-pos[axis],closing,p.max_accel,p);v=safe[axis]-b
                     if v>worst:worst=v;kind=1;bi=i;bj=-1;direction=axis_direction(axis,wp.float64(1))
 
                 nominal=s.xyz_work[e,i,0]
@@ -148,11 +146,11 @@ def project_cbf(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int):
                     radial=wp.sqrt(dx*dx+dy*dy);side_dir=wp.vec3d(1.0,0.0,0.0)
                     if radial>wp.float64(1e-12):side_dir=wp.vec3d(dx/radial,dy/radial,0.0)
                     radius=obs[2]+p.obstacle_clearance;top=s.obstacle_heights[e,o]+p.obstacle_clearance
-                    side_closing=wp.max(wp.float64(0),wp.dot(vel,side_dir));H=cbf_horizon(side_closing,p.max_accel,p)
-                    side_b=cbf_bound(radial-radius,side_closing,H,p)
+                    side_closing=wp.max(wp.float64(0),wp.dot(vel,side_dir))
+                    side_b=cbf_bound(radial-radius,side_closing,p.max_accel,p)
                     nominal_side=wp.dot(nominal,side_dir)-side_b;side_v=wp.dot(safe,side_dir)-side_b
-                    top_closing=wp.max(wp.float64(0),-vel[2]);H=cbf_horizon(top_closing,p.max_accel,p)
-                    top_b=cbf_bound(pos[2]-top,top_closing,H,p);nominal_top=-nominal[2]-top_b;top_v=-safe[2]-top_b
+                    top_closing=wp.max(wp.float64(0),-vel[2])
+                    top_b=cbf_bound(pos[2]-top,top_closing,p.max_accel,p);nominal_top=-nominal[2]-top_b;top_v=-safe[2]-top_b
                     use_side=bool(False);use_top=bool(False)
                     if pos[2]<=top and radial>=radius:use_side=True
                     elif radial<=radius and pos[2]>=top:use_top=True
@@ -169,8 +167,7 @@ def project_cbf(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int):
                 peer_dir=wp.vec3d(1.0,0.0,0.0)
                 if dist>wp.float64(1e-12):peer_dir=delta/dist
                 closing=wp.max(wp.float64(0),wp.dot(velocity3(s,e,i)-velocity3(s,e,j),peer_dir))
-                H=cbf_horizon(closing,wp.float64(2)*p.max_accel,p)
-                b=cbf_bound(dist-p.safety_distance,closing,H,p)
+                b=cbf_bound(dist-p.safety_distance,closing,wp.float64(2)*p.max_accel,p)
                 v=wp.dot(s.xyz_work[e,i,1],peer_dir)-wp.dot(s.xyz_work[e,j,1],peer_dir)-b
                 if v>worst:worst=v;kind=3;bi=i;bj=j;direction=peer_dir
         if worst<=tol:break
@@ -191,19 +188,19 @@ def project_cbf(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int):
             for axis in range(3):
                 low=wp.float64(0.0);high=p.map_size
                 if axis==2:low=p.altitude_min;high=p.altitude_max
-                closing=wp.max(wp.float64(0),-vel[axis]);H=cbf_horizon(closing,p.max_accel,p)
-                b=cbf_bound(pos[axis]-low,closing,H,p);max_violation=wp.max(max_violation,-safe[axis]-b)
-                closing=wp.max(wp.float64(0),vel[axis]);H=cbf_horizon(closing,p.max_accel,p)
-                b=cbf_bound(high-pos[axis],closing,H,p);max_violation=wp.max(max_violation,safe[axis]-b)
+                closing=wp.max(wp.float64(0),-vel[axis])
+                b=cbf_bound(pos[axis]-low,closing,p.max_accel,p);max_violation=wp.max(max_violation,-safe[axis]-b)
+                closing=wp.max(wp.float64(0),vel[axis])
+                b=cbf_bound(high-pos[axis],closing,p.max_accel,p);max_violation=wp.max(max_violation,safe[axis]-b)
             for o in range(p.obstacles_count):
                 obs=s.obstacles[e,o];dx=obs[0]-pos[0];dy=obs[1]-pos[1]
                 radial=wp.sqrt(dx*dx+dy*dy);side_dir=wp.vec3d(1.0,0.0,0.0)
                 if radial>wp.float64(1e-12):side_dir=wp.vec3d(dx/radial,dy/radial,0.0)
                 radius=obs[2]+p.obstacle_clearance;top=s.obstacle_heights[e,o]+p.obstacle_clearance
-                side_closing=wp.max(wp.float64(0),wp.dot(vel,side_dir));H=cbf_horizon(side_closing,p.max_accel,p)
-                side_b=cbf_bound(radial-radius,side_closing,H,p);nominal_side=wp.dot(nominal,side_dir)-side_b;side_v=wp.dot(safe,side_dir)-side_b
-                top_closing=wp.max(wp.float64(0),-vel[2]);H=cbf_horizon(top_closing,p.max_accel,p)
-                top_b=cbf_bound(pos[2]-top,top_closing,H,p);nominal_top=-nominal[2]-top_b;top_v=-safe[2]-top_b
+                side_closing=wp.max(wp.float64(0),wp.dot(vel,side_dir))
+                side_b=cbf_bound(radial-radius,side_closing,p.max_accel,p);nominal_side=wp.dot(nominal,side_dir)-side_b;side_v=wp.dot(safe,side_dir)-side_b
+                top_closing=wp.max(wp.float64(0),-vel[2])
+                top_b=cbf_bound(pos[2]-top,top_closing,p.max_accel,p);nominal_top=-nominal[2]-top_b;top_v=-safe[2]-top_b
                 if pos[2]<=top and radial>=radius:max_violation=wp.max(max_violation,side_v)
                 elif radial<=radius and pos[2]>=top:max_violation=wp.max(max_violation,top_v)
                 elif pos[2]<=top and radial<=radius:max_violation=wp.max(max_violation,wp.max(side_v,top_v))
@@ -216,8 +213,7 @@ def project_cbf(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int):
             direction=wp.vec3d(1.0,0.0,0.0)
             if dist>wp.float64(1e-12):direction=delta/dist
             closing=wp.max(wp.float64(0),wp.dot(velocity3(s,e,i)-velocity3(s,e,j),direction))
-            H=cbf_horizon(closing,wp.float64(2)*p.max_accel,p)
-            b=cbf_bound(dist-p.safety_distance,closing,H,p)
+            b=cbf_bound(dist-p.safety_distance,closing,wp.float64(2)*p.max_accel,p)
             max_violation=wp.max(max_violation,wp.dot(s.xyz_work[e,i,1],direction)-wp.dot(s.xyz_work[e,j,1],direction)-b)
     return wp.vec4d(wp.float64(obstacle_count),wp.float64(peer_count),wp.float64(boundary_count),wp.float64(int(max_violation>wp.float64(1e-6))))
 
@@ -256,7 +252,7 @@ def motion_xyz(s:WorldState,p:WorldParams,actions:wp.array3d(dtype=wp.float32)):
                 v=s.obstacles[e,o]
                 if cylinder_hit(pos,end,wp.vec4d(v[0],v[1],v[2],s.obstacle_heights[e,o]),p.obstacle_clearance):blocked=True
             s.motion_flags[e,i,2]=int(blocked);s.motion_flags[e,i,3]=int(blocked)
-            s.motion_flags[e,i,4]=int(wp.length(end-(pos+s.xyz_work[e,i,1]*p.dt))>wp.float64(0))
+            s.motion_flags[e,i,4]=int(wp.length(end-(pos+s.xyz_work[e,i,1]*p.dt))>wp.float64(1e-9))
             s.xyz_work[e,i,2]=end
         for repeat in range(p.n+1):
             for i in range(p.n):

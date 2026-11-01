@@ -11,16 +11,26 @@ from __future__ import annotations
 import numpy as np
 
 
-def _horizon(closing_speed: float, decel: float, dt: float) -> float:
-    return max(float(dt), float(closing_speed) / max(float(decel), 1e-12))
+def _viability_bound(gap: float, closing_speed: float, decel: float, dt: float) -> float:
+    """Largest current acceleration that preserves one-step braking viability.
 
-
-def _bound(gap: float, closing_speed: float, horizon: float, dt: float) -> float:
-    # move_xyz uses semi-implicit Euler: v[k+1]=v[k]+a*dt, then
-    # p[k+1]=p[k]+v[k+1]*dt.  Over horizon H this gives a larger
-    # acceleration displacement than the continuous 0.5*a*H^2 term.
-    coefficient = 0.5 * horizon * (horizon + dt)
-    return (float(gap) - float(closing_speed) * horizon) / coefficient
+    The current command is applied for one semi-implicit Euler step.  From the
+    reached state we reserve the exact semi-implicit max-deceleration stopping
+    distance.  This avoids treating the current acceleration as if it were held
+    for the whole stopping horizon, which was unnecessarily restrictive.
+    """
+    gap = float(gap)
+    closing = max(0.0, float(closing_speed))
+    decel = max(float(decel), 1e-12)
+    dt = max(float(dt), 1e-12)
+    if gap <= 0.0:
+        # Already outside the safe set: demand one-step recovery when feasible.
+        return gap / (dt * dt) - closing / dt
+    speed_step = decel * dt
+    distance_step = decel * dt * dt
+    braking_steps = max(1.0, float(np.ceil((np.sqrt(1.0 + 8.0 * gap / distance_step) - 1.0) / 2.0)))
+    safe_next_speed = (gap / dt + 0.5 * speed_step * braking_steps * (braking_steps - 1.0)) / braking_steps
+    return (safe_next_speed - closing) / dt
 
 
 def filter_xyz_acceleration(
@@ -70,9 +80,8 @@ def filter_xyz_acceleration(
         return row.reshape(-1)
 
     def constraint_values(i, direction, gap, closing, decel):
-        H = _horizon(closing, decel, dt)
         row = single_row(i, direction)
-        b = _bound(gap, closing, H, dt)
+        b = _viability_bound(gap, closing, decel, dt)
         return row, b
 
     # Map/altitude planes.  Direction always points toward the unsafe side.
@@ -145,8 +154,7 @@ def filter_xyz_acceleration(
             else:
                 direction = delta / distance
             closing = max(0.0, float(np.dot(v[i] - v[j], direction)))
-            H = _horizon(closing, 2.0 * amax, dt)
-            b = _bound(distance - float(world.safety_distance_m), closing, H, dt)
+            b = _viability_bound(distance - float(world.safety_distance_m), closing, 2.0 * amax, dt)
             row = np.zeros((n, 3), dtype=float)
             row[i] = direction
             row[j] = -direction

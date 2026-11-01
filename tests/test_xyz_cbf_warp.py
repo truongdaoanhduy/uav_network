@@ -76,7 +76,7 @@ def test_warp_cbf_safe_parallel_motion_matches_native_without_intervention():
 
 def test_warp_cbf_static_cylinder_braking_matches_native():
     info = _run_case(
-        [[350, 500, 25]],
+        [[380, 500, 25]],
         [[20, 0, 0]],
         [[0, 0, 0, 0]],
         [[500, 500, 10, 40]],
@@ -86,16 +86,25 @@ def test_warp_cbf_static_cylinder_braking_matches_native():
 
 def test_warp_cbf_head_on_peer_projection_matches_native():
     info = _run_case(
-        [[350, 500, 80], [650, 500, 80]],
+        [[390, 500, 80], [610, 500, 80]],
         [[20, 0, 0], [-20, 0, 0]],
         [[0, 0, 0, 0], [0, 0, 0, 0]],
     )
     assert info["motion_counts"]["shield_interventions"] == 2
 
 
+def test_warp_cbf_viable_boundary_coast_matches_native_without_intervention():
+    info = _run_case(
+        [[110, 500, 80]],
+        [[-20, 0, 0]],
+        [[0, 0, 0, 0]],
+    )
+    assert info["motion_counts"]["shield_interventions"] == 0
+
+
 def test_warp_cbf_boundary_projection_matches_native():
     info = _run_case(
-        [[120, 500, 80]],
+        [[100, 500, 80]],
         [[-20, 0, 0]],
         [[0, 0, 0, 0]],
     )

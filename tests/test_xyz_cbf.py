@@ -35,7 +35,7 @@ def _move(positions, velocities, actions, obstacles=(), heights=()):
 
 def test_cbf_brakes_before_static_cylinder_collision():
     (position, velocity, blocked, _), diagnostics = _move(
-        [[350.0, 500.0, 25.0]],
+        [[380.0, 500.0, 25.0]],
         [[20.0, 0.0, 0.0]],
         [[0.0, 0.0, 0.0]],
         [[500.0, 500.0, 10.0]],
@@ -43,13 +43,13 @@ def test_cbf_brakes_before_static_cylinder_collision():
     )
     assert blocked == 0
     assert velocity[0, 0] < 20.0
-    assert position[0, 0] < 370.0
+    assert position[0, 0] < 400.0
     assert diagnostics["shield_interventions"] == 1
 
 
 def test_cbf_splits_head_on_peer_avoidance_across_both_uavs():
     (position, velocity, blocked, _), diagnostics = _move(
-        [[350.0, 500.0, 80.0], [650.0, 500.0, 80.0]],
+        [[390.0, 500.0, 80.0], [610.0, 500.0, 80.0]],
         [[20.0, 0.0, 0.0], [-20.0, 0.0, 0.0]],
         [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
     )
@@ -62,7 +62,7 @@ def test_cbf_splits_head_on_peer_avoidance_across_both_uavs():
 
 def test_cbf_corrects_outward_boundary_motion_before_clipping():
     (position, velocity, blocked, clipped), diagnostics = _move(
-        [[120.0, 500.0, 80.0]],
+        [[100.0, 500.0, 80.0]],
         [[-20.0, 0.0, 0.0]],
         [[0.0, 0.0, 0.0]],
     )
@@ -70,6 +70,21 @@ def test_cbf_corrects_outward_boundary_motion_before_clipping():
     assert clipped == 0
     assert velocity[0, 0] > -20.0
     assert diagnostics["shield_interventions"] == 1
+
+
+
+
+def test_cbf_allows_viable_coast_without_early_boundary_intervention():
+    (position, velocity, blocked, clipped), diagnostics = _move(
+        [[110.0, 500.0, 80.0]],
+        [[-20.0, 0.0, 0.0]],
+        [[0.0, 0.0, 0.0]],
+    )
+    assert blocked == 0
+    assert clipped == 0
+    assert velocity[0, 0] == -20.0
+    assert position[0, 0] == 90.0
+    assert diagnostics["shield_interventions"] == 0
 
 
 def test_cbf_passes_through_safe_parallel_peer_motion():

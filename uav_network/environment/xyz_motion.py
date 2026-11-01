@@ -35,7 +35,7 @@ def move_xyz(positions,velocities,acceleration,obstacles,heights,config,disabled
             shield_infeasible=cbf["cbf_infeasible"],
         )
     end=np.clip(positions+chosen*w.dt_s,lo,hi);end[disabled]=positions[disabled]
-    clipped=np.any(end!=positions+chosen*w.dt_s,axis=1)
+    clipped=np.any(np.abs(end-(positions+chosen*w.dt_s))>1e-9,axis=1)
     blocked=np.array([any(cylinder_hit(a,b,o,w.obstacle_clearance_m) for o in cylinders)
                       for a,b in zip(positions,end)])
     obstacle_blocked=blocked.copy()
