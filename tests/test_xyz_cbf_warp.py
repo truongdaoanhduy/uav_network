@@ -24,8 +24,12 @@ def _config(n=1, obstacles=0):
     return c
 
 
-def _run_case(positions, velocities, actions, obstacles=()):
+def _run_case(positions, velocities, actions, obstacles=(), *, unsafe_action=0.0,
+              shield_correction=0.0, shield_intervention=0.0):
     c = _config(len(positions), len(obstacles))
+    c.reward.unsafe_action = unsafe_action
+    c.reward.shield_correction = shield_correction
+    c.reward.shield_intervention = shield_intervention
     native = SwarmSearchEnv(c)
     warp = WarpVectorEnv(c, device="cpu")
     try:
@@ -50,15 +54,27 @@ def _run_case(positions, velocities, actions, obstacles=()):
         action = Action(np.asarray(actions, dtype=np.float32), np.zeros(len(positions), dtype=np.int64))
         _, native_reward, _, _, native_info = native.step(action)
         warp.step({"continuous": action.continuous[None], "destination": action.destination[None]})
+        from uav_network.communication.gpu.metrics import world_info
+        warp_info = world_info(warp.s, warp.p)
         warp_positions = np.column_stack((warp.s.positions.numpy()[0], warp.s.altitudes.numpy()[0]))
         warp_velocities = np.column_stack((warp.s.velocities.numpy()[0], warp.s.vertical_velocity.numpy()[0]))
 
         np.testing.assert_allclose(warp_positions, native.positions, rtol=0, atol=1e-8)
         np.testing.assert_allclose(warp_velocities, native.velocities, rtol=0, atol=1e-8)
-        np.testing.assert_array_equal(warp.s.motion_counts.numpy()[0, :8],
-                                      list(native.motion_counts.values())[:8])
+        np.testing.assert_array_equal(warp.s.motion_counts.numpy()[0, :13],
+                                      [native.motion_counts[k] for k in (
+                                          "obstacle_blocks", "peer_blocks", "commanded_stalls",
+                                          "shield_interventions", "shield_obstacle_interventions",
+                                          "shield_peer_interventions", "shield_boundary_interventions",
+                                          "shield_infeasible", "raw_unsafe_attempts",
+                                          "raw_boundary_attempts", "raw_obstacle_attempts",
+                                          "raw_peer_attempts", "shield_rescues")])
         assert float(warp.s.shield_correction.numpy()[0]) == pytest.approx(
             native.motion_counts["shield_correction"], abs=1e-10)
+        assert float(warp.s.reward.numpy()[0]) == pytest.approx(native_reward, abs=2e-5)
+        for key in ("shield_correction", "unsafe_action", "shield_intervention"):
+            assert warp_info["reward_components"][key] == pytest.approx(
+                native_info["reward_components"][key], abs=1e-10)
         return native_info
     finally:
         native.close()
@@ -109,3 +125,19 @@ def test_warp_cbf_boundary_projection_matches_native():
         [[0, 0, 0, 0]],
     )
     assert info["motion_counts"]["shield_interventions"] == 1
+
+
+def test_warp_raw_boundary_rescue_penalizes_policy_before_cbf():
+    info = _run_case(
+        [[500.0, 500.0, 0.5]],
+        [[0.0, 0.0, 0.0]],
+        [[0.0, 0.0, -1.0, 0.0]],
+        unsafe_action=1.0,
+        shield_correction=0.1,
+        shield_intervention=0.5,
+    )
+    assert info["motion_counts"]["raw_boundary_attempts"] == 1
+    assert info["motion_counts"]["shield_rescues"] == 1
+    assert info["reward_components"]["unsafe_action"] == pytest.approx(-1.0)
+    assert info["reward_components"]["shield_correction"] == pytest.approx(-0.075)
+    assert info["reward_components"]["shield_intervention"] == pytest.approx(-0.5)

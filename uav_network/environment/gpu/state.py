@@ -122,6 +122,8 @@ class WorldParams:
     reward_propulsion: wp.float64
     reward_communication_efficiency: wp.float64
     reward_shield_correction: wp.float64
+    reward_shield_intervention: wp.float64
+    reward_unsafe_action: wp.float64
     reward_information_gain: wp.float64
     reward_investigation: wp.float64
     reward_shaping_gamma: wp.float64
@@ -206,6 +208,8 @@ class WorldState:
     reward_components: wp.array2d(dtype=wp.float64)
     shield_correction_step: wp.array(dtype=wp.float64)
     shield_correction: wp.array(dtype=wp.float64)
+    unsafe_action_step: wp.array(dtype=wp.float64)
+    shield_intervention_step: wp.array(dtype=wp.float64)
     event_time: wp.array2d(dtype=wp.float64)
     pkt_created: wp.array2d(dtype=wp.float64)
     pkt_deadline: wp.array2d(dtype=wp.float64)
@@ -354,7 +358,8 @@ def params_from_config(config):
                   reward_dropped=r.dropped_report, reward_step=r.step_cost,
                   reward_communication=r.communication_energy, reward_propulsion=r.propulsion_energy_per_kj,
                   reward_communication_efficiency=r.communication_efficiency,
-                  reward_shield_correction=r.shield_correction,
+                  reward_shield_correction=r.shield_correction, reward_shield_intervention=r.shield_intervention,
+                  reward_unsafe_action=r.unsafe_action,
                   reward_information_gain=r.information_gain, reward_investigation=r.investigation_shaping,
                   reward_shaping_gamma=r.shaping_gamma,
                   report_reference_tx_energy=report_reference_tx_energy_j(n))
@@ -424,15 +429,16 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False, ce
         "targets": ((e,t), wp.vec2d), "obstacles": ((e,o), wp.vec3d),
         "gcs": ((e,), wp.vec2d), "battery": ((e,n), wp.float64),
         "flight_energy": ((e,n), wp.float64), "delivered": ((e,t), wp.int32),
-        "motion_counts": ((e,9), wp.int32), "report_counts": ((e,3), wp.int32),
+        "motion_counts": ((e,13), wp.int32), "report_counts": ((e,3), wp.int32),
         "inflight": ((e,n), wp.float64), "communication_energy": ((e,n+1), wp.float64),
         "tx_energy": ((e,n+1), wp.float64), "rx_energy": ((e,n+1), wp.float64),
         "observation": ((e,n,observation_dim(config)), wp.float32),
         "state": ((e,state_dim(config)), wp.float32), "reward": ((e,), wp.float32),
         "pcg_state": ((e,4), wp.uint64), "seeds": ((e,), wp.int64),
-        "motion_work": ((e,n,3), wp.vec2d), "motion_flags": ((e,n,5), wp.int32),
-        "before": ((e,8), wp.float64), "reward_components": ((e,12), wp.float64),
+        "motion_work": ((e,n,3), wp.vec2d), "motion_flags": ((e,n,9), wp.int32),
+        "before": ((e,8), wp.float64), "reward_components": ((e,14), wp.float64),
         "shield_correction_step": ((e,), wp.float64), "shield_correction": ((e,), wp.float64),
+        "unsafe_action_step": ((e,), wp.float64), "shield_intervention_step": ((e,), wp.float64),
         "packet_counts": ((e,8), wp.int32), "selection_counts": ((e,5), wp.int32),
         "action_counts": ((e,4), wp.int64), "mt": ((e,n+1,624), wp.uint32),
         "mt_index": ((e,n+1), wp.int32)}

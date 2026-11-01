@@ -32,6 +32,8 @@ METRICS = {
     "boundary_violation_samples": ("UAV samples including reset", "lower"),
     "cbf_interventions_per_uav_step": ("interventions/UAV-step", "lower"),
     "shield_interventions_per_uav_step": ("interventions/UAV-step", "lower"),
+    "raw_unsafe_attempts_per_uav_step": ("unsafe raw commands/UAV-step", "lower"),
+    "shield_rescues_per_uav_step": ("rescued raw commands/UAV-step", "lower"),
     "blocked_moves_per_uav_step": ("blocks/UAV-step", "lower"),
     "packet_pdr_fraction": ("fraction of per-hop generated packets", "higher"),
     "data_below_required_power_fraction": ("fraction of DATA attempts", "lower"),
@@ -61,6 +63,9 @@ def evaluation_protocol(config, seeds, progress):
     if not reward.get("information_gain", 0) and not reward.get("investigation_shaping", 0):
         for key in ("information_gain", "investigation_shaping", "shaping_gamma",
                     "investigation_belief_threshold"):
+            reward.pop(key, None)
+    for key in ("unsafe_action", "shield_intervention"):
+        if not reward.get(key, 0):
             reward.pop(key, None)
     if (network.get("pa_efficiency") == 1.0
             and network.get("tx_circuit_power_w") == 0.0
@@ -219,6 +224,10 @@ class MissionMetrics:
             "boundary_violation_samples": self.boundary_violations,
             "shield_interventions_per_uav_step":
                 info.get("motion_counts", {}).get("shield_interventions", 0) / max(1, self.step * w.num_uavs),
+            "raw_unsafe_attempts_per_uav_step":
+                info.get("motion_counts", {}).get("raw_unsafe_attempts", 0) / max(1, self.step * w.num_uavs),
+            "shield_rescues_per_uav_step":
+                info.get("motion_counts", {}).get("shield_rescues", 0) / max(1, self.step * w.num_uavs),
             "blocked_moves_per_uav_step": info.get("blocked_moves", 0) / max(1, self.step * w.num_uavs),
             "return": float(episode_return),
             "first_discovery_observed_s": [float(t) if np.isfinite(t) else None for t in self.discovered],

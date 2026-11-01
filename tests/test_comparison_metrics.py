@@ -52,7 +52,8 @@ class ComparisonMetricsTests(unittest.TestCase):
                                  [False,False],[False,False])
         trace.observe(np.array([[0.,0.],[10.,0.]]), [False,False], [False,False], 1)
         info = {"success":False,"energy":{"propulsion_energy_j":2.},"blocked_moves":0,
-                "motion_counts":{"shield_interventions":2,"shield_correction":.4},
+                "motion_counts":{"shield_interventions":2,"shield_correction":.4,
+                                 "raw_unsafe_attempts":1,"shield_rescues":1},
                 "network":{"enabled":True,"generated_packets":4,"received_packets":2,
                            "uav_communication_energy_j":1.,"report_e2e_delay_s":0.,
                            "diagnostics":{"data_attempts":4,"data_below_required_power_attempts":1,
@@ -66,6 +67,8 @@ class ComparisonMetricsTests(unittest.TestCase):
         self.assertEqual(values["tx_power_margin_db_mean"], 2.)
         self.assertEqual(values["relay_gcs_distance_improvement_mean_m"], 15.)
         self.assertEqual(values["shield_correction_mean_per_step"], .4)
+        self.assertEqual(values["raw_unsafe_attempts_per_uav_step"], .5)
+        self.assertEqual(values["shield_rescues_per_uav_step"], .5)
         self.assertNotIn("best_algorithm_score", values)
 
     def test_zero_delivery_or_generation_has_null_conditional_metrics(self):

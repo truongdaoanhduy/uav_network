@@ -66,7 +66,7 @@ def _place_geometry(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int):
     s.terminated[e] = 0
     s.blocked[e] = 0
     s.clipped[e] = 0
-    for k in range(9):
+    for k in range(13):
         s.motion_counts[e, k] = 0
     for i in range(p.n):
         s.velocities[e, i] = wp.vec2d(0.0, 0.0)

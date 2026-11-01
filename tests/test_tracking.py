@@ -396,10 +396,13 @@ class TrackingTests(unittest.TestCase):
         later = {**record, "return": 10, "search_rate_percent": 100,
                  "delivery_rate_percent": 100, "success": True}
         final = final_metrics([record, later])
-        self.assertEqual(final["final_mean_return"], 2.5)
-        self.assertEqual(final["final_search_rate_percent"], 75)
-        self.assertEqual(final["final_delivery_rate_percent"], 65)
-        self.assertEqual(final["final_success_rate"], .5)
+        self.assertEqual(final["training_history_mean_return"], 2.5)
+        self.assertEqual(final["training_history_mean_search_rate_percent"], 75)
+        self.assertEqual(final["training_history_mean_delivery_rate_percent"], 65)
+        self.assertEqual(final["training_history_success_rate"], .5)
+        self.assertEqual(final["training_metrics_scope"], "all_completed_training_episodes")
+        self.assertNotIn("final_mean_return", final)
+        self.assertNotIn("final_search_rate_percent", final)
 
 
 if __name__ == "__main__":
@@ -463,3 +466,24 @@ def test_best_publication_keeps_selected_policy_and_last_resume_separate(tmp_pat
     assert "best" in artifacts[0].aliases and "resumable" in artifacts[0].aliases
     assert artifacts[0].metadata["completed_episodes"]==20000
     assert artifacts[0].metadata["checkpoint_selection"]["episode"]==12288
+
+
+def test_episode_metrics_expose_raw_policy_safety_separately_from_executed_safety():
+    record = {"episode":1,"global_step":10,"return":-3.,"episode_length":2,
+              "search_rate_percent":50.,"delivery_rate_percent":25.,"success":False,
+              "blocked_moves":0,"boundary_clips":0,"expired_reports":0,"dropped_reports":0,
+              "energy":{"propulsion_energy_j":0.,"battery_fraction":[1.,1.],"active_uavs":2},
+              "network":{"enabled":False},
+              "motion_counts":{"shield_interventions":3,"shield_infeasible":0,"commanded_stalls":0,
+                               "shield_correction":1.25,"raw_unsafe_attempts":2,
+                               "raw_boundary_attempts":1,"raw_obstacle_attempts":1,
+                               "raw_peer_attempts":2,"shield_rescues":2},
+              "reward_components":{"unsafe_action":-1.0,"shield_correction":-.125}}
+    metrics = episode_metrics(record,2,motion_dim=3,motion_safety="cbf")
+    assert metrics["safety/raw_unsafe_action_rate"] == .5
+    assert metrics["safety/raw_boundary_attempt_rate"] == .25
+    assert metrics["safety/raw_obstacle_attempt_rate"] == .25
+    assert metrics["safety/raw_peer_attempt_rate"] == .5
+    assert metrics["safety/shield_rescue_rate"] == .5
+    assert metrics["safety/policy_safe_without_shield_rate"] == .5
+    assert metrics["reward/unsafe_action"] == -1.0

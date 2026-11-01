@@ -101,6 +101,9 @@ class SwarmSearchEnv:
         self.motion_counts.update({f"shield_{name}": 0 for name in (
             "interventions", "obstacle_interventions", "peer_interventions",
             "boundary_interventions", "infeasible")})
+        self.motion_counts.update({name: 0 for name in (
+            "raw_unsafe_attempts", "raw_boundary_attempts", "raw_obstacle_attempts",
+            "raw_peer_attempts", "shield_rescues")})
         self.motion_counts["shield_correction"] = 0.0
         self.reward_components = {}
         self.action_counts = {"silent": 0, "peer": 0, "gcs": 0, "saturated": 0}
@@ -140,7 +143,8 @@ class SwarmSearchEnv:
             self.positions, self.velocities, np.asarray(action.continuous)[:, :self.config.motion_dim],
             self.obstacles, self.battery_j, self.config, diagnostics=motion_details, obstacle_heights=getattr(self, 'obstacle_heights', None))
         for key, value in motion_details.items():
-            self.motion_counts[key] += value
+            if key not in {"unsafe_action_step", "shield_intervention_step"}:
+                self.motion_counts[key] += value
         self.propulsion_energy_j += flight_energy
         self.blocked_moves += blocked
         self.boundary_clips += clipped
@@ -157,6 +161,8 @@ class SwarmSearchEnv:
         communication_efficiency = (comm_energy / report_reference_tx_energy_j(self.config.network)
                                     if comm_energy else 0.0)
         shield_correction = float(motion_details.get("shield_correction", 0.0))
+        unsafe_action = float(motion_details.get("unsafe_action_step", 0.0))
+        shield_intervention = float(motion_details.get("shield_intervention_step", 0.0))
         terminated = bool(self.reports.delivered.all() or not self.active.any()
                           or self.steps >= self.config.world.max_steps)
         information_gain = investigation_shaping = 0.0
@@ -177,6 +183,8 @@ class SwarmSearchEnv:
                   - r.propulsion_energy_per_kj * flight_energy.sum() / 1000
                   - r.communication_efficiency * communication_efficiency
                   - r.shield_correction * shield_correction
+                  - r.shield_intervention * shield_intervention
+                  - r.unsafe_action * unsafe_action
                   + information_gain + investigation_shaping)
         components = {"discovery": r.discovery * (self.reports.known.any(axis=0).sum() - before_found),
                       "delivery": r.delivery * (self.reports.delivered.sum() - before_delivery),
@@ -187,6 +195,8 @@ class SwarmSearchEnv:
                       "propulsion_energy": -r.propulsion_energy_per_kj * flight_energy.sum() / 1000,
                       "communication_efficiency": -r.communication_efficiency * communication_efficiency,
                       "shield_correction": -r.shield_correction * shield_correction,
+                      "shield_intervention": -r.shield_intervention * shield_intervention,
+                      "unsafe_action": -r.unsafe_action * unsafe_action,
                       "information_gain": information_gain,
                       "investigation_shaping": investigation_shaping}
         for key, value in components.items():

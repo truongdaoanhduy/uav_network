@@ -56,7 +56,7 @@ def test_nonfinite_learner_metrics_survive_episode_summary_and_resume(tmp_path, 
     second = train(c)
     assert second['initial_episodes'] == 4
     assert second['episodes'] == 8
-    assert math.isfinite(second['final_mean_return'])
+    assert math.isfinite(second['training_history_mean_return'])
     json.dumps(second, allow_nan=False)
 
 

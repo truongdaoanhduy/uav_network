@@ -74,7 +74,7 @@ def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32))
                     s.report_order[e, i, t] = wp.int64(0)
         for t in range(p.targets_count):
             s.delivered[e, t] = 0
-        for j in range(9):
+        for j in range(13):
             s.motion_counts[e, j] = 0
         for j in range(8):
             s.packet_counts[e, j] = 0

@@ -223,6 +223,7 @@ def motion_xyz(s:WorldState,p:WorldParams,actions:wp.array3d(dtype=wp.float32)):
     e=wp.tid()
     if s.errors[e]!=0 or s.terminated[e]!=0:return
     cbf_counts=wp.vec4d(0.0)
+    correction=wp.float64(0);unsafe_fraction=wp.float64(0);active_count=int(0)
     for i in range(p.n):s.motion_flags[e,i,0]=int(p.energy_enabled!=0 and s.battery[e,i]<=wp.float64(0))
     for retry in range(p.n+1):
         for i in range(p.n):
@@ -232,17 +233,50 @@ def motion_xyz(s:WorldState,p:WorldParams,actions:wp.array3d(dtype=wp.float32)):
             accel=command*p.max_accel
             if s.motion_flags[e,i,0]!=0:accel=wp.vec3d(0.0)
             s.xyz_work[e,i,0]=accel;s.xyz_work[e,i,1]=accel
-            s.motion_flags[e,i,1]=0;s.motion_flags[e,i,2]=0;s.motion_flags[e,i,3]=0;s.motion_flags[e,i,4]=0
+            for flag in range(1,9):s.motion_flags[e,i,flag]=0
         cbf_counts=wp.vec4d(0.0)
         if p.motion_safety==2:cbf_counts=project_cbf(s,p,e)
+        correction=wp.float64(0);active_count=int(0)
         for i in range(p.n):
             nominal_accel=s.xyz_work[e,i,0];safe_accel=s.xyz_work[e,i,1]
             s.motion_flags[e,i,1]=int(wp.length(safe_accel-nominal_accel)>wp.float64(1e-9))
+            if s.motion_flags[e,i,0]==0:
+                correction+=wp.length(safe_accel-nominal_accel)/wp.max(p.max_accel,wp.float64(1e-12));active_count+=1
             previous=velocity3(s,e,i)
             nominal=project(previous+nominal_accel*p.dt,previous,p)
             chosen=project(previous+safe_accel*p.dt,previous,p)
             if s.motion_flags[e,i,0]!=0:nominal=wp.vec3d(0.0);chosen=wp.vec3d(0.0)
             s.xyz_work[e,i,0]=nominal;s.xyz_work[e,i,1]=chosen
+        if active_count>0:correction/=wp.float64(active_count)
+
+        # Audit the raw nominal trajectory before the CBF/fallback edits it.
+        for i in range(p.n):
+            if s.motion_flags[e,i,0]==0:
+                pos=position3(s,e,i);raw_end=pos+s.xyz_work[e,i,0]*p.dt
+                boundary=bool(raw_end[0]<wp.float64(-1e-9) or raw_end[0]>p.map_size+wp.float64(1e-9)
+                              or raw_end[1]<wp.float64(-1e-9) or raw_end[1]>p.map_size+wp.float64(1e-9)
+                              or raw_end[2]<p.altitude_min-wp.float64(1e-9) or raw_end[2]>p.altitude_max+wp.float64(1e-9))
+                s.motion_flags[e,i,6]=int(boundary)
+                obstacle=bool(False)
+                for o in range(p.obstacles_count):
+                    v=s.obstacles[e,o]
+                    if cylinder_hit(pos,raw_end,wp.vec4d(v[0],v[1],v[2],s.obstacle_heights[e,o]),p.obstacle_clearance):obstacle=True
+                s.motion_flags[e,i,7]=int(obstacle)
+        for i in range(p.n):
+            if s.motion_flags[e,i,0]==0:
+                for j in range(i):
+                    if s.motion_flags[e,j,0]==0:
+                        raw_i=position3(s,e,i)+s.xyz_work[e,i,0]*p.dt
+                        raw_j=position3(s,e,j)+s.xyz_work[e,j,0]*p.dt
+                        if distance(position3(s,e,i)-position3(s,e,j),raw_i-raw_j)<p.safety_distance-wp.float64(1e-9):
+                            s.motion_flags[e,i,8]=1;s.motion_flags[e,j,8]=1
+        raw_unsafe_count=int(0)
+        for i in range(p.n):
+            unsafe=bool(s.motion_flags[e,i,6]!=0 or s.motion_flags[e,i,7]!=0 or s.motion_flags[e,i,8]!=0)
+            s.motion_flags[e,i,5]=int(unsafe and s.motion_flags[e,i,0]==0)
+            raw_unsafe_count+=s.motion_flags[e,i,5]
+        unsafe_fraction=wp.float64(0)
+        if active_count>0:unsafe_fraction=wp.float64(raw_unsafe_count)/wp.float64(active_count)
 
         for i in range(p.n):
             pos=position3(s,e,i);end=clip3(pos+s.xyz_work[e,i,1]*p.dt,wp.vec3d(0.0,0.0,p.altitude_min),wp.vec3d(p.map_size,p.map_size,p.altitude_max))
@@ -271,12 +305,13 @@ def motion_xyz(s:WorldState,p:WorldParams,actions:wp.array3d(dtype=wp.float32)):
             if p.energy_enabled!=0 and s.battery[e,i]>wp.float64(0) and s.motion_flags[e,i,0]==0 and cost(velocity3(s,e,i),actual,p)>s.battery[e,i]:
                 s.motion_flags[e,i,0]=1;unaffordable=True
         if not unaffordable:break
-    correction=wp.float64(0);active_count=int(0)
-    for i in range(p.n):
-        if s.motion_flags[e,i,0]==0:
-            correction+=wp.length(s.xyz_work[e,i,1]-s.xyz_work[e,i,0])/p.max_speed;active_count+=1
-    if active_count>0:correction/=wp.float64(active_count)
     s.shield_correction_step[e]=correction;s.shield_correction[e]+=correction
+    s.unsafe_action_step[e]=unsafe_fraction
+    intervention_count=int(0)
+    for i in range(p.n):
+        if s.motion_flags[e,i,0]==0:intervention_count+=s.motion_flags[e,i,1]
+    s.shield_intervention_step[e]=wp.float64(0)
+    if active_count>0:s.shield_intervention_step[e]=wp.float64(intervention_count)/wp.float64(active_count)
     s.motion_counts[e,4]+=int(cbf_counts[0]);s.motion_counts[e,5]+=int(cbf_counts[1]);s.motion_counts[e,6]+=int(cbf_counts[2]);s.motion_counts[e,7]+=int(cbf_counts[3])
     for i in range(p.n):
         pos=position3(s,e,i);end=s.xyz_work[e,i,2];actual=(end-pos)/p.dt
@@ -295,3 +330,8 @@ def motion_xyz(s:WorldState,p:WorldParams,actions:wp.array3d(dtype=wp.float32)):
             cmd=wp.vec3d(wp.float64(actions[e,i,0]),wp.float64(actions[e,i,1]),wp.float64(actions[e,i,2]))
             s.motion_counts[e,2]+=int(wp.length(cmd)>wp.float64(.1) and wp.length(actual)<wp.float64(1e-8))
             s.motion_counts[e,3]+=s.motion_flags[e,i,1]
+            s.motion_counts[e,8]+=s.motion_flags[e,i,5]
+            s.motion_counts[e,9]+=s.motion_flags[e,i,6]
+            s.motion_counts[e,10]+=s.motion_flags[e,i,7]
+            s.motion_counts[e,11]+=s.motion_flags[e,i,8]
+            s.motion_counts[e,12]+=int(p.motion_safety==2 and s.motion_flags[e,i,5]!=0 and s.motion_flags[e,i,2]==0 and s.motion_flags[e,i,4]==0)

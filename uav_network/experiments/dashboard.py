@@ -28,14 +28,11 @@ PANELS = {
         ("UAV-paper mission success rate by episode", "outcome/success"),
         ("Sample-efficiency training return / reward", "episode/return"),
         ("Compute-efficiency training return / reward", "episode/return"),
-        ("Episode return / reward (raw audit)", "episode/return"),
         ("Rolling return standard deviation", "rolling/return_std"),
     ],
     "Training progress and speed": [
         ("Completed training episodes", "train/episodes_completed"),
         ("Joint transitions / s - speed, not policy quality", "train/joint_transitions_per_s"),
-        ("Sample uses / new transition - BASE segment vs PQL counters",
-         ("train/sample_uses_per_new_transition", "pql/sample_uses_per_new_transition")),
     ],
     "Periodic fixed-policy evaluation - only when enabled": [
         ("Fixed-seed evaluation delivery (%) - higher", "evaluation/mean_delivery_rate_percent"),
@@ -48,25 +45,29 @@ PANELS = {
     "Why delivery is low - inspect together": [
         ("Packet delivery fraction - distinct from target delivery", "cohort/network/packet_pdr_fraction"),
         ("Silent with eligible receiver (fraction)", "cohort/network/diagnostics/action_silent_given_eligible_fraction"),
-        ("Blocked motion fraction", "safety/blocked_motion_rate"),
         ("UAV joules / GCS delivery - compare equal success", "cohort/energy/j_per_gcs_delivery"),
+    ],
+    "Policy safety before shield vs executed safety": [
+        ("Raw unsafe policy command fraction - lower", "safety/raw_unsafe_action_rate"),
+        ("Policy safe without shield fraction - higher", "safety/policy_safe_without_shield_rate"),
+        ("CBF intervention fraction - lower", "safety/cbf_intervention_rate"),
+        ("Unsafe commands rescued by CBF fraction - lower", "safety/shield_rescue_rate"),
+        ("Executed blocked motion fraction - lower", "safety/blocked_motion_rate"),
+        ("Executed boundary clip fraction - lower", "safety/boundary_clip_rate"),
+        ("Unsafe raw-action reward penalty", "reward/unsafe_action"),
+        ("CBF intervention reward penalty", "reward/shield_intervention"),
+        ("CBF correction reward penalty", "reward/shield_correction"),
     ],
     "Learner stability - loss and gradients": [
         ("Critic loss - diagnostic only", "learner/critic_loss"),
         ("Actor loss - diagnostic only", "learner/actor_loss"),
         ("TD error absolute mean", "learner/td_error_abs_mean"),
-        ("Q absolute maximum", "learner/q_abs_max"),
-        ("Critic gradient norm", "learner/critic_grad_norm"),
     ],
     "Resources - runtime for system; training steps for disk": [
         ("GPU 0 / 1 utilization (%)", ("system/gpu.0.gpu", "system/gpu.1.gpu")),
-        ("GPU 0 / 1 allocated memory (%)", ("system/gpu.0.memoryAllocated", "system/gpu.1.memoryAllocated")),
-        ("CPU utilization (SDK %)", "system/cpu"),
-        ("Host RAM utilization (%)", "system/memory_percent"),
         ("Free output disk bytes - training-step samples", "storage/disk_free_bytes"),
     ],
     "Recovery and upload cost": [
-        ("Seconds since confirmed FULL upload - not captured-state age", "recovery/seconds_since_confirmed_upload"),
         ("Full snapshot + upload elapsed seconds", "recovery/elapsed_seconds"),
     ],
 }
@@ -89,6 +90,7 @@ DIAGNOSTIC_PANELS = {
     "Warnings and failures": [
         ("Search-delivery gap", "diagnostics/delivery_gap_warning"),
         ("Return drop", "diagnostics/return_drop_warning"),
+        ("Raw unsafe policy", "diagnostics/raw_unsafe_action_warning"),
         ("Reward accounting", "diagnostics/reward_accounting_warning"),
         ("Fatal error", "diagnostics/fatal_error_count"),
     ],

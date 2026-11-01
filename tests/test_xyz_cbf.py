@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from uav_network.configuration import Config
 from uav_network.environment.xyz_motion import move_xyz
@@ -121,3 +122,46 @@ def test_cbf_uses_simulator_integration_when_protecting_near_boundary():
     assert clipped == 0
     assert velocity[0, 0] >= -1.5 - 1e-9
     assert diagnostics["shield_interventions"] == 1
+
+
+def test_cbf_exposes_raw_boundary_attempt_and_action_space_correction():
+    (position, velocity, blocked, clipped), diagnostics = _move(
+        [[500.0, 500.0, 0.5]],
+        [[0.0, 0.0, 0.0]],
+        [[0.0, 0.0, -1.0]],
+    )
+    assert blocked == 0
+    assert clipped == 0
+    assert position[0, 2] >= 0.0
+    assert diagnostics["raw_boundary_attempts"] == 1
+    assert diagnostics["raw_unsafe_attempts"] == 1
+    assert diagnostics["shield_rescues"] == 1
+    assert diagnostics["unsafe_action_step"] == 1.0
+    assert diagnostics["shield_correction"] == pytest.approx(0.75, abs=1e-10)
+
+
+def test_cbf_exposes_raw_obstacle_attempt_even_when_shield_avoids_block():
+    (_, _, blocked, _), diagnostics = _move(
+        [[477.0, 500.0, 25.0]],
+        [[4.0, 0.0, 0.0]],
+        [[0.0, 0.0, 0.0]],
+        [[500.0, 500.0, 10.0]],
+        [40.0],
+    )
+    assert blocked == 0
+    assert diagnostics["raw_obstacle_attempts"] == 1
+    assert diagnostics["raw_unsafe_attempts"] == 1
+    assert diagnostics["shield_rescues"] == 1
+
+
+def test_cbf_exposes_raw_peer_attempt_for_both_uavs():
+    (_, _, blocked, _), diagnostics = _move(
+        [[490.0, 500.0, 80.0], [510.0, 500.0, 80.0]],
+        [[3.0, 0.0, 0.0], [-3.0, 0.0, 0.0]],
+        [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+    )
+    assert blocked == 0
+    assert diagnostics["raw_peer_attempts"] == 2
+    assert diagnostics["raw_unsafe_attempts"] == 2
+    assert diagnostics["shield_rescues"] == 2
+    assert diagnostics["unsafe_action_step"] == 1.0

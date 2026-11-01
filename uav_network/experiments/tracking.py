@@ -19,7 +19,6 @@ CPU_EPISODE_METRICS = ("evaluation/return", "evaluation/search_rate_percent",
                        "evaluation/delivery_rate_percent", "evaluation/success",
                        "evaluation/episodes_completed")
 
-
 def progress_metrics(observations, config):
     local, state = observations["observation"], observations["state"]
     n, t, k = config.world.num_uavs, config.world.num_targets, config.world.num_obstacles
@@ -38,7 +37,6 @@ def progress_metrics(observations, config):
             "progress/delivery_rate_percent": float(delivered.mean() * 100),
             "progress/mean_battery_fraction": float(local[:, :, 8].mean()),
             "progress/mean_active_uavs": float(local[:, :, 9].sum(1).mean())}
-
 
 def episode_metrics(record, num_uavs, motion_dim=2, motion_safety=None):
     energy, network = record["energy"], record["network"]
@@ -70,9 +68,12 @@ def episode_metrics(record, num_uavs, motion_dim=2, motion_safety=None):
     result.update({f"learner/{key}": value for key, value in learner_telemetry(record.get("learner", {})).items()})
     motion = record.get("motion_counts", {})
     result.update({f"motion/{k}": v for k, v in motion.items()})
-    result.update({f"safety/{name}_rate": motion.get(key, 0) / opportunities for name, key in (
-        ("shield_intervention", "shield_interventions"),
-        ("shield_infeasible", "shield_infeasible"), ("commanded_stall", "commanded_stalls"))})
+    safety_counts = (("shield_intervention","shield_interventions"),("shield_infeasible","shield_infeasible"),
+        ("commanded_stall","commanded_stalls"),("raw_unsafe_action","raw_unsafe_attempts"),
+        ("raw_boundary_attempt","raw_boundary_attempts"),("raw_obstacle_attempt","raw_obstacle_attempts"),
+        ("raw_peer_attempt","raw_peer_attempts"),("shield_rescue","shield_rescues"))
+    result.update({f"safety/{name}_rate": motion.get(key,0)/opportunities for name,key in safety_counts})
+    result["safety/policy_safe_without_shield_rate"] = max(0.,1.-result["safety/raw_unsafe_action_rate"])
     if motion_safety == "cbf":
         result.update({"safety/cbf_intervention_rate": motion.get("shield_interventions", 0) / opportunities,
             "safety/cbf_infeasible_rate": motion.get("shield_infeasible", 0) / opportunities,
@@ -91,15 +92,14 @@ def episode_metrics(record, num_uavs, motion_dim=2, motion_safety=None):
     result.update(episode_telemetry(record))
     return result
 
-
 def final_metrics(records):
+    """Aggregate completed *training* episodes without pretending to be final-policy eval."""
     if not records:
-        raise ValueError("Final episode aggregates need at least one completed episode")
-    return {"final_mean_return": float(np.mean([r["return"] for r in records])),
-            "final_search_rate_percent": float(np.mean([r["search_rate_percent"] for r in records])),
-            "final_delivery_rate_percent": float(np.mean([r["delivery_rate_percent"] for r in records])),
-            "final_success_rate": float(np.mean([r["success"] for r in records]))}
-
+        raise ValueError("Training-history aggregates need at least one completed episode")
+    return {"training_history_mean_return":float(np.mean([r["return"] for r in records])),
+        "training_history_mean_search_rate_percent":float(np.mean([r["search_rate_percent"] for r in records])),
+        "training_history_mean_delivery_rate_percent":float(np.mean([r["delivery_rate_percent"] for r in records])),
+        "training_history_success_rate":float(np.mean([r["success"] for r in records])),"training_metrics_scope":"all_completed_training_episodes"}
 
 def _authentication(config):
     path = Path(config.tracking.credentials_file).expanduser()

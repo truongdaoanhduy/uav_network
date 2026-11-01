@@ -38,7 +38,10 @@ reward:
   shaping_gamma: 0.99
   investigation_belief_threshold: 0.8
   communication_efficiency: 1.0
+  # Penalize dependence on the safety layer, not only executed collisions.
   shield_correction: 0.1
+  shield_intervention: 0.5
+  unsafe_action: 1.0
 masac:
   share_actor_parameters: true
   share_critic_parameters: true

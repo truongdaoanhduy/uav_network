@@ -111,6 +111,8 @@ class RewardConfig:
     propulsion_energy_per_kj: float = 0.01
     communication_efficiency: float = 0.0
     shield_correction: float = 0.0
+    shield_intervention: float = 0.0
+    unsafe_action: float = 0.0
     information_gain: float = 0.0
     investigation_shaping: float = 0.0
     shaping_gamma: float = 0.99
@@ -395,7 +397,8 @@ class Config:
                 e.idle_power_w, e.hover_power_w, e.speed_squared_coefficient,
                 e.acceleration_squared_coefficient, n.obstacle_extra_loss_db,
                 self.reward.propulsion_energy_per_kj, self.reward.communication_efficiency,
-                self.reward.shield_correction, self.reward.information_gain,
+                self.reward.shield_correction, self.reward.shield_intervention, self.reward.unsafe_action,
+                self.reward.information_gain,
                 self.reward.investigation_shaping)):
             raise ValueError("Battery capacity must be positive and energy/reward/loss coefficients nonnegative")
         if not 0 <= self.reward.shaping_gamma <= 1:

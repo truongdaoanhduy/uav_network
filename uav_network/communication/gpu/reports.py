@@ -128,9 +128,11 @@ def reset_reward_state(s: wp.ref[WorldState], e: int):
     s.reward[e] = wp.float32(0)
     s.shield_correction_step[e] = wp.float64(0)
     s.shield_correction[e] = wp.float64(0)
+    s.unsafe_action_step[e] = wp.float64(0)
+    s.shield_intervention_step[e] = wp.float64(0)
     for j in range(8):
         s.before[e,j] = wp.float64(0)
-    for j in range(12):
+    for j in range(14):
         s.reward_components[e,j] = wp.float64(0)
 
 @wp.kernel
@@ -240,6 +242,8 @@ def end_step(s: WorldState, p: WorldParams):
     c7 = -p.reward_propulsion*(flight-s.before[e,5])/wp.float64(1000)
     c8 = -p.reward_communication_efficiency*(comm-s.before[e,6])/p.report_reference_tx_energy
     c9 = -p.reward_shield_correction*s.shield_correction_step[e]
+    c12 = -p.reward_unsafe_action*s.unsafe_action_step[e]
+    c13 = -p.reward_shield_intervention*s.shield_intervention_step[e]
     terminal = delivered == p.targets_count or live == 0 or s.steps[e] >= p.max_steps
     old_investigation=wp.float64(s.reward[e]);next_belief=s.belief_potential[e];next_investigation=investigation_potential(s,p,e)
     if terminal:
@@ -248,7 +252,7 @@ def end_step(s: WorldState, p: WorldParams):
     if p.xyz!=0:
         c10=p.reward_information_gain*(p.reward_shaping_gamma*next_belief-s.before[e,7])
         c11=p.reward_investigation*(p.reward_shaping_gamma*next_investigation-old_investigation)
-    s.reward[e] = wp.float32(c0+c1+c2+c3+c4+c5+c6+c7+c8+c9+c10+c11)
+    s.reward[e] = wp.float32(c0+c1+c2+c3+c4+c5+c6+c7+c8+c9+c10+c11+c12+c13)
     s.reward_components[e,0] += c0
     s.reward_components[e,1] += c1
     s.reward_components[e,2] += c2
@@ -261,4 +265,6 @@ def end_step(s: WorldState, p: WorldParams):
     s.reward_components[e,9] += c9
     s.reward_components[e,10] += c10
     s.reward_components[e,11] += c11
+    s.reward_components[e,12] += c12
+    s.reward_components[e,13] += c13
     s.terminated[e] = int(terminal)
