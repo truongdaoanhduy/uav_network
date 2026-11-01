@@ -47,5 +47,5 @@
 
 - [x] Verify current feature workflow account wiring passes tests.
 - [x] Copy only the corrected workflow to default branch `main`.
-- [ ] Dispatch/dry-run supervisor and verify successful reconciliation.
-- [ ] Confirm MASAC 16,384 checkpoints become eligible for continuation rather than remaining stranded.
+- [x] Dispatch/dry-run supervisor and verify successful reconciliation.
+- [x] Confirm MASAC 16,384 checkpoints become eligible for continuation rather than remaining stranded.
