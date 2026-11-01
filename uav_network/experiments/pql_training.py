@@ -241,7 +241,7 @@ def train_pql(config):
                   "device": str(engine.critic_device), "replay_device": str(engine.replay.device),
                   "environment_backend": config.runtime.environment_backend,
                   "num_cpu_env_workers": vector.num_cpu_workers if device_env else (count if count > 1 else 0),
-                  "replay_bytes": engine.replay.allocated_bytes, "collector_overlap": engine.asynchronous,
+                  "replay_bytes": engine.replay.allocated_bytes, "collector_overlap": engine.concurrent,
                   "sample_updates_per_transition": engine.metrics()["pql/sample_uses_per_new_transition"],
                   "startup_s": startup_s, "elapsed_s": elapsed,
                   "joint_transitions_per_s": (global_step - initial["global_step"]) / max(elapsed, 1e-9),
@@ -251,9 +251,9 @@ def train_pql(config):
         result["storage"] = disk_metrics(output)
         result["replay"] = engine.replay.stats()
         result["reproducibility"] = reproducibility_result(engine.critic, history, warm_start_sha256=warm_start_sha256)
-        result["reproducibility"].update(scheduling_deterministic=not engine.asynchronous,
-            scope=("Synchronous schedule requires identical source/settings/platform; exact Warp state when available"
-                   if not engine.asynchronous else "Seeded algorithms/environment; asynchronous scheduling is not bitwise deterministic"))
+        result["reproducibility"].update(scheduling_deterministic=not engine.concurrent,
+            scope=("Deterministic PQL schedule requires identical source/settings/platform; exact Warp state when available"
+                   if not engine.concurrent else "Seeded algorithms/environment; concurrent scheduling is not bitwise deterministic"))
         if history:
             result.update(final_metrics(history))
         if tracker:

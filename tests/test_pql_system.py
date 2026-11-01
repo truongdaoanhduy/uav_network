@@ -77,6 +77,33 @@ class PQLSystemTests(unittest.TestCase):
                     finally:
                         engine.close()
 
+    def test_deterministic_async_mode_keeps_split_learners_without_concurrent_workers(self):
+        cls = self.system_class()
+        c = pql_config(mode="async")
+        c.runtime.deterministic = True
+        engine = cls(c)
+        try:
+            self.assertIsNot(engine.policy, engine.critic)
+            self.assertTrue(engine.asynchronous)
+            self.assertFalse(engine.concurrent)
+            self.assertEqual(engine.threads, [])
+            self.assertEqual(engine.metrics()["pql/scheduling_deterministic"], 1)
+        finally:
+            engine.close()
+
+    def test_nondeterministic_async_mode_preserves_concurrent_workers(self):
+        cls = self.system_class()
+        c = pql_config(mode="async")
+        c.runtime.deterministic = False
+        engine = cls(c)
+        try:
+            self.assertTrue(engine.asynchronous)
+            self.assertTrue(engine.concurrent)
+            self.assertEqual(len(engine.threads), 2)
+            self.assertEqual(engine.metrics()["pql/scheduling_deterministic"], 0)
+        finally:
+            engine.close()
+
     def test_collection_values_are_frozen_before_caller_reuses_storage(self):
         cls = self.system_class()
         engine = cls(pql_config())
@@ -118,7 +145,9 @@ class PQLSystemTests(unittest.TestCase):
 
     def test_async_nonfinite_failure_reaches_caller_without_hanging(self):
         cls = self.system_class()
-        engine = cls(pql_config(mode="async"))
+        c = pql_config(mode="async")
+        c.runtime.deterministic = False
+        engine = cls(c)
         try:
             batch = replay_batch(engine.critic)
             batch["reward"].fill_(float("nan"))

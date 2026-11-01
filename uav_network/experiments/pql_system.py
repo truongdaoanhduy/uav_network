@@ -46,6 +46,9 @@ class PQLSystem:
         self.collector_device, self.critic_device, self.policy_device = resolve_devices(config)
         self.replay_device = resolve_replay_device(config.runtime.replay_device, self.critic_device)
         self.asynchronous = config.pql.mode == "async"
+        # Keep split PQL learners in async mode, but deterministic runs must not
+        # depend on OS/GPU worker scheduling order.
+        self.concurrent = self.asynchronous and not config.runtime.deterministic
         self.condition, self.stop = Condition(), Event()
         self.error = None
         self.threads = []
@@ -163,7 +166,7 @@ class PQLSystem:
             numpy_state = rng["numpy"]
             np.random.set_state((numpy_state[0], np.asarray(numpy_state[1], dtype=np.uint32),
                                  *numpy_state[2:]))
-        if self.asynchronous:
+        if self.concurrent:
             for name, queue, operation, device in (
                     ("critic", self.collection_queue, self._collect_and_learn, self.critic_device),
                     ("policy", self.policy_queue, self._policy_learn, self.policy_device)):
@@ -218,7 +221,7 @@ class PQLSystem:
         self._raise_error()
         frozen = freeze_transition(transition)
         self.collections += 1
-        if self.asynchronous:
+        if self.concurrent:
             with self.condition:
                 self.pending_collections += 1
             try:
@@ -256,14 +259,18 @@ class PQLSystem:
                     if step % delay == 0:
                         snapshot = cloned_state(self.critic.critics)
                         synchronize(self.critic.device)
-                        with self.condition:
-                            self.pending_policies += 1
-                        try:
-                            self.policy_wait_s += self._put(self.policy_queue, (step, batch, snapshot))
-                        except BaseException:
+                        task = (step, batch, snapshot)
+                        if self.concurrent:
                             with self.condition:
-                                self.pending_policies -= 1
-                            raise
+                                self.pending_policies += 1
+                            try:
+                                self.policy_wait_s += self._put(self.policy_queue, task)
+                            except BaseException:
+                                with self.condition:
+                                    self.pending_policies -= 1
+                                raise
+                        else:
+                            self._policy_learn(task)
                     self.critic_worker.update_targets()
                 else:
                     actor_before = self.critic.actor_updates
@@ -348,7 +355,7 @@ class PQLSystem:
                     "pql/critic_policy_lag": self.policy.actor_updates - self.critic_worker.last_policy_version,
                     "pql/policy_critic_lag": self.critic.updates - self.policy_worker.last_critic_version,
                     "pql/ratio_credit": self.credit,
-                    "pql/scheduling_deterministic": int(not self.asynchronous)}
+                    "pql/scheduling_deterministic": int(not self.concurrent)}
 
     def save(self, path, progress, collector_rng=None, environment=None, selection_state=None):
         self.flush()
