@@ -155,6 +155,7 @@ class ProductionExecutionTests(unittest.TestCase):
         for algorithm in ("masac","matd3"):
             with self.subTest(algorithm=algorithm),TemporaryDirectory() as directory:
                 c=pql_config(algorithm,"async")
+                c.runtime.deterministic=False
                 c.runtime.amp_mode="fp16"
                 c.runtime.vectorize_critics=True
                 c.pql.checkpoint_replay=True

@@ -22,6 +22,7 @@ def test_async_workers_apply_independent_scaled_steps_and_restore_helpers():
     import uav_network.algorithms.masac as masac
     torch.set_num_threads(1)
     config = pql_config(mode="async")
+    config.runtime.deterministic = False
     # CPU BF16 has different exp/cat autocast rules; this checks thread/scaler ownership.
     # Actual FP16 vectorized execution is verified only by the real T4 experiment.
     config.pql.warmup_collection_steps = 3

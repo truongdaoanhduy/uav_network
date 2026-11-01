@@ -4,7 +4,6 @@ from unittest.mock import patch
 from test_cloud_continuation import parent_spec, learner_result
 from uav_network.cloud.credentials import Account, Credentials
 
-
 def fixtures():
     from uav_network.cloud import github_supervisor as supervisor
     account = Account("selected", "synthetic-token")
@@ -14,11 +13,9 @@ def fixtures():
     parent["external_supervisor_required"] = True
     return supervisor, account, credentials, parent
 
-
 def controls(parent, results):
     return {"job.json": parent, "job-result.json": results,
             "continuation.json": {"status": "external_pending"}}
-
 
 def test_validate_job_accepts_manifest_alias_when_authenticated_owner_matches():
     s, _account, _credentials, parent = fixtures()
@@ -27,7 +24,6 @@ def test_validate_job_accepts_manifest_alias_when_authenticated_owner_matches():
     parent["kernel_ref"] = parent["root_kernel_ref"] = "owner/gh-tra-g3-masac-base-test"
     with patch.object(s, "resolve_username", return_value="owner"):
         s._validate_job(parent["kernel_ref"], parent, account)
-
 
 def test_validate_job_rejects_alias_when_authenticated_owner_differs():
     import pytest
@@ -39,7 +35,6 @@ def test_validate_job_rejects_alias_when_authenticated_owner_differs():
         with pytest.raises(ValueError, match="selected account/lineage"):
             s._validate_job(parent["kernel_ref"], parent, account)
 
-
 def test_active_kernel_is_observed_without_reading_outputs_or_submitting():
     s, account, credentials, parent = fixtures()
     with patch.object(s, "kernel_status", return_value="running"), \
@@ -47,7 +42,6 @@ def test_active_kernel_is_observed_without_reading_outputs_or_submitting():
          patch.object(s, "submit_continuation", side_effect=AssertionError("submit")):
         result = s.reconcile_ref(parent["kernel_ref"], account, credentials)
     assert result == {"ref": parent["kernel_ref"], "status": "running", "action": "active"}
-
 
 def test_completed_incomplete_segment_submits_one_gpu_child_and_then_adopts_it():
     s, account, credentials, parent = fixtures()
@@ -63,7 +57,6 @@ def test_completed_incomplete_segment_submits_one_gpu_child_and_then_adopts_it()
     assert second["action"] == "existing_gpu" and second["child_ref"] == child_ref
     assert submit.call_count == 1
 
-
 def test_completed_episode_budget_submits_cpu_visualization_once():
     s, account, credentials, parent = fixtures()
     result = learner_result(complete=True)
@@ -77,7 +70,6 @@ def test_completed_episode_budget_submits_cpu_visualization_once():
     assert observed["child_ref"] == cpu_ref
     assert submit.call_count == 1
 
-
 def test_dry_run_reports_transition_without_push():
     s, account, credentials, parent = fixtures()
     result = learner_result(complete=False)
@@ -88,7 +80,6 @@ def test_dry_run_reports_transition_without_push():
         observed = s.reconcile_ref(parent["kernel_ref"], account, credentials, dry_run=True)
     assert observed["action"] == "would_submit_gpu"
 
-
 def test_unrelated_legacy_job_is_ignored():
     s, account, credentials, parent = fixtures()
     parent.pop("orchestration")
@@ -97,7 +88,6 @@ def test_unrelated_legacy_job_is_ignored():
         observed = s.reconcile_ref(parent["kernel_ref"], account, credentials)
     assert observed["action"] == "ignored"
 
-
 def test_terminal_failed_job_is_blocked_until_verified_recovery():
     s, account, credentials, parent = fixtures()
     with patch.object(s, "kernel_status", return_value="error"), \
@@ -105,7 +95,6 @@ def test_terminal_failed_job_is_blocked_until_verified_recovery():
          patch.object(s, "verified_recovery_result", side_effect=s.RecoveryUnavailable("missing")):
         observed = s.reconcile_ref(parent["kernel_ref"], account, credentials)
     assert observed["action"] == "recovery_blocked"
-
 
 def test_partial_cpu_evaluation_retries_from_saved_progress_once():
     s, account, credentials, parent = fixtures()
@@ -144,19 +133,16 @@ def test_partial_cpu_evaluation_retries_from_saved_progress_once():
     assert calls[0]["cpu_attempt"] == 1
     assert len(calls) == 1
 
-
 class FakeArtifact:
     def __init__(self, metadata, name="owner/project/uav-network-masac-deadbeef:v7"):
         self.metadata = metadata
         self.qualified_name = name
         self.manifest = type("Manifest", (), {"entries": {"checkpoint.json": object()}})()
 
-
 class FakeRun:
     def __init__(self, summary, state="crashed"):
         self.summary = summary
         self.state = state
-
 
 class FakeWandbApi:
     def __init__(self, run, artifact):
@@ -166,7 +152,6 @@ class FakeWandbApi:
     def artifact(self, ref, type=None):
         assert ref == self._artifact.qualified_name and type == "model"
         return self._artifact
-
 
 def good_recovery_api(parent, *, resumable=True, source_run=None, source_commit=None):
     run_id = parent["runs"]["masac"]["id"]
@@ -179,7 +164,6 @@ def good_recovery_api(parent, *, resumable=True, source_run=None, source_commit=
                 "source_run_id": source_run or run_id,
                 "source_git_commit": source_commit or parent["commit"]}
     return FakeWandbApi(FakeRun(summary), FakeArtifact(metadata, ref))
-
 
 def test_verified_recovery_requires_immutable_resumable_matching_provenance():
     s, account, credentials, parent = fixtures()
@@ -202,7 +186,6 @@ def test_verified_recovery_requires_immutable_resumable_matching_provenance():
         else:
             raise AssertionError("invalid recovery provenance was accepted")
 
-
 def test_crashed_job_with_verified_recovery_submits_exact_continuation_once():
     s, account, credentials, parent = fixtures()
     recovered = s.verified_recovery_result(parent, credentials, api=good_recovery_api(parent))
@@ -219,7 +202,6 @@ def test_crashed_job_with_verified_recovery_submits_exact_continuation_once():
     assert submit.call_count == 1
     assert submit.call_args.args[1]["masac"]["episodes"] == 640
 
-
 def test_crashed_job_without_exact_recovery_blocks_without_push():
     s, account, credentials, parent = fixtures()
     with patch.object(s, "kernel_status", return_value="error"), \
@@ -229,7 +211,6 @@ def test_crashed_job_without_exact_recovery_blocks_without_push():
         observed = s.reconcile_ref(parent["kernel_ref"], account, credentials)
     assert observed["action"] == "recovery_blocked"
     assert observed["error_type"] == "RecoveryUnavailable"
-
 
 def test_environment_credentials_use_explicit_enabled_account_allowlist():
     from uav_network.cloud import github_supervisor as s
@@ -248,7 +229,6 @@ def test_environment_credentials_use_explicit_enabled_account_allowlist():
     assert [account.name for account in credentials.accounts] == ["account_01", "account_03"]
     assert all(account.name != "account_02" for account in credentials.accounts)
 
-
 def test_environment_credentials_fail_closed_when_allowlisted_token_is_missing():
     from uav_network.cloud import github_supervisor as s
     env = {
@@ -264,7 +244,6 @@ def test_environment_credentials_fail_closed_when_allowlisted_token_is_missing()
     with pytest.raises(RuntimeError, match="enabled account_03"):
         s.credentials_from_environment(env)
 
-
 def test_owned_refs_filters_legacy_kernels_before_reconciliation():
     s, account, credentials, parent = fixtures()
     rows = [
@@ -277,7 +256,6 @@ def test_owned_refs_filters_legacy_kernels_before_reconciliation():
     with patch.object(s, "run_kaggle", return_value=__import__("json").dumps(rows)):
         refs = s._owned_refs(account, 100)
     assert refs == [row["ref"] for row in rows if "/gh-" in row["ref"]]
-
 
 def test_reconcile_account_filters_unmanaged_kaggle_refs_before_reconciliation():
     s, account, credentials, _parent = fixtures()
@@ -302,7 +280,6 @@ def test_reconcile_account_filters_unmanaged_kaggle_refs_before_reconciliation()
     assert seen == refs[3:]
     assert [row["ref"] for row in outcomes] == refs[3:]
 
-
 def test_managed_ref_matches_reserved_github_lineages_and_cpu_retries_only():
     from uav_network.cloud import github_supervisor as s
     assert s._managed_ref("owner/gh-tra-g3-masac-base-h75-10271003-abc123")
@@ -310,7 +287,6 @@ def test_managed_ref_matches_reserved_github_lineages_and_cpu_retries_only():
     assert s._managed_ref("owner/uav-media-0123456789abcd-a01")
     assert not s._managed_ref("owner/tra-g3-masac-base-h75-10271003-abc123")
     assert not s._managed_ref("owner/uavnet-train-20261016-081807-d07bdf")
-
 
 def test_owned_refs_keeps_reserved_cpu_retry_namespace():
     from uav_network.cloud import github_supervisor as s
@@ -322,7 +298,6 @@ def test_owned_refs_keeps_reserved_cpu_retry_namespace():
     ]
     with patch.object(s, "run_kaggle", return_value=__import__("json").dumps(rows)):
         assert s._owned_refs(account, 100) == [rows[0]["ref"], rows[1]["ref"]]
-
 
 def test_service_probe_authenticates_reads_and_never_reconciles(monkeypatch, capsys):
     import json
@@ -360,7 +335,6 @@ def test_service_probe_authenticates_reads_and_never_reconciles(monkeypatch, cap
     hf.whoami.assert_called_once_with()
     hf.repo_info.assert_called_once_with("owner/checkpoints", repo_type="model", timeout=30)
 
-
 def test_service_probe_failure_is_nonzero_and_redacts_remote_error(monkeypatch, capsys):
     import json
     from unittest.mock import Mock
@@ -395,7 +369,6 @@ def test_service_probe_failure_is_nonzero_and_redacts_remote_error(monkeypatch, 
         assert "synthetic-hf-secret" not in output.out + output.err
         assert "private-details" not in output.out + output.err
 
-
 def test_one_unavailable_account_does_not_starve_other_accounts(capsys):
     import json
     s, account, credentials, _ = fixtures()
@@ -416,7 +389,6 @@ def test_one_unavailable_account_does_not_starve_other_accounts(capsys):
     assert report["healthy"][0]["action"] == "active"
     assert "synthetic-token" not in output and "private-error-details" not in output
 
-
 def test_only_actionable_supervisor_failures_return_nonzero(capsys):
     import json
     s, account, credentials, _ = fixtures()
@@ -426,7 +398,6 @@ def test_only_actionable_supervisor_failures_return_nonzero(capsys):
              patch.object(s, "reconcile_account", return_value=[{"action": action}]):
             assert s.main([]) == code, action
         assert json.loads(capsys.readouterr().out)["selected"][0]["action"] == action
-
 
 def test_sanitized_report_survives_account_failure(tmp_path, capsys):
     import json
@@ -440,7 +411,6 @@ def test_sanitized_report_survives_account_failure(tmp_path, capsys):
     assert "synthetic-wandb" not in data and "secret-error" not in data
     assert json.loads(data) == json.loads(capsys.readouterr().out)
 
-
 def test_verified_recovery_of_continuation_keeps_its_initial_global_step():
     s, account, credentials, parent = fixtures()
     parent.update(continuation_index=1, continuation_expected_episodes={"masac": 300},
@@ -451,7 +421,6 @@ def test_verified_recovery_of_continuation_keeps_its_initial_global_step():
     from uav_network.cloud.continuation import build_continuation_spec
     child = build_continuation_spec(parent, result)
     assert child["continuation_expected_global_step"] == {"masac": 123456}
-
 
 def test_zero_episode_recovery_needs_verified_environment_state():
     import pytest
@@ -469,7 +438,6 @@ def test_zero_episode_recovery_needs_verified_environment_state():
         assert result["masac"]["initial_global_step"] == 0
         assert result["masac"]["environment_state_saved"] is True
 
-
 def test_cancelled_gpu_and_cpu_are_not_automatically_restarted():
     s, account, credentials, parent = fixtures()
     for stage in ("train", "visualize"):
@@ -478,7 +446,6 @@ def test_cancelled_gpu_and_cpu_are_not_automatically_restarted():
              patch.object(s, "read_controls", side_effect=AssertionError("cancelled job was adopted")):
             result = s.reconcile_ref(parent["kernel_ref"], account, credentials)
         assert result["action"] == "cancelled"
-
 
 def test_recovery_waiting_for_quota_is_not_a_submitted_child():
     s, account, credentials, parent = fixtures()
@@ -491,7 +458,6 @@ def test_recovery_waiting_for_quota_is_not_a_submitted_child():
         result = s.reconcile_ref(parent["kernel_ref"], account, credentials)
     assert result["action"] == "waiting_for_quota"
     assert result["wait_reason"] == "insufficient_quota"
-
 
 def test_consecutive_crash_recovery_is_bounded_and_clean_segment_resets_it():
     import pytest
@@ -506,7 +472,6 @@ def test_consecutive_crash_recovery_is_bounded_and_clean_segment_resets_it():
         build_continuation_spec(parent, results)
     del results["masac"]["exact_recovery"]
     assert build_continuation_spec(parent, results)["consecutive_recoveries"] == 0
-
 
 def test_exhausted_recovery_budget_blocks_before_network_or_submission():
     s, account, credentials, parent = fixtures()
