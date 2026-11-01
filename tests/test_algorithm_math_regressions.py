@@ -112,6 +112,30 @@ class AlgorithmMathRegressionTests(unittest.TestCase):
         self.assertTrue(torch.all(after_c > before_c))
         self.assertTrue(torch.all(after_d > before_d))
 
+    def test_masac_shared_critic_target_uses_joint_policy_entropy(self):
+        c = small_config("masac")
+        c.masac.share_actor_parameters = True
+        c.masac.share_critic_parameters = True
+        learner = MASAC(c, observation_dim(c), state_dim(c))
+        batch = replay_batch(c, count=4)
+        with torch.no_grad():
+            for module in (learner.actors, learner.target_critics, learner.critics):
+                for parameter in module.parameters():
+                    parameter.zero_()
+
+        torch.manual_seed(123)
+        with torch.no_grad():
+            _, logs, probs, log_probs, _ = learner._joint_sample(batch["next_observation"])
+            alpha_c = learner.log_alpha_continuous.exp()
+            alpha_d = learner.log_alpha_discrete.exp()
+            per_agent_entropy_bonus = -(alpha_d[None, :] * (probs * log_probs).sum(-1)
+                                        + alpha_c[None, :] * logs)
+            expected_target_mean = c.masac.gamma * per_agent_entropy_bonus.sum(-1).mean()
+
+        torch.manual_seed(123)
+        metrics = learner.update_critic(batch)
+        self.assertAlmostEqual(metrics["target_mean"], float(expected_target_mean), places=5)
+
     def test_masac_enumerates_each_destination_exactly(self):
         c = small_config("masac")
         learner = MASAC(c, observation_dim(c), state_dim(c))

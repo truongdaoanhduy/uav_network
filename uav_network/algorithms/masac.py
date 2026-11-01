@@ -201,9 +201,11 @@ class MASAC(nn.Module):
             joint, logs, probs, log_probs, continuous = self._joint_sample(data["next_observation"])
             if self.share_critic_parameters:
                 q = self._expected_q_shared_all(self.target_critics[0], data["next_state"], joint, continuous)
-                soft = (probs * (q - alpha_d[None, :, None] * log_probs)).sum(-1) \
-                       - alpha_c[None, :] * logs
-                target = soft_bellman_target(data["reward"], data["terminated"], soft.mean(-1), a.gamma)
+                expected_q = (probs * q).sum(-1).mean(-1)
+                entropy_bonus = -(alpha_d[None, :] * (probs * log_probs).sum(-1)
+                                  + alpha_c[None, :] * logs).sum(-1)
+                target = soft_bellman_target(data["reward"], data["terminated"],
+                                             expected_q + entropy_bonus, a.gamma)
             else:
                 targets = []
                 qs = (self._expected_q_all(self.target_critics, data["next_state"], joint, continuous)
