@@ -62,6 +62,27 @@ def test_evaluation_snapshot_rejects_old_observation_semantics(tmp_path, version
         load_evaluation_snapshot(old_observation_payload(saved, version))
 
 
+def xyz_settings(*, coarse_cells):
+    c = settings()
+    c.world.motion_dimensions = 3
+    c.world.motion_safety = "cbf"
+    c.sensor.model = "bayesian"
+    c.sensor.belief_patch_cells = 5
+    c.sensor.belief_coarse_cells = coarse_cells
+    return c
+
+
+@pytest.mark.parametrize(("coarse_cells", "expected_version"), [(0, 4), (10, 5)])
+def test_policy_accepts_observation_version_derived_from_xyz_config(tmp_path, coarse_cells, expected_version):
+    c = xyz_settings(coarse_cells=coarse_cells)
+    learner = make_learner(c, observation_dim(c), state_dim(c))
+    path = tmp_path / "xyz-policy.pt"
+    learner.save(path)
+    saved = torch.load(path, weights_only=True)
+    assert saved["observation_version"] == expected_version
+    assert load_policy(path).algorithm == "masac"
+
+
 @pytest.fixture(params=[False,True], ids=["base","pql"])
 def real_resume(tmp_path, request):
     from uav_network.experiments.training import train

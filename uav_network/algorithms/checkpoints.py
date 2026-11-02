@@ -17,11 +17,17 @@ def make_learner(config, obs_dim, critic_dim, device="cpu"):
 def validate_observation_version(saved):
     """Guard observation and seeded scene-generator semantics at every load path."""
     version = saved.get("observation_version")
-    expected = 4 if saved.get('config',{}).get('world',{}).get('motion_dimensions',2)==3 else OBSERVATION_VERSION
+    values = saved.get("config")
+    if not isinstance(values, dict):
+        raise ValueError("Checkpoint observation semantics differ; use its pinned historical source "
+                         "or retrain from episode 0")
+    config = Config()
+    _apply(config, values)
+    expected = observation_version(config)
     if type(version) is not int or version != expected:
         raise ValueError("Checkpoint observation semantics differ; use its pinned historical source "
                          "or retrain from episode 0")
-    generation = saved.get("config", {}).get("world", {}).get("generation_version")
+    generation = values.get("world", {}).get("generation_version")
     if type(generation) is not int or generation != WorldConfig().generation_version:
         raise ValueError("Checkpoint scenario generation semantics differ; use its pinned historical source "
                          "or retrain from episode 0")
