@@ -17,7 +17,9 @@ def make_learner(config, obs_dim, critic_dim, device="cpu"):
 def validate_observation_version(saved):
     """Guard observation and seeded scene-generator semantics at every load path."""
     version = saved.get("observation_version")
-    expected = 4 if saved.get('config',{}).get('world',{}).get('motion_dimensions',2)==3 else OBSERVATION_VERSION
+    config = Config()
+    _apply(config, saved.get("config", {}))
+    expected = observation_version(config)
     if type(version) is not int or version != expected:
         raise ValueError("Checkpoint observation semantics differ; use its pinned historical source "
                          "or retrain from episode 0")

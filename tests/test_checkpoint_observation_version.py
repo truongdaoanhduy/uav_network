@@ -62,6 +62,22 @@ def test_evaluation_snapshot_rejects_old_observation_semantics(tmp_path, version
         load_evaluation_snapshot(old_observation_payload(saved, version))
 
 
+def test_xyz_coarse_belief_evaluation_snapshot_uses_current_observation_semantics(tmp_path):
+    c = settings()
+    c.world.motion_dimensions = 3
+    c.world.motion_safety = "cbf"
+    c.sensor.model = "bayesian"
+    c.sensor.belief_coarse_cells = 5
+    learner = make_learner(c, observation_dim(c), state_dim(c))
+    path = save_evaluation_snapshot(c, tmp_path, learner.actors.state_dict(), 7,
+                                    {"episodes": 0, "global_step": 4})
+    saved = torch.load(path, weights_only=True)
+    assert saved["observation_version"] == 5
+    restored = load_evaluation_snapshot(saved)
+    assert restored.algorithm == "masac"
+    assert restored.observation_dim == observation_dim(c)
+
+
 @pytest.fixture(params=[False,True], ids=["base","pql"])
 def real_resume(tmp_path, request):
     from uav_network.experiments.training import train
