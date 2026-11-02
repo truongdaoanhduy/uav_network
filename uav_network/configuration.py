@@ -177,6 +177,7 @@ class RuntimeConfig:
     fused_optimizers: bool = False
     vectorize_critics: bool = False
     critic_chunk_size: int = 0
+    power_support_fraction: float = 0.0
     log_interval_steps: int = 100
     warm_start_checkpoint: str = "none"
     max_train_seconds: float = 0.0
@@ -351,6 +352,8 @@ class Config:
             raise ValueError("num_envs and log_interval_steps must be positive")
         if r.critic_chunk_size < 0:
             raise ValueError("runtime.critic_chunk_size must be nonnegative; zero disables chunking")
+        if not 0 <= r.power_support_fraction <= 1:
+            raise ValueError("runtime.power_support_fraction must be in [0,1]")
         if r.amp_mode not in {"off", "fp16"}:
             raise ValueError("runtime.amp_mode must be off or fp16")
         if r.max_train_seconds < 0:

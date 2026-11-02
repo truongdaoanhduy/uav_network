@@ -78,6 +78,51 @@ class MASACTests(unittest.TestCase):
         self.assertTrue((action.continuous[:, 1] == 0).all())
         self.assertTrue((action.continuous[:, :, 2][action.destination == 0] == 0).all())
 
+
+    def _force_gcs_destination(self):
+        for actor in self.learner.actors:
+            with torch.no_grad():
+                actor.destination.weight.zero_()
+                actor.destination.bias.fill_(-100.0)
+                actor.destination.bias[-1] = 100.0
+
+    def test_power_support_changes_only_training_power_component(self):
+        obs = np.repeat(self.obs[None], 5, axis=0)
+        obs[:, :, 9] = 1
+        obs[:, :, -7:] = 0
+        obs[:, :, -7] = 1
+        obs[:, :, -1] = 1
+        self._force_gcs_destination()
+        self.learner.config.runtime.power_support_fraction = 0.0
+        torch.manual_seed(123)
+        baseline = self.learner.act_batch(obs, deterministic=False, step=4096)
+        self.learner.config.runtime.power_support_fraction = 1.0
+        torch.manual_seed(123)
+        supported = self.learner.act_batch(obs, deterministic=False, step=4096)
+        np.testing.assert_array_equal(supported.destination, baseline.destination)
+        np.testing.assert_array_equal(supported.continuous[..., :2], baseline.continuous[..., :2])
+        self.assertTrue((supported.destination != 0).all())
+        grid = np.asarray([-1.0, -0.5, 0.0, 0.5, 1.0], dtype=np.float32)
+        self.assertTrue(np.isin(supported.continuous[..., -1], grid).all())
+        self.assertFalse(np.array_equal(supported.continuous[..., -1], baseline.continuous[..., -1]))
+
+    def test_power_support_is_disabled_for_deterministic_evaluation(self):
+        obs = np.repeat(self.obs[None], 3, axis=0)
+        obs[:, :, 9] = 1
+        obs[:, :, -7:] = 1
+        self._force_gcs_destination()
+        self.learner.config.runtime.power_support_fraction = 0.0
+        baseline = self.learner.act_batch(obs, deterministic=True, step=8192)
+        self.learner.config.runtime.power_support_fraction = 1.0
+        supported = self.learner.act_batch(obs, deterministic=True, step=8192)
+        np.testing.assert_array_equal(supported.continuous, baseline.continuous)
+        np.testing.assert_array_equal(supported.destination, baseline.destination)
+
+    def test_runtime_rejects_power_support_fraction_outside_unit_interval(self):
+        self.config.runtime.power_support_fraction = 1.01
+        with self.assertRaisesRegex(ValueError, "power_support_fraction"):
+            self.config.validate()
+
     def test_no_destination_choice_has_zero_categorical_entropy(self):
         batch = self.batch()
         for key in ("observation", "next_observation"):
