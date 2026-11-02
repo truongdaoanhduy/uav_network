@@ -57,6 +57,9 @@ def compile_models(learner):
     if not hasattr(nn.Module, "compile"):
         raise RuntimeError("torch.compile requires a supported PyTorch build")
     learner._compiled_critic_values = torch.compile(critic_values, dynamic=True, backend="inductor")
+    if getattr(learner, "algorithm", None) == "masac":
+        from .masac import exact_q_values
+        learner._compiled_exact_q_values = torch.compile(exact_q_values, dynamic=True, backend="inductor")
     for actor in learner.actors:
         actor.encoder.compile(dynamic=True, backend="inductor")
     if hasattr(learner, "target_actors"):

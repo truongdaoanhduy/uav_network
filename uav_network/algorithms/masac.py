@@ -22,6 +22,12 @@ def soft_bellman_target(reward, terminated, soft_value, gamma):
     return reward + gamma * (1 - terminated) * soft_value
 
 
+def exact_q_values(critic, state, joint):
+    """Twin-min Q over an already compacted set of valid alternatives."""
+    q1, q2 = critic(state, joint)
+    return torch.minimum(q1, q2)
+
+
 class MASAC(nn.Module):
     algorithm = "masac"
 
@@ -91,10 +97,24 @@ class MASAC(nn.Module):
         action = self.act_batch(np.asarray(observations)[None], deterministic, step)
         return Action(action.continuous[0], action.destination[0])
 
-    def _expected_q(self, critic, state, joint, continuous, index):
-        return chunked_call(
-            lambda s, j, a: self._expected_q_full(critic, s, j, a, index),
-            state, joint, continuous, self.config.runtime.critic_chunk_size)
+    def _expected_q(self, critic, state, joint, continuous, index, valid_mask=None):
+        # The no-mask path is the frozen dense oracle and the memory-fallback
+        # implementation used by explicit critic chunking. Production hybrid
+        # training supplies the existing destination-admission mask.
+        if valid_mask is None or self.config.runtime.critic_chunk_size:
+            return chunked_call(
+                lambda s, j, a: self._expected_q_full(critic, s, j, a, index),
+                state, joint, continuous, self.config.runtime.critic_chunk_size)
+        rows = valid_mask.nonzero(as_tuple=False)
+        batch_index, destination = rows[:, 0], rows[:, 1]
+        alternatives = joint.detach()[batch_index].clone()
+        choices = continuous[batch_index].clone()
+        choices[:, 2] = torch.where(destination == 0, 0, choices[:, 2])
+        alternatives[:, index, :3] = choices
+        alternatives[:, index, 3:] = F.one_hot(destination, self.destinations).to(alternatives.dtype)
+        values = self._exact_q_values(critic, state[batch_index], alternatives)
+        result = values.new_zeros((len(state), self.destinations))
+        return result.index_put((batch_index, destination), values)
 
     def _expected_q_full(self, critic, state, joint, continuous, index):
         """Enumerate own destination; sample and detach all other agents."""
@@ -108,10 +128,13 @@ class MASAC(nn.Module):
         q1, q2 = critic(repeated_state, alternatives.reshape(b * k, self.num_uavs, -1))
         return torch.minimum(q1, q2).reshape(b, k)
 
-    def _expected_q_all(self, critics, state, joint, continuous):
-        return chunked_call(
-            lambda s, j, a: self._expected_q_all_full(critics, s, j, a),
-            state, joint, continuous, self.config.runtime.critic_chunk_size)
+    def _expected_q_all(self, critics, state, joint, continuous, valid_masks=None):
+        if valid_masks is None or self.config.runtime.critic_chunk_size:
+            return chunked_call(
+                lambda s, j, a: self._expected_q_all_full(critics, s, j, a),
+                state, joint, continuous, self.config.runtime.critic_chunk_size)
+        return torch.stack([self._expected_q(critic, state, joint, continuous[:, i], i, valid_masks[:, i])
+                            for i, critic in enumerate(critics)], 1)
 
     def _expected_q_all_full(self, critics, state, joint, continuous):
         """Enumerate each critic's own destination, keeping peer actions detached."""
@@ -129,6 +152,9 @@ class MASAC(nn.Module):
     def _critic_values(self, *args):
         return getattr(self, "_compiled_critic_values", critic_values)(*args)
 
+    def _exact_q_values(self, *args):
+        return getattr(self, "_compiled_exact_q_values", exact_q_values)(*args)
+
     @autocast_update
     def update_critic(self, batch, collect_metrics=True):
         data = tensor_batch(batch, self.device)
@@ -138,10 +164,12 @@ class MASAC(nn.Module):
         with torch.no_grad():
             joint, logs, probs, log_probs, continuous = self._joint_sample(data["next_observation"])
             targets = []
-            qs = (self._expected_q_all(self.target_critics, data["next_state"], joint, continuous)
+            valid = valid_destinations(data["next_observation"], self.destinations)
+            qs = (self._expected_q_all(self.target_critics, data["next_state"], joint, continuous, valid)
                   if vectorized else None)
             for i, critic in enumerate(self.target_critics):
-                q = qs[:, i] if vectorized else self._expected_q(critic, data["next_state"], joint, continuous[:, i], i)
+                q = qs[:, i] if vectorized else self._expected_q(
+                    critic, data["next_state"], joint, continuous[:, i], i, valid[:, i])
                 soft = (probs[:, i] * (q - alpha_d[i] * log_probs[:, i])).sum(-1) - alpha_c[i] * logs[:, i]
                 targets.append(soft_bellman_target(data["reward"], data["terminated"], soft, a.gamma))
             target = torch.stack(targets, 1)
@@ -171,12 +199,14 @@ class MASAC(nn.Module):
         try:
             samples = ([self._sample(actor, data["observation"][:, i]) for i, actor in enumerate(self.actors)]
                        if vectorized else None)
+            valid = valid_destinations(data["observation"], self.destinations)
             qs = (self._expected_q_all(self.critics, data["state"], base_joint,
-                                      torch.stack([s[0] for s in samples], 1)) if vectorized else None)
+                                      torch.stack([s[0] for s in samples], 1), valid) if vectorized else None)
             for i, actor in enumerate(self.actors):
                 obs = data["observation"][:, i]
                 continuous, logp, probs, log_probs = samples[i] if vectorized else self._sample(actor, obs)
-                q = qs[:, i] if vectorized else self._expected_q(self.critics[i], data["state"], base_joint, continuous, i)
+                q = qs[:, i] if vectorized else self._expected_q(
+                    self.critics[i], data["state"], base_joint, continuous, i, valid[:, i])
                 loss = (alpha_c[i] * logp + (probs * (alpha_d[i] * log_probs - q)).sum(-1)).mean()
                 actor_losses.append(loss)
                 entropies_c.append(-logp.detach().mean())

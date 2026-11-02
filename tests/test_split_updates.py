@@ -45,17 +45,17 @@ class SplitUpdateTests(unittest.TestCase):
     def setUp(self):
         torch.set_num_threads(1)
 
-    def assert_nested_close(self, left, right):
+    def assert_nested_close(self, left, right, *, rtol=0, atol=0):
         if isinstance(left, torch.Tensor):
-            torch.testing.assert_close(left, right, rtol=0, atol=0)
+            torch.testing.assert_close(left, right, rtol=rtol, atol=atol)
         elif isinstance(left, dict):
             self.assertEqual(left.keys(), right.keys())
             for key in left:
-                self.assert_nested_close(left[key], right[key])
+                self.assert_nested_close(left[key], right[key], rtol=rtol, atol=atol)
         elif isinstance(left, (list, tuple)):
             self.assertEqual(len(left), len(right))
             for a, b in zip(left, right):
-                self.assert_nested_close(a, b)
+                self.assert_nested_close(a, b, rtol=rtol, atol=atol)
         else:
             self.assertEqual(left, right)
 
@@ -72,9 +72,19 @@ class SplitUpdateTests(unittest.TestCase):
                         rng = torch.get_rng_state().clone()
                         torch.manual_seed(500 + step)
                         result = actual.update(batch)
-                        self.assertEqual(result, expected)
-                        self.assert_nested_close(actual.state_dict(), original.state_dict())
-                        self.assert_nested_close(optimizers(actual), optimizers(original))
+                        # Valid-only MASAC exact-Q changes GEMM/reduction batch shape, so
+                        # IEEE last bits may differ while the SAC equations remain equal.
+                        # Keep the frozen oracle bit-exact everywhere else.
+                        numerical = algorithm == "masac" and vectorized
+                        if numerical:
+                            for key in expected:
+                                torch.testing.assert_close(torch.tensor(result[key]), torch.tensor(expected[key]),
+                                                           rtol=1e-6, atol=1e-7)
+                        else:
+                            self.assertEqual(result, expected)
+                        tolerance = dict(rtol=1e-6, atol=1e-7) if numerical else {}
+                        self.assert_nested_close(actual.state_dict(), original.state_dict(), **tolerance)
+                        self.assert_nested_close(optimizers(actual), optimizers(original), **tolerance)
                         self.assertEqual(actual.updates, original.updates)
                         torch.testing.assert_close(torch.get_rng_state(), rng, rtol=0, atol=0)
 
