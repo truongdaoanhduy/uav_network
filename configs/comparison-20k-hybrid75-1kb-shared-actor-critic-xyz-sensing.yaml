@@ -54,7 +54,7 @@ masac:
   updates_per_step: 8
   target_continuous_entropy: -4.0
 matd3:
-  output_normalization: true
+  output_normalization: false
   share_actor_parameters: true
   share_critic_parameters: true
   hidden_sizes:
@@ -84,7 +84,7 @@ runtime:
   torch_threads: 1
   log_interval_steps: 4096
   checkpoint_interval: 128
-  max_train_seconds: 36000
+  max_train_seconds: 0
   output_dir: outputs/comparison-20k-steps1500-t20-o15-learnedpower-report1kb-shared-actor-critic-xyz-sensing
 pql:
   enabled: false

@@ -312,6 +312,8 @@ class MASAC(nn.Module):
                                "alpha_grad_norm": alpha_grad,
                                "actor_loss": torch.stack(actor_losses).mean(),
                                "continuous_entropy": hc.mean(), "discrete_entropy": hd.mean(),
+                               "target_discrete_entropy": td.detach().mean(),
+                               "discrete_entropy_gap": (td - hd).detach().mean(),
                                "alpha_continuous": self.log_alpha_continuous.exp().mean(),
                                "alpha_discrete": self.log_alpha_discrete.exp().mean()})
 

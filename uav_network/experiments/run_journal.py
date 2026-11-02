@@ -26,6 +26,7 @@ EVIDENCE_METRICS = {
     "learner/actor_loss", "learner/critic_loss", "learner/td_error_abs_mean",
     "learner/q_abs_max", "learner/critic_grad_norm", "learner/actor_grad_norm",
     "learner/continuous_entropy", "learner/discrete_entropy",
+    "learner/target_discrete_entropy", "learner/discrete_entropy_gap",
     "cohort/return_mean", "cohort/delivery_rate_percent_mean", "cohort/search_rate_percent_mean",
     "cohort/success_mean", "cohort/episodes", "cohort/partial",
     "cohort/source_start_step", "cohort/source_end_step", "diagnostics/warning_count",

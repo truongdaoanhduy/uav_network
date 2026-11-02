@@ -86,6 +86,16 @@ class MASACTests(unittest.TestCase):
         stats = self.learner.update(batch)
         self.assertEqual(stats["discrete_entropy"], 0)
 
+    def test_reports_discrete_entropy_target_and_target_minus_actual_gap(self):
+        stats = self.learner.update(self.batch())
+        self.assertIn("target_discrete_entropy", stats)
+        self.assertIn("discrete_entropy_gap", stats)
+        self.assertAlmostEqual(
+            stats["discrete_entropy_gap"],
+            stats["target_discrete_entropy"] - stats["discrete_entropy"],
+            places=6,
+        )
+
     def test_masked_destinations_remain_finite_above_unit_entropy_temperature(self):
         batch = self.batch()
         for key in ("observation", "next_observation"):

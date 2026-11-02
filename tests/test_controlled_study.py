@@ -43,6 +43,21 @@ def test_canonical_easier_profile_and_historical_profile_are_distinct():
     assert old.tracking.evaluation_interval_steps==0
 
 
+def test_xyz_clean_baseline_is_vanilla_matd3_base_and_sample_budgeted():
+    path = ROOT / "configs/comparison-20k-hybrid75-1kb-shared-actor-critic-xyz-sensing.yaml"
+    base = load_config(path)
+    assert base.matd3.output_normalization is False
+    assert base.pql.enabled is False
+    assert base.runtime.episodes == 20000
+    assert base.runtime.max_train_seconds == 0
+
+    masac = load_config(path, ["runtime.algorithm=masac", "pql.enabled=false"])
+    matd3 = load_config(path, ["runtime.algorithm=matd3", "pql.enabled=false"])
+    for section in ("world", "sensor", "network", "energy", "reward"):
+        assert getattr(masac, section) == getattr(matd3, section)
+    assert masac.world.motion_safety == matd3.world.motion_safety == "cbf"
+
+
 def test_shared_actor_critic_profile_preserves_controlled_baseline():
     shared_path = ROOT / "configs/comparison-20k-hybrid75-1kb-shared-actor-critic.yaml"
     shared = load_config(shared_path)

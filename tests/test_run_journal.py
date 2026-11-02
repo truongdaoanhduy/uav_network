@@ -30,6 +30,19 @@ def test_journal_retains_context_and_redacts_secrets_without_serializing_objects
     assert "api_key" not in status["identity"]
 
 
+def test_entropy_target_and_gap_are_retained_as_run_evidence():
+    from uav_network.experiments.run_journal import select_evidence
+    values = {
+        "learner/target_discrete_entropy": 1.2,
+        "learner/discrete_entropy_gap": 0.7,
+        "unrelated": 9,
+    }
+    assert select_evidence(values) == {
+        "learner/target_discrete_entropy": 1.2,
+        "learner/discrete_entropy_gap": 0.7,
+    }
+
+
 def test_journal_console_failure_does_not_prevent_disk_evidence(tmp_path):
     j=journal_type()(tmp_path,{"run_id":"r"})
     with patch("builtins.print",side_effect=BrokenPipeError()):
