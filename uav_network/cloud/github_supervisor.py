@@ -19,6 +19,7 @@ from .visualize import evaluator_commit, submit_visualization, submit_visualizat
 
 ACTIVE = {"running", "pending", "queued"}
 TERMINAL = {"complete", "error", "failed", "cancelled"}
+MAX_CPU_ATTEMPTS = 3
 CONTROL_NAMES = ("job.json", "job-result.json", "continuation.json",
                  "cpu-visualization.json", "visualization-result.json",
                  "evaluation-progress.json", "job-failures.json")
@@ -194,7 +195,7 @@ def cpu_retry_ref(root_ref, attempt):
 
 def _cpu_retry_spec(job, controls):
     attempt = job.get("cpu_attempt", 0) + 1
-    if type(attempt) is not int or not 1 <= attempt <= 20:
+    if type(attempt) is not int or not 1 <= attempt <= MAX_CPU_ATTEMPTS:
         raise ValueError("CPU retry attempt is invalid")
     recovery = deepcopy(job)
     recovery.update(kernel_ref=cpu_retry_ref(job["root_kernel_ref"], attempt),
@@ -248,6 +249,12 @@ def reconcile_ref(ref, account, credentials, *, dry_run=False):
     if job.get("stage") == "visualize":
         if status == "complete" and _visualization_complete(job, controls.get("visualization-result.json", {})):
             return {**base, "action": "cpu_complete"}
+        attempt = job.get("cpu_attempt", 0)
+        if type(attempt) is not int or attempt < 0:
+            raise ValueError("CPU retry attempt is invalid")
+        if attempt >= MAX_CPU_ATTEMPTS:
+            return {**base, "action": "cpu_retry_blocked",
+                    "failure_reason": "cpu_retry_budget_exhausted"}
         recovery = _cpu_retry_spec(job, controls)
         target = recovery["kernel_ref"]
         if _owned_kernel_exists(target, account):

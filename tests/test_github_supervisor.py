@@ -111,6 +111,27 @@ def test_cpu_retry_uses_patched_evaluator_commit_and_preserves_training_source()
     assert retry["training_source_commit"] == parent["commit"]
 
 
+def test_cpu_retry_budget_blocks_unbounded_legacy_retries():
+    s, account, credentials, parent = fixtures()
+    cpu_ref = s.kernel_ref_for_segment(parent["root_kernel_ref"], 0, cpu=True)
+    cpu = {
+        "stage": "visualize", "orchestration": "github_actions", "account": account.name,
+        "kernel_ref": cpu_ref, "root_kernel_ref": parent["root_kernel_ref"],
+        "parent_kernel_ref": parent["kernel_ref"], "commit": parent["commit"],
+        "entity": parent["entity"], "project": parent["project"],
+        "credential_dataset": parent["cpu_credential_dataset"],
+        "artifacts": {"masac": "owner/project/policy:v5"},
+        "cpu_eval": parent["cpu_eval"], "runs": {"masac": {"id": "cpu", "name": "eval"}},
+        "cpu_attempt": 3,
+    }
+    with patch.object(s, "kernel_status", return_value="error"), \
+         patch.object(s, "read_controls", return_value={"job.json": cpu}), \
+         patch.object(s, "submit_visualization_spec", side_effect=AssertionError("retry budget exceeded")):
+        observed = s.reconcile_ref(cpu_ref, account, credentials)
+    assert observed["action"] == "cpu_retry_blocked"
+    assert observed["failure_reason"] == "cpu_retry_budget_exhausted"
+
+
 def test_partial_cpu_evaluation_retries_from_saved_progress_once():
     s, account, credentials, parent = fixtures()
     cpu_ref = s.kernel_ref_for_segment(parent["root_kernel_ref"], 0, cpu=True)
