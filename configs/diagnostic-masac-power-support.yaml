@@ -1,14 +1,64 @@
 world:
+  motion_dimensions: 3
+  altitude_min_m: 0
+  altitude_max_m: 150
+  obstacle_height_min_m: 30
+  obstacle_height_max_m: 120
   generation_version: 3
-  num_uavs: 6
   map_size_m: 1000.0
+  num_uavs: 6
   num_targets: 20
   num_obstacles: 15
+  dt_s: 1.0
   max_steps: 1500
-  motion_safety: dynamic_window
+  max_speed_mps: 20.0
+  max_accel_mps2: 2.0
+  safety_distance_m: 15.0
+  obstacle_clearance_m: 10.0
+  motion_safety: cbf
+  obstacle_radius_min_m: 30.0
+  obstacle_radius_max_m: 70.0
+  launch_radius_m: 150.0
+  launch_min_spacing_m: 30.0
+  target_exclusion_radius_m: 200.0
+  gcs_position_m: null
+  placement_attempts: 5000
+sensor:
+  model: bayesian
+  grid_cell_m: 25
+  belief_prior: 0.5
+  altitude_anchors:
+  - 0
+  - 50
+  - 100
+  - 150
+  pd:
+  - 0.99
+  - 0.9
+  - 0.8
+  - 0.7
+  pf:
+  - 0.01
+  - 0.1
+  - 0.2
+  - 0.3
+  confirmation_threshold: 0.99
+  fine_altitude_m: 50
+  belief_patch_cells: 5
+  belief_coarse_cells: 5
+  verified_empty_belief: 0.01
+  altitude_m: 100
+  full_fov_deg: 90
+  obstacle_occlusion: true
+  visible_target_slots: 4
+  visible_obstacle_slots: 3
+  coverage_grid_cells: 0
 network:
-  propagation_delay_enabled: true
+  enabled: true
   receiver_admission_mask: true
+  rediscovery_recovery: true
+  ack_uses_data_power: true
+  upstream_path: third_party/UavNetSim
   peer_range_m: 500.0
   gcs_range_m: 500.0
   tx_power_min_w: 0.001
@@ -22,52 +72,174 @@ network:
   power_limited_admission: true
   link_state_observation: true
   report_bytes: 1024
-  payload_bytes: 1024
   buffer_bytes: 3072
   report_ttl_s: 300.0
+  payload_bytes: 1024
+  packet_lifetime_s: 10.0
+  max_queue_packets: 64
+  queue_poll_us: 1000.0
   max_retries: 5
+  obstacle_polygon_sides: 16
+  bit_rate_bps: 2000000.0
+  carrier_frequency_hz: 2400000000.0
+  bandwidth_hz: 22000000.0
+  sinr_threshold_db: 6.0
+  cca_threshold_dbm: -82.0
+  noise_density_dbm_hz: -174.0
+  noise_figure_db: 7.0
+  nlos_model: urban
+  propagation_delay_enabled: true
+  obstacle_extra_loss_db: 0.0
+energy:
+  enabled: true
+  battery_capacity_j: 277200.0
+  idle_power_w: 20.0
+  hover_power_w: 120.0
+  speed_squared_coefficient: 0.5
+  acceleration_squared_coefficient: 2.0
 reward:
+  discovery: 10.0
+  delivery: 50.0
+  blocked_motion: 0.2
+  expired_report: 10.0
+  dropped_report: 10.0
+  step_cost: 0.01
+  communication_energy: 0.01
+  propulsion_energy_per_kj: 0.01
   communication_efficiency: 1.0
   shield_correction: 0.1
+  shield_intervention: 0.5
+  unsafe_action: 1.0
+  information_gain: 10.0
+  investigation_shaping: 10.0
+  shaping_gamma: 0.99
+  investigation_belief_threshold: 0.8
 masac:
   hidden_sizes:
   - 256
   - 256
+  share_actor_parameters: true
+  share_critic_parameters: true
   replay_capacity: 1000000
   batch_size: 8192
   learning_starts: 131072
   updates_per_step: 8
+  gamma: 0.99
+  tau: 0.005
+  learning_rate: 0.0003
+  grad_clip_norm: 10.0
+  initial_alpha: 0.2
+  target_continuous_entropy: -4.0
+  target_discrete_entropy_ratio: 0.9
 matd3:
   hidden_sizes:
   - 256
   - 256
+  share_actor_parameters: true
+  share_critic_parameters: true
   replay_capacity: 1000000
   batch_size: 8192
   learning_starts: 131072
   updates_per_step: 8
+  gamma: 0.99
+  tau: 0.005
+  learning_rate: 0.0003
+  grad_clip_norm: 10.0
+  policy_delay: 2
+  target_noise_std: 0.2
+  target_noise_clip: 0.5
+  exploration_noise_std: 0.1
+  output_normalization: true
+  initial_epsilon: 1.0
+  final_epsilon: 0.05
   epsilon_decay_steps: 14745600
 runtime:
-  environment_backend: warp_packet
+  algorithm: masac
   seed: 44
   eval_seed: 2000000044
-  eval_episodes: 30
-  num_envs: 4096
-  coalesce_idle_polls: true
-  vectorize_critics: true
-  critic_chunk_size: 1024
-  compile_models: false
-  fused_optimizers: false
   episodes: 9216
+  eval_episodes: 30
   device: cuda
+  torch_threads: 1
+  output_dir: outputs/diagnostic-masac-power-support-pql-8k-to-9k
+  checkpoint_interval: 128
+  num_envs: 4096
+  environment_backend: warp_packet
+  shared_memory: true
+  collector_overlap: true
   replay_device: cpu
   replay_cpu_fraction: 0.75
   deterministic: true
-  torch_threads: 1
+  compile_models: false
+  amp_mode: 'off'
+  coalesce_idle_polls: true
+  fused_optimizers: false
+  vectorize_critics: true
+  critic_chunk_size: 1024
   log_interval_steps: 4096
-  checkpoint_interval: 128
+  warm_start_checkpoint: none
   max_train_seconds: 3600
-  output_dir: outputs/diagnostic-masac-power-support-pql-8k-to-9k
   power_support_fraction: 0.0
+tracking:
+  enabled: true
+  credentials_file: key.txt
+  entity: truongdaoanhduy-uit
+  project: uav_search_target
+  run_name: auto
+  group: uav-v3-masac-power-causal-audit-20261103
+  tags:
+  - uav-network
+  - scenario-v3
+  - controlled-20t15o
+  - shared-actor-critic
+  - targets20-obstacles15
+  - power-learned
+  - full20k
+  - replay1m
+  - batch8192
+  - env4096
+  - steps1500
+  - seed44
+  - base-pql-comparison
+  - report1kb
+  - radio-energy
+  - cpu-visualize
+  - auto-continue
+  - xyz
+  - bayesian-sensing
+  - grid25m
+  - belief-prior-0.5
+  - amp-off
+  - compile-off
+  - fused-off
+  - actor-shared
+  - critic-shared
+  - replay-hybrid-c75-g25
+  - generation3
+  - causal-audit
+  - power-support-ab
+  - resume-8k
+  - bounded-1h
+  - collector-only-support
+  log_checkpoint: true
+  checkpoint_upload_interval_seconds: 300.0
+  resumable_checkpoint_interval_seconds: 3600.0
+  resumable_checkpoint_max_uploads: 4
+  local_checkpoints_to_keep: 2
+  checkpoint_store: huggingface
+  checkpoint_repo: duy95/uav-search-checkpoints
+  checkpoint_repo_private: false
+  system_metrics: true
+  artifact_timeout_seconds: 900
+  evaluation_interval: 0
+  evaluation_interval_steps: 0
+  periodic_evaluation_episodes: 5
+  periodic_evaluation_seed: 1000000044
+  evaluation_timeout_seconds: 900
+  diagnostic_window: 20
+  delivery_gap_threshold_percent: 40.0
+  return_drop_threshold: 20.0
+  blocked_rate_threshold: 0.3
 pql:
   enabled: true
   mode: async
@@ -80,42 +252,3 @@ pql:
   policy_device: auto
   worker_timeout_s: 600
   checkpoint_replay: true
-tracking:
-  resumable_checkpoint_interval_seconds: 3600.0
-  resumable_checkpoint_max_uploads: 4
-  enabled: true
-  artifact_timeout_seconds: 900
-  evaluation_interval: 0
-  evaluation_interval_steps: 0
-  evaluation_timeout_seconds: 900
-  periodic_evaluation_episodes: 5
-  periodic_evaluation_seed: 1000000044
-  entity: truongdaoanhduy-uit
-  project: uav_search_target
-  checkpoint_repo: duy95/uav-search-checkpoints
-  checkpoint_repo_private: false
-  group: uav-v3-masac-power-causal-audit-20261103
-  tags:
-  - uav-network
-  - amp-off
-  - scenario-v3
-  - controlled-20t15o
-  - targets20-obstacles15
-  - power-learned
-  - replay1m
-  - cpu75-gpu25
-  - batch8192
-  - env4096
-  - steps1500
-  - seed44
-  - report1kb
-  - radio-energy
-  - cpu-visualize
-  - auto-continue
-  - causal-audit
-  - power-support-ab
-  - resume-8k
-  - bounded-1h
-  - compile-off
-  log_checkpoint: true
-  checkpoint_store: huggingface
