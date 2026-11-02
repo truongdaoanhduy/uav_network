@@ -1,5 +1,6 @@
 """Off-policy training with spawned CPU simulators and one batched learner."""
 import json
+import math
 import os
 from pathlib import Path
 import random
@@ -251,7 +252,14 @@ def _train(config):
                               "truncated": bool(truncated[i]), **info, "learner": latest}
                     record["num_uavs"] = config.world.num_uavs
                     diagnostic_values = diagnostics.episode(record)
-                    encoded = json.dumps(record, allow_nan=False)
+                    # AMP may deliberately skip an optimizer group after a non-finite
+                    # gradient norm. Preserve that fact through amp/*/skipped while
+                    # keeping the persisted episode record strict-JSON compliant.
+                    persisted = {**record, "learner": {
+                        key: (None if isinstance(value, float) and not math.isfinite(value) else value)
+                        for key, value in record["learner"].items()
+                    }}
+                    encoded = json.dumps(persisted, allow_nan=False)
                     stream.write(encoded + "\n")
                     stream.flush()
                     history.append(json.loads(encoded))

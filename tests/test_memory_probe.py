@@ -154,6 +154,7 @@ def test_cuda_probe_adapter_executes_fp16_compiled_critic_and_real_steps():
     # Vectorized critic reductions may return FP32 under valid AMP. The
     # documented probe gate requires real critic calls and direct FP16 actors.
     assert evidence["critic"]["completed_calls"] > 0
+    assert evidence["exact_q"]["completed_calls"] > 0
     assert evidence["actors"]["fp16_outputs"] > 0
     assert evidence["probe_compile_executed"]
     assert evidence["dynamo"]["stats"]["unique_graphs"] > 0
@@ -183,7 +184,7 @@ def test_cpu_adapter_preserves_original_masac_equations_and_compiler_patch_resto
     torch.manual_seed(500)
     expected = original.update(batch)
     forwards = [actor.encoder.forward for actor in learner.actors]
-    critic_values = module.critic_values
+    critic_values, exact_q_values = module.critic_values, module.exact_q_values
     evidence = {}
     torch.manual_seed(500)
     with p.ProbeCompiler(learner, evidence, enabled=False), p.ProbeAMP(
@@ -195,9 +196,12 @@ def test_cpu_adapter_preserves_original_masac_equations_and_compiler_patch_resto
         torch.testing.assert_close(learner.state_dict()[key], value, rtol=0, atol=0)
     assert all(amp.counts[name]["applied"] == 1 for name in ("critic", "actor", "alpha"))
     assert module.critic_values is critic_values
+    assert module.exact_q_values is exact_q_values
     assert [actor.encoder.forward for actor in learner.actors] == forwards
-    assert evidence["critic"]["completed_calls"] == 3
-    assert evidence["critic"]["fp16_outputs"] == 0
+    # One replay-Q call plus two agents x (target exact-Q + actor exact-Q).
+    assert evidence["critic"]["completed_calls"] == 1
+    assert evidence["exact_q"]["completed_calls"] == 4
+    assert evidence["critic"]["fp16_outputs"] == evidence["exact_q"]["fp16_outputs"] == 0
 
 
 def test_nonfinite_unscaled_loss_with_finite_derivative_never_steps():

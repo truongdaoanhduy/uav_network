@@ -121,10 +121,11 @@ class ProbeCompiler:
         self.kernels_before = metrics.generated_kernel_count
         self.evidence["requested"] = self.enabled
         try:
-            original = module.critic_values
-            self.restores.append((module, "critic_values", original))
-            function = torch.compile(original, dynamic=True, backend="inductor") if self.enabled else original
-            module.critic_values = self._observe("critic", function)
+            for attribute, evidence_name in (("critic_values", "critic"), ("exact_q_values", "exact_q")):
+                original = getattr(module, attribute)
+                self.restores.append((module, attribute, original))
+                function = torch.compile(original, dynamic=True, backend="inductor") if self.enabled else original
+                setattr(module, attribute, self._observe(evidence_name, function))
             for actor in self.learner.actors:
                 original = actor.encoder.forward
                 self.restores.append((actor.encoder, "forward", original))
@@ -150,7 +151,7 @@ class ProbeCompiler:
             and self.evidence["dynamo"].get("stats", {}).get("unique_graphs", 0) > 0
             and self.evidence["inductor_generated_kernels"] > 0
             and any(self.evidence.get(name, {}).get("completed_calls", 0) > 0
-                    for name in ("actors", "critic")))
+                    for name in ("actors", "critic", "exact_q")))
 
 def json_safe(value):
     if isinstance(value, float) and not math.isfinite(value):
