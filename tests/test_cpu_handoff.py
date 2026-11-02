@@ -40,6 +40,14 @@ class CPUHandoffTests(unittest.TestCase):
         child = self.module().build_visualization_spec(parent, gpu_result())
         self.assertEqual(kernel_metadata(child)["dataset_sources"], ["owner/wandb-cpu-only"])
 
+    def test_cpu_child_can_use_patched_evaluator_commit_without_losing_training_provenance(self):
+        parent = parent_spec()
+        evaluator = "b" * 40
+        with patch.dict("os.environ", {"UAV_EVALUATOR_COMMIT": evaluator}):
+            child = self.module().build_visualization_spec(parent, gpu_result())
+        self.assertEqual(child["commit"], evaluator)
+        self.assertEqual(child["training_source_commit"], parent["commit"])
+
     def test_cpu_submission_rejects_wandb_dataset_with_unrelated_secrets(self):
         module = self.module()
         dataset = SimpleNamespace(ref="owner/wandb-private", is_private=True)

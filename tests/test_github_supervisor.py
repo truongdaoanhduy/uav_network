@@ -96,6 +96,21 @@ def test_terminal_failed_job_is_blocked_until_verified_recovery():
         observed = s.reconcile_ref(parent["kernel_ref"], account, credentials)
     assert observed["action"] == "recovery_blocked"
 
+def test_cpu_retry_uses_patched_evaluator_commit_and_preserves_training_source():
+    s, _account, _credentials, parent = fixtures()
+    cpu = {
+        "stage": "visualize", "root_kernel_ref": parent["root_kernel_ref"],
+        "kernel_ref": s.kernel_ref_for_segment(parent["root_kernel_ref"], 0, cpu=True),
+        "commit": parent["commit"], "runs": {"masac": {"id": "cpu", "name": "eval"}},
+        "artifacts": {"masac": "owner/project/policy:v5"}, "cpu_eval": parent["cpu_eval"],
+    }
+    evaluator = "b" * 40
+    with patch.dict("os.environ", {"UAV_EVALUATOR_COMMIT": evaluator}):
+        retry = s._cpu_retry_spec(cpu, {})
+    assert retry["commit"] == evaluator
+    assert retry["training_source_commit"] == parent["commit"]
+
+
 def test_partial_cpu_evaluation_retries_from_saved_progress_once():
     s, account, credentials, parent = fixtures()
     cpu_ref = s.kernel_ref_for_segment(parent["root_kernel_ref"], 0, cpu=True)

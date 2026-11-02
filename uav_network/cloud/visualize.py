@@ -30,6 +30,13 @@ evaluate = None
 hardware_info = None
 
 
+def evaluator_commit(training_commit):
+    commit = os.environ.get("UAV_EVALUATOR_COMMIT", training_commit)
+    if not re.fullmatch(r"[0-9a-f]{40}", commit):
+        raise ValueError("CPU evaluator commit must be a full git SHA")
+    return commit
+
+
 def _visualization_asset_files(result):
     image = Path(result.get("render_path", ""))
     video = Path(result.get("animation_path", ""))
@@ -152,8 +159,10 @@ def build_visualization_spec(parent, results):
             for a in artifacts}
     return {"stage": "visualize", "runs": runs,
             "config": parent.get("config"), "overrides": parent.get("overrides", []),
-            **{k: parent[k] for k in ("storage_credential_dataset", "checkpoint_repo") if k in parent}, "commit": parent["commit"], "entity": parent["entity"],
-            "project": parent["project"],
+            **{k: parent[k] for k in ("storage_credential_dataset", "checkpoint_repo") if k in parent},
+            "commit": evaluator_commit(parent["commit"]),
+            "training_source_commit": parent.get("training_source_commit", parent["commit"]),
+            "entity": parent["entity"], "project": parent["project"],
             "credential_dataset": parent.get("cpu_credential_dataset", parent["credential_dataset"]),
             "kernel_ref": cpu_ref, "account": parent["account"],
             "parent_kernel_ref": parent["kernel_ref"],

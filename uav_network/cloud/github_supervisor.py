@@ -15,7 +15,7 @@ from .client import kernel_status, resolve_username, run_kaggle
 from .continuation import (MAX_CONSECUTIVE_RECOVERIES, _owned_kernel_exists, kernel_ref_for_segment,
                            next_stage, submit_continuation)
 from .credentials import Account, Credentials
-from .visualize import submit_visualization, submit_visualization_spec
+from .visualize import evaluator_commit, submit_visualization, submit_visualization_spec
 
 ACTIVE = {"running", "pending", "queued"}
 TERMINAL = {"complete", "error", "failed", "cancelled"}
@@ -199,6 +199,8 @@ def _cpu_retry_spec(job, controls):
     recovery = deepcopy(job)
     recovery.update(kernel_ref=cpu_retry_ref(job["root_kernel_ref"], attempt),
                     parent_kernel_ref=job["kernel_ref"], cpu_attempt=attempt,
+                    commit=evaluator_commit(job["commit"]),
+                    training_source_commit=job.get("training_source_commit", job["commit"]),
                     timeout_seconds=39600, session_resumable=True)
     recovery["runs"] = {algorithm: {"id": uuid4().hex[:8],
         "name": f"{identity.get('name', algorithm.upper() + '-EVALCPU')}-R{attempt:02d}"}
