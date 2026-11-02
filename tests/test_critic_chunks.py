@@ -16,9 +16,9 @@ def learner(chunk):
     return MASAC(c, 12, 5)
 
 
-def test_primary_enables_bounded_critic_execution_and_rejects_negative_chunks():
+def test_primary_disables_chunking_after_verified_hybrid_headroom_and_rejects_negative_chunks():
     c = load_config("configs/comparison-20k-hybrid75-1kb.yaml")
-    assert c.runtime.critic_chunk_size == 1024
+    assert c.runtime.critic_chunk_size == 0
     c.runtime.critic_chunk_size = -1
     with pytest.raises(ValueError, match="critic_chunk_size"):
         c.validate()
