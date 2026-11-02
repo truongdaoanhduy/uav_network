@@ -28,6 +28,7 @@ from .async_evaluation import AsyncCheckpointEvaluator
 from .recovery_checkpoints import PeriodicRecovery
 from .local_checkpoints import prune_episode_checkpoints, disk_metrics, release_staged_checkpoint
 from .pql_workers import cloned_state, inference_copy, synchronize as synchronize_worker
+from .power_support import apply_power_support
 
 
 def seed_runtime(config):
@@ -216,6 +217,7 @@ def _train(config):
                               random_actions(obs["observation"],rng,config.world.num_uavs+1,config.continuous_dim))
                 else:
                     action = collector.act_batch(obs["observation"],step=global_step,return_tensors=device_env)
+                    action = apply_power_support(action, obs["observation"], step=global_step, config=config)
                 actions = {"continuous": action.continuous, "destination": action.destination}
                 overlap = count > 1 and config.runtime.collector_overlap
                 if overlap:

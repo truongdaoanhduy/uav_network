@@ -121,29 +121,10 @@ class MASAC(nn.Module):
                                destination, self.destinations)
         return actions, logs, probabilities, log_probabilities, continuous
 
-    def _apply_power_support(self, joint, observations, step):
-        fraction = self.config.runtime.power_support_fraction
-        if not self.learn_power or fraction <= 0:
-            return joint
-        destination = joint[..., self.continuous_dim:].argmax(-1)
-        active = observations[..., 9] > .5
-        flat_index = torch.arange(destination.numel(), device=self.device).reshape(destination.shape)
-        buckets = 10_000
-        threshold = int(round(float(fraction) * buckets))
-        selected = active & (destination != 0) & (((flat_index + int(step)) % buckets) < threshold)
-        grid = torch.tensor((-1., -.5, 0., .5, 1.), device=self.device, dtype=joint.dtype)
-        grid_value = grid[(flat_index + int(step)) % len(grid)]
-        result = joint.clone()
-        result[..., self.continuous_dim - 1] = torch.where(
-            selected, grid_value, result[..., self.continuous_dim - 1])
-        return result
-
     @torch.no_grad()
     def act_batch(self, observations, deterministic=False, step=0, *, return_tensors=False):
         obs = torch.as_tensor(observations, dtype=torch.float32, device=self.device)
         joint, *_ = self._joint_sample(obs, deterministic)
-        if not deterministic:
-            joint = self._apply_power_support(joint, obs, step)
         if return_tensors:
             return Action(joint[..., :self.continuous_dim].contiguous(), joint[..., self.continuous_dim:].argmax(-1))
         values = joint.cpu().numpy()

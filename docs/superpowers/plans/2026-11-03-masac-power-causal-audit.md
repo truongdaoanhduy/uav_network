@@ -37,9 +37,9 @@
 - [ ] Run checkpoint/evaluation snapshot tests and commit.
 
 ### Task 2: Add runtime-only power-support intervention
-**Files:** Modify `uav_network/configuration.py`, `uav_network/algorithms/masac.py`; Test `tests/test_masac.py`.
+**Files:** Modify `uav_network/configuration.py`, `uav_network/experiments/training.py`, `uav_network/experiments/pql_training.py`; Create `uav_network/experiments/power_support.py`; Test `tests/test_power_support.py`.
 
-**Interfaces:** Produces `runtime.power_support_fraction: float = 0.0` and MASAC collector behavior that deterministically covers a fixed power grid only for eligible non-silent training actions.
+**Interfaces:** Produces `runtime.power_support_fraction: float = 0.0` and collector-only behavior that deterministically covers a fixed power grid only for eligible non-silent MASAC training actions while preserving the scientific MASAC source hash.
 
 - [ ] Add failing tests for fraction 0 no-op, deterministic no-op, selected-row power override, and unchanged destination/motion.
 - [ ] Validate fraction is in `[0,1]`.

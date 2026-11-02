@@ -16,7 +16,7 @@ Determine whether the late-training MASAC TX-power collapse is caused by loss of
 
 ## Approach
 1. Correct observation-version validation by reconstructing the saved Config and comparing the stored version with `observation_version(config)` rather than hard-coding XYZ version 4.
-2. Apply power support only in non-deterministic MASAC collection. For a deterministic 10% subset of active, non-silent rows, cycle the learned power action through a fixed grid `[-1, -0.5, 0, 0.5, 1]`. Selection is derived from global step and flattened row index, so it consumes no actor RNG and leaves all non-selected action components unchanged.
+2. Apply power support only in the experiment collector after non-deterministic MASAC action selection; keep `uav_network/algorithms/masac.py` byte-identical to the cohort source. For a deterministic 10% subset of active, non-silent rows, cycle the learned power action through a fixed grid `[-1, -0.5, 0, 0.5, 1]`. Selection is derived from global step and flattened row index, so it consumes no actor RNG and leaves all non-selected action components unchanged.
 3. Calibration probe takes exact simulator snapshots, constructs matched low/high-power joint actions while keeping movement and routing fixed, reports critic `Q_high-Q_low`, realized discounted/undiscounted return delta over a bounded horizon, delivery and PHY-success deltas, and rank agreement.
 4. A/B resumes the same full PQL checkpoint at 8192 episodes and runs a bounded short segment. Success for the support-collapse hypothesis requires intervention to materially increase high-power support and move critic calibration toward the environment ordering relative to baseline.
 

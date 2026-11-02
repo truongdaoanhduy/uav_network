@@ -21,6 +21,7 @@ from .reproducibility import reproducibility_result
 from .environment_checkpoints import snapshot_environment, initialize_environment
 from .tracking import final_metrics, progress_metrics, start_tracking
 from .training import seed_runtime
+from .power_support import apply_power_support
 
 
 def train_pql(config):
@@ -126,6 +127,7 @@ def train_pql(config):
                               random_actions(obs["observation"], rng, config.world.num_uavs + 1, config.continuous_dim))
                 else:
                     action = engine.act_batch(obs["observation"], step=global_step, return_tensors=device_env)
+                    action = apply_power_support(action, obs["observation"], step=global_step, config=config)
                 following, reward, terminated, truncated, infos = vector.step({
                     "continuous": action.continuous, "destination": action.destination})
                 engine.record_collection_time(time.perf_counter() - begin)
