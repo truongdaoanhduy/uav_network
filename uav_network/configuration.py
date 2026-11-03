@@ -142,6 +142,9 @@ class MASACConfig(OffPolicyConfig):
     target_discrete_entropy_ratio: float = 0.9
     target_discrete_entropy_final_ratio: float = 0.9
     target_discrete_entropy_anneal_updates: int = 0
+    # Historical UAV variants adapted the target to each state's valid-action mask.
+    # Reference BenchMARL/TorchRL behavior uses the fixed configured action count.
+    mask_aware_discrete_entropy_target: bool = True
 
 
 @dataclass

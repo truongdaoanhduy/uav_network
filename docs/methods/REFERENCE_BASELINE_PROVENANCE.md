@@ -17,7 +17,7 @@ must not be described as byte-for-byte vanilla SAC or TD3.
 - Stable-Baselines3 SAC source: https://github.com/DLR-RM/stable-baselines3/tree/master/stable_baselines3/sac
 - BenchMARL MASAC source/config: https://github.com/facebookresearch/BenchMARL/tree/main/benchmarl/algorithms and `benchmarl/conf/algorithm/masac.yaml`.
 - Delalleau et al., *Discrete and Continuous Action Representation for Practical RL in Video Games*, arXiv:1912.11077, for Hybrid SAC with simultaneous discrete/continuous components, exact discrete expectation, and separate entropy weights.
-- Fu et al., *Multi-agent Reinforcement Learning with Hybrid Action Space for Free Gait Motion Planning of Hexapod Robots*, CoRL2024 / PMLR270 (2025), https://proceedings.mlr.press/v270/fu25c.html, for the CTDE Hybrid-MASAC extension and per-agent continuous/discrete temperatures.
+- Fu et al., *Multi-agent Reinforcement Learning with Hybrid Action Space for Free Gait Motion Planning of Hexapod Robots*, CoRL2024 / PMLR270 (2025), https://proceedings.mlr.press/v270/fu25c.html, for the CTDE Hybrid-MASAC per-agent critic/actor/temperature objectives. The reference baseline does **not** claim to reproduce Fu et al.'s attention-critic architecture.
 - Hua et al., *A further exploration of deep Multi-Agent Reinforcement Learning with Hybrid Action Space*, arXiv:2208.14447, as an additional CTDE hybrid-action MARL reference.
 
 ### TD3 / MATD3 core
@@ -36,13 +36,15 @@ must not be described as byte-for-byte vanilla SAC or TD3.
 - off-policy replay training;
 - stochastic tanh-squashed Gaussian continuous policy;
 - the simultaneous mixed-action actor has a categorical destination branch and a Gaussian continuous branch from the local observation, following Delalleau et al.; the centralized critic evaluates each discrete alternative exactly while continuous actions are sampled;
+- the critic uses the multi-pass form (discrete choice supplied/evaluated as an input alternative) rather than Delalleau's preferred all-discrete-output head; Delalleau explicitly identifies multi-pass as a valid alternative, so this is a source-backed architecture choice rather than a UAV performance tweak;
 - SAC log-std bounds `[-20, 2]`;
 - two Q functions and target Q networks, using the minimum Q estimate;
 - learned log-temperature, with `alpha_c[i]` and `alpha_d[i]` per agent, matching the Hybrid-MASAC temperature objectives;
 - no hard min/max alpha clamp in the reference path;
 - nominal continuous auto-entropy target `-dim(A_continuous)` (`-4` for XYZ + learned RF power); the UAV adapter removes silent RF and inactive controls, so the effective target for an active XYZ agent is `-E[3 + 1(non-silent)]` and is zero for an inactive agent;
-- discrete auto-entropy weight `0.2 * log(number_of_valid_choices)`, adapting BenchMARL's configured discrete SAC target to a state-dependent validity mask;
+- discrete auto-entropy target `0.2 * log(total_destination_count)`, matching BenchMARL/TorchRL's fixed `num_actions` auto-target; the action mask changes sampling support but does not redefine the reference target;
 - no entropy-target annealing in the reference profile;
+- critic regression uses the SAC/Hybrid-MASAC `0.5 * squared TD error` per Q network and preserves a separate batch-mean objective for each independent agent critic;
 - no gradient clipping, matching the Hybrid SAC implementation description from Delalleau et al.;
 - centralized critics and decentralized local policies.
 
@@ -69,9 +71,12 @@ These are task semantics, not claimed algorithm improvements:
 - MATD3 replay stores hard one-hot destinations from the integer environment boundary; its actor and target critic inputs use soft Gumbel samples, with RF power gated by the sampled category's hard argmax. The original MPE author implementation stores its soft action vectors in replay. This hard-replay/soft-training interface is therefore a declared UAV adaptation, not identical released-author behavior;
 - the cooperative team reward is supplied by the environment.
 
-The mask-aware discrete entropy target uses the number of *currently valid* choices rather
-than the fixed total destination count. This is explicitly an interface adaptation required
-by the state-dependent action set. The value `0.2` is from the BenchMARL MASAC configuration, not a universal TorchRL default (the inspected TorchRL DiscreteSACLoss default is `0.98`).
+The reference profile deliberately keeps the discrete entropy target tied to the fixed total
+destination count, because BenchMARL/TorchRL passes `num_actions` to `DiscreteSACLoss` even
+when the actor uses a mask. Historical UAV variants that retarget entropy to the number of
+currently valid destinations remain available for ablation/backward compatibility, but that
+mask-aware retargeting is not part of the reference baseline. The value `0.2` is from the
+BenchMARL MASAC configuration, not a universal TorchRL default.
 
 Clipping telemetry follows the chosen rule: `critic_grad_norm` is the global gradient norm
 for global/none mode and the maximum individual tensor norm for per-parameter mode.
@@ -81,6 +86,7 @@ per-variable clipping event.
 
 ## Deliberately NOT active in the reference profile
 - UAV-specific discrete entropy annealing `0.9 -> 0.5`;
+- mask-cardinality-aware discrete entropy retargeting;
 - hard alpha clamp to `exp(5)`;
 - MATD3 vector output normalization;
 - epsilon-greedy discrete destination schedule;
@@ -112,6 +118,7 @@ variant name and must not silently replace this profile.
 ## Verification sources inspected on 2026-11-03
 - Ackermann author source revision: `fd6c7d0df4fc4effd4e0fa11abdbc7d12d8f01a1`.
 - `matd3/matd3/trainer/matd3.py`: replay peers, independent batch-mean critics, `0.5` clipping.
+- Haarnoja/SB3 SAC critic source: each Q regression carries the canonical `0.5 * MSE` factor.
 - `matd3/common/distributions.py`: soft categorical sample; `matd3/common/tf_util.py`: per-variable clip.
 - Fujimoto `sfujim/TD3/TD3.py`: tanh actor, twin target minimum, delay and Gaussian smoothing.
 - BenchMARL `benchmarl/conf/algorithm/masac.yaml`: alpha1, discrete target0.2, no alpha bounds.

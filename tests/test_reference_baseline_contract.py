@@ -24,6 +24,9 @@ def test_xyz_baseline_uses_source_backed_algorithm_defaults(path):
     assert c.masac.target_discrete_entropy_ratio == 0.2
     assert c.masac.target_discrete_entropy_final_ratio == 0.2
     assert c.masac.target_discrete_entropy_anneal_updates == 0
+    # BenchMARL/TorchRL uses fixed num_actions in the auto discrete target;
+    # masking changes policy support, not the target cardinality.
+    assert c.masac.mask_aware_discrete_entropy_target is False
     # Continuous SAC auto target is -dim(A); XYZ + learned RF power = four controls.
     assert c.masac.target_continuous_entropy == -4.0
 
@@ -241,3 +244,59 @@ def test_reference_profile_preserves_common_uav_scenario_and_reward():
     assert {g: asdict(getattr(reference, g)) for g in groups} == {
         g: asdict(getattr(common, g)) for g in groups
     }
+
+
+def test_reference_discrete_entropy_target_uses_fixed_source_action_count(monkeypatch):
+    """BenchMARL/TorchRL auto-target uses num_actions, not the per-state mask cardinality."""
+    import math
+    import types
+    import torch
+    import uav_network.algorithms.masac as masac_module
+    from uav_network.algorithms.masac import MASAC
+    from uav_network.environment.observations import observation_dim, state_dim
+
+    c = load_config('configs/comparison-reference-masac-matd3-xyz-sensing.yaml')
+    assert c.masac.mask_aware_discrete_entropy_target is False
+    c.world.num_uavs = 2
+    c.world.num_targets = 2
+    c.world.num_obstacles = 1
+    c.masac.hidden_sizes = [16, 16]
+    learner = MASAC(c, observation_dim(c), state_dim(c))
+    learner.alpha_optimizer = torch.optim.SGD(
+        [learner.log_alpha_continuous, learner.log_alpha_discrete], lr=0.1
+    )
+
+    b, n, k = 4, c.world.num_uavs, c.world.num_uavs + 1
+    obs = torch.zeros(b, n, observation_dim(c))
+    obs[:, :, 9] = 1
+    # Agent 0 has all K destinations valid; agent 1 only has silent valid.
+    obs[:, 0, -k:] = 1
+    obs[:, 1, -k] = 1
+    batch = {
+        'observation': obs, 'next_observation': obs.clone(),
+        'state': torch.zeros(b, state_dim(c)), 'next_state': torch.zeros(b, state_dim(c)),
+        'continuous': torch.zeros(b, n, c.continuous_dim),
+        'destination': torch.zeros(b, n, dtype=torch.long),
+        'reward': torch.zeros(b), 'terminated': torch.zeros(b),
+    }
+
+    def fixed_sample(self, actor, observation, deterministic=False, agent_index=0):
+        count = len(observation)
+        mask = observation[:, -k:].bool()
+        probs = mask.float() / mask.sum(-1, keepdim=True)
+        log_probs = torch.where(mask, probs.clamp_min(1e-30).log(), torch.zeros_like(probs))
+        return (torch.zeros(count, self.continuous_dim), torch.full((count,), -2.0), probs, log_probs)
+
+    learner._sample = types.MethodType(fixed_sample, learner)
+    monkeypatch.setattr(
+        masac_module, 'step_actor_optimizers',
+        lambda losses, optimizers, groups, *args, **kwargs: [torch.tensor(0.0)] * len(losses),
+    )
+    before = learner.log_alpha_discrete.detach().clone()
+    learner.update_actor(batch, collect_metrics=False)
+
+    # Source-style target is identical for both agents: weight * log(total K).
+    target = c.masac.target_discrete_entropy_ratio * math.log(k)
+    actual_entropy = torch.tensor([math.log(k), 0.0])
+    expected = before - 0.1 * (actual_entropy - target)
+    torch.testing.assert_close(learner.log_alpha_discrete, expected, rtol=0, atol=1e-6)

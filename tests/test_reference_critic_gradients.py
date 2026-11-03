@@ -87,3 +87,75 @@ def test_masac_unclipped_critic_does_not_report_clipping():
     metrics = learner.update_critic(batch)
     assert metrics["critic_grad_norm"] > learner.config.masac.grad_clip_norm
     assert metrics["critic_gradient_clipped"] == 0
+
+
+@pytest.mark.parametrize("agents", [2, 6])
+def test_masac_independent_critics_match_per_agent_batch_mean(agents):
+    """Hybrid-MASAC Eq. 8 defines J_Q(theta_i) independently for each agent."""
+    learner, batch = _setup("masac", agents)
+    learner.config.masac.grad_clip_mode = "none"
+    learner.critics = nn.ModuleList([ScalarTwinCritic() for _ in range(agents)])
+    learner.critic_optimizer = torch.optim.SGD(learner.critics.parameters(), lr=0.1)
+    expected = [nn.Parameter(torch.tensor(0.0)) for _ in range(2 * agents)]
+    optimizers = [torch.optim.SGD([p], lr=0.1) for p in expected]
+
+    batch["reward"].fill_(3.0)
+    learner.update_critic(batch, collect_metrics=False)
+    for parameter, optimizer in zip(expected, optimizers):
+        optimizer.zero_grad()
+        (0.5 * (parameter - 3.0) ** 2).backward()
+        optimizer.step()
+    for actual, reference in zip(learner.critics.parameters(), expected):
+        torch.testing.assert_close(actual, reference, rtol=0, atol=1e-7)
+
+
+def test_masac_temperature_update_matches_independent_per_agent_objectives(monkeypatch):
+    """Hybrid-MASAC Eq. 10/11 gives each alpha_i its own objective, not 1/N of it."""
+    import math
+    import types
+    import uav_network.algorithms.masac as masac_module
+
+    learner, batch = _setup("masac", agents=2)
+    learner.config.masac.grad_clip_mode = "none"
+    learner.config.masac.target_continuous_entropy = -4.0
+    learner.config.masac.target_discrete_entropy_ratio = 0.2
+    learner.config.masac.target_discrete_entropy_final_ratio = 0.2
+    learner.config.masac.target_discrete_entropy_anneal_updates = 0
+    learner.alpha_optimizer = torch.optim.SGD(
+        [learner.log_alpha_continuous, learner.log_alpha_discrete], lr=0.1
+    )
+    for optimizer in learner.actor_optimizers:
+        for group in optimizer.param_groups:
+            group["lr"] = 0.0
+
+    def fixed_sample(self, actor, observation, deterministic=False, agent_index=0):
+        b = len(observation)
+        k = self.destinations
+        continuous = torch.zeros(b, self.continuous_dim, device=observation.device)
+        logp = torch.full((b,), -2.0, device=observation.device)
+        probs = torch.full((b, k), 1.0 / k, device=observation.device)
+        log_probs = torch.full((b, k), -math.log(k), device=observation.device)
+        return continuous, logp, probs, log_probs
+
+    learner._sample = types.MethodType(fixed_sample, learner)
+    monkeypatch.setattr(
+        masac_module,
+        "step_actor_optimizers",
+        lambda losses, optimizers, groups, *args, **kwargs: [torch.tensor(0.0)] * len(losses),
+    )
+
+    before_c = learner.log_alpha_continuous.detach().clone()
+    before_d = learner.log_alpha_discrete.detach().clone()
+    learner.update_actor(batch, collect_metrics=False)
+
+    k = learner.destinations
+    target_c = learner.config.masac.target_continuous_entropy / learner.continuous_dim * (
+        learner.continuous_dim - 1.0 / k
+    )
+    entropy_c = 2.0
+    entropy_d = math.log(k)
+    target_d = 0.2 * math.log(k)
+    expected_c = before_c - 0.1 * (entropy_c - target_c)
+    expected_d = before_d - 0.1 * (entropy_d - target_d)
+    torch.testing.assert_close(learner.log_alpha_continuous, expected_c, rtol=0, atol=1e-6)
+    torch.testing.assert_close(learner.log_alpha_discrete, expected_d, rtol=0, atol=1e-6)

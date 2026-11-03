@@ -233,7 +233,12 @@ class MASAC(nn.Module):
             q1, q2 = self.critics[0](data["state"], replay_joint)
         else:
             q1, q2 = self._critic_values(self.critics, data["state"], replay_joint, vectorized)
-        critic_loss = F.mse_loss(q1, target) + F.mse_loss(q2, target)
+        critic_loss = 0.5 * (F.mse_loss(q1, target) + F.mse_loss(q2, target))
+        if not self.share_critic_parameters:
+            # Hybrid-MASAC defines one batch-mean critic objective J_Q(theta_i)
+            # per agent. A single optimizer over independent modules must sum
+            # those objectives rather than average once more over agents.
+            critic_loss = critic_loss * len(self.critics)
         critic_step = (lambda *args: self.precision.step("critic", *args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_optimizer(*args, grad_clip_mode=a.grad_clip_mode))
         critic_grad = critic_step(critic_loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
         self.updates += 1
@@ -290,8 +295,15 @@ class MASAC(nn.Module):
                 active = (obs[:, 9] > .5).float()
                 controls = self.continuous_dim - probs[:, 0].detach() if self.learn_power else self.continuous_dim - 1
                 targets_c.append((a.target_continuous_entropy / self.continuous_dim * controls * active).mean())
-                choices = valid_destinations(obs, self.destinations).sum(-1).float()
-                targets_d.append((target_discrete_ratio * choices.log()).mean())
+                if a.mask_aware_discrete_entropy_target:
+                    choices = valid_destinations(obs, self.destinations).sum(-1).float()
+                    target_d = (target_discrete_ratio * choices.log()).mean()
+                else:
+                    # BenchMARL/TorchRL DiscreteSACLoss receives the fixed
+                    # action-space cardinality even when the actor is masked.
+                    target_d = torch.as_tensor(target_discrete_ratio * math.log(self.destinations),
+                                               device=self.device, dtype=probs.dtype)
+                targets_d.append(target_d)
             actor_step = (lambda *args: self.precision.step_actors(*args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_actor_optimizers(*args, grad_clip_mode=a.grad_clip_mode))
             if self.share_actor_parameters:
                 step_losses = [torch.stack(actor_losses).mean()]
@@ -306,13 +318,22 @@ class MASAC(nn.Module):
             self.critics.requires_grad_(True)
         hc, hd, tc, td = (torch.stack(v) for v in (entropies_c, entropies_d, targets_c, targets_d))
         before_c, before_d = self.log_alpha_continuous.detach().clone(), self.log_alpha_discrete.detach().clone()
-        alpha_loss = (self.log_alpha_continuous * (hc - tc) + self.log_alpha_discrete * (hd - td)).mean()
+        # Hybrid-MASAC gives each agent its own J(alpha_i^c) and J(alpha_i^d).
+        # Sum the independent objectives because all per-agent temperatures are
+        # stored in one optimizer; averaging would silently divide every alpha
+        # gradient by the number of agents.
+        alpha_loss = (self.log_alpha_continuous * (hc - tc) + self.log_alpha_discrete * (hd - td)).sum()
         alpha_step = (lambda *args: self.precision.step("alpha", *args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_optimizer(*args, grad_clip_mode=a.grad_clip_mode))
         alpha_grad = alpha_step(alpha_loss, self.alpha_optimizer,
                        [self.log_alpha_continuous, self.log_alpha_discrete], a.grad_clip_norm, collect_metrics)
         with torch.no_grad():
             available_c = (data["observation"][:, :, 9] > .5).any(0)
-            available_d = (valid_destinations(data["observation"], self.destinations).sum(-1) > 1).any(0)
+            if a.mask_aware_discrete_entropy_target:
+                available_d = (valid_destinations(data["observation"], self.destinations).sum(-1) > 1).any(0)
+            else:
+                # Source behavior keeps optimizing alpha_d against the fixed
+                # target even if this particular batch/state has one valid action.
+                available_d = torch.ones(self.num_uavs, dtype=torch.bool, device=self.device)
             self.log_alpha_continuous.copy_(torch.where(available_c, self.log_alpha_continuous, before_c))
             self.log_alpha_discrete.copy_(torch.where(available_d, self.log_alpha_discrete, before_d))
         self.actor_updates += 1

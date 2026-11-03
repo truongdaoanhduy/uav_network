@@ -23,7 +23,7 @@ def test_reference_algorithm_source_contract():
     import hashlib
     root = Path(__file__).resolve().parents[1]
     expected = {
-        "uav_network/algorithms/masac.py": "e43be822bba4d8f800bfc2969c16bddbba038dc6311fbaaf058bf374fd95fac1",
+        "uav_network/algorithms/masac.py": "f40586dbf19840e5a907e651b24ebbd7a4f8d493a5625f53e5d41b4e85d9bd1f",
         "uav_network/algorithms/matd3.py": "d2de70b5b842443994919eb418302fd2fa599dbda1f7f9ab75455ed35a658b93",
         "uav_network/algorithms/models.py": "264e1f716d72f3e6ab2c2e92e4dd9180e81bfd76bdf5a0f794f4fd3485f2cbcd",
         "uav_network/algorithms/optimization.py": "d5b4c72b3bf44cb91d86424aa5f6f1dd1afd73ae97d5594ff80e32623742bc8f",

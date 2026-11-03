@@ -57,6 +57,7 @@ masac:
   target_discrete_entropy_ratio: 0.2
   target_discrete_entropy_final_ratio: 0.2
   target_discrete_entropy_anneal_updates: 0
+  mask_aware_discrete_entropy_target: false
 matd3:
   share_actor_parameters: false
   share_critic_parameters: false
