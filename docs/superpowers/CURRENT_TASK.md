@@ -1,3 +1,9 @@
+# Latest task completed — 2026-11-04
+
+On branch `baseline/reference-masac-matd3-20261103`, commit `81902df57fad8bc3ce9cadac8f0f10b099b24a89` returned `compile_models` and `fused_optimizers` to `false` in the canonical reference YAML. AMP remains off, chunk size 0, critic vectorization off and MATD3 output normalization off. Focused tests: 28 passed, 534 subtests passed. No training relaunched. W&B last queried: zero running or pending jobs; GitHub supervisor remains disabled. Compare future source and cloud state afresh. Older notes below refer to earlier milestones.
+
+---
+
 # Source-backed hybrid UAV MASAC/MATD3 baseline — VERIFIED
 
 Updated 2026-11-03, Vietnam time.
