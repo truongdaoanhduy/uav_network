@@ -1,0 +1,261 @@
+{
+  "date": "2026-11-04",
+  "reference_profile": "configs/comparison-reference-masac-matd3-xyz-sensing.yaml",
+  "base_code_commit": "cf09cccace7d3f0e3ae1e51ed3e2a82ab7cd9069",
+  "matrix_size": 10,
+  "matrix": [
+    {
+      "id": 1,
+      "name": "01-masac-base-independent",
+      "algorithm": "masac",
+      "pql": false,
+      "shared_actor_critic": false,
+      "vectorize_critics": false
+    },
+    {
+      "id": 2,
+      "name": "02-masac-base-shared",
+      "algorithm": "masac",
+      "pql": false,
+      "shared_actor_critic": true,
+      "vectorize_critics": false
+    },
+    {
+      "id": 3,
+      "name": "03-masac-pql-independent",
+      "algorithm": "masac",
+      "pql": true,
+      "shared_actor_critic": false,
+      "vectorize_critics": false
+    },
+    {
+      "id": 4,
+      "name": "04-masac-pql-shared",
+      "algorithm": "masac",
+      "pql": true,
+      "shared_actor_critic": true,
+      "vectorize_critics": false
+    },
+    {
+      "id": 5,
+      "name": "05-matd3-base-independent",
+      "algorithm": "matd3",
+      "pql": false,
+      "shared_actor_critic": false,
+      "vectorize_critics": false
+    },
+    {
+      "id": 6,
+      "name": "06-matd3-base-shared",
+      "algorithm": "matd3",
+      "pql": false,
+      "shared_actor_critic": true,
+      "vectorize_critics": false
+    },
+    {
+      "id": 7,
+      "name": "07-matd3-pql-independent",
+      "algorithm": "matd3",
+      "pql": true,
+      "shared_actor_critic": false,
+      "vectorize_critics": false
+    },
+    {
+      "id": 8,
+      "name": "08-matd3-pql-shared",
+      "algorithm": "matd3",
+      "pql": true,
+      "shared_actor_critic": true,
+      "vectorize_critics": false
+    },
+    {
+      "id": 9,
+      "name": "09-masac-base-shared-vmap",
+      "algorithm": "masac",
+      "pql": false,
+      "shared_actor_critic": true,
+      "vectorize_critics": true
+    },
+    {
+      "id": 10,
+      "name": "10-masac-pql-shared-replica",
+      "algorithm": "masac",
+      "pql": true,
+      "shared_actor_critic": true,
+      "vectorize_critics": false
+    }
+  ],
+  "cpu_smoke": {
+    "hardware": "CPU only, local; no NVIDIA CUDA driver",
+    "reduced_settings": {
+      "envs": 2,
+      "episodes": 4,
+      "max_steps": 4,
+      "batch_size": 4,
+      "hidden_sizes": [
+        16,
+        16
+      ],
+      "replay_capacity": 128,
+      "seed": 44,
+      "tracking_enabled": false,
+      "collector_overlap": false
+    },
+    "completed": 10,
+    "results": {
+      "2": {
+        "name": "02-masac-base-shared",
+        "model_hash": "fc454c616611dd79942ffd67a93b9db6f3338517520060a5b632f76adf62df0c",
+        "episode_hash": "e674906b871772a5e5ce76d54598fdf80803cbc417ecc901e232a589e60ac9ba",
+        "settings_hash": "572da88551b9c8eda54587ecc29c6cb6858419ecdc0eb4ebea8ac2d71d4706a1",
+        "episodes": 4,
+        "critic_updates": 7,
+        "actor_updates": null,
+        "training_architecture": null,
+        "collector_overlap": false
+      },
+      "4": {
+        "name": "04-masac-pql-shared",
+        "model_hash": "deaa9dd450c840b90ef7cf591dc534366d6419f209740bcd571eb50f97a2c926",
+        "episode_hash": "d345b0492048419919ecdc1bb39f2e6aaf67d0c2476c9b5ccdb434cbe0c5c7fe",
+        "settings_hash": "5bab4a4684e53f333a63ab476d7c1414d70567b4a547e5e9791c4a92b3faa14c",
+        "episodes": 4,
+        "critic_updates": 7,
+        "actor_updates": 7,
+        "training_architecture": "pql-inspired",
+        "collector_overlap": false
+      },
+      "9": {
+        "name": "09-masac-base-shared-vmap",
+        "model_hash": "fc454c616611dd79942ffd67a93b9db6f3338517520060a5b632f76adf62df0c",
+        "episode_hash": "e674906b871772a5e5ce76d54598fdf80803cbc417ecc901e232a589e60ac9ba",
+        "settings_hash": "ef25f844c238bc73327938aa8e7df605df94a1292838579def09b68c8e0a289f",
+        "episodes": 4,
+        "critic_updates": 7,
+        "actor_updates": null,
+        "training_architecture": null,
+        "collector_overlap": false
+      },
+      "10": {
+        "name": "10-masac-pql-shared-replica",
+        "model_hash": "deaa9dd450c840b90ef7cf591dc534366d6419f209740bcd571eb50f97a2c926",
+        "episode_hash": "d345b0492048419919ecdc1bb39f2e6aaf67d0c2476c9b5ccdb434cbe0c5c7fe",
+        "settings_hash": "5bab4a4684e53f333a63ab476d7c1414d70567b4a547e5e9791c4a92b3faa14c",
+        "episodes": 4,
+        "critic_updates": 7,
+        "actor_updates": 7,
+        "training_architecture": "pql-inspired",
+        "collector_overlap": false
+      },
+      "1": {
+        "name": "01-masac-base-independent",
+        "model_hash": "718a7a6b108f279f8175e76b938798123090bd98ba63d486a18e36505d8abfa3",
+        "episode_hash": "ec7791ef3233a52c6039587cb4137e465e0a10a7a034f1f500066256c8a134ff",
+        "settings_hash": "d84d8e326e58c0e23b6b704e2962d7e19910893c079d0fcdcb96f19fcd26ec10",
+        "episodes": 4,
+        "critic_updates": 7,
+        "actor_updates": null,
+        "training_architecture": null,
+        "collector_overlap": false
+      },
+      "3": {
+        "name": "03-masac-pql-independent",
+        "model_hash": "5517e54b73b0cd79abee4ecddfe8440e019d78ae2b3f30f8acf7a6e4df2fd138",
+        "episode_hash": "9da83075fc80238113c8858b191c63d815cb67ba8edda976d95c9a0d7ffcacf0",
+        "settings_hash": "e1c3366ce75cd2daec70e817b1aa6f73b7e873f542f753da79e107c0707cbd03",
+        "episodes": 4,
+        "critic_updates": 7,
+        "actor_updates": 7,
+        "training_architecture": "pql-inspired",
+        "collector_overlap": false
+      },
+      "5": {
+        "name": "05-matd3-base-independent",
+        "model_hash": "182b687bdab9cbc1327b2db3fd3f6860e1e007de8d21817114133a6bb858670f",
+        "episode_hash": "13a268d2974280df3b5186da93b5e06e320e84b0f0db6ea2dbad53f0206c3577",
+        "settings_hash": "2a6c99a99e6ea14f38e82b7779a151c986e69fcc2701edf5cb7d37165355b753",
+        "episodes": 4,
+        "critic_updates": 7,
+        "actor_updates": null,
+        "training_architecture": null,
+        "collector_overlap": false
+      },
+      "6": {
+        "name": "06-matd3-base-shared",
+        "model_hash": "9c5ea8229726bf50659502862cd57cfd870989d3a9aea6801398c39c914b6448",
+        "episode_hash": "0c32fade7e164e1480b6beacd44ff882a5c09429881a07c7549b822af5687f60",
+        "settings_hash": "ded52bff3daf6cb7af463d67592f6c369c7b15b32f53c32a55fd7c8fa861be1b",
+        "episodes": 4,
+        "critic_updates": 7,
+        "actor_updates": null,
+        "training_architecture": null,
+        "collector_overlap": false
+      },
+      "7": {
+        "name": "07-matd3-pql-independent",
+        "model_hash": "dd0a62137e45733dc7fdeb4f63e041e2f47221b84ddac1ffeafa4714dc5bdc55",
+        "episode_hash": "8beeadfd349fc50458b68ac8e19b90d143135e8ed2b008b99e3cfb8073cc9947",
+        "settings_hash": "c5ee918df2c1010090d073df999d19e06541cee93d4e00064cfb4abfa43cfaa2",
+        "episodes": 4,
+        "critic_updates": 7,
+        "actor_updates": 3,
+        "training_architecture": "pql-inspired",
+        "collector_overlap": false
+      },
+      "8": {
+        "name": "08-matd3-pql-shared",
+        "model_hash": "cbd87e52ce1fbcf4d9b3b789746e84e69a06caadf931f395965c0759b17eb038",
+        "episode_hash": "1819541568b61209a45ac3a0189923e95fd5cdab3ba58d24292d741eca8c5157",
+        "settings_hash": "e31e2ef2969efe83896ffd8e682ce23e5dd48c379a22d26cdedffef5f3ae779b",
+        "episodes": 4,
+        "critic_updates": 7,
+        "actor_updates": 3,
+        "training_architecture": "pql-inspired",
+        "collector_overlap": false
+      }
+    },
+    "shared_masac_pql_replica_hashes_match": true,
+    "shared_masac_base_vectorize_model_episode_equal": true,
+    "separate_process_replica": {
+      "4": {
+        "model_hash": "deaa9dd450c840b90ef7cf591dc534366d6419f209740bcd571eb50f97a2c926",
+        "episode_hash": "d345b0492048419919ecdc1bb39f2e6aaf67d0c2476c9b5ccdb434cbe0c5c7fe",
+        "settings_hash": "5bab4a4684e53f333a63ab476d7c1414d70567b4a547e5e9791c4a92b3faa14c",
+        "episodes": 4,
+        "updates": 7,
+        "collector_overlap": false
+      },
+      "10": {
+        "model_hash": "deaa9dd450c840b90ef7cf591dc534366d6419f209740bcd571eb50f97a2c926",
+        "episode_hash": "d345b0492048419919ecdc1bb39f2e6aaf67d0c2476c9b5ccdb434cbe0c5c7fe",
+        "settings_hash": "5bab4a4684e53f333a63ab476d7c1414d70567b4a547e5e9791c4a92b3faa14c",
+        "episodes": 4,
+        "updates": 7,
+        "collector_overlap": false
+      }
+    },
+    "separate_process_replica_hashes_match": true,
+    "extra_independent_vmap_probe_not_in_ten": {
+      "comparison": "MASAC BASE Independent vmap false vs true, CPU short smoke",
+      "episodes": 4,
+      "critic_updates": 7,
+      "model_hash_equal": false,
+      "episode_hash_equal": true,
+      "reference_model_hash": "718a7a6b108f279f8175e76b938798123090bd98ba63d486a18e36505d8abfa3",
+      "vectorized_model_hash": "7db7bc5a4d3f6fdd64f5c085d189d1e5a3fbe1e65acd9fb7c61d7b001a0d554f",
+      "vectorized_episode_hash": "ec7791ef3233a52c6039587cb4137e465e0a10a7a034f1f500066256c8a134ff",
+      "max_abs_parameter_diff": 7.450580596923828e-09,
+      "changed_float_parameters": 536,
+      "total_float_parameters": 271902
+    }
+  },
+  "test_command": "PYTHONPATH=.:tests python -m pytest -q tests/test_matched_architecture_study.py tests/test_parameter_sharing.py tests/test_vectorized_critics.py tests/test_pql_system.py --disable-warnings",
+  "test_result": "29 passed, 46 subtests passed",
+  "cloud_jobs_submitted": 0,
+  "limitations": [
+    "Kaggle multi-account submission not performed",
+    "CPU smoke does not establish 2xT4 throughput or full20k return",
+    "With deterministic=true PQL async-mode workers are not concurrent",
+    "Shared MASAC critic bypasses independent-critic torch.vmap"
+  ]
+}
