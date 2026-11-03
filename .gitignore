@@ -12,3 +12,6 @@ running_log.log
 .env
 key*.txt
 wandb/
+
+# Private Kaggle tokens added during account rotation
+new_kaggle_tokens.txt
