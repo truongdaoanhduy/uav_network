@@ -1,7 +1,7 @@
 # Source-backed hybrid UAV MASAC/MATD3 baseline — VERIFIED
 
 Updated 2026-11-03, Vietnam time.
-Branch: baseline/reference-masac-matd3-20261103; parent config commit0baea78.
+Branch: baseline/reference-masac-matd3-20261103; runtime/source commit `c0a935ef51159406cb4d5e17ce1d4bf02453c4a4`; parent config commit0baea78.
 
 - User requested critic_chunk_size=0, output_normalization=false, and source-backed baseline equations without bespoke stabilizers. No20k training or cloud job was launched.
 - Reference profile: configs/comparison-reference-masac-matd3-xyz-sensing.yaml. Select this explicitly; historical XYZ study profiles still contain their recorded architecture/entropy variants.
@@ -18,3 +18,5 @@ Branch: baseline/reference-masac-matd3-20261103; parent config commit0baea78.
 
 Historical record, concatenated exactly in order:
 [Part1](CURRENT_TASK_HISTORY_2026-11-03_1.md) | [Part2](CURRENT_TASK_HISTORY_2026-11-03_2.md).
+
+[Final verification evidence](evidence/2026-11-03-reference-baseline-verification.json).
