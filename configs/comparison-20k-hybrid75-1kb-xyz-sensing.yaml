@@ -52,7 +52,7 @@ masac:
   target_discrete_entropy_final_ratio: 0.5
   target_discrete_entropy_anneal_updates: 12000
 matd3:
-  output_normalization: true
+  output_normalization: false
   hidden_sizes:
   - 256
   - 256
@@ -69,7 +69,7 @@ runtime:
   num_envs: 4096
   coalesce_idle_polls: true
   vectorize_critics: true
-  critic_chunk_size: 1024
+  critic_chunk_size: 0
   compile_models: true
   fused_optimizers: false
   episodes: 20000

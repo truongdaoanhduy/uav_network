@@ -54,6 +54,8 @@ def test_all_xyz_production_configs_select_cbf_and_keep_1500_steps():
         assert c.masac.target_discrete_entropy_ratio == 0.9
         assert c.masac.target_discrete_entropy_final_ratio == 0.5
         assert c.masac.target_discrete_entropy_anneal_updates == 12000
+        assert c.runtime.critic_chunk_size == 0
+        assert c.matd3.output_normalization is False
 
 
 def test_cbf_is_valid_for_xyz_but_not_xy():
