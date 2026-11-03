@@ -1,6 +1,6 @@
 {
-  "observed_at": "2026-11-03T18:30:35.458381+07:00",
-  "source_commit": "c0a935ef51159406cb4d5e17ce1d4bf02453c4a4",
+  "observed_at": "2026-11-03T18:34:00+07:00",
+  "source_commit": "40c051b",
   "parent_config_commit": "0baea78",
   "branch": "baseline/reference-masac-matd3-20261103",
   "reference_config": "configs/comparison-reference-masac-matd3-xyz-sensing.yaml",
@@ -49,50 +49,51 @@
     "training_launched": false
   },
   "algorithm_sha256": {
-    "uav_network/algorithms/masac.py": "e43be822bba4d8f800bfc2969c16bddbba038dc6311fbaaf058bf374fd95fac1",
+    "uav_network/algorithms/masac.py": "f40586dbf19840e5a907e651b24ebbd7a4f8d493a5625f53e5d41b4e85d9bd1f",
     "uav_network/algorithms/matd3.py": "d2de70b5b842443994919eb418302fd2fa599dbda1f7f9ab75455ed35a658b93",
     "uav_network/algorithms/models.py": "264e1f716d72f3e6ab2c2e92e4dd9180e81bfd76bdf5a0f794f4fd3485f2cbcd",
     "uav_network/algorithms/optimization.py": "d5b4c72b3bf44cb91d86424aa5f6f1dd1afd73ae97d5594ff80e32623742bc8f",
     "uav_network/algorithms/precision.py": "4e68deda7c741c2079ed51fa4dc5d9173f5399d31dd1085e82a4ce94f91a8207",
-    "uav_network/configuration.py": "a96e5803ad2b09314aa0c09460a73739e14c5ecd9dc88b42f6bedd81f316f206"
+    "uav_network/configuration.py": "7e79ea54bc2f34bcbedf910485619d479dd96dbe10def87ef10817a3ca37ea16"
   },
   "full_cpu_suite": {
-    "passed": 1217,
+    "passed": 1222,
     "skipped": 103,
     "warnings": 8,
     "subtests_passed": 1605,
-    "seconds": 631.68,
+    "seconds": 616.45,
     "junit": [
       {
         "name": "pytest",
         "errors": "0",
         "failures": "0",
         "skipped": "103",
-        "tests": "2925",
-        "time": "631.652",
-        "timestamp": "2026-11-03T18:17:08.009206+07:00",
+        "tests": "2930",
+        "time": "616.424",
+        "timestamp": "2026-11-03T18:54:04.517032+07:00",
         "hostname": "aduy-HP-Pavilion-Laptop-15-eg0xxx"
       }
     ],
-    "command": "PYTHONPATH=. PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/aduy/Documents/NCKH/uav_network/.venv/bin/python -m pytest -q --junitxml=/tmp/reference-baseline-completion-20261103/full-suite.xml",
-    "note": "Production Python code stayed fixed during the full run. The additional common-reward config guard was added after collection and passed separately in the final focused run."
+    "command": "PYTHONPATH=. PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 pytest -q --junitxml=/tmp/reference-baseline-purity-final.xml",
+    "note": "Fresh full-suite run on the final algorithm source revision before docs/evidence-only finalization; zero failures."
   },
   "final_focused": {
-    "passed": 17,
-    "subtests_passed": 534,
-    "seconds": 5.32,
-    "files": [
-      "tests/test_reference_baseline_contract.py",
-      "tests/test_reference_critic_gradients.py",
-      "tests/test_project_structure.py",
-      "tests/test_cbf_migration.py::test_all_xyz_production_configs_select_cbf_and_keep_1500_steps"
-    ]
+    "passed": 150,
+    "skipped": 1,
+    "subtests_passed": 43,
+    "seconds": 25.67,
+    "scope": "reference contract, source critic oracles, MASAC, MATD3, math regressions, split updates, parameter sharing, precision, performance, memory/PQL probes, chunking, CBF, source hash"
   },
   "red_green_checks": [
-    "independent MATD3 batch-mean/clipping/Adam oracle at2agents",
-    "independent MATD3 batch-mean/clipping/Adam oracle at6agents",
+    "independent MATD3 batch-mean/clipping/Adam oracle at 2 agents",
+    "independent MATD3 batch-mean/clipping/Adam oracle at 6 agents",
     "per-parameter clipping norm measurement",
     "disabled MASAC clipping telemetry",
+    "MASAC independent critic objective scaling at 2 agents (caught 1/N gradient dilution)",
+    "MASAC independent critic objective scaling at 6 agents (caught 1/N gradient dilution)",
+    "MASAC per-agent continuous/discrete alpha objective scaling",
+    "SAC/Hybrid-MASAC 0.5 squared TD-error factor",
+    "reference discrete entropy target uses fixed total action count, not mask cardinality",
     "scenario/reward namespace equality",
     "historical documentation size contract"
   ],
@@ -101,9 +102,12 @@
     "important_remaining": 0,
     "deferred_minors": [],
     "notes": [
-      "Clipping telemetry was treated as needed to truthfully verify the baseline source rule.",
-      "MATD3 hard replay versus soft Gumbel critic inputs, RF argmax gating, MASAC-only enumeration and conditional continuous entropy targets are explicitly documented interface adaptations.",
-      "No claim of byte-identical reproduction of one upstream project."
+      "Final audit caught and fixed MASAC per-agent critic/temperature gradients that were being divided by number of UAVs.",
+      "Final audit removed mask-cardinality-aware discrete entropy retargeting from the reference profile; historical variants retain it behind an explicit compatibility flag.",
+      "Clipping telemetry remains aligned with the selected source rule.",
+      "MATD3 hard replay versus soft Gumbel critic inputs and RF argmax gating remain explicitly documented UAV interface adaptations.",
+      "Delalleau multi-pass critic is documented as a source-backed alternative; Fu Hybrid-MASAC is used for per-agent hybrid objectives, not claimed as an attention-critic reproduction.",
+      "No claim of byte-identical reproduction of one upstream repository."
     ]
   },
   "upstream_sources": {
@@ -119,5 +123,11 @@
     "historical_supervisor_migrated": false,
     "merged_main": false,
     "new_gpu_benchmark": false
+  },
+  "post_docs_focused": {
+    "passed": 20,
+    "subtests_passed": 534,
+    "seconds": 6.19,
+    "scope": "reference baseline contract, source critic gradients, project structure after provenance-only clarification"
   }
 }
