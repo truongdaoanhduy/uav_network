@@ -51,6 +51,9 @@ def test_all_xyz_production_configs_select_cbf_and_keep_1500_steps():
         assert c.world.motion_dimensions == 3
         assert c.world.motion_safety == "cbf", path.name
         assert c.world.max_steps == 1500
+        assert c.masac.target_discrete_entropy_ratio == 0.9
+        assert c.masac.target_discrete_entropy_final_ratio == 0.5
+        assert c.masac.target_discrete_entropy_anneal_updates == 12000
 
 
 def test_cbf_is_valid_for_xyz_but_not_xy():

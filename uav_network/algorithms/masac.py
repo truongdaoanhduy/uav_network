@@ -58,6 +58,17 @@ class MASAC(nn.Module):
                                         ("critic", "actor", "alpha") if self.algorithm == "masac" else ("critic", "actor"))
         self.updates = self.actor_updates = 0
 
+    def discrete_entropy_target_ratio(self):
+        a = self.config.masac
+        total = a.target_discrete_entropy_anneal_updates
+        if total <= 0:
+            return float(a.target_discrete_entropy_ratio)
+        if self.actor_updates >= total:
+            return float(a.target_discrete_entropy_final_ratio)
+        fraction = max(self.actor_updates, 0) / total
+        return float(a.target_discrete_entropy_ratio +
+                     fraction * (a.target_discrete_entropy_final_ratio - a.target_discrete_entropy_ratio))
+
     def _actor_at(self, index):
         return self.actors[0] if self.share_actor_parameters else self.actors[index]
 
@@ -238,6 +249,7 @@ class MASAC(nn.Module):
         data, a = tensor_batch(batch, self.device), self.config.masac
         vectorized = self.config.runtime.vectorize_critics
         alpha_c, alpha_d = self.log_alpha_continuous.exp().detach(), self.log_alpha_discrete.exp().detach()
+        target_discrete_ratio = self.discrete_entropy_target_ratio()
         with torch.no_grad():
             base_joint, *_ = self._joint_sample(data["observation"])
         self.critics.requires_grad_(False)
@@ -279,7 +291,7 @@ class MASAC(nn.Module):
                 controls = self.continuous_dim - probs[:, 0].detach() if self.learn_power else self.continuous_dim - 1
                 targets_c.append((a.target_continuous_entropy / self.continuous_dim * controls * active).mean())
                 choices = valid_destinations(obs, self.destinations).sum(-1).float()
-                targets_d.append((a.target_discrete_entropy_ratio * choices.log()).mean())
+                targets_d.append((target_discrete_ratio * choices.log()).mean())
             actor_step = self.precision.step_actors if self.precision.enabled else step_actor_optimizers
             if self.share_actor_parameters:
                 step_losses = [torch.stack(actor_losses).mean()]
@@ -312,6 +324,7 @@ class MASAC(nn.Module):
                                "alpha_grad_norm": alpha_grad,
                                "actor_loss": torch.stack(actor_losses).mean(),
                                "continuous_entropy": hc.mean(), "discrete_entropy": hd.mean(),
+                               "target_discrete_entropy_ratio": target_discrete_ratio,
                                "alpha_continuous": self.log_alpha_continuous.exp().mean(),
                                "alpha_discrete": self.log_alpha_discrete.exp().mean()})
 

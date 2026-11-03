@@ -238,5 +238,65 @@ class AlgorithmMathRegressionTests(unittest.TestCase):
         torch.testing.assert_close(masac[1], reward[1].expand_as(masac[1]))
 
 
+    def test_masac_discrete_entropy_ratio_anneals_by_actor_updates(self):
+        c = small_config("masac")
+        c.masac.target_discrete_entropy_ratio = 0.9
+        c.masac.target_discrete_entropy_final_ratio = 0.5
+        c.masac.target_discrete_entropy_anneal_updates = 100
+        learner = MASAC(c, observation_dim(c), state_dim(c))
+
+        learner.actor_updates = 0
+        self.assertAlmostEqual(learner.discrete_entropy_target_ratio(), 0.9)
+        learner.actor_updates = 50
+        self.assertAlmostEqual(learner.discrete_entropy_target_ratio(), 0.7)
+        learner.actor_updates = 100
+        self.assertAlmostEqual(learner.discrete_entropy_target_ratio(), 0.5)
+        learner.actor_updates = 1000
+        self.assertAlmostEqual(learner.discrete_entropy_target_ratio(), 0.5)
+
+    def test_masac_discrete_entropy_schedule_defaults_to_legacy_target(self):
+        c = small_config("masac")
+        learner = MASAC(c, observation_dim(c), state_dim(c))
+        for updates in (0, 1, 100, 100000):
+            learner.actor_updates = updates
+            self.assertAlmostEqual(learner.discrete_entropy_target_ratio(), 0.9)
+
+    def test_masac_lower_entropy_target_reverses_runaway_alpha_direction(self):
+        def learner_at(ratio):
+            c = small_config("masac")
+            c.masac.target_discrete_entropy_ratio = 0.9
+            c.masac.target_discrete_entropy_final_ratio = ratio
+            c.masac.target_discrete_entropy_anneal_updates = 1
+            learner = MASAC(c, observation_dim(c), state_dim(c))
+            learner.actor_updates = 1
+            with torch.no_grad():
+                for actor in learner.actors:
+                    actor.destination.weight.zero_()
+                    actor.destination.bias.zero_()
+                    actor.destination.bias[0] = 1.5
+            return learner
+
+        high_target = learner_at(0.9)
+        low_target = learner_at(0.5)
+        before_high = high_target.log_alpha_discrete.detach().clone()
+        before_low = low_target.log_alpha_discrete.detach().clone()
+        torch.manual_seed(123)
+        high_target.update_actor(replay_batch(high_target.config), collect_metrics=False)
+        torch.manual_seed(123)
+        low_target.update_actor(replay_batch(low_target.config), collect_metrics=False)
+        self.assertTrue(torch.all(high_target.log_alpha_discrete > before_high))
+        self.assertTrue(torch.all(low_target.log_alpha_discrete < before_low))
+
+    def test_masac_actor_metrics_report_current_entropy_target_ratio(self):
+        c = small_config("masac")
+        c.masac.target_discrete_entropy_ratio = 0.9
+        c.masac.target_discrete_entropy_final_ratio = 0.5
+        c.masac.target_discrete_entropy_anneal_updates = 10
+        learner = MASAC(c, observation_dim(c), state_dim(c))
+        learner.actor_updates = 5
+        metrics = learner.update_actor(replay_batch(c), collect_metrics=True)
+        self.assertAlmostEqual(metrics["target_discrete_entropy_ratio"], 0.7)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -139,6 +139,8 @@ class MASACConfig(OffPolicyConfig):
     initial_alpha: float = 0.2
     target_continuous_entropy: float = -3.0
     target_discrete_entropy_ratio: float = 0.9
+    target_discrete_entropy_final_ratio: float = 0.9
+    target_discrete_entropy_anneal_updates: int = 0
 
 
 @dataclass
@@ -325,8 +327,10 @@ class Config:
             raise ValueError("network.propagation_delay_enabled must be a boolean")
         if (not 0 <= a.gamma <= 1 or not 0 < a.tau <= 1
                 or not 0 <= a.target_discrete_entropy_ratio <= 1
+                or not 0 <= a.target_discrete_entropy_final_ratio <= 1
+                or a.target_discrete_entropy_anneal_updates < 0
                 or a.batch_size > a.replay_capacity):
-            raise ValueError("Invalid MASAC discount, averaging, entropy or replay capacity")
+            raise ValueError("Invalid MASAC discount, averaging, entropy schedule or replay capacity")
         if not a.hidden_sizes or any(type(x) is not int or x <= 0 for x in a.hidden_sizes):
             raise ValueError("hidden_sizes must contain positive integers")
         if r.device not in {"auto", "cpu", "cuda"} or r.replay_device not in {"auto", "cpu", "cuda"}:

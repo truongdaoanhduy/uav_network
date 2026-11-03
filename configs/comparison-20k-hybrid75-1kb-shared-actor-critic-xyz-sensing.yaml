@@ -53,6 +53,9 @@ masac:
   learning_starts: 131072
   updates_per_step: 8
   target_continuous_entropy: -4.0
+  target_discrete_entropy_ratio: 0.9
+  target_discrete_entropy_final_ratio: 0.5
+  target_discrete_entropy_anneal_updates: 12000
 matd3:
   output_normalization: true
   share_actor_parameters: true
