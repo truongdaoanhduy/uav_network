@@ -1,0 +1,216 @@
+{
+  "date_local": "2026-11-04",
+  "source_commit": "c5c0eefa8e5c1e2530f99cb0316e6ba1d380ae86",
+  "platform": {
+    "torch": "2.7.1+cu126",
+    "warp": "1.18.0",
+    "cuda_available": false,
+    "device": "cpu"
+  },
+  "test_setup": {
+    "profile": "configs/comparison-reference-masac-matd3-xyz-sensing.yaml",
+    "world_num_uavs": 6,
+    "world_num_targets": 20,
+    "world_num_obstacles": 15,
+    "world_max_steps_smoke_override": 4,
+    "num_envs_smoke_override": 2,
+    "episodes_smoke_override": 4,
+    "batch_size_smoke_override": 4,
+    "replay_capacity_smoke_override": 128,
+    "learning_starts_smoke_override": 0,
+    "pql_warmup_collection_steps_override": 1,
+    "pql_critic_sample_ratio_override": 1,
+    "seed": 44,
+    "pql_enabled": true,
+    "pql_mode": "async",
+    "amp_mode": "off",
+    "compile_models": false,
+    "fused_optimizers": false,
+    "max_train_seconds_override": 0,
+    "tracking_enabled_override": false
+  },
+  "existing_regression_test": "pytest -q tests/test_pql_training.py -k deterministic_async_mode_repeats_scientific_outcomes_and_weights: 1 passed, 11 deselected",
+  "runs": {
+    "deterministic_true": {
+      "masac": {
+        "first": {
+          "algorithm": "masac",
+          "attempt": "run1",
+          "seed": 44,
+          "episodes": 4,
+          "updates": 7,
+          "actor_updates": 7,
+          "collector_overlap": false,
+          "pql_mode": "async",
+          "reproducibility": {
+            "model_hash": "0f43efc5cf975ff4464a54f56a051cbd8484f9e5d11bb2d276b183e3f1c90dc5",
+            "episode_hash": "7ab60751984bf4c8495e9dd3f3e8636b47a34353d661291a6718e3b345f192c6",
+            "settings_hash": "9e3f9166017e39499b7952a5dab1c0eb160568566ff7a5e0580e42038fd71f29",
+            "scheduling_deterministic": true
+          },
+          "elapsed_s": 2.034
+        },
+        "second": {
+          "algorithm": "masac",
+          "attempt": "run2",
+          "seed": 44,
+          "episodes": 4,
+          "updates": 7,
+          "actor_updates": 7,
+          "collector_overlap": false,
+          "pql_mode": "async",
+          "reproducibility": {
+            "model_hash": "0f43efc5cf975ff4464a54f56a051cbd8484f9e5d11bb2d276b183e3f1c90dc5",
+            "episode_hash": "7ab60751984bf4c8495e9dd3f3e8636b47a34353d661291a6718e3b345f192c6",
+            "settings_hash": "9e3f9166017e39499b7952a5dab1c0eb160568566ff7a5e0580e42038fd71f29",
+            "scheduling_deterministic": true
+          },
+          "elapsed_s": 0.779
+        },
+        "comparison": {
+          "model_hash_equal": true,
+          "episode_hash_equal": true,
+          "settings_hash_equal": true,
+          "critic_updates_equal": true,
+          "actor_updates_equal": true,
+          "overlap": false
+        }
+      },
+      "matd3": {
+        "first": {
+          "algorithm": "matd3",
+          "attempt": "run1",
+          "seed": 44,
+          "episodes": 4,
+          "updates": 7,
+          "actor_updates": 3,
+          "collector_overlap": false,
+          "pql_mode": "async",
+          "reproducibility": {
+            "model_hash": "64926a775ea51fbb6f617c771af100b76089454c353ebd398664da5ff84da174",
+            "episode_hash": "8bab3952bd26400e07ad7a24e56d610245180e406a58e8736515641dd7dc2fd0",
+            "settings_hash": "ec382ae3fa83fe487641b359574563537772726d6ae00f126a50066ac9098ac8",
+            "scheduling_deterministic": true
+          },
+          "elapsed_s": 0.67
+        },
+        "second": {
+          "algorithm": "matd3",
+          "attempt": "run2",
+          "seed": 44,
+          "episodes": 4,
+          "updates": 7,
+          "actor_updates": 3,
+          "collector_overlap": false,
+          "pql_mode": "async",
+          "reproducibility": {
+            "model_hash": "64926a775ea51fbb6f617c771af100b76089454c353ebd398664da5ff84da174",
+            "episode_hash": "8bab3952bd26400e07ad7a24e56d610245180e406a58e8736515641dd7dc2fd0",
+            "settings_hash": "ec382ae3fa83fe487641b359574563537772726d6ae00f126a50066ac9098ac8",
+            "scheduling_deterministic": true
+          },
+          "elapsed_s": 0.589
+        },
+        "comparison": {
+          "model_hash_equal": true,
+          "episode_hash_equal": true,
+          "settings_hash_equal": true,
+          "critic_updates_equal": true,
+          "actor_updates_equal": true,
+          "overlap": false
+        }
+      }
+    },
+    "deterministic_false": {
+      "masac": {
+        "first": {
+          "algorithm": "masac",
+          "attempt": "run1",
+          "seed": 44,
+          "episodes": 4,
+          "updates": 7,
+          "actor_updates": 7,
+          "collector_overlap": true,
+          "pql_mode": "async",
+          "reproducibility": {
+            "model_hash": "1fc1f54fab512cfe39280cec4fed54e668fb9169a49d211f624f452afb8c1ec8",
+            "episode_hash": "a804c2c7387ae6ca73232fd34818523becea945c14c8aad3e91f2fc0f27430f4",
+            "settings_hash": "1fe891b65968a9dcd0883a730c124cdaa9031be14c176504e3361f34fff876bf",
+            "scheduling_deterministic": false
+          },
+          "elapsed_s": 1.851
+        },
+        "second": {
+          "algorithm": "masac",
+          "attempt": "run2",
+          "seed": 44,
+          "episodes": 4,
+          "updates": 7,
+          "actor_updates": 7,
+          "collector_overlap": true,
+          "pql_mode": "async",
+          "reproducibility": {
+            "model_hash": "39c4c6b48f82e8021a5d7051f1fef99250f957ef4442246f1e1e143b98fdb852",
+            "episode_hash": "5b1f7f624f48906fb676ddf0cb8a5302e939f41f88784715579be682472bcaa5",
+            "settings_hash": "1fe891b65968a9dcd0883a730c124cdaa9031be14c176504e3361f34fff876bf",
+            "scheduling_deterministic": false
+          },
+          "elapsed_s": 0.67
+        },
+        "comparison": {
+          "model_hash_equal": false,
+          "episode_hash_equal": false,
+          "settings_hash_equal": true,
+          "critic_updates_equal": true,
+          "actor_updates_equal": true,
+          "overlap": true
+        }
+      },
+      "matd3": {
+        "first": {
+          "algorithm": "matd3",
+          "attempt": "run1",
+          "seed": 44,
+          "episodes": 4,
+          "updates": 7,
+          "actor_updates": 3,
+          "collector_overlap": true,
+          "pql_mode": "async",
+          "reproducibility": {
+            "model_hash": "6700993be4c53486361bde41e94c9204bb48a020d054965edc10c4f291453527",
+            "episode_hash": "723424ab5a4d5bcc6e7ff5764f700ab3f8ac1feafd4173c85d6c253b273bb3d0",
+            "settings_hash": "1c3669fcc852e95aefb697017cea0a7e185286afc8b6d3bbe1a5da6546f0b05b",
+            "scheduling_deterministic": false
+          },
+          "elapsed_s": 0.528
+        },
+        "second": {
+          "algorithm": "matd3",
+          "attempt": "run2",
+          "seed": 44,
+          "episodes": 4,
+          "updates": 7,
+          "actor_updates": 3,
+          "collector_overlap": true,
+          "pql_mode": "async",
+          "reproducibility": {
+            "model_hash": "94680f91192812a7428f60a2d87f4b8fcec019491da0eb17abf011825ae923b1",
+            "episode_hash": "7b7e99f1fdcf0d34fc55c0444e80ee930f70efde7a3a7a746eb8a7f404d22fc6",
+            "settings_hash": "1c3669fcc852e95aefb697017cea0a7e185286afc8b6d3bbe1a5da6546f0b05b",
+            "scheduling_deterministic": false
+          },
+          "elapsed_s": 0.511
+        },
+        "comparison": {
+          "model_hash_equal": false,
+          "episode_hash_equal": false,
+          "settings_hash_equal": true,
+          "critic_updates_equal": true,
+          "actor_updates_equal": true,
+          "overlap": true
+        }
+      }
+    }
+  },
+  "limits": "Small CPU Warp smoke, 4 episodes, 4 steps max, 7 critic updates; no 2xT4 CUDA or 20k-episode claim; identical fixed-seed results not a multi-seed performance estimate."
+}
