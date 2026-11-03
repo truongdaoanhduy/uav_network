@@ -80,7 +80,7 @@ runtime:
   coalesce_idle_polls: true
   vectorize_critics: false
   critic_chunk_size: 0
-  compile_models: false
+  compile_models: true
   amp_mode: "off"
   fused_optimizers: false
   episodes: 20000

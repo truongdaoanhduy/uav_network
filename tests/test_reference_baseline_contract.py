@@ -44,7 +44,7 @@ def test_xyz_baseline_uses_source_backed_algorithm_defaults(path):
     # Runtime mechanics must not change the baseline equations.
     assert c.runtime.critic_chunk_size == 0
     assert c.runtime.vectorize_critics is False
-    assert c.runtime.compile_models is False
+    assert c.runtime.compile_models is True
     assert c.runtime.amp_mode == "off"
     assert c.runtime.fused_optimizers is False
     assert c.pql.enabled is False
