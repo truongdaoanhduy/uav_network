@@ -82,7 +82,7 @@ runtime:
   critic_chunk_size: 0
   compile_models: true
   amp_mode: "off"
-  fused_optimizers: false
+  fused_optimizers: true
   episodes: 20000
   device: cuda
   replay_device: cpu

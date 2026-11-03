@@ -46,7 +46,7 @@ def test_xyz_baseline_uses_source_backed_algorithm_defaults(path):
     assert c.runtime.vectorize_critics is False
     assert c.runtime.compile_models is True
     assert c.runtime.amp_mode == "off"
-    assert c.runtime.fused_optimizers is False
+    assert c.runtime.fused_optimizers is True
     assert c.pql.enabled is False
 
 
