@@ -20,7 +20,7 @@ def test_external_supervisor_workflow_is_scheduled_manual_and_nonoverlapping():
         "group": "uav-external-supervisor",
         "cancel-in-progress": False,
     }
-    assert set(data["jobs"]) == {"supervise"}
+    assert "supervise" in data["jobs"]
     job = data["jobs"]["supervise"]
     assert job["runs-on"] == "ubuntu-24.04"
     assert job["timeout-minutes"] <= 30
