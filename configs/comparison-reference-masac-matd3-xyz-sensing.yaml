@@ -80,9 +80,9 @@ runtime:
   coalesce_idle_polls: true
   vectorize_critics: false
   critic_chunk_size: 0
-  compile_models: true
+  compile_models: false
   amp_mode: "off"
-  fused_optimizers: true
+  fused_optimizers: false
   episodes: 20000
   device: cuda
   replay_device: cpu
