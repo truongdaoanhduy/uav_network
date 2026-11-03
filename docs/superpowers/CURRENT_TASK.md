@@ -1,3 +1,23 @@
+# MASAC/MATD3 online re-audit — EVIDENCE COMPLETE / LEARNING CAUSE STILL PARTIAL
+
+Updated 2026-11-03, Vietnam time. User requested fresh latest-five-run config-first audit, algorithm reference checks and falsifiable validation of suspected causes. No production algorithm change, no new W&B run, no cloud training job or 20k launch in this audit.
+
+- Cohort source verified online and via GitHub: 05beef6cd0d97d39d51b220f9f7789e915b5bc10. Runs MASAC BASE c8d5ce6b, PQL 2ce9fb9e, replica 58c56ba8, MATD3 BASE db61bd0c, PQL d51b0350. All world/sensor/network/energy/reward namespaces identical; replicas also runtime/masac/matd3/pql identical.
+- Replica matched policy checkpoints at step17,346,560 / ep12,288 / updates33,632: 36/36 model tensors byte-identical. At 5,135 common global-step groups, selected learner-history sequences match. Policy artifacts lack optimizer/RNG/replay/environment, so no full-resume bitwise claim.
+- Complete journals confirm stop_reason=time_budget at ~35,995 training seconds. Replica final counts differ from execution speed and episode completion bursts, not demonstrated learning divergence. Same-work elapsed26,905.43 vs29,167.59 seconds; learner timer includes policy. GPU clocks/contention/host micro-cause remains unproven.
+- MASAC expensive shared exact-Q path N*B*K=344,064 twin-critic rows per target and actor phase; actor every update vs TD3 every2. Cohort compile off vs on; chunk1024 recomputes actor activations. Individual speed contributions still need matched A/B on XYZ lineage.
+- deterministic=true makes PQL concurrent=false despite async label. Do not add nested policy and learner timers.
+- Fresh exact final checkpoint probe, loader6f7d2d7,262 policy-visited states,10offline actor updates: target0.9 alpha mean61.45459->61.50674; target0.5->61.30417. Confirms local target-to-alpha direction, NOT that entropy alone causes mission collapse or anneal restores delivery. Fixed-state soft-value sensitivity also measured; not Monte Carlo return or a full replay TD-target.
+- Core SAC/TD3 reference audit found no confirmed sign/Bellman/tanh/delay bug in scope. 22 focused tests+17subtests passed; independent exhaustive categorical oracle passed and root reran. MATD3 categorical straight-through is a biased hybrid extension. Pre-shield replay commands are coherent with shield-composed environment dynamics.
+- Training quality remains worse for MASAC at matched12.288M–18.432M transitions. Final cohort windows vary in size; do not rank using them alone. CPU30 children BASE1faaf030 delivery58.83%, PQL964e0659 delivery53%, both success0; no complete matched MASAC final-eval set.
+- Entropy anneal branch6f7d2d7 existed before this audit; remains a hyperparameter intervention awaiting mission A/B. Performance branchdbd1074 is different main lineage; do not claim its +73.4% transfers to XYZ.
+- Verification scope: CPU focused tests/oracle/offline probes only. No new full suite or T4 benchmark in this audit.
+
+Evidence: [fresh online re-audit JSON](evidence/2026-11-03-masac-matd3-online-reaudit.json).
+Next: if authorized, one-variable entropy rollout/training A/B from same full-resume (or explicitly identical fresh training state), matched transition budget/seed bank; separately port and benchmark performance-only exact-Q on correct XYZ lineage. Do not launch20k implicitly. Preserve all historical records below.
+
+---
+
 # XYZ — FOUR FIXED ACCOUNTS / FOUR TRAINING ROOTS RUNNING
 
 Updated 2026-10-30T22:37:38.903549+00:00.
