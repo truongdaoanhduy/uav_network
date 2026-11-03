@@ -1,4 +1,4 @@
-"""MATD3 with a straight-through categorical next-hop branch."""
+"""MATD3 with a soft Gumbel-Softmax categorical next-hop branch."""
 from copy import deepcopy
 
 import numpy as np

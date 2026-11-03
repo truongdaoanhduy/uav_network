@@ -20,7 +20,7 @@ def test_xyz_baseline_uses_source_backed_algorithm_defaults(path):
     # SAC/SB3/BenchMARL automatic-temperature convention.
     assert c.masac.initial_alpha == 1.0
     # TorchRL/BenchMARL discrete SAC auto target uses 0.2 * log(n_actions).
-    # Our mask adapter replaces n_actions with the number of currently valid choices.
+    # Action masking changes sampling support, not the fixed reference target cardinality.
     assert c.masac.target_discrete_entropy_ratio == 0.2
     assert c.masac.target_discrete_entropy_final_ratio == 0.2
     assert c.masac.target_discrete_entropy_anneal_updates == 0
