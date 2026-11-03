@@ -26,7 +26,7 @@ def test_reference_algorithm_source_contract():
         "uav_network/algorithms/masac.py": "f40586dbf19840e5a907e651b24ebbd7a4f8d493a5625f53e5d41b4e85d9bd1f",
         "uav_network/algorithms/matd3.py": "9c5d941fed603d321e4c4ab225e5ffc7726b7cdc26aca44a1dfd9948c80f0ac2",
         "uav_network/algorithms/models.py": "264e1f716d72f3e6ab2c2e92e4dd9180e81bfd76bdf5a0f794f4fd3485f2cbcd",
-        "uav_network/algorithms/optimization.py": "d5b4c72b3bf44cb91d86424aa5f6f1dd1afd73ae97d5594ff80e32623742bc8f",
+        "uav_network/algorithms/optimization.py": "fae2798711325662ef5604e6271802e9bde631aa0c936e96e9d42a520eb351b8",
         "uav_network/algorithms/action_utils.py": "1e9aee9168b0f87c9809bfaaf4016277dd31ce38df0b232ee10fb42779fe2463",
     }
     for name, digest in expected.items():

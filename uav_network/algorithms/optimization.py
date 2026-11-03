@@ -54,8 +54,11 @@ def step_optimizer(loss, optimizer, parameters, grad_clip, check_finite=True, gr
 
 def scalar_metrics(values):
     keys = list(values)
-    tensors = [torch.as_tensor(values[k]).detach() for k in keys]
-    return dict(zip(keys, torch.stack(tensors).cpu().tolist()))
+    # Metrics may mix Python/CPU scalars with learner scalars on CUDA. Move each
+    # detached scalar to host before stacking; this is telemetry-only and does
+    # not participate in the learner graph or optimizer step.
+    tensors = [torch.as_tensor(values[k]).detach().cpu() for k in keys]
+    return dict(zip(keys, torch.stack(tensors).tolist()))
 
 
 def step_actor_optimizers(losses, optimizers, parameter_groups, grad_clip, check_finite=True,
