@@ -10,7 +10,7 @@ from threading import Lock
 
 import torch
 
-from .optimization import step_actor_optimizers, step_optimizer
+from .optimization import gradient_norm_and_clip, step_actor_optimizers, step_optimizer
 
 
 _SCALER_FIELDS = {"scale", "growth_factor", "backoff_factor", "growth_interval", "_growth_tracker"}
@@ -90,13 +90,14 @@ class MixedPrecision:
         return (torch.autocast(self.device.type, dtype=torch.float16, cache_enabled=False)
                 if self.enabled else nullcontext())
 
-    def step(self, group, loss, optimizer, parameters, grad_clip, check_finite=True):
-        return self._step(group, [loss], [optimizer], [parameters], grad_clip, check_finite)[0]
+    def step(self, group, loss, optimizer, parameters, grad_clip, check_finite=True, grad_clip_mode="global"):
+        return self._step(group, [loss], [optimizer], [parameters], grad_clip, check_finite, grad_clip_mode)[0]
 
-    def step_actors(self, losses, optimizers, parameter_groups, grad_clip, check_finite=True):
-        return self._step("actor", losses, optimizers, parameter_groups, grad_clip, check_finite)
+    def step_actors(self, losses, optimizers, parameter_groups, grad_clip, check_finite=True,
+                    grad_clip_mode="global"):
+        return self._step("actor", losses, optimizers, parameter_groups, grad_clip, check_finite, grad_clip_mode)
 
-    def _step(self, group, losses, optimizers, parameter_groups, grad_clip, check_finite):
+    def _step(self, group, losses, optimizers, parameter_groups, grad_clip, check_finite, grad_clip_mode):
         if group not in self.counts:
             raise ValueError(f"Unknown precision optimizer group: {group}")
         losses, optimizers = list(losses), list(optimizers)
@@ -106,9 +107,10 @@ class MixedPrecision:
         count = self.counts[group]
         if not self.enabled:
             if group == "actor":
-                norms = step_actor_optimizers(losses, optimizers, parameters, grad_clip, check_finite)
+                norms = step_actor_optimizers(losses, optimizers, parameters, grad_clip, check_finite,
+                                              grad_clip_mode)
             else:
-                norms = [step_optimizer(loss, optimizer, values, grad_clip, check_finite)
+                norms = [step_optimizer(loss, optimizer, values, grad_clip, check_finite, grad_clip_mode)
                          for loss, optimizer, values in zip(losses, optimizers, parameters)]
             count["attempted"] += 1
             count["applied"] += 1
@@ -131,12 +133,8 @@ class MixedPrecision:
             # No actor step, including Adam clocks/moments, occurs before this
             # check has accepted every actor's independently clipped gradient.
             if torch.isfinite(torch.stack(norms)).all():
-                for values, norm in zip(parameters, norms):
-                    clip = getattr(torch.nn.utils, "clip_grads_with_norm_", None)
-                    if clip is None:
-                        torch.nn.utils.clip_grad_norm_(values, grad_clip)
-                    else:
-                        clip(values, grad_clip, norm)
+                norms = [gradient_norm_and_clip(values, grad_clip, grad_clip_mode, error_if_nonfinite=False)
+                         for values in parameters]
                 for optimizer in optimizers:
                     scaler.step(optimizer)
                 scaler.update()

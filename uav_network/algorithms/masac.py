@@ -234,14 +234,14 @@ class MASAC(nn.Module):
         else:
             q1, q2 = self._critic_values(self.critics, data["state"], replay_joint, vectorized)
         critic_loss = F.mse_loss(q1, target) + F.mse_loss(q2, target)
-        critic_step = (lambda *args: self.precision.step("critic", *args)) if self.precision.enabled else step_optimizer
+        critic_step = (lambda *args: self.precision.step("critic", *args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_optimizer(*args, grad_clip_mode=a.grad_clip_mode))
         critic_grad = critic_step(critic_loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
         self.updates += 1
         if not collect_metrics:
             return {}
         return scalar_metrics({**critic_metrics(q1, q2, target, data),
                                "critic_grad_norm": critic_grad,
-                               "critic_gradient_clipped": (critic_grad > a.grad_clip_norm).float(),
+                               "critic_gradient_clipped": (critic_grad > a.grad_clip_norm).float() * (a.grad_clip_mode != "none"),
                                "critic_loss": critic_loss})
 
     @autocast_update
@@ -292,7 +292,7 @@ class MASAC(nn.Module):
                 targets_c.append((a.target_continuous_entropy / self.continuous_dim * controls * active).mean())
                 choices = valid_destinations(obs, self.destinations).sum(-1).float()
                 targets_d.append((target_discrete_ratio * choices.log()).mean())
-            actor_step = self.precision.step_actors if self.precision.enabled else step_actor_optimizers
+            actor_step = (lambda *args: self.precision.step_actors(*args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_actor_optimizers(*args, grad_clip_mode=a.grad_clip_mode))
             if self.share_actor_parameters:
                 step_losses = [torch.stack(actor_losses).mean()]
                 parameter_groups = [self.actors[0].parameters()]
@@ -307,7 +307,7 @@ class MASAC(nn.Module):
         hc, hd, tc, td = (torch.stack(v) for v in (entropies_c, entropies_d, targets_c, targets_d))
         before_c, before_d = self.log_alpha_continuous.detach().clone(), self.log_alpha_discrete.detach().clone()
         alpha_loss = (self.log_alpha_continuous * (hc - tc) + self.log_alpha_discrete * (hd - td)).mean()
-        alpha_step = (lambda *args: self.precision.step("alpha", *args)) if self.precision.enabled else step_optimizer
+        alpha_step = (lambda *args: self.precision.step("alpha", *args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_optimizer(*args, grad_clip_mode=a.grad_clip_mode))
         alpha_grad = alpha_step(alpha_loss, self.alpha_optimizer,
                        [self.log_alpha_continuous, self.log_alpha_discrete], a.grad_clip_norm, collect_metrics)
         with torch.no_grad():
@@ -315,8 +315,6 @@ class MASAC(nn.Module):
             available_d = (valid_destinations(data["observation"], self.destinations).sum(-1) > 1).any(0)
             self.log_alpha_continuous.copy_(torch.where(available_c, self.log_alpha_continuous, before_c))
             self.log_alpha_discrete.copy_(torch.where(available_d, self.log_alpha_discrete, before_d))
-            self.log_alpha_continuous.clamp_(-20, 5)
-            self.log_alpha_discrete.clamp_(-20, 5)
         self.actor_updates += 1
         if not collect_metrics:
             return {}

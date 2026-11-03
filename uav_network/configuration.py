@@ -132,6 +132,7 @@ class OffPolicyConfig:
     tau: float = 0.005
     learning_rate: float = 0.0003
     grad_clip_norm: float = 10.0
+    grad_clip_mode: str = "global"
 
 
 @dataclass
@@ -333,6 +334,10 @@ class Config:
             raise ValueError("Invalid MASAC discount, averaging, entropy schedule or replay capacity")
         if not a.hidden_sizes or any(type(x) is not int or x <= 0 for x in a.hidden_sizes):
             raise ValueError("hidden_sizes must contain positive integers")
+        for algorithm_name in ("masac", "matd3"):
+            algorithm_config = getattr(self, algorithm_name)
+            if algorithm_config.grad_clip_mode not in {"global", "per_parameter", "none"}:
+                raise ValueError(f"{algorithm_name}.grad_clip_mode must be global, per_parameter or none")
         if r.device not in {"auto", "cpu", "cuda"} or r.replay_device not in {"auto", "cpu", "cuda"}:
             raise ValueError("device and replay_device must be auto, cpu or cuda")
         if (type(r.replay_cpu_fraction) not in (int, float)

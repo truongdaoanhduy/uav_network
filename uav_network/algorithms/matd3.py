@@ -70,12 +70,21 @@ class MATD3(nn.Module):
         identity = F.one_hot(index, num_classes=self.num_uavs).to(observation.dtype)
         return torch.cat((observation, identity), dim=-1)
 
-    def _actor_action(self, actor, observation, straight_through=False, agent_index=0):
+    @staticmethod
+    def _relaxed_destination(probs):
+        # Ackermann MATD3 uses a soft categorical (Gumbel-Softmax) sample for
+        # differentiable discrete policies. Invalid masked choices stay outside
+        # the support by receiving the minimum finite logit.
+        tiny = torch.finfo(probs.dtype).tiny
+        logits = probs.clamp_min(tiny).log().masked_fill(probs == 0, torch.finfo(probs.dtype).min)
+        return F.gumbel_softmax(logits, tau=1.0, hard=False, dim=-1)
+
+    def _actor_action(self, actor, observation, relaxed_discrete=False, agent_index=0):
         actor_observation = self._actor_input(observation, agent_index)
         continuous, probs = actor(actor_observation, valid_destinations(observation, self.destinations))
-        destination = probs.argmax(-1)
-        hard = F.one_hot(destination, self.destinations).to(probs.dtype)
-        discrete = hard + probs - probs.detach() if straight_through else hard
+        discrete = (self._relaxed_destination(probs) if relaxed_discrete
+                    else F.one_hot(probs.argmax(-1), self.destinations).to(probs.dtype))
+        destination = discrete.argmax(-1)
         continuous = canonical_continuous(continuous, observation, destination, learn_power=self.learn_power)
         return torch.cat((continuous, discrete), -1)
 
@@ -98,11 +107,11 @@ class MATD3(nn.Module):
                   for i, actor in enumerate(actors)]
         return tuple(torch.stack([value[j] for value in values], 1) for j in range(2))
 
-    def _actor_actions(self, observations, *, straight_through=False, target=False):
+    def _actor_actions(self, observations, *, relaxed_discrete=False, target=False):
         continuous, probs = self._policy_outputs(observations, target=target)
-        destination = probs.argmax(-1)
-        hard = F.one_hot(destination, self.destinations).to(probs.dtype)
-        discrete = hard + probs - probs.detach() if straight_through else hard
+        discrete = (self._relaxed_destination(probs) if relaxed_discrete
+                    else F.one_hot(probs.argmax(-1), self.destinations).to(probs.dtype))
+        destination = discrete.argmax(-1)
         continuous = canonical_continuous(continuous, observations, destination, learn_power=self.learn_power)
         return torch.cat((continuous, discrete), -1)
 
@@ -114,49 +123,46 @@ class MATD3(nn.Module):
             for i, actor in enumerate(self.target_actors):
                 obs = observations[:, i]
                 continuous, probs = actor(obs, valid_destinations(obs, self.destinations))
+                discrete = self._relaxed_destination(probs)
+                destination = discrete.argmax(-1)
                 noise = (torch.randn_like(continuous) * a.target_noise_std).clamp(
                     -a.target_noise_clip, a.target_noise_clip)
-                destination = probs.argmax(-1)
-                continuous = canonical_continuous((continuous + noise).clamp(-1, 1), obs, destination, learn_power=self.learn_power)
-                actions.append(joint_action(continuous, destination, self.destinations))
+                continuous = canonical_continuous((continuous + noise).clamp(-1, 1), obs, destination,
+                                                  learn_power=self.learn_power)
+                actions.append(torch.cat((continuous, discrete), -1))
             return torch.stack(actions, 1)
         continuous, probs = self._policy_outputs(observations, target=True)
+        discrete = self._relaxed_destination(probs)
+        destination = discrete.argmax(-1)
         noise = (torch.randn_like(continuous) * a.target_noise_std).clamp(-a.target_noise_clip, a.target_noise_clip)
-        destination = probs.argmax(-1)
-        continuous = canonical_continuous((continuous + noise).clamp(-1, 1), observations, destination, learn_power=self.learn_power)
-        return joint_action(continuous, destination, self.destinations)
+        continuous = canonical_continuous((continuous + noise).clamp(-1, 1), observations, destination,
+                                          learn_power=self.learn_power)
+        return torch.cat((continuous, discrete), -1)
 
     @torch.no_grad()
     def act_batch(self, observations, deterministic=False, step=0, *, return_tensors=False):
         obs = torch.as_tensor(observations, dtype=torch.float32, device=self.device)
         a = self.config.matd3
-        fraction = min(1, max(0, step) / a.epsilon_decay_steps)
-        epsilon = a.initial_epsilon + fraction * (a.final_epsilon - a.initial_epsilon)
         if not self.share_actor_parameters:
             actions = []
             for i, actor in enumerate(self.actors):
                 local = obs[:, i]
-                mask = valid_destinations(local, self.destinations)
-                continuous, probs = actor(local, mask)
-                destination = probs.argmax(-1)
-                if not deterministic:
+                continuous, probs = actor(local, valid_destinations(local, self.destinations))
+                if deterministic:
+                    destination = probs.argmax(-1)
+                else:
                     continuous = (continuous + torch.randn_like(continuous) * a.exploration_noise_std).clamp(-1, 1)
-                    random_destination = torch.multinomial(mask.float(), 1).squeeze(-1)
-                    explore = torch.rand(len(local), device=self.device) < epsilon
-                    destination = torch.where(explore, random_destination, destination)
+                    destination = self._relaxed_destination(probs).argmax(-1)
                 continuous = canonical_continuous(continuous, local, destination, learn_power=self.learn_power)
                 actions.append(joint_action(continuous, destination, self.destinations))
             joint = torch.stack(actions, 1)
         else:
             continuous, probs = self._policy_outputs(obs)
-            destination = probs.argmax(-1)
-            if not deterministic:
+            if deterministic:
+                destination = probs.argmax(-1)
+            else:
                 continuous = (continuous + torch.randn_like(continuous) * a.exploration_noise_std).clamp(-1, 1)
-                mask = valid_destinations(obs, self.destinations)
-                random_destination = torch.multinomial(
-                    mask.float().reshape(-1, self.destinations), 1).reshape(destination.shape)
-                explore = torch.rand(destination.shape, device=self.device) < epsilon
-                destination = torch.where(explore, random_destination, destination)
+                destination = self._relaxed_destination(probs).argmax(-1)
             continuous = canonical_continuous(continuous, obs, destination, learn_power=self.learn_power)
             joint = joint_action(continuous, destination, self.destinations)
         if return_tensors:
@@ -200,7 +206,11 @@ class MATD3(nn.Module):
                                     learn_power=self.learn_power)
         q1, q2 = self._critic_values(self.critics, data["state"], replay_actions, vectorized)
         loss = F.mse_loss(q1, target) + F.mse_loss(q2, target)
-        critic_step = (lambda *args: self.precision.step("critic", *args)) if self.precision.enabled else step_optimizer
+        if a.grad_clip_mode == "per_parameter":
+            # Author MATD3 averages over the batch for each independent critic
+            # before clipping each variable; undo the extra agent average.
+            loss = loss * len(self.critics)
+        critic_step = (lambda *args: self.precision.step("critic", *args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_optimizer(*args, grad_clip_mode=a.grad_clip_mode))
         critic_grad = critic_step(loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
         batch_metrics = critic_metrics(q1, q2, target, data) if collect_metrics else {}
         self.updates += 1
@@ -208,7 +218,7 @@ class MATD3(nn.Module):
             return {}
         return scalar_metrics({**batch_metrics, **self._last_actor_metrics,
                                "critic_loss": loss, "critic_grad_norm": critic_grad,
-                               "critic_gradient_clipped": (critic_grad > a.grad_clip_norm).float(),
+                               "critic_gradient_clipped": (critic_grad > a.grad_clip_norm).float() * (a.grad_clip_mode != "none"),
                                "policy_updated": torch.tensor(0., device=self.device)})
 
     @autocast_update
@@ -216,28 +226,24 @@ class MATD3(nn.Module):
         data, a = tensor_batch(batch, self.device), self.config.matd3
         vectorized = self.config.runtime.vectorize_critics
         actor_losses, actor_grads = [], []
-        with torch.no_grad():
-            if self.share_actor_parameters:
-                base = self._actor_actions(data["observation"])
-            else:
-                base = torch.stack([self._actor_action(actor, data["observation"][:, i], agent_index=i)
-                                    for i, actor in enumerate(self.actors)], 1)
+        base = joint_action(data["continuous"], data["destination"], self.destinations,
+                            learn_power=self.learn_power).detach()
         self.critics.requires_grad_(False)
         try:
             batched_q = None
             candidate_actions = None
             if vectorized or self.share_critic_parameters or self.share_actor_parameters:
                 if self.share_actor_parameters:
-                    candidate_actions = self._actor_actions(data["observation"], straight_through=True)
+                    candidate_actions = self._actor_actions(data["observation"], relaxed_discrete=True)
                 else:
                     candidate_actions = torch.stack([
                         self._actor_action(actor, data["observation"][:, i],
-                                           straight_through=True, agent_index=i)
+                                           relaxed_discrete=True, agent_index=i)
                         for i, actor in enumerate(self.actors)], 1)
             if vectorized or self.share_critic_parameters:
                 joints = base[None].expand(self.num_uavs, -1, -1, -1).clone()
                 indices = torch.arange(self.num_uavs, device=self.device)
-                joints[indices, :, indices] = candidate_actions.transpose(0, 1)
+                joints[indices, :, indices] = candidate_actions.transpose(0, 1).to(joints.dtype)
                 if self.share_critic_parameters:
                     batched_q, _ = self._shared_critic_actor_values(data["state"], joints)
                 else:
@@ -249,12 +255,12 @@ class MATD3(nn.Module):
                     joint = base.clone()
                     own_action = (candidate_actions[:, i] if candidate_actions is not None
                                   else self._actor_action(self.actors[i], data["observation"][:, i],
-                                                          straight_through=True, agent_index=i))
-                    joint[:, i] = own_action
+                                                          relaxed_discrete=True, agent_index=i))
+                    joint[:, i] = own_action.to(joint.dtype)
                     q1, _ = self.critics[i](data["state"], joint)
                 actor_loss = -q1.mean()
                 actor_losses.append(actor_loss)
-            actor_step = self.precision.step_actors if self.precision.enabled else step_actor_optimizers
+            actor_step = (lambda *args: self.precision.step_actors(*args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_actor_optimizers(*args, grad_clip_mode=a.grad_clip_mode))
             if self.share_actor_parameters:
                 step_losses = [torch.stack(actor_losses).mean()]
                 parameter_groups = [self.actors[0].parameters()]

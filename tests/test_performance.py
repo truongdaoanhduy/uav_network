@@ -29,8 +29,8 @@ def check_learner_equivalence(device="cpu"):
             "destination": torch.zeros(8, 6, dtype=torch.long, device=device),
             "reward": torch.ones(8, device=device), "terminated": torch.zeros(8, device=device)}
 
-    def sequential(losses, optimizers, groups, clip, check):
-        return [optimization.step_optimizer(loss, optimizer, group, clip, check)
+    def sequential(losses, optimizers, groups, clip, check, grad_clip_mode="global"):
+        return [optimization.step_optimizer(loss, optimizer, group, clip, check, grad_clip_mode)
                 for loss, optimizer, group in zip(losses, optimizers, groups)]
 
     for algorithm in ("masac", "matd3"):

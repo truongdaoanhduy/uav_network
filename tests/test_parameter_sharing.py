@@ -108,27 +108,22 @@ class ParameterSharingTests(unittest.TestCase):
         torch.testing.assert_close(actual.destination, expected[..., 3:].argmax(-1), rtol=0, atol=0)
 
 
-    def test_matd3_independent_actor_preserves_legacy_rng_order(self):
+    def test_matd3_independent_actor_preserves_source_sampling_order(self):
         learner = self._learner("matd3", False, False)
         observations = torch.as_tensor(self._observations(learner.config, batch=4))
-        step = 123
         a = learner.config.matd3
 
         torch.manual_seed(1234)
-        actual = learner.act_batch(observations.numpy(), deterministic=False, step=step, return_tensors=True)
+        actual = learner.act_batch(observations.numpy(), deterministic=False, step=123,
+                                   return_tensors=True)
         torch.manual_seed(1234)
         expected = []
-        fraction = min(1, max(0, step) / a.epsilon_decay_steps)
-        epsilon = a.initial_epsilon + fraction * (a.final_epsilon - a.initial_epsilon)
         for i, actor in enumerate(learner.actors):
             local = observations[:, i]
             mask = valid_destinations(local, learner.destinations)
             continuous, probs = actor(local, mask)
-            destination = probs.argmax(-1)
             continuous = (continuous + torch.randn_like(continuous) * a.exploration_noise_std).clamp(-1, 1)
-            random_destination = torch.multinomial(mask.float(), 1).squeeze(-1)
-            explore = torch.rand(len(local)) < epsilon
-            destination = torch.where(explore, random_destination, destination)
+            destination = learner._relaxed_destination(probs).argmax(-1)
             continuous = canonical_continuous(continuous, local, destination)
             expected.append(joint_action(continuous, destination, learner.destinations))
         expected = torch.stack(expected, 1)
@@ -142,13 +137,13 @@ class ParameterSharingTests(unittest.TestCase):
         for i, actor in enumerate(learner.target_actors):
             local = observations[:, i]
             continuous, probs = actor(local, valid_destinations(local, learner.destinations))
+            discrete = learner._relaxed_destination(probs)
+            destination = discrete.argmax(-1)
             noise = (torch.randn_like(continuous) * a.target_noise_std).clamp(
                 -a.target_noise_clip, a.target_noise_clip)
-            destination = probs.argmax(-1)
             continuous = canonical_continuous((continuous + noise).clamp(-1, 1), local, destination)
-            expected_target.append(joint_action(continuous, destination, learner.destinations))
+            expected_target.append(torch.cat((continuous, discrete), -1))
         torch.testing.assert_close(actual_target, torch.stack(expected_target, 1), rtol=0, atol=0)
-
 
     def test_shared_actor_batches_all_uavs_into_one_inference_forward(self):
         for algorithm in ("masac", "matd3"):

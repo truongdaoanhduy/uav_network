@@ -7,6 +7,10 @@ from torch.nn import functional as F
 from .action_utils import masked_log_probabilities
 
 
+LOG_STD_MIN = -20
+LOG_STD_MAX = 2
+
+
 def mlp(input_dim, hidden_sizes, output_dim):
     layers = []
     for width in hidden_sizes:
@@ -27,7 +31,7 @@ class HybridActor(nn.Module):
     def sample(self, observations, deterministic=False, mask=None, return_parts=False):
         hidden = F.relu(self.encoder(observations))
         mean = self.mean(hidden)
-        std = self.log_std(hidden).clamp(-5, 2).exp()
+        std = self.log_std(hidden).clamp(LOG_STD_MIN, LOG_STD_MAX).exp()
         distribution = Normal(mean, std, validate_args=False)
         raw = mean if deterministic else distribution.rsample()
         continuous = raw.tanh()

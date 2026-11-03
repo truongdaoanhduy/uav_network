@@ -6,7 +6,6 @@ import torch
 from uav_network.configuration import Config
 from uav_network.algorithms.checkpoints import make_learner
 from uav_network.environment.observations import observation_dim, state_dim
-from legacy_updates import legacy_masac_update, legacy_matd3_update
 
 
 def small_learner(algorithm="masac", vectorized=False):
@@ -59,24 +58,32 @@ class SplitUpdateTests(unittest.TestCase):
         else:
             self.assertEqual(left, right)
 
-    def test_combined_update_matches_frozen_original_equations(self):
-        for algorithm, oracle in (("masac", legacy_masac_update), ("matd3", legacy_matd3_update)):
+    def test_combined_update_matches_explicit_source_stages(self):
+        for algorithm in ("masac", "matd3"):
             for vectorized in (False, True):
                 with self.subTest(algorithm=algorithm, vectorized=vectorized):
                     actual = small_learner(algorithm, vectorized)
-                    original = deepcopy(actual)
+                    staged = deepcopy(actual)
                     batch = replay_batch(actual)
                     for step in range(3):
-                        torch.manual_seed(500 + step)
-                        expected = oracle(original, batch)
-                        rng = torch.get_rng_state().clone()
-                        torch.manual_seed(500 + step)
+                        seed = 500 + step
+                        torch.manual_seed(seed)
                         result = actual.update(batch)
+                        expected_rng = torch.get_rng_state().clone()
+
+                        torch.manual_seed(seed)
+                        critic = staged.update_critic(batch)
+                        expected = dict(critic)
+                        if algorithm == "masac" or staged.updates % staged.config.matd3.policy_delay == 0:
+                            expected.update(staged.update_actor(batch))
+                            staged.update_targets()
+
                         self.assertEqual(result, expected)
-                        self.assert_nested_close(actual.state_dict(), original.state_dict())
-                        self.assert_nested_close(optimizers(actual), optimizers(original))
-                        self.assertEqual(actual.updates, original.updates)
-                        torch.testing.assert_close(torch.get_rng_state(), rng, rtol=0, atol=0)
+                        self.assert_nested_close(actual.state_dict(), staged.state_dict())
+                        self.assert_nested_close(optimizers(actual), optimizers(staged))
+                        self.assertEqual(actual.updates, staged.updates)
+                        self.assertEqual(actual.actor_updates, staged.actor_updates)
+                        torch.testing.assert_close(torch.get_rng_state(), expected_rng, rtol=0, atol=0)
 
     def test_critic_and_policy_stages_only_mutate_owned_parameters(self):
         for algorithm in ("masac", "matd3"):

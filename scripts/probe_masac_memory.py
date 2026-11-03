@@ -51,7 +51,8 @@ class ProbeAMP:
         self.counts = {name: {"attempted": 0, "applied": 0, "skipped": 0}
                        for name in self.scalers}
         self.original = None
-    def _step(self, group, losses, optimizers, parameter_groups, grad_clip, check_finite=True):
+    def _step(self, group, losses, optimizers, parameter_groups, grad_clip, check_finite=True,
+              grad_clip_mode="global"):
         with torch.autocast(self.device_type, enabled=False):
             if check_finite and not torch.isfinite(torch.stack(losses)).all():
                 raise FloatingPointError("Non-finite learner loss")
@@ -64,8 +65,9 @@ class ProbeAMP:
             torch.autograd.backward([scaler.scale(loss) for loss in losses])
             for optimizer in optimizers:
                 scaler.unscale_(optimizer)
-            norms = [torch.nn.utils.clip_grad_norm_(values, grad_clip,
-                                                   error_if_nonfinite=False).detach()
+            from uav_network.algorithms.optimization import gradient_norm_and_clip
+            norms = [gradient_norm_and_clip(values, grad_clip, grad_clip_mode,
+                                            error_if_nonfinite=False)
                      for values in parameters]
             finite = bool(torch.isfinite(torch.stack(norms)).all())
             if finite:
@@ -77,11 +79,15 @@ class ProbeAMP:
                 scaler.update(new_scale=scaler.get_scale() * scaler.get_backoff_factor())
                 count["skipped"] += 1
             return norms
-    def single_step(self, loss, optimizer, parameters, grad_clip, check_finite=True):
+    def single_step(self, loss, optimizer, parameters, grad_clip, check_finite=True,
+                    grad_clip_mode="global"):
         group = "critic" if optimizer is self.learner.critic_optimizer else "alpha"
-        return self._step(group, [loss], [optimizer], [parameters], grad_clip, check_finite)[0]
-    def actor_steps(self, losses, optimizers, parameter_groups, grad_clip, check_finite=True):
-        return self._step("actor", losses, optimizers, parameter_groups, grad_clip, check_finite)
+        return self._step(group, [loss], [optimizer], [parameters], grad_clip, check_finite,
+                          grad_clip_mode)[0]
+    def actor_steps(self, losses, optimizers, parameter_groups, grad_clip, check_finite=True,
+                    grad_clip_mode="global"):
+        return self._step("actor", losses, optimizers, parameter_groups, grad_clip, check_finite,
+                          grad_clip_mode)
     def __enter__(self):
         import uav_network.algorithms.masac as module
         self.original = (module.step_optimizer, module.step_actor_optimizers)

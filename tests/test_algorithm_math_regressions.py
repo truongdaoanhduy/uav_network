@@ -173,7 +173,7 @@ class AlgorithmMathRegressionTests(unittest.TestCase):
         self.assertTrue(any(g is not None and torch.count_nonzero(g) > 0 for g in own_gradients))
         self.assertTrue(all(g is None or torch.count_nonzero(g) == 0 for g in peer_gradients))
 
-    def test_matd3_straight_through_is_hard_forward_soft_backward(self):
+    def test_matd3_gumbel_relaxation_is_soft_forward_and_differentiable(self):
         c = small_config("matd3")
         learner = MATD3(c, observation_dim(c), state_dim(c))
         actor = learner.actors[0]
@@ -181,10 +181,11 @@ class AlgorithmMathRegressionTests(unittest.TestCase):
             for parameter in actor.parameters():
                 parameter.zero_()
         obs = replay_batch(c)["observation"][:, 0]
-        action = learner._actor_action(actor, obs, straight_through=True)
-        discrete = action[:, 3:]
-        torch.testing.assert_close(discrete, discrete.round(), rtol=0, atol=1e-6)
+        torch.manual_seed(123)
+        action = learner._actor_action(actor, obs, relaxed_discrete=True)
+        discrete = action[:, c.continuous_dim:]
         torch.testing.assert_close(discrete.sum(-1), torch.ones(len(discrete)), rtol=0, atol=1e-6)
+        self.assertTrue(torch.all((discrete > 0) & (discrete < 1)))
 
         weights = torch.arange(learner.destinations, dtype=discrete.dtype)
         loss = (discrete * weights).sum()
@@ -203,21 +204,20 @@ class AlgorithmMathRegressionTests(unittest.TestCase):
         obs = replay_batch(c)["next_observation"]
 
         learner.config.matd3.target_noise_std = 0.0
+        torch.manual_seed(123)
         baseline = learner.target_actions(obs)
         learner.config.matd3.target_noise_std = 0.2
         learner.config.matd3.target_noise_clip = 0.5
         torch.manual_seed(123)
         smoothed = learner.target_actions(obs)
 
-        # Zero logits choose destination 0 (silent); smoothing must not change
-        # the categorical branch, and silent TX power remains canonical zero.
-        expected_discrete = torch.zeros_like(baseline[..., 3:])
-        expected_discrete[..., 0] = 1
-        torch.testing.assert_close(baseline[..., 3:], expected_discrete, rtol=0, atol=0)
-        torch.testing.assert_close(smoothed[..., 3:], expected_discrete, rtol=0, atol=0)
-        torch.testing.assert_close(smoothed[..., 2], torch.zeros_like(smoothed[..., 2]), rtol=0, atol=0)
-        self.assertGreater(float((smoothed[..., :2] - baseline[..., :2]).abs().sum()), 0.0)
-        self.assertLessEqual(float(smoothed[..., :3].abs().max()), 1.0)
+        # Source MATD3 uses a soft categorical sample for the discrete branch.
+        # Reusing the RNG seed isolates TD3 target-policy smoothing: only the
+        # continuous branch changes when its Gaussian smoothing noise is enabled.
+        torch.testing.assert_close(smoothed[..., c.continuous_dim:],
+                                   baseline[..., c.continuous_dim:], rtol=0, atol=0)
+        self.assertGreater(float((smoothed[..., :c.motion_dim] - baseline[..., :c.motion_dim]).abs().sum()), 0.0)
+        self.assertLessEqual(float(smoothed[..., :c.continuous_dim].abs().max()), 1.0)
 
     def test_team_reward_broadcasts_to_every_critic_target(self):
         reward = torch.tensor([[1.0], [-2.0], [3.5]])
