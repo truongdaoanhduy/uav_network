@@ -11,7 +11,7 @@ on:
         type: boolean
         default: true
       check_kaggle_accounts:
-        description: 'Probe the ten GitHub Kaggle API secrets (read only; dry-run only)'
+        description: 'Probe enabled GitHub Kaggle API secrets (read only; dry-run only)'
         required: false
         type: boolean
         default: false
@@ -31,6 +31,7 @@ jobs:
       WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       HF_REPO_ID: ${{ vars.HF_REPO_ID }}
+      KAGGLE_ENABLED_ACCOUNTS: ${{ vars.KAGGLE_ENABLED_ACCOUNTS }}
       KAGGLE_API_TOKEN_ACCOUNT_01: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_01 }}
       KAGGLE_API_TOKEN_ACCOUNT_02: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_02 }}
       KAGGLE_API_TOKEN_ACCOUNT_03: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_03 }}
@@ -41,6 +42,9 @@ jobs:
       KAGGLE_API_TOKEN_ACCOUNT_08: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_08 }}
       KAGGLE_API_TOKEN_ACCOUNT_09: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_09 }}
       KAGGLE_API_TOKEN_ACCOUNT_10: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_10 }}
+      KAGGLE_API_TOKEN_ACCOUNT_11: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_11 }}
+      KAGGLE_API_TOKEN_ACCOUNT_12: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_12 }}
+      KAGGLE_API_TOKEN_ACCOUNT_13: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_13 }}
       WANDB_SILENT: 'true'
       PYTHONUNBUFFERED: '1'
     steps:
@@ -67,20 +71,36 @@ jobs:
           from concurrent.futures import ThreadPoolExecutor
           from uav_network.cloud.client import run_kaggle
           from uav_network.cloud.credentials import Account
-          def probe(number):
-              alias = f"account_{number:02d}"
-              token = os.environ.get(f"KAGGLE_API_TOKEN_ACCOUNT_{number:02d}", "")
+          enabled = [
+              a.strip() for a in
+              os.environ.get("KAGGLE_ENABLED_ACCOUNTS", "").split(",")
+              if a.strip()
+          ]
+          allowed = {f"account_{i:02d}" for i in range(1, 100)}
+          if not enabled or len(set(enabled)) != len(enabled) or not set(enabled) <= allowed:
+              raise SystemExit("Invalid enabled Kaggle accounts")
+
+          def probe(alias):
+              token = os.environ.get(f"KAGGLE_API_TOKEN_{alias.upper()}", "")
               if not token:
                   return alias, "missing_secret"
               try:
-                  run_kaggle(["quota", "--format", "json"], Account(alias, token), timeout=20)
+                  run_kaggle(
+                      ["quota", "--format", "json"],
+                      Account(alias, token),
+                      timeout=20
+                  )
                   return alias, "authenticated"
               except Exception as error:
-                  classification = ("authentication_required" if "Authentication required" in str(error)
-                                    else type(error).__name__)
+                  classification = (
+                      "authentication_required"
+                      if "Authentication required" in str(error)
+                      else type(error).__name__
+                  )
                   return alias, classification
+
           with ThreadPoolExecutor(max_workers=4) as pool:
-              result = list(pool.map(probe, range(1, 11)))
+              result = list(pool.map(probe, enabled))
           for alias, status in result:
               print(f"{alias}: {status}")
           if any(status != "authenticated" for _, status in result):
