@@ -10,6 +10,11 @@ on:
         required: false
         type: boolean
         default: true
+      check_kaggle_accounts:
+        description: 'Probe the ten GitHub Kaggle API secrets (read only; dry-run only)'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -53,6 +58,34 @@ jobs:
           python -m pip install --disable-pip-version-check \
             'kaggle>=2.2,<3' 'wandb>=0.25,<1' 'huggingface-hub>=0.34,<2' \
             'PyYAML>=6,<7' 'six>=1.16,<2'
+      - name: Verify Kaggle API credentials (manual read-only)
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run && inputs.check_kaggle_accounts
+        shell: bash
+        run: |
+          PYTHONPATH=. python - <<'PYCODE'
+          import os
+          from concurrent.futures import ThreadPoolExecutor
+          from uav_network.cloud.client import run_kaggle
+          from uav_network.cloud.credentials import Account
+          def probe(number):
+              alias = f"account_{number:02d}"
+              token = os.environ.get(f"KAGGLE_API_TOKEN_ACCOUNT_{number:02d}", "")
+              if not token:
+                  return alias, "missing_secret"
+              try:
+                  run_kaggle(["quota", "--format", "json"], Account(alias, token), timeout=20)
+                  return alias, "authenticated"
+              except Exception as error:
+                  classification = ("authentication_required" if "Authentication required" in str(error)
+                                    else type(error).__name__)
+                  return alias, classification
+          with ThreadPoolExecutor(max_workers=4) as pool:
+              result = list(pool.map(probe, range(1, 11)))
+          for alias, status in result:
+              print(f"{alias}: {status}")
+          if any(status != "authenticated" for _, status in result):
+              raise SystemExit("One or more Kaggle API secrets are unusable; no CPU jobs launched")
+          PYCODE
       - name: Monitor completed 20k GPU runs and launch CPU-only visualization
         shell: bash
         run: |
