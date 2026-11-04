@@ -71,36 +71,46 @@ jobs:
           from concurrent.futures import ThreadPoolExecutor
           from uav_network.cloud.client import run_kaggle
           from uav_network.cloud.credentials import Account
-          enabled = [
-              a.strip() for a in
-              os.environ.get("KAGGLE_ENABLED_ACCOUNTS", "").split(",")
-              if a.strip()
-          ]
-          allowed = {f"account_{i:02d}" for i in range(1, 100)}
-          if not enabled or len(set(enabled)) != len(enabled) or not set(enabled) <= allowed:
-              raise SystemExit("Invalid enabled Kaggle accounts")
+          import json
+          import re
+          import time
+          from uav_network.cloud.credentials import parse_quota
+
+          enabled = [a.strip() for a in os.environ.get("KAGGLE_ENABLED_ACCOUNTS", "").split(",") if a.strip()]
+          configured = {
+              name.removeprefix("KAGGLE_API_TOKEN_").lower()
+              for name in os.environ if name.startswith("KAGGLE_API_TOKEN_ACCOUNT_")
+          }
+          if (not enabled or len(enabled) != len(set(enabled))
+                  or any(not re.fullmatch(r"account_\d{2}", alias) for alias in enabled)
+                  or not set(enabled) <= configured):
+              raise SystemExit("Invalid Kaggle enabled account configuration")
 
           def probe(alias):
               token = os.environ.get(f"KAGGLE_API_TOKEN_{alias.upper()}", "")
               if not token:
                   return alias, "missing_secret"
-              try:
-                  run_kaggle(
-                      ["quota", "--format", "json"],
-                      Account(alias, token),
-                      timeout=20
-                  )
-                  return alias, "authenticated"
-              except Exception as error:
-                  classification = (
-                      "authentication_required"
-                      if "Authentication required" in str(error)
-                      else type(error).__name__
-                  )
-                  return alias, classification
+              for attempt in range(5):
+                  try:
+                      payload = run_kaggle(["quota", "--format", "json"], Account(alias, token), timeout=25)
+                      parse_quota(json.loads(payload))
+                      return alias, "authenticated"
+                  except Exception as error:
+                      details = str(error).lower()
+                      if "authentication required" in details or "401" in details:
+                          failure = "authentication_required"
+                      elif "429" in details or "rate limit" in details:
+                          failure = "rate_limited"
+                      elif any(code in details for code in ("500", "502", "503", "504")):
+                          failure = "upstream_error"
+                      else:
+                          failure = "api_error"
+                      if attempt < 4:
+                          time.sleep(2 ** (attempt + 1))
+              return alias, failure
 
-          with ThreadPoolExecutor(max_workers=4) as pool:
-              result = list(pool.map(probe, enabled))
+          # Sequential calls avoid bursts that can be rate-limited by Kaggle.
+          result = [probe(alias) for alias in enabled]
           for alias, status in result:
               print(f"{alias}: {status}")
           if any(status != "authenticated" for _, status in result):
