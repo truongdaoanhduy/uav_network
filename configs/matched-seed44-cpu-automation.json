@@ -1,0 +1,71 @@
+{
+  "entity": "truongdaoanhduy-uit",
+  "project": "uav_search_target",
+  "group": "matched-architecture-seed44-20261104",
+  "source_commit": "f6b33ad9130994e845a338730b11975fd275e7d7",
+  "requested_episodes": 20000,
+  "eval_seed": 2000000044,
+  "eval_episodes": 30,
+  "cases": [
+    {
+      "case": 1,
+      "account": "account_01",
+      "run_id": "47b6b68d",
+      "kernel_ref": "ewfiojewi/tra-g3-masac-base-h75-11032033-8a1db6"
+    },
+    {
+      "case": 2,
+      "account": "account_02",
+      "run_id": "025e127f",
+      "kernel_ref": "eiofwif/tra-g3-masac-base-h75-11032033-bae624"
+    },
+    {
+      "case": 3,
+      "account": "account_03",
+      "run_id": "2c75bd8e",
+      "kernel_ref": "kjgytdyug/tra-g3-masac-pql-h75-11032033-e3890e"
+    },
+    {
+      "case": 4,
+      "account": "account_04",
+      "run_id": "4d49a246",
+      "kernel_ref": "vhjvtyj/tra-g3-masac-pql-h75-11032034-aca04c"
+    },
+    {
+      "case": 5,
+      "account": "account_05",
+      "run_id": "ae83522d",
+      "kernel_ref": "kdsjse/tra-g3-matd3-base-h75-11032034-3dd7ca"
+    },
+    {
+      "case": 6,
+      "account": "account_06",
+      "run_id": "92991a1f",
+      "kernel_ref": "fijlewjf/tra-g3-matd3-base-h75-11032034-857d4c"
+    },
+    {
+      "case": 7,
+      "account": "account_07",
+      "run_id": "a5ed0222",
+      "kernel_ref": "mnbcgbjj/tra-g3-matd3-pql-h75-11032035-8eb087"
+    },
+    {
+      "case": 8,
+      "account": "account_08",
+      "run_id": "44a51732",
+      "kernel_ref": "jfhweiufh/tra-g3-matd3-pql-h75-11032035-8ac998"
+    },
+    {
+      "case": 9,
+      "account": "account_09",
+      "run_id": "c2817233",
+      "kernel_ref": "kugi7yhhug/tra-g3-masac-base-h75-11032035-ff5f9d"
+    },
+    {
+      "case": 10,
+      "account": "account_10",
+      "run_id": "3918f222",
+      "kernel_ref": "bkjtrdiu/tra-g3-masac-pql-h75-11032036-e83b69"
+    }
+  ]
+}
