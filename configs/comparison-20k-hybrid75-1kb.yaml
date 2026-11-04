@@ -4,7 +4,7 @@ world:
   generation_version: 3
   num_targets: 35
   num_obstacles: 25
-  max_steps: 1800
+  max_steps: 1200
   motion_safety: dynamic_window
 network:
   propagation_delay_enabled: true
@@ -65,7 +65,7 @@ runtime:
   log_interval_steps: 4096
   checkpoint_interval: 128
   max_train_seconds: 36000
-  output_dir: outputs/comparison-20k-steps1800-t35-o25-scenario-v3-report1kb
+  output_dir: outputs/comparison-20k-steps1200-t35-o25-scenario-v3-report1kb
 pql:
   enabled: false
   mode: async
@@ -91,7 +91,7 @@ tracking:
   project: uav_search_target
   checkpoint_repo: duy95/uav-search-checkpoints
   checkpoint_repo_private: false
-  group: uav-v3-full20k-e4096-b8192-r1kb-cpu75-accel-policy-20261027
+  group: uav-v3-full20k-e4096-b8192-r1kb-cpu75-accel-policy-steps1200-20261105
   tags:
   - uav-network
   - amp-fp16
@@ -102,7 +102,7 @@ tracking:
   - cpu75-gpu25
   - batch8192
   - env4096
-  - steps1800
+  - steps1200
   - seed44
   - base-pql-comparison
   - report1kb

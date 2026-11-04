@@ -3,7 +3,7 @@
 world:
   num_targets: 35
   num_obstacles: 25
-  max_steps: 1500
+  max_steps: 1200
   motion_safety: dynamic_window
 network:
   propagation_delay_enabled: true
@@ -20,7 +20,7 @@ matd3:
   batch_size: 8192
   learning_starts: 131072
   updates_per_step: 8
-  # Transition clock: 4096 envs * 3000 vector steps (two mission horizons).
+  # Preserve the original 3000-vector-step exploration schedule for comparison.
   # The 100k default otherwise finishes before the 131072-transition warmup.
   epsilon_decay_steps: 12288000
 runtime:
@@ -41,7 +41,7 @@ runtime:
   log_interval_steps: 409600
   checkpoint_interval: 128
   max_train_seconds: 36000
-  output_dir: outputs/comparison-20k-t35-o25
+  output_dir: outputs/comparison-20k-steps1200-t35-o25
 pql:
   enabled: false
   mode: async
@@ -62,5 +62,5 @@ tracking:
   project: auto
   checkpoint_repo: duy95/uav-search-checkpoints-public
   checkpoint_repo_private: false
-  group: uav-network-base-pql-20k-seed44-t35-o25
+  group: uav-network-base-pql-20k-seed44-t35-o25-steps1200
   tags: [uav-network, base-pql-comparison, warp-packet, env4096, targets35, obstacles25, batch8192, episodes20000]

@@ -18,7 +18,7 @@ class Matched10kTests(unittest.TestCase):
         base = load_config("configs/comparison-10k.yaml", ["pql.enabled=false"])
         longer = load_config("configs/comparison-20k.yaml", ["pql.enabled=false"])
         self.assertEqual(longer.runtime.episodes, 20000)
-        self.assertEqual(longer.world.max_steps, 1500)
+        self.assertEqual(longer.world.max_steps, 1200)
         self.assertEqual((base.world.num_targets, base.world.num_obstacles), (25, 15))
         self.assertEqual((longer.world.num_targets, longer.world.num_obstacles), (35, 25))
         self.assertFalse(base.network.propagation_delay_enabled)
