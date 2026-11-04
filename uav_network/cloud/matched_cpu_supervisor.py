@@ -107,13 +107,20 @@ def completed_result(run, study):
 def cpu_parent(row, study, run, case):
     algorithm = case["algorithm"]
     owner = row["kernel_ref"].split("/")[0]
+    # CPU evaluation belongs to the exact study, not the launcher's historical default group.
+    overrides = [
+        (f"tracking.group={study['group']}" if item.startswith("tracking.group=") else
+         f"runtime.output_dir=outputs/{study['group']}/training/{case['name']}"
+         if item.startswith("runtime.output_dir=") else item)
+        for item in case["overrides"]
+    ]
     return {
         "entity": study["entity"], "project": study["project"],
         "account": row["account"],
         "stage": "train", "kernel_ref": row["kernel_ref"],
         "root_kernel_ref": row["kernel_ref"],
         "commit": study["source_commit"],
-        "config": case["config"], "overrides": case["overrides"],
+        "config": case["config"], "overrides": overrides,
         "runs": {algorithm: {"id":run.id, "name":run.name}},
         "requested_episodes": study["requested_episodes"],
         "training_mode": "pql" if "pql" in case["name"] else "base",

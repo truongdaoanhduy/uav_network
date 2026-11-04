@@ -113,3 +113,14 @@ def test_verified_finished_run_launches_cpu_exactly_once():
     assert args[0]["orchestration"] == "github_actions"
     assert args[0].get("auto_continue") is None
     assert launch.call_count == 1
+
+
+def test_cpu_parent_uses_exact_r3_study_group():
+    study = json.loads((Path(__file__).resolve().parents[1] / "configs/matched-seed44-cpu-automation-r3.json").read_text())
+    case = build_case(1)
+    run = sample_run(case_row=study["cases"][0])
+    parent = cpu_parent(study["cases"][0], study, run, case)
+    overrides = parent["overrides"]
+    assert f"tracking.group={study['group']}" in overrides
+    assert f"runtime.output_dir=outputs/{study['group']}/training/{case['name']}" in overrides
+    assert f"tracking.group={STUDY['group']}" not in overrides
