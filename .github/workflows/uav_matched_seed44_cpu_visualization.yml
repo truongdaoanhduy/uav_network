@@ -1,0 +1,72 @@
+name: UAV Matched Seed44 CPU Visualization
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Read-only W&B check; do not submit CPU visualization jobs'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uav-matched-seed44-cpu-visualization
+  cancel-in-progress: false
+
+jobs:
+  completed-gpu-to-cpu:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_REPO_ID: ${{ vars.HF_REPO_ID }}
+      KAGGLE_API_TOKEN_ACCOUNT_01: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_01 }}
+      KAGGLE_API_TOKEN_ACCOUNT_02: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_02 }}
+      KAGGLE_API_TOKEN_ACCOUNT_03: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_03 }}
+      KAGGLE_API_TOKEN_ACCOUNT_04: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_04 }}
+      KAGGLE_API_TOKEN_ACCOUNT_05: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_05 }}
+      KAGGLE_API_TOKEN_ACCOUNT_06: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_06 }}
+      KAGGLE_API_TOKEN_ACCOUNT_07: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_07 }}
+      KAGGLE_API_TOKEN_ACCOUNT_08: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_08 }}
+      KAGGLE_API_TOKEN_ACCOUNT_09: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_09 }}
+      KAGGLE_API_TOKEN_ACCOUNT_10: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_10 }}
+      WANDB_SILENT: 'true'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - name: Checkout pinned matched-seed44 watcher
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: a6169c111f1c6e7b62ea0aeed6a7ad1ebb2cd270
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install lightweight orchestration dependencies
+        run: |
+          python -m pip install --disable-pip-version-check \
+            'kaggle>=2.2,<3' 'wandb>=0.25,<1' 'huggingface-hub>=0.34,<2' \
+            'PyYAML>=6,<7' 'six>=1.16,<2'
+      - name: Monitor completed 20k GPU runs and launch CPU-only visualization
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--report outputs/matched-seed44-cpu-reconciliation.json)
+          if [[ "$GITHUB_EVENT_NAME" == "schedule" || "${{ inputs.dry_run }}" == "false" ]]; then
+            args+=(--submit)
+          fi
+          PYTHONPATH=. python -m uav_network.cloud.matched_cpu_supervisor "${args[@]}"
+      - name: Preserve credential-free reconciliation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: matched-seed44-cpu-reconciliation
+          path: outputs/matched-seed44-cpu-reconciliation.json
+          if-no-files-found: ignore
+          retention-days: 14
