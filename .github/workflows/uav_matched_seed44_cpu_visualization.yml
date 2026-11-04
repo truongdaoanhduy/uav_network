@@ -54,7 +54,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-          ref: a6169c111f1c6e7b62ea0aeed6a7ad1ebb2cd270
+          ref: cfc6de51600369c546ece4db9d83057df80374ad
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -122,7 +122,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          args=(--report outputs/matched-seed44-cpu-reconciliation.json)
+          args=(--study configs/matched-seed44-cpu-automation-r3.json --report outputs/matched-seed44-cpu-reconciliation.json)
           if [[ "$GITHUB_EVENT_NAME" == "schedule" || "${{ inputs.dry_run }}" == "false" ]]; then
             args+=(--submit)
           fi
