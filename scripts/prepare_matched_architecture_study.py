@@ -38,7 +38,7 @@ def prepare(destination=DESTINATION):
     destination = Path(destination)
     base = load_config(REFERENCE)
     assert base.runtime.seed == 44
-    assert base.runtime.deterministic and base.runtime.critic_chunk_size == 0
+    assert base.runtime.deterministic and base.runtime.critic_chunk_size == 2048
     assert not base.runtime.vectorize_critics
     assert base.runtime.amp_mode == "off" and not base.runtime.compile_models
     assert not base.matd3.output_normalization

@@ -1,0 +1,18 @@
+{
+  "source_base": "52e500a65108e04df6f1ed0fd01dc64a51e70e4a",
+  "implementation": "matched original-row pure-critic checkpoint2048; canonical shared/shared for both learners",
+  "focused_tests": "41passed",
+  "new_test_file": "23passed incl4realCPUWarp BASE/PQL cases",
+  "profile_consumers": "14passed",
+  "first_suite": "12fail/1298pass/103skip; suite imported pre-edit0guards; all14consumers passed after guard update",
+  "final_suite": "1310 passed,103 skipped,8 warnings,1632 subtests passed in265.92s; exit0",
+  "review": "fresh read-only review: no Critical/Important/Minor findings; no declined judgments",
+  "limits": [
+    "CPU only, no CUDA/full8192GPU benchmark",
+    "No production jobs launched",
+    "OOM cause and convergence are unproven"
+  ],
+  "full_suite_command": "python -m pytest -q",
+  "review_focus": "uneven batch weighting; per-critic axis1; pure recomputation/RNG; frozen critic gradients; PQL/checkpoint config propagation",
+  "scope": "Only canonical sharing/chunk values changed; two1024 proposals remain historical."
+}

@@ -13,7 +13,7 @@ from .action_utils import canonical_continuous, joint_action, valid_destinations
 from .checkpoints import load_policy, save_policy
 from .models import HybridActor, TwinCritic
 from .parallel_critics import critic_values
-from .critic_chunks import chunked_call
+from .critic_chunks import chunked_call, chunked_critic_values
 from .precision import MixedPrecision, autocast_update
 from .optimization import scalar_metrics, step_optimizer, step_actor_optimizers, tensor_batch, critic_metrics
 
@@ -230,10 +230,10 @@ class MASAC(nn.Module):
                 target = torch.stack(targets, 1)
         replay_joint = joint_action(data["continuous"], data["destination"], self.destinations,
                                     learn_power=self.learn_power)
-        if self.share_critic_parameters:
-            q1, q2 = self.critics[0](data["state"], replay_joint)
-        else:
-            q1, q2 = self._critic_values(self.critics, data["state"], replay_joint, vectorized)
+        regression = (self.critics[0] if self.share_critic_parameters else
+                      lambda s, j: self._critic_values(self.critics, s, j, vectorized))
+        q1, q2 = chunked_critic_values(regression, data["state"], replay_joint,
+                                       self.config.runtime.critic_chunk_size)
         critic_loss = 0.5 * (F.mse_loss(q1, target) + F.mse_loss(q2, target))
         if not self.share_critic_parameters:
             # Hybrid-MASAC defines one batch-mean critic objective J_Q(theta_i)

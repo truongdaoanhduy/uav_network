@@ -1,25 +1,49 @@
-# 2026-11-06 — Vectorize/chunk2048/compile follow-up clarified; flags unchanged
+# 2026-11-06 — Real matched chunk2048/shared implementation complete
 
-User asked whether vectorize=true necessarily requires chunk2048 to avoid OOM,
-and what torch.compile solves. Read source at bceaf2305f5b954d4b52f8451c839db84244fa6f
-plus official PyTorch2.11 docs. Vectorize changes execution, not architecture;
-no mandatory chunk change follows. MASAC B8192:chunk0=1full call,2048=4,
-1024=8;2048 is smaller per-call than0 but larger than1024. Current shared
-paths already batch dominant computations. MATD3 still ignores chunk flag.
+User explicitly requested actual2048 critic chunks for BOTH learners, shared
+actor/critic in current config, and every remaining oldNov2/current config
+difference excluding chunk. Source base:52e500a65108e04df6f1ed0fd01dc64a51e70e4a.
+Actual implementation source commit is recorded in the delivery note below.
 
-compile_models() compiles critic_values helper AND actor encoders (plus target
-actor encoders when present), dynamic=True/backendinductor; not whole training
-or env. MASAC shared expected-Q calls its critic directly, outside that compiled
-helper. Compile may improve throughput after warmup, can recompile/consume
-extra memory depending mode; no current-GPU speed/memory guarantee.
+Canonical configs/comparison-reference-masac-matd3-xyz-sensing.yaml now selects
+shared actors/shared critics/LNtrue and chunk2048 for both. Other canonical
+hyperparameters unchanged, including vectorizeFalse/compileFalse/AMPoff.
+Two1024 proposal YAMLs remain historical proposals; no launcher default switch.
+Dataclass defaults and legacy configs/checkpoints are unchanged.
 
-Conditional change premise was not met; did not enable vectorize or select2048.
-Canonical remainsfalse/chunk0/compileFalse; proposed shared profiles remain
-false/chunk1024/compileFalse. No model/config/training edits or GPU benchmark.
-Verification:source/config/doc reads, line-cap and git diff --check only;
-no tests rerun for this documentation-only clarification. Next: if user asks
-for benchmarking, isolate vectorize first at fixed chunk, measure both GPU
-memory/throughput after warmup, then assess chunk2048 and compile separately.
+Added pure twin-output checkpoint helper with original batch slicing, axis1
+for per-critic actions. MATD3 target/regression/all actor-Q routes now consume
+the setting; MASAC regression now chunks in addition to its existing expectedQ
+paths. No sampling/noise inside recomputation. Losses,clipping,optimizer count,
+target schedule and TD3 delay unchanged. Same2048 bounds original rows before
+different algorithm expansions; it does not imply equal VRAM.
+Matched-study preparation/selection guards changed0->2048 so they accept the
+new canonical recipe. Existing10case sharing axes remain explicit, not replaced.
+
+Verification: RED11failed/8passed proved the missing chunk/sharing behavior.
+GREEN41focused; new test file23passed incl4realCPUWarp shared6agent
+MASAC/MATD3 BASE/PQL smokes, O198/S565, smallwidth16/B4/E4/horizon4/chunk2.
+Target/regression/actor call bounds,uneven11/4,RNG,clipping,Adam states,
+TD3 delay and reduced saved storage verified. Canonical2048 construction checked.
+Consumer guards14passed after fixing their old0pins. First full run loaded the
+pre-edit guards and failed12related tests; final fresh full suite is clean:
+1310passed,103skipped,8warnings,1632subtests in265.92s,exit0.
+Fresh read-only whole-change review found no Critical/Important/Minor findings;
+independently checked all4config snapshots/counts and PQL/checkpoint propagation.
+
+Report:docs/methods/MATCHED_SHARED_2048_CONFIG_DIFF_2026-11-06.md.
+Evidence:2026-11-06-shared2048-remaining-config-differences.json and
+2026-11-06-shared2048-completion.json under docs/superpowers/evidence/.
+Remaining serialized differences excluding chunk:MASAC16each,MATD317each;
+includes unused other-algorithm fields and3metadata keys. All world/sensor/
+network/energy/reward/PQL fields match corresponding old configs.
+Other source differences remain declared; no rollback or entropy/clipping change.
+
+No production cloud job launched; no CUDA/full8192peak-memory/convergence proof.
+Historical MASAC OOM remains unconfirmed without traceback. Next: report exact
+remaining differences; wait for user's choice before changing other hyperparams
+or launching a new controlled experiment.
+
 
 ---
 

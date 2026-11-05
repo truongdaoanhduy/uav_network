@@ -1,4 +1,4 @@
-"""Source-backed learner invariants with the declared MATD3 LayerNorm architecture.
+"""Source-backed invariants with declared shared/LN/chunk execution.
 
 These checks intentionally reject UAV-specific algorithm stabilizers from BASE.
 They do not constrain environment/reward choices, which are shared task design.
@@ -36,13 +36,13 @@ def test_xyz_baseline_uses_source_backed_algorithm_defaults(path):
     assert c.matd3.target_noise_clip == 0.5
     assert c.matd3.exploration_noise_std == 0.1
     assert c.matd3.output_normalization is False
-    assert c.masac.share_actor_parameters is False
-    assert c.masac.share_critic_parameters is False
-    assert c.matd3.share_actor_parameters is False
-    assert c.matd3.share_critic_parameters is False
+    assert c.masac.share_actor_parameters is True
+    assert c.masac.share_critic_parameters is True
+    assert c.matd3.share_actor_parameters is True
+    assert c.matd3.share_critic_parameters is True
 
     # Runtime mechanics must not change the baseline equations.
-    assert c.runtime.critic_chunk_size == 0
+    assert c.runtime.critic_chunk_size == 2048
     assert c.runtime.vectorize_critics is False
     assert c.runtime.compile_models is False
     assert c.runtime.amp_mode == "off"

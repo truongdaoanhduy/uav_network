@@ -1,3 +1,4 @@
+# Matched shared actor/critic, pure-critic chunk2048.
 # XYZ Bayesian sensing; MASAC/MATD3 actors use the declared hidden-LayerNorm architecture.
 world:
   generation_version: 3
@@ -43,8 +44,8 @@ reward:
   unsafe_action: 1.0
 masac:
   actor_layer_norm: true
-  share_actor_parameters: false
-  share_critic_parameters: false
+  share_actor_parameters: true
+  share_critic_parameters: true
   hidden_sizes:
   - 256
   - 256
@@ -60,8 +61,8 @@ masac:
   target_discrete_entropy_anneal_updates: 0
   mask_aware_discrete_entropy_target: false
 matd3:
-  share_actor_parameters: false
-  share_critic_parameters: false
+  share_actor_parameters: true
+  share_critic_parameters: true
   actor_layer_norm: true
   output_normalization: false
   grad_clip_norm: 0.5
@@ -81,7 +82,7 @@ runtime:
   num_envs: 4096
   coalesce_idle_polls: true
   vectorize_critics: false
-  critic_chunk_size: 0
+  critic_chunk_size: 2048
   compile_models: false
   amp_mode: "off"
   fused_optimizers: false

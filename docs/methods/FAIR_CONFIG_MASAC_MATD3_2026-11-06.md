@@ -1,3 +1,14 @@
+# Current status supersedes the proposal snapshot below
+
+The later explicit request on2026-11-06 implemented critic chunk2048 for BOTH
+learners and selected shared actor/critic in the canonical reference YAML.
+The1024 profiles below remain historical proposals, not the selected recipe.
+Statements below that MATD3 ignores chunk describe sourcebceaf23 and earlier.
+Current differences and verification:
+[Matched shared2048 report](MATCHED_SHARED_2048_CONFIG_DIFF_2026-11-06.md).
+
+---
+
 # Cấu hình công bằng MASAC/MATD3: đối chiếu 02/11, hiện tại và hai đề xuất
 
 Ngày06/11/2026. Source trước khi tạo đề xuất:3d09bc65d26bc7921d5232c934474f16bfe226a7.

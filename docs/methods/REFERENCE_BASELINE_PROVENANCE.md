@@ -10,6 +10,28 @@ No single vanilla SAC/TD3 library implements exactly this simultaneous action sp
 baseline is **source-faithful algorithm core plus a documented task-interface adapter**. It
 must not be described as byte-for-byte vanilla SAC or TD3.
 
+## Shared execution variant — approved 2026-11-06
+
+The user explicitly requested shared actors/critics and real chunk2048 for both
+learners. The canonical XYZ profile now selects those values for MASAC/MATD3.
+This is the declared shared-parameter, hidden-LayerNorm reference variant;
+sharing changes the architecture and is not an original-paper default.
+
+Both learners bound target, actor-through-critic and regression evaluations by
+original replay rows, before agent/destination expansion. Non-reentrant PyTorch
+checkpointing recomputes only pure critic functions, with no policy/noise draws
+inside them. Full-batch losses, one optimizer step, clipping and TD3 delay remain.
+Chunk0 still means full batch. Dataclass defaults and old configs are unchanged.
+
+For B8192/chunk2048 there are4 original-row partitions. A shared MASAC call may
+expand2048*6*7=86016 critic rows; MATD3 actor values expand2048*6=12288 rows.
+The same original-row limit does not mean equal peak VRAM between algorithms.
+This bounds critic activations, not the entire replay/actor/environment memory.
+
+Historical1024 proposal YAMLs and their dated audit remain archived proposals.
+The canonical XYZ YAML above is the selected current recipe. PQL is an explicit
+execution override, not a modification of SAC/TD3 objectives.
+
 ## MASAC extension — approved 2026-11-05
 
 The user subsequently requested the same hidden LayerNorm architecture for
@@ -146,14 +168,13 @@ per-variable clipping event.
 - epsilon-greedy discrete destination schedule;
 - hard-argmax/softmax straight-through estimator for MATD3 categorical gradients;
 - current-policy peer substitution in the MATD3 actor loss;
-- critic chunking/checkpointing;
 - `torch.compile` and critic vectorization;
 - AMP/fused optimizers;
-- PQL execution mode;
-- shared actor or shared critic parameters.
+- PQL execution mode (opt-in comparison override).
 
-Those mechanisms may exist in historical or ablation code, but a run using them must not be
-reported as the reference baseline.
+The disabled stabilizers above remain outside this source-backed recipe.
+The explicitly declared shared/LN/chunk execution variant is now authorized;
+it must not be described as a literal reproduction of an upstream network.
 
 ## Common experiment settings are not algorithm claims
 The UAV scenario, reward, CBF safety layer, sensing model, network simulator, number of
@@ -181,8 +202,9 @@ variant name and must not silently replace this profile.
   identity to a whole upstream repository. The independent optimizer oracle tests the
   MATD3 per-agent mean/clipping/Adam update against separately optimized source equations.
 
-Historical study YAMLs are not the reference profile: some intentionally retain shared
-parameters and entropy annealing. Select the explicit reference YAML above to claim
-this baseline; no supervisor or historical run was silently migrated. Serialized
+Historical study YAMLs are not automatically migrated: some retain entropy
+annealing or old output normalization. Select the explicit reference YAML above
+for the current declared shared/LN/chunk variant; launchers and old runs are not
+silently switched. Serialized
 legacy MATD3 epsilon fields remain for old config/checkpoint compatibility and do
 not control the source-backed categorical sampler.

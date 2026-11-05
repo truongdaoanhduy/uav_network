@@ -11,6 +11,7 @@ from .action_utils import canonical_continuous, joint_action, valid_destinations
 from .checkpoints import load_policy, save_policy
 from .models import DeterministicActor, TwinCritic
 from .parallel_critics import critic_values
+from .critic_chunks import chunked_critic_values
 from .precision import MixedPrecision, autocast_update
 from .optimization import scalar_metrics, step_optimizer, step_actor_optimizers, tensor_batch, critic_metrics
 
@@ -175,10 +176,17 @@ class MATD3(nn.Module):
         action = self.act_batch(np.asarray(observations)[None], deterministic, step)
         return Action(action.continuous[0], action.destination[0])
 
-    def _critic_values(self, *args):
-        return getattr(self, "_compiled_critic_values", critic_values)(*args)
+    def _critic_values(self, critics, state, actions, vectorized=False, per_critic=False):
+        evaluate = getattr(self, "_compiled_critic_values", critic_values)
+        return chunked_critic_values(
+            lambda s, j: evaluate(critics, s, j, vectorized, per_critic),
+            state, actions, self.config.runtime.critic_chunk_size, per_critic)
 
     def _shared_critic_actor_values(self, state, joints):
+        return chunked_critic_values(self._shared_critic_actor_values_full, state, joints,
+                                       self.config.runtime.critic_chunk_size, per_critic=True)
+
+    def _shared_critic_actor_values_full(self, state, joints):
         """Evaluate one team critic for each agent-specific joint action.
 
         `joints` is [agent, batch, agent, action]. The single shared critic is
@@ -196,13 +204,9 @@ class MATD3(nn.Module):
         vectorized = self.config.runtime.vectorize_critics
         with torch.no_grad():
             next_actions = self.target_actions(data["next_observation"])
-            if vectorized:
-                target = td3_target(data["reward"][:, None], data["terminated"][:, None],
-                                    *self._critic_values(self.target_critics, data["next_state"], next_actions, True), a.gamma)
-            else:
-                target = torch.stack([td3_target(data["reward"], data["terminated"],
-                                                *critic(data["next_state"], next_actions), a.gamma)
-                                      for critic in self.target_critics], 1)
+            target = td3_target(data["reward"][:, None], data["terminated"][:, None],
+                                *self._critic_values(self.target_critics, data["next_state"],
+                                                     next_actions, vectorized), a.gamma)
         replay_actions = joint_action(data["continuous"], data["destination"], self.destinations,
                                     learn_power=self.learn_power)
         q1, q2 = self._critic_values(self.critics, data["state"], replay_actions, vectorized)
@@ -258,7 +262,8 @@ class MATD3(nn.Module):
                                   else self._actor_action(self.actors[i], data["observation"][:, i],
                                                           relaxed_discrete=True, agent_index=i))
                     joint[:, i] = own_action.to(joint.dtype)
-                    q1, _ = self.critics[i](data["state"], joint)
+                    q1, _ = chunked_critic_values(self.critics[i], data["state"], joint,
+                                                   self.config.runtime.critic_chunk_size)
                 actor_loss = -q1.mean()
                 actor_losses.append(actor_loss)
             actor_step = (lambda *args: self.precision.step_actors(*args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_actor_optimizers(*args, grad_clip_mode=a.grad_clip_mode))

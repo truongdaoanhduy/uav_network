@@ -43,7 +43,7 @@ def build_case(number):
     config = "configs/comparison-reference-masac-matd3-xyz-sensing.yaml"
     resolved = load_config(REFERENCE, overrides)
     if (resolved.runtime.seed != 44 or not resolved.runtime.deterministic
-            or resolved.runtime.critic_chunk_size != 0 or resolved.runtime.amp_mode != "off"
+            or resolved.runtime.critic_chunk_size != 2048 or resolved.runtime.amp_mode != "off"
             or resolved.runtime.compile_models or resolved.runtime.fused_optimizers):
         raise RuntimeError("Reference profile changed; do not launch a non-matched run")
     return {"id": number, "name": name, "algorithm": algorithm,

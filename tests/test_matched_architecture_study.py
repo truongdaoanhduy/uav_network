@@ -10,7 +10,7 @@ def test_ten_architecture_profiles_differ_only_in_intended_axes(tmp_path):
     configs = [load_config(item["config"]) for item in rows]
     assert all(c.runtime.seed == 44 and c.runtime.deterministic
                and c.runtime.collector_overlap is False for c in configs)
-    assert all(c.runtime.critic_chunk_size == 0 and c.runtime.amp_mode == "off"
+    assert all(c.runtime.critic_chunk_size == 2048 and c.runtime.amp_mode == "off"
                and c.runtime.compile_models is False for c in configs)
     assert scientific_settings(configs[3]) == scientific_settings(configs[9])
     vmap = configs[8]
