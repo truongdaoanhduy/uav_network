@@ -1,3 +1,31 @@
+# 2026-11-05 16:24 ICT — Three PQL Kaggle failures diagnosed and fixed
+
+Observed via each original Kaggle API account (all five keys valid, quota 29.30, 29.88,
+29.36, 29.93, 29.92 hours remaining, account_01..05 respectively): cases 01/03
+running, cases 02/04/05 error. For PQL, `kaggle kernels logs` shows the
+`test_pql_training.py` preflight exits 1. Downloaded Kaggle output file
+`pql-smoke-tests.log` for case 02; it shows 12 tests, 3 failures and 1 error,
+all associated with missing `resume_latest.pt` and no calls to PQLSystem.save.
+Root cause: parent kernel sets `UAV_TRAINING_ONLY=true`; preflight subprocess
+inherits that flag and consequently disables resume/checkpoint writes that its
+unit tests explicitly require. This is a test-environment mismatch, not
+scientific algorithm code failure.
+
+Fixed only `uav_network/cloud/remote.py`: pass `preflight_env` with
+`UAV_TRAINING_ONLY=false` to `unittest discover` subprocesses, leaving the
+parent/production learner training-only flag untouched. Added
+`tests/test_cloud_preflight_environment.py` which asserts isolation in all
+four preflight commands. Focused 11 tests passed; actual PQL unittest
+preflight local: 12 tests, 0 failed, 2 skipped due no local GPU.
+
+NEXT: commit/push this patch, repush existing Kaggle notebook versions for
+cases 02/04/05 only (do not duplicate notebook slugs and do not modify
+cases 01/03). Recheck Kaggle execution logs and verify production W&B run IDs
+appear, with episodes/steps increasing. Original W&B planned IDs:
+02 `550c3c6b`, 04 `ead641c4`, 05 `78d36ef3`.
+
+---
+
 # CURRENT OPERATION — Five 1500-step Kaggle GPU kernels (2026-11-05 15:46 ICT)
 
 User explicitly authorized submitting all five 1500-step runs. Source code is

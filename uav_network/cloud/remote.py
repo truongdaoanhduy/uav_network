@@ -262,10 +262,14 @@ def run_job(spec):
               ("test_training_audit_regressions.py", "mission-regressions.log")]
     if config.pql.enabled:
         checks.append(("test_pql_training.py", "pql-smoke-tests.log"))
+    # Production training-only disables resumable snapshots. Unit preflights test
+    # ordinary resume behavior, so never inherit that production-only switch.
+    preflight_env = dict(os.environ, UAV_TRAINING_ONLY="false")
     for pattern, log_name in checks:
         with (output / log_name).open("w") as log:
             subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests",
-                            "-p", pattern, "-v"], stdout=log, stderr=subprocess.STDOUT, check=True)
+                            "-p", pattern, "-v"], env=preflight_env,
+                           stdout=log, stderr=subprocess.STDOUT, check=True)
     if (config.runtime.amp_mode == "fp16" or config.runtime.compile_models
             or config.runtime.fused_optimizers):
         for algorithm in spec["runs"]:
