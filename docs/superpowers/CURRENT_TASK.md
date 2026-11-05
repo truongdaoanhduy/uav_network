@@ -1,3 +1,57 @@
+# CURRENT OPERATION — Five 1500-step Kaggle GPU kernels (2026-11-05 15:46 ICT)
+
+User explicitly authorized submitting all five 1500-step runs. Source code is
+embedded in the Kaggle kernels push payload, with no git clone/checkouts. Every
+job uses shared actor+critic, seed44, deterministic=true, 20,000 episodes,
+CUDA T4x2, periodic validation to select best.pt on Hugging Face; no CPU
+visualization, no GitHub Actions continuation.
+
+Job group: `hfbest-shared-seed44-steps1500-20261105`; W&B project:
+`truongdaoanhduy-uit/uav_search_target`; Hugging Face model repo:
+`duy95/uav-search-checkpoints` (public per existing config).
+
+| Case | Account | Algorithm | Kaggle notebook ref | W&B run ID |
+|---|---|---|---|---|
+| 01 | account_01 | MASAC BASE shared | thienlong123456/tra-g3-masac-base-h75-11050-6eac30 | 0006c2a7 |
+| 02 | account_02 | MASAC PQL shared | bienlong/tra-g3-masac-pql-h75-11050839-44fb15 | 550c3c6b |
+| 03 | account_03 | MATD3 BASE shared | fwlejfewf/tra-g3-matd3-base-h75-11050840-5796b3 | 140e6169 |
+| 04 | account_04 | MATD3 PQL shared | fewlfj/tra-g3-matd3-pql-h75-11050841-2ed224 | ead641c4 |
+| 05 | account_05 | MASAC PQL replica shared | wlfjwfw/tra-g3-masac-pql-h75-11050842-e85c98 | 78d36ef3 |
+
+Submission manifests (not committed) are in
+`outputs/hfbest-1500-five-20261105/case-01-submitted.json` through 05, and
+retry receipts `case-01-retry.json` through 05.
+
+Important incident:
+- Initial submissions used source commit `20f0680` but ALL FIVE Kaggle kernels
+  failed pre-training because `uav_network.cloud.remote.run_job()` executes
+  several `unittest discover -s tests -p test_*.py` preflight suites, while
+  the compressed bundle lacked `tests/`; unittest exit status 5 (no tests).
+- Fixed bundle to include all 144 test Python files; commit `574f36c6d36d6182d3204a53f9e497498d3470f8` pushed.
+  After fix, repushed all FIVE existing notebook refs (new versions, SAME URL
+  and SAME W&B run IDs). All five API pushes succeeded; at the last check,
+  all five Kaggle statuses were `running`. The initial versions were `error`;
+  do not confuse previous failure with replacement version.
+- At last check, W&B run IDs had no visible run objects yet (`CommError` from
+  lookup), consistent with CUDA preflight not yet completing. Do not claim
+  actual policy training has begun until confirmed from new Kaggle logs/W&B.
+- Config hashes for cases 02 and 05 match once `runtime.output_dir` is omitted:
+  `ff04b4ebb8895b23deb218a1e36a558d75dad2596433d2f1da19a77814a85ce2`.
+- Full local repo suite before the fix: 1243 passed, 103 skipped,
+  1619 subtests passed (8 warnings). Focused bundle tests after fix:
+  33 passed, 2 subtests passed. Kaggle CUDA execution not yet verified.
+- All three GitHub Actions workflows remain disabled.
+
+NEXT IMMEDIATE TASK: poll the FIVE *newest* Kaggle kernel versions and read
+`kaggle kernels logs` or Kaggle output files. Determine if CUDA preflight passes,
+then verify actual training starts (W&B run present and episodes/global_step
+increasing). If errors occur, diagnose exact new log, fix source, rerun focused
+tests, commit/push code, replace the existing notebook versions without
+creating duplicates; do not silently declare training started. Don't alter
+scientific algorithm definitions or the 1500-step matrix without approval.
+
+---
+
 # CURRENT TASK — Kaggle local-source payload, training-only, 1500 steps (2026-11-05)
 
 User explicitly paused all full training and required a complete preflight. Do not
