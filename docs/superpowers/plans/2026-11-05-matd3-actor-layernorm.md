@@ -33,7 +33,7 @@
 - [x] Run bounded actual XYZ BASE/PQL CPU smoke, keeping seed44 and recording the reduced smoke budget.
 - [x] Run the full repository pytest suite; inspect every failure.
 - [x] Perform a fresh whole-change review, address material findings and update provenance/current-task.
-- [ ] Commit and push the verified change on the current working branch.
+- [x] Commit and push the verified change on the current working branch.
 
 ## Decisions and evidence
 - Existing linked worktree verified; no new worktree needed.
@@ -55,4 +55,4 @@
 
 - Serial full run: 1262 passed,103 skipped,1 failure in test_api_kernel_code_contains_all_runtime_source_without_remote_checkout. Reproduced its existing compressed-byte equality failure deterministically by building gzip at times100 and101. Production bundle content was unchanged. Fixed the test to decode the actual embedded archive and compare every source member byte-for-byte; retained its checksum/credential/exclusion guards. No packaging production change.
 
-- Final full suite: **1263 passed, 103 skipped, 8 warnings, 1623 subtests passed in316.39s**. No source/test changes during this run. `git diff --check` passes. Remaining delivery action: commit/push the current branch; full seed44 learning validation remains a separate experiment.
+- Final full suite: **1263 passed, 103 skipped, 8 warnings, 1623 subtests passed in316.39s**. No source/test changes during this run. `git diff --check` passes. Source commit `4a5aa227920eea08410d212ff92a8a935d42c0f3` pushed to the current branch; full seed44 learning validation remains a separate experiment.

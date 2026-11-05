@@ -1,4 +1,4 @@
-# 2026-11-05 — MATD3 hidden LayerNorm verified; delivery commit pending
+# 2026-11-05 — MATD3 hidden LayerNorm completed and pushed
 
 User approved standard nn.LayerNorm in both MATD3 actor hidden layers.
 The current reference XYZ profile enables matd3.actor_layer_norm=true;
@@ -19,8 +19,9 @@ fixed with8 RED-to-GREEN historical cases. No material review item remains.
 Source-size/SHA guards pass. The full suite also exposed a pre-existing gzip
 timestamp equality test flaw: the test now validates the actual embedded bundle
 and every member's source bytes. Production packaging code is unchanged.
-Source base: 21e8394149cd032b8867633e1f02c64cbfdf7f87. Next delivery action:
-commit/push this verified change and record its actual source commit.
+Source commit: 4a5aa227920eea08410d212ff92a8a935d42c0f3.
+Pushed to experiment/hfbest-embedded-source-steps1500-20261105 at 2026-11-05T20:02:49.904298+07:00.
+Verification above applies to this source commit; this follow-up only records delivery.
 Next research action: fresh seed44 training, monitor raw XYZ/tanh derivatives,
 actor gradients, search and delivery. Hidden LayerNorm cannot bound the final
 Linear head or establish that the old tanh saturation is permanently fixed.

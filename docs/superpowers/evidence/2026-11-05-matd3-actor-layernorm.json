@@ -131,5 +131,7 @@
     "CPU integration smoke only; no GPU or 20000-episode convergence verification.",
     "Hidden LayerNorm does not bound the final Linear output or guarantee tanh remains unsaturated.",
     "A fresh seed44 run is needed for the changed actor architecture; legacy checkpoints retain their original no-LayerNorm architecture."
-  ]
+  ],
+  "source_commit": "4a5aa227920eea08410d212ff92a8a935d42c0f3",
+  "source_push_verified_at_ict": "2026-11-05T20:02:49.904298+07:00"
 }
