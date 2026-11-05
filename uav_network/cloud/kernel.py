@@ -1,5 +1,8 @@
 """Generate a public-code-only bootstrap for an explicitly private GPU kernel."""
 import json
+import base64
+
+from .source_bundle import build_source_archive, source_sha256
 
 
 def kernel_metadata(spec):
@@ -18,12 +21,18 @@ def kernel_metadata(spec):
 
 
 def kernel_script(spec):
-    # Only a SHA, dataset reference and public experiment metadata are embedded.
+    # Kaggle push uploads ONLY code_file, so all local source must be embedded in it.
+    source = build_source_archive(__import__("pathlib").Path(__file__).resolve().parents[2])
     script = '''import json
 import os
-from pathlib import Path
+import base64
+import hashlib
+import io
+from pathlib import Path, PurePosixPath
+import shutil
 import subprocess
 import sys
+import tarfile
 import time
 
 SPEC = __SPEC__
@@ -53,11 +62,40 @@ if "requested_episodes" in SPEC:
     os.environ["UAV_EPISODE_BUDGET"] = str(SPEC["requested_episodes"])
 else:
     os.environ.pop("UAV_EPISODE_BUDGET", None)
+# Kaggle's API submits only this one Python script; source is inside the payload.
+payload = base64.b85decode("__SOURCE_B85__")
+if hashlib.sha256(payload).hexdigest() != "__SOURCE_SHA256__":
+    raise RuntimeError("Bundled code checksum differs from the local build")
 root = Path("/tmp/uav_network")
-subprocess.run(["git", "clone", "--quiet", "https://github.com/truongdaoanhduy/uav_network.git", str(root)], check=True)
-subprocess.run(["git", "checkout", "--quiet", SPEC["commit"]], cwd=root, check=True)
-setup_env = dict(os.environ, PYTHON=sys.executable)
-subprocess.run(["bash", "setup.sh", "--system-site-packages", "--cloud"], cwd=root, env=setup_env, check=True)
+root.mkdir(parents=True, exist_ok=False)
+with tarfile.open(fileobj=io.BytesIO(payload), mode="r:gz") as archive:
+    total = 0
+    for entry in archive:
+        relative = PurePosixPath(entry.name)
+        if (not entry.isfile() or relative.is_absolute() or
+                any(part in {"..", ".", ""} for part in relative.parts) or
+                entry.size > 2_000_000):
+            raise RuntimeError("Unsafe bundled source entry")
+        total += entry.size
+        if total > 40_000_000:
+            raise RuntimeError("Bundled source exceeds code size budget")
+        destination = root.joinpath(*relative.parts)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        with archive.extractfile(entry) as source, destination.open("wb") as target:
+            shutil.copyfileobj(source, target)
+
+# Install package dependencies only. No git or remote source checkout.
+python = root / ".venv/bin/python"
+subprocess.run([sys.executable, "-m", "venv", "--system-site-packages",
+                "--without-pip", str(root / ".venv")], check=True)
+subprocess.run([str(python), "-m", "pip", "install", "-e", ".[cloud]",
+                "-r", "scripts/requirements-network.txt"], cwd=root, check=True)
+subprocess.run([str(python), "-c",
+                "from uav_network.configuration import load_config; "
+                "from uav_network.communication.upstream import load_upstream; "
+                "from gymnasium.vector import AutoresetMode; "
+                "load_upstream(load_config()); assert AutoresetMode.DISABLED"],
+               cwd=root, check=True)
 inputs = Path("/kaggle/input")
 candidates = list(inputs.rglob("wandb_api_key.txt")) + list(inputs.rglob("wandb_secret.json"))
 if len(candidates) != 1:
@@ -88,4 +126,6 @@ runner = {"visualize": "uav_network.cloud.visualize", "archive": "uav_network.cl
     SPEC["stage"], "uav_network.cloud.remote")
 subprocess.run([str(python), "-m", runner, "--spec", str(spec_file)], cwd=root, check=True)
 '''
-    return script.replace("__SPEC__", repr(spec))
+    return (script.replace("__SPEC__", repr(spec))
+            .replace("__SOURCE_B85__", base64.b85encode(source).decode("ascii"))
+            .replace("__SOURCE_SHA256__", source_sha256(source)))

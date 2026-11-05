@@ -177,3 +177,16 @@ class BestCheckpoint:
         if not valid:
             self._publish(self.data, self.metadata)
         return {"checkpoint":str(self.path), "checkpoint_selection":dict(self.metadata)}
+
+def publish_best_to_hf(config, run, path, metadata):
+    """Publish the validated winner to the same Hub path, without replay/optimizer."""
+    from .checkpoint_store import upload_checkpoint_files
+    manifest = upload_checkpoint_files(
+        config, {"checkpoint.pt": Path(path)}, f"uav-network/{run.id}/best")
+    if manifest["files"]["checkpoint.pt"]["sha256"] != metadata["checkpoint_sha256"]:
+        raise ValueError("Published best actor differs from validation-selected checkpoint")
+    run.summary["best_checkpoint_storage"] = {
+        "backend": "huggingface", "repo_id": manifest["repo_id"],
+        "revision": manifest["revision"], "global_step": metadata["global_step"],
+        "episode": metadata["episode"], "sha256": metadata["checkpoint_sha256"]}
+    return manifest

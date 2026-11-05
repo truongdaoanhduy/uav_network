@@ -1,3 +1,55 @@
+# CURRENT TASK — Kaggle local-source payload, training-only, 1500 steps (2026-11-05)
+
+User explicitly paused all full training and required a complete preflight. Do not
+launch any production Kaggle GPU job until the user gives a new explicit command.
+All future planned runs use **world.max_steps=1500**, 20,000 episodes, seed 44,
+shared actor + shared critic. Planned five cases (not launched):
+01 MASAC BASE, 02 MASAC PQL, 03 MATD3 BASE, 04 MATD3 PQL,
+05 MASAC PQL replica identical to 02 except its output/run identity.
+Training-only is for validated **best.pt -> Hugging Face**, with no CPU visualize
+or GitHub Actions continuation. No training was scheduled in this task.
+
+Safety status:
+- Deleted the two accidental 1200-step Kaggle kernels on account_01 and
+  account_02. Account_05 launch process was terminated before any confirmed
+  notebook submission. Old temporary 1200-step launcher was disabled.
+- All three GitHub Actions workflows in truongdaoanhduy/uav_network remain
+  disabled; no workflow runs queued/running on last check.
+- Cleaned key.txt remains account_01..account_05, secret file at original
+  external location, never copied into code payload.
+- A local private Kaggle --no-run code-payload test was **actually pushed** with
+  account_03, pulled back byte-for-byte (467,791-byte kernel.py matching the
+  original SHA-256), then deleted. No GPU session started by this smoke test.
+- The Kaggle CLI's kernels_push() submits only metadata.code_file, *not sibling
+  files* in the local payload folder. To satisfy 'push all source via Kaggle
+  API, never git clone in kernel', uav_network/cloud/source_bundle.py selects
+  reviewed Python/config/runtime sources plus the existing pinned local
+  third_party/UavNetSim (HEAD 04daafb...), makes a gzip archive and embeds it
+  base85 inside the generated kernel.py. The kernel verifies SHA-256, safely
+  extracts into /tmp/uav_network, installs dependencies via pip and executes
+  the source. It contains **no git clone/checkout or repo URL**. No scripts
+  containing secrets, private keys, outputs or git metadata are uploaded.
+- Kaggle payload source was independently unpacked and imported under a separate
+  working directory: Bayesian 3D config resolved max_steps 1500 and native
+  UavNetSim simulator loaded successfully.
+- Focused tests: 68 passed + 555 subtests, then 9 formerly failing cloud tests
+  were traced to subprocess.check_output mocks colliding with local bundling.
+  Removed subprocesses from bundle builder; isolated recheck: 32 passed,
+  9 subtests. Added future five-case step-1500/replica-equality regression test.
+- Full repository test suite PASS: 1243 passed, 103 skipped, 8 warnings,
+  1619 subtests passed (265.24 seconds). Real Kaggle T4 execution, installation and full
+  20k convergence have **not** been verified by a --no-run smoke.
+
+Source is now being developed on branch
+experiment/hfbest-embedded-source-steps1500-20261105.
+The old branch experiment/matched-architecture-steps1200-20261105 is preserved.
+2026-11-05 latest user explicitly authorized launching all five 1500-step
+training runs after local validation. Next: commit/push code, preflight account
+quotas, and launch five separate GPU kernels using local-source payload.
+Do not report successful launches without Kaggle confirmation.
+
+---
+
 # Latest task — Kaggle training-only, validated best to Hugging Face (2026-11-05)
 
 User requested: first prune/renumber `key.txt` by valid Kaggle GPU quota, then train and publish only the best policy to Hugging Face; remove CPU visualization and GitHub Actions.

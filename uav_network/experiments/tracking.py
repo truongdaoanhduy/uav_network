@@ -14,11 +14,9 @@ from .telemetry import episode_telemetry
 from .run_journal import RunJournal, select_evidence
 from .evidence import resource_snapshot
 from ..environment.observations import OBSERVATION_VERSION, observation_version
-
 CPU_EPISODE_METRICS = ("evaluation/return", "evaluation/search_rate_percent",
                        "evaluation/delivery_rate_percent", "evaluation/success",
                        "evaluation/episodes_completed")
-
 def progress_metrics(observations, config):
     local, state = observations["observation"], observations["state"]
     n, t, k = config.world.num_uavs, config.world.num_targets, config.world.num_obstacles
@@ -37,7 +35,6 @@ def progress_metrics(observations, config):
             "progress/delivery_rate_percent": float(delivered.mean() * 100),
             "progress/mean_battery_fraction": float(local[:, :, 8].mean()),
             "progress/mean_active_uavs": float(local[:, :, 9].sum(1).mean())}
-
 def episode_metrics(record, num_uavs, motion_dim=2, motion_safety=None):
     energy, network = record["energy"], record["network"]
     opportunities = max(1, record["episode_length"] * num_uavs)
@@ -91,7 +88,6 @@ def episode_metrics(record, num_uavs, motion_dim=2, motion_safety=None):
     result["episode/termination_reason"] = record.get("termination_reason") or "unknown"
     result.update(episode_telemetry(record))
     return result
-
 def final_metrics(records):
     """Aggregate completed *training* episodes without pretending to be final-policy eval."""
     if not records:
@@ -100,7 +96,6 @@ def final_metrics(records):
         "training_history_mean_search_rate_percent":float(np.mean([r["search_rate_percent"] for r in records])),
         "training_history_mean_delivery_rate_percent":float(np.mean([r["delivery_rate_percent"] for r in records])),
         "training_history_success_rate":float(np.mean([r["success"] for r in records])),"training_metrics_scope":"all_completed_training_episodes"}
-
 def _authentication(config):
     path = Path(config.tracking.credentials_file).expanduser()
     if not path.is_absolute():
@@ -123,12 +118,8 @@ def _authentication(config):
         raise ValueError("W&B destination differs from the main project in credentials/environment")
     os.environ["WANDB_API_KEY"] = str(key)
     return entity, project
-
-
 def default_workspace_url(entity, project):
     return f"https://wandb.ai/{entity}/{project}/workspace"
-
-
 class OnlineTracker:
     def __init__(self, config, output, initial_progress=None):
         import wandb
@@ -239,7 +230,6 @@ class OnlineTracker:
         except BaseException:
             self.close(failed=True)
             raise
-
     def _record_event(self, event, values):
         now = time.monotonic()
         last_capture = getattr(self, "last_resource_capture", None)
@@ -264,7 +254,6 @@ class OnlineTracker:
                           base_path=str(self.output), policy="now")
         except Exception as error:
             self.journal._warn(error)
-
     def _publish_observability(self, final=False):
         publish_overflow(self)
         policies = {"training-status.json": "live", "metrics-guide.md": "now",
@@ -277,12 +266,10 @@ class OnlineTracker:
             except Exception as error:
                 if self.journal is not None:
                     self.journal._warn(error)
-
     def identity(self):
         return {"wandb_run_id": self.run.id, "wandb_url": self.run.url,
                 "wandb_entity": self.run.entity, "wandb_project": self.run.project,
                 "wandb_workspace_url": default_workspace_url(self.run.entity, self.run.project)}
-
     def progress(self, observations, step, completed, learner, replay_size, episode_lengths=None, force=False):
         if not force and step < self.next_progress:
             return
@@ -314,7 +301,6 @@ class OnlineTracker:
             "completed_episodes": completed, "updates": learner.updates, "phase":self.learning_phase})
         self.run.log(values)
         self.next_progress = step + self.config.runtime.log_interval_steps
-
     def learner(self, metrics, step):
         publish_overflow(self)
         values = {f"learner/{k}": v for k, v in learner_telemetry(metrics).items()}
@@ -407,19 +393,10 @@ class OnlineTracker:
         return reference
 
     def export_best_checkpoint(self, path, metadata):
-        """Publish each validated best actor with a stable per-run Hugging Face path."""
         if os.environ.get("UAV_TRAINING_ONLY") != "true":
             return None
-        from .checkpoint_store import upload_checkpoint_files
-        manifest = upload_checkpoint_files(
-            self.config, {"checkpoint.pt": Path(path)}, f"uav-network/{self.run.id}/best")
-        if manifest["files"]["checkpoint.pt"]["sha256"] != metadata["checkpoint_sha256"]:
-            raise ValueError("Published best actor differs from validation-selected checkpoint")
-        self.run.summary["best_checkpoint_storage"] = {
-            "backend": "huggingface", "repo_id": manifest["repo_id"],
-            "revision": manifest["revision"], "global_step": metadata["global_step"],
-            "episode": metadata["episode"], "sha256": metadata["checkpoint_sha256"]}
-        return manifest
+        from .best_checkpoints import publish_best_to_hf
+        return publish_best_to_hf(self.config, self.run, path, metadata)
 
     def _checkpoint(self, path, progress, final=False, resumable=False):
         if not self.config.tracking.log_checkpoint:
