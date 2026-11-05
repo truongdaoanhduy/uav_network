@@ -1,0 +1,105 @@
+name: UAV Five Shared Seed44 Steps1200 Supervisor
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Only inspect the five newly launched kernels
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uav-five-shared-seed44-steps1200-only
+  cancel-in-progress: false
+
+jobs:
+  scoped-supervisor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      KAGGLE_ENABLED_ACCOUNTS: account_01,account_02,account_03,account_04,account_05
+      KAGGLE_API_TOKEN_ACCOUNT_01: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_01 }}
+      KAGGLE_API_TOKEN_ACCOUNT_02: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_02 }}
+      KAGGLE_API_TOKEN_ACCOUNT_03: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_03 }}
+      KAGGLE_API_TOKEN_ACCOUNT_04: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_04 }}
+      KAGGLE_API_TOKEN_ACCOUNT_05: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_05 }}
+      WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      WANDB_ENTITY: ${{ vars.WANDB_ENTITY }}
+      WANDB_PROJECT: ${{ vars.WANDB_PROJECT }}
+      HF_REPO_ID: ${{ vars.HF_REPO_ID }}
+      DRY_RUN: ${{ inputs.dry_run || 'false' }}
+      PYTHONUNBUFFERED: "1"
+
+    steps:
+      - name: Checkout pinned scientific source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: a6169c111f1c6e7b62ea0aeed6a7ad1ebb2cd270
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install orchestration dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "kaggle>=2.2,<3" "six>=1.16,<2" "wandb>=0.25,<1" "huggingface-hub>=0.34,<2" "PyYAML>=6,<7"
+
+      - name: Reconcile exclusively five fresh Kaggle lineages
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=. python - <<'PY'
+          import json
+          import os
+          from uav_network.cloud.github_supervisor import credentials_from_environment, reconcile_ref
+
+          # No account-wide discovery or historical W&B queries.
+          ROOTS = [
+              ("account_01", "flwejflfew/gh-tra-g3-masac-base-h75-1105024-be36f4"),
+              ("account_02", "fwekjfw/gh-tra-g3-masac-pql-h75-11050240-941528"),
+              ("account_03", "fwkjfkef/gh-tra-g3-matd3-base-h75-11050240-7d8ff0"),
+              ("account_04", "fwekfwef/gh-tra-g3-matd3-pql-h75-11050240-912c58"),
+              ("account_05", "fwkejfwlf/gh-tra-g3-masac-pql-h75-11050240-feb984"),
+          ]
+          FOLLOW = {
+              "existing_gpu", "submitted_gpu", "existing_recovery_gpu", "submitted_recovery_gpu",
+              "existing_cpu", "submitted_cpu", "existing_recovery_cpu", "submitted_recovery_cpu",
+              "existing_cpu_retry", "submitted_cpu_retry",
+          }
+          credentials = credentials_from_environment()
+          accounts = {account.name: account for account in credentials.accounts}
+          dry_run = os.environ.get("DRY_RUN", "false").lower() == "true"
+          report = {}
+          errors = 0
+          for alias, root in ROOTS:
+              ref, seen, chain = root, set(), []
+              try:
+                  for _ in range(40):
+                      if ref in seen:
+                          raise RuntimeError("lineage cycle")
+                      seen.add(ref)
+                      outcome = reconcile_ref(ref, accounts[alias], credentials, dry_run=dry_run)
+                      chain.append(outcome)
+                      if outcome.get("action") not in FOLLOW or not outcome.get("child_ref"):
+                          break
+                      ref = outcome["child_ref"]
+                  else:
+                      raise RuntimeError("lineage exceeded 40 segments")
+              except Exception as exc:
+                  chain.append({"ref": ref, "action": "scoped_error", "error_type": type(exc).__name__})
+                  errors += 1
+              report[alias] = chain
+          print(json.dumps(report, indent=2, sort_keys=True), flush=True)
+          if errors:
+              raise SystemExit(1)
+          PY
