@@ -27,7 +27,7 @@
 - [x] Reuse standard LayerNorm encoder construction, enable MASAC reference profile and preserve historical loading/hashes.
 - [x] Run focused gradient/checkpoint/MASAC/MATD3 checks, then bounded BASE/PQL CPU smoke.
 - [x] Review whole change, run full pytest, inspect failures and record evidence.
-- [ ] Commit/push verified code and continuity record on the current working branch.
+- [x] Commit/push verified code and continuity record on the current working branch.
 
 ## Rulings and evidence
 - Existing linked worktree is clean at dc698ad6e0f73a89694a12819b91b094baa675d0; reuse it.
@@ -44,4 +44,4 @@
 
 - First full suite:1286 passed,1 failed,103 skipped,1624 subtests. Failure test_pre_xyz_xy_selected_winner_restores_without_relabeling reproduced alone: its synthesized pre-XYZ fixture retained the new MASAC flag in historical identity. Hash proof shows the config hash was already accepted and identity matches when postdated flags are omitted. Corrected only the fixture;44 actor/legacy checks pass. Production validation was not weakened. Full green rerun required.
 
-- Final full suite:1287 passed,103 skipped,8 warnings,1624 subtests in332.67s; JUnit0 failures/0 errors. No source/test changes during that run. Diff and500-line limits checked. Next: commit/push verified source and record actual commit.
+- Final full suite:1287 passed,103 skipped,8 warnings,1624 subtests in332.67s; JUnit0 failures/0 errors. No source/test changes during that run. Diff and500-line limits checked. Verified source commit `a5841eab1f328bac0bcd86bc75f18a89adcada5a` pushed to the current branch.

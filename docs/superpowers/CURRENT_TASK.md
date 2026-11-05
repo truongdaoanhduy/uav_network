@@ -1,4 +1,4 @@
-# 2026-11-05 — MASAC hidden LayerNorm verified; delivery pending
+# 2026-11-05 — MASAC/MATD3 hidden LayerNorm completed and pushed
 
 User requested the same actor architecture as MATD3. Current reference XYZ
 profile enables masac.actor_layer_norm=true and matd3.actor_layer_norm=true:
@@ -23,8 +23,9 @@ Reproduced alone, proved config hash accepted and identity matches with
 postdated flags removed. Fixed only that test fixture,44 actor/legacy tests
 then passed; final suite above is green. Production validation not weakened.
 
-Source base dc698ad6e0f73a89694a12819b91b094baa675d0. Next delivery action:
-commit/push verified change and record actual source commit on this branch.
+Source commit:a5841eab1f328bac0bcd86bc75f18a89adcada5a.
+Pushed to experiment/hfbest-embedded-source-steps1500-20261105 at 2026-11-05T20:26:46.335840+07:00.
+Verification above applies to this source commit; this follow-up only records delivery.
 Next research action: fresh seed44 training with unchanged other settings;
 monitor raw XYZ, saturation, gradients, search and delivery. LayerNorm is not
 min-max normalization. ReLU produces nonnegative hidden features, while signed

@@ -155,5 +155,7 @@
     "log": "/tmp/masac-layernorm-verified-20261105.log",
     "junit": "/tmp/masac-layernorm-verified-20261105.xml",
     "source_note": "No application/test source changed during the final run."
-  }
+  },
+  "source_commit": "a5841eab1f328bac0bcd86bc75f18a89adcada5a",
+  "source_push_verified_at_ict": "2026-11-05T20:26:46.335840+07:00"
 }
