@@ -1,3 +1,28 @@
+# 2026-11-06 — Vectorize/chunk2048/compile follow-up clarified; flags unchanged
+
+User asked whether vectorize=true necessarily requires chunk2048 to avoid OOM,
+and what torch.compile solves. Read source at bceaf2305f5b954d4b52f8451c839db84244fa6f
+plus official PyTorch2.11 docs. Vectorize changes execution, not architecture;
+no mandatory chunk change follows. MASAC B8192:chunk0=1full call,2048=4,
+1024=8;2048 is smaller per-call than0 but larger than1024. Current shared
+paths already batch dominant computations. MATD3 still ignores chunk flag.
+
+compile_models() compiles critic_values helper AND actor encoders (plus target
+actor encoders when present), dynamic=True/backendinductor; not whole training
+or env. MASAC shared expected-Q calls its critic directly, outside that compiled
+helper. Compile may improve throughput after warmup, can recompile/consume
+extra memory depending mode; no current-GPU speed/memory guarantee.
+
+Conditional change premise was not met; did not enable vectorize or select2048.
+Canonical remainsfalse/chunk0/compileFalse; proposed shared profiles remain
+false/chunk1024/compileFalse. No model/config/training edits or GPU benchmark.
+Verification:source/config/doc reads, line-cap and git diff --check only;
+no tests rerun for this documentation-only clarification. Next: if user asks
+for benchmarking, isolate vectorize first at fixed chunk, measure both GPU
+memory/throughput after warmup, then assess chunk2048 and compile separately.
+
+---
+
 # 2026-11-06 — Matched configuration proposals prepared; no launch/default switch
 
 User asked for all old/new config differences and their training effects,
