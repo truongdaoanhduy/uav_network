@@ -10,6 +10,35 @@ No single vanilla SAC/TD3 library implements exactly this simultaneous action sp
 baseline is **source-faithful algorithm core plus a documented task-interface adapter**. It
 must not be described as byte-for-byte vanilla SAC or TD3.
 
+## MATD3 actor LayerNorm architecture — approved 2026-11-05
+
+The current reference XYZ profile explicitly enables `matd3.actor_layer_norm=true`.
+This is a declared architecture variant of the source-backed MATD3 core, not an
+exact reproduction of the original author network. Each of the two 256-unit
+actor hidden layers is `Linear -> nn.LayerNorm(256) -> ReLU`, using standard
+PyTorch defaults (`eps=1e-5`, learnable affine scale/bias). Actor targets,
+collector copies and BASE/PQL policy workers use the same resolved setting.
+Continuous and categorical output heads are unchanged;
+`matd3.output_normalization=false` remains in effect. Critics and MASAC are
+unchanged. The layer normalizes each observation independently over hidden
+features, preserving decentralized inference.
+
+`MATD3Config.actor_layer_norm` defaults to false for historical configurations
+and missing-field checkpoint inference. New checkpoint configs serialize the
+true setting so loading rebuilds the exact new architecture. Missing/false
+settings preserve historical best-state identities and accepted config hashes;
+turning LayerNorm on still rejects a mismatched MATD3 best-state resume. A policy trained
+without these layers must retain its original architecture; enabling LayerNorm
+is a fresh architecture experiment, not an automatic repair of old weights.
+LayerNorm does not mathematically bound the final Linear head, so finite
+gradients in short checks are not a full-training convergence claim.
+
+Primary component reference: https://docs.pytorch.org/docs/2.11/generated/torch.nn.LayerNorm.html.
+TorchRL MLP supports optional standard normalization via `norm_class`:
+https://docs.pytorch.org/rl/0.9/reference/generated/torchrl.modules.MLP.html.
+These sources justify the component/interface, not a claim that LayerNorm is
+an original default of TD3 or a proven performance fix in this UAV task.
+
 ## Primary references
 
 ### SAC / MASAC core

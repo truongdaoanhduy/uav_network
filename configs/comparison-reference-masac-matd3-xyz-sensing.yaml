@@ -1,4 +1,4 @@
-# XYZ Bayesian sensing; legacy XY comparator is preserved.
+# XYZ Bayesian sensing; MATD3 actor uses the declared hidden-LayerNorm architecture.
 world:
   generation_version: 3
   num_uavs: 6
@@ -61,6 +61,7 @@ masac:
 matd3:
   share_actor_parameters: false
   share_critic_parameters: false
+  actor_layer_norm: true
   output_normalization: false
   grad_clip_norm: 0.5
   grad_clip_mode: per_parameter

@@ -1,4 +1,4 @@
-"""Source-backed invariants for the paper baseline profiles.
+"""Source-backed learner invariants with the declared MATD3 LayerNorm architecture.
 
 These checks intentionally reject UAV-specific algorithm stabilizers from BASE.
 They do not constrain environment/reward choices, which are shared task design.

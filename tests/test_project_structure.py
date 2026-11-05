@@ -22,10 +22,11 @@ if __name__ == "__main__":
 def test_reference_algorithm_source_contract():
     import hashlib
     root = Path(__file__).resolve().parents[1]
+    # Repinned for the user-approved 2026-11-05 MATD3 hidden-LayerNorm architecture.
     expected = {
         "uav_network/algorithms/masac.py": "f40586dbf19840e5a907e651b24ebbd7a4f8d493a5625f53e5d41b4e85d9bd1f",
-        "uav_network/algorithms/matd3.py": "9c5d941fed603d321e4c4ab225e5ffc7726b7cdc26aca44a1dfd9948c80f0ac2",
-        "uav_network/algorithms/models.py": "264e1f716d72f3e6ab2c2e92e4dd9180e81bfd76bdf5a0f794f4fd3485f2cbcd",
+        "uav_network/algorithms/matd3.py": "702c85b4ddd07ca554be3f27d01f2d7e3bd4277c9eb405363ffe504d985bf9ea",
+        "uav_network/algorithms/models.py": "6dfa94ac4e1ac3d1ea9f03b3e5437a7c229ec4d914ba18dd3d1abf9f3d5a6bb7",
         "uav_network/algorithms/optimization.py": "fae2798711325662ef5604e6271802e9bde631aa0c936e96e9d42a520eb351b8",
         "uav_network/algorithms/action_utils.py": "1e9aee9168b0f87c9809bfaaf4016277dd31ce38df0b232ee10fb42779fe2463",
     }

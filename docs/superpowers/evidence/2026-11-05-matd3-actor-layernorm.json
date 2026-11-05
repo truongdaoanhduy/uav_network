@@ -1,0 +1,135 @@
+{
+  "observed_at_ict": "2026-11-05T20:01:54.348376+07:00",
+  "architecture": {
+    "actor_layer_norm": true,
+    "output_normalization": false,
+    "hidden_sizes": [
+      256,
+      256
+    ],
+    "component": "torch.nn.LayerNorm",
+    "eps": 1e-05,
+    "elementwise_affine": true,
+    "scope": "MATD3 actor hidden layers only; critics and MASAC unchanged"
+  },
+  "focused_checks": {
+    "new_feature_red_failures": 10,
+    "historical_best_red_failures": 8,
+    "focused_passed": 64,
+    "source_guard_and_feature_passed": 20
+  },
+  "cpu_smoke": [
+    {
+      "mode": "base",
+      "episodes": 4,
+      "global_step": 48,
+      "updates": 21,
+      "model_hash": "e4c593b5cc33ca5575aade12ef9d920375f1023ee3e39e2c0c1a64feaabe30f5",
+      "actor_layer_norm": true,
+      "output_normalization": false,
+      "layer_norm_count": 2,
+      "raw_xyz_abs_max_at_seed44_reset": 2.3594417572021484,
+      "tanh_derivative_xyz_min_at_seed44_reset": 0.035071730613708496,
+      "last_learner": {
+        "q_mean": 0.19642984867095947,
+        "q_abs_max": 0.47338297963142395,
+        "target_mean": 0.5455509424209595,
+        "target_abs_max": 2.548469066619873,
+        "td_error_abs_mean": 1.082770824432373,
+        "td_error_abs_max": 2.0750861167907715,
+        "twin_q_gap": 0.024571143090724945,
+        "batch_reward_mean": 0.533435583114624,
+        "batch_terminated_fraction": 0.125,
+        "batch_active_uav_fraction": 1.0,
+        "actor_loss": -0.13263806700706482,
+        "actor_grad_norm": 0.06967362016439438,
+        "actor_update_step": 20.0,
+        "critic_loss": 3.079192876815796,
+        "critic_grad_norm": 1.8077311515808105,
+        "critic_gradient_clipped": 1.0,
+        "policy_updated": 0.0,
+        "actor_grad_norm_nonfinite": 0,
+        "actor_grad_norm_nonfinite_kind": null,
+        "critic_grad_norm_nonfinite": 0,
+        "critic_grad_norm_nonfinite_kind": null
+      },
+      "budget_note": "CPU smoke only: 2 environments, 4 episodes, horizon12, batch8, 1 update/collection. Full scenario 6 UAV/20 targets/15 obstacles and actor widths256/256 retained."
+    },
+    {
+      "mode": "pql",
+      "episodes": 4,
+      "global_step": 48,
+      "updates": 21,
+      "model_hash": "8fe086640a577bbb218da8efd7344db6a7e7b7926a2fed7bf0fa73033b9c7e39",
+      "actor_layer_norm": true,
+      "output_normalization": false,
+      "layer_norm_count": 2,
+      "raw_xyz_abs_max_at_seed44_reset": 2.3849103450775146,
+      "tanh_derivative_xyz_min_at_seed44_reset": 0.0333593487739563,
+      "last_learner": {
+        "q_mean": 0.010229413397610188,
+        "q_abs_max": 0.020032815635204315,
+        "target_mean": 0.9372128844261169,
+        "target_abs_max": 2.535475015640259,
+        "td_error_abs_mean": 0.9269834160804749,
+        "td_error_abs_max": 2.5259041786193848,
+        "twin_q_gap": 0.0521637387573719,
+        "batch_reward_mean": 0.9252898693084717,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_loss": 2.8796772956848145,
+        "critic_grad_norm": 2.0438971519470215,
+        "critic_gradient_clipped": 1.0,
+        "policy_updated": 1.0,
+        "actor_loss": -0.1510796844959259,
+        "actor_grad_norm": 0.02100362256169319,
+        "actor_update_step": 2.0,
+        "critic_grad_norm_nonfinite": 0,
+        "critic_grad_norm_nonfinite_kind": null,
+        "actor_grad_norm_nonfinite": 0,
+        "actor_grad_norm_nonfinite_kind": null
+      },
+      "budget_note": "CPU smoke only: 2 environments, 4 episodes, horizon12, batch8, 1 update/collection. Full scenario 6 UAV/20 targets/15 obstacles and actor widths256/256 retained."
+    }
+  ],
+  "actual_old_policy_checks": [
+    {
+      "run_id": "db61bd0c",
+      "legacy_actor_layer_norm": false,
+      "actions_unchanged_atol": 1e-07
+    },
+    {
+      "run_id": "d51b0350",
+      "legacy_actor_layer_norm": false,
+      "actions_unchanged_atol": 1e-07
+    }
+  ],
+  "review": {
+    "important": "Historical best-state identity/config hashes changed when a disabled flag was introduced.",
+    "resolution": "Missing/false normalized for historical identity and config hashes; eight schema/algorithm/mode cases pass; enabled MATD3 architecture mismatch still rejected.",
+    "convergence": "Not established by smoke checks."
+  },
+  "full_suite": {
+    "command": "python -m pytest -q --junitxml=/tmp/matd3-layernorm-complete-20261105.xml",
+    "passed": 1263,
+    "skipped": 103,
+    "warnings": 8,
+    "subtests_passed": 1623,
+    "duration_seconds": 316.39,
+    "log": "/tmp/matd3-layernorm-complete-20261105.log",
+    "junit": "/tmp/matd3-layernorm-complete-20261105.xml",
+    "result": "PASS; no model or test source changed during the final run"
+  },
+  "embedded_source_test": {
+    "preexisting_failure": "Comparing two independently compressed gzip archives could fail because their header timestamps differ.",
+    "reproduction": "Build at mocked gzip times 100 and 101: original compressed-byte assertion fails.",
+    "resolution": "Decode the actual archive embedded in kernel code; verify its checksum and all source member bytes. Production packaging unchanged.",
+    "focused_passed": 24,
+    "source_guard_subtests_passed": 552
+  },
+  "limitations": [
+    "CPU integration smoke only; no GPU or 20000-episode convergence verification.",
+    "Hidden LayerNorm does not bound the final Linear output or guarantee tanh remains unsaturated.",
+    "A fresh seed44 run is needed for the changed actor architecture; legacy checkpoints retain their original no-LayerNorm architecture."
+  ]
+}

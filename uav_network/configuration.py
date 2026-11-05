@@ -142,8 +142,7 @@ class MASACConfig(OffPolicyConfig):
     target_discrete_entropy_ratio: float = 0.9
     target_discrete_entropy_final_ratio: float = 0.9
     target_discrete_entropy_anneal_updates: int = 0
-    # Historical UAV variants adapted the target to each state's valid-action mask.
-    # Reference BenchMARL/TorchRL behavior uses the fixed configured action count.
+    # Historical entropy follows mask size; the reference uses a fixed action count.
     mask_aware_discrete_entropy_target: bool = True
 
 
@@ -153,6 +152,7 @@ class MATD3Config(OffPolicyConfig):
     target_noise_std: float = 0.2
     target_noise_clip: float = 0.5
     exploration_noise_std: float = 0.1
+    actor_layer_norm: bool = False
     output_normalization: bool = False
     initial_epsilon: float = 1.0
     final_epsilon: float = 0.05
@@ -477,6 +477,7 @@ def with_legacy_feature_defaults(values):
         raise ValueError("Checkpoint configuration must be a mapping")
     result = deepcopy(values)
     for group, defaults in (
+        ("matd3", {"actor_layer_norm": False}),
         ("sensor", {"coverage_grid_cells": 0}),
         ("reward", {"information_gain": 0.0, "investigation_shaping": 0.0,
                     "shaping_gamma": 0.99, "investigation_belief_threshold": 0.8}),

@@ -31,9 +31,11 @@ def test_api_kernel_code_contains_all_runtime_source_without_remote_checkout():
     assert "SHA256" in source.upper()
     compile(source, "kernel.py", "exec")
 
-    bundle = build_source_archive(PROJECT)
-    encoded = base64.b85encode(bundle).decode()
-    assert encoded in source
+    # Inspect the actual embedded bytes; rebuilding gzip can change its timestamp.
+    encoded = next(node.args[0].value for node in ast.walk(ast.parse(source))
+                   if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                   and node.func.attr == "b85decode")
+    bundle = base64.b85decode(encoded)
     assert hashlib.sha256(bundle).hexdigest() in source
     with tarfile.open(fileobj=io.BytesIO(bundle), mode="r:gz") as archive:
         names = {m.name for m in archive.getmembers()}
@@ -47,6 +49,8 @@ def test_api_kernel_code_contains_all_runtime_source_without_remote_checkout():
         assert "tests/test_cuda.py" in names
         assert "tests/test_training_audit_regressions.py" in names
         assert "tests/test_pql_training.py" in names
+        for member in archive.getmembers():
+            assert archive.extractfile(member).read() == (PROJECT / member.name).read_bytes()
         assert len(names) > 200
         assert all(".git" not in n.split("/") for n in names)
         assert all("key.txt" not in n and ".env" not in n and

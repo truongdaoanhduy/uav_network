@@ -1,3 +1,36 @@
+# 2026-11-05 — MATD3 hidden LayerNorm verified; delivery commit pending
+
+User approved standard nn.LayerNorm in both MATD3 actor hidden layers.
+The current reference XYZ profile enables matd3.actor_layer_norm=true;
+output_normalization remains false. Each hidden block is
+Linear(256) -> LayerNorm(256) -> ReLU. BASE/PQL, actor targets and collector
+copies use the same flag. Heads, critics, MASAC, rewards and safety are unchanged.
+Default false and missing-field loading preserve old policy architectures.
+
+Final verification: 1263 passed, 103 skipped, 8 warnings, 1623 subtests passed
+in316.39s. Full log/JUnit: /tmp/matd3-layernorm-complete-20261105.log and .xml.
+64 focused checks passed. CPU BASE/PQL smoke each completed4 episodes,
+48 transitions and21 critic updates with finite nonzero sampled actor gradients.
+This is integration evidence, not convergence evidence or GPU verification.
+Two actual Nov2 W&B policies db61bd0c/d51b0350 retain identical actions after
+legacy loading at atol1e-7. Review's historical best-state hash finding was
+fixed with8 RED-to-GREEN historical cases. No material review item remains.
+
+Source-size/SHA guards pass. The full suite also exposed a pre-existing gzip
+timestamp equality test flaw: the test now validates the actual embedded bundle
+and every member's source bytes. Production packaging code is unchanged.
+Source base: 21e8394149cd032b8867633e1f02c64cbfdf7f87. Next delivery action:
+commit/push this verified change and record its actual source commit.
+Next research action: fresh seed44 training, monitor raw XYZ/tanh derivatives,
+actor gradients, search and delivery. Hidden LayerNorm cannot bound the final
+Linear head or establish that the old tanh saturation is permanently fixed.
+Do not launch Kaggle training as part of this implementation task.
+
+Plan: docs/superpowers/plans/2026-11-05-matd3-actor-layernorm.md.
+Evidence: docs/superpowers/evidence/2026-11-05-matd3-actor-layernorm.json.
+
+---
+
 # 2026-11-05 19:16 ICT — Built-in normalization follow-up (research only)
 
 User asks whether standard torch.nn norm blocks can replace bespoke output

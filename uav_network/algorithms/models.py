@@ -45,9 +45,16 @@ class HybridActor(nn.Module):
 
 class DeterministicActor(nn.Module):
     def __init__(self, observation_dim, destinations, hidden_sizes, continuous_dim=3,
-                 output_normalization=False, normalization_dims=None):
+                 output_normalization=False, normalization_dims=None, layer_norm=False):
         super().__init__()
         self.encoder = mlp(observation_dim, hidden_sizes[:-1], hidden_sizes[-1])
+        if layer_norm:
+            blocks = []
+            for layer in self.encoder:
+                blocks.append(layer)
+                if isinstance(layer, nn.Linear):
+                    blocks.append(nn.LayerNorm(layer.out_features))
+            self.encoder = nn.Sequential(*blocks)
         self.continuous = nn.Linear(hidden_sizes[-1], continuous_dim)
         self.destination = nn.Linear(hidden_sizes[-1], destinations)
         self.output_normalization = output_normalization
