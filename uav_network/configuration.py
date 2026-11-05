@@ -124,6 +124,7 @@ class OffPolicyConfig:
     hidden_sizes: list = field(default_factory=lambda: [256, 256])
     share_actor_parameters: bool = False
     share_critic_parameters: bool = False
+    actor_layer_norm: bool = False
     replay_capacity: int = 50_000
     batch_size: int = 256
     learning_starts: int = 2000
@@ -152,7 +153,6 @@ class MATD3Config(OffPolicyConfig):
     target_noise_std: float = 0.2
     target_noise_clip: float = 0.5
     exploration_noise_std: float = 0.1
-    actor_layer_norm: bool = False
     output_normalization: bool = False
     initial_epsilon: float = 1.0
     final_epsilon: float = 0.05
@@ -477,7 +477,7 @@ def with_legacy_feature_defaults(values):
         raise ValueError("Checkpoint configuration must be a mapping")
     result = deepcopy(values)
     for group, defaults in (
-        ("matd3", {"actor_layer_norm": False}),
+        ("masac", {"actor_layer_norm": False}), ("matd3", {"actor_layer_norm": False}),
         ("sensor", {"coverage_grid_cells": 0}),
         ("reward", {"information_gain": 0.0, "investigation_shaping": 0.0,
                     "shaping_gamma": 0.99, "investigation_belief_threshold": 0.8}),

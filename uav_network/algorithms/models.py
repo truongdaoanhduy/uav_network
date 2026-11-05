@@ -11,19 +11,26 @@ LOG_STD_MIN = -20
 LOG_STD_MAX = 2
 
 
-def mlp(input_dim, hidden_sizes, output_dim):
+def mlp(input_dim, hidden_sizes, output_dim, layer_norm=False):
     layers = []
     for width in hidden_sizes:
         layers.extend([nn.Linear(input_dim, width), nn.ReLU()])
         input_dim = width
     layers.append(nn.Linear(input_dim, output_dim))
+    if layer_norm:
+        blocks = []
+        for layer in layers:
+            blocks.append(layer)
+            if isinstance(layer, nn.Linear):
+                blocks.append(nn.LayerNorm(layer.out_features))
+        layers = blocks
     return nn.Sequential(*layers)
 
 
 class HybridActor(nn.Module):
-    def __init__(self, observation_dim, destinations, hidden_sizes, continuous_dim=3):
+    def __init__(self, observation_dim, destinations, hidden_sizes, continuous_dim=3, layer_norm=False):
         super().__init__()
-        self.encoder = mlp(observation_dim, hidden_sizes[:-1], hidden_sizes[-1])
+        self.encoder = mlp(observation_dim, hidden_sizes[:-1], hidden_sizes[-1], layer_norm=layer_norm)
         self.mean = nn.Linear(hidden_sizes[-1], continuous_dim)
         self.log_std = nn.Linear(hidden_sizes[-1], continuous_dim)
         self.destination = nn.Linear(hidden_sizes[-1], destinations)
@@ -47,14 +54,7 @@ class DeterministicActor(nn.Module):
     def __init__(self, observation_dim, destinations, hidden_sizes, continuous_dim=3,
                  output_normalization=False, normalization_dims=None, layer_norm=False):
         super().__init__()
-        self.encoder = mlp(observation_dim, hidden_sizes[:-1], hidden_sizes[-1])
-        if layer_norm:
-            blocks = []
-            for layer in self.encoder:
-                blocks.append(layer)
-                if isinstance(layer, nn.Linear):
-                    blocks.append(nn.LayerNorm(layer.out_features))
-            self.encoder = nn.Sequential(*blocks)
+        self.encoder = mlp(observation_dim, hidden_sizes[:-1], hidden_sizes[-1], layer_norm=layer_norm)
         self.continuous = nn.Linear(hidden_sizes[-1], continuous_dim)
         self.destination = nn.Linear(hidden_sizes[-1], destinations)
         self.output_normalization = output_normalization

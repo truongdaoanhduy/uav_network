@@ -1,4 +1,4 @@
-# XYZ Bayesian sensing; MATD3 actor uses the declared hidden-LayerNorm architecture.
+# XYZ Bayesian sensing; MASAC/MATD3 actors use the declared hidden-LayerNorm architecture.
 world:
   generation_version: 3
   num_uavs: 6
@@ -42,6 +42,7 @@ reward:
   shield_intervention: 0.5
   unsafe_action: 1.0
 masac:
+  actor_layer_norm: true
   share_actor_parameters: false
   share_critic_parameters: false
   hidden_sizes:

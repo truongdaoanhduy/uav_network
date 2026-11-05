@@ -1,0 +1,159 @@
+{
+  "observed_at_ict": "2026-11-05T20:26:23.550627+07:00",
+  "source_base": "dc698ad6e0f73a89694a12819b91b094baa675d0",
+  "architecture": {
+    "masac_actor_layer_norm": true,
+    "matd3_actor_layer_norm": true,
+    "hidden_sizes": [
+      256,
+      256
+    ],
+    "component": "torch.nn.LayerNorm",
+    "eps": 1e-05,
+    "elementwise_affine": true,
+    "order": "Linear -> LayerNorm -> ReLU in both hidden layers",
+    "matd3_output_normalization": false,
+    "scope": "Actor encoders only; output heads, critics, objectives, rewards and safety unchanged"
+  },
+  "tests": {
+    "red_failed": 22,
+    "red_passed": 20,
+    "feature_green_passed": 42,
+    "focused_passed": 101,
+    "focused_subtests_passed": 556,
+    "focused_duration_seconds": 23.23
+  },
+  "actual_prechange_masac_policy": {
+    "source": "Actual policy saved before MASAC code change",
+    "missing_field_defaults_to_false": true,
+    "actions_exactly_unchanged": true
+  },
+  "cpu_smoke": [
+    {
+      "mode": "base",
+      "episodes": 4,
+      "global_step": 48,
+      "updates": 21,
+      "model_hash": "a037c0c86d852739a25715a3202356f7ec31520f48d92ff7836cdb405994e658",
+      "actor_layer_norm": true,
+      "layer_norm_count": 2,
+      "raw_mean_xyz_abs_max_at_seed44_reset": 0.22656799852848053,
+      "tanh_mean_derivative_xyz_min_at_seed44_reset": 0.9503738880157471,
+      "last_learner": {
+        "q_mean": 2.7951040267944336,
+        "q_abs_max": 3.25742769241333,
+        "target_mean": 10.771288871765137,
+        "target_abs_max": 14.469757080078125,
+        "td_error_abs_mean": 8.64012336730957,
+        "td_error_abs_max": 11.212329864501953,
+        "twin_q_gap": 0.09390828013420105,
+        "batch_reward_mean": 0.5132255554199219,
+        "batch_terminated_fraction": 0.125,
+        "batch_active_uav_fraction": 1.0,
+        "critic_grad_norm": 99.98069763183594,
+        "critic_gradient_clipped": 0.0,
+        "critic_loss": 82.01079559326172,
+        "actor_grad_norm": 6.833402156829834,
+        "alpha_grad_norm": 12.233454704284668,
+        "actor_loss": -4.87739896774292,
+        "continuous_entropy": 1.9789471626281738,
+        "discrete_entropy": 0.0,
+        "target_discrete_entropy_ratio": 0.20000000298023224,
+        "alpha_continuous": 0.9936973452568054,
+        "alpha_discrete": 1.0063198804855347,
+        "critic_grad_norm_nonfinite": 0,
+        "critic_grad_norm_nonfinite_kind": null,
+        "actor_grad_norm_nonfinite": 0,
+        "actor_grad_norm_nonfinite_kind": null,
+        "alpha_grad_norm_nonfinite": 0,
+        "alpha_grad_norm_nonfinite_kind": null
+      },
+      "budget_note": "CPU smoke only: 2 environments,4 episodes,horizon12,batch8,1 update/collection. Full6 UAV/20 targets/15 obstacles and256/256 actor widths retained."
+    },
+    {
+      "mode": "pql",
+      "episodes": 4,
+      "global_step": 48,
+      "updates": 21,
+      "model_hash": "16057a9d8290096551a4888fa5ffb0524cceacf961625347968b20280621d711",
+      "actor_layer_norm": true,
+      "layer_norm_count": 2,
+      "raw_mean_xyz_abs_max_at_seed44_reset": 0.15867136418819427,
+      "tanh_mean_derivative_xyz_min_at_seed44_reset": 0.9752399921417236,
+      "last_learner": {
+        "actor_grad_norm": 38.543792724609375,
+        "alpha_grad_norm": 9.959843635559082,
+        "actor_loss": -1.1433463096618652,
+        "continuous_entropy": 1.0221312046051025,
+        "discrete_entropy": 0.0,
+        "target_discrete_entropy_ratio": 0.20000000298023224,
+        "alpha_continuous": 0.9997000694274902,
+        "alpha_discrete": 1.0003000497817993,
+        "q_mean": 0.07991714030504227,
+        "q_abs_max": 0.09184160828590393,
+        "target_mean": 9.121761322021484,
+        "target_abs_max": 16.771207809448242,
+        "td_error_abs_mean": 9.041842460632324,
+        "td_error_abs_max": 16.712594985961914,
+        "twin_q_gap": 0.028041034936904907,
+        "batch_reward_mean": 0.9252898693084717,
+        "batch_terminated_fraction": 0.0,
+        "batch_active_uav_fraction": 1.0,
+        "critic_grad_norm": 24.74488639831543,
+        "critic_gradient_clipped": 0.0,
+        "critic_loss": 95.18843078613281,
+        "actor_grad_norm_nonfinite": 0,
+        "actor_grad_norm_nonfinite_kind": null,
+        "alpha_grad_norm_nonfinite": 0,
+        "alpha_grad_norm_nonfinite_kind": null,
+        "critic_grad_norm_nonfinite": 0,
+        "critic_grad_norm_nonfinite_kind": null
+      },
+      "budget_note": "CPU smoke only: 2 environments,4 episodes,horizon12,batch8,1 update/collection. Full6 UAV/20 targets/15 obstacles and256/256 actor widths retained."
+    }
+  ],
+  "limitations": [
+    "CPU reduced smoke only; no GPU/full20k convergence validation.",
+    "LayerNorm does not clip to[-1,1]; ReLU makes hidden features nonnegative; signed subsequent Linear weights still allow signed actions.",
+    "Hidden LayerNorm does not bound final heads or guarantee unsaturated tanh."
+  ],
+  "review": {
+    "reviewer": "Fresh read-only whole-change review",
+    "critical": 0,
+    "important": 0,
+    "minor": 0,
+    "verdict": "No blocking findings",
+    "limits": [
+      "Reviewer did not run tests/training to avoid bounded-worker timing interference.",
+      "GPU behavior, convergence and long-run tanh saturation prevention not established."
+    ],
+    "integration": "MASAC BASE/PQL CPU smoke completed separately by implementer; source paths reviewed."
+  },
+  "first_full_suite": {
+    "passed": 1286,
+    "failed": 1,
+    "skipped": 103,
+    "warnings": 8,
+    "subtests_passed": 1624,
+    "duration_seconds": 321.74,
+    "failure": "tests/test_xyz_legacy_compatibility.py::test_pre_xyz_xy_selected_winner_restores_without_relabeling",
+    "root_cause": "Legacy fixture was synthesized from current config and retained the newly added masac.actor_layer_norm=false field, which did not exist in the historical pre-XYZ identity.",
+    "proof": "Config hash already accepted; identity mismatch disappears when both actor flags absent from the historical schema are removed.",
+    "fix": "Correct only the historical test fixture to omit postdated actor flags. No production provenance validation changes.",
+    "isolated_red_failed": 1,
+    "after_fixture_fix_passed": 44
+  },
+  "full_suite": {
+    "command": "python -m pytest -q --junitxml=/tmp/masac-layernorm-verified-20261105.xml",
+    "passed": 1287,
+    "skipped": 103,
+    "warnings": 8,
+    "subtests_passed": 1624,
+    "duration_seconds": 332.67,
+    "junit_failures": 0,
+    "junit_errors": 0,
+    "log": "/tmp/masac-layernorm-verified-20261105.log",
+    "junit": "/tmp/masac-layernorm-verified-20261105.xml",
+    "source_note": "No application/test source changed during the final run."
+  }
+}

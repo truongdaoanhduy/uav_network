@@ -1,3 +1,40 @@
+# 2026-11-05 — MASAC hidden LayerNorm verified; delivery pending
+
+User requested the same actor architecture as MATD3. Current reference XYZ
+profile enables masac.actor_layer_norm=true and matd3.actor_layer_norm=true:
+two256-unit Linear -> nn.LayerNorm -> ReLU hidden blocks. Both use the same
+optional encoder builder. MASAC Gaussian/categorical heads, SAC objectives,
+critics, rewards and safety unchanged; MATD3 output_normalization=false.
+Default false and missing-field loading preserve original checkpoint layouts.
+
+Final full suite:1287 passed,103 skipped,8 warnings,1624 subtests in332.67s;
+JUnit0 failures/0 errors. Log/JUnit:/tmp/masac-layernorm-verified-20261105.log
+and .xml. Focused101 checks/556 subtests passed. New tests observed22 RED
+failures before implementation and42 GREEN afterward. Actual pre-change
+MASAC policy loads with exactly identical deterministic actions. CPU BASE/PQL
+smoke each4 episodes/48 transitions/21 updates, finite nonzero actor gradients;
+full6 UAV/20 targets/15 obstacles/256x256 retained but reduced2env/horizon12.
+This proves integration, not GPU behavior, convergence or long-run saturation.
+Fresh read-only whole-change review found0 Critical/Important/Minor issues.
+
+First full run:1286 passed,1 failed in the pre-XYZ compatibility fixture.
+It retained the newly added MASAC flag while claiming a pre-XYZ identity.
+Reproduced alone, proved config hash accepted and identity matches with
+postdated flags removed. Fixed only that test fixture,44 actor/legacy tests
+then passed; final suite above is green. Production validation not weakened.
+
+Source base dc698ad6e0f73a89694a12819b91b094baa675d0. Next delivery action:
+commit/push verified change and record actual source commit on this branch.
+Next research action: fresh seed44 training with unchanged other settings;
+monitor raw XYZ, saturation, gradients, search and delivery. LayerNorm is not
+min-max normalization. ReLU produces nonnegative hidden features, while signed
+Linear weights still allow signed actions. Final heads can still saturate tanh.
+No production Kaggle training launched in this implementation task.
+Plan: docs/superpowers/plans/2026-11-05-masac-actor-layernorm.md.
+Evidence: docs/superpowers/evidence/2026-11-05-masac-actor-layernorm.json.
+
+---
+
 # 2026-11-05 — MATD3 hidden LayerNorm completed and pushed
 
 User approved standard nn.LayerNorm in both MATD3 actor hidden layers.

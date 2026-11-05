@@ -18,8 +18,9 @@ CRITERIA = ("success_rate", "mean_delivery_rate_percent", "mean_search_rate_perc
 
 def selection_identity(config):
     d = strip_legacy_xyz_defaults(config.to_dict())
-    if not config.matd3.actor_layer_norm:
-        d["matd3"].pop("actor_layer_norm", None)
+    for name in ("masac", "matd3"):
+        if not getattr(config, name).actor_layer_norm:
+            d[name].pop("actor_layer_norm", None)
     value = {k:d[k] for k in ("world", "sensor", "network", "energy", "reward", config.runtime.algorithm, "pql")}
     value["runtime"] = {k:d["runtime"][k] for k in
                         ("algorithm", "seed", "amp_mode", "num_envs", "environment_backend")}
@@ -30,12 +31,13 @@ def selection_identity(config):
 
 def _config_hashes(config):
     variants = [config.to_dict(), strip_legacy_xyz_defaults(config.to_dict())]
-    if not config.matd3.actor_layer_norm:
-        # Historical snapshots omitted this disabled architecture option.
-        for values in tuple(variants):
-            legacy = deepcopy(values)
-            legacy["matd3"].pop("actor_layer_norm", None)
-            variants.append(legacy)
+    for name in ("masac", "matd3"):
+        if not getattr(config, name).actor_layer_norm:
+            # Historical snapshots omitted disabled architecture options.
+            for values in tuple(variants):
+                legacy = deepcopy(values)
+                legacy[name].pop("actor_layer_norm", None)
+                variants.append(legacy)
     return {hashlib.sha256(json.dumps(values, sort_keys=True, allow_nan=False).encode()).hexdigest()
             for values in variants}
 

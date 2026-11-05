@@ -10,6 +10,31 @@ No single vanilla SAC/TD3 library implements exactly this simultaneous action sp
 baseline is **source-faithful algorithm core plus a documented task-interface adapter**. It
 must not be described as byte-for-byte vanilla SAC or TD3.
 
+## MASAC extension — approved 2026-11-05
+
+The user subsequently requested the same hidden LayerNorm architecture for
+MASAC. The current reference XYZ profile now enables both
+`masac.actor_layer_norm=true` and `matd3.actor_layer_norm=true`.
+Both actors reuse the same optional encoder construction: two256-unit
+`Linear -> nn.LayerNorm -> ReLU` blocks. The MASAC Gaussian mean/log_std and
+categorical heads, tanh transformation, log-Jacobian, entropy objectives and
+critics are unchanged. BASE/PQL policy and collector copies receive the setting
+through their resolved configurations. The MATD3-only section below records
+its earlier approval; its statement that MASAC was unchanged is historical.
+
+The shared config option defaults to false. Missing fields in old configurations
+and resume snapshots receive that default, keeping the old architecture.
+Best-state validation accepts historical config hashes with either disabled
+flag omitted, including the intermediate MATD3-only schema. A changed active
+actor architecture remains a provenance mismatch. Old policies are loaded
+with their original structure; fresh training is required for the new actor.
+
+LayerNorm standardizes hidden features and applies learnable scale/bias;
+it does not restrict features to[-1,1]. ReLU then removes negative hidden
+activations. Subsequent Linear weights can be negative, so nonnegative hidden
+activations do not restrict the policy to positive actions. This order does
+not guarantee an unsaturated final tanh or improved convergence.
+
 ## MATD3 actor LayerNorm architecture — approved 2026-11-05
 
 The current reference XYZ profile explicitly enables `matd3.actor_layer_norm=true`.

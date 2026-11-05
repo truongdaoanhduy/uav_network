@@ -41,7 +41,8 @@ class MASAC(nn.Module):
         actor_input_dim = observation_dim + n if self.share_actor_parameters else observation_dim
         actor_count = 1 if self.share_actor_parameters else n
         critic_count = 1 if self.share_critic_parameters else n
-        self.actors = nn.ModuleList(HybridActor(actor_input_dim, k, a.hidden_sizes, config.continuous_dim) for _ in range(actor_count))
+        self.actors = nn.ModuleList(HybridActor(actor_input_dim, k, a.hidden_sizes, config.continuous_dim,
+                                               layer_norm=a.actor_layer_norm) for _ in range(actor_count))
         self.critics = nn.ModuleList(TwinCritic(state_dim, n, k, a.hidden_sizes, config.continuous_dim) for _ in range(critic_count))
         self.target_critics = deepcopy(self.critics)
         self.target_critics.requires_grad_(False)

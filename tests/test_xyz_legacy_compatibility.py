@@ -17,6 +17,8 @@ def test_pre_xyz_xy_selected_winner_restores_without_relabeling(tmp_path):
     state=selection.state_dict()
     saved=torch.load(source["checkpoint"],weights_only=True)
     raw=deepcopy(saved["config"])
+    # These actor options did not exist in the pre-XYZ schema.
+    for name in ("masac", "matd3"):raw[name].pop("actor_layer_norm", None)
     for group,defaults in legacy_xyz_defaults().items():
         for key in defaults:raw[group].pop(key)
     saved["config"]=raw
