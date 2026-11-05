@@ -1,5 +1,6 @@
 """Bounded full-state backups; only owned staging files are ever released."""
 from contextlib import suppress
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import time
@@ -16,7 +17,8 @@ def _report(tracker, values, step):
 class PeriodicRecovery:
     def __init__(self, config, output, *, started):
         settings = config.tracking
-        self.enabled = (settings.enabled and settings.log_checkpoint
+        self.enabled = (os.environ.get("UAV_TRAINING_ONLY") != "true"
+                        and settings.enabled and settings.log_checkpoint
                         and settings.checkpoint_store == "huggingface"
                         and settings.resumable_checkpoint_interval_seconds > 0)
         self.output = Path(output)

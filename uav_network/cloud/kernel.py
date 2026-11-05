@@ -45,6 +45,7 @@ os.environ["UAV_GIT_COMMIT"] = SPEC["commit"]
 os.environ["UAV_KAGGLE_ACCOUNT"] = SPEC["kernel_ref"].split("/", 1)[0]
 os.environ["UAV_KAGGLE_KERNEL"] = SPEC["kernel_ref"]
 os.environ["UAV_TRAINING_MODE"] = SPEC.get("training_mode", "unknown")
+os.environ["UAV_TRAINING_ONLY"] = "true" if SPEC.get("training_only") else "false"
 os.environ["UAV_AUTO_CONTINUE"] = "true" if SPEC.get("auto_continue") else "false"
 os.environ["UAV_ROOT_KAGGLE_KERNEL"] = SPEC.get("root_kernel_ref", SPEC["kernel_ref"])
 os.environ["UAV_CONTINUATION_INDEX"] = str(SPEC.get("continuation_index", 0))

@@ -403,7 +403,7 @@ def finalize_runs(spec, processes, output):
             except Exception as error:
                 cpu_failure = {"error_type": type(error).__name__}
                 (output / "cpu-visualization-failure.json").write_text(json.dumps(cpu_failure, indent=2))
-    for algorithm in (() if spec.get("cpu_visualize") or spec.get("auto_continue") else results):
+    for algorithm in (() if spec.get("cpu_visualize") or spec.get("auto_continue") or spec.get("training_only") else results):
         folder = output / spec["stage"] / algorithm
         with (output / f"{algorithm}-evaluation.log").open("w") as log:
             try:

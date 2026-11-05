@@ -203,7 +203,15 @@ class AsyncCheckpointEvaluator:
             path.write_text(json.dumps(result, indent=2, allow_nan=False))
             self.last_result = result
             if promoted:
-                self._upload(self.best.path, step)
+                if os.environ.get("UAV_TRAINING_ONLY") == "true" and self.tracker:
+                    try:
+                        self.tracker.export_best_checkpoint(self.best.path, self.best.metadata)
+                    except Exception as error:
+                        # Leave the local winner intact; final publication retries it.
+                        self.diagnostics.event("best_hf_upload_failed", step,
+                                               {"error_type": type(error).__name__}, severity="error")
+                else:
+                    self._upload(self.best.path, step)
                 self._upload(self.output / "best.json", step)
             if self.tracker:
                 values = {f"evaluation/{key}": result[key] for key in

@@ -406,16 +406,38 @@ class OnlineTracker:
             "phase":self.learning_phase})
         return reference
 
+    def export_best_checkpoint(self, path, metadata):
+        """Publish each validated best actor with a stable per-run Hugging Face path."""
+        if os.environ.get("UAV_TRAINING_ONLY") != "true":
+            return None
+        from .checkpoint_store import upload_checkpoint_files
+        manifest = upload_checkpoint_files(
+            self.config, {"checkpoint.pt": Path(path)}, f"uav-network/{self.run.id}/best")
+        if manifest["files"]["checkpoint.pt"]["sha256"] != metadata["checkpoint_sha256"]:
+            raise ValueError("Published best actor differs from validation-selected checkpoint")
+        self.run.summary["best_checkpoint_storage"] = {
+            "backend": "huggingface", "repo_id": manifest["repo_id"],
+            "revision": manifest["revision"], "global_step": metadata["global_step"],
+            "episode": metadata["episode"], "sha256": metadata["checkpoint_sha256"]}
+        return manifest
+
     def _checkpoint(self, path, progress, final=False, resumable=False):
         if not self.config.tracking.log_checkpoint:
             return None
+        best_only = os.environ.get("UAV_TRAINING_ONLY") == "true"
+        if best_only:
+            if not final:
+                return None
+            selection = progress.get("checkpoint_selection")
+            if not isinstance(selection, dict) or selection.get("kind") != "validation_best":
+                raise ValueError("Training-only requires a validated best checkpoint")
         if (not final and not resumable and self.config.tracking.checkpoint_store == "huggingface"
                 and self.last_checkpoint_upload is not None
                 and time.monotonic() - self.last_checkpoint_upload
                     < self.config.tracking.checkpoint_upload_interval_seconds):
             self.run.summary["checkpoint_uploads_skipped"] = self.run.summary.get("checkpoint_uploads_skipped", 0) + 1
             return None
-        full_state = resumable or (final and (self.config.pql.enabled or progress.get("resume_checkpoint") is not None))
+        full_state = not best_only and (resumable or (final and (self.config.pql.enabled or progress.get("resume_checkpoint") is not None)))
         artifact = self.wandb.Artifact(f"uav-network-{self.config.runtime.algorithm}-{self.run.id}", type="model",
                                       metadata={"completed_episodes": progress["episodes"],
                                                 "global_step": progress["global_step"],
@@ -433,8 +455,9 @@ class OnlineTracker:
             files["resume.pt"] = Path(resume)
         if self.config.tracking.checkpoint_store == "huggingface":
             from .checkpoint_store import upload_checkpoint_files, MANIFEST
-            descriptor = upload_checkpoint_files(self.config, files,
-                f"uav-network/{self.run.id}/step-{progress['global_step']}-episodes-{progress['episodes']}")
+            prefix = (f"uav-network/{self.run.id}/best" if best_only else
+                      f"uav-network/{self.run.id}/step-{progress['global_step']}-episodes-{progress['episodes']}")
+            descriptor = upload_checkpoint_files(self.config, files, prefix)
             manifest = self.output / MANIFEST
             manifest.write_text(json.dumps(descriptor, indent=2))
             artifact.add_file(str(manifest), name=MANIFEST)

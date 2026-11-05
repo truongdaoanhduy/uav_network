@@ -315,7 +315,7 @@ def _train(config):
         checkpoint = output / "final.pt"
         drain = min(10., max(0., config.runtime.max_train_seconds - (time.perf_counter() - start))) if config.runtime.max_train_seconds else 10.
         evaluator.close(global_step, drain_seconds=drain)
-        save(checkpoint, final=True, full_state=True)
+        save(checkpoint, final=True, full_state=os.environ.get("UAV_TRAINING_ONLY") != "true")
         elapsed = time.perf_counter() - start
         result = {"checkpoint": str(checkpoint), "resume_checkpoint": str(output / "resume_latest.pt"),
                   "algorithm": learner.algorithm,

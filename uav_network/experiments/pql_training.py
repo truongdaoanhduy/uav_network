@@ -1,6 +1,7 @@
 """Terminal-safe Warp/native collection with separate rate-controlled learners."""
 from copy import deepcopy
 import json
+import os
 from pathlib import Path
 import time
 
@@ -221,7 +222,7 @@ def train_pql(config):
         final = output / "final.pt"
         drain = min(10., max(0., config.runtime.max_train_seconds - (time.perf_counter() - started))) if config.runtime.max_train_seconds else 10.
         evaluator.close(global_step, drain_seconds=drain)
-        save(final, final=True)
+        save(final, final=True, full_state=os.environ.get("UAV_TRAINING_ONLY") != "true")
         elapsed = time.perf_counter() - started
         result = {"checkpoint": str(final), "resume_checkpoint": str(output / "resume_latest.pt"),
                   "training_architecture": "pql-inspired", "pql_mode": config.pql.mode,

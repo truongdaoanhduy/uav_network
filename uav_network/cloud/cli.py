@@ -42,6 +42,7 @@ def launch(args, credentials):
     config = load_config(ROOT / config_file, args.overrides)
     auto_continue = getattr(args, "auto_continue", False)
     cpu_visualize = getattr(args, "cpu_visualize", False) or auto_continue
+    training_only = getattr(args, "training_only", False)
     timeout_seconds = args.timeout_seconds
     if auto_continue:
         quota = next(row for row in quotas if row.get("name") == account.name and row.get("ok"))
@@ -72,6 +73,12 @@ def launch(args, credentials):
         raise ValueError("Matched comparison requires --stage benchmark and pql.enabled=true")
     if compare_legacy and (config.runtime.replay_cpu_fraction or config.runtime.replay_device == "cpu"):
         raise ValueError("Legacy cloud comparison requires its original same-device replay layout")
+    if training_only and (auto_continue or cpu_visualize or args.stage != "train"):
+        raise ValueError("Training-only requires a training stage without CPU visualization or GitHub continuation")
+    if training_only and (not config.tracking.enabled or not config.tracking.log_checkpoint
+                          or config.tracking.checkpoint_store != "huggingface"
+                          or config.tracking.evaluation_interval_steps <= 0):
+        raise ValueError("Training-only needs online tracking, Hugging Face checkpoints, and periodic validation")
     if auto_continue and (args.algorithm == "both" or args.stage == "benchmark"):
         raise ValueError("Automatic continuation requires one algorithm in a training/validate stage")
     if auto_continue and config.pql.enabled and not config.pql.checkpoint_replay:
@@ -94,6 +101,10 @@ def launch(args, credentials):
     overrides = list(effective_overrides)
     if not diagnostic:
         config.tracking.tags = authoritative_tags(config, args.algorithm)
+        if training_only:
+            config.tracking.tags = [tag for tag in config.tracking.tags if tag != "cpu-visualize"]
+            config.tracking.tags += [tag for tag in ("training-only", "hf-best-only")
+                                     if tag not in config.tracking.tags]
         overrides = [item for item in overrides if not item.startswith("tracking.tags=")]
         overrides.append("tracking.tags=" + json.dumps(config.tracking.tags))
     spec = {"submitted_at_utc": datetime.now(timezone.utc).isoformat(), "commit": commit, "kernel_ref": f"{username}/{slug}", "account": account.name,
@@ -115,6 +126,8 @@ def launch(args, credentials):
         spec["diagnostic"] = diagnostic
     else:
         spec["requested_episodes"] = config.runtime.episodes
+    if training_only:
+        spec["training_only"] = True
     if auto_continue:
         spec.update({"auto_continue": True, "root_kernel_ref": spec["kernel_ref"],
                      "continuation_index": 0, "orchestration": "github_actions",
@@ -189,6 +202,8 @@ def main(argv=None):
     submit.add_argument("--algorithm", choices=["both", "masac", "matd3"], default="both")
     submit.add_argument("--warm-start-artifact", action="append", default=[], metavar="ALGORITHM=ARTIFACT_REF")
     submit.add_argument("--config")
+    submit.add_argument("--training-only", action="store_true",
+                        help="Only train, select the validation-best policy and upload it to Hugging Face; no CPU visualization/GitHub continuation")
     submit.add_argument("--cpu-visualize", action="store_true",
                         help="After uploaded training checkpoints, submit a separate CPU-only visualization job")
     submit.add_argument("--auto-continue", action="store_true",
