@@ -1,3 +1,38 @@
+# 2026-11-06 — Matched configuration proposals prepared; no launch/default switch
+
+User asked for all old/new config differences and their training effects,
+chunk/vectorize fairness, and common MASAC/MATD3 configurations, including a
+MASAC02Nov-like option. Explained shared study budgets vs algorithm-specific
+alpha/noise/delay and source-specific vs matched optimizer recipes.
+Source base:3d09bc65d26bc7921d5232c934474f16bfe226a7; learner code unchanged.
+
+Created two explicit PROPOSAL profiles, not switched into any launcher:
+configs/comparison-proposed-matched-shared-ln-memory1024.yaml:
+sharedactors/critics,LNtrue for both,B8192,E4096,replay1M/CPU75%,warmup131072,
+8updates,LR3e-4,gamma.99,tau.005,seed44,vectorizeFalse,chunk1024,overlapFalse,
+AMPoff/compileFalse/fusedFalse. Keeps source-specific SACnone/TD3per-tensor.5.
+configs/comparison-proposed-matched-shared-ln-memory1024-masac02novlike.yaml:
+same common setup; MASACalpha.2,targetratio.9/maskawareTrue and BOTH algorithms
+globalclip10. Declared matched-hparams variant, not old-code reproduction:
+current losses/logstd/no-alpha-cap/estimators remain; outputnormFalse.
+Chunk1024 currently consumed by MASAC only. Same scalar setting does not make
+MATD3 actually chunk; no code added merely to make flags appear symmetric.
+Shared batching exists independently of vectorize flag; MATD3 critic/target
+helper can still wrap1module in vmap when enabled. No speed guarantee.
+
+Validated8profile/algorithm/PQLflag combinations and11common fields; CPU models
+construct, finite bounded actions,1actor/1TwinCritic,2hiddenLayerNorms.
+Source/structure guards:13passed/557subtests in2.15s; diff check clean.
+This is config/construction validation, not new PQLtraining integration or
+GPUfull8192memory/convergence proof. No production jobs or canonical changes.
+Guide:docs/methods/FAIR_CONFIG_MASAC_MATD3_2026-11-06.md.
+Evidence:docs/superpowers/evidence/2026-11-06-proposed-matched-configs.json.
+Next: provide both proposals/explanations to user; activate/train only under
+new task authorization. Compare matched transitions and held-out seeds;
+same episode or wallclock caps alone do not equal sample budget.
+
+---
+
 # 2026-11-06 — Four-run old/new/current source audit completed
 
 User requested detailed comparison of four Nov2 MASAC/MATD3 BASE/PQL runs

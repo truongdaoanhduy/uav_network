@@ -1,0 +1,141 @@
+{
+  "source_base": "3d09bc65d26bc7921d5232c934474f16bfe226a7",
+  "proposal_only": true,
+  "canonical_profile_unchanged": true,
+  "clipping_policies": {
+    "main_proposal": "SAC none, MATD3 per_parameter0.5: current source-specific recipe",
+    "02novlike_proposal": "global norm10 for both: declared matched-clipping study"
+  },
+  "algorithm_source_unchanged": true,
+  "common_algorithm_config_fields": [
+    "hidden_sizes",
+    "share_actor_parameters",
+    "share_critic_parameters",
+    "actor_layer_norm",
+    "replay_capacity",
+    "batch_size",
+    "learning_starts",
+    "updates_per_step",
+    "learning_rate",
+    "gamma",
+    "tau"
+  ],
+  "matrix": [
+    {
+      "profile": "configs/comparison-proposed-matched-shared-ln-memory1024.yaml",
+      "algorithm": "masac",
+      "pql": false,
+      "validated": true,
+      "actor_count": 1,
+      "critic_count": 1,
+      "actor_layer_norm_count": 2,
+      "observation_dim": 198,
+      "state_dim": 565,
+      "continuous_dim": 4,
+      "cpu_action_finite_in_range": true
+    },
+    {
+      "profile": "configs/comparison-proposed-matched-shared-ln-memory1024.yaml",
+      "algorithm": "masac",
+      "pql": true,
+      "validated": true,
+      "actor_count": 1,
+      "critic_count": 1,
+      "actor_layer_norm_count": 2,
+      "observation_dim": 198,
+      "state_dim": 565,
+      "continuous_dim": 4,
+      "cpu_action_finite_in_range": true
+    },
+    {
+      "profile": "configs/comparison-proposed-matched-shared-ln-memory1024.yaml",
+      "algorithm": "matd3",
+      "pql": false,
+      "validated": true,
+      "actor_count": 1,
+      "critic_count": 1,
+      "actor_layer_norm_count": 2,
+      "observation_dim": 198,
+      "state_dim": 565,
+      "continuous_dim": 4,
+      "cpu_action_finite_in_range": true
+    },
+    {
+      "profile": "configs/comparison-proposed-matched-shared-ln-memory1024.yaml",
+      "algorithm": "matd3",
+      "pql": true,
+      "validated": true,
+      "actor_count": 1,
+      "critic_count": 1,
+      "actor_layer_norm_count": 2,
+      "observation_dim": 198,
+      "state_dim": 565,
+      "continuous_dim": 4,
+      "cpu_action_finite_in_range": true
+    },
+    {
+      "profile": "configs/comparison-proposed-matched-shared-ln-memory1024-masac02novlike.yaml",
+      "algorithm": "masac",
+      "pql": false,
+      "validated": true,
+      "actor_count": 1,
+      "critic_count": 1,
+      "actor_layer_norm_count": 2,
+      "observation_dim": 198,
+      "state_dim": 565,
+      "continuous_dim": 4,
+      "cpu_action_finite_in_range": true
+    },
+    {
+      "profile": "configs/comparison-proposed-matched-shared-ln-memory1024-masac02novlike.yaml",
+      "algorithm": "masac",
+      "pql": true,
+      "validated": true,
+      "actor_count": 1,
+      "critic_count": 1,
+      "actor_layer_norm_count": 2,
+      "observation_dim": 198,
+      "state_dim": 565,
+      "continuous_dim": 4,
+      "cpu_action_finite_in_range": true
+    },
+    {
+      "profile": "configs/comparison-proposed-matched-shared-ln-memory1024-masac02novlike.yaml",
+      "algorithm": "matd3",
+      "pql": false,
+      "validated": true,
+      "actor_count": 1,
+      "critic_count": 1,
+      "actor_layer_norm_count": 2,
+      "observation_dim": 198,
+      "state_dim": 565,
+      "continuous_dim": 4,
+      "cpu_action_finite_in_range": true
+    },
+    {
+      "profile": "configs/comparison-proposed-matched-shared-ln-memory1024-masac02novlike.yaml",
+      "algorithm": "matd3",
+      "pql": true,
+      "validated": true,
+      "actor_count": 1,
+      "critic_count": 1,
+      "actor_layer_norm_count": 2,
+      "observation_dim": 198,
+      "state_dim": 565,
+      "continuous_dim": 4,
+      "cpu_action_finite_in_range": true
+    }
+  ],
+  "limits": [
+    "No training/production launch.",
+    "PQL flag combinations validated and construct same learner; not a new full PQL integration test.",
+    "No local CUDA/full8192 VRAM benchmark or convergence guarantee.",
+    "Both profiles declare chunk1024 globally but only MASAC consumes it in current code.",
+    "02novlike is not a recreation of old loss/log_std bounds/alpha caps or estimator code."
+  ],
+  "source_and_structure_guards": {
+    "passed": 13,
+    "subtests_passed": 557,
+    "seconds": 2.15
+  }
+}
