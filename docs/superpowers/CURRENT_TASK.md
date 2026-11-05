@@ -1,3 +1,26 @@
+# 2026-11-05 — New-chat handoff prompt created; source unchanged
+
+User requested a complete pasteable prompt for continuing work in a new chat.
+Created UAV_NEW_CHAT_PROMPT_2026-11-05.md (347 lines) with verified branch/source
+pointers, module map, current resolved XYZ config/dimensions, four-run W&B audit,
+LayerNorm changes for both algorithms, checkpoint compatibility, tests and
+remaining convergence limits. Temporary sandbox copy:
+/tmp/UAV_NEW_CHAT_PROMPT_2026-11-05.md; user received a persistent copy.
+No credentials were read or included. No training/live-service status query
+or algorithm/config change was performed for this handoff.
+
+Verified source commit remains a5841eab1f328bac0bcd86bc75f18a89adcada5a;
+previous continuity HEAD ba495b6863fcd76ab910af3438b81b134900fa81.
+Prior full suite for that source:1287 passed,103 skipped,8 warnings,
+1624 subtests; CPU integration only, not convergence/GPU validation.
+Handoff-only validation: reread source/config/current-task, resolved dimensions
+motion3/continuous4/destinations7/observation198/state565, checked text line cap
+and git diff --check. No test rerun needed for this documentation-only record.
+Next action: follow the user's new request after rereading current source;
+do not launch production jobs merely because the handoff mentions old plans.
+
+---
+
 # 2026-11-05 — MASAC/MATD3 hidden LayerNorm completed and pushed
 
 User requested the same actor architecture as MATD3. Current reference XYZ
