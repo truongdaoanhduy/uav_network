@@ -1,3 +1,25 @@
+# 2026-11-05 19:16 ICT — Built-in normalization follow-up (research only)
+
+User asks whether standard torch.nn norm blocks can replace bespoke output
+normalization and simplify paper reporting. No architecture change authorized
+or implemented in this follow-up. Read PyTorch2.11 LayerNorm/RMSNorm/BatchNorm1d
+docs via Context7 + official docs; rechecked original sfujim/TD3 actor source.
+Hidden nn.LayerNorm(256) is a candidate architecture choice, not a proven cure:
+the final Linear can still produce saturated tanh logits. Direct toy autograd
+probe [20,-15,-19] gives tanh Jacobian0; pre-tanh LayerNorm/RMSNorm with
+affine=false gives nonzero Jacobian (~0.0226/0.0229), but changes action mapping.
+LayerNorm(3,affine=false) maps [1,1,1] to zero; RMSNorm boosts small vectors.
+Pre-tanh nn.RMSNorm(3,elementwise_affine=False) bounds XYZ pre-tanh magnitude
+by sqrt(3), but remains output normalization and is not the old conditional
+mean-absolute scaling. Norm after tanh cannot restore its dead derivative.
+Standard library modules still require architecture disclosure; no new-method
+claim is necessary. Original TD3 actor has no LayerNorm/RMSNorm. TorchRL MLP
+permits optional norm_class; this does not establish it as a default TD3 choice.
+Next: explain options/limitations; any hidden-LayerNorm change needs a separately
+identified architecture and seed44 learning check before calling it a fix.
+
+---
+
 # 2026-11-05 19:04 ICT — MATD3 02-Nov versus 05-Nov regression diagnosed
 
 User identified old runs db61bd0c / d51b0350 and new runs 140e6169 / ead641c4.
