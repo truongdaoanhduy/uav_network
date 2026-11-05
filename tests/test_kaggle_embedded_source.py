@@ -44,10 +44,13 @@ def test_api_kernel_code_contains_all_runtime_source_without_remote_checkout():
         assert "third_party/UavNetSim/phy/channel.py" in names
         assert "scripts/requirements-network.txt" in names
         assert "pyproject.toml" in names
+        assert "tests/test_cuda.py" in names
+        assert "tests/test_training_audit_regressions.py" in names
+        assert "tests/test_pql_training.py" in names
         assert len(names) > 200
         assert all(".git" not in n.split("/") for n in names)
         assert all("key.txt" not in n and ".env" not in n and
-                   "outputs/" not in n and "tests/" not in n for n in names)
+                   "outputs/" not in n for n in names)
 
 
 def test_bundle_refuses_unpinned_upstream():
@@ -82,6 +85,7 @@ def test_actual_remote_bootstrap_unpacks_embedded_source_without_any_git_call(tm
     assert (root / "uav_network/algorithms/matd3.py").is_file()
     assert (root / "third_party/UavNetSim/simulator/simulator.py").is_file()
     assert (root / "configs/comparison-reference-masac-matd3-xyz-sensing.yaml").is_file()
+    assert (root / "tests/test_cuda.py").is_file()
     assert not (root / ".git").exists()
     assert not (root / "key.txt").exists()
     assert not (root / "setup.sh").exists()

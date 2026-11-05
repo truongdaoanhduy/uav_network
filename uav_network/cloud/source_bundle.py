@@ -45,7 +45,8 @@ def build_source_archive(project_root):
     for name in RUNTIME_SCRIPTS:
         included[name] = root / name
     for directory, suffixes in (("uav_network", {".py"}),
-                                ("configs", {".yaml", ".yml", ".json"})):
+                                ("configs", {".yaml", ".yml", ".json"}),
+                                ("tests", {".py"})):
         for source in (root / directory).rglob("*"):
             if (source.is_file() and source.suffix in suffixes and
                     not any(part.startswith(".") or part == "__pycache__"
