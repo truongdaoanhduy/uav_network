@@ -3,7 +3,9 @@
 User explicitly requested actual2048 critic chunks for BOTH learners, shared
 actor/critic in current config, and every remaining oldNov2/current config
 difference excluding chunk. Source base:52e500a65108e04df6f1ed0fd01dc64a51e70e4a.
-Actual implementation source commit is recorded in the delivery note below.
+Actual implementation source commit:c792aa07b07d2860e5556e75eac5b64929999a06.
+Published on the existing experiment branch at2026-11-05T19:45:46.907571+00:00.
+Full-suite evidence applies to that source; this delivery update changes docs only.
 
 Canonical configs/comparison-reference-masac-matd3-xyz-sensing.yaml now selects
 shared actors/shared critics/LNtrue and chunk2048 for both. Other canonical

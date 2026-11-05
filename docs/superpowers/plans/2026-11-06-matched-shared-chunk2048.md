@@ -57,7 +57,7 @@ per_critic=False) -> (q1,q2), concatenated on original batch axis0.
   skips reported; run git diff --check and text-line cap.
 - [x] Commit; obtain one fresh-context whole-change review, address any material
   finding with RED->GREEN and suite; update CURRENT_TASK with actual source SHA.
-- [ ] Push working branch only; publish reviewable report. No training launch.
+- [x] Push working branch only; publish reviewable report. No training launch.
 
 ## Execution ledger
 

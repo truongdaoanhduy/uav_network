@@ -14,5 +14,8 @@
   ],
   "full_suite_command": "python -m pytest -q",
   "review_focus": "uneven batch weighting; per-critic axis1; pure recomputation/RNG; frozen critic gradients; PQL/checkpoint config propagation",
-  "scope": "Only canonical sharing/chunk values changed; two1024 proposals remain historical."
+  "scope": "Only canonical sharing/chunk values changed; two1024 proposals remain historical.",
+  "implementation_source_commit": "c792aa07b07d2860e5556e75eac5b64929999a06",
+  "source_published_utc": "2026-11-05T19:45:46.907571+00:00",
+  "branch": "experiment/hfbest-embedded-source-steps1500-20261105"
 }

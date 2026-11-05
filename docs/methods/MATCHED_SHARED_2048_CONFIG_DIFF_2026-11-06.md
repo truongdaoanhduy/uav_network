@@ -2,7 +2,8 @@
 
 Ngày đối chiếu:06/11/2026 ICT. Bản cũ:05beef6cd0d97d39d51b220f9f7789e915b5bc10.
 Bản trước lần sửa này:52e500a65108e04df6f1ed0fd01dc64a51e70e4a.
-Source giao cuối cùng được ghi trong docs/superpowers/CURRENT_TASK.md.
+Source implementation đã push:c792aa07b07d2860e5556e75eac5b64929999a06.
+Delivery record ở docs/superpowers/CURRENT_TASK.md.
 
 ## 1. Đã chỉnh gì theo yêu cầu mới
 
