@@ -1,3 +1,31 @@
+# 2026-11-05 19:04 ICT — MATD3 02-Nov versus 05-Nov regression diagnosed
+
+User identified old runs db61bd0c / d51b0350 and new runs 140e6169 / ead641c4.
+All finished 20,000 episodes. Old final 20-episode delivery 59% / 67.75%;
+new 0% / 0%, final rolling return -4221.481. Source inspected at da3033d;
+old runtime commit 05beef6c; new BASE 574f36c6, PQL ab2e953d. Environment,
+communication source and world/sensor/network/energy/reward configs match.
+
+Downloaded actual checkpoints and reproduced dead XYZ gradients on real reset
+observations. New raw XYZ ~[+20,-15,-19] -> [+1,-1,-1], FP32 tanh derivative0.
+Three reset seeds checked. Same-weight old-normalization counterfactual gives
+nonzero derivative; this is not a retraining/convergence proof. New CPU probes
+reach y=0,z=0 for all6 UAVs by step30; remain there with no delivery at step300.
+Old final models move and deliver in the same bounded seed1000000044 probe.
+Main causal attribution still needs one-factor training: output norm, clipping,
+Gumbel/peer actions and CUDA build changed together. Do not silently restore
+output normalization or call the shared/hybrid implementation exact upstream.
+
+Audit: docs/methods/MATD3_REGRESSION_AUDIT_2026-11-05.md. Durable numeric
+evidence: docs/superpowers/evidence/2026-11-05-matd3-saturation-audit.json.
+Focused source/math checks:24 passed (reference contract, reference gradients,
+MATD3). No algorithm edits or production jobs launched in this audit.
+Next if requested: design/run a single-factor seed44 diagnostic with pinned
+software; retain declared baseline output_normalization=false and separately
+name any normalized-output variant. Follow the user's one-task-at-a-time rule.
+
+---
+
 # 2026-11-05 16:30 ICT — Three PQL job retries submitted successfully
 
 Commit `ab2e953d37520eb5896700f1264d1e4ba80fdfad` contains the corrected
