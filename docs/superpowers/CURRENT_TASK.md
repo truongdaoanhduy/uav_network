@@ -1,3 +1,25 @@
+# 2026-11-05 16:30 ICT — Three PQL job retries submitted successfully
+
+Commit `ab2e953d37520eb5896700f1264d1e4ba80fdfad` contains the corrected
+preflight environment isolation. `kaggle kernels push` updated the SAME
+notebook refs for cases 02, 04 and 05, each successful, with NO duplicate
+new refs. Per-case receipts: `outputs/hfbest-1500-five-20261105/
+case-02-preflight-fixed.json`, `case-04-preflight-fixed.json`,
+`case-05-preflight-fixed.json`. Source push log:
+`/tmp/restart_failed_pql_3_20261105.log`, `RESTART_FAILURES []`.
+
+At 2026-11-05 16:30:14 Asia/Ho_Chi_Minh, Kaggle API reported all five
+cases 01-05 `running`. Note this confirms only kernel execution state,
+not yet successful CUDA/PQL preflight or W&B metrics. Original Kaggle
+PQL smoke failure traces stored at `/tmp/uav-pql-test-logs/pql-smoke-tests.log`
+(case 02), and parsed job-level stdout in
+`outputs/hfbest-1500-five-20261105/case-{02,04,05}-latest-kaggle-logs.json`.
+Follow-up: check 3 newest kernel versions; confirm PQL preflight passes and
+then W&B run IDs show rising training episodes. Do not relaunch without a new
+observed error; leave cases 01/03 unchanged.
+
+---
+
 # 2026-11-05 16:24 ICT — Three PQL Kaggle failures diagnosed and fixed
 
 Observed via each original Kaggle API account (all five keys valid, quota 29.30, 29.88,
