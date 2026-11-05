@@ -1,3 +1,46 @@
+# 2026-11-06 — Four-run old/new/current source audit completed
+
+User requested detailed comparison of four Nov2 MASAC/MATD3 BASE/PQL runs
+against latest failed/completed cloud runs and current source, to preserve a
+source-backed baseline without rolling back historical heuristics.
+Observed online Nov6 ICT; source audit at db5345a63a5e5fab5843109dc46a952e49f1814b.
+
+Old runs all source05beef6c: MASAC BASEc8d5ce6b/PQL2ce9fb9e;
+MATD3 BASEdb61bd0c/PQLd51b0350. New BASE574f36c6/PQLab2e953d
+have identical learner/environment/communication trees. Current adds optional
+hidden LayerNorm only to learner/model paths; it was absent from failed runs.
+Reference YAML enables norm but defaults both sharing flags false; all audited
+cloud runs share both. Direct reference overlap defaults true vs new runs false.
+
+MASAC old stopped time_budget at16384/16362episodes, rolling delivery4.5/15%.
+New BASE latest progress2506752transitions/4648updates (summary4632);
+PQL143360/32; replica126976/0recorded. No OOM traceback in retrieved W&B
+files; Kaggle CLI console reads failed authentication. GPU1 sampled maxima
+grew~4.43GiB to~8.00GiB, below14.56GiBcapacity; sparse samples do not establish
+absolute peak or exclude transient OOM. Last progress of all3 within4.2sec
+needs external termination investigation; no confirmed alternative cause.
+MASAC chunk1024->0 disables checkpointing and bounded344064-row shared Q
+enumeration; MATD3 does not use this chunk flag. MATD3 dead-tanh mechanism
+from prior checkpoint evidence remains supported by fresh actor-grad0 metrics.
+No single-factor training attribution established.
+
+Verified64focused CPU tests passed in4.77s; supplemental6agent shared
+chunk0/4 oracle with real O198/S565/C4, B11/width16/3updates, both norm flags:
+same RNG and max parameter difference0 in those bounded cases.
+No localCUDA/full8192 GPU peak/OOM/convergence proof or production launch.
+No learner/config edits. Provenance clarified author regularizer targets
+distribution parameters/logits, not neural weights. Updated report/evidence only.
+Source-size/SHA guard:2 passed/554 subtests in0.16s; git diff --check passed.
+
+Report: docs/methods/MASAC_MATD3_CODE_COMPARISON_2026-11-06.md.
+Evidence: docs/superpowers/evidence/2026-11-06-four-run-code-audit.json;
+config diffs: same folder/2026-11-06-four-run-config-diffs.json.
+Next: follow user's request. A future memory-safe execution variant may reuse
+current chunk/checkpoint without old entropy heuristics; declare its profile
+and retain logical batch/RNG/gradient reduction/optimizer counts. No auto launch.
+
+---
+
 # 2026-11-05 — New-chat handoff prompt created; source unchanged
 
 User requested a complete pasteable prompt for continuing work in a new chat.

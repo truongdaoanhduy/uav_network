@@ -84,7 +84,7 @@ an original default of TD3 or a proven performance fix in this UAV task.
 1. The published algorithm equations define the baseline.
 2. Author-released or established library code supplies implementation details the paper leaves unspecified.
 3. UAV-specific adaptations are permitted only at the environment/action interface and are listed below.
-4. A source-only heuristic that is absent from the paper objective is not copied merely because it exists in a repository. For example, the Ackermann code's small actor parameter regularizer is not part of the MATD3 paper objective, so the reference actor loss remains `-Q1`.
+4. A source-only heuristic that is absent from the paper objective is not copied merely because it exists in a repository. For example, the Ackermann code's small regularizer on policy distribution parameters/logits (not neural-network weight decay) is not part of the MATD3 paper objective, so the reference actor loss remains `-Q1`.
 
 ## Source-backed MASAC contract
 - off-policy replay training;

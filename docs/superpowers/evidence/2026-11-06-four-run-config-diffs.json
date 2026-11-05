@@ -1,0 +1,268 @@
+{
+  "masac_base": {
+    "old_run": "c8d5ce6b",
+    "new_run": "0006c2a7",
+    "environment_config_equal": {
+      "world": true,
+      "sensor": true,
+      "network": true,
+      "energy": true,
+      "reward": true
+    },
+    "differences": [
+      {
+        "key": "masac.grad_clip_mode",
+        "old": "<absent>",
+        "new_run": "none",
+        "current_reference": "none"
+      },
+      {
+        "key": "masac.initial_alpha",
+        "old": 0.2,
+        "new_run": 1,
+        "current_reference": 1.0
+      },
+      {
+        "key": "masac.mask_aware_discrete_entropy_target",
+        "old": "<absent>",
+        "new_run": false,
+        "current_reference": false
+      },
+      {
+        "key": "masac.target_discrete_entropy_anneal_updates",
+        "old": "<absent>",
+        "new_run": 0,
+        "current_reference": 0
+      },
+      {
+        "key": "masac.target_discrete_entropy_final_ratio",
+        "old": "<absent>",
+        "new_run": 0.2,
+        "current_reference": 0.2
+      },
+      {
+        "key": "masac.target_discrete_entropy_ratio",
+        "old": 0.9,
+        "new_run": 0.2,
+        "current_reference": 0.2
+      },
+      {
+        "key": "runtime.collector_overlap",
+        "old": true,
+        "new_run": false,
+        "current_reference": true
+      },
+      {
+        "key": "runtime.critic_chunk_size",
+        "old": 1024,
+        "new_run": 0,
+        "current_reference": 0
+      },
+      {
+        "key": "runtime.vectorize_critics",
+        "old": true,
+        "new_run": false,
+        "current_reference": false
+      }
+    ]
+  },
+  "masac_pql": {
+    "old_run": "2ce9fb9e",
+    "new_run": "550c3c6b",
+    "environment_config_equal": {
+      "world": true,
+      "sensor": true,
+      "network": true,
+      "energy": true,
+      "reward": true
+    },
+    "differences": [
+      {
+        "key": "masac.grad_clip_mode",
+        "old": "<absent>",
+        "new_run": "none",
+        "current_reference": "none"
+      },
+      {
+        "key": "masac.initial_alpha",
+        "old": 0.2,
+        "new_run": 1,
+        "current_reference": 1.0
+      },
+      {
+        "key": "masac.mask_aware_discrete_entropy_target",
+        "old": "<absent>",
+        "new_run": false,
+        "current_reference": false
+      },
+      {
+        "key": "masac.target_discrete_entropy_anneal_updates",
+        "old": "<absent>",
+        "new_run": 0,
+        "current_reference": 0
+      },
+      {
+        "key": "masac.target_discrete_entropy_final_ratio",
+        "old": "<absent>",
+        "new_run": 0.2,
+        "current_reference": 0.2
+      },
+      {
+        "key": "masac.target_discrete_entropy_ratio",
+        "old": 0.9,
+        "new_run": 0.2,
+        "current_reference": 0.2
+      },
+      {
+        "key": "runtime.collector_overlap",
+        "old": true,
+        "new_run": false,
+        "current_reference": true
+      },
+      {
+        "key": "runtime.critic_chunk_size",
+        "old": 1024,
+        "new_run": 0,
+        "current_reference": 0
+      },
+      {
+        "key": "runtime.vectorize_critics",
+        "old": true,
+        "new_run": false,
+        "current_reference": false
+      }
+    ]
+  },
+  "matd3_base": {
+    "old_run": "db61bd0c",
+    "new_run": "140e6169",
+    "environment_config_equal": {
+      "world": true,
+      "sensor": true,
+      "network": true,
+      "energy": true,
+      "reward": true
+    },
+    "differences": [
+      {
+        "key": "matd3.epsilon_decay_steps",
+        "old": 14745600,
+        "new_run": 100000,
+        "current_reference": 100000
+      },
+      {
+        "key": "matd3.grad_clip_mode",
+        "old": "<absent>",
+        "new_run": "per_parameter",
+        "current_reference": "per_parameter"
+      },
+      {
+        "key": "matd3.grad_clip_norm",
+        "old": 10,
+        "new_run": 0.5,
+        "current_reference": 0.5
+      },
+      {
+        "key": "matd3.output_normalization",
+        "old": true,
+        "new_run": false,
+        "current_reference": false
+      },
+      {
+        "key": "runtime.collector_overlap",
+        "old": true,
+        "new_run": false,
+        "current_reference": true
+      },
+      {
+        "key": "runtime.compile_models",
+        "old": true,
+        "new_run": false,
+        "current_reference": false
+      },
+      {
+        "key": "runtime.critic_chunk_size",
+        "old": 1024,
+        "new_run": 0,
+        "current_reference": 0
+      },
+      {
+        "key": "runtime.vectorize_critics",
+        "old": true,
+        "new_run": false,
+        "current_reference": false
+      }
+    ]
+  },
+  "matd3_pql": {
+    "old_run": "d51b0350",
+    "new_run": "ead641c4",
+    "environment_config_equal": {
+      "world": true,
+      "sensor": true,
+      "network": true,
+      "energy": true,
+      "reward": true
+    },
+    "differences": [
+      {
+        "key": "matd3.epsilon_decay_steps",
+        "old": 14745600,
+        "new_run": 100000,
+        "current_reference": 100000
+      },
+      {
+        "key": "matd3.grad_clip_mode",
+        "old": "<absent>",
+        "new_run": "per_parameter",
+        "current_reference": "per_parameter"
+      },
+      {
+        "key": "matd3.grad_clip_norm",
+        "old": 10,
+        "new_run": 0.5,
+        "current_reference": 0.5
+      },
+      {
+        "key": "matd3.output_normalization",
+        "old": true,
+        "new_run": false,
+        "current_reference": false
+      },
+      {
+        "key": "runtime.collector_overlap",
+        "old": true,
+        "new_run": false,
+        "current_reference": true
+      },
+      {
+        "key": "runtime.compile_models",
+        "old": true,
+        "new_run": false,
+        "current_reference": false
+      },
+      {
+        "key": "runtime.critic_chunk_size",
+        "old": 1024,
+        "new_run": 0,
+        "current_reference": 0
+      },
+      {
+        "key": "runtime.vectorize_critics",
+        "old": true,
+        "new_run": false,
+        "current_reference": false
+      }
+    ]
+  },
+  "current_reference_only": {
+    "profile": "configs/comparison-reference-masac-matd3-xyz-sensing.yaml",
+    "masac.actor_layer_norm": true,
+    "matd3.actor_layer_norm": true,
+    "actor_layer_norm_dataclass_default": false,
+    "share_actor_parameters": false,
+    "share_critic_parameters": false,
+    "runtime.collector_overlap_default": true,
+    "note": "Actual old/new cloud runs share actors/critics and no hidden LayerNorm. Launcher overrides must be resolved per future run."
+  }
+}
