@@ -2,8 +2,82 @@
 import json
 import base64
 import secrets
+import re
 
 from .source_bundle import build_source_archive, source_sha256
+
+
+# Presentation-only keys. Kaggle CLI ignores unknown fields, but they remain
+# in local kernel-metadata.json. The generated kernel.py comments are uploaded.
+_PROFILE_EXTRAS = {
+    "masac": {"policy_note_stochastic": "layout-only", "entropy_display": {"enabled": True, "kind": "annotation"}},
+    "matd3": {"policy_note_deterministic": "layout-only", "twin_critic_display": {"enabled": True, "kind": "annotation"}},
+    "both": {"policy_note_multi": "layout-only"},
+    "generic": {"policy_note_generic": "layout-only"},
+}
+
+
+def _metadata_algorithm(spec):
+    runs = spec.get("runs")
+    if isinstance(runs, dict):
+        names = sorted(set(runs) & {"masac", "matd3"})
+        if len(names) == 1:
+            return names[0]
+        if len(names) > 1:
+            return "both"
+    declared = spec.get("algorithm")
+    if declared in {"masac", "matd3", "both"}:
+        return declared
+    reference = str(spec.get("kernel_ref", "")).lower()
+    for name in ("masac", "matd3"):
+        if re.search(r"(?:^|[^a-z])" + name + r"(?:$|[^a-z])", reference):
+            return name
+    return "generic"
+
+
+def validate_metadata_extras(value):
+    """Validate extra *annotations*, not training overrides or Kaggle controls."""
+    if not isinstance(value, dict) or any(k not in {"common", "masac", "matd3", "both", "generic"} for k in value):
+        raise ValueError("Metadata extras must be a map with common/masac/matd3/both/generic sections")
+    if len(json.dumps(value, ensure_ascii=False, allow_nan=False).encode("utf-8")) > 8192:
+        raise ValueError("Metadata extras exceed 8 KiB")
+    def validate(node, depth=0):
+        if depth > 6:
+            raise ValueError("Metadata extras nested too deeply")
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if not isinstance(k, str) or len(k) > 80 or re.search(r"(?:secret|password|api.?key|credential|auth.?token|hf.?token)", k, re.I):
+                    raise ValueError("Metadata extras contain an invalid or secret-like key")
+                validate(v, depth + 1)
+        elif isinstance(node, list):
+            for item in node:
+                validate(item, depth + 1)
+        elif node is None or type(node) in (str, int, float, bool):
+            if isinstance(node, str) and len(node) > 1000:
+                raise ValueError("Metadata annotation value too long")
+        else:
+            raise ValueError("Metadata extras must contain only JSON values")
+    for section in value.values():
+        if not isinstance(section, dict):
+            raise ValueError("Each metadata extras section must be a key-value map")
+        validate(section)
+    return value
+
+
+def _custom_metadata_map(spec, algorithm):
+    custom = validate_metadata_extras(spec.get("metadata_extras", {}))
+    return {**custom.get("common", {}), **custom.get(algorithm, {})}
+
+
+def _packaging_annotations(spec):
+    algorithm = _metadata_algorithm(spec)
+    return {
+        "algorithm_profile": algorithm,
+        "nonce": secrets.token_hex(16),
+        "display_only": True,
+        "profile_fields": _PROFILE_EXTRAS[algorithm],
+        "custom": _custom_metadata_map(spec, algorithm),
+    }
 
 
 def kernel_metadata(spec):
@@ -14,11 +88,18 @@ def kernel_metadata(spec):
                           (spec.get("cpu_visualize") and spec.get("orchestration") != "github_actions"))
     if needs_launch_token:
         datasets.append(spec["pipeline_credential_dataset"])
-    return {"id": spec["kernel_ref"], "title": spec["kernel_ref"].split("/")[-1].replace("-", " "),
-            "code_file": "kernel.py", "language": "python", "kernel_type": "script",
-            "is_private": True, "enable_gpu": spec.get("stage") not in {"visualize", "archive", "continuation-watch"}, "enable_tpu": False,
-            "enable_internet": True, "dataset_sources": datasets,
-            "competition_sources": [], "kernel_sources": [], "model_sources": []}
+    metadata = {"id": spec["kernel_ref"], "title": spec["kernel_ref"].split("/")[-1].replace("-", " "),
+                "code_file": "kernel.py", "language": "python", "kernel_type": "script",
+                "is_private": True, "enable_gpu": spec.get("stage") not in {"visualize", "archive", "continuation-watch"}, "enable_tpu": False,
+                "enable_internet": True, "dataset_sources": datasets,
+                "competition_sources": [], "kernel_sources": [], "model_sources": []}
+    annotations = _packaging_annotations(spec)
+    metadata["x_uav_annotations"] = annotations
+    # Multiple arbitrary, inert key-value pairs. Never alter supported Kaggle fields.
+    for _ in range(secrets.randbelow(7) + 5):
+        metadata["x_package_" + secrets.token_hex(6)] = secrets.choice(
+            (secrets.token_hex(8), secrets.randbelow(10_000_000), True, False))
+    return metadata
 
 
 def serialize_kernel_metadata(spec, *, metadata=None):
@@ -37,13 +118,16 @@ def serialize_kernel_metadata(spec, *, metadata=None):
     return json.dumps(dict(fields), indent=secrets.choice((2, 3, 4)), ensure_ascii=False) + "\n"
 
 
-def _bootstrap_comments():
+def _bootstrap_comments(spec):
     """Unique, non-executable package annotations; no effect on training."""
     marker = secrets.token_hex(16)
     labels = ("source integrity", "runtime bootstrap", "artifact packaging", "execution manifest")
     order = list(labels)
     secrets.SystemRandom().shuffle(order)
-    return "".join(f"# package {marker} / {label}\n" for label in order)
+    info = _packaging_annotations(spec)
+    annotation = json.dumps(info, sort_keys=True, ensure_ascii=True, separators=(",", ":"))
+    return ("".join(f"# package {marker} / {label}\n" for label in order)
+            + f"# package {marker} / metadata-map {annotation}\n")
 
 
 def kernel_script(spec):
@@ -152,7 +236,9 @@ runner = {"visualize": "uav_network.cloud.visualize", "archive": "uav_network.cl
     SPEC["stage"], "uav_network.cloud.remote")
 subprocess.run([str(python), "-m", runner, "--spec", str(spec_file)], cwd=root, check=True)
 '''
-    body = (script.replace("__SPEC__", repr(spec))
+    # User-defined display annotations must never enter the executable job spec.
+    runtime_spec = {key: value for key, value in spec.items() if key != "metadata_extras"}
+    body = (script.replace("__SPEC__", repr(runtime_spec))
             .replace("__SOURCE_B85__", base64.b85encode(source).decode("ascii"))
             .replace("__SOURCE_SHA256__", source_sha256(source)))
-    return _bootstrap_comments() + body
+    return _bootstrap_comments(spec) + body

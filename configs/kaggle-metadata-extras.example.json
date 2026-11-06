@@ -1,0 +1,29 @@
+{
+  "common": {
+    "study_label": "uav-notebook-package",
+    "layout_data": {
+      "annotation_only": true,
+      "revision": 1
+    }
+  },
+  "masac": {
+    "masac_overlay": {
+      "style": "stochastic-profile",
+      "markers": [
+        "s1",
+        "s2"
+      ]
+    },
+    "custom_masac_parameter": 771
+  },
+  "matd3": {
+    "matd3_overlay": {
+      "style": "deterministic-profile",
+      "markers": [
+        "d1",
+        "d2"
+      ]
+    },
+    "custom_matd3_parameter": 392
+  }
+}

@@ -10,7 +10,7 @@ from uuid import uuid4
 from ..configuration import load_config
 from .client import CredentialFileSetError, account_quotas, ensure_cpu_wandb_dataset, ensure_pipeline_dataset, kernel_status, pushed_kernel_ref, resolve_username, run_kaggle, verify_credential_dataset
 from .credentials import load_credentials, select_account
-from .kernel import kernel_metadata, kernel_script, serialize_kernel_metadata
+from .kernel import kernel_metadata, kernel_script, serialize_kernel_metadata, validate_metadata_extras
 from .identities import authoritative_tags, kernel_slug, run_name
 from .acceleration import apply_measured_acceleration_policy
 
@@ -113,6 +113,13 @@ def launch(args, credentials):
             "entity": credentials.entity if config.tracking.entity == "auto" else config.tracking.entity,
             "project": credentials.project if config.tracking.project == "auto" else config.tracking.project,
             "stage": args.stage, "config": config_file, "overrides": overrides, "runs": runs}
+    # Optional per-account adjacent JSON remains editable without touching the Git worktree.
+    # The explicit CLI path takes priority over the key.txt sibling default.
+    explicit_extras = getattr(args, "metadata_extras_file", None)
+    extras_file = (Path(explicit_extras).expanduser() if explicit_extras else
+                   Path(args.key_file).expanduser().with_name("kaggle-metadata-extras.json"))
+    if explicit_extras or extras_file.is_file():
+        spec["metadata_extras"] = validate_metadata_extras(json.loads(extras_file.read_text()))
     spec.update({"training_mode": training_mode,
                  "accelerator": args.accelerator, "gpus_per_run": args.gpus_per_run})
     if args.stage == "benchmark":
@@ -202,6 +209,7 @@ def main(argv=None):
     submit.add_argument("--algorithm", choices=["both", "masac", "matd3"], default="both")
     submit.add_argument("--warm-start-artifact", action="append", default=[], metavar="ALGORITHM=ARTIFACT_REF")
     submit.add_argument("--config")
+    submit.add_argument("--metadata-extras-file", help="Optional presentation-only JSON; defaults to kaggle-metadata-extras.json beside key.txt")
     submit.add_argument("--training-only", action="store_true",
                         help="Only train, select the validation-best policy and upload it to Hugging Face; no CPU visualization/GitHub continuation")
     submit.add_argument("--cpu-visualize", action="store_true",
