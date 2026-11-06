@@ -421,9 +421,10 @@ def test_xyz_movement_saturation_uses_three_motion_axes():
     assert metrics["action/movement_saturation_fraction"] == .5
 
 
-def test_v2_reward_and_shield_metrics_are_scalar_episode_fields():
+def test_v2_reward_shield_and_mission_score_are_separate_episode_fields():
     record = {"episode":1,"global_step":1,"return":0.,"episode_length":2,
-              "search_rate_percent":0.,"delivery_rate_percent":0.,"success":False,
+              "targets_found":3,"targets_delivered":2,
+              "search_rate_percent":60.,"delivery_rate_percent":40.,"success":False,
               "blocked_moves":0,"boundary_clips":0,"expired_reports":0,"dropped_reports":0,
               "energy":{"propulsion_energy_j":1.,"battery_fraction":[1.],"battery_j":[1.],
                         "active_uavs":1,"per_uav_propulsion_energy_j":[1.],
@@ -436,6 +437,8 @@ def test_v2_reward_and_shield_metrics_are_scalar_episode_fields():
     assert metrics["motion/shield_correction"] == .125
     assert metrics["reward/communication_efficiency"] == -.25
     assert metrics["reward/shield_correction"] == -.0125
+    assert metrics["outcome/mission_score"] == 130
+    assert metrics["episode/return"] == 0.
 
 
 def test_best_publication_keeps_selected_policy_and_last_resume_separate(tmp_path):

@@ -45,6 +45,9 @@ class ComparisonMetricsTests(unittest.TestCase):
         self.assertEqual(values["first_discovery_to_gcs_delay_delivered_mean_s"], 2.)
         self.assertEqual(values["report_delay_delivered_mean_s"], .5)
         self.assertEqual(values["first_gcs_delivery_observed_s"], [2., None])
+        self.assertEqual(values["mission_score"], 70)
+        summary = m.summarize_metrics([{"comparison_metrics": values}])
+        self.assertEqual(summary["mission_score"]["mean"], 70)
 
     def test_v2_comparison_metrics_expose_power_relay_and_shield_without_composite_score(self):
         m = self.module(); c = self.config()

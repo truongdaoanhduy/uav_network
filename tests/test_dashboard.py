@@ -83,7 +83,11 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(pinned,{"run:displayName","run:state","run:createdAt","run:duration"})
         plots = [p for section in spec["panelBankConfig"]["sections"] for p in section["panels"]
                  if "metrics" in p.get("config",{})]
-        self.assertEqual(len(plots),36)
+        self.assertEqual(len(plots),40)
+        self.assertTrue({"outcome/mission_score", "evaluation/mean_return",
+                         "evaluation/mission_score", "energy/mean_battery_fraction"} <= {
+            metric for plot in plots for metric in plot["config"]["metrics"]
+        })
         paper_return = [p for p in plots if p.get("config", {}).get("chartTitle") == "UAV-paper training return / reward"]
         self.assertEqual(len(paper_return), 1)
         paper_config = paper_return[0]["config"]

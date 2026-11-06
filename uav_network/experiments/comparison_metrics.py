@@ -10,6 +10,7 @@ from ..configuration_xyz import legacy_xyz_defaults
 
 # Units and preferred direction are explicit; no aggregate 'best algorithm' score.
 METRICS = {
+    "mission_score": ("points", "higher"),
     "gcs_delivery_fraction": ("fraction", "higher"),
     "target_discovery_fraction": ("fraction", "higher"),
     "delivery_given_discovery_fraction": ("fraction", "higher"),
@@ -44,6 +45,11 @@ METRICS = {
     "shield_correction_mean_per_step": ("normalized correction/step", "lower"),
     "return": ("configured reward units", "higher"),
 }
+
+
+def mission_score(targets_found, targets_delivered):
+    """Fixed mission outcome points independent of the configured training reward."""
+    return 10 * targets_found + 50 * targets_delivered
 
 
 def evaluation_protocol(config, seeds, progress):
@@ -197,6 +203,7 @@ class MissionMetrics:
         result = {
             "targets_found": f, "targets_delivered": d, "target_discovery_fraction": f / w.num_targets,
             "gcs_delivery_fraction": d / w.num_targets,
+            "mission_score": mission_score(f, d),
             "delivery_given_discovery_fraction": d / f if f else None,
             "mission_success": float(success),
             "mission_completion_time_capped_s": self.step * w.dt_s if success else horizon,

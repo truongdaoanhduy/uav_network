@@ -11,6 +11,7 @@ import numpy as np
 
 from .hardware import hardware_info
 from .telemetry import episode_telemetry
+from .comparison_metrics import mission_score
 from .run_journal import RunJournal, select_evidence
 from .evidence import resource_snapshot
 from ..environment.observations import OBSERVATION_VERSION, observation_version
@@ -56,6 +57,8 @@ def episode_metrics(record, num_uavs, motion_dim=2, motion_safety=None):
               "energy/gcs_rx_radio_energy_j": network.get("gcs_rx_energy_j", 0),
               "energy/mean_battery_fraction": float(np.mean(energy["battery_fraction"])),
               "energy/exhausted_uavs": num_uavs - energy["active_uavs"]}
+    if "targets_found" in record and "targets_delivered" in record:
+        result["outcome/mission_score"] = mission_score(record["targets_found"], record["targets_delivered"])
     result["energy/total_uav_energy_j"] = result["energy/propulsion_energy_j"] + result["energy/uav_rf_energy_j"]
     mapping = {"packet_pdr_percent": "pdr_percent", "packet_e2e_delay_ms": "e2e_delay_ms",
                "payload_throughput_kbps": "payload_throughput_kbps", "phy_success_percent": "phy_success_percent",

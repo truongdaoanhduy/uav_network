@@ -23,6 +23,7 @@ PANELS = {
     ],
     "Training convergence - paper and benchmark views": [
         ("UAV-paper training return / reward", "episode/return"),
+        ("UAV-paper mission score (10 found + 50 delivered)", "outcome/mission_score"),
         ("UAV-paper search rate (%)", "outcome/search_rate_percent"),
         ("UAV-paper delivery rate (%)", "outcome/delivery_rate_percent"),
         ("UAV-paper mission success rate by episode", "outcome/success"),
@@ -35,6 +36,8 @@ PANELS = {
         ("Joint transitions / s - speed, not policy quality", "train/joint_transitions_per_s"),
     ],
     "Periodic fixed-policy evaluation - only when enabled": [
+        ("Fixed-seed evaluation return", "evaluation/mean_return"),
+        ("Fixed-seed evaluation mission score", "evaluation/mission_score"),
         ("Fixed-seed evaluation delivery (%) - higher", "evaluation/mean_delivery_rate_percent"),
         ("Fixed-seed evaluation success fraction - higher", "evaluation/success_rate"),
     ],
@@ -51,6 +54,7 @@ PANELS = {
         ("Raw unsafe policy command fraction - lower", "safety/raw_unsafe_action_rate"),
         ("Policy safe without shield fraction - higher", "safety/policy_safe_without_shield_rate"),
         ("CBF intervention fraction - lower", "safety/cbf_intervention_rate"),
+        ("Mean UAV battery fraction at episode end", "energy/mean_battery_fraction"),
         ("Unsafe commands rescued by CBF fraction - lower", "safety/shield_rescue_rate"),
         ("Executed blocked motion fraction - lower", "safety/blocked_motion_rate"),
         ("Executed boundary clip fraction - lower", "safety/boundary_clip_rate"),
