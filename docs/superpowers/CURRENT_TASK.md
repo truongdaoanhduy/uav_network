@@ -1,3 +1,34 @@
+# 2026-11-06 — MASAC NOCHUNK mask-aware entropy fix
+
+Enabled `masac.mask_aware_discrete_entropy_target=true` in the MASAC BASE and
+PQL UI notebooks in `~/Downloads` and `outputs/kaggle`. Both generate fresh
+W&B run names tagged `MASKAWARE` and use the same source bundles from
+`4c9f67ca`. The reference profile with fixed entropy remains the control.
+The only learner setting changed is the discrete entropy target. BASE and
+PQL keep their respective modes, seed 44, no critic chunks, 4096 envs,
+batch 8192, 1500 steps, 20k episodes, shared networks, reward and CBF.
+
+- The two original notebooks resolved the flag to false. Updated notebooks
+  pass nbformat, Python compilation, source checksum, and resolved config
+  checks. Their original source archives are byte-identical.
+- On 32 recorded observations from `2734dbf3` with six active UAVs and only
+  silence legal, 256 actor and temperature updates drove alpha_d from
+  1 to 1.079826 with the fixed target. The mask-aware target held it at 1.
+  Both actors had identical weights after this controlled test.
+- Short CPU training from each notebook's resolved config ran four episodes
+  and eight learner updates, then reloaded a finite NOCHUNK checkpoint with
+  the expected BASE/PQL mode and mask-aware setting.
+- Focused checks passed 105 tests and 3 subtests. The variant documentation
+  and regression coverage are in commit `12208368e48db30fec506ce8ee259def6cfd830f`.
+
+Next comparison is a fresh MASKAWARE run versus the fixed-target run under
+the same seed, layouts and environment-step budgets. At 3.6864M and 7.3728M,
+compare alpha_d, alpha_c, Q scale, search, delivery and raw return. The CPU
+checks verify temperature behavior and launch settings. Full Kaggle GPU
+learning and recovery of mission performance remain to be measured.
+
+---
+
 # 2026-11-06 — MASAC BASE NOCHUNK stability diagnosis
 
 Audited W&B `2734dbf3` against MATD3 BASE `b358fc3f` and the MASAC BASE replica `62cfc303`. The active training source commits are `1a55c7d`, `48a5ea2` and `4c9f67c`. The learner, environment and training paths match across these revisions. The runs use shared actor/critic, actor LayerNorm, no chunks, seed44, 4096 envs, batch8192 and 1500 steps. BASE/PQL is not a factor for these BASE comparisons. Matched evaluator seed and full layout hashes verified for all five common checkpoints. Both MASAC runs matched every return, outcome and length at 3.6864M and 7.3728M.
