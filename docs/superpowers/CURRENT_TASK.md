@@ -1,3 +1,53 @@
+# 2026-11-06 — Paired MATD3 BASE Kaggle UI: default vs Orthogonal (prepared only)
+
+User requested two self-contained manual Kaggle UI notebooks in `~/Downloads`,
+one preserving MATD3 BASE defaults, another changing **initialization only**.
+Read the 2026-11-06 handoff and AGENTS.md first; starting worktree was clean
+on experiment/hfbest-embedded-source-steps1500-20261105 at e45a6473d3b0.
+
+**New source commit** `458d7fbb7a304995b2316d681cdb8c9ac89042ec`.
+`matd3.initialization` is an explicit validated `default|orthogonal` field,
+with `default` preserving the PyTorch Linear initialization exactly.
+`orthogonal` initializes every online actor encoder/continuous/destination
+Linear and both online twin-critic MLPs before target cloning/optimizers.
+Gain sqrt(2) for ReLU hidden, 0.01 for actor heads and 1.0 for Q heads;
+biases zero; LayerNorm affine remains default. `torch.random.fork_rng` restores
+CPU RNG after the extra orthogonal QR draws so following CPU RNG state
+matches the default model construction. No changes to losses, action semantics,
+reward, CBF, replay, optimizers, target updates or original canonical YAML.
+
+**Notebook outputs:**
+- `/home/aduy/Downloads/MATD3_BASE_NOCHUNK_DEFAULT_Kaggle_UI.ipynb`
+- `/home/aduy/Downloads/MATD3_BASE_NOCHUNK_ORTHOGONAL_Kaggle_UI.ipynb`
+- Matching copies in `outputs/kaggle/`, source generator
+  `scripts/build_matd3_init_ui_notebooks.py`.
+- Both embed the exact 413-file source bundle from commit 458d7fb with SHA256
+  `4277932ce73c3e596b2978a09768257802550fc8295c5759e047a34a98b3a599`.
+- Both use the reference XYZ 1500-step YAML, MATD3 BASE, PQL false,
+  critic_chunk_size 0, 6 UAV, 20 targets/15 obstacles, 4096 env, batch8192,
+  replay1M 75% CPU, 20k episodes, seed44 deterministic, shared actor/critic
+  LayerNorm, T4x2, FP32/AMP off, training-only, W&B and best-only HF.
+  The paired `SPEC` values were independently checked: **only** init flag
+  and informational tracking tags differ. Both create new per-run W&B IDs.
+- Kaggle preflight checks GPU T4x2 and private `WANDB_API_KEY`/`HF_TOKEN`
+  Secrets, and requires a user-supplied real `NOTEBOOK_REF`. No tokens are
+  in the payload. Both include checksum verification before installing source.
+
+**Verification:** 50 passed in focused MATD3/XYZ/reference/embedded-source
+tests. Both notebooks pass nbformat validation, Python code compile, source
+SHA verification, exact file-content checks for learner/YAML, and matching
+Downloads versus outputs/kaggle copies. A real Kaggle T4x2 run, VRAM peak,
+convergence and orthogonal effect on mission performance have NOT been tested.
+**No Kaggle job was launched or submitted, no existing run changed.**
+
+**Next:** User manually imports each notebook in a private Kaggle UI session,
+enables Internet/T4 x2, authorizes the two secrets, edits NOTEBOOK_REF,
+runs preflight and Save & Run All. Compare at matched environment steps
+and matched evaluation layouts; monitor mission score, raw return, search,
+delivery, Q, critic gradient and action saturation.
+
+---
+
 # 2026-11-06 — Handoff snapshot of current W&B runs
 
 Read-only W&B check at 22:26:48 ICT. MASAC BASE MASKAWARE `f6a196a7` was
