@@ -1,3 +1,20 @@
+# 2026-11-06 — Handoff snapshot of current W&B runs
+
+Read-only W&B check at 22:26:48 ICT. MASAC BASE MASKAWARE `f6a196a7` was
+running at 225,280 environment steps. Its logged config confirmed seed 44,
+4096 envs, 20k episode budget, 1500-step horizon, `warp_packet` and CBF,
+shared actor and critic with actor LayerNorm, `pql.enabled=false`,
+`runtime.critic_chunk_size=0` and `masac.mask_aware_discrete_entropy_target=true`.
+
+At 22:25:12 ICT the fixed-target MASAC BASE `2734dbf3` and replica `62cfc303`
+were running at 30,253,056 and 18,194,432 steps respectively. MATD3 BASE
+`b358fc3f` and PQL `30bdc182` were both finished at 20,000 episodes. This
+handoff describes the training code and reports verified through `2e0162c`.
+Recheck live state before taking action. The next MASKAWARE comparison
+uses common environment-step budgets and matching evaluation scenarios.
+
+---
+
 # 2026-11-06 — MASAC entropy source verification and MATD3 reuse
 
 Checked the learner at `715992bd66fb422a68767ea86fb432aaea5a26a4` and both
