@@ -7,8 +7,8 @@ import re
 from .source_bundle import build_source_archive, source_sha256
 
 
-# Presentation-only keys. Kaggle CLI ignores unknown fields, but they remain
-# in local kernel-metadata.json. The generated kernel.py comments are uploaded.
+# Presentation-only annotations for kernel.py comments, not Kaggle metadata.
+# The official save_kernel API request has its own supported control fields.
 _PROFILE_EXTRAS = {
     "masac": {"policy_note_stochastic": "layout-only", "entropy_display": {"enabled": True, "kind": "annotation"}},
     "matd3": {"policy_note_deterministic": "layout-only", "twin_critic_display": {"enabled": True, "kind": "annotation"}},
@@ -131,7 +131,7 @@ def _bootstrap_comments(spec):
 
 
 def kernel_script(spec):
-    # Kaggle push uploads ONLY code_file, so all local source must be embedded in it.
+    # The direct Kaggle API sends one script body; embed the whole local runtime source.
     source = build_source_archive(__import__("pathlib").Path(__file__).resolve().parents[2])
     script = '''import json
 import os
@@ -172,7 +172,7 @@ if "requested_episodes" in SPEC:
     os.environ["UAV_EPISODE_BUDGET"] = str(SPEC["requested_episodes"])
 else:
     os.environ.pop("UAV_EPISODE_BUDGET", None)
-# Kaggle's API submits only this one Python script; source is inside the payload.
+# Kaggle runs only this Python bootstrap; source is inside the payload.
 payload = base64.b85decode("__SOURCE_B85__")
 if hashlib.sha256(payload).hexdigest() != "__SOURCE_SHA256__":
     raise RuntimeError("Bundled code checksum differs from the local build")

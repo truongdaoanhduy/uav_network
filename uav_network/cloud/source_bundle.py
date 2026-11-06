@@ -1,8 +1,8 @@
 """Bundle only reviewed local sources into one Kaggle API code payload.
 
-The installed Kaggle CLI transmits only kernel-metadata.json's code_file;
-sibling files in --path are not uploaded. Therefore the kernel.py bootstrap
-embeds this complete, compressed source archive directly.
+The direct Kaggle save_kernel API sends one script body (kernel.py), not
+sibling source files. Therefore the bootstrap embeds this complete,
+compressed source archive directly.
 """
 from io import BytesIO
 from pathlib import Path

@@ -112,7 +112,7 @@ class CloudContinuationTests(unittest.TestCase):
                                       "WANDB_API_KEY": "synthetic-wandb-key",
                                       "UAV_JOB_STARTED_AT": "1"}), \
              patch.object(module.time, "monotonic", return_value=39600), \
-             patch.object(module, "run_kaggle", side_effect=AssertionError("No time left to submit")):
+             patch.object(module, "submit_kernel", side_effect=AssertionError("No time left to submit")):
             with self.assertRaises(TimeoutError):
                 module.submit_continuation(parent_spec(), learner_result(), Path(directory))
             self.assertEqual(json.loads((Path(directory) / "continuation.json").read_text())["status"], "failed")
@@ -287,24 +287,22 @@ class CloudContinuationTests(unittest.TestCase):
             return account.token
         with TemporaryDirectory() as directory:
             output = Path(directory)
-            def push(args, selected, **kwargs):
+            def push(spec, folder, selected, **kwargs):
                 self.assertIs(selected, account)
-                self.assertEqual(args[:2], ["kernels", "push"])
-                self.assertEqual(args[args.index("--accelerator") + 1], "NvidiaTeslaT4")
-                self.assertEqual(args[args.index("--timeout") + 1], "2700")
-                folder = Path(args[args.index("-p") + 1])
-                metadata = json.loads((folder / "kernel-metadata.json").read_text())
-                pushes.append(metadata)
-                self.assertTrue(metadata["enable_gpu"])
+                self.assertEqual(spec.get("accelerator", "NvidiaTeslaT4"), "NvidiaTeslaT4")
+                self.assertEqual(spec["timeout_seconds"], 2700)
+                self.assertFalse((folder / "kernel-metadata.json").exists())
+                self.assertTrue((folder / "kernel.py").is_file())
+                pushes.append(spec)
                 for file in folder.glob("*"):
                     self.assertNotIn(account.token, file.read_text())
                     self.assertNotIn(credentials.wandb_key, file.read_text())
-                return "Kernel version 1 successfully pushed. https://www.kaggle.com/code/owner/next-c01"
+                return "https://www.kaggle.com/code/owner/next-c01"
             with patch.object(module, "account_quotas", return_value=[
                     {"name": "selected", "ok": True, "remaining_hours": 1}]), \
                  patch.object(module, "verify_credential_dataset", side_effect=verify), \
                  patch.object(module, "verify_pipeline_credential_dataset", side_effect=launch_credential), \
-                 patch.object(module, "run_kaggle", side_effect=push):
+                 patch.object(module, "submit_kernel", side_effect=push):
                 manifest = module.submit_continuation(parent_spec(), learner_result(), output,
                                                      account=account, credentials=credentials)
             self.assertEqual(verifications, [("owner/private-wandb", False),
@@ -326,7 +324,7 @@ class CloudContinuationTests(unittest.TestCase):
             with self.subTest(quota=quota), TemporaryDirectory() as directory:
                 output = Path(directory)
                 with patch.object(module, "account_quotas", return_value=quota), \
-                     patch.object(module, "run_kaggle", side_effect=AssertionError("No GPU quota")):
+                     patch.object(module, "submit_kernel", side_effect=AssertionError("No GPU quota")):
                     manifest = module.submit_continuation(parent_spec(), learner_result(), output,
                                                           account=account, credentials=credentials)
                 self.assertEqual(manifest["status"], "waiting_for_quota")

@@ -134,7 +134,7 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(next_spec["state"], state)
         with TemporaryDirectory() as d, patch.object(m, "_owned_kernel_exists", return_value=True), \
              patch.object(m, "kernel_status", return_value="running"), \
-             patch.object(m, "run_kaggle", side_effect=AssertionError("overwrite controller")):
+             patch.object(m, "submit_kernel", side_effect=AssertionError("overwrite controller")):
             adopted = m.submit_controller(next_spec, Path(d), account, credentials)
         self.assertEqual(adopted["status"], "adopted")
         self.assertEqual(adopted["kernel_ref"], next_spec["kernel_ref"])
@@ -204,7 +204,7 @@ class ControllerTests(unittest.TestCase):
     def test_secret_in_nested_parent_is_rejected_before_submission(self):
         m, parent, account, credentials, spec = self.fixtures()
         spec["parent"]["accidental_secret"] = account.token
-        with TemporaryDirectory() as d, patch.object(m, "run_kaggle", side_effect=AssertionError("secret push")):
+        with TemporaryDirectory() as d, patch.object(m, "submit_kernel", side_effect=AssertionError("secret push")):
             with self.assertRaisesRegex(ValueError, "credentials"):
                 m.submit_controller(spec, Path(d), account, credentials)
 
@@ -248,7 +248,7 @@ class ControllerTests(unittest.TestCase):
              patch.object(m, "_owned_kernel_exists", return_value=False), \
              patch.object(continuation, "account_quotas", return_value=[{"name": account.name, "ok": True, "remaining_hours": 20}]), \
              patch.object(continuation, "verify_credential_dataset", side_effect=TimeoutError("credentials offline")), \
-             patch.object(continuation, "run_kaggle", side_effect=AssertionError("must not push")):
+             patch.object(continuation, "submit_kernel", side_effect=AssertionError("must not push")):
             state = deepcopy(spec["state"])
             with self.assertRaises(TimeoutError):
                 m.controller_step(spec, state, account, credentials, Path(d))
@@ -260,7 +260,7 @@ class ControllerTests(unittest.TestCase):
         m, parent, account, credentials, spec = self.fixtures()
         with TemporaryDirectory() as d, patch.object(m, "_owned_kernel_exists", return_value=True), \
              patch.object(m, "kernel_status", return_value="error"), \
-             patch.object(m, "run_kaggle", side_effect=AssertionError("overwrite failed successor")):
+             patch.object(m, "submit_kernel", side_effect=AssertionError("overwrite failed successor")):
             with self.assertRaisesRegex(RuntimeError, "terminal"):
                 m.submit_controller(spec, Path(d), account, credentials)
 

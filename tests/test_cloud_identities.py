@@ -34,13 +34,11 @@ def test_launch_names_and_tags_are_authoritative(algorithm, pql, full_gpu):
     def script(spec):
         captured.update(spec)
         return "pass\n"
-    def kaggle(arguments, selected, timeout=45):
-        assert arguments[:2] == ["kernels", "push"]
-        metadata = json.loads((Path(arguments[arguments.index("-p") + 1]) /
-                               "kernel-metadata.json").read_text())
-        assert len(metadata["id"]) <= 50
-        assert metadata["title"] == metadata["id"].split("/")[1].replace("-", " ")
-        return "https://www.kaggle.com/code/" + metadata["id"]
+    def submit(spec, folder, selected, timeout=50):
+        assert (Path(folder) / "kernel.py").is_file()
+        assert not (Path(folder) / "kernel-metadata.json").exists()
+        assert len(spec["kernel_ref"]) <= 50
+        return "https://www.kaggle.com/code/" + spec["kernel_ref"]
     with TemporaryDirectory() as folder, \
          patch.object(cli, "ROOT", Path(folder)), \
          patch.object(cli.subprocess, "check_output", side_effect=["", "a" * 40]), \
@@ -50,7 +48,7 @@ def test_launch_names_and_tags_are_authoritative(algorithm, pql, full_gpu):
          patch.object(cli, "verify_credential_dataset"), \
          patch.object(cli, "load_config", return_value=c), \
          patch.object(cli, "kernel_script", side_effect=script), \
-         patch.object(cli, "run_kaggle", side_effect=kaggle):
+         patch.object(cli, "submit_kernel", side_effect=submit):
         cli.launch(args, credentials)
     name = captured["runs"][algorithm]["name"]
     for required in ["TRAIN", algorithm.upper(), "PQL" if pql else "BASE",

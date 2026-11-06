@@ -134,19 +134,19 @@ class CPUHandoffTests(unittest.TestCase):
             def verify(*args, only_selected=False):
                 if bundled and only_selected:
                     raise CredentialFileSetError("Contains an unrelated HF credential")
-            def transport(args, account, **kwargs):
-                folder = Path(args[args.index("-p") + 1])
-                metadata = json.loads((folder / "kernel-metadata.json").read_text())
-                self.assertEqual(metadata["dataset_sources"], ["owner/wandb-private", "owner/private-launch"])
-                self.assertTrue(metadata["enable_gpu"])
-                return "Kernel version 1 successfully pushed. https://www.kaggle.com/code/owner/published-gpu-run"
+            def transport(spec, folder, account, **kwargs):
+                self.assertTrue((folder / "kernel.py").is_file())
+                self.assertFalse((folder / "kernel-metadata.json").exists())
+                self.assertEqual(spec["credential_dataset"], "owner/wandb-private")
+                self.assertEqual(spec["pipeline_credential_dataset"], "owner/private-launch")
+                return "https://www.kaggle.com/code/owner/published-gpu-run"
             with patch.object(cli, "ROOT", output), \
                  patch.object(cli, "account_quotas", return_value=[{"name": "alias", "ok": True, "remaining_hours": 30}]), \
                  patch.object(cli, "resolve_username", return_value="owner"), \
                  patch.object(cli, "verify_credential_dataset", side_effect=verify), \
                  patch.object(cli, "ensure_pipeline_dataset", create=True, return_value="owner/private-launch") as create_pipeline, \
                  patch.object(cli, "ensure_cpu_wandb_dataset", create=True, return_value="owner/wandb-cpu-only") as create_cpu, \
-                 patch.object(cli, "run_kaggle", side_effect=transport), \
+                 patch.object(cli, "submit_kernel", side_effect=transport), \
                  patch.object(cli.subprocess, "check_output", side_effect=["", "a" * 40]):
                 try:
                     result = cli.main(["--key-file", str(key), "launch", "--cpu-visualize",
@@ -237,17 +237,19 @@ class CPUHandoffTests(unittest.TestCase):
                 if args[:2] == ["datasets", "download"]:
                     Path(args[args.index("-p") + 1], "wandb_api_key.txt").write_text("secret-w")
                     return ""
-                self.assertEqual(args[:2], ["kernels", "push"])
-                self.assertNotIn("--accelerator", args)
+                raise AssertionError("Unexpected Kaggle CLI action")
+
+            def direct_submit(spec, folder, account, **kwargs):
                 self.assertEqual(json.loads((output / "job-result.json").read_text()), gpu_result())
-                folder = Path(args[args.index("-p") + 1])
-                payloads.append(json.loads((folder / "kernel-metadata.json").read_text()))
-                return "Kernel version 1 successfully pushed. https://www.kaggle.com/code/owner/train-example-cpu-visualize"
+                self.assertFalse((folder / "kernel-metadata.json").exists())
+                payloads.append({"enable_gpu": spec["stage"] not in {"visualize", "archive", "continuation-watch"},
+                                 "dataset_sources": [spec["credential_dataset"]]})
+                return "https://www.kaggle.com/code/owner/train-example-cpu-visualize"
 
             with patch.dict("os.environ", {"KAGGLE_API_TOKEN": "secret-k", "WANDB_API_KEY": "secret-w"}):
                 with patch.dict("sys.modules", {"kaggle.api.kaggle_api_extended": SimpleNamespace(KaggleApi=lambda: api)}):
                     with patch("uav_network.cloud.client.run_kaggle", side_effect=transport), \
-                         patch.object(module, "run_kaggle", side_effect=transport), \
+                         patch.object(module, "submit_kernel", side_effect=direct_submit), \
                          patch("uav_network.cloud.remote.subprocess.run", side_effect=AssertionError("GPU session must not render")):
                         result = finalize_runs(parent_spec(), [SimpleNamespace(returncode=0)], output)
             self.assertEqual(result, gpu_result())

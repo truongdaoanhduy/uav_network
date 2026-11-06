@@ -8,9 +8,9 @@ import subprocess
 from uuid import uuid4
 
 from ..configuration import load_config
-from .client import CredentialFileSetError, account_quotas, ensure_cpu_wandb_dataset, ensure_pipeline_dataset, kernel_status, pushed_kernel_ref, resolve_username, run_kaggle, verify_credential_dataset
+from .client import CredentialFileSetError, account_quotas, ensure_cpu_wandb_dataset, ensure_pipeline_dataset, kernel_status, pushed_kernel_ref, resolve_username, run_kaggle, submit_kernel, verify_credential_dataset
 from .credentials import load_credentials, select_account
-from .kernel import kernel_metadata, kernel_script, serialize_kernel_metadata, validate_metadata_extras
+from .kernel import kernel_script, validate_metadata_extras
 from .identities import authoritative_tags, kernel_slug, run_name
 from .acceleration import apply_measured_acceleration_policy
 
@@ -177,10 +177,8 @@ def launch(args, credentials):
     folder = ROOT / "outputs/kaggle" / slug
     folder.mkdir(parents=True, exist_ok=False)
     (folder / "kernel.py").write_text(kernel_script(spec))
-    (folder / "kernel-metadata.json").write_text(serialize_kernel_metadata(spec, metadata=kernel_metadata(spec)))
-    # The timeout and accelerator are explicit CLI inputs, not assumptions about RTX naming.
-    response = run_kaggle(["kernels", "push", "-p", str(folder), "--accelerator", args.accelerator,
-                           "--timeout", str(timeout_seconds)], account, timeout=50)
+    # API request fields are assembled in memory; there is no kernel-metadata.json.
+    response = submit_kernel(spec, folder, account, timeout=50)
     actual_ref = pushed_kernel_ref(response)
     manifest = {**spec, "kernel_ref": actual_ref, "kernel_url": f"https://www.kaggle.com/code/{actual_ref}",
                 "wandb_urls": {a: f"https://wandb.ai/{spec['entity']}/{spec['project']}/runs/{r['id']}" for a, r in runs.items()},

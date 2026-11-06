@@ -129,7 +129,7 @@ def _launch_canonical(tmp_path, algorithm, pql, extra_overrides=None, stage="tra
          patch.object(cli, "resolve_username", return_value="owner"), \
          patch.object(cli, "verify_credential_dataset"), \
          patch.object(cli, "kernel_script", return_value="pass\n"), \
-         patch.object(cli, "run_kaggle", return_value="https://www.kaggle.com/code/owner/test-kernel"):
+         patch.object(cli, "submit_kernel", return_value="https://www.kaggle.com/code/owner/test-kernel"):
         return cli.launch(args, credentials)
 
 

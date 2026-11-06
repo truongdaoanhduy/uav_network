@@ -11,9 +11,9 @@ import time
 from uuid import uuid4
 
 from ..configuration import load_config
-from .client import record_submission_phase, account_quotas, kernel_status, pushed_kernel_ref, run_kaggle, verify_credential_dataset, verify_pipeline_credential_dataset
+from .client import record_submission_phase, account_quotas, kernel_status, pushed_kernel_ref, run_kaggle, submit_kernel, verify_credential_dataset, verify_pipeline_credential_dataset
 from .credentials import Account, Credentials
-from .kernel import kernel_metadata, kernel_script, serialize_kernel_metadata
+from .kernel import kernel_script
 
 
 MAX_CONSECUTIVE_RECOVERIES = 3
@@ -280,13 +280,10 @@ def submit_continuation(parent, results, output, account=None, credentials=None)
         folder = output / "continuation-kernel"
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "kernel.py").write_text(kernel_script(spec))
-        (folder / "kernel-metadata.json").write_text(serialize_kernel_metadata(spec, metadata=kernel_metadata(spec)))
         check_submission_deadline(parent)
         manifest["failure_reason"] = "submission_failed"
         record_submission_phase(output, "gpu", spec["kernel_ref"], "pushing")
-        response = run_kaggle(["kernels", "push", "-p", str(folder), "--accelerator",
-                               spec.get("accelerator", "NvidiaTeslaT4"), "--timeout", str(seconds)],
-                              account, timeout=50)
+        response = submit_kernel(spec, folder, account, timeout=50)
         ref = pushed_kernel_ref(response)
         if ref.split("/", 1)[0] != username:
             raise RuntimeError("Kaggle continuation submission returned a different account")
