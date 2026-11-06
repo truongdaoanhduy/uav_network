@@ -147,8 +147,9 @@ def build_visualization_spec(parent, results):
         raise ValueError("CPU visualization needs at least one completed learner checkpoint")
     from .continuation import kernel_ref_for_segment
     cpu_ref = kernel_ref_for_segment(parent.get("root_kernel_ref", parent["kernel_ref"]), 0, cpu=True)
-    runs = {a: {"id": uuid4().hex[:8],
-                "name": related_run_name(parent["runs"][a]["name"], "EVALCPU", uuid4().hex[:6])}
+    run_ids = {a: uuid4().hex[:8] for a in artifacts}
+    runs = {a: {"id": run_ids[a],
+                "name": related_run_name(parent["runs"][a]["name"], "EVALCPU", run_ids[a])}
             for a in artifacts}
     return {"stage": "visualize", "runs": runs,
             "config": parent.get("config"), "overrides": parent.get("overrides", []),

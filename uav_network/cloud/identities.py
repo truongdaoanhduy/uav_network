@@ -97,4 +97,11 @@ def related_run_name(root_name, stage, suffix):
         if root_name.startswith(prefix):
             root_name = root_name[len(prefix):]
             break
+    # Do not duplicate the parent's W&B ID inside the CPU/controller run title.
+    match = re.fullmatch(
+        r"((?:MASAC|MATD3)-(?:BASE|PQL)-(?:SH|IND|AS|CS)(?:-VEC)?-S\d+)-[0-9a-f]{8}",
+        root_name, re.I)
+    if match:
+        label = "CPU" if stage.upper() == "EVALCPU" else stage.upper()
+        return f"{label}-{match.group(1)}-{suffix}"
     return f"{stage}-{root_name}-{suffix}"
