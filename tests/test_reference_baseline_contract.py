@@ -246,8 +246,9 @@ def test_reference_profile_preserves_common_uav_scenario_and_reward():
     }
 
 
-def test_reference_discrete_entropy_target_uses_fixed_source_action_count(monkeypatch):
-    """BenchMARL/TorchRL auto-target uses num_actions, not the per-state mask cardinality."""
+@pytest.mark.parametrize("mask_aware", [False, True], ids=["reference", "mask-aware"])
+def test_discrete_entropy_target_respects_selected_profile(monkeypatch, mask_aware):
+    """The mask-aware variant updates legal choices and holds forced silence steady."""
     import math
     import types
     import torch
@@ -255,8 +256,10 @@ def test_reference_discrete_entropy_target_uses_fixed_source_action_count(monkey
     from uav_network.algorithms.masac import MASAC
     from uav_network.environment.observations import observation_dim, state_dim
 
-    c = load_config('configs/comparison-reference-masac-matd3-xyz-sensing.yaml')
-    assert c.masac.mask_aware_discrete_entropy_target is False
+    c = load_config(
+        XYZ_BASELINES[0],
+        [f"masac.mask_aware_discrete_entropy_target={str(mask_aware).lower()}"],
+    )
     c.world.num_uavs = 2
     c.world.num_targets = 2
     c.world.num_obstacles = 1
@@ -269,8 +272,9 @@ def test_reference_discrete_entropy_target_uses_fixed_source_action_count(monkey
     b, n, k = 4, c.world.num_uavs, c.world.num_uavs + 1
     obs = torch.zeros(b, n, observation_dim(c))
     obs[:, :, 9] = 1
-    # Agent 0 has all K destinations valid; agent 1 only has silent valid.
+    # Agent 0 has two or three legal destinations. Agent 1 can only stay silent.
     obs[:, 0, -k:] = 1
+    obs[::2, 0, -1] = 0
     obs[:, 1, -k] = 1
     batch = {
         'observation': obs, 'next_observation': obs.clone(),
@@ -295,8 +299,8 @@ def test_reference_discrete_entropy_target_uses_fixed_source_action_count(monkey
     before = learner.log_alpha_discrete.detach().clone()
     learner.update_actor(batch, collect_metrics=False)
 
-    # Source-style target is identical for both agents: weight * log(total K).
-    target = c.masac.target_discrete_entropy_ratio * math.log(k)
-    actual_entropy = torch.tensor([math.log(k), 0.0])
+    actual_entropy = torch.tensor([(math.log(2) + math.log(3)) / 2, 0.0])
+    target_entropy = actual_entropy if mask_aware else math.log(k)
+    target = c.masac.target_discrete_entropy_ratio * target_entropy
     expected = before - 0.1 * (actual_entropy - target)
     torch.testing.assert_close(learner.log_alpha_discrete, expected, rtol=0, atol=1e-6)

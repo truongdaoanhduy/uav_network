@@ -190,6 +190,24 @@ A result may be labelled `REFERENCE_BASELINE` only if its resolved config passes
 `tests/test_reference_baseline_contract.py`. Any algorithmic modification must use a new
 variant name and must not silently replace this profile.
 
+## MASAC MASKAWARE
+
+The fixed-target reference YAML remains available as a control. The separate
+MASAC MASKAWARE variant uses the same YAML with
+`--set masac.mask_aware_discrete_entropy_target=true`. For each observation it
+sets the discrete target to `0.2 * log(K)`, where `K` counts valid destinations
+including silence. If a UAV has only silence across its batch, its discrete
+temperature stays at its previous value. This addresses the unattainable
+positive target on forced-silence transitions observed in run `2734dbf3`.
+
+The Kaggle UI notebooks apply the override for both BASE and PQL and include
+`MASKAWARE` in their W&B run names. To reproduce their NOCHUNK settings, also
+set `runtime.algorithm=masac` and `runtime.critic_chunk_size=0`, with
+`pql.enabled=false` for BASE or `pql.enabled=true` for PQL. Use a fresh
+checkpoint lineage for each variant. Evaluate against the fixed-target
+control on the same scenarios, seeds, and environment-step budgets. Report
+the override alongside delivery, search, and return.
+
 ## Verification sources inspected on 2026-11-03
 - Ackermann author source revision: `fd6c7d0df4fc4effd4e0fa11abdbc7d12d8f01a1`.
 - `matd3/matd3/trainer/matd3.py`: replay peers, independent batch-mean critics, `0.5` clipping.
