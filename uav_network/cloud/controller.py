@@ -19,7 +19,7 @@ from .client import record_submission_phase, kernel_status, pushed_kernel_ref, r
 from .continuation import _owned_kernel_exists, kernel_ref_for_segment, next_stage, submit_continuation
 from .credentials import Account, Credentials
 from .identities import related_run_name
-from .kernel import kernel_metadata, kernel_script
+from .kernel import kernel_metadata, kernel_script, serialize_kernel_metadata
 from .visualize import build_visualization_spec, submit_visualization
 
 ACTIVE = {"running", "pending", "queued"}
@@ -102,7 +102,10 @@ def submit_controller(spec, output, account, credentials):
     folder.mkdir(parents=True, exist_ok=True)
     atomic_json(folder / "job.json", spec)
     (folder / "kernel.py").write_text(kernel_script(spec))
-    atomic_json(folder / "kernel-metadata.json", kernel_metadata(spec))
+    metadata_file = folder / "kernel-metadata.json"
+    metadata_tmp = metadata_file.with_suffix(".json.tmp")
+    metadata_tmp.write_text(serialize_kernel_metadata(spec, metadata=kernel_metadata(spec)))
+    metadata_tmp.replace(metadata_file)
     record_submission_phase(output, "controller", spec["kernel_ref"], "pushing")
     response = run_kaggle(["kernels", "push", "-p", str(folder), "--timeout",
                            str(spec["timeout_seconds"])], account, timeout=50)

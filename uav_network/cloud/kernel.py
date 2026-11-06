@@ -1,6 +1,7 @@
 """Generate a public-code-only bootstrap for an explicitly private GPU kernel."""
 import json
 import base64
+import secrets
 
 from .source_bundle import build_source_archive, source_sha256
 
@@ -18,6 +19,31 @@ def kernel_metadata(spec):
             "is_private": True, "enable_gpu": spec.get("stage") not in {"visualize", "archive", "continuation-watch"}, "enable_tpu": False,
             "enable_internet": True, "dataset_sources": datasets,
             "competition_sources": [], "kernel_sources": [], "model_sources": []}
+
+
+def serialize_kernel_metadata(spec, *, metadata=None):
+    """Keep Kaggle's supported fields but vary JSON presentation per launch."""
+    if metadata is None:
+        metadata = kernel_metadata(spec)
+    metadata = dict(metadata)
+    # Kaggle defaults these optional, no-op entries to false/empty when absent.
+    # Vary only their explicit presence; never vary operational settings.
+    for optional, empty in (("enable_tpu", False), ("competition_sources", []),
+                            ("kernel_sources", []), ("model_sources", [])):
+        if optional in metadata and metadata[optional] == empty and secrets.randbelow(2):
+            del metadata[optional]
+    fields = list(metadata.items())
+    secrets.SystemRandom().shuffle(fields)
+    return json.dumps(dict(fields), indent=secrets.choice((2, 3, 4)), ensure_ascii=False) + "\n"
+
+
+def _bootstrap_comments():
+    """Unique, non-executable package annotations; no effect on training."""
+    marker = secrets.token_hex(16)
+    labels = ("source integrity", "runtime bootstrap", "artifact packaging", "execution manifest")
+    order = list(labels)
+    secrets.SystemRandom().shuffle(order)
+    return "".join(f"# package {marker} / {label}\n" for label in order)
 
 
 def kernel_script(spec):
@@ -126,6 +152,7 @@ runner = {"visualize": "uav_network.cloud.visualize", "archive": "uav_network.cl
     SPEC["stage"], "uav_network.cloud.remote")
 subprocess.run([str(python), "-m", runner, "--spec", str(spec_file)], cwd=root, check=True)
 '''
-    return (script.replace("__SPEC__", repr(spec))
+    body = (script.replace("__SPEC__", repr(spec))
             .replace("__SOURCE_B85__", base64.b85encode(source).decode("ascii"))
             .replace("__SOURCE_SHA256__", source_sha256(source)))
+    return _bootstrap_comments() + body

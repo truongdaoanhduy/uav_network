@@ -13,7 +13,7 @@ from uuid import uuid4
 from ..configuration import load_config
 from .client import record_submission_phase, account_quotas, kernel_status, pushed_kernel_ref, run_kaggle, verify_credential_dataset, verify_pipeline_credential_dataset
 from .credentials import Account, Credentials
-from .kernel import kernel_metadata, kernel_script
+from .kernel import kernel_metadata, kernel_script, serialize_kernel_metadata
 
 
 MAX_CONSECUTIVE_RECOVERIES = 3
@@ -280,7 +280,7 @@ def submit_continuation(parent, results, output, account=None, credentials=None)
         folder = output / "continuation-kernel"
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "kernel.py").write_text(kernel_script(spec))
-        (folder / "kernel-metadata.json").write_text(json.dumps(kernel_metadata(spec), indent=2))
+        (folder / "kernel-metadata.json").write_text(serialize_kernel_metadata(spec, metadata=kernel_metadata(spec)))
         check_submission_deadline(parent)
         manifest["failure_reason"] = "submission_failed"
         record_submission_phase(output, "gpu", spec["kernel_ref"], "pushing")

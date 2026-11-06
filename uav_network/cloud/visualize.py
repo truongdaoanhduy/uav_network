@@ -14,7 +14,7 @@ from .identities import related_run_name
 
 from .client import record_submission_phase, pushed_kernel_ref, run_kaggle, verify_credential_dataset
 from .credentials import Account, Credentials
-from .kernel import kernel_metadata, kernel_script
+from .kernel import kernel_metadata, kernel_script, serialize_kernel_metadata
 
 # Lazy, patchable hooks keep GitHub orchestration free of the torch dependency.
 class _LazyTorch:
@@ -194,7 +194,7 @@ def submit_visualization_spec(spec, output, account, credentials):
     folder = Path(output) / "cpu-kernel"
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "kernel.py").write_text(kernel_script(spec))
-    (folder / "kernel-metadata.json").write_text(json.dumps(kernel_metadata(spec), indent=2))
+    (folder / "kernel-metadata.json").write_text(serialize_kernel_metadata(spec, metadata=kernel_metadata(spec)))
     record_submission_phase(output, "cpu", spec["kernel_ref"], "pushing")
     response = run_kaggle(["kernels", "push", "-p", str(folder), "--timeout", str(spec["timeout_seconds"])], account, timeout=50)
     ref = pushed_kernel_ref(response)

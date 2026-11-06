@@ -10,7 +10,7 @@ from uuid import uuid4
 from ..configuration import load_config
 from .client import CredentialFileSetError, account_quotas, ensure_cpu_wandb_dataset, ensure_pipeline_dataset, kernel_status, pushed_kernel_ref, resolve_username, run_kaggle, verify_credential_dataset
 from .credentials import load_credentials, select_account
-from .kernel import kernel_metadata, kernel_script
+from .kernel import kernel_metadata, kernel_script, serialize_kernel_metadata
 from .identities import authoritative_tags, kernel_slug, run_name
 from .acceleration import apply_measured_acceleration_policy
 
@@ -170,7 +170,7 @@ def launch(args, credentials):
     folder = ROOT / "outputs/kaggle" / slug
     folder.mkdir(parents=True, exist_ok=False)
     (folder / "kernel.py").write_text(kernel_script(spec))
-    (folder / "kernel-metadata.json").write_text(json.dumps(kernel_metadata(spec), indent=2))
+    (folder / "kernel-metadata.json").write_text(serialize_kernel_metadata(spec, metadata=kernel_metadata(spec)))
     # The timeout and accelerator are explicit CLI inputs, not assumptions about RTX naming.
     response = run_kaggle(["kernels", "push", "-p", str(folder), "--accelerator", args.accelerator,
                            "--timeout", str(timeout_seconds)], account, timeout=50)
