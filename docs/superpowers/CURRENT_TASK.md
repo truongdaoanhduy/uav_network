@@ -1,3 +1,15 @@
+# 2026-11-06 — Prepared MASAC BASE/PQL NOCHUNK Kaggle UI notebooks
+
+User requested two **manual Kaggle UI** training notebooks, one MASAC BASE and one MASAC PQL, both with `runtime.critic_chunk_size=0`; do not launch either via Kaggle API.
+
+- `~/Downloads/MASAC_BASE_NOCHUNK_Kaggle_UI.ipynb` and `~/Downloads/MASAC_PQL_NOCHUNK_Kaggle_UI.ipynb`; copies under `outputs/kaggle/` with the same names.
+- Both embed source generated from Git HEAD `4c9f67ca5c20`, with 412 source files and checksum verification; each has three cells: instructions, CUDA/Secrets/NOTEBOOK_REF preflight, and the entire embedded-source training bootstrap.
+- BASE/PQL resolve `pql.enabled=false/true` respectively; matched shared actor/critic, seed44, 4096 envs, batch8192, 1500 steps, 20k episodes, 2x T4, FP32, no compile/AMP, training-only, separate W&B run identities, HF checkpoints. Both override chunk to zero without modifying canonical YAML.
+- Validation completed locally: nbformat.validate, Python compile for both code cells, full 412-file embedded archive SHA256, config resolution and mode assertions. **No Kaggle training or CUDA memory test performed**, and account-specific Kaggle Secrets plus real NOTEBOOK_REF must be provided by user.
+- Explicit user workflow: sign in to two distinct Kaggle UI accounts, create private notebooks, import one per account, enable T4x2 + Internet, authorize `WANDB_API_KEY` and `HF_TOKEN`, replace NOTEBOOK_REF with actual owner/slug, preflight, then Save & Run All.
+
+---
+
 # 2026-11-06 — Kaggle MATD3 BASE/PQL NOCHUNK dual launch
 
 User explicitly requested MATD3 BASE and MATD3 PQL training on two available Kaggle accounts, with all critic chunking disabled. At 2026-11-06T09:42:51+00:00 UTC the cloud launcher accepted both submissions from source commit `48a5ea2` on `experiment/hfbest-embedded-source-steps1500-20261105`:
