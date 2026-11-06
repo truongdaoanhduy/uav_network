@@ -1,3 +1,20 @@
+# 2026-11-06 — MASAC entropy source verification and MATD3 reuse
+
+Checked the learner at `715992bd66fb422a68767ea86fb432aaea5a26a4` and both
+MASKAWARE notebook payloads. Both continuous and discrete temperatures
+are learned with Adam on log-alpha. The notebooks override the discrete
+target using valid destination counts. Kela, Liu, and Valcarce use the
+same target form in arXiv:2411.08529v3, Appendix D.2, Eq. (17). The
+provenance now identifies the paper, the BenchMARL coefficient and the
+TorchRL loss separately.
+
+MATD3 BASE `b358fc3f` and PQL `30bdc182` used source `48a5ea2`. The source
+diff confirms identical learner, environment, training loop and reference
+YAML through `715992b`. Reuse both runs as controls for the fresh MASAC
+comparison. The source verification changes documentation only.
+
+---
+
 # 2026-11-06 — MASAC NOCHUNK mask-aware entropy fix
 
 Enabled `masac.mask_aware_discrete_entropy_target=true` in the MASAC BASE and

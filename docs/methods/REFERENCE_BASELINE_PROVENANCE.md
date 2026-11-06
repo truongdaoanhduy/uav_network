@@ -200,6 +200,15 @@ including silence. If a UAV has only silence across its batch, its discrete
 temperature stays at its previous value. This addresses the unattainable
 positive target on forced-silence transitions observed in run `2734dbf3`.
 
+Kela, Liu, and Valcarce use the same per-state target form in Eq. (17) of
+[From Simulation to Practice](https://arxiv.org/html/2411.08529v3), Appendix D.2,
+for masked discrete SAC in radio scheduling. In this UAV variant the
+coefficient `0.2` comes from the
+[BenchMARL MASAC configuration](https://github.com/facebookresearch/BenchMARL/blob/main/benchmarl/conf/algorithm/masac.yaml).
+The learner still optimizes each temperature in log space using the
+[TorchRL loss form](https://github.com/pytorch/rl/blob/main/torchrl/objectives/sac.py).
+The singleton-batch guard is specific to this implementation.
+
 The Kaggle UI notebooks apply the override for both BASE and PQL and include
 `MASKAWARE` in their W&B run names. To reproduce their NOCHUNK settings, also
 set `runtime.algorithm=masac` and `runtime.critic_chunk_size=0`, with
