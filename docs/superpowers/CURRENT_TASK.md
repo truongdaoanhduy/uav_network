@@ -76,6 +76,23 @@ The existing W&B personal view was updated in place. A historical panel computes
 
 Next controlled test uses the original PQL scale and matched transition budget. The only objective override for the experimental arm is `--set reward.shield_intervention=0.0`. A separate safety-filter comparison can evaluate 3D DWA or a predictive safety filter on the same geometry and report mission, post-filter violations, battery and throughput. Warp XYZ explicitly rejects `dynamic_window` today, so a 3D DWA comparison needs its own implementation on that backend.
 
+Follow-up at `0d9ccc5` re-read the first 2,000 exact episode records in each
+run. All recorded `battery_exhausted`. In BASE the largest difference
+between the logged return and its summed reward fields was 0.0000116.
+A fresh one-versus-six depleted UAV smoke on the Warp CPU training
+kernel reproduced the battery stop at step 1 for six. The stopping code
+was already present at launch commit `48a5ea2`. The energy and tracking
+checks passed 15 tests and four subtests.
+
+The scalar XYZ environment dispatches `dynamic_window`. Warp XYZ dispatches
+the CBF projection and has no dynamic window search branch. A safety
+comparison on Warp requires a backend implementation of the candidate
+filter. Candidate references include [Fox et al. on dynamic
+window](https://publications.ri.cmu.edu/the-dynamic-window-approach-to-collision-avoidance)
+and [Wabersich and Zeilinger on predictive safety
+filters](https://doi.org/10.1016/j.automatica.2021.109597).
+The current MATD3 runs remain the controls for any separate safety study.
+
 Local diagnostic scripts and per-seed evidence are in `/tmp/uav-matd3-audit-20261106` on the user machine. Figures are `MATD3_early_episode_audit.png` and `MATD3_mission_score_and_holdout.png`.
 
 ---
