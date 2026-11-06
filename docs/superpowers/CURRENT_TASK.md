@@ -1,3 +1,37 @@
+# 2026-11-06 — Kaggle API new-run names switched to UI-style notebook IDs
+
+User explicitly requested that future Kaggle API training launches stop encoding
+algorithm/stage/config/timestamp into the Kaggle notebook title/slug, and use
+the same anonymous name style as a freshly created Kaggle UI notebook.
+
+**Implemented:** Ordinary direct API launches now generate a fresh
+`notebook<10 lowercase hex>` slug per launch, e.g. `notebookb97fd08763`.
+The SDK submission `new_title` already mirrors the slug. W&B run names,
+experiment settings, scientific seed, source bundle, the GPU T4x2 request,
+checkpoint behavior and training objective have not changed. The Kaggle API
+payload remains the existing Python `script` kernel/embedded bootstrap; the
+change is the visible notebook identity, not conversion to editable `.ipynb`
+cells or update-in-place versioning. Prior Kaggle notebooks remain untouched.
+
+**Safety-preserving exception:** `--auto-continue` GitHub-managed lineages
+retain the reserved `gh-` prefix. GitHub's ownership filter must not mistake
+any user's ordinary `notebookXXXXXXXXXX` for a managed workflow. Derived
+continuation/CPU/controller names also remain unchanged; do not rename
+existing linked cloud jobs without a dedicated lineage migration.
+
+**Source commit:** `ee314033b145ae56ceeee8936e52e63dc81103ed` on
+`experiment/hfbest-embedded-source-steps1500-20261105`.
+Tests written RED first: pre-change launch identity failed because it still
+included `tra-g3-...`. After the change, 87 tests + 29 subtests passed in
+focused API/continuation/supervisor checks; expanded cloud suite: **126 passed,
+31 subtests passed**. `git diff --check` clean. Offline tests only; no Kaggle
+kernel submitted and no active run modified.
+
+**Next:** Upon explicit authorization for another training launch, the new
+name is produced automatically. No need to re-upload/update earlier jobs.
+
+---
+
 # 2026-11-06 — Real matched chunk2048/shared implementation complete
 
 User explicitly requested actual2048 critic chunks for BOTH learners, shared
