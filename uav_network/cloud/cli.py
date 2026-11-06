@@ -89,7 +89,7 @@ def launch(args, credentials):
         raise ValueError("CPU visualization requires tracking.log_checkpoint=true for checkpoint transfer")
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-    token = uuid4().hex[:6]
+    token = uuid4().hex[:10]  # Kaggle UI-style notebook<10hex>; unique on each API launch.
     algorithms = ("masac", "matd3") if args.algorithm == "both" else (args.algorithm,)
     inputs = parse_warm_start_artifacts(args.warm_start_artifact, algorithms)
     training_mode = "pql" if diagnostic or config.pql.enabled else "base"

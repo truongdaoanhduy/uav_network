@@ -55,6 +55,16 @@ def run_name(config, algorithm, mode, stage, suffix):
 
 
 def kernel_slug(owner, config, algorithm, mode, stage, stamp, token, external_supervisor=False):
+    # Ordinary API launches use the same anonymous notebook-style names as Kaggle UI.
+    # Keep the reserved gh- prefix for the existing GitHub continuation reconciler:
+    # it deliberately must not adopt unrelated user notebooks.
+    if not external_supervisor:
+        if not re.fullmatch(r"[0-9a-f]{10}", token):
+            raise ValueError("UI-style Kaggle notebook ID must contain ten lowercase hex digits")
+        slug = "notebook" + token
+        if len(owner) + 1 + len(slug) > 50:
+            raise ValueError("Kaggle notebook reference exceeds 50 characters")
+        return slug
     layout = replay_layout(config)
     layout = "h" + layout.split("-")[1][1:] if layout.startswith("HYBRID") else layout.lower()
     marker = "gh-" if external_supervisor else ""

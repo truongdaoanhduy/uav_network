@@ -1,5 +1,6 @@
-"""Cloud consumers must identify algorithm, replay layout and generator at a glance."""
+"""Cloud notebooks use UI-style IDs while W&B retains scientific identities."""
 import json
+import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -56,7 +57,7 @@ def test_launch_names_and_tags_are_authoritative(algorithm, pql, full_gpu):
     assert "-SH-" in name if getattr(c, algorithm).share_actor_parameters and getattr(c, algorithm).share_critic_parameters else "-IND-" in name
     assert len(name) <= 38
     assert "HYBRID" not in name and "E4096" not in name and "B8192" not in name
-    assert algorithm in captured["kernel_ref"]
+    assert re.fullmatch(r"owner/notebook[0-9a-f]{10}", captured["kernel_ref"])
     actual_tags = json.loads(next(x.split("=",1)[1] for x in captured["overrides"]
                                  if x.startswith("tracking.tags=")))
     if full_gpu:
@@ -137,9 +138,12 @@ def test_github_supervised_kernel_slug_has_reserved_marker_and_fits_limit():
                        "20261027-101530", "abcdef", external_supervisor=True)
     assert slug.startswith("gh-")
     assert len(owner + "/" + slug) <= 50
-    legacy = kernel_slug(owner, c, "masac", "base", "train",
-                         "20261027-101530", "abcdef")
-    assert not legacy.startswith("gh-")
+    ui = kernel_slug(owner, c, "masac", "base", "train",
+                     "20261027-101530", "b97fd08763")
+    assert ui == "notebookb97fd08763"
+    assert not ui.startswith("gh-")
+    assert kernel_slug(owner, c, "matd3", "pql", "train",
+                       "20261027-101531", "abc123de45") == "notebookabc123de45"
 
 @pytest.mark.parametrize(
     "share_actor,share_critic,marker",

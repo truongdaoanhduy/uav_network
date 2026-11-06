@@ -39,6 +39,14 @@ def test_direct_request_has_gpu_t4x2_private_network_and_credentials_without_met
     assert sorted(p.name for p in tmp_path.iterdir()) == ["kernel.py"]
 
 
+def test_direct_request_ui_style_notebook_identity(tmp_path):
+    job = _job(tmp_path, ref="owner/notebookb97fd08763")
+    request = prepare_save_request(job, request_type=FakeRequest)
+    assert request.slug == "owner/notebookb97fd08763"
+    assert request.new_title == "notebookb97fd08763"
+    assert request.kernel_type == "script"  # Only rename; keep proven bootstrap execution path.
+
+
 def test_cpu_submit_does_not_request_gpu_shape(tmp_path):
     job = _job(tmp_path, stage="visualize")
     request = prepare_save_request(job, request_type=FakeRequest)
