@@ -50,8 +50,8 @@ def run_kaggle(args, account, timeout=45):
 
 
 
-def submit_kernel(spec, folder, account, timeout=50):
-    """Submit a private Kaggle script directly: no kernel-metadata.json or CLI push."""
+def prepare_submit_job(spec, folder):
+    """Build nonsecret fields for a direct Kaggle API call; no metadata file."""
     stage = spec["stage"]
     data_sources = [spec["credential_dataset"]]
     if spec.get("storage_credential_dataset"):
@@ -68,6 +68,12 @@ def submit_kernel(spec, folder, account, timeout=50):
         "timeout_seconds": int(spec.get("timeout_seconds", 39600)),
         "accelerator": spec.get("accelerator", "NvidiaTeslaT4"),
     }
+    return job
+
+
+def submit_kernel(spec, folder, account, timeout=50):
+    """Submit a private Kaggle script directly: no kernel-metadata.json or CLI push."""
+    job = prepare_submit_job(spec, folder)
     if not Path(job["code_file"]).is_file():
         raise FileNotFoundError("Generated kernel.py was not found")
     env = os.environ.copy()

@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from uav_network.cloud.kernel import kernel_metadata
+from uav_network.cloud.client import prepare_submit_job
 from uav_network.cloud.remote import finalize_runs
 
 
@@ -30,15 +30,16 @@ class CPUHandoffTests(unittest.TestCase):
     def test_generated_validation_child_respects_kaggle_title_limit(self):
         parent = parent_spec()
         parent["kernel_ref"] = "owner/uavnet-validate-20261014-004459-5478ff"
-        metadata = kernel_metadata(self.module().build_visualization_spec(parent, gpu_result()))
-        self.assertLessEqual(len(metadata["title"]), 50)
-        self.assertEqual(metadata["title"].replace(" ", "-"), metadata["id"].split("/")[1])
+        child = self.module().build_visualization_spec(parent, gpu_result())
+        job = prepare_submit_job(child, "/tmp")
+        self.assertLessEqual(len(job["kernel_ref"]), 50)
+        self.assertEqual(job["kernel_ref"].split("/")[1], child["kernel_ref"].split("/")[1])
 
     def test_cpu_child_uses_its_clean_wandb_dataset(self):
         parent = parent_spec()
         parent["cpu_credential_dataset"] = "owner/wandb-cpu-only"
         child = self.module().build_visualization_spec(parent, gpu_result())
-        self.assertEqual(kernel_metadata(child)["dataset_sources"], ["owner/wandb-cpu-only"])
+        self.assertEqual(prepare_submit_job(child, "/tmp")["dataset_sources"], ["owner/wandb-cpu-only"])
 
     def test_cpu_submission_rejects_wandb_dataset_with_unrelated_secrets(self):
         module = self.module()
@@ -181,11 +182,9 @@ class CPUHandoffTests(unittest.TestCase):
         self.assertEqual(child["stage"], "visualize")
         self.assertEqual(child["training_status"]["masac"]["stop_reason"], "time_budget")
         self.assertFalse(child["training_status"]["masac"]["episode_budget_complete"])
-        metadata = kernel_metadata(child)
-        self.assertFalse(metadata["enable_gpu"])
-        self.assertFalse(metadata["enable_tpu"])
-        self.assertTrue(metadata["is_private"])
-        self.assertEqual(metadata["dataset_sources"], ["owner/wandb-private"])
+        job = prepare_submit_job(child, "/tmp")
+        self.assertFalse(job["enable_gpu"])
+        self.assertEqual(job["dataset_sources"], ["owner/wandb-private"])
 
     def test_budgeted_cpu_handoff_requires_all_episode_completion_evidence(self):
         parent = parent_spec(); parent["requested_episodes"] = 20000

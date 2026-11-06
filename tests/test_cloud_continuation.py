@@ -146,11 +146,11 @@ class CloudContinuationTests(unittest.TestCase):
         self.assertNotEqual(child["runs"]["masac"]["id"], parent["runs"]["masac"]["id"])
         self.assertIn("MASAC-base", child["runs"]["masac"]["name"])
         self.assertNotEqual(child["runs"]["masac"]["name"], parent["runs"]["masac"]["name"])
-        from uav_network.cloud.kernel import kernel_metadata, kernel_script
-        metadata, script = kernel_metadata(child), kernel_script(child)
-        self.assertTrue(metadata["enable_gpu"])
-        self.assertTrue(metadata["is_private"])
-        self.assertEqual(metadata["dataset_sources"], ["owner/private-wandb", "owner/private-hf", "owner/private-launch"])
+        from uav_network.cloud.client import prepare_submit_job
+        from uav_network.cloud.kernel import kernel_script
+        job, script = prepare_submit_job(child, "/tmp"), kernel_script(child)
+        self.assertTrue(job["enable_gpu"])
+        self.assertEqual(job["dataset_sources"], ["owner/private-wandb", "owner/private-hf", "owner/private-launch"])
         self.assertIn(parent["commit"], script)
         self.assertIn('SPEC["commit"]', script)
 

@@ -11,7 +11,8 @@ from unittest.mock import patch
 
 from test_cloud_continuation import parent_spec, learner_result
 from uav_network.cloud.credentials import Account, Credentials
-from uav_network.cloud.kernel import kernel_metadata, kernel_script
+from uav_network.cloud.client import prepare_submit_job
+from uav_network.cloud.kernel import kernel_script
 
 
 class ControllerTests(unittest.TestCase):
@@ -31,10 +32,9 @@ class ControllerTests(unittest.TestCase):
 
     def test_legacy_controller_stage_no_longer_selects_controller_runner(self):
         m, parent, account, credentials, spec = self.fixtures()
-        metadata = kernel_metadata(spec)
-        self.assertFalse(metadata["enable_gpu"])
-        self.assertTrue(metadata["is_private"])
-        self.assertEqual(set(metadata["dataset_sources"]),
+        job = prepare_submit_job(spec, "/tmp")
+        self.assertFalse(job["enable_gpu"])
+        self.assertEqual(set(job["dataset_sources"]),
                          {"owner/private-cpu-wandb", "owner/private-launch"})
         source = ast.parse(kernel_script(spec))
         env = {}
