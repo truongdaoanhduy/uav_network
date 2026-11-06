@@ -1,3 +1,22 @@
+# 2026-11-06 — MATD3 mission score, paired holdout and safety audit
+
+Source changes are in commit `16a4687561a3e16878071a6880ee50ae4137d0da`. Training now logs `outcome/mission_score` and periodic evaluation reports `evaluation/mission_score`. The diagnostic is 10 points per unique target found and 50 per target delivered to the GCS. The code also declares separate return and final battery panels. Focused verification passed 71 tests and four subtests.
+
+The existing W&B personal view was updated in place. A historical panel computes `reward/discovery + reward/delivery`, exactly the fixed mission score for the audited runs. Separate episode panels show raw unsafe commands, CBF interventions and final battery. The saved view spec was read back and matched the expected additions.
+
+- BASE `b358fc3f` and PQL `30bdc182` were trained from `48a5ea2`, seed 44. In the screenshot, the sampled raw return -202.40102 and 45%/45% outcomes match BASE episode 4876. Episode 3058 is -799.31769. The early plot uses exact episode indices in fixed 50-episode bins. Comparing episode windows 1–500 with 1501–2000, BASE mission score rose 8.78 while return fell 109.18. Extra safety penalties accounted for 92.06 and blocked motion for 20.39. The later window was 58.708 steps longer.
+- At 18,432,000 transitions both best snapshots matched the historical W&B SHA-256 byte-for-byte. HF revision `84a9b8c3f528ae4b5bf4afb660ff66c836db0093`. BASE SHA `f015eff99694c3503a1b077511e746643c11c4eab32d5920806ad33a1643a44b`. PQL SHA `a28078a2e1e48a2c78620a4ac6037ad2afdfa2bb66605d274ccce5626bf1b669`.
+- Thirty new CPU Warp scenarios used seeds 2100000044–2100000073, with equal layout hashes within every pair. BASE/PQL mean returns -49.0539/-481.9719, mission points 757/577.6667, search 64.3333%/53%, delivery 62.8333%/47.1667%. BASE minus PQL delivery is 15.6667 percentage points with paired scenario bootstrap interval [9.3333, 22]. Post-filter violations and complete missions were 0/30 each. Battery exhaustion 30/30 versus 29/30. One PQL scenario reached step 1500 with an active UAV.
+- Exact PQL 3,686,400-transition snapshot recovered from HF revision `f2c8a238c04bc1a571bca8bfb2e740ba61ad7ba7`, SHA `556c37c655a6c8f5aa1ed548fc0d0bc73742c483007bb094da26bc9f820c96e7`. All five original rollout returns reproduced exactly. Actor components saturated near [-1,+1,+1], and 8958/9000 UAV-steps per scenario proposed a command above the 150 m ceiling. Tracing captured actor output, nominal velocity, CBF candidate, executed velocity and fallback flags.
+- Removing only the intervention count penalty in fixed-policy PQL reruns on the 30 holdout layouts moved mean return from -481.9719 to -107.4713. Each paired outcome, motion count, geometric safety metric and final battery matched. The separate from-scratch CPU pilot used 16 envs, batch 128, 16384 transitions and 993 critic updates per arm with matched initial actors. Under the common original evaluation reward, the 0.5/0 penalty arms delivered 8.67%/5.83%, scored 127/91.33 mission points and attempted unsafe commands on 76.97%/84.87% of UAV-steps. Both had zero post-filter violation episodes and zero all-battery-exhaustion episodes. The delivery difference zero minus control was -2.83 percentage points with paired scenario bootstrap interval [-6, +0.67]. This pilot is an early diagnostic for a single training seed and reduced compute.
+- Direct Warp battery smoke at horizon 1500 verified that one depleted UAV leaves the episode running, and all six depleted triggers `terminated=True`, `truncated=False`, `battery_exhausted` at step 1.
+
+Next controlled test uses the original PQL scale and matched transition budget. The only objective override for the experimental arm is `--set reward.shield_intervention=0.0`. A separate safety-filter comparison can evaluate 3D DWA or a predictive safety filter on the same geometry and report mission, post-filter violations, battery and throughput. Warp XYZ explicitly rejects `dynamic_window` today, so a 3D DWA comparison needs its own implementation on that backend.
+
+Local diagnostic scripts and per-seed evidence are in `/tmp/uav-matd3-audit-20261106` on the user machine. Figures are `MATD3_early_episode_audit.png` and `MATD3_mission_score_and_holdout.png`.
+
+---
+
 # 2026-11-06 — Prepared MASAC BASE/PQL NOCHUNK Kaggle UI notebooks
 
 User requested two **manual Kaggle UI** training notebooks, one MASAC BASE and one MASAC PQL, both with `runtime.critic_chunk_size=0`; do not launch either via Kaggle API.
