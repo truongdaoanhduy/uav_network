@@ -110,3 +110,30 @@ def initialize_matd3_orthogonal(actors, critics):
             for layer in dense[:-1]:
                 linear(layer, math.sqrt(2.0))
             linear(dense[-1], 1.0)
+
+
+def initialize_matd3_kaiming(actors, critics):
+    """Opt-in He/Kaiming normal init for *all* MATD3 Linear weights.
+
+    Hidden layers feed ReLU and use fan_in/ReLU gain; actor's tanh/logit
+    and both scalar Q output heads are linear preactivations and use
+    fan_in/linear gain. All Linear biases are zero. LayerNorm affine
+    parameters are unchanged. Apply before target deepcopy and Adam.
+    """
+    def linear(layer, nonlinearity):
+        nn.init.kaiming_normal_(layer.weight, mode="fan_in", nonlinearity=nonlinearity)
+        if layer.bias is not None:
+            nn.init.zeros_(layer.bias)
+
+    for actor in actors:
+        for layer in actor.encoder.modules():
+            if isinstance(layer, nn.Linear):
+                linear(layer, "relu")
+        linear(actor.continuous, "linear")
+        linear(actor.destination, "linear")
+    for critic in critics:
+        for tower in (critic.q1, critic.q2):
+            dense = [layer for layer in tower.modules() if isinstance(layer, nn.Linear)]
+            for layer in dense[:-1]:
+                linear(layer, "relu")
+            linear(dense[-1], "linear")

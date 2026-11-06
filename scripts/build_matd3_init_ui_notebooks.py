@@ -3,6 +3,7 @@
 Usage: python scripts/build_matd3_init_ui_notebooks.py
 Only writes ~/Downloads and outputs/kaggle; never submits a Kaggle job.
 """
+import argparse
 import ast
 import base64
 import copy
@@ -33,7 +34,7 @@ def replace_cell(cell, source):
 
 
 def build(mode, archive, source_commit, template):
-    assert mode in {"default", "orthogonal"}
+    assert mode in {"default", "orthogonal", "kaiming"}
     book = copy.deepcopy(template)
     code = cell_text(book["cells"][2])
     spec_line = next(line for line in code.splitlines() if line.startswith("SPEC = "))
@@ -46,7 +47,7 @@ def build(mode, archive, source_commit, template):
     spec["gpus_per_run"] = 2
     spec["cpu_visualize"] = False
     tags = [
-        "uav-network", "matd3-init-" + mode, "orthogonal-initialization-ablation",
+        "uav-network", "matd3-init-" + mode, "initialization-ablation",
         "source-backed-algorithm-core", "fp32-eager", "scenario-v3",
         "controlled-20t15o", "targets20-obstacles15", "power-learned",
         "full20k", "replay1m", "batch8192", "env4096", "steps1500",
@@ -118,7 +119,7 @@ print("MATD3 BASE {label}: no chunk, 2x T4, 20000 episodes, seed44", flush=True)
     replace_cell(book["cells"][1], preflight)
     intro = f"""# MATD3 BASE — {label} — NOCHUNK — Kaggle UI
 
-Hai notebook trong cặp thử nghiệm này chỉ khác `matd3.initialization`.
+Notebook này sử dụng cùng profile MATD3 BASE và chỉ thay đổi `matd3.initialization`.
 Mã nguồn đã nhúng trực tiếp, SHA-256 được kiểm tra khi chạy; không cần clone GitHub.
 
 - **Nhánh:** MATD3 BASE, `pql.enabled=false`, actor/critic shared, actor LayerNorm.
@@ -138,13 +139,18 @@ Mã nguồn đã nhúng trực tiếp, SHA-256 được kiểm tra khi chạy; k
 4. Chạy ô preflight trước; chỉ sau khi pass mới chọn **Save & Run All**.
 5. Dùng **hai notebook riêng** (nên tách theo account được phép) để tránh trùng lịch sử. Không cần chạy job bằng API hay GitHub Actions.
 
-**Chú ý:** `ORTHOGONAL` là một thí nghiệm mới, chưa chứng minh cải thiện delivery/search. Đánh giá bằng cùng seed/layout và cùng transition budget, không chỉ episode index. File này chưa được submit lên Kaggle.
+**Chú ý:** Khởi tạo tham số là một thí nghiệm mới, chưa chứng minh cải thiện delivery/search. Đánh giá bằng cùng seed/layout và cùng transition budget, không chỉ episode index. File này chưa được submit lên Kaggle.
 """
     replace_cell(book["cells"][0], intro)
     return book
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Build manual MATD3 BASE Kaggle UI notebooks")
+    parser.add_argument("--mode", choices=("default", "orthogonal", "kaiming"),
+                        action="append", help="Only build selected initialization; may repeat")
+    args = parser.parse_args()
+    modes = args.mode or ["default", "orthogonal"]
     import nbformat
 
     source_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
@@ -153,7 +159,7 @@ def main():
     template = json.loads(TEMPLATE.read_text())
     assert len(template["cells"]) == 3
     outs = []
-    for mode in ("default", "orthogonal"):
+    for mode in modes:
         notebook = build(mode, archive, source_commit, template)
         nbformat.validate(nbformat.from_dict(notebook))
         filename = f"MATD3_BASE_NOCHUNK_{mode.upper()}_Kaggle_UI.ipynb"
