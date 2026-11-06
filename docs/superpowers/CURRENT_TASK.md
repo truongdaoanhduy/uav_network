@@ -1,3 +1,55 @@
+# 2026-11-06 — MATD3 BASE Kaiming/He Kaggle UI notebook prepared (no launch)
+
+User requested a **single manual Kaggle UI MATD3 BASE Kaiming initialization notebook**,
+following existing self-contained DEFAULT and ORTHOGONAL notebooks; user will
+submit from the Kaggle UI. Read AGENTS.md and CURRENT_TASK.md with a clean
+worktree on branch experiment/hfbest-embedded-source-steps1500-20261105,
+at 200db5cf12fc6f844c58a1eeaad4e5b9f8365d69 before editing.
+
+**Implementation commit** `2e5011447badbc669d84c1ea115c92e230e11fa7`: \n- Added opt-in `matd3.initialization=kaiming` (other choices `default`,
+  `orthogonal` still supported; default unchanged).
+- New `initialize_matd3_kaiming()` applies `torch.nn.init.kaiming_normal_`
+  (`mode=fan_in`, `nonlinearity=relu` for all hidden Linear layers,
+  `nonlinearity=linear` for actor motion/routing and both Q output heads);
+  all Linear biases zero. Actor LayerNorm affine params remain 1/0.
+- Initialization applies to online shared actors and critics **before**
+  target deepcopy and Adam optimizer creation. The added init runs under
+  `torch.random.fork_rng(devices=[])` so subsequent CPU RNG state matches
+  the default network-construction path. Existing action, losses, optimizer
+  settings, CBF, reward and canonical YAML unchanged.
+- `scripts/build_matd3_init_ui_notebooks.py --mode kaiming` builds only the
+  Kaiming notebook and does not overwrite earlier DEFAULT/ORTHOGONAL files.
+
+**User deliverable:**
+`/home/aduy/Downloads/MATD3_BASE_NOCHUNK_KAIMING_Kaggle_UI.ipynb`
+(copy `outputs/kaggle/MATD3_BASE_NOCHUNK_KAIMING_Kaggle_UI.ipynb`).
+It embeds the committed source with 414 bundled files, SHA-256
+`e02e3514eb817b0af38e1e543a1f7a8d8f24e51fee3082efb6d582822aeccacc`.
+The user's Kaggle UI notebook gets a fresh run ID/name at launch.
+
+**Comparison:** resolved config is byte-equivalent to the saved DEFAULT
+notebook's effective config after excluding only `matd3.initialization`
+and informational tracking tags. This includes BASE (PQL false), NOCHUNK
+(chunk=0), seed44 deterministic, 6 UAV, 20 targets, 15 obstacles,
+1500-step horizon, 4096 env, batch8192, replay1M CPU75%/GPU25%, 20k
+episodes, shared actor/critic LayerNorm, FP32, 2xT4 request, W&B and HF best.
+
+**Verification:** focused 54 tests passed, including new Kaiming construction,
+Linear application/intercept, LayerNorm unchanged, target copy, RNG state,
+finite forward and actor/critic update. Notebook nbformat validation, both
+code-cell Python compiles, archive hash/content, downloaded copy equality
+and resolved-config comparison with DEFAULT all passed. No Kaggle GPU
+training, GPU VRAM peak or mission-score performance was tested; no cloud job
+was submitted and the two older notebooks were not modified.
+
+**Next:** User imports the Kaiming notebook in Kaggle UI, enables private
+T4x2 + Internet, grants `WANDB_API_KEY` and `HF_TOKEN` Secrets, replaces
+`NOTEBOOK_REF` with real username/slug, runs preflight and Save & Run All.
+Compare search/delivery, mission_score, return, Q, saturation and training
+stability at matched environment steps and fixed evaluation layouts.
+
+---
+
 # 2026-11-06 — Paired MATD3 BASE Kaggle UI: default vs Orthogonal (prepared only)
 
 User requested two self-contained manual Kaggle UI notebooks in `~/Downloads`,
