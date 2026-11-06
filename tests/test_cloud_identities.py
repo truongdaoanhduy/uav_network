@@ -51,10 +51,11 @@ def test_launch_names_and_tags_are_authoritative(algorithm, pql, full_gpu):
          patch.object(cli, "submit_kernel", side_effect=submit):
         cli.launch(args, credentials)
     name = captured["runs"][algorithm]["name"]
-    for required in ["TRAIN", algorithm.upper(), "PQL" if pql else "BASE",
-                     "FULLGPU" if full_gpu else "HYBRID-C75-G25",
-                     "E4096", "B8192", "R1M", "G3", "S44"]:
-        assert required in name
+    assert name.startswith(f"{algorithm.upper()}-{'PQL' if pql else 'BASE'}-")
+    assert "-S44-" in name
+    assert "-SH-" in name if getattr(c, algorithm).share_actor_parameters and getattr(c, algorithm).share_critic_parameters else "-IND-" in name
+    assert len(name) <= 38
+    assert "HYBRID" not in name and "E4096" not in name and "B8192" not in name
     assert algorithm in captured["kernel_ref"]
     actual_tags = json.loads(next(x.split("=",1)[1] for x in captured["overrides"]
                                  if x.startswith("tracking.tags=")))
@@ -87,8 +88,9 @@ def test_actual_benchmark_entrypoint_uses_complete_unique_identity_and_stage(tmp
     assert entry["main"]() == 0
     for name, stage in seen:
         assert stage == "benchmark"
-        for required in ["BENCH", "MASAC", "PQL", "FULLGPU", "R1M", "G3", "E4096", "B8192"]:
-            assert required in name
+        assert name.startswith("BENCH-MASAC-PQL-")
+        assert "-S44-" in name
+        assert len(name) <= 39
     assert seen[0][0] != seen[1][0]
 
 
@@ -155,10 +157,9 @@ def test_parameter_sharing_is_visible_without_renaming_default_runs(share_actor,
     c.masac.share_actor_parameters = share_actor
     c.masac.share_critic_parameters = share_critic
     name = run_name(c, "masac", "PQL", "train", "suffix")
-    if marker is None:
-        assert "SHARED" not in name
-    else:
-        assert marker in name
+    short = {(False, False): "IND", (True, False): "AS", (False, True): "CS", (True, True): "SH"}
+    assert f"-{short[(share_actor,share_critic)]}-" in name
+    assert "SHARED" not in name
     tags = authoritative_tags(c, "masac")
     assert ("actor-shared" if share_actor else "actor-independent") in tags
     assert ("critic-shared" if share_critic else "critic-independent") in tags

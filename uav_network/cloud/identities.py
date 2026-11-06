@@ -30,16 +30,28 @@ def sharing_marker(config, algorithm):
     return None
 
 
-def run_name(config, algorithm, mode, stage, suffix):
+def _compact_sharing(config, algorithm):
+    """A concise actor/critic layout label for the W&B run list."""
     settings = getattr(config, algorithm)
-    stage = {"benchmark": "BENCH", "train": "TRAIN", "validate": "VALIDATE"}.get(stage, stage.upper())
-    sharing = sharing_marker(config, algorithm)
-    sharing = f"-{sharing}" if sharing else ""
-    sharing += "-XYZ-BAYES" if config.motion_dim==3 else ""
-    return (f"{stage}-{algorithm.upper()}-{mode.upper()}{sharing}-{replay_layout(config)}"
-            f"-E{config.runtime.num_envs}-B{settings.batch_size}"
-            f"-R{compact_count(settings.replay_capacity)}-G{config.world.generation_version}"
-            f"-S{config.runtime.seed}-{suffix}")
+    actor = settings.share_actor_parameters
+    critic = settings.share_critic_parameters
+    return "SH" if actor and critic else "IND" if not actor and not critic else "AS" if actor else "CS"
+
+
+def run_name(config, algorithm, mode, stage, suffix):
+    """Small unique W&B label; all detailed experiment settings remain in config/tags.
+
+    e.g. MASAC-BASE-SH-S44-a1b2c3d4 or BENCH-MATD3-PQL-IND-S44-a1b2c3d4.
+    """
+    stages = {"train": "", "benchmark": "BENCH-", "validate": "VAL-"}
+    prefix = stages.get(stage.lower(), stage.upper() + "-")
+    sharing = _compact_sharing(config, algorithm)
+    vectorized = "-VEC" if config.runtime.vectorize_critics else ""
+    # UUID/run id supplies unique per-launch traceability without a timestamp.
+    # Historical callers may pass a timestamp-token: only its final token matters.
+    run_id = str(suffix).rsplit("-", 1)[-1][-8:]
+    return (f"{prefix}{algorithm.upper()}-{mode.upper()}-{sharing}{vectorized}"
+            f"-S{config.runtime.seed}-{run_id}")
 
 
 def kernel_slug(owner, config, algorithm, mode, stage, stamp, token, external_supervisor=False):

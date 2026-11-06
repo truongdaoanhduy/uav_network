@@ -95,8 +95,9 @@ def launch(args, credentials):
     training_mode = "pql" if diagnostic or config.pql.enabled else "base"
     slug = kernel_slug(username, config, args.algorithm, training_mode, args.stage, stamp, token,
                        external_supervisor=auto_continue)
-    runs = {a: {"id": uuid4().hex[:8],
-                "name": run_name(config, a, training_mode, args.stage, stamp + "-" + token)}
+    run_ids = {a: uuid4().hex[:8] for a in algorithms}
+    runs = {a: {"id": run_ids[a],
+                "name": run_name(config, a, training_mode, args.stage, run_ids[a])}
             for a in algorithms}
     overrides = list(effective_overrides)
     if not diagnostic:
