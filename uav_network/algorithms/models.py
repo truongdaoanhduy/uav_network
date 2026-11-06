@@ -84,3 +84,29 @@ class TwinCritic(nn.Module):
     def forward(self, state, joint_actions):
         inputs = torch.cat([state, joint_actions.flatten(1)], dim=-1)
         return self.q1(inputs).squeeze(-1), self.q2(inputs).squeeze(-1)
+
+
+def initialize_matd3_orthogonal(actors, critics):
+    """Opt-in MATD3 ablation: semi-orthogonal Linear weights, zero biases.
+
+    Encoder/critic ReLU layers use gain sqrt(2), actor output heads 0.01,
+    and scalar Q heads 1.0. LayerNorm affine parameters stay at (1, 0).
+    Apply to ONLINE networks before the target deepcopy and Adam creation.
+    """
+    def linear(layer, gain):
+        nn.init.orthogonal_(layer.weight, gain=gain)
+        if layer.bias is not None:
+            nn.init.zeros_(layer.bias)
+
+    for actor in actors:
+        for layer in actor.encoder.modules():
+            if isinstance(layer, nn.Linear):
+                linear(layer, math.sqrt(2.0))
+        linear(actor.continuous, 0.01)
+        linear(actor.destination, 0.01)
+    for critic in critics:
+        for tower in (critic.q1, critic.q2):
+            dense = [layer for layer in tower.modules() if isinstance(layer, nn.Linear)]
+            for layer in dense[:-1]:
+                linear(layer, math.sqrt(2.0))
+            linear(dense[-1], 1.0)

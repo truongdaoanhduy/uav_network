@@ -149,6 +149,8 @@ class MASACConfig(OffPolicyConfig):
 
 @dataclass
 class MATD3Config(OffPolicyConfig):
+    # Only an explicit ablation opts into orthogonal weights.
+    initialization: str = "default"
     policy_delay: int = 2
     target_noise_std: float = 0.2
     target_noise_clip: float = 0.5
@@ -359,6 +361,8 @@ class Config:
             raise ValueError("environment_backend must be native or warp_packet")
         if r.algorithm not in {"masac", "matd3"}:
             raise ValueError("algorithm must be masac or matd3")
+        if self.matd3.initialization not in {"default", "orthogonal"}:
+            raise ValueError("matd3.initialization must be default or orthogonal")
         if r.num_envs < 1 or r.log_interval_steps < 1:
             raise ValueError("num_envs and log_interval_steps must be positive")
         if r.critic_chunk_size < 0:

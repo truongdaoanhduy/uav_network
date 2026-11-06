@@ -9,7 +9,7 @@ from torch.nn import functional as F
 from ..environment.env import Action
 from .action_utils import canonical_continuous, joint_action, valid_destinations
 from .checkpoints import load_policy, save_policy
-from .models import DeterministicActor, TwinCritic
+from .models import DeterministicActor, TwinCritic, initialize_matd3_orthogonal
 from .parallel_critics import critic_values
 from .critic_chunks import chunked_critic_values
 from .precision import MixedPrecision, autocast_update
@@ -44,6 +44,11 @@ class MATD3(nn.Module):
                                                        layer_norm=a.actor_layer_norm)
                                     for _ in range(actor_count))
         self.critics = nn.ModuleList(TwinCritic(state_dim, n, k, a.hidden_sizes, config.continuous_dim) for _ in range(critic_count))
+        if a.initialization == "orthogonal":
+            # Restore the CPU RNG state so the ablation does not also shift
+            # downstream exploration/replay RNG draws. Modules are CPU here.
+            with torch.random.fork_rng(devices=[]):
+                initialize_matd3_orthogonal(self.actors, self.critics)
         self.target_actors, self.target_critics = deepcopy(self.actors), deepcopy(self.critics)
         self.target_actors.requires_grad_(False)
         self.target_critics.requires_grad_(False)
