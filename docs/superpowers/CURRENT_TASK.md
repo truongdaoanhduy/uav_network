@@ -1,3 +1,16 @@
+# 2026-11-06 — Kaggle MATD3 BASE/PQL NOCHUNK dual launch
+
+User explicitly requested MATD3 BASE and MATD3 PQL training on two available Kaggle accounts, with all critic chunking disabled. At 2026-11-06T09:42:51+00:00 UTC the cloud launcher accepted both submissions from source commit `48a5ea2` on `experiment/hfbest-embedded-source-steps1500-20261105`:
+
+- BASE: `account_03`, `fjwoigw/notebookb576080e44`, W&B `b358fc3f`, manifest `outputs/kaggle/notebookb576080e44/launch.json`.
+- PQL: `account_04`, `hjgjhjhjd/notebookee3ce97b75`, W&B `30bdc182`, manifest `outputs/kaggle/notebookee3ce97b75/launch.json`.
+
+Both accounts authenticated and reported 30.00h remaining when selected. Both submissions used canonical `configs/comparison-reference-masac-matd3-xyz-sensing.yaml` plus `runtime.critic_chunk_size=0`, `pql.enabled=false/true` as appropriate, and independent `runtime.output_dir` paths; actor/critic remain shared. Both request `gpus_per_run=2`, seed 44, 20k episodes, 1500 max steps, batch8192, 4096 envs, FP32, training_only + Hugging Face checkpoint; no CPU visualization or GitHub supervisor.
+
+Post-submission `kaggle kernels status` returned `running` for both kernel refs. Kaggle logs were empty at the check, and W&B had not yet created either run, **so learner updates, peak VRAM, and training completion are not yet verified**. The canonical YAML remains chunk2048; the zero-chunk setting exists in the job manifest only. Do not submit a duplicate to these accounts. Follow-up: check kernel status/logs, W&B learner counters and gradients, and possible no-chunk OOM; confirm that best checkpoints are uploaded.
+
+---
+
 # 2026-11-06 — Kaggle API new-run names switched to UI-style notebook IDs
 
 User explicitly requested that future Kaggle API training launches stop encoding
