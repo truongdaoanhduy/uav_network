@@ -1,3 +1,37 @@
+# 2026-11-07 — Five MATD3 UI ablation notebooks
+
+User requests only manual Kaggle UI files, no MASAC or GPU submission.
+Matrix on common35t25o/6UAV/1km/1500step/seed44 scenario:
+01 SH,H512,U8,actorLN=true;02 SH,H512,U16,actorLN=true;
+03 IND,H512,U16,actorLN=true;04 IND,H512,U16,actorLN=false;
+05 SH,H256,U8,actorLN=true. Both actor AND critic sharing/width change;
+LayerNorm uses the existing actor-only option; critics stay plain.
+
+Started clean at6c5cb7b. New five-case builder composes the existing kernel
+bootstrap and scaled profile with explicit active MATD3 overrides. Original
+ui_notebooks.py PREFLIGHT has only a generic status/comment text change.
+No algorithm,scenario,observation,CBF,reward,energy,init or noise changes.
+Old notebooks/profiles are controls;8 existing local copies were hashed.
+All5 new files share one cohort group, explicit SH/IND/ALN/H/U/seed labels,
+unique per-execution run IDs, no warm-start, no auto-continue, training-only.
+
+Observed8 RED missing-builder failures before implementation. Fresh related
+suite89 passed,590 subtests passed, including actual requested architecture,
+CPU Warp transitions/replay,finite U8/U16 updates and delayed4/8 actor calls
+for all5 cases. Generated SPEC/config/name propagation checked atseeds44/45.
+Full repository suite is running; do not claim a whole-suite pass yet.
+Read-only review approved: no Critical/Important/Minor findings.
+No GPU job was submitted.
+
+Spec/plan:superpowers specs/plans2026-11-07-matd3-five-ui-notebooks.md.
+Guide:../../methods/MATD3_FIVE_KAGGLE_UI_ABLATIONS.md.
+NEXT: finish review/suite,commit/push clean source,export exactly5 new files,
+verify schemas/configs/common archive/source/control hashes,save the five
+notebooks separately and record actual commit and verification evidence.
+T4 batch8192 memory,learning performance and convergence remain unverified.
+
+---
+
 # 2026-11-07 — Actor privacy audit and requested credential maintenance
 
 User asked whether actor198->228 violates Dec-POMDP, and requested checking,

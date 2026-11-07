@@ -12,7 +12,7 @@ STAGE_START = 'if SPEC["stage"] in {"visualize", "archive"}:'
 
 PREFLIGHT = r'''# Dùng URL thật của notebook Kaggle bạn vừa tạo.
 NOTEBOOK_REF = "YOUR_KAGGLE_USERNAME/YOUR_NOTEBOOK_SLUG"
-TRAIN_SEED = __SEED__  # Giữ cùng seed cho cặp MASAC/MATD3; đổi seed cho lần train độc lập.
+TRAIN_SEED = __SEED__  # Giữ cùng seed cho các cấu hình đang so sánh.
 
 import re
 if not re.fullmatch(r"[\w-]+/[\w-]+", NOTEBOOK_REF):
@@ -39,7 +39,7 @@ for name in ("WANDB_API_KEY", "HF_TOKEN"):
         raise RuntimeError(f"Secret {name} rỗng")
     del value
 print("Preflight OK; seed =", TRAIN_SEED)
-print("Actor/critic độc lập; plain MLP; NOCHUNK; BASE; profile 1500 bước")
+print("NOCHUNK; BASE; profile 1500 bước")
 '''
 
 
