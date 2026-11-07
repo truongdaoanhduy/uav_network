@@ -1,3 +1,16 @@
+# 2026-11-08 — Plot training Reward from actual W&B History using source-backed methods
+
+Task: user explicitly requested making Reward learning-curve figures from Training History (MADDPG-style block means / EPyMARL-style rolling mean) first; user will decide later if switching the paper plot to periodic fixed-policy validation reward. Started ~08/11/2026 01:54 UTC+7; verified 08/11/2026 02:02:20 UTC+7. Main implementation + PNG commit: `db2ff5b`.
+
+- New script `scripts/plot_training_reward_from_wandb.py` and four pure regression tests. Read-only W&B History, no metric update, no job submission, no training/validation/reward/CBF/observation/optimizer changes. Tests: **28 passed in 6.79s**, 0 errors; git diff --check clean.
+- Generated and committed three original analysis PNGs plus README under `docs/research/reward-convergence-preview/` and cached full source records/JSON locally under `outputs/reward-method-study/` (ignored by git).
+- Four verified W&B runs: MATD3 BASE default `971f7cc2` (20k), MATD3 PQL `30bdc182` (20k), MASAC BASE `62cfc303` (20k), MASAC PQL `43494a2c` (**16,384 incomplete**). All their W&B configs **match world/sensor/reward/energy/network**, actual scenario 6 UAV, 20 targets, 15 obstacles, 1km, horizon 1500, seed44; they are not new 35t25o. Never mistake plots for final benchmark.
+- Figure 1: mean Reward over each complete 256-episode block (MADDPG-inspired, final <256 partial window omitted). Figure 2: sliding 200-completed-episode mean (exact formula from official EPyMARL `plot_results.py::smooth_data`, display only downsampled). Figure 3: per-0.25M-global-step completed-episode-bin means with sparse bins blank (diagnostic, not code taken from a paper).
+- All 3 reveal reward/episode-cohort artifacts: abrupt steps at multiples of **4096 episodes**, unchanged materially by smoothing; global-step view has disconnected traces from sparse completion intervals. MATD3 BASE start/end complete block mean -622/+118; MATD3 PQL -3360/-125; MASAC BASE -478/-3467; MASAC PQL partial -401/-3290. Do NOT claim this proves all reward differences artificial; real policy updates occur between cohorts, and some algorithms have poor training reward.
+- Current main W&B Workspace is **not modified**; original 25 plots unaffected. Validation still 3,686,400 steps, 5 seeds, best chosen from held-out validation; checkpoint 256 per prior commit. No Kaggle old notebooks regenerated. Next task: user decides whether paper uses these logged training-return curves or requests more-frequent fixed-seed validation reward; do not modify validation until user instructs. Re-render figures using latest run IDs with script options `--run LABEL=RUN_ID`.
+
+---
+
 # 2026-11-08 — Active checkpoint save cadence 128 → 256
 
 Task start: 08/11/2026 01:30:30 UTC+7 | Verified: 08/11/2026 01:31:30 UTC+7. Main code commit: `27bc84d`.
