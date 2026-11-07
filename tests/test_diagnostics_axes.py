@@ -74,14 +74,12 @@ def test_workspace_run_table_is_compact_and_decision_focused():
     all_metrics = {key for panels in PANELS.values() for _, metric in panels
                    for key in (metric if isinstance(metric, tuple) else (metric,))}
     assert {
-        "train/episodes_completed", "train/joint_transitions_per_s",
-        "cohort/episodes", "storage/disk_free_bytes", "learner/critic_loss", "learner/td_error_abs_mean",
-        "cohort/network/packet_pdr_fraction", "cohort/delivery_rate_percent_mean",
-        "episode/return", "rolling/return_std",
-        "outcome/search_rate_percent", "outcome/delivery_rate_percent", "outcome/success",
-        "learner/actor_loss", "system/gpu.0.gpu", "system/gpu.1.gpu", "recovery/elapsed_seconds",
-    } <= all_metrics
-    assert sum(len(panels) for panels in PANELS.values()) == 45
+        "episode/return", "outcome/search_rate_percent", "outcome/delivery_rate_percent",
+        "evaluation/mean_search_rate_percent", "evaluation/mean_delivery_rate_percent",
+        "evaluation/discovery_auc", "evaluation/target_delivery_time_capped_mean_s",
+        "evaluation/pooled_uav_j_per_gcs_delivery",
+    } == all_metrics
+    assert sum(len(panels) for panels in PANELS.values()) == 8
 
 
 def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source():
@@ -100,7 +98,7 @@ def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source()
     assert panel_options("CPU evaluation delivery (%) - higher", "evaluation/delivery_rate_percent")["xaxis_expression"] == "${evaluation/episodes_completed} / 10"
     assert panel_axis("eval/mean_return") == "evaluation/checkpoint_global_step"
     assert panel_axis("evaluation_status/failed") == "global_step"
-    assert any(metric.startswith("cohort/") for panels in PANELS.values() for _, metric in panels)
+    assert any(metric.startswith("evaluation/") for panels in PANELS.values() for _, metric in panels)
 
 
 def test_cpu_episode_metrics_define_episode_axis_without_changing_periodic_axis(tmp_path):
@@ -129,9 +127,9 @@ def test_authored_cpu_episode_panels_use_episode_axis():
     assert panel_axis('eval/mean_delivery_rate_percent') == 'evaluation/checkpoint_global_step'
 
 
-def test_actor_loss_is_available_in_core_and_advanced_diagnostics():
+def test_actor_loss_is_kept_only_in_advanced_diagnostics():
     from uav_network.experiments.dashboard import PANELS, DIAGNOSTIC_PANELS
-    assert any(metric=='learner/actor_loss' for panels in PANELS.values() for _,metric in panels)
+    assert not any(metric=='learner/actor_loss' for panels in PANELS.values() for _,metric in panels)
     assert any(metric=='learner/actor_loss' for panels in DIAGNOSTIC_PANELS.values() for _,metric in panels)
 
 

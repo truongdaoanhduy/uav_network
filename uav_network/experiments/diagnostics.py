@@ -90,7 +90,9 @@ class TrainingDiagnostics:
         if not write_evidence(self.path, event, append=True):
             self.io_errors += 1
             event["evidence_write_failed"] = True
-        print_evidence({"diagnostic_event": event})
+        # Full evidence is already preserved in diagnostics.jsonl(.gz).
+        # Keep the W&B-captured console line compact to avoid duplicate storage.
+        print_evidence({"diagnostic_event": {"code": code, "severity": severity, "global_step": int(step)}})
         return event
 
     def episode(self, record):

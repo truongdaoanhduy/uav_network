@@ -9,6 +9,7 @@ from uuid import uuid4
 import numpy as np
 from .hardware import hardware_info
 from .telemetry import episode_telemetry
+from .storage_retention import upload_compressed_journals
 from .comparison_metrics import mission_score
 from .run_journal import RunJournal, select_evidence
 from .evidence import resource_snapshot
@@ -258,8 +259,8 @@ class OnlineTracker:
             self.journal._warn(error)
     def _publish_observability(self, final=False):
         publish_overflow(self)
-        policies = {"training-status.json": "live", "metrics-guide.md": "now",
-                    "training-events.jsonl": "end", "diagnostics.jsonl": "end", "thread-stacks.log": "live"}
+        if final: upload_compressed_journals(self)
+        policies = {"training-status.json": "live", "metrics-guide.md": "now", "thread-stacks.log": "live"}
         for name, policy in policies.items():
             path = self.output / name
             try:

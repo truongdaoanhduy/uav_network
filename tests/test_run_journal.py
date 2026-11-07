@@ -79,11 +79,16 @@ def test_tracker_journals_actual_progress_and_registers_only_small_live_file(tmp
         assert status["context"]["phase"]=="learning"
         assert status["context"]["learner/critic_loss"]==2.5
         assert ("training-status.json","live") in saved
-        assert ("training-events.jsonl","end") in saved
+        assert not any(name == "training-events.jsonl" for name, _ in saved)
         assert ("metrics-guide.md","now") in saved
         assert not any(name=="episodes.jsonl" for name,policy in saved)
         assert run.logged[-1]["run/episode_budget_percent"]==0.0
         t.close()
+        assert ("training-events.jsonl.gz", "now") in saved
+        import gzip
+        with gzip.open(tmp_path / "training-events.jsonl.gz", "rt") as stream:
+            assert any(json.loads(line)["event"] == "progress" for line in stream)
+        assert (tmp_path / "training-events.jsonl").is_file()
 
 
 def test_full_upload_clock_is_not_reset_by_light_policy_uploads(tmp_path):

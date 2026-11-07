@@ -13,74 +13,27 @@ from .dashboard_columns import VISIBLE_COLUMNS, PINNED_COLUMNS, save_with_visibl
 from .run_journal import READING_GUIDE
 
 
+# Eight scientifically relevant plots; all other metrics stay in W&B History/Files.
+# Evaluated checkpoint curves use metrics already present in older completed runs.
+# Discovery AUC = 1 - capped_mean_discovery_time / configured_horizon;
+# higher AUC means faster search and/or more targets discovered.
 PANELS = {
-    "PRIMARY: Search, report to GCS, energy (five metrics)": [
-        ("1. Target discovery rate (%)", "evaluation/core/discovery_rate_percent"),
-        ("2. GCS delivery rate (%)", "evaluation/core/gcs_delivery_rate_percent"),
-        ("3. Mean discovery time - capped (s)", "evaluation/core/discovery_time_capped_mean_s"),
-        ("4. Mean GCS delivery time - capped (s)", "evaluation/core/gcs_delivery_time_capped_mean_s"),
-        ("5. UAV energy per GCS delivered target - pooled (J)", "evaluation/core/energy_per_delivered_target_j"),
-    ],
-    "Mission quality - completed outcomes": [
-        ("Delivery to GCS (%) - higher", "cohort/delivery_rate_percent_mean"),
-        ("Mission success fraction - higher", "cohort/success_mean"),
-        ("Completed-episode return - inspect with delivery", "cohort/return_mean"),
-        ("Discovered targets (%) - higher", "cohort/search_rate_percent_mean"),
-        ("Completed episodes in outcome window - sample size", "cohort/episodes"),
-    ],
-    "Training convergence - paper and benchmark views": [
+    "Training convergence (in-sample; not final benchmark)": [
         ("UAV-paper training return / reward", "episode/return"),
-        ("UAV-paper mission score (10 found + 50 delivered)", "outcome/mission_score"),
         ("UAV-paper search rate (%)", "outcome/search_rate_percent"),
         ("UAV-paper delivery rate (%)", "outcome/delivery_rate_percent"),
-        ("UAV-paper mission success rate by episode", "outcome/success"),
-        ("Sample-efficiency training return / reward", "episode/return"),
-        ("Compute-efficiency training return / reward", "episode/return"),
-        ("Rolling return standard deviation", "rolling/return_std"),
     ],
-    "Training progress and speed": [
-        ("Completed training episodes", "train/episodes_completed"),
-        ("Joint transitions / s - speed, not policy quality", "train/joint_transitions_per_s"),
+    "Periodic evaluation on fixed seeds (held-out checkpoint curves)": [
+        ("1. Fixed-seed target discovery rate (%)", "evaluation/mean_search_rate_percent"),
+        ("2. Fixed-seed GCS delivery rate (%)", "evaluation/mean_delivery_rate_percent"),
+        ("3. Discovery AUC (higher = faster/better search)", "evaluation/discovery_auc"),
+        ("4. Capped mean GCS delivery time (s)", "evaluation/target_delivery_time_capped_mean_s"),
+        ("5. Pooled UAV energy per GCS delivery (J)", "evaluation/pooled_uav_j_per_gcs_delivery"),
     ],
-    "Periodic fixed-policy evaluation - only when enabled": [
-        ("Fixed-seed evaluation return", "evaluation/mean_return"),
-        ("Fixed-seed evaluation mission score", "evaluation/mission_score"),
-        ("Fixed-seed evaluation delivery (%) - higher", "evaluation/mean_delivery_rate_percent"),
-        ("Fixed-seed evaluation success fraction - higher", "evaluation/success_rate"),
-    ],
-    "Final CPU evaluation - each episode": [
-        ("CPU evaluation delivery (%) - higher", "evaluation/delivery_rate_percent"),
-        ("CPU evaluation success (0/1)", "evaluation/success"),
-    ],
-    "Why delivery is low - inspect together": [
-        ("Packet delivery fraction - distinct from target delivery", "cohort/network/packet_pdr_fraction"),
-        ("Silent with eligible receiver (fraction)", "cohort/network/diagnostics/action_silent_given_eligible_fraction"),
-        ("UAV joules / GCS delivery - compare equal success", "cohort/energy/j_per_gcs_delivery"),
-    ],
-    "Policy safety before shield vs executed safety": [
-        ("Raw unsafe policy command fraction - lower", "safety/raw_unsafe_action_rate"),
-        ("Policy safe without shield fraction - higher", "safety/policy_safe_without_shield_rate"),
-        ("CBF intervention fraction - lower", "safety/cbf_intervention_rate"),
-        ("Mean UAV battery fraction at episode end", "energy/mean_battery_fraction"),
-        ("Unsafe commands rescued by CBF fraction - lower", "safety/shield_rescue_rate"),
-        ("Executed blocked motion fraction - lower", "safety/blocked_motion_rate"),
-        ("Executed boundary clip fraction - lower", "safety/boundary_clip_rate"),
-        ("Unsafe raw-action reward penalty", "reward/unsafe_action"),
-        ("CBF intervention reward penalty", "reward/shield_intervention"),
-        ("CBF correction reward penalty", "reward/shield_correction"),
-    ],
-    "Learner stability - loss and gradients": [
-        ("Critic loss - diagnostic only", "learner/critic_loss"),
-        ("Actor loss - diagnostic only", "learner/actor_loss"),
-        ("TD error absolute mean", "learner/td_error_abs_mean"),
-    ],
-    "Resources - runtime for system; training steps for disk": [
-        ("GPU 0 / 1 utilization (%)", ("system/gpu.0.gpu", "system/gpu.1.gpu")),
-        ("Free output disk bytes - training-step samples", "storage/disk_free_bytes"),
-    ],
-    "Recovery and upload cost": [
-        ("Full snapshot + upload elapsed seconds", "recovery/elapsed_seconds"),
-    ],
+}
+
+PERIODIC_EPISODE_METRICS = {
+    metric for _, metric in PANELS["Periodic evaluation on fixed seeds (held-out checkpoint curves)"]
 }
 
 
@@ -114,7 +67,7 @@ def panel_axis(metric, title=""):
         return "global_step"
     if title.startswith("Compute-efficiency"):
         return "_runtime"
-    if metric.startswith("evaluation/core/"):
+    if metric.startswith("evaluation/core/") or metric in PERIODIC_EPISODE_METRICS:
         return "evaluation/checkpoint_episode"
     if metric == "episode/return" or metric.startswith("outcome/"):
         return "episode/index"
@@ -130,8 +83,8 @@ def panel_options(title, metric):
     metric = metric[0] if isinstance(metric, tuple) else metric
     clean_curve = {"smoothing_type": "exponential", "smoothing_factor": 0.99,
                    "smoothing_show_original": False, "point_visualization_method": "sampling"}
-    if metric.startswith("evaluation/core/"):
-        return {"title_x": "Training episode (×10¹)",
+    if metric.startswith("evaluation/core/") or metric in PERIODIC_EPISODE_METRICS:
+        return {"title_x": "Training episode at checkpoint (×10¹)",
                 "xaxis_expression": "${evaluation/checkpoint_episode} / 10"}
     if metric in CPU_EPISODE_METRICS:
         return {"title_x": "Test episode (×10¹)",

@@ -83,11 +83,17 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(pinned,{"run:displayName","run:state","run:createdAt","run:duration"})
         plots = [p for section in spec["panelBankConfig"]["sections"] for p in section["panels"]
                  if "metrics" in p.get("config",{})]
-        self.assertEqual(len(plots),45)
-        self.assertTrue({"outcome/mission_score", "evaluation/mean_return",
-                         "evaluation/mission_score", "energy/mean_battery_fraction"} <= {
+        self.assertEqual(len(plots),8)
+        self.assertTrue({"episode/return", "outcome/search_rate_percent",
+                         "outcome/delivery_rate_percent", "evaluation/discovery_auc",
+                         "evaluation/target_delivery_time_capped_mean_s",
+                         "evaluation/pooled_uav_j_per_gcs_delivery"} <= {
             metric for plot in plots for metric in plot["config"]["metrics"]
         })
+        fixed = next(plot for plot in plots if plot['config'].get('chartTitle') ==
+                     '3. Discovery AUC (higher = faster/better search)')
+        assert fixed['config']['xAxis'] == 'evaluation/checkpoint_episode'
+        assert fixed['config']['xExpression'] == '${evaluation/checkpoint_episode} / 10'
         paper_return = [p for p in plots if p.get("config", {}).get("chartTitle") == "UAV-paper training return / reward"]
         self.assertEqual(len(paper_return), 1)
         paper_config = paper_return[0]["config"]
@@ -100,30 +106,6 @@ class DashboardTests(unittest.TestCase):
         self.assertFalse(paper_config["showOriginalAfterSmoothing"])
 
 
-        success = [p for p in plots if p.get("config", {}).get("chartTitle") == "UAV-paper mission success rate by episode"]
-        self.assertEqual(len(success), 1)
-        success_config = success[0]["config"]
-        self.assertEqual(success_config["metrics"], ["outcome/success"])
-        self.assertEqual(success_config["xAxis"], "episode/index")
-        self.assertEqual(success_config["xExpression"], "${episode/index} / 10")
-        self.assertEqual(success_config["xAxisTitle"], "Episode (×10¹)")
-        self.assertEqual(success_config["yAxisTitle"], "Mission success rate (fraction; 1 = 100%)")
-        self.assertEqual(success_config["yAxisMin"], 0.0)
-        self.assertEqual(success_config["yAxisMax"], 1.0)
-        self.assertEqual(success_config["smoothingType"], "average")
-        self.assertTrue(success_config["showOriginalAfterSmoothing"])
-
-        sample_return = [p for p in plots if p.get("config", {}).get("chartTitle") == "Sample-efficiency training return / reward"]
-        self.assertEqual(len(sample_return), 1)
-        self.assertEqual(sample_return[0]["config"]["xAxis"], "global_step")
-        self.assertEqual(sample_return[0]["config"]["xExpression"], "${global_step} / 1000000")
-        self.assertEqual(sample_return[0]["config"]["xAxisTitle"], "Environment Steps (M)")
-
-        compute_return = [p for p in plots if p.get("config", {}).get("chartTitle") == "Compute-efficiency training return / reward"]
-        self.assertEqual(len(compute_return), 1)
-        self.assertEqual(compute_return[0]["config"]["xAxis"], "_runtime")
-        self.assertEqual(compute_return[0]["config"]["xExpression"], "${_runtime} / 60")
-        self.assertEqual(compute_return[0]["config"]["xAxisTitle"], "Wall Time (min)")
         for panel in plots:
             config = panel["config"]
             self.assertEqual(config.get("limit"),12)
