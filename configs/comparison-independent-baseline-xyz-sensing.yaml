@@ -95,7 +95,7 @@ runtime:
   deterministic: true
   torch_threads: 1
   log_interval_steps: 4096
-  checkpoint_interval: 128
+  checkpoint_interval: 256
   max_train_seconds: 41400
   output_dir: outputs/independent-baseline-xyz-20t15o-1500
 pql:
