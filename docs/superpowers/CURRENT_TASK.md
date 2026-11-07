@@ -1,3 +1,45 @@
+# 2026-11-07 — Timed handoff after later metrics and budget commits
+
+User requests a paste-ready new-chat prompt including work times. Read
+current source and five Library notebook headers before writing the handoff.
+Runtime snapshot isfa5ee6507e6c6a78c9258b7ac46e5d3cf9faac4c,23:40:32+07.
+The earlier sections below remain historical records, not latest runtime.
+
+Verified post-export history (all07Nov,+07):9243c40 21:26:59 adds five
+core evaluation metrics;8efcdb2 21:33:15 changes episode display to tens;
+2853c9d 22:13:25 revises train/eval views and compresses journals;
+e19c14c 22:40:45 restores compact diagnostics;37eb302 23:19:26 adds coverage
+and search/relay trade-offs;fa5ee65 23:40:32 changes three YAML train limits
+36000->41400. No learner equations/reward/CBF changes in these commits.
+
+Version mismatch is CONFIRMED and must not be silently described as done:
+- Library five-case notebook headers still cite0ca4f76 and10h.
+- Downloads five-case files now embed9243c40696188e9faf6d6f4d9aed29517fb23257;
+  archived YAML still36000s; file mtimes21:27:14+07.
+- Current three active YAMLs have41400s. Builder specs still39600s and
+  cloud/remote.py clamps available time against39600 before overhead reserve.
+Do not claim full11h30 end-to-end notebook execution is already implemented.
+
+Current evaluation still uses5 fixed validation layouts every3686400 steps
+for best selection. Final-only evaluation was discussed, not applied;
+training_only notebooks skip auto final30. Best criteria remain success,
+delivery,search,return (lexicographic). New core metrics are evaluation-only.
+Current chart definitions separate train,held-out checkpoint curves,
+search/relay trade-offs and diagnostics. Online view state not reread here.
+
+Fresh targeted checks onfa5ee65:58 passed,7 third-party warnings in4.02s
+(core mission/comparison metrics,dashboard,axes,journal,reference contract).
+The earlier1374-pass full suite in309.13s belongs to0ca4f76 and is not a
+whole-suite verification of the later runtime. No GPU job was submitted or
+live training status claimed in this handoff. Historical quota is not fresh.
+
+NEXT: deliver PROMPT_UAV_NETWORK_2026-11-07_CO_MOC_THOI_GIAN.md with exact
+commit chronology,configuration,artifact identities and pending work.
+Future actions should record actual start/end/duration and source/run IDs.
+This task changes continuity notes only; no notebook/runtime regeneration.
+
+---
+
 # 2026-11-07 — Five MATD3 UI ablation notebooks
 
 User requests only manual Kaggle UI files, no MASAC or GPU submission.
