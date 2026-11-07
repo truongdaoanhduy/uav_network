@@ -1,0 +1,180 @@
+# Separate35-target/25-obstacle,512x512 independent experiment; updates stay8.
+# Hybrid routing masks and valid-support entropy targets are declared UAV interfaces.
+world:
+  generation_version: 3
+  num_uavs: 6
+  map_size_m: 1000.0
+  num_targets: 35
+  num_obstacles: 25
+  max_steps: 1500
+  motion_safety: cbf
+  motion_dimensions: 3
+  altitude_min_m: 0
+  altitude_max_m: 150
+  obstacle_height_min_m: 30
+  obstacle_height_max_m: 120
+network:
+  propagation_delay_enabled: true
+  receiver_admission_mask: true
+  peer_range_m: 500.0
+  gcs_range_m: 500.0
+  tx_power_min_w: 0.001
+  tx_power_max_w: 0.4
+  tx_power_mapping: log
+  power_control: learned
+  link_budget_margin_db: 3.0
+  pa_efficiency: 0.35
+  tx_circuit_power_w: 0.1
+  rx_circuit_power_w: 0.1
+  power_limited_admission: true
+  link_state_observation: true
+  report_bytes: 1024
+  payload_bytes: 1024
+  buffer_bytes: 3072
+  report_ttl_s: 300.0
+  max_retries: 5
+reward:
+  information_gain: 10.0
+  investigation_shaping: 10.0
+  shaping_gamma: 0.99
+  investigation_belief_threshold: 0.8
+  communication_efficiency: 1.0
+  shield_correction: 0.1
+  shield_intervention: 0.5
+  unsafe_action: 1.0
+masac:
+  actor_layer_norm: false
+  share_actor_parameters: false
+  share_critic_parameters: false
+  hidden_sizes:
+  - 512
+  - 512
+  replay_capacity: 1000000
+  batch_size: 8192
+  learning_starts: 131072
+  updates_per_step: 8
+  grad_clip_mode: none
+  initial_alpha: 1.0
+  target_continuous_entropy: -4.0
+  target_discrete_entropy_ratio: 0.2
+  target_discrete_entropy_final_ratio: 0.2
+  target_discrete_entropy_anneal_updates: 0
+  mask_aware_discrete_entropy_target: true
+  temperature_loss: alpha
+matd3:
+  share_actor_parameters: false
+  share_critic_parameters: false
+  actor_layer_norm: false
+  output_normalization: false
+  grad_clip_norm: 0.5
+  grad_clip_mode: per_parameter
+  hidden_sizes:
+  - 512
+  - 512
+  replay_capacity: 1000000
+  batch_size: 8192
+  learning_starts: 131072
+  updates_per_step: 8
+  initialization: default
+runtime:
+  environment_backend: warp_packet
+  seed: 44
+  eval_seed: 2000000044
+  eval_episodes: 30
+  num_envs: 4096
+  coalesce_idle_polls: true
+  vectorize_critics: false
+  critic_chunk_size: 0
+  compile_models: false
+  amp_mode: 'off'
+  fused_optimizers: false
+  episodes: 20000
+  device: cuda
+  replay_device: cpu
+  replay_cpu_fraction: 0.75
+  deterministic: true
+  torch_threads: 1
+  log_interval_steps: 4096
+  checkpoint_interval: 128
+  max_train_seconds: 36000
+  output_dir: outputs/independent-35t25o-h512-u8-1500
+pql:
+  enabled: false
+  mode: async
+  critic_sample_ratio: 8
+  warmup_collection_steps: 32
+  max_pending_collections: 2
+  max_pending_policy_updates: 2
+  collector_device: auto
+  learner_device: auto
+  policy_device: auto
+  worker_timeout_s: 600
+  checkpoint_replay: true
+tracking:
+  resumable_checkpoint_interval_seconds: 3600.0
+  resumable_checkpoint_max_uploads: 4
+  enabled: true
+  artifact_timeout_seconds: 900
+  evaluation_interval: 0
+  evaluation_interval_steps: 3686400
+  evaluation_timeout_seconds: 900
+  periodic_evaluation_episodes: 5
+  periodic_evaluation_seed: 1000000044
+  entity: truongdaoanhduy-uit
+  project: uav_search_target
+  checkpoint_repo: duy95/uav-search-checkpoints
+  checkpoint_repo_private: false
+  group: uav-independent-35t25o-h512-u8-1500
+  tags:
+  - uav-network
+  - independent-baseline
+  - targets35
+  - obstacles25
+  - hidden512
+  - updates8
+  - source-equations
+  - plain-mlp
+  - independent-actors
+  - independent-critics
+  - no-critic-chunks
+  - scenario-v3
+  - seed44
+  - steps1500
+  - env4096
+  - batch8192
+  - replay1m
+  - cpu75-gpu25
+  - fp32-eager
+  - xyz
+  - bayesian-sensing
+  - report1kb
+  - power-learned
+  log_checkpoint: true
+  checkpoint_store: huggingface
+sensor:
+  model: bayesian
+  altitude_m: 100
+  grid_cell_m: 25
+  belief_prior: 0.5
+  full_fov_deg: 90
+  altitude_anchors:
+  - 0
+  - 50
+  - 100
+  - 150
+  pd:
+  - 0.99
+  - 0.9
+  - 0.8
+  - 0.7
+  pf:
+  - 0.01
+  - 0.1
+  - 0.2
+  - 0.3
+  fine_altitude_m: 50
+  confirmation_threshold: 0.99
+  belief_patch_cells: 5
+  belief_coarse_cells: 5
+  verified_empty_belief: 0.01
+  obstacle_occlusion: true

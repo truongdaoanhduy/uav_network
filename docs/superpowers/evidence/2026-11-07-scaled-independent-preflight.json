@@ -1,0 +1,363 @@
+{
+  "observed_utc": "2026-11-07T11:55:51.667482+00:00",
+  "starting_commit": "ee6a097",
+  "delta": {
+    "world.num_targets": {
+      "old": 20,
+      "new": 35
+    },
+    "world.num_obstacles": {
+      "old": 15,
+      "new": 25
+    },
+    "masac.hidden_sizes": {
+      "old": [
+        256,
+        256
+      ],
+      "new": [
+        512,
+        512
+      ]
+    },
+    "matd3.hidden_sizes": {
+      "old": [
+        256,
+        256
+      ],
+      "new": [
+        512,
+        512
+      ]
+    },
+    "runtime.output_dir": {
+      "old": "outputs/independent-baseline-xyz-20t15o-1500",
+      "new": "outputs/independent-35t25o-h512-u8-1500"
+    },
+    "tracking.group": {
+      "old": "uav-independent-baseline-xyz-20t15o-1500",
+      "new": "uav-independent-35t25o-h512-u8-1500"
+    },
+    "tracking.tags": {
+      "old": [
+        "uav-network",
+        "independent-baseline",
+        "source-equations",
+        "plain-mlp",
+        "independent-actors",
+        "independent-critics",
+        "no-critic-chunks",
+        "scenario-v3",
+        "seed44",
+        "steps1500",
+        "env4096",
+        "batch8192",
+        "replay1m",
+        "cpu75-gpu25",
+        "fp32-eager",
+        "xyz",
+        "bayesian-sensing",
+        "report1kb",
+        "power-learned"
+      ],
+      "new": [
+        "uav-network",
+        "independent-baseline",
+        "targets35",
+        "obstacles25",
+        "hidden512",
+        "updates8",
+        "source-equations",
+        "plain-mlp",
+        "independent-actors",
+        "independent-critics",
+        "no-critic-chunks",
+        "scenario-v3",
+        "seed44",
+        "steps1500",
+        "env4096",
+        "batch8192",
+        "replay1m",
+        "cpu75-gpu25",
+        "fp32-eager",
+        "xyz",
+        "bayesian-sensing",
+        "report1kb",
+        "power-learned"
+      ]
+    }
+  },
+  "dimensions_and_parameters": [
+    {
+      "targets": 20,
+      "obstacles": 15,
+      "hidden": [
+        256,
+        256
+      ],
+      "actor_input_dim": 198,
+      "state_dim": 565,
+      "critic_input_dim": 631,
+      "MASAC": {
+        "one_actor": 120591,
+        "one_twin_critic": 455682,
+        "online_total": 3457638,
+        "including_targets_and_temperature": 6191742
+      },
+      "MATD3": {
+        "one_actor": 119563,
+        "one_twin_critic": 455682,
+        "online_total": 3451470,
+        "including_targets_and_temperature": 6902940
+      },
+      "replay_bytes_per_transition": 14176,
+      "replay_cpu_bytes": 10641000000,
+      "replay_hot_bytes": 3544000000
+    },
+    {
+      "targets": 35,
+      "obstacles": 25,
+      "hidden": [
+        512,
+        512
+      ],
+      "actor_input_dim": 228,
+      "state_dim": 830,
+      "critic_input_dim": 896,
+      "MASAC": {
+        "one_actor": 387599,
+        "one_twin_critic": 1444866,
+        "online_total": 10994790,
+        "including_targets_and_temperature": 19663998
+      },
+      "MATD3": {
+        "one_actor": 385547,
+        "one_twin_critic": 1444866,
+        "online_total": 10982478,
+        "including_targets_and_temperature": 21964956
+      },
+      "replay_bytes_per_transition": 17736,
+      "replay_cpu_bytes": 13311000000,
+      "replay_hot_bytes": 4434000000
+    }
+  ],
+  "scenario_generation": {
+    "count": 36,
+    "fallbacks": 0,
+    "attempts_histogram": {
+      "1": 36
+    },
+    "rows": [
+      {
+        "seed": 44,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 1000000044,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 1000000045,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 1000000046,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 1000000047,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 1000000048,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000044,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000045,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000046,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000047,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000048,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000049,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000050,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000051,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000052,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000053,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000054,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000055,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000056,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000057,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000058,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000059,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000060,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000061,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000062,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000063,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000064,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000065,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000066,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000067,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000068,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000069,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000070,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000071,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000072,
+        "attempts": 1,
+        "fallback": false
+      },
+      {
+        "seed": 2000000073,
+        "attempts": 1,
+        "fallback": false
+      }
+    ]
+  },
+  "existing_notebook_sha256": {
+    "MASAC_BASE_INDEPENDENT_NOCHUNK_S44_Kaggle_UI.ipynb": "9a00f2e045d156a02791725fe01ac1bd203b3960300ac8f5efd9c768048177d0",
+    "MATD3_BASE_INDEPENDENT_NOCHUNK_S44_Kaggle_UI.ipynb": "21d331ce7c79f75278ca8451ede327e7c66ef16c47856d5a648d36933a5a331f"
+  },
+  "updates_advice": {
+    "updates": [
+      8,
+      16,
+      32
+    ],
+    "joint_transitions_per_collection": 4096,
+    "batch_size": 8192,
+    "masac_actor_alpha_calls": [
+      8,
+      16,
+      32
+    ],
+    "matd3_actor_calls": [
+      4,
+      8,
+      16
+    ],
+    "sample_uses_per_new_transition": [
+      16,
+      32,
+      64
+    ]
+  },
+  "cuda_available": false,
+  "training_submitted": false
+}

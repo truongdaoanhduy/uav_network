@@ -18,6 +18,8 @@ from uav_network.cloud.ui_notebooks import build_independent_notebook
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed", type=int, default=44)
+    parser.add_argument("--scaled", action="store_true",
+                        help="Separate35T25O/512x512/updates8 experiment; preserve old filenames.")
     parser.add_argument("--output-dir", type=Path, action="append",
                         help="Destination; repeat for multiple copies. Defaults to Downloads and outputs/kaggle.")
     args = parser.parse_args()
@@ -30,9 +32,10 @@ def main():
     folders = args.output_dir or [Path.home() / "Downloads", ROOT / "outputs/kaggle"]
     files = []
     for algorithm in ("masac", "matd3"):
-        notebook = build_independent_notebook(algorithm, archive, commit, seed=args.seed)
+        notebook = build_independent_notebook(algorithm, archive, commit, seed=args.seed, scaled=args.scaled)
         body = nbformat.writes(notebook) + "\n"
-        filename = f"{algorithm.upper()}_BASE_INDEPENDENT_NOCHUNK_S{args.seed}_Kaggle_UI.ipynb"
+        variant = "_35T25O_H512_U8" if args.scaled else ""
+        filename = f"{algorithm.upper()}_BASE_INDEPENDENT_NOCHUNK{variant}_S{args.seed}_Kaggle_UI.ipynb"
         for folder in folders:
             folder.mkdir(parents=True, exist_ok=True)
             target = folder / filename
@@ -40,7 +43,7 @@ def main():
             files.append(str(target))
     print(json.dumps({
         "source_commit": commit, "archive_sha256": hashlib.sha256(archive).hexdigest(),
-        "archive_bytes": len(archive), "training_seed": args.seed,
+        "archive_bytes": len(archive), "training_seed": args.seed, "scaled": args.scaled,
         "files": files, "submitted": False,
     }, indent=2))
 

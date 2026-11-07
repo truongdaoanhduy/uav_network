@@ -7,6 +7,7 @@ import nbformat
 from .kernel import kernel_script
 
 PROFILE = "configs/comparison-independent-baseline-xyz-sensing.yaml"
+SCALED_PROFILE = "configs/comparison-independent-35t25o-h512-xyz-sensing.yaml"
 STAGE_START = 'if SPEC["stage"] in {"visualize", "archive"}:'
 
 PREFLIGHT = r'''# Dùng URL thật của notebook Kaggle bạn vừa tạo.
@@ -42,18 +43,25 @@ print("Actor/critic độc lập; plain MLP; NOCHUNK; BASE; profile 1500 bước
 '''
 
 
-def build_independent_notebook(algorithm, archive, source_commit, *, seed=44):
+def build_independent_notebook(algorithm, archive, source_commit, *, seed=44, scaled=False):
     """Build a notebook without contacting Kaggle/W&B or reading credentials."""
     if algorithm not in {"masac", "matd3"}:
         raise ValueError("algorithm must be masac or matd3")
     if type(seed) is not int or not 0 <= seed < 2**31:
         raise ValueError("seed must be an integer in [0, 2**31)")
+    profile = SCALED_PROFILE if scaled else PROFILE
+    scene = "35 target, 25 obstacle" if scaled else "20 target, 15 obstacle"
+    width = 512 if scaled else 256
+    variant = "-T35-O25-H512-U8" if scaled else ""
+    output_prefix = "independent-35t25o-h512-u8" if scaled else "independent"
     tags = [
         "uav-network", "independent-baseline", "plain-mlp", "independent-actors",
         "independent-critics", "no-critic-chunks", "scenario-v3", "steps1500",
         "env4096", "batch8192", "replay1m", "cpu75-gpu25", "fp32-eager",
         "training-only", "hf-best-only", "xyz", "bayesian-sensing",
     ]
+    if scaled:
+        tags += ["targets35", "obstacles25", "hidden512", "updates8"]
     tags += (["alpha-dual-loss", "mask-aware-discrete-entropy"] if algorithm == "masac"
              else ["matd3-init-default"])
     spec = {
@@ -61,7 +69,7 @@ def build_independent_notebook(algorithm, archive, source_commit, *, seed=44):
         "kernel_ref": "YOUR_KAGGLE_USERNAME/YOUR_NOTEBOOK_SLUG", "account": "kaggle_ui",
         "timeout_seconds": 39600, "warm_start_artifacts": {},
         "entity": "truongdaoanhduy-uit", "project": "uav_search_target", "stage": "train",
-        "config": PROFILE, "overrides": [f"runtime.algorithm={algorithm}", "pql.enabled=false"],
+        "config": profile, "overrides": [f"runtime.algorithm={algorithm}", "pql.enabled=false"],
         "runs": {algorithm: {"id": "assigned-at-runtime", "name": "assigned-at-runtime"}},
         "training_mode": "base", "accelerator": "NvidiaTeslaT4", "gpus_per_run": 2,
         "requested_episodes": 20000, "training_only": True, "auto_continue": False,
@@ -78,12 +86,12 @@ SPEC["submitted_at_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 new_run_id = uuid4().hex[:8]
 SPEC["runs"]["{algorithm}"] = {{
     "id": new_run_id,
-    "name": f"{algorithm.upper()}-BASE-INDEPENDENT-NOCHUNK-{suffix}-S{{TRAIN_SEED}}-{{new_run_id}}",
+    "name": f"{algorithm.upper()}-BASE-INDEPENDENT-NOCHUNK-{suffix}{variant}-S{{TRAIN_SEED}}-{{new_run_id}}",
 }}
 tags = {tags!r} + [f"seed{{TRAIN_SEED}}"]
 SPEC["overrides"] += [
     f"runtime.seed={{TRAIN_SEED}}",
-    f"runtime.output_dir=outputs/independent-{algorithm}-s{{TRAIN_SEED}}-{{new_run_id}}",
+    f"runtime.output_dir=outputs/{output_prefix}-{algorithm}-s{{TRAIN_SEED}}-{{new_run_id}}",
     "tracking.tags=" + json.dumps(tags, separators=(",", ":")),
 ]
 print("Kaggle notebook:", "https://www.kaggle.com/code/" + NOTEBOOK_REF, flush=True)
@@ -101,11 +109,12 @@ Actor và twin critic độc lập cho từng UAV; plain MLP, không LayerNorm.
 Đây là lõi thuật toán theo nguồn gốc với adapter hành động lai UAV, chưa phải
 bản sao toàn bộ thí nghiệm của một paper.
 
-- **Profile:** `{PROFILE}`.
+- **Profile:** `{profile}`.
 - **MASAC:** alpha tự học, `temperature_loss=alpha`, target entropy theo mask.
 - **MATD3:** khởi tạo mặc định, không chuẩn hóa output; noise/delay giữ nguyên.
-- **Chung:** 6 UAV, 20 target, 15 obstacle, XYZ/CBF/Bayesian, tối đa 1500 bước;
+- **Chung:** 6 UAV, {scene}, XYZ/CBF/Bayesian, tối đa 1500 bước;
   hết pin toàn bộ UAV sẽ kết thúc episode. Reward/CBF giữ nguyên.
+- **Mạng:** hidden `[{width}, {width}]` cho cả actor/critic; updates/collection = 8.
 - **Train:** BASE, seed mặc định {seed}, 20000 episode, 4096 env, batch 8192,
   replay 1M (75% CPU/25% GPU), FP32, NOCHUNK; AMP/compile/fused tắt.
 - **Eval:** cùng 5 layout validation định kỳ mỗi 3,6864M transition.
@@ -132,12 +141,13 @@ VRAM T4 hoặc hội tụ; chưa có kết quả huấn luyện cho profile mớ
 """
     notebook = nbformat.v4.new_notebook(
         cells=[nbformat.v4.new_markdown_cell(intro),
-               nbformat.v4.new_code_cell(PREFLIGHT.replace("__SEED__", str(seed))),
+               nbformat.v4.new_code_cell(PREFLIGHT.replace("__SEED__", str(seed)) +
+                   f'\nprint("Scene: {scene}; hidden [{width}, {width}]; updates/collection=8")\n'),
                nbformat.v4.new_code_cell(launch)],
         metadata={
             "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
             "language_info": {"name": "python"},
-            "uav_baseline": {"algorithm": algorithm, "profile": PROFILE,
+            "uav_baseline": {"algorithm": algorithm, "profile": profile,
                              "source_commit": source_commit, "archive_sha256": digest,
                              "default_training_seed": seed},
         },

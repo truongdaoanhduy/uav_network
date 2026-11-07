@@ -1,3 +1,37 @@
+# 2026-11-07 — Separate35t25o/512x512 independent experiment
+
+User asks whether16/32 updates help and explicitly requests wider networks
+and35 targets/25 obstacles. Updates remain8: the16/32 question is advisory.
+Starting clean source ee6a097. Created a separate scaled YAML and --scaled
+notebook export option; default profile/files remain the20t15o/256 controls.
+No algorithm/reward/CBF/battery, learning rate, seed or sensor-slot changes.
+
+Actual dimensions: independent actor198->228, state565->830,
+critic including joint actions631->896. Historical SH actor input was204
+(198 observation+6 agent-ID). Online parameters grow about3.18x for both
+algorithms; this combines scene and width changes, not a width-only effect.
+At batch8192/env4096, U8/U16/U32 consume16/32/64 replay samples per new
+joint transition. These are NOT literal per-transition optimizer counts.
+
+RED:2 missing-scaled-API failures observed. GREEN:34 relevant tests and
+582 subtests passed, including real Warp CPU transitions,512-network
+critic+actor updates and finite metrics for both algorithms. The initial
+new probe used Action instead of vector dict; corrected the probe adapter,
+not production.36 scenarios generated successfully on first attempt with
+no fallback. Baseline notebook hashes remain exactly unchanged.
+Full repository suite is running; do not claim a whole-suite pass yet.
+Read-only review approved with no Critical/Important/Minor findings.
+No GPU training was submitted;
+T4 batch8192 fit and convergence remain unverified.
+
+Evidence: evidence/2026-11-07-scaled-independent-preflight.json.
+Methods: ../../methods/SCALED_INDEPENDENT_BASELINE_35T25O_H512.md.
+NEXT: finish review/suite, commit clean source, export labelled35T25O_H512_U8
+matched notebooks, verify frozen archive/effective config, save new files
+without replacing old control notebooks and record actual source commit.
+
+---
+
 # 2026-11-07 — Independent baseline Kaggle UI notebooks
 
 User requested continuing the source-baseline work. Prepared two separate
