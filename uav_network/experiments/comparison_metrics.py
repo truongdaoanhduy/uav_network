@@ -14,6 +14,8 @@ METRICS = {
     "gcs_delivery_fraction": ("fraction", "higher"),
     "target_discovery_fraction": ("fraction", "higher"),
     "delivery_given_discovery_fraction": ("fraction", "higher"),
+    "map_coverage_percent": ("percent of visited map grid cells", "higher"),
+    "false_confirmation_per_1000_measurements": ("false confirmations per 1000 sensing measurements", "lower"),
     "mission_success": ("fraction", "higher"),
     "delivery_auc": ("fraction", "higher"),
     "discovery_auc": ("fraction", "higher"),
@@ -201,11 +203,27 @@ class MissionMetrics:
         power_margin = diagnostics.get("data_power_margin_db") or {}
         relay_progress = diagnostics.get("relay_gcs_distance_improvement_m") or {}
         motion = info.get("motion_counts", {})
+        sensing = info.get("sensing") or {}
+        measurements = int(sensing.get("measurements", 0))
+        false_confirmations = int(sensing.get("false_confirmation", 0))
+        if measurements < 0 or not 0 <= false_confirmations <= measurements:
+            raise ValueError("False confirmation count must not exceed sensing measurements")
+        coverage = info.get("coverage_percent")
+        if coverage is not None:
+            coverage = float(coverage)
+            if not np.isfinite(coverage) or not 0 <= coverage <= 100:
+                raise ValueError("Map coverage percent must be in [0, 100]")
         result = {
             "targets_found": f, "targets_delivered": d, "target_discovery_fraction": f / w.num_targets,
             "gcs_delivery_fraction": d / w.num_targets,
             "mission_score": mission_score(f, d),
             "delivery_given_discovery_fraction": d / f if f else None,
+            "map_coverage_percent": coverage,
+            # Normalized false-confirmation *incidence* per measurement, NOT
+            # false confirmations / all attempted confirmations: the existing
+            # 'confirmations' counter counts unique true discoveries only.
+            "false_confirmation_per_1000_measurements": (
+                1000. * false_confirmations / measurements if measurements else None),
             "mission_success": float(success),
             "mission_completion_time_capped_s": self.step * w.dt_s if success else horizon,
             "target_discovery_time_capped_mean_s": float(capped_discovery.mean()),

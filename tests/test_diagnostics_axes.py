@@ -82,8 +82,12 @@ def test_workspace_run_table_is_compact_and_decision_focused():
         "learner/actor_loss", "learner/critic_loss", "learner/actor_grad_norm",
         "learner/critic_grad_norm", "learner/td_error_abs_mean",
         "action/movement_saturation_fraction", "safety/cbf_intervention_rate",
+        "evaluation/delivery_given_discovery_fraction",
+        "evaluation/first_discovery_to_gcs_delay_delivered_mean_s",
+        "evaluation/false_confirmation_per_1000_measurements",
+        "evaluation/map_coverage_percent",
     } == all_metrics
-    assert sum(len(panels) for panels in PANELS.values()) == 17
+    assert sum(len(panels) for panels in PANELS.values()) == 21
 
 
 def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source():
@@ -98,6 +102,8 @@ def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source()
     assert panel_axis("outcome/success") == "episode/index"
     assert panel_axis("evaluation/mean_return") == "evaluation/checkpoint_global_step"
     assert panel_axis("evaluation/core/discovery_rate_percent") == "evaluation/checkpoint_episode"
+    assert panel_axis("evaluation/map_coverage_percent") == "evaluation/checkpoint_episode"
+    assert panel_axis("evaluation/false_confirmation_per_1000_measurements") == "evaluation/checkpoint_episode"
     assert panel_options("1. Target discovery rate (%)", "evaluation/core/discovery_rate_percent")["xaxis_expression"] == "${evaluation/checkpoint_episode} / 10"
     assert panel_options("CPU evaluation delivery (%) - higher", "evaluation/delivery_rate_percent")["xaxis_expression"] == "${evaluation/episodes_completed} / 10"
     assert panel_axis("eval/mean_return") == "evaluation/checkpoint_global_step"

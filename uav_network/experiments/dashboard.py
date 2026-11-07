@@ -32,6 +32,12 @@ PANELS = {
         ("4. Capped mean GCS delivery time (s)", "evaluation/target_delivery_time_capped_mean_s"),
         ("5. Pooled UAV energy per GCS delivery (J)", "evaluation/pooled_uav_j_per_gcs_delivery"),
     ],
+    "Supplemental: exploration and relay trade-offs": [
+        ("Delivery given discovery (fraction; 1 = 100%)", "evaluation/delivery_given_discovery_fraction"),
+        ("Discovery-to-GCS delay (s; delivered targets only)", "evaluation/first_discovery_to_gcs_delay_delivered_mean_s"),
+        ("False confirmations per 1,000 sensing measurements", "evaluation/false_confirmation_per_1000_measurements"),
+        ("Union map coverage (%)", "evaluation/map_coverage_percent"),
+    ],
     "Training diagnostics (expand when debugging)": [
         ("Actor loss", "learner/actor_loss"),
         ("Critic loss", "learner/critic_loss"),
@@ -44,7 +50,9 @@ PANELS = {
 }
 
 PERIODIC_EPISODE_METRICS = {
-    metric for _, metric in PANELS["Periodic evaluation on fixed seeds (held-out checkpoint curves)"]
+    metric for section in ("Periodic evaluation on fixed seeds (held-out checkpoint curves)",
+                           "Supplemental: exploration and relay trade-offs")
+    for _, metric in PANELS[section]
 }
 
 
@@ -235,7 +243,7 @@ def create_dashboard(config, run_ids=(), name="UAV Network 2D - MASAC and MATD3"
     if missing:
         raise ValueError(f"Requested W&B runs not found: {sorted(missing)}")
     panels = PANELS if profile == "core" else DIAGNOSTIC_PANELS
-    workspace.sections = [ws.Section(name=title, is_open=not title.startswith("Training diagnostics"), panels=[
+    workspace.sections = [ws.Section(name=title, is_open=not title.startswith(("Training diagnostics", "Supplemental:")), panels=[
         wr.LinePlot(title=label, x=panel_axis(metric, label),
                     y=panel_y(label, metric),
                     max_runs_to_show=12, aggregate=False, **panel_options(label, metric))

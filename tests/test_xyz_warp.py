@@ -33,6 +33,13 @@ def test_warp_native_xyz_camera_and_motion_agree():
             np.testing.assert_allclose(gpu.s.belief.numpy()[0].reshape(native.belief.shape),native.belief,atol=1e-9)
             np.testing.assert_allclose(go["observation"][0].numpy(),no,atol=1e-6)
             assert float(gr[0])==pytest.approx(nr,abs=1e-5)
+            # Passive search instrumentation must agree between the reference
+            # CPU sensor and the Warp backend used for held-out evaluation.
+            from uav_network.communication.gpu.metrics import world_info
+            native_info = native.info()
+            gpu_info = world_info(gpu.s,gpu.p,0)
+            assert gpu_info["coverage_percent"] == pytest.approx(native_info["coverage_percent"])
+            assert gpu_info["sensing"] == native_info["sensing"]
     finally:native.close();gpu.close()
 
 
