@@ -1,3 +1,13 @@
+# 2026-11-08 — Active checkpoint save cadence 128 → 256
+
+Task start: 08/11/2026 01:30:30 UTC+7 | Verified: 08/11/2026 01:31:30 UTC+7. Main code commit: `27bc84d`.
+
+User explicitly requested changing checkpoint saves to 256 completed episodes, then continuing discussion of validation frequency (do not change validation yet). Updated 3 **current 20k/41400s** YAML profiles: comparison-reference-masac-matd3-xyz-sensing, comparison-independent-baseline-xyz-sensing, comparison-independent-35t25o-h512-xyz-sensing. Added targeted config regression test `tests/test_active_checkpoint_cadence.py`. Targeted suite: 94 passed, 2 skipped, 608 subtests passed in 19.02s; git diff --check clean. No algorithms, reward, learning, validation, checkpoint retention (keep=2), or final saving touched. Old/specialized YAMLs and existing embedded Kaggle UI notebooks deliberately unchanged. Changes affect only future runs using latest source/config.
+
+Validation remains every 3,686,400 global transitions with 5 independent fixed-seed CPU episodes and single active evaluator; busy/timeout can skip scheduled points. Source step snapshots are separate from 256-episode regular checkpoints; `best.pt` is validation-selected, `final.pt` is saved on normal exit. User is considering a variable cadence tied to 20k episodes (e.g. 10 milestones); no validation schedule or changes were authorized. Future requirement: study an episode-derived validation schedule robust to bursts from 4096 parallel environments and CPU evaluator busy before coding.
+
+---
+
 # 2026-11-08 — Training and held-out evaluation trade-off metrics
 
 User requested that 4 supplemental plots appear in BOTH Training Convergence and Periodic Evaluation, and asked whether training metrics alone should select best checkpoint before a harder-seed final test.
