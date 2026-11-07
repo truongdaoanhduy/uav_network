@@ -1,3 +1,15 @@
+# 2026-11-08 — User-selected MATD3/MASAC BASE Reward plots at windows 8/16/32/64
+
+User corrected earlier 'latest' run preference: **MATD3-BASE-SH-NOCHUNK-DEFAULT-S44-971f7cc2** paired with **MASAC-BASE-SH-NOCHUNK-MASKAWARE-S44-f6a196a7**, explicitly **no PQL** and no Kaiming. Completed and verified 08/11/2026 02:16:55 UTC+7. Code + 9 PNGs + README commit: `2dd9229`.
+
+- Read exact 20,000 episode History records per run from live W&B, same world/reward/sensor/network/energy, 6UAV, 20 targets, 15 obstacles, 1km, 1500 horizon, seed44, 4096 envs. Not the 35t25o new config. Differing MATD3 default init vs MASAC mask-aware means this is a selected-run exploratory graph, not single-factor controlled comparison.
+- Added `scripts/plot_latest_base_small_reward_windows.py`, a four-window **moving average** (8/16/32/64, no downsampling) and **non-overlapping block means** (8/16/32/64), zoom at 4096 boundary. Read-only W&B, no PQL or validation used. Images in `docs/research/reward-small-window-selected-base/`, raw records + analysis.json in local ignored `outputs/reward-small-window-default-matd3-maskaware-masac/`.
+- Tests: 32 passed, no failure (7s); Git diff --check clean. Δ reward around 4096 (mean of 64 raw completed episodes each side): MATD3 +1121.64, MASAC -425.32. This persists at even 8-window, so the 200/256 smoothing choice did **not cause** the episode cohort discontinuity; using smaller windows resolves sampling/detail but cannot remove real logged jumps. It remains uncertain what fraction is episode completion-order vs actual policy learning.
+- **Kept previous checkpoint save interval 256 episodes** untouched; the '256' checkpoint interval is completely separate from the graphical aggregation windows. Also no W&B Workspace mutations, checkpoint selection/validation adjustments, Kaggle run, algorithm training modifications, or PQL modifications.
+- Next: user to inspect these figures and decide display window or request an alternate validation-Return convergence chart. Do not switch Validation schedule without permission. Github branch `experiment/hfbest-embedded-source-steps1500-20261105`.
+
+---
+
 # 2026-11-08 — Plot training Reward from actual W&B History using source-backed methods
 
 Task: user explicitly requested making Reward learning-curve figures from Training History (MADDPG-style block means / EPyMARL-style rolling mean) first; user will decide later if switching the paper plot to periodic fixed-policy validation reward. Started ~08/11/2026 01:54 UTC+7; verified 08/11/2026 02:02:20 UTC+7. Main implementation + PNG commit: `db2ff5b`.
