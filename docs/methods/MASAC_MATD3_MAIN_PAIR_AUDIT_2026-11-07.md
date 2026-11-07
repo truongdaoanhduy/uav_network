@@ -279,3 +279,10 @@ These one-seed results do not establish that either initializer is universally
 unsuitable. Orthogonal reaches 64% delivery at 22.1184M, so compare equal
 budgets rather than cherry-picking endpoints. No initializer change is applied
 to the main pair or to the new default-initialization source recipe.
+
+The Kaiming manual notebook was regenerated from labeling-fix source
+`a2adb5d605005f42ca1c52ed908605eae9ba0667` in the user's Downloads folder.
+Only that notebook was rebuilt. Archive checksum, actual generated KAIMING
+header/config, Python compilation, runtime-source equality and duplicate-copy
+equality were checked; no GPU job was submitted. See the
+[verification manifest](../superpowers/evidence/2026-11-07-kaiming-notebook-verification.json).

@@ -50,9 +50,21 @@ Main-pair implementation/evidence commit
 Secondary work, after the main audit: corrected cd07de3c's W&B display name
 from DEFAULT to KAIMING; readback config/summary hashes were unchanged.
 Fixed the notebook generator's DEFAULT-for-KAIMING label mapping and tested
-all three generated run names. NEXT: commit this isolated labeling repair,
-regenerate only the Kaiming manual notebook from that clean committed source,
-record the resulting source/hash, and push final continuity notes.
+all three generated run names. Labeling implementation commit:
+`a2adb5d605005f42ca1c52ed908605eae9ba0667`. Fresh initialization/header suite:
+11 passed. Regenerated ONLY the manual Kaiming notebook in Downloads and
+outputs/kaggle, from that clean committed source; no Kaggle job submission.
+Embedded archive SHA256
+`632643cb1e0c6f91381121c79bdf91ea27a41e8feda6ed80d3a228137e31e72a`,
+415 files. Notebook cells compile; nbformat validates; actual generated
+header resolves KAIMING; archived runtime sources match; both copies match.
+Verification manifest: evidence/2026-11-07-kaiming-notebook-verification.json.
+
+NEXT: explain the measured main-pair gap and causal limits to the user.
+Use source recipe only as a new labelled baseline; do not claim improved
+learning before full GPU training or launch training without a new request.
+Preserve old SH runs as controls. A paper comparison needs several training
+seeds and matched transition checkpoints.
 Do not launch production training automatically. If the new source profile
 is selected for a paper, BOTH algorithms need fresh training lineages and
 multiple training seeds with matched transition checkpoints.

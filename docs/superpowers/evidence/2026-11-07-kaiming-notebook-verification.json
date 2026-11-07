@@ -1,0 +1,13 @@
+{
+  "source_commit": "a2adb5d605005f42ca1c52ed908605eae9ba0667",
+  "archive_sha256": "632643cb1e0c6f91381121c79bdf91ea27a41e8feda6ed80d3a228137e31e72a",
+  "archive_bytes": 648966,
+  "bundled_files": 415,
+  "notebook": "/home/aduy/Downloads/MATD3_BASE_NOCHUNK_KAIMING_Kaggle_UI.ipynb",
+  "notebook_sha256": "fce8573c9362e56fcf3455c4d5c8278a32c95de312e7ab8901d9de488bd68e4c",
+  "download_output_equal": true,
+  "effective_initialization": "kaiming",
+  "header_label": "KAIMING",
+  "source_files_match": true,
+  "training_submitted": false
+}
