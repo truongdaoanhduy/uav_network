@@ -22,11 +22,11 @@ if __name__ == "__main__":
 def test_reference_algorithm_source_contract():
     import hashlib
     root = Path(__file__).resolve().parents[1]
-    # Repinned for user-approved 2026-11-06 matched pure-critic chunk execution.
+    # Repinned for reviewed, user-approved alpha-dual and opt-in initialization changes.
     expected = {
-        "uav_network/algorithms/masac.py": "80c96bfdbcf1586627894ea2b99e8cb6826bd317113ffee15bf211dc630abf69",
-        "uav_network/algorithms/matd3.py": "988c9924ef155d7a025c10ac069cf275fac1e4e19932cb1f9bde86062c31da1b",
-        "uav_network/algorithms/models.py": "4a653aca0bb14bc10d2b695d98eb41b7e601b18ab5bd30795aa3e7eecf1f6d40",
+        "uav_network/algorithms/masac.py": "097bd0b69b90d3323fd48733d2db0bc1a9dcc487fbf55d9e4edf4e447ad63b33",
+        "uav_network/algorithms/matd3.py": "6555d6eaff2127c181a819492b2249b02e6119814561b0ad981e7ad24ba3db27",
+        "uav_network/algorithms/models.py": "474a209f5172ad39dbb853108c94bea6c70e5cc89f5aa5b31dee89cfbbbead41",
         "uav_network/algorithms/optimization.py": "fae2798711325662ef5604e6271802e9bde631aa0c936e96e9d42a520eb351b8",
         "uav_network/algorithms/action_utils.py": "1e9aee9168b0f87c9809bfaaf4016277dd31ce38df0b232ee10fb42779fe2463",
     }

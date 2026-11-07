@@ -10,7 +10,6 @@ import re
 import yaml
 from .configuration_xyz import FlightSettings, BayesianSettings, validate_xyz, legacy_xyz_defaults
 
-
 @dataclass
 class WorldConfig(FlightSettings):
     generation_version: int = 3
@@ -33,7 +32,6 @@ class WorldConfig(FlightSettings):
     gcs_position_m: list | None = None
     placement_attempts: int = 5000
 
-
 @dataclass
 class SensorConfig(BayesianSettings):
     altitude_m: float = 100.0
@@ -46,7 +44,6 @@ class SensorConfig(BayesianSettings):
     @property
     def footprint_radius_m(self):
         return self.altitude_m * math.tan(math.radians(self.full_fov_deg / 2))
-
 
 @dataclass
 class NetworkConfig:
@@ -88,7 +85,6 @@ class NetworkConfig:
     propagation_delay_enabled: bool = False  # Opt in for new studies; preserve saved legacy runs.
     obstacle_extra_loss_db: float = 0.0
 
-
 @dataclass
 class EnergyConfig:
     enabled: bool = True
@@ -97,7 +93,6 @@ class EnergyConfig:
     hover_power_w: float = 120.0
     speed_squared_coefficient: float = 0.5
     acceleration_squared_coefficient: float = 2.0
-
 
 @dataclass
 class RewardConfig:
@@ -118,7 +113,6 @@ class RewardConfig:
     shaping_gamma: float = 0.99
     investigation_belief_threshold: float = 0.8
 
-
 @dataclass
 class OffPolicyConfig:
     hidden_sizes: list = field(default_factory=lambda: [256, 256])
@@ -135,7 +129,6 @@ class OffPolicyConfig:
     grad_clip_norm: float = 10.0
     grad_clip_mode: str = "global"
 
-
 @dataclass
 class MASACConfig(OffPolicyConfig):
     temperature_loss: str = "log_alpha"  # "alpha" selects the original SAC dual loss.
@@ -146,7 +139,6 @@ class MASACConfig(OffPolicyConfig):
     target_discrete_entropy_anneal_updates: int = 0
     # Historical entropy follows mask size; the reference uses a fixed action count.
     mask_aware_discrete_entropy_target: bool = True
-
 
 @dataclass
 class MATD3Config(OffPolicyConfig):
@@ -160,7 +152,6 @@ class MATD3Config(OffPolicyConfig):
     initial_epsilon: float = 1.0
     final_epsilon: float = 0.05
     epsilon_decay_steps: int = 100_000
-
 
 @dataclass
 class RuntimeConfig:
@@ -189,7 +180,6 @@ class RuntimeConfig:
     log_interval_steps: int = 100
     warm_start_checkpoint: str = "none"
     max_train_seconds: float = 0.0
-
 
 @dataclass
 class PQLConfig:

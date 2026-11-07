@@ -169,3 +169,8 @@ def test_historical_best_state_resumes_without_norm_but_rejects_changed_architec
     active.actor_layer_norm = not active.actor_layer_norm
     with pytest.raises(ValueError, match='identity/provenance'):
         BestCheckpoint(changed, tmp_path / 'changed', state=state)
+    if algorithm == "masac":
+        changed_temperature = deepcopy(c)
+        changed_temperature.masac.temperature_loss = "alpha"
+        with pytest.raises(ValueError, match='identity/provenance'):
+            BestCheckpoint(changed_temperature, tmp_path / 'changed-temperature', state=state)

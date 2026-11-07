@@ -16,9 +16,9 @@ from ..configuration_xyz import strip_legacy_xyz_defaults
 CRITERIA = ("success_rate", "mean_delivery_rate_percent", "mean_search_rate_percent", "mean_return")
 
 
-def selection_identity(config):
+def selection_identity(config, *, retain_default_temperature=False):
     d = strip_legacy_xyz_defaults(config.to_dict())
-    if config.masac.temperature_loss == "log_alpha":
+    if config.masac.temperature_loss == "log_alpha" and not retain_default_temperature:
         d["masac"].pop("temperature_loss", None)
     for name in ("masac", "matd3"):
         if not getattr(config, name).actor_layer_norm:
@@ -93,7 +93,12 @@ class BestCheckpoint:
             if not isinstance(meta, dict) or hashlib.sha256(data).hexdigest() != meta.get("checkpoint_sha256"):
                 raise ValueError("Best-checkpoint bytes changed")
             saved, before = _snapshot(data)
-            if (meta.get("identity") != self.identity or selection_identity(before) != self.identity
+            # Default log-alpha has identical semantics whether the serialized
+            # identity included the explicit field or omitted its legacy default.
+            identities = {self.identity}
+            if config.masac.temperature_loss == "log_alpha":
+                identities.add(selection_identity(config, retain_default_temperature=True))
+            if (meta.get("identity") not in identities or selection_identity(before) != self.identity
                     or hashlib.sha256(data).hexdigest() != meta.get("checkpoint_sha256")
                     or meta.get("config_sha256") not in _config_hashes(before)
                     or meta.get("global_step") != saved["progress"]["global_step"]

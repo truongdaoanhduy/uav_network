@@ -6,9 +6,7 @@ import os
 from pathlib import Path
 import time
 from uuid import uuid4
-
 import numpy as np
-
 from .hardware import hardware_info
 from .telemetry import episode_telemetry
 from .comparison_metrics import mission_score
@@ -310,7 +308,6 @@ class OnlineTracker:
         self.latest_evidence.update(select_evidence(values))
         self.latest_evidence["evidence/learner_global_step"] = step
         self.run.log({"global_step": step, **values})
-
     def diagnostic(self, values, step):
         self.latest_evidence.update(select_evidence(values))
         self.latest_evidence["evidence/diagnostic_global_step"] = step
@@ -344,7 +341,6 @@ class OnlineTracker:
                 context["phase"] = "cpu_evaluation_completed" if event == "evaluation_result" else "cpu_evaluation"
             self._record_event(event, context)
         self.run.log({"global_step": step, **values})
-
     def failure(self, path, step):
         error_type = "unknown"
         try:
@@ -497,7 +493,6 @@ class OnlineTracker:
             self.run.summary.update({"run_ended_at_utc": datetime.now(timezone.utc).isoformat(),
                                      "run_elapsed_seconds": time.perf_counter() - self.started})
             self.run.finish(exit_code=1 if failed else 0)
-
 
 def start_tracking(config, output, initial_progress=None):
     return OnlineTracker(config, output, initial_progress) if config.tracking.enabled else None

@@ -1,0 +1,21 @@
+{
+  "broad_run": {
+    "exit_code": 1,
+    "passed": 1356,
+    "skipped": 103,
+    "warnings": 8,
+    "subtests_passed": 1644,
+    "reported_static_failures": 4,
+    "failure_functions": [
+      "tests/test_project_structure.py::StructureTests::test_every_owned_text_source_stays_below_500_lines",
+      "tests/test_project_structure.py::test_reference_algorithm_source_contract"
+    ]
+  },
+  "followup": {
+    "passed": 13,
+    "subtests_passed": 578,
+    "failures": 0
+  },
+  "behavior_changes_after_broad_run": false,
+  "note": "After broad run only AST-identical whitespace, byte-preserving history archive and reviewed stale hash pins were changed."
+}

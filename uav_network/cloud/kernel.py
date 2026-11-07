@@ -4,9 +4,29 @@ import base64
 from .source_bundle import build_source_archive, source_sha256
 
 
-def kernel_script(spec):
+KAGGLE_SECRETS_CREDENTIALS = '''# Read the current user's granted Secrets; never embed or print credentials.
+from kaggle_secrets import UserSecretsClient
+secret_client = UserSecretsClient()
+for secret_name in ("WANDB_API_KEY", "HF_TOKEN"):
+    try:
+        secret_value = secret_client.get_secret(secret_name)
+    except Exception:
+        raise RuntimeError(f"Missing or inaccessible Kaggle Secret {secret_name}") from None
+    if not isinstance(secret_value, str) or not secret_value.strip():
+        raise RuntimeError(f"Kaggle Secret {secret_name} is empty")
+    os.environ[secret_name] = secret_value.strip()
+    del secret_value
+os.environ["HF_REPO_ID"] = SPEC["checkpoint_repo"]
+
+'''
+
+
+def kernel_script(spec, *, source_archive=None, credential_source="dataset"):
+    if credential_source not in {"dataset", "kaggle_secrets"}:
+        raise ValueError("credential_source must be dataset or kaggle_secrets")
     # The direct Kaggle API sends one script body; embed the whole local runtime source.
-    source = build_source_archive(__import__("pathlib").Path(__file__).resolve().parents[2])
+    source = (build_source_archive(__import__("pathlib").Path(__file__).resolve().parents[2])
+              if source_archive is None else source_archive)
     script = '''import json
 import os
 import base64
@@ -110,6 +130,10 @@ runner = {"visualize": "uav_network.cloud.visualize", "archive": "uav_network.cl
     SPEC["stage"], "uav_network.cloud.remote")
 subprocess.run([str(python), "-m", runner, "--spec", str(spec_file)], cwd=root, check=True)
 '''
+    if credential_source == "kaggle_secrets":
+        begin = script.index('inputs = Path("/kaggle/input")')
+        end = script.index('spec_file = Path("/kaggle/working/job.json")', begin)
+        script = script[:begin] + KAGGLE_SECRETS_CREDENTIALS + script[end:]
     return (script.replace("__SPEC__", repr(spec))
             .replace("__SOURCE_B85__", base64.b85encode(source).decode("ascii"))
             .replace("__SOURCE_SHA256__", source_sha256(source)))
