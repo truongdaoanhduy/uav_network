@@ -35,7 +35,7 @@ def test_masac_ui_case_resolves_every_requested_setting_and_new_identity(case_id
         assert not c.runtime.compile_models and c.runtime.amp_mode=='off'
         assert not c.runtime.fused_optimizers and c.runtime.deterministic
         assert c.runtime.max_train_seconds==41400
-        assert c.tracking.evaluation_interval_steps==3686400
+        assert c.tracking.evaluation_interval_steps==1843200
         assert c.tracking.periodic_evaluation_episodes==5
         assert c.masac.share_actor_parameters is shared
         assert c.masac.share_critic_parameters is shared

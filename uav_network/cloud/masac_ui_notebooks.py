@@ -110,7 +110,7 @@ FP32, AMP/compile/fused tắt, deterministic=true, output-norm MATD3=false.
 **Reward/CBF/env/observation và optimizer không bị sửa**. Mỗi vòng vector
 collector thu 4.096 transitions, không phải {updates} updates cho mỗi transition.
 Checkpoint policy định kỳ mỗi **256 completed episodes**; giữ 2 local files;
-Validation 5 seed mỗi 3.686.400 transitions, giữ best policy trên HF;
+Validation 5 seed mỗi 1.843.200 transitions, giữ best policy trên HF;
 final.pt được lưu khi training kết thúc bình thường.
 
 Training-only (không tự Final Test), W&B online logging và best checkpoint

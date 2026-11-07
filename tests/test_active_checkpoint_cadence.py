@@ -14,6 +14,6 @@ def test_20k_training_checkpoints_every_256_completed_episodes(profile):
     assert c.runtime.episodes == 20000
     assert c.runtime.checkpoint_interval == 256
     assert c.tracking.local_checkpoints_to_keep == 2
-    assert c.tracking.evaluation_interval_steps == 3686400
+    assert c.tracking.evaluation_interval_steps == 1843200
     assert c.tracking.periodic_evaluation_episodes == 5
     assert c.runtime.eval_episodes == 30

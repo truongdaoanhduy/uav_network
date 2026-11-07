@@ -113,7 +113,7 @@ MATD3 khởi tạo mặc định,output_normalization=false,noise và reward gi�
 Mỗi vòng collector tạo4096 joint transitions rồi mới học{updates} lượt;
 đây không phải{updates} update trên từng transition riêng lẻ.
 
-Cùng5 kịch bản validation mỗi3.6864M transition, cùng eval seed.
+Cùng5 kịch bản validation mỗi1.8432M transition, cùng eval seed.
 So sánh ở cùng transition budget;20000 episode có thể cần số bước khác nhau.
 Lưu metrics W&B và validation-best policy lên HF duy95/uav-search-checkpoints.
 Training-only; không visualize,không warm-start,không tự chạy tiếp.

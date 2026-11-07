@@ -114,7 +114,7 @@ tracking:
   enabled: true
   artifact_timeout_seconds: 900
   evaluation_interval: 0
-  evaluation_interval_steps: 3686400
+  evaluation_interval_steps: 1843200
   evaluation_timeout_seconds: 900
   periodic_evaluation_episodes: 5
   periodic_evaluation_seed: 1000000044
