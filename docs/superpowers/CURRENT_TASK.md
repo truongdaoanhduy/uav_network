@@ -38,6 +38,8 @@ concurrency guard, candidate token set, JSON/load_credentials,0600 mode and
 unchanged W&B/HF/non-account fields before/after atomic replacement.
 No tokens or credential files were copied to Git, Library or notebook.
 
+Audit/evidence commit d2ee64348831edb2f452c2926290bda8818c4c0f is the verified report.
+Final structure check:2 passed,585 subtests passed.
 NEXT: answer actor-dimension concern with the exact local-memory breakdown,
 mention CBF deployment qualification and completed credential cleanup.
 Do not change safety/observation assumptions or launch training based only
