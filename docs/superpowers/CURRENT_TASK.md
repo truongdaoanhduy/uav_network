@@ -19,15 +19,25 @@ Observed8 RED missing-builder failures before implementation. Fresh related
 suite89 passed,590 subtests passed, including actual requested architecture,
 CPU Warp transitions/replay,finite U8/U16 updates and delayed4/8 actor calls
 for all5 cases. Generated SPEC/config/name propagation checked atseeds44/45.
-Full repository suite is running; do not claim a whole-suite pass yet.
+Fresh full repository suite PASSED:1374 passed,103 skipped,8 third-party
+warnings,1662 subtests passed in309.13s; actual exit0.
 Read-only review approved: no Critical/Important/Minor findings.
 No GPU job was submitted.
 
 Spec/plan:superpowers specs/plans2026-11-07-matd3-five-ui-notebooks.md.
 Guide:../../methods/MATD3_FIVE_KAGGLE_UI_ABLATIONS.md.
-NEXT: finish review/suite,commit/push clean source,export exactly5 new files,
-verify schemas/configs/common archive/source/control hashes,save the five
-notebooks separately and record actual commit and verification evidence.
+Implementation commit0ca4f76837a20195b3c06f0279561aaec5ff0758 was pushed.
+Exported exactly5 new MATD3 files from that clean source into Downloads
+and outputs/kaggle. Actual notebook schemas/code,seeds44/45 resolved
+configs,names,tags and all421 source archive files verified. All5 use
+archive SHA256cd9ac15600e344b7949d6849bb0a9aca7dfbfb6af40be4d404a7ad95cf02b376.
+Eight old notebook copies retain exact checksums. Five user-facing notebooks
+were saved separately and byte-verified. No MASAC file was exported.
+Evidence:2026-11-07-matd3-five-ui-notebook-verification.json and
+2026-11-07-matd3-five-ui-test-results.json in evidence/.
+NEXT: user imports the five Private notebooks in Kaggle UI,uses T4x2,Internet,
+Secrets and real NOTEBOOK_REF,then fresh Save & Run All. Do not submit jobs
+automatically. Compare01vs02,02vs03,03vs04,01vs05 at equal transitions.
 T4 batch8192 memory,learning performance and convergence remain unverified.
 
 ---

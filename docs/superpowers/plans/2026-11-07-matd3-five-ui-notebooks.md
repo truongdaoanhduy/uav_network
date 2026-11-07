@@ -34,12 +34,12 @@ its common status line becomes architecture-neutral.
 - [x] Observe missing-builder failures before implementation.
 - [x] Implement only the five requested cases and a clean-source export CLI.
 - [x] Test module sharing/LayerNorm, real CPU replay updates and round counts.
-- [ ] Run related tests and the repository test command.
-- [ ] Request read-only review and resolve material findings.
+- [x] Run related tests and the repository test command.
+- [x] Request read-only review and resolve material findings.
 
 ## Task2: Export and handoff
 
 - [x] Document the matrix and manual UI steps, including actor-only LayerNorm.
-- [ ] Commit/push source, then build all five from one common archive.
-- [ ] Validate actual schemas/code/configs, all archived source bytes and old-file hashes.
-- [ ] Save five separately named notebooks, update/push actual evidence and task record.
+- [x] Commit/push source, then build all five from one common archive.
+- [x] Validate actual schemas/code/configs, all archived source bytes and old-file hashes.
+- [x] Save five separately named notebooks, update/push actual evidence and task record.

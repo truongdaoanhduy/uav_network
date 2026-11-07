@@ -1,0 +1,175 @@
+{
+  "source_commit": "0ca4f76837a20195b3c06f0279561aaec5ff0758",
+  "notebooks": [
+    {
+      "case_id": "01",
+      "filename": "MATD3_01_SH_H512_U8_ALN_35T25O_S44_Kaggle_UI.ipynb",
+      "path": "/home/aduy/Downloads/MATD3_01_SH_H512_U8_ALN_35T25O_S44_Kaggle_UI.ipynb",
+      "bytes": 842005,
+      "sha256": "3be05e5b6636f228e90d1aa5896c3edae218e0d7e7fb6a76cfee495880757dfb",
+      "shared_actor_critic": true,
+      "hidden_sizes": [
+        512,
+        512
+      ],
+      "updates_per_collection": 8,
+      "actor_updates_per_collection": 4,
+      "actor_layer_norm": true,
+      "critic_layer_norm": false,
+      "actor_input_dim": 234,
+      "critic_input_dim": 896,
+      "source_archive_sha256": "cd9ac15600e344b7949d6849bb0a9aca7dfbfb6af40be4d404a7ad95cf02b376",
+      "archive_members": 421,
+      "seed_probes": [
+        {
+          "seed": 44,
+          "run_name_preview": "MATD3-BASE-SH-NOCHUNK-DEFAULT-ALN-H512-U8-T35-O25-S44-09513bd5"
+        },
+        {
+          "seed": 45,
+          "run_name_preview": "MATD3-BASE-SH-NOCHUNK-DEFAULT-ALN-H512-U8-T35-O25-S45-be65fc1a"
+        }
+      ]
+    },
+    {
+      "case_id": "02",
+      "filename": "MATD3_02_SH_H512_U16_ALN_35T25O_S44_Kaggle_UI.ipynb",
+      "path": "/home/aduy/Downloads/MATD3_02_SH_H512_U16_ALN_35T25O_S44_Kaggle_UI.ipynb",
+      "bytes": 842017,
+      "sha256": "d6149408a535ed3ae02286386e2df0a1364dfbd61c4cd6a5384e02ba0a7cc570",
+      "shared_actor_critic": true,
+      "hidden_sizes": [
+        512,
+        512
+      ],
+      "updates_per_collection": 16,
+      "actor_updates_per_collection": 8,
+      "actor_layer_norm": true,
+      "critic_layer_norm": false,
+      "actor_input_dim": 234,
+      "critic_input_dim": 896,
+      "source_archive_sha256": "cd9ac15600e344b7949d6849bb0a9aca7dfbfb6af40be4d404a7ad95cf02b376",
+      "archive_members": 421,
+      "seed_probes": [
+        {
+          "seed": 44,
+          "run_name_preview": "MATD3-BASE-SH-NOCHUNK-DEFAULT-ALN-H512-U16-T35-O25-S44-49f2757c"
+        },
+        {
+          "seed": 45,
+          "run_name_preview": "MATD3-BASE-SH-NOCHUNK-DEFAULT-ALN-H512-U16-T35-O25-S45-b8141179"
+        }
+      ]
+    },
+    {
+      "case_id": "03",
+      "filename": "MATD3_03_IND_H512_U16_ALN_35T25O_S44_Kaggle_UI.ipynb",
+      "path": "/home/aduy/Downloads/MATD3_03_IND_H512_U16_ALN_35T25O_S44_Kaggle_UI.ipynb",
+      "bytes": 842049,
+      "sha256": "ac0ed1fc9bf7999ad57a7a9fa7e58b5263dbf9eb12b8e88e538490e04e87f458",
+      "shared_actor_critic": false,
+      "hidden_sizes": [
+        512,
+        512
+      ],
+      "updates_per_collection": 16,
+      "actor_updates_per_collection": 8,
+      "actor_layer_norm": true,
+      "critic_layer_norm": false,
+      "actor_input_dim": 228,
+      "critic_input_dim": 896,
+      "source_archive_sha256": "cd9ac15600e344b7949d6849bb0a9aca7dfbfb6af40be4d404a7ad95cf02b376",
+      "archive_members": 421,
+      "seed_probes": [
+        {
+          "seed": 44,
+          "run_name_preview": "MATD3-BASE-IND-NOCHUNK-DEFAULT-ALN-H512-U16-T35-O25-S44-3aa6e244"
+        },
+        {
+          "seed": 45,
+          "run_name_preview": "MATD3-BASE-IND-NOCHUNK-DEFAULT-ALN-H512-U16-T35-O25-S45-c1cee932"
+        }
+      ]
+    },
+    {
+      "case_id": "04",
+      "filename": "MATD3_04_IND_H512_U16_NOLN_35T25O_S44_Kaggle_UI.ipynb",
+      "path": "/home/aduy/Downloads/MATD3_04_IND_H512_U16_NOLN_35T25O_S44_Kaggle_UI.ipynb",
+      "bytes": 842061,
+      "sha256": "7498362296f55d2298146184d627cf237a2b424d4b15a92c9af67be72336cdfc",
+      "shared_actor_critic": false,
+      "hidden_sizes": [
+        512,
+        512
+      ],
+      "updates_per_collection": 16,
+      "actor_updates_per_collection": 8,
+      "actor_layer_norm": false,
+      "critic_layer_norm": false,
+      "actor_input_dim": 228,
+      "critic_input_dim": 896,
+      "source_archive_sha256": "cd9ac15600e344b7949d6849bb0a9aca7dfbfb6af40be4d404a7ad95cf02b376",
+      "archive_members": 421,
+      "seed_probes": [
+        {
+          "seed": 44,
+          "run_name_preview": "MATD3-BASE-IND-NOCHUNK-DEFAULT-NOLN-H512-U16-T35-O25-S44-e8fbc227"
+        },
+        {
+          "seed": 45,
+          "run_name_preview": "MATD3-BASE-IND-NOCHUNK-DEFAULT-NOLN-H512-U16-T35-O25-S45-5654d12f"
+        }
+      ]
+    },
+    {
+      "case_id": "05",
+      "filename": "MATD3_05_SH_H256_U8_ALN_35T25O_S44_Kaggle_UI.ipynb",
+      "path": "/home/aduy/Downloads/MATD3_05_SH_H256_U8_ALN_35T25O_S44_Kaggle_UI.ipynb",
+      "bytes": 842005,
+      "sha256": "b9fc5cc7cc9893369381111565f6080f8ef1317484ca163298dc24d0de620679",
+      "shared_actor_critic": true,
+      "hidden_sizes": [
+        256,
+        256
+      ],
+      "updates_per_collection": 8,
+      "actor_updates_per_collection": 4,
+      "actor_layer_norm": true,
+      "critic_layer_norm": false,
+      "actor_input_dim": 234,
+      "critic_input_dim": 896,
+      "source_archive_sha256": "cd9ac15600e344b7949d6849bb0a9aca7dfbfb6af40be4d404a7ad95cf02b376",
+      "archive_members": 421,
+      "seed_probes": [
+        {
+          "seed": 44,
+          "run_name_preview": "MATD3-BASE-SH-NOCHUNK-DEFAULT-ALN-H256-U8-T35-O25-S44-9a1ef9ab"
+        },
+        {
+          "seed": 45,
+          "run_name_preview": "MATD3-BASE-SH-NOCHUNK-DEFAULT-ALN-H256-U8-T35-O25-S45-c2164e43"
+        }
+      ]
+    }
+  ],
+  "notebook_count": 5,
+  "source_archive_bytes": 661967,
+  "source_archives_identical": true,
+  "all_archive_members_match_source": true,
+  "control_notebook_copies_unchanged": 8,
+  "schema_and_code_validated": true,
+  "effective_configs_checked": true,
+  "submitted_jobs": 0,
+  "transfer": {
+    "format": "tar.xz+base64",
+    "bundle_sha256": "da7de2201e0bf1f43df8d2ad328847b20609f07a2afeb6ed2b3ef0f56f4c9302",
+    "bundle_bytes": 682644,
+    "parts": [
+      "/home/aduy/Documents/NCKH/uav_network_study_1200/outputs/matd3-ui-ablation-preflight-20261107/transfer/notebooks.0.txt",
+      "/home/aduy/Documents/NCKH/uav_network_study_1200/outputs/matd3-ui-ablation-preflight-20261107/transfer/notebooks.1.txt",
+      "/home/aduy/Documents/NCKH/uav_network_study_1200/outputs/matd3-ui-ablation-preflight-20261107/transfer/notebooks.2.txt",
+      "/home/aduy/Documents/NCKH/uav_network_study_1200/outputs/matd3-ui-ablation-preflight-20261107/transfer/notebooks.3.txt",
+      "/home/aduy/Documents/NCKH/uav_network_study_1200/outputs/matd3-ui-ablation-preflight-20261107/transfer/notebooks.4.txt"
+    ]
+  }
+}
