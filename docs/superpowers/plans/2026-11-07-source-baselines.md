@@ -23,4 +23,4 @@ Primary temperature source is rail-berkeley/softlearning at
 Per-agent hybrid objectives are Fu et al., CoRL/PMLR270, Eqs. 4, 8-11.
 MATD3 source is Ackermann et al. arXiv:1910.01465v2 and its released trainer.
 
-Main pair was prioritized:30 new common layouts at18.432M plus a sampled-MASAC diagnostic. Full evidence is linked from the main-pair methods audit.
+Main pair was prioritized: 30 new common layouts at 18.432M plus a sampled-MASAC diagnostic. Full evidence is linked from the main-pair methods audit.

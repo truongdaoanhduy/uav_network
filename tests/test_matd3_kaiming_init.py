@@ -113,3 +113,31 @@ def test_kaiming_actor_forward_and_update_critic_are_finite():
     q = learner.update_critic(batch)
     a = learner.update_actor(batch)
     assert all(np.isfinite(float(v)) for v in (*q.values(), *a.values()) if not isinstance(v, dict))
+
+
+@pytest.mark.parametrize("mode", ["default", "orthogonal", "kaiming"])
+def test_generated_notebook_run_name_matches_resolved_initialization(monkeypatch, mode):
+    import nbformat
+    from scripts.build_matd3_init_ui_notebooks import build, HEADER, START
+    from uav_network.cloud import kernel
+
+    monkeypatch.setattr(kernel, "build_source_archive", lambda root: b"previous archive")
+    spec = {
+        "stage": "train", "training_only": True, "requested_episodes": 20000,
+        "config": "configs/comparison-reference-masac-matd3-xyz-sensing.yaml",
+        "checkpoint_repo": "duy95/uav-search-checkpoints",
+        "entity": "test-entity", "project": "test-project",
+    }
+    code = kernel.kernel_script(spec).replace(START, HEADER + "\n" + START, 1)
+    template = nbformat.v4.new_notebook(cells=[
+        nbformat.v4.new_markdown_cell("Template"),
+        nbformat.v4.new_code_cell('NOTEBOOK_REF = "owner/template"'),
+        nbformat.v4.new_code_cell(code),
+    ])
+    generated = build(mode, b"new archive", "source-pin", template)
+    launch = "".join(generated["cells"][2]["source"])
+    scope = {"NOTEBOOK_REF": "owner/test"}
+    exec(compile(launch[:launch.index(START)], "<notebook header>", "exec"), scope)
+    resolved = scope["SPEC"]
+    assert f"matd3.initialization={mode}" in resolved["overrides"]
+    assert f"-{mode.upper()}-S44-" in resolved["runs"]["matd3"]["name"]

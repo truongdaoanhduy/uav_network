@@ -45,8 +45,14 @@ Per-scenario numeric evidence and unsmoothed comparison chart are in
 `docs/superpowers/evidence/2026-11-07-*`. Primary author sources are pinned
 in the methods report; OpenAI itself has TD3>SAC benchmark cases.
 
-NEXT: commit/push reviewed main-pair changes, record actual implementation
-commit, then handle the secondary Kaiming notebook-label defect separately.
+Main-pair implementation/evidence commit
+`9cd3a1553639a5928df68a4c91104d86e026a08c` was pushed to the working branch.
+Secondary work, after the main audit: corrected cd07de3c's W&B display name
+from DEFAULT to KAIMING; readback config/summary hashes were unchanged.
+Fixed the notebook generator's DEFAULT-for-KAIMING label mapping and tested
+all three generated run names. NEXT: commit this isolated labeling repair,
+regenerate only the Kaiming manual notebook from that clean committed source,
+record the resulting source/hash, and push final continuity notes.
 Do not launch production training automatically. If the new source profile
 is selected for a paper, BOTH algorithms need fresh training lineages and
 multiple training seeds with matched transition checkpoints.

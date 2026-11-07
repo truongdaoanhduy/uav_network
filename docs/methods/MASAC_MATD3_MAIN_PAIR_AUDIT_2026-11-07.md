@@ -257,3 +257,25 @@ These are instructions for future fresh training; this audit did not run them.
 The profile uses 20,000 episodes. Compare checkpoints at the same transition
 counts instead of treating the final episode count as an equal sample budget.
 Run additional training seeds for a paper-level uncertainty band.
+
+## Secondary initialization ablations, reviewed after the main pair
+
+At the same 18.432M transition checkpoint and original five validation layouts:
+
+| MATD3 run | Actual initialization | Return | Delivery (%) |
+|---|---|---:|---:|
+| 971f7cc2 | default | +181.345 | 63 |
+| cd07de3c | Kaiming/He | -4198.835 | 0 |
+| f0e759bc | orthogonal | -614.671 | 41 |
+
+The Kaiming run was incorrectly named DEFAULT. Its saved config explicitly
+says kaiming; this audit corrected only its W&B display name to
+`MATD3-BASE-SH-NOCHUNK-KAIMING-S44-cd07de3c`. Readback confirmed config and
+summary hashes unchanged. The notebook generator incorrectly mapped every
+non-orthogonal mode to DEFAULT; it now uses the actual mode in the generated
+run name, with generated-header execution tests for all three modes.
+
+These one-seed results do not establish that either initializer is universally
+unsuitable. Orthogonal reaches 64% delivery at 22.1184M, so compare equal
+budgets rather than cherry-picking endpoints. No initializer change is applied
+to the main pair or to the new default-initialization source recipe.

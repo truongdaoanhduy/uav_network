@@ -70,7 +70,7 @@ def build(mode, archive, source_commit, template):
     assert code.count(spec_line) == 1
     code = code.replace(spec_line, "SPEC = " + repr(spec), 1)
 
-    label = "ORTHOGONAL" if mode == "orthogonal" else "DEFAULT"
+    label = mode.upper()
     a = code.index(HEADER)
     b = code.index(START, a)
     new_header = f'''# Kaggle UI chooses an independent notebook identity and W&B run each time.
