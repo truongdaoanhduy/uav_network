@@ -18,6 +18,8 @@ CRITERIA = ("success_rate", "mean_delivery_rate_percent", "mean_search_rate_perc
 
 def selection_identity(config):
     d = strip_legacy_xyz_defaults(config.to_dict())
+    if config.masac.temperature_loss == "log_alpha":
+        d["masac"].pop("temperature_loss", None)
     for name in ("masac", "matd3"):
         if not getattr(config, name).actor_layer_norm:
             d[name].pop("actor_layer_norm", None)
@@ -38,6 +40,11 @@ def _config_hashes(config):
                 legacy = deepcopy(values)
                 legacy[name].pop("actor_layer_norm", None)
                 variants.append(legacy)
+    if config.masac.temperature_loss == "log_alpha":
+        for values in tuple(variants):
+            legacy = deepcopy(values)
+            legacy["masac"].pop("temperature_loss", None)
+            variants.append(legacy)
     return {hashlib.sha256(json.dumps(values, sort_keys=True, allow_nan=False).encode()).hexdigest()
             for values in variants}
 

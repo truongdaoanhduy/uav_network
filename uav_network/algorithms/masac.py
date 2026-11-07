@@ -323,7 +323,14 @@ class MASAC(nn.Module):
         # Sum the independent objectives because all per-agent temperatures are
         # stored in one optimizer; averaging would silently divide every alpha
         # gradient by the number of agents.
-        alpha_loss = (self.log_alpha_continuous * (hc - tc) + self.log_alpha_discrete * (hd - td)).sum()
+        if a.temperature_loss == "alpha":
+            # Differentiate the original dual loss through alpha=exp(log_alpha).
+            temperature_c = self.log_alpha_continuous.exp()
+            temperature_d = self.log_alpha_discrete.exp()
+        else:
+            temperature_c = self.log_alpha_continuous
+            temperature_d = self.log_alpha_discrete
+        alpha_loss = (temperature_c * (hc - tc) + temperature_d * (hd - td)).sum()
         alpha_step = (lambda *args: self.precision.step("alpha", *args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_optimizer(*args, grad_clip_mode=a.grad_clip_mode))
         alpha_grad = alpha_step(alpha_loss, self.alpha_optimizer,
                        [self.log_alpha_continuous, self.log_alpha_discrete], a.grad_clip_norm, collect_metrics)

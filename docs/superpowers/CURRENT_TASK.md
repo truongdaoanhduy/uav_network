@@ -1,3 +1,58 @@
+# 2026-11-07 — Main MASAC/MATD3 pair audited before initialization ablations
+
+User explicitly prioritized MATD3 `971f7cc2` and MASAC `f6a196a7`; both use
+the default initialization scheme. Starting clean source was
+`e29e729d5c12270df3417e3d338237c54c82b7ac` on
+`experiment/hfbest-embedded-source-steps1500-20261105`.
+
+Verified online W&B finished status, full episode/learner/alpha histories,
+raw logs, saved config and exact validation ledgers. At matched18.432M steps
+on the same5 validation layouts: delivery63% vs47%, return181.345 vs-331.266.
+SHA-verified the exact18.432M historical actors from HF revision history:
+MATD3 `a1ffcfcc377d0276ff7fe4292e87b76a5735ab17`,
+MASAC `7f6f98935f7a6b947e8b433996aa5a0a3632e1ff`.
+Ran30 NEW paired CPU layouts, seeds2110000044..2110000073, plus30
+seeded sampled-policy MASAC diagnostic episodes. Holdout MATD3 vs MASAC:
+delivery65% vs54.5%, return20.769 vs-286.855. Paired scenario-bootstrap
+MASAC-minus-MATD3 delivery=-10.5pp,95%CI[-16,-5.333]; return=-307.624,
+CI[-502.912,-101.134]. These are conditional-on-policy scenario intervals,
+not training-seed uncertainty. Both0/30 full20-target missions; observed
+post-filter safety violations0. MASAC sampling did not resolve the gap.
+All-UAV-battery termination already works:29/30 MATD3 and30/30 MASAC mean
+episodes ended on all-UAV depletion before the1500-step cap.
+
+The main run's temperatures are adaptive and bounded in observed history,
+not the old2734dbf3 explosion. Observed extra safety cost plus lower mission
+score explain the return deficit arithmetically. No unique causal training
+defect is proven from one training seed; do not force MASAC's ranking or
+silently change reward/CBF to make curves agree.
+
+Implemented opt-in `masac.temperature_loss=alpha`, matching the SAC author's
+alpha-weighted dual objective. Default `log_alpha` and old checkpoint
+selection identities remain compatible. Added a separate
+`configs/comparison-independent-baseline-xyz-sensing.yaml` for independent
+plain-MLP actors/critics in BOTH algorithms, same scene/reward/CBF/battery,
+default MATD3 init, MASKAWARE hybrid interface, original alpha objective.
+This is a declared adapted recipe, not literal whole-author-code reproduction
+or a verified performance fix. Existing SH profile and historical runs stay
+reproducible. No new GPU training, job submission or convergence test.
+
+Fresh focused suite:139 passed,8 skipped,3 subtests passed in82.72s.
+Additional old-vs-new temperature checkpoint-identity guard:1 passed.
+Code provenance and complete findings:
+`docs/methods/MASAC_MATD3_MAIN_PAIR_AUDIT_2026-11-07.md`.
+Per-scenario numeric evidence and unsmoothed comparison chart are in
+`docs/superpowers/evidence/2026-11-07-*`. Primary author sources are pinned
+in the methods report; OpenAI itself has TD3>SAC benchmark cases.
+
+NEXT: commit/push reviewed main-pair changes, record actual implementation
+commit, then handle the secondary Kaiming notebook-label defect separately.
+Do not launch production training automatically. If the new source profile
+is selected for a paper, BOTH algorithms need fresh training lineages and
+multiple training seeds with matched transition checkpoints.
+
+---
+
 # 2026-11-06 — MATD3 BASE Kaiming/He Kaggle UI notebook prepared (no launch)
 
 User requested a **single manual Kaggle UI MATD3 BASE Kaiming initialization notebook**,

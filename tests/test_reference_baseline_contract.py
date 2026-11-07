@@ -246,8 +246,9 @@ def test_reference_profile_preserves_common_uav_scenario_and_reward():
     }
 
 
+@pytest.mark.parametrize("temperature_loss", ["log_alpha", "alpha"])
 @pytest.mark.parametrize("mask_aware", [False, True], ids=["reference", "mask-aware"])
-def test_discrete_entropy_target_respects_selected_profile(monkeypatch, mask_aware):
+def test_discrete_entropy_target_respects_selected_profile(monkeypatch, mask_aware, temperature_loss):
     """The mask-aware variant updates legal choices and holds forced silence steady."""
     import math
     import types
@@ -258,12 +259,14 @@ def test_discrete_entropy_target_respects_selected_profile(monkeypatch, mask_awa
 
     c = load_config(
         XYZ_BASELINES[0],
-        [f"masac.mask_aware_discrete_entropy_target={str(mask_aware).lower()}"],
+        [f"masac.mask_aware_discrete_entropy_target={str(mask_aware).lower()}",
+         f"masac.temperature_loss={temperature_loss}"],
     )
     c.world.num_uavs = 2
     c.world.num_targets = 2
     c.world.num_obstacles = 1
     c.masac.hidden_sizes = [16, 16]
+    c.masac.initial_alpha = 0.5
     learner = MASAC(c, observation_dim(c), state_dim(c))
     learner.alpha_optimizer = torch.optim.SGD(
         [learner.log_alpha_continuous, learner.log_alpha_discrete], lr=0.1
@@ -297,10 +300,64 @@ def test_discrete_entropy_target_respects_selected_profile(monkeypatch, mask_awa
         lambda losses, optimizers, groups, *args, **kwargs: [torch.tensor(0.0)] * len(losses),
     )
     before = learner.log_alpha_discrete.detach().clone()
+    before_continuous = learner.log_alpha_continuous.detach().clone()
     learner.update_actor(batch, collect_metrics=False)
 
     actual_entropy = torch.tensor([(math.log(2) + math.log(3)) / 2, 0.0])
     target_entropy = actual_entropy if mask_aware else math.log(k)
     target = c.masac.target_discrete_entropy_ratio * target_entropy
-    expected = before - 0.1 * (actual_entropy - target)
+    gradient_scale = before.exp() if temperature_loss == "alpha" else 1.0
+    expected = before - 0.1 * gradient_scale * (actual_entropy - target)
     torch.testing.assert_close(learner.log_alpha_discrete, expected, rtol=0, atol=1e-6)
+    expected_controls = torch.tensor([4 - (1 / 2 + 1 / 3) / 2, 3.0])
+    continuous_scale = before_continuous.exp() if temperature_loss == "alpha" else 1.0
+    expected_continuous = before_continuous - 0.1 * continuous_scale * (2.0 + expected_controls)
+    torch.testing.assert_close(learner.log_alpha_continuous, expected_continuous, rtol=0, atol=1e-6)
+
+
+def test_independent_source_profile_uses_per_agent_plain_mlp_baselines():
+    from dataclasses import asdict
+    from uav_network.algorithms.masac import MASAC
+    from uav_network.algorithms.matd3 import MATD3
+    from uav_network.environment.observations import observation_dim, state_dim
+
+    c = load_config("configs/comparison-independent-baseline-xyz-sensing.yaml")
+    reference = load_config(XYZ_BASELINES[0])
+    for group in ("world", "sensor", "network", "energy", "reward"):
+        assert asdict(getattr(c, group)) == asdict(getattr(reference, group))
+    assert c.masac.temperature_loss == "alpha"
+    assert c.masac.mask_aware_discrete_entropy_target
+    assert c.matd3.initialization == "default"
+    assert not c.matd3.output_normalization
+    assert c.runtime.critic_chunk_size == 0
+    for algorithm, cls in (("masac", MASAC), ("matd3", MATD3)):
+        options = getattr(c, algorithm)
+        assert not options.actor_layer_norm
+        assert not options.share_actor_parameters
+        assert not options.share_critic_parameters
+        options.hidden_sizes = [8, 8]
+        model = cls(c, observation_dim(c), state_dim(c))
+        assert len(model.actors) == len(model.critics) == c.world.num_uavs
+
+
+def test_historical_temperature_config_hash_remains_accepted():
+    import hashlib
+    import json
+    from uav_network.experiments.best_checkpoints import _config_hashes
+
+    c = load_config(XYZ_BASELINES[0])
+    assert c.masac.temperature_loss == "log_alpha"
+    legacy = c.to_dict()
+    legacy["masac"].pop("temperature_loss")
+    old_hash = hashlib.sha256(json.dumps(legacy, sort_keys=True, allow_nan=False).encode()).hexdigest()
+    assert old_hash in _config_hashes(c)
+    from uav_network.experiments.best_checkpoints import selection_identity
+    old_identity = selection_identity(c)
+    c.masac.temperature_loss = "alpha"
+    assert old_hash not in _config_hashes(c)
+    assert selection_identity(c) != old_identity
+
+
+def test_temperature_loss_rejects_unknown_objective():
+    with pytest.raises(ValueError, match="masac.temperature_loss"):
+        load_config(XYZ_BASELINES[0], ["masac.temperature_loss=unknown"])

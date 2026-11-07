@@ -1,5 +1,20 @@
 # Reference MASAC / MATD3 Baseline Provenance
 
+## 2026-11-07 source-profile clarification
+
+The historical shared/LN runs are preserved. A separate
+[`comparison-independent-baseline-xyz-sensing.yaml`](../../configs/comparison-independent-baseline-xyz-sensing.yaml)
+selects independent plain-MLP actors/critics for both algorithms, mask-aware
+valid-support entropy targets, and `masac.temperature_loss=alpha`.
+The alpha loss follows the author SAC dual objective at softlearning revision
+`13cf187cc93d90f7c217ea2845067491c3c65464`; the legacy/default
+`log_alpha` convention remains available for old runs. This new profile is
+a declared hybrid UAV baseline recipe, not an exact reproduction of Fu's
+attention architecture or proof that MASAC must exceed MATD3.
+See the [main-pair audit](MASAC_MATD3_MAIN_PAIR_AUDIT_2026-11-07.md) for
+matched validation, 30 new paired layouts, provenance and limitations.
+
+
 This document defines what this repository is allowed to call the **reference baseline**.
 The reference profile is:
 

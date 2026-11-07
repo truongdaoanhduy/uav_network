@@ -165,11 +165,13 @@ def test_current_profile_constructs_shared_models_with_bounded_execution(algorit
 
 @pytest.mark.parametrize("algorithm", ["masac", "matd3"])
 @pytest.mark.parametrize("pql_enabled", [False, True])
-def test_current_shared_profile_trains_through_real_cpu_collector(tmp_path, algorithm, pql_enabled):
+@pytest.mark.parametrize("source_profile", [False, True])
+def test_current_profiles_train_through_real_cpu_collector(tmp_path, algorithm, pql_enabled, source_profile):
     # Validate config propagation through actual BASE/PQL learners and checkpoints.
     pytest.importorskip("warp")
     from uav_network.experiments.training import train
-    c = load_config("configs/comparison-reference-masac-matd3-xyz-sensing.yaml")
+    profile = "independent-baseline" if source_profile else "reference-masac-matd3"
+    c = load_config(f"configs/comparison-{profile}-xyz-sensing.yaml")
     c.runtime.algorithm = algorithm
     c.pql.enabled = pql_enabled
     c.runtime.device = c.runtime.replay_device = "cpu"
@@ -177,7 +179,7 @@ def test_current_shared_profile_trains_through_real_cpu_collector(tmp_path, algo
     c.runtime.output_dir = str(tmp_path / "run")
     c.runtime.num_envs = c.runtime.episodes = 4
     c.world.max_steps = 4
-    c.runtime.critic_chunk_size = 2  # Small but effective chunks in this CPU smoke.
+    c.runtime.critic_chunk_size = 0 if source_profile else 2
     c.tracking.enabled = False
     c.tracking.evaluation_interval = c.tracking.evaluation_interval_steps = 0
     c.runtime.checkpoint_interval = 4
@@ -193,7 +195,9 @@ def test_current_shared_profile_trains_through_real_cpu_collector(tmp_path, algo
     assert result["episodes"] == 4
     assert result["updates"] >= 2
     model = {"masac": MASAC, "matd3": MATD3}[algorithm].load(result["checkpoint"])
-    assert model.share_actor_parameters and model.share_critic_parameters
-    assert len(model.actors) == len(model.critics) == 1
-    assert model.config.runtime.critic_chunk_size == 2
+    assert model.share_actor_parameters == model.share_critic_parameters == (not source_profile)
+    count = c.world.num_uavs if source_profile else 1
+    assert len(model.actors) == len(model.critics) == count
+    assert model.config.runtime.critic_chunk_size == c.runtime.critic_chunk_size
+    assert model.config.masac.temperature_loss == ("alpha" if source_profile else "log_alpha")
     assert all(torch.isfinite(value).all() for value in model.state_dict().values())

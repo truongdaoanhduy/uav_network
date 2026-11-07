@@ -159,3 +159,37 @@ def test_masac_temperature_update_matches_independent_per_agent_objectives(monke
     expected_d = before_d - 0.1 * (entropy_d - target_d)
     torch.testing.assert_close(learner.log_alpha_continuous, expected_c, rtol=0, atol=1e-6)
     torch.testing.assert_close(learner.log_alpha_discrete, expected_d, rtol=0, atol=1e-6)
+
+
+def test_independent_masac_targets_use_each_agents_own_entropy(monkeypatch):
+    import math
+
+    learner, batch = _setup("masac", agents=2)
+    learner.config.masac.grad_clip_mode = "none"
+    learner.critics = nn.ModuleList([ScalarTwinCritic(), ScalarTwinCritic()])
+    learner.target_critics = nn.ModuleList([ScalarTwinCritic(), ScalarTwinCritic()])
+    learner.critic_optimizer = torch.optim.SGD(learner.critics.parameters(), lr=0.1)
+    with torch.no_grad():
+        learner.log_alpha_continuous.copy_(torch.tensor([2.0, 3.0]).log())
+        learner.log_alpha_discrete.copy_(torch.tensor([5.0, 7.0]).log())
+    batch["terminated"].zero_()
+    count = len(batch["reward"])
+    choices = learner.destinations
+
+    def samples(actor, observations, deterministic=False, agent_index=0):
+        index = 0 if actor is learner.actors[0] else 1
+        return (
+            torch.zeros(count, learner.continuous_dim),
+            torch.full((count,), -float(index + 1)),
+            torch.full((count, choices), 1.0 / choices),
+            torch.full((count, choices), -math.log(choices)),
+        )
+
+    monkeypatch.setattr(learner, "_sample", samples)
+    learner.update_critic(batch, collect_metrics=False)
+    # Direct per-agent source target, with zero next Q and a batch mean per critic.
+    soft_values = torch.tensor([2 + 5 * math.log(choices), 6 + 7 * math.log(choices)])
+    targets = 1.0 + learner.config.masac.gamma * soft_values
+    for index, critic in enumerate(learner.critics):
+        torch.testing.assert_close(critic.q1, 0.1 * targets[index], rtol=1e-6, atol=1e-7)
+        torch.testing.assert_close(critic.q2, 0.1 * targets[index], rtol=1e-6, atol=1e-7)

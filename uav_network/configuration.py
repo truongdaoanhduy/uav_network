@@ -138,6 +138,7 @@ class OffPolicyConfig:
 
 @dataclass
 class MASACConfig(OffPolicyConfig):
+    temperature_loss: str = "log_alpha"  # "alpha" selects the original SAC dual loss.
     initial_alpha: float = 0.2
     target_continuous_entropy: float = -3.0
     target_discrete_entropy_ratio: float = 0.9
@@ -361,6 +362,8 @@ class Config:
             raise ValueError("environment_backend must be native or warp_packet")
         if r.algorithm not in {"masac", "matd3"}:
             raise ValueError("algorithm must be masac or matd3")
+        if self.masac.temperature_loss not in {"log_alpha", "alpha"}:
+            raise ValueError("masac.temperature_loss must be log_alpha or alpha")
         if self.matd3.initialization not in {"default", "orthogonal", "kaiming"}:
             raise ValueError("matd3.initialization must be default, orthogonal or kaiming")
         if r.num_envs < 1 or r.log_interval_steps < 1:
@@ -481,7 +484,8 @@ def with_legacy_feature_defaults(values):
         raise ValueError("Checkpoint configuration must be a mapping")
     result = deepcopy(values)
     for group, defaults in (
-        ("masac", {"actor_layer_norm": False}), ("matd3", {"actor_layer_norm": False}),
+        ("masac", {"actor_layer_norm": False, "temperature_loss": "log_alpha"}),
+        ("matd3", {"actor_layer_norm": False}),
         ("sensor", {"coverage_grid_cells": 0}),
         ("reward", {"information_gain": 0.0, "investigation_shaping": 0.0,
                     "shaping_gamma": 0.99, "investigation_belief_threshold": 0.8}),
