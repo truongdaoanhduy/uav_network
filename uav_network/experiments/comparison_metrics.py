@@ -17,6 +17,7 @@ METRICS = {
     "mission_success": ("fraction", "higher"),
     "delivery_auc": ("fraction", "higher"),
     "discovery_auc": ("fraction", "higher"),
+    "target_discovery_time_capped_mean_s": ("s", "lower"),
     "target_delivery_time_capped_mean_s": ("s", "lower"),
     "mission_completion_time_capped_s": ("s", "lower"),
     "first_discovery_to_gcs_delay_delivered_mean_s": ("s", "lower"),
@@ -207,6 +208,7 @@ class MissionMetrics:
             "delivery_given_discovery_fraction": d / f if f else None,
             "mission_success": float(success),
             "mission_completion_time_capped_s": self.step * w.dt_s if success else horizon,
+            "target_discovery_time_capped_mean_s": float(capped_discovery.mean()),
             "target_delivery_time_capped_mean_s": float(capped_delivery.mean()),
             "delivery_auc": float(1. - capped_delivery.mean() / horizon),
             "discovery_auc": float(1. - capped_discovery.mean() / horizon),
@@ -244,6 +246,59 @@ class MissionMetrics:
             result["cbf_correction_mean_per_step"] = result["shield_correction_mean_per_step"]
             result["cbf_interventions_per_uav_step"] = result["shield_interventions_per_uav_step"]
         return result
+
+
+def core_mission_metrics(records):
+    """Five evaluation outcomes; failures are time-censored, energy is pooled.
+
+    This is evaluation-only: it cannot influence the policy or checkpoint selection.
+    None means no delivery occurred, never a misleading zero J/target.
+    """
+    if not records:
+        raise ValueError("Core mission metrics require at least one completed episode")
+    items = [record["comparison_metrics"] for record in records]
+    count = len(items)
+    delivered = sum(int(record["targets_delivered"]) for record in records)
+    return {
+        "discovery_rate_percent": 100. * sum(v["target_discovery_fraction"] for v in items) / count,
+        "gcs_delivery_rate_percent": 100. * sum(v["gcs_delivery_fraction"] for v in items) / count,
+        "discovery_time_capped_mean_s": sum(v["target_discovery_time_capped_mean_s"] for v in items) / count,
+        "gcs_delivery_time_capped_mean_s": sum(v["target_delivery_time_capped_mean_s"] for v in items) / count,
+        "energy_per_delivered_target_j": (
+            sum(v["uav_energy_j"] for v in items) / delivered if delivered else None),
+    }
+
+
+def plot_core_mission_metrics(records, path):
+    """Plot exactly five observed evaluation metrics; no synthetic history."""
+    import matplotlib
+    matplotlib.use("Agg")
+    from matplotlib import pyplot as plt
+    n = len(records)
+    if not n:
+        raise ValueError("Cannot plot an empty evaluation")
+    rows = [r["comparison_metrics"] for r in records]
+    x = np.arange(1, n+1)
+    energy = np.cumsum([r["uav_energy_j"] for r in rows])
+    delivered = np.cumsum([int(r["targets_delivered"]) for r in records])
+    pooled = np.divide(energy, delivered, out=np.full(n,np.nan), where=delivered > 0)
+    fields = [
+        ("Discovery rate", "%", [100*r["target_discovery_fraction"] for r in rows]),
+        ("GCS delivery rate", "%", [100*r["gcs_delivery_fraction"] for r in rows]),
+        ("Discovery time (capped)", "s", [r["target_discovery_time_capped_mean_s"] for r in rows]),
+        ("GCS delivery time (capped)", "s", [r["target_delivery_time_capped_mean_s"] for r in rows]),
+        ("Energy / GCS delivered target (pooled)", "J/target", pooled),
+    ]
+    fig, axes = plt.subplots(5, 1, figsize=(9, 14), sharex=True, constrained_layout=True)
+    for ax, (label, unit, values) in zip(axes, fields):
+        ax.plot(x, values, marker='o', markersize=2.5, linewidth=1)
+        ax.set(ylabel=unit, title=label)
+        ax.grid(alpha=.25)
+    axes[-1].set_xlabel("Evaluation episode")
+    fig.suptitle("Multi-UAV mission: held-out evaluation episodes")
+    fig.savefig(path, dpi=130)
+    plt.close(fig)
+    return str(path)
 
 
 def summarize_metrics(records, bootstrap_samples=2000, seed=44):

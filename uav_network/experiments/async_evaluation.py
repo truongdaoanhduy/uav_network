@@ -218,6 +218,11 @@ class AsyncCheckpointEvaluator:
                           ("mean_return", "success_rate", "mean_search_rate_percent", "mean_delivery_rate_percent", "episodes")}
                 values.update({f"eval/{key}": result[key] for key in
                                ("mean_return", "success_rate", "mean_search_rate_percent", "mean_delivery_rate_percent")})
+                # Fixed-policy, fixed-seed mission objectives; same five keys for every algorithm.
+                for name, value in result.get("core_metrics", {}).items():
+                    values[f"evaluation/core/{name}"] = value
+                    if promoted and hasattr(self.tracker.run, "summary"):
+                        self.tracker.run.summary[f"best/core/{name}"] = value
                 for name, summary in result.get("metric_summary", {}).items():
                     values[f"evaluation/{name}"] = summary.get("mean", summary.get("value"))
                     values[f"evaluation/{name}_episodes"] = summary.get("episodes")
@@ -242,6 +247,17 @@ class AsyncCheckpointEvaluator:
                     self.tracker.diagnostic(values, step)
                 except Exception as error:
                     self.diagnostics.event("evaluation_result_logging_failed", step, {"error_type": type(error).__name__})
+                figure = task["folder"] / "core_mission_metrics.png"
+                if (figure.is_file() and hasattr(self.tracker, "wandb")
+                        and hasattr(self.tracker.wandb, "Image")):
+                    try:
+                        self.tracker.run.log({
+                            "evaluation/checkpoint_global_step": task["source"]["global_step"],
+                            "evaluation/core/figure": self.tracker.wandb.Image(str(figure)),
+                        })
+                    except Exception as error:
+                        self.diagnostics.event("evaluation_core_plot_upload_failed", step,
+                                               {"error_type": type(error).__name__})
                 self._upload(path, step)
         self._event(outcome, step, task["source"], **detail)
         self._upload(task["log"], step)

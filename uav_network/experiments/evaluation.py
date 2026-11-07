@@ -10,7 +10,8 @@ from ..configuration import config_fingerprint
 from .checkpoint_store import file_sha256
 from ..environment.env import SwarmSearchEnv
 from .rendering import COMMUNICATION_WINDOW_S, animation_frame, render_animation, render_episode
-from .comparison_metrics import MissionMetrics, evaluation_protocol, summarize_metrics
+from .comparison_metrics import (MissionMetrics, evaluation_protocol, summarize_metrics,
+                                 core_mission_metrics, plot_core_mission_metrics)
 from .evaluation_snapshots import load_evaluation_snapshot
 from .telemetry import OutcomePool
 
@@ -132,6 +133,7 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=Fals
             if on_episode is not None:
                 on_episode(record)
         preview = render_episode(env, paths, output / "final_episode.png")
+        core_plot = plot_core_mission_metrics(records, output / "core_mission_metrics.png")
         result = {"algorithm": learner.algorithm, "episodes": episodes, "device": "cpu", "render_path": preview,
                   "policy_provenance": provenance,
                   "environment_backend": config.runtime.environment_backend,
@@ -141,6 +143,7 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=Fals
                   "mean_delivery_rate_percent": float(np.mean([r["delivery_rate_percent"] for r in records])),
                   "protocol": evaluation_protocol(config, [r["seed"] for r in records], progress),
                   "metric_summary": summarize_metrics(records),
+                  "core_metrics": core_mission_metrics(records), "core_plot_path": core_plot,
                   "records": records}
         pool = OutcomePool()
         pool.add(records)

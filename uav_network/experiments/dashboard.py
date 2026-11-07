@@ -14,6 +14,13 @@ from .run_journal import READING_GUIDE
 
 
 PANELS = {
+    "PRIMARY: Search, report to GCS, energy (five metrics)": [
+        ("1. Target discovery rate (%)", "evaluation/core/discovery_rate_percent"),
+        ("2. GCS delivery rate (%)", "evaluation/core/gcs_delivery_rate_percent"),
+        ("3. Mean discovery time - capped (s)", "evaluation/core/discovery_time_capped_mean_s"),
+        ("4. Mean GCS delivery time - capped (s)", "evaluation/core/gcs_delivery_time_capped_mean_s"),
+        ("5. UAV energy per GCS delivered target - pooled (J)", "evaluation/core/energy_per_delivered_target_j"),
+    ],
     "Mission quality - completed outcomes": [
         ("Delivery to GCS (%) - higher", "cohort/delivery_rate_percent_mean"),
         ("Mission success fraction - higher", "cohort/success_mean"),
@@ -249,8 +256,7 @@ def create_dashboard(config, run_ids=(), name="UAV Network 2D - MASAC and MATD3"
     if missing:
         raise ValueError(f"Requested W&B runs not found: {sorted(missing)}")
     panels = PANELS if profile == "core" else DIAGNOSTIC_PANELS
-    workspace.sections = [ws.Section(name=title, is_open=not title.startswith(
-        ("Periodic", "Numerical", "Recovery")), panels=[
+    workspace.sections = [ws.Section(name=title, is_open=title.startswith("PRIMARY:"), panels=[
         wr.LinePlot(title=label, x=panel_axis(metric, label),
                     y=panel_y(label, metric),
                     max_runs_to_show=12, aggregate=False, **panel_options(label, metric))

@@ -16,6 +16,7 @@ from ..environment.observations import OBSERVATION_VERSION, observation_version
 CPU_EPISODE_METRICS = ("evaluation/return", "evaluation/search_rate_percent",
                        "evaluation/delivery_rate_percent", "evaluation/success",
                        "evaluation/episodes_completed")
+CPU_EPISODE_METRICS += tuple("evaluation/episode_core/" + k for k in ("discovery_rate_percent", "gcs_delivery_rate_percent", "discovery_time_capped_mean_s", "gcs_delivery_time_capped_mean_s", "energy_per_delivered_target_j"))
 def progress_metrics(observations, config):
     local, state = observations["observation"], observations["state"]
     n, t, k = config.world.num_uavs, config.world.num_targets, config.world.num_obstacles

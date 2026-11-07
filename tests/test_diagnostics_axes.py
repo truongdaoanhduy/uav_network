@@ -81,7 +81,7 @@ def test_workspace_run_table_is_compact_and_decision_focused():
         "outcome/search_rate_percent", "outcome/delivery_rate_percent", "outcome/success",
         "learner/actor_loss", "system/gpu.0.gpu", "system/gpu.1.gpu", "recovery/elapsed_seconds",
     } <= all_metrics
-    assert sum(len(panels) for panels in PANELS.values()) == 40
+    assert sum(len(panels) for panels in PANELS.values()) == 45
 
 
 def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source():

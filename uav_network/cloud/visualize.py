@@ -365,7 +365,10 @@ def run_visualization(spec, output=Path("/kaggle/working")):
             def record_episode(record):
                 nonlocal completed_eval_episodes
                 completed_eval_episodes = record["episode"]
+                from ..experiments.comparison_metrics import core_mission_metrics
+                episode_core = core_mission_metrics([record])
                 tracker.diagnostic({"evaluation/episodes_completed": record["episode"],
+                    **{f"evaluation/episode_core/{k}": v for k, v in episode_core.items()},
                     "evaluation/return": record["return"],
                     "evaluation/search_rate_percent": record["search_rate_percent"],
                     "evaluation/delivery_rate_percent": record["delivery_rate_percent"],
@@ -420,8 +423,14 @@ def run_visualization(spec, output=Path("/kaggle/working")):
                     aggregates["evaluation/" + key] = protocol[key]
             if type(source_step) is int and source_step >= 0:
                 aggregates["evaluation/checkpoint_global_step"] = source_step
+            core = results[algorithm].get("core_metrics", {})
+            aggregates.update({f"evaluation/core/{key}": value for key, value in core.items()})
             tracker.run.summary.update(aggregates)
             tracker.diagnostic(aggregates, results[algorithm]["episodes"])
+            figure = output / "visualize" / algorithm / "core_mission_metrics.png"
+            if figure.is_file() and hasattr(tracker, "wandb") and hasattr(tracker.wandb, "Image"):
+                tracker.run.log({"evaluation/episodes_completed": results[algorithm]["episodes"],
+                                 "evaluation/core/figure": tracker.wandb.Image(str(figure))})
             tracker.run.summary["evaluation/episodes_completed"] = results[algorithm]["episodes"]
             tracker.run.save(str(output / "visualize" / algorithm / "metrics.json"),
                              base_path=str(output), policy="now")

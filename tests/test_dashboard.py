@@ -83,7 +83,7 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(pinned,{"run:displayName","run:state","run:createdAt","run:duration"})
         plots = [p for section in spec["panelBankConfig"]["sections"] for p in section["panels"]
                  if "metrics" in p.get("config",{})]
-        self.assertEqual(len(plots),40)
+        self.assertEqual(len(plots),45)
         self.assertTrue({"outcome/mission_score", "evaluation/mean_return",
                          "evaluation/mission_score", "energy/mean_battery_fraction"} <= {
             metric for plot in plots for metric in plot["config"]["metrics"]
