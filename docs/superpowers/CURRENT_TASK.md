@@ -1,3 +1,17 @@
+# 2026-11-08 — Training and held-out evaluation trade-off metrics
+
+User requested that 4 supplemental plots appear in BOTH Training Convergence and Periodic Evaluation, and asked whether training metrics alone should select best checkpoint before a harder-seed final test.
+
+Start: 08/11/2026 00:21:52 UTC+7 | End (implementation verified): 08/11/2026 00:26:50 UTC+7 | Code commit: `609cc2c`.
+
+- Added passive per-completed-training-episode scalars under `training/*`: `delivery_given_discovery_fraction`, `first_discovery_to_gcs_delay_delivered_mean_s`, `false_confirmation_per_1000_measurements`, `map_coverage_percent`. No learning/reward/CBF/checkpoint-selection changes; missing denominators remain null (not fabricated as zero).
+- Moved all 4 existing `evaluation/*` plots into fixed-seed Periodic Evaluation and placed 4 training counterparts in Training Convergence. Removed only redundant Supplemental SECTION, not history. Current dashboard: 9 training + 9 periodic evaluation + 7 collapsed learning diagnostics = 25 charts. Remote W&B Workspace read-back verified the exact 8 metrics and episode X axes scaled by 10.
+- Tests: 71 passed, 594 subtests passed, 7 third-party warnings (plus CPU/Warp parity smoke). No Kaggle notebooks regenerated, no jobs submitted, no historical metrics backfilled. Old training runs may have empty `training/*` lines until future runs log them.
+- Method recommendation: training episode metrics monitor learning only; select best on disjoint held-out validation seeds (same scenario parameters, new layouts), then one in-distribution final test and optional harder OOD stress tests. Final-test data never selects the checkpoint. Existing code still uses 5 periodic validation seeds at 3,686,400-transition spacing and lexicographic success/delivery/search/reward selection; no protocol change was requested or applied.
+- Five existing MATD3 UI notebooks are still older embedded source/timeout than repo. Do not claim they include this metrics update until explicitly rebuilt and verified; do not automatically rebuild or submit them.
+
+---
+
 # 2026-11-07 — Timed handoff after later metrics and budget commits
 
 User requests a paste-ready new-chat prompt including work times. Read
