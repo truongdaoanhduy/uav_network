@@ -19,16 +19,26 @@ critic+actor updates and finite metrics for both algorithms. The initial
 new probe used Action instead of vector dict; corrected the probe adapter,
 not production.36 scenarios generated successfully on first attempt with
 no fallback. Baseline notebook hashes remain exactly unchanged.
-Full repository suite is running; do not claim a whole-suite pass yet.
+Fresh full repository suite PASSED:1361 passed,103 skipped,8 third-party
+warnings,1654 subtests passed in293.69s; actual exit0.
 Read-only review approved with no Critical/Important/Minor findings.
 No GPU training was submitted;
 T4 batch8192 fit and convergence remain unverified.
 
 Evidence: evidence/2026-11-07-scaled-independent-preflight.json.
 Methods: ../../methods/SCALED_INDEPENDENT_BASELINE_35T25O_H512.md.
-NEXT: finish review/suite, commit clean source, export labelled35T25O_H512_U8
-matched notebooks, verify frozen archive/effective config, save new files
-without replacing old control notebooks and record actual source commit.
+Implementation source89f3301a976d0f85478d6ce4fce8ce076e06b2ca was pushed.
+Exported only labelled35T25O_H512_U8 MASAC/MATD3 notebooks from that clean
+source. Both copies, actual schemas/cell compilation, all419 archive files,
+seed44/45 launch configs and control hashes verified. Archive SHA256:
+6c7516078ef75c76cefc36e80a352e49d48df445332beda0e8d5a80c6439efa8.
+New matched notebooks were saved separately; old controls were not replaced.
+Export manifest:evidence/2026-11-07-scaled-ui-notebook-verification.json.
+Full suite:evidence/2026-11-07-scaled-independent-test-results.json.
+NEXT: user may run the new U8 pilot in fresh Kaggle sessions. Keep equal
+transition budgets; test16 separately on the same scene/width before32.
+Do not claim512/scaling improves learning before GPU evaluation, and do
+not launch a job or alter update count without the user selecting that action.
 
 ---
 

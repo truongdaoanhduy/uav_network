@@ -1,0 +1,50 @@
+{
+  "source_commit": "89f3301a976d0f85478d6ce4fce8ce076e06b2ca",
+  "rows": [
+    {
+      "algorithm": "masac",
+      "filename": "MASAC_BASE_INDEPENDENT_NOCHUNK_35T25O_H512_U8_S44_Kaggle_UI.ipynb",
+      "path": "/home/aduy/Downloads/MASAC_BASE_INDEPENDENT_NOCHUNK_35T25O_H512_U8_S44_Kaggle_UI.ipynb",
+      "bytes": 834855,
+      "sha256": "5063ebf7e84ac01ef850ad3982764b232c000dfa4f696db58b09d76225b2861d",
+      "archive_sha256": "6c7516078ef75c76cefc36e80a352e49d48df445332beda0e8d5a80c6439efa8",
+      "archive_members": 419,
+      "seed_probes": [
+        "MASAC-BASE-INDEPENDENT-NOCHUNK-ALPHA-MASKAWARE-T35-O25-H512-U8-S44-bb0c5c9b",
+        "MASAC-BASE-INDEPENDENT-NOCHUNK-ALPHA-MASKAWARE-T35-O25-H512-U8-S45-8b412d53"
+      ],
+      "transfer_parts": [
+        "/home/aduy/Documents/NCKH/uav_network_study_1200/outputs/scaled-independent-preflight-20261107/transfer/masac.0.txt",
+        "/home/aduy/Documents/NCKH/uav_network_study_1200/outputs/scaled-independent-preflight-20261107/transfer/masac.1.txt",
+        "/home/aduy/Documents/NCKH/uav_network_study_1200/outputs/scaled-independent-preflight-20261107/transfer/masac.2.txt",
+        "/home/aduy/Documents/NCKH/uav_network_study_1200/outputs/scaled-independent-preflight-20261107/transfer/masac.3.txt",
+        "/home/aduy/Documents/NCKH/uav_network_study_1200/outputs/scaled-independent-preflight-20261107/transfer/masac.4.txt"
+      ]
+    },
+    {
+      "algorithm": "matd3",
+      "filename": "MATD3_BASE_INDEPENDENT_NOCHUNK_35T25O_H512_U8_S44_Kaggle_UI.ipynb",
+      "path": "/home/aduy/Downloads/MATD3_BASE_INDEPENDENT_NOCHUNK_35T25O_H512_U8_S44_Kaggle_UI.ipynb",
+      "bytes": 834819,
+      "sha256": "d5100dd4ebfc01bb21848aafc6dc0b11133a5b54b7bdc7a9bf94712ccba95630",
+      "archive_sha256": "6c7516078ef75c76cefc36e80a352e49d48df445332beda0e8d5a80c6439efa8",
+      "archive_members": 419,
+      "seed_probes": [
+        "MATD3-BASE-INDEPENDENT-NOCHUNK-DEFAULT-T35-O25-H512-U8-S44-29cae8a4",
+        "MATD3-BASE-INDEPENDENT-NOCHUNK-DEFAULT-T35-O25-H512-U8-S45-659de7cf"
+      ],
+      "transfer_parts": [
+        "/home/aduy/Documents/NCKH/uav_network_study_1200/outputs/scaled-independent-preflight-20261107/transfer/matd3.0.txt",
+        "/home/aduy/Documents/NCKH/uav_network_study_1200/outputs/scaled-independent-preflight-20261107/transfer/matd3.1.txt",
+        "/home/aduy/Documents/NCKH/uav_network_study_1200/outputs/scaled-independent-preflight-20261107/transfer/matd3.2.txt",
+        "/home/aduy/Documents/NCKH/uav_network_study_1200/outputs/scaled-independent-preflight-20261107/transfer/matd3.3.txt",
+        "/home/aduy/Documents/NCKH/uav_network_study_1200/outputs/scaled-independent-preflight-20261107/transfer/matd3.4.txt"
+      ]
+    }
+  ],
+  "archives_identical": true,
+  "all_archive_members_match_source": true,
+  "control_notebooks_unchanged": true,
+  "schema_and_code_validated": true,
+  "submitted": false
+}

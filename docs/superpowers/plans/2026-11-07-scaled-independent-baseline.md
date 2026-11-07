@@ -33,11 +33,11 @@ Interface: build_independent_notebook(..., scaled=False); CLI --scaled.
 - [x] Copy only requested scene/width values and experiment metadata.
 - [x] Add explicit scaled option, preserving default labels and filenames.
 - [x] Run new and existing notebook tests; actual scene/learner CPU checks.
-- [ ] Run repository suite and report all observed failures.
+- [x] Run repository suite and report all observed failures.
 
 ## Task2: Export and handoff
 
 - [x] Document dimensions, costs and controlled update experiment.
-- [ ] Review diff; commit source before building frozen archives.
-- [ ] Export only new distinct notebook files; validate both archives.
-- [ ] Save user-facing files and push exact evidence/current-task record.
+- [x] Review diff; commit source before building frozen archives.
+- [x] Export only new distinct notebook files; validate both archives.
+- [x] Save user-facing files and push exact evidence/current-task record.
