@@ -13,7 +13,7 @@ from .dashboard_columns import VISIBLE_COLUMNS, PINNED_COLUMNS, save_with_visibl
 from .run_journal import READING_GUIDE
 
 
-# Seventeen goal-aligned learning, evaluation and diagnostic plots; all other metrics remain in History/Files.
+# Twenty-five learning, held-out evaluation and diagnostic plots; all other metrics remain in History/Files.
 # Evaluated checkpoint curves use metrics already present in older completed runs.
 # Discovery AUC = 1 - capped_mean_discovery_time / configured_horizon;
 # higher AUC means faster search and/or more targets discovered.
