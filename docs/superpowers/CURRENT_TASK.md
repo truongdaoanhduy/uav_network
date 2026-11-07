@@ -44,9 +44,23 @@ Independent read-only review: no Critical/Important findings. Its minor
 fresh-session guidance was added to notebook and guide. Same-session rerun
 support, T4 memory and convergence are not claimed. No GPU job was submitted.
 
-NEXT: commit/push the verified code, build final notebooks from that clean
-commit, check archive/source/config equality, replace provisional downloads,
-record actual source commit and artifact checksums, and push continuity notes.
+Implementation source commit 789bc1a0f0976922e351f59fe2b72a32d0e9a368 was pushed
+to experiment/hfbest-embedded-source-steps1500-20261105. Built only the TWO
+new independent BASE notebooks from that clean source; old SH/init notebooks
+were not modified. Downloads and outputs/kaggle copies match. Actual notebook
+schema/code compilation, 417 archived source files against current bytes,
+same archive in both notebooks, scenario equality, default MATD3 init,
+MASAC alpha-dual/MASKAWARE, independent plain MLPs, and seed 44/45 config/name
+propagation were verified. Archive SHA256:
+47ce6d1bc875b932cdfd03976f3a4f9d9d629a886623211e91528470d5764ee7.
+Manifest: evidence/2026-11-07-independent-ui-notebook-verification.json.
+
+NEXT: replace the provisional downloadable notebook/manifest/patch versions
+with this final build and hand over. No full GPU training has been submitted.
+User imports each notebook in a separate private Kaggle execution, grants
+WANDB_API_KEY/HF_TOKEN, sets NOTEBOOK_REF, keeps seed 44, and uses Save & Run All.
+A new independent-profile comparison needs fresh training for BOTH algorithms;
+keep old SH runs as controls and compare at equal transition checkpoints.
 
 ---
 

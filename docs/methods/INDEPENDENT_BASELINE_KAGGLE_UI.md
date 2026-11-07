@@ -81,3 +81,11 @@ notebook suite passed13 tests and578 subtests. The original broad log and
 exit status are preserved rather than relabelled as a new full-suite pass.
 
 No GPU training or learning-rank improvement was verified by these checks.
+
+## Verified export
+
+The seed 44 export is pinned to source
+`789bc1a0f0976922e351f59fe2b72a32d0e9a368`. Both notebooks carry the same
+417-file runtime archive. See the
+[artifact manifest](../superpowers/evidence/2026-11-07-independent-ui-notebook-verification.json)
+for exact checksums, test outcomes and verification scope.

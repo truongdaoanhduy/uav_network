@@ -26,8 +26,8 @@ algorithm, scenario, reward, CBF or initialization.
   edited seed/name agreement, fresh identity, serialized notebook validity.
 - [x] Implement the minimal common-bootstrap options and repository UI builder.
 - [x] Run focused contracts and CPU train/reload checks; run repository suite.
-- [ ] Commit/push source before bundling, build only the two new notebooks.
-- [ ] Inspect actual archives, checksums, source equality, resolved configs,
+- [x] Commit/push source before bundling, build only the two new notebooks.
+- [x] Inspect actual archives, checksums, source equality, resolved configs,
   compile cells and verify both saved copies. Record verification and commits.
 
 ## Review focus
@@ -44,3 +44,5 @@ Broad run:1356 passed/103 skipped;4 static-guard failures were repaired.
 Configuration/tracking formatting is AST-identical, archived history is byte-
 identical, and13 guard/notebook tests plus578 subtests passed after refresh.
 Independent read-only review approved; no algorithm changes in this export.
+
+Build source:789bc1a0f0976922e351f59fe2b72a32d0e9a368;417 archived files; actual artifact verification passed.
