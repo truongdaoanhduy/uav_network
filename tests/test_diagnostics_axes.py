@@ -78,8 +78,12 @@ def test_workspace_run_table_is_compact_and_decision_focused():
         "evaluation/mean_search_rate_percent", "evaluation/mean_delivery_rate_percent",
         "evaluation/discovery_auc", "evaluation/target_delivery_time_capped_mean_s",
         "evaluation/pooled_uav_j_per_gcs_delivery",
+        "cohort/energy/j_per_gcs_delivery", "episode/length",
+        "learner/actor_loss", "learner/critic_loss", "learner/actor_grad_norm",
+        "learner/critic_grad_norm", "learner/td_error_abs_mean",
+        "action/movement_saturation_fraction", "safety/cbf_intervention_rate",
     } == all_metrics
-    assert sum(len(panels) for panels in PANELS.values()) == 8
+    assert sum(len(panels) for panels in PANELS.values()) == 17
 
 
 def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source():
@@ -127,9 +131,9 @@ def test_authored_cpu_episode_panels_use_episode_axis():
     assert panel_axis('eval/mean_delivery_rate_percent') == 'evaluation/checkpoint_global_step'
 
 
-def test_actor_loss_is_kept_only_in_advanced_diagnostics():
+def test_actor_loss_is_visible_in_collapsed_training_diagnostics_and_advanced_profile():
     from uav_network.experiments.dashboard import PANELS, DIAGNOSTIC_PANELS
-    assert not any(metric=='learner/actor_loss' for panels in PANELS.values() for _,metric in panels)
+    assert any(metric=='learner/actor_loss' for panels in PANELS.values() for _,metric in panels)
     assert any(metric=='learner/actor_loss' for panels in DIAGNOSTIC_PANELS.values() for _,metric in panels)
 
 

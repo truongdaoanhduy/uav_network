@@ -83,13 +83,18 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(pinned,{"run:displayName","run:state","run:createdAt","run:duration"})
         plots = [p for section in spec["panelBankConfig"]["sections"] for p in section["panels"]
                  if "metrics" in p.get("config",{})]
-        self.assertEqual(len(plots),8)
+        self.assertEqual(len(plots),17)
         self.assertTrue({"episode/return", "outcome/search_rate_percent",
                          "outcome/delivery_rate_percent", "evaluation/discovery_auc",
                          "evaluation/target_delivery_time_capped_mean_s",
                          "evaluation/pooled_uav_j_per_gcs_delivery"} <= {
             metric for plot in plots for metric in plot["config"]["metrics"]
         })
+        assert len([p for p in plots if p['config'].get('chartTitle') in (
+            'Actor loss', 'Critic loss', 'Actor gradient norm', 'Critic gradient norm',
+            'TD error', 'Action saturation', 'CBF intervention rate')]) == 7
+        sections_by_name = {sec['name']: sec for sec in spec['panelBankConfig']['sections']}
+        assert len(sections_by_name) >= 3
         fixed = next(plot for plot in plots if plot['config'].get('chartTitle') ==
                      '3. Discovery AUC (higher = faster/better search)')
         assert fixed['config']['xAxis'] == 'evaluation/checkpoint_episode'
