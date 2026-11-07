@@ -86,8 +86,12 @@ def test_workspace_run_table_is_compact_and_decision_focused():
         "evaluation/first_discovery_to_gcs_delay_delivered_mean_s",
         "evaluation/false_confirmation_per_1000_measurements",
         "evaluation/map_coverage_percent",
+        "training/delivery_given_discovery_fraction",
+        "training/first_discovery_to_gcs_delay_delivered_mean_s",
+        "training/false_confirmation_per_1000_measurements",
+        "training/map_coverage_percent",
     } == all_metrics
-    assert sum(len(panels) for panels in PANELS.values()) == 21
+    assert sum(len(panels) for panels in PANELS.values()) == 25
 
 
 def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source():
@@ -103,6 +107,8 @@ def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source()
     assert panel_axis("evaluation/mean_return") == "evaluation/checkpoint_global_step"
     assert panel_axis("evaluation/core/discovery_rate_percent") == "evaluation/checkpoint_episode"
     assert panel_axis("evaluation/map_coverage_percent") == "evaluation/checkpoint_episode"
+    assert panel_axis("training/map_coverage_percent") == "episode/index"
+    assert panel_options("Union map coverage (training; %)", "training/map_coverage_percent")["xaxis_expression"] == "${episode/index} / 10"
     assert panel_axis("evaluation/false_confirmation_per_1000_measurements") == "evaluation/checkpoint_episode"
     assert panel_options("1. Target discovery rate (%)", "evaluation/core/discovery_rate_percent")["xaxis_expression"] == "${evaluation/checkpoint_episode} / 10"
     assert panel_options("CPU evaluation delivery (%) - higher", "evaluation/delivery_rate_percent")["xaxis_expression"] == "${evaluation/episodes_completed} / 10"

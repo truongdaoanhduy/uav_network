@@ -8,7 +8,7 @@ import time
 from uuid import uuid4
 import numpy as np
 from .hardware import hardware_info
-from .telemetry import episode_telemetry
+from .telemetry import episode_telemetry, training_tradeoff_metrics
 from .storage_retention import upload_compressed_journals
 from .comparison_metrics import mission_score
 from .run_journal import RunJournal, select_evidence
@@ -89,7 +89,7 @@ def episode_metrics(record, num_uavs, motion_dim=2, motion_safety=None):
     result["reports/buffer_count"] = record.get("buffer_reports", 0)
     result["motion/final_mean_speed_mps"] = record.get("mean_speed_mps", 0)
     result["episode/termination_reason"] = record.get("termination_reason") or "unknown"
-    result.update(episode_telemetry(record))
+    result.update({**episode_telemetry(record), **training_tradeoff_metrics(record)})
     return result
 def final_metrics(records):
     """Aggregate completed *training* episodes without pretending to be final-policy eval."""

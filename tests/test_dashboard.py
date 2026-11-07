@@ -83,7 +83,7 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(pinned,{"run:displayName","run:state","run:createdAt","run:duration"})
         plots = [p for section in spec["panelBankConfig"]["sections"] for p in section["panels"]
                  if "metrics" in p.get("config",{})]
-        self.assertEqual(len(plots),21)
+        self.assertEqual(len(plots),25)
         self.assertTrue({"episode/return", "outcome/search_rate_percent",
                          "outcome/delivery_rate_percent", "evaluation/discovery_auc",
                          "evaluation/target_delivery_time_capped_mean_s",
@@ -94,10 +94,22 @@ class DashboardTests(unittest.TestCase):
             'Actor loss', 'Critic loss', 'Actor gradient norm', 'Critic gradient norm',
             'TD error', 'Action saturation', 'CBF intervention rate')]) == 7
         sections_by_name = {sec['name']: sec for sec in spec['panelBankConfig']['sections']}
-        assert len(sections_by_name) >= 4
-        supplemental = sections_by_name['Supplemental: exploration and relay trade-offs']
-        assert not supplemental['isOpen']
-        assert len(supplemental['panels']) == 4
+        assert len(sections_by_name) >= 3
+        train = sections_by_name['Training convergence (in-sample; not final benchmark)']
+        evaluation = sections_by_name['Periodic evaluation on fixed seeds (held-out checkpoint curves)']
+        assert len(train['panels']) == 9
+        assert len(evaluation['panels']) == 9
+        assert not any(name.startswith('Supplemental:') for name in sections_by_name)
+        assert all(metric in [p['config']['metrics'][0] for p in train['panels']]
+                   for metric in ('training/delivery_given_discovery_fraction',
+                                  'training/first_discovery_to_gcs_delay_delivered_mean_s',
+                                  'training/false_confirmation_per_1000_measurements',
+                                  'training/map_coverage_percent'))
+        assert all(metric in [p['config']['metrics'][0] for p in evaluation['panels']]
+                   for metric in ('evaluation/delivery_given_discovery_fraction',
+                                  'evaluation/first_discovery_to_gcs_delay_delivered_mean_s',
+                                  'evaluation/false_confirmation_per_1000_measurements',
+                                  'evaluation/map_coverage_percent'))
         fixed = next(plot for plot in plots if plot['config'].get('chartTitle') ==
                      '3. Discovery AUC (higher = faster/better search)')
         assert fixed['config']['xAxis'] == 'evaluation/checkpoint_episode'

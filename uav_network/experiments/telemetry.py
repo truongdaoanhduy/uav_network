@@ -42,6 +42,38 @@ def diagnostic_rates(raw):
     return result
 
 
+def training_tradeoff_metrics(record):
+    """Four passive, per-episode training metrics (not held-out validation).
+
+    Missing denominators/events remain absent or None, never fabricated as zero.
+    The report delay covers only targets successfully delivered to GCS.
+    """
+    result = {}
+    if "targets_found" in record and "targets_delivered" in record:
+        found, delivered = int(record["targets_found"]), int(record["targets_delivered"])
+        if found < 0 or not 0 <= delivered <= found:
+            raise ValueError("Delivered targets cannot exceed discovered targets")
+        result["training/delivery_given_discovery_fraction"] = delivered / found if found else None
+    reports = record.get("report_diagnostics")
+    if isinstance(reports, dict):
+        result["training/first_discovery_to_gcs_delay_delivered_mean_s"] = (
+            reports.get("first_discovery_to_delivery_mean_s"))
+    sensing = record.get("sensing")
+    if isinstance(sensing, dict):
+        measurements = int(sensing.get("measurements", 0))
+        false_confirmations = int(sensing.get("false_confirmation", 0))
+        if measurements < 0 or not 0 <= false_confirmations <= measurements:
+            raise ValueError("Invalid sensing measurement/false confirmation counters")
+        result["training/false_confirmation_per_1000_measurements"] = (
+            1000. * false_confirmations / measurements if measurements else None)
+    if "coverage_percent" in record:
+        coverage = float(record["coverage_percent"])
+        if not math.isfinite(coverage) or not 0. <= coverage <= 100.:
+            raise ValueError("Map coverage must be a finite percent")
+        result["training/map_coverage_percent"] = coverage
+    return result
+
+
 def episode_telemetry(record):
     """Detailed timestamps stay in JSON; W&B receives bounded scalar keys."""
     result = {}

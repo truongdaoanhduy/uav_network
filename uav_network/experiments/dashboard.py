@@ -24,6 +24,10 @@ PANELS = {
         ("UAV-paper delivery rate (%)", "outcome/delivery_rate_percent"),
         ("Training energy / GCS delivery (pooled J)", "cohort/energy/j_per_gcs_delivery"),
         ("Training episode length (steps)", "episode/length"),
+        ("Delivery given discovery (training; fraction)", "training/delivery_given_discovery_fraction"),
+        ("Discovery-to-GCS delay (training; delivered only, s)", "training/first_discovery_to_gcs_delay_delivered_mean_s"),
+        ("False confirmations per 1,000 measurements (training)", "training/false_confirmation_per_1000_measurements"),
+        ("Union map coverage (training; %)", "training/map_coverage_percent"),
     ],
     "Periodic evaluation on fixed seeds (held-out checkpoint curves)": [
         ("1. Fixed-seed target discovery rate (%)", "evaluation/mean_search_rate_percent"),
@@ -31,8 +35,6 @@ PANELS = {
         ("3. Discovery AUC (higher = faster/better search)", "evaluation/discovery_auc"),
         ("4. Capped mean GCS delivery time (s)", "evaluation/target_delivery_time_capped_mean_s"),
         ("5. Pooled UAV energy per GCS delivery (J)", "evaluation/pooled_uav_j_per_gcs_delivery"),
-    ],
-    "Supplemental: exploration and relay trade-offs": [
         ("Delivery given discovery (fraction; 1 = 100%)", "evaluation/delivery_given_discovery_fraction"),
         ("Discovery-to-GCS delay (s; delivered targets only)", "evaluation/first_discovery_to_gcs_delay_delivered_mean_s"),
         ("False confirmations per 1,000 sensing measurements", "evaluation/false_confirmation_per_1000_measurements"),
@@ -50,9 +52,7 @@ PANELS = {
 }
 
 PERIODIC_EPISODE_METRICS = {
-    metric for section in ("Periodic evaluation on fixed seeds (held-out checkpoint curves)",
-                           "Supplemental: exploration and relay trade-offs")
-    for _, metric in PANELS[section]
+    metric for _, metric in PANELS["Periodic evaluation on fixed seeds (held-out checkpoint curves)"]
 }
 
 
@@ -88,7 +88,7 @@ def panel_axis(metric, title=""):
         return "_runtime"
     if metric.startswith("evaluation/core/") or metric in PERIODIC_EPISODE_METRICS:
         return "evaluation/checkpoint_episode"
-    if metric in {"episode/return", "episode/length"} or metric.startswith("outcome/"):
+    if metric in {"episode/return", "episode/length"} or metric.startswith(("outcome/", "training/")):
         return "episode/index"
     if metric.startswith("system/"):
         return "_runtime"
@@ -108,6 +108,10 @@ def panel_options(title, metric):
     if metric in CPU_EPISODE_METRICS:
         return {"title_x": "Test episode (×10¹)",
                 "xaxis_expression": "${evaluation/episodes_completed} / 10"}
+    if metric.startswith("training/"):
+        return {"title_x": "Training episode (×10¹)",
+                "xaxis_expression": "${episode/index} / 10",
+                "point_visualization_method": "sampling"}
     if metric == "episode/length":
         return {"title_x": "Episode (×10¹)", "xaxis_expression": "${episode/index} / 10",
                 "point_visualization_method": "sampling"}
@@ -243,7 +247,7 @@ def create_dashboard(config, run_ids=(), name="UAV Network 2D - MASAC and MATD3"
     if missing:
         raise ValueError(f"Requested W&B runs not found: {sorted(missing)}")
     panels = PANELS if profile == "core" else DIAGNOSTIC_PANELS
-    workspace.sections = [ws.Section(name=title, is_open=not title.startswith(("Training diagnostics", "Supplemental:")), panels=[
+    workspace.sections = [ws.Section(name=title, is_open=not title.startswith("Training diagnostics"), panels=[
         wr.LinePlot(title=label, x=panel_axis(metric, label),
                     y=panel_y(label, metric),
                     max_runs_to_show=12, aggregate=False, **panel_options(label, metric))
