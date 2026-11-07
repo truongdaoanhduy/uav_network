@@ -1,0 +1,156 @@
+{
+  "observed_utc": "2026-11-07T12:13:57.437991+00:00",
+  "profile": "configs/comparison-independent-35t25o-h512-xyz-sensing.yaml",
+  "dimensions": [
+    {
+      "targets": 20,
+      "obstacles": 15,
+      "actor_input": 198,
+      "state": 565,
+      "critic_input": 631
+    },
+    {
+      "targets": 20,
+      "obstacles": 25,
+      "actor_input": 198,
+      "state": 605,
+      "critic_input": 671
+    },
+    {
+      "targets": 35,
+      "obstacles": 15,
+      "actor_input": 228,
+      "state": 790,
+      "critic_input": 856
+    },
+    {
+      "targets": 35,
+      "obstacles": 25,
+      "actor_input": 228,
+      "state": 830,
+      "critic_input": 896
+    }
+  ],
+  "probes": [
+    {
+      "backend": "native",
+      "case": "hidden_target",
+      "observer_actor_input_unchanged": true,
+      "critic_state_changed": true,
+      "policies_unchanged": {
+        "masac": true,
+        "matd3": true
+      }
+    },
+    {
+      "backend": "native",
+      "case": "hidden_obstacle",
+      "observer_actor_input_unchanged": true,
+      "critic_state_changed": true,
+      "policies_unchanged": {
+        "masac": true,
+        "matd3": true
+      }
+    },
+    {
+      "backend": "native",
+      "case": "other_agent_known",
+      "observer_actor_input_unchanged": true,
+      "critic_state_changed": true,
+      "policies_unchanged": {
+        "masac": true,
+        "matd3": true
+      }
+    },
+    {
+      "backend": "native",
+      "case": "unannounced_delivery",
+      "observer_actor_input_unchanged": true,
+      "critic_state_changed": true,
+      "policies_unchanged": {
+        "masac": true,
+        "matd3": true
+      }
+    },
+    {
+      "backend": "native",
+      "case": "own_known_positive_control",
+      "observer_actor_input_unchanged": false,
+      "critic_state_changed": true,
+      "policies_unchanged": {}
+    },
+    {
+      "backend": "native",
+      "case": "visible_obstacle_positive_control",
+      "observer_actor_input_unchanged": false,
+      "critic_state_changed": true,
+      "policies_unchanged": {}
+    },
+    {
+      "backend": "warp_cpu",
+      "case": "hidden_target",
+      "observer_actor_input_unchanged": true,
+      "critic_state_changed": true,
+      "policies_unchanged": {
+        "masac": true,
+        "matd3": true
+      }
+    },
+    {
+      "backend": "warp_cpu",
+      "case": "hidden_obstacle",
+      "observer_actor_input_unchanged": true,
+      "critic_state_changed": true,
+      "policies_unchanged": {
+        "masac": true,
+        "matd3": true
+      }
+    },
+    {
+      "backend": "warp_cpu",
+      "case": "other_agent_known",
+      "observer_actor_input_unchanged": true,
+      "critic_state_changed": true,
+      "policies_unchanged": {
+        "masac": true,
+        "matd3": true
+      }
+    },
+    {
+      "backend": "warp_cpu",
+      "case": "unannounced_delivery",
+      "observer_actor_input_unchanged": true,
+      "critic_state_changed": true,
+      "policies_unchanged": {
+        "masac": true,
+        "matd3": true
+      }
+    },
+    {
+      "backend": "warp_cpu",
+      "case": "own_known_positive_control",
+      "observer_actor_input_unchanged": false,
+      "critic_state_changed": true,
+      "policies_unchanged": {}
+    },
+    {
+      "backend": "warp_cpu",
+      "case": "visible_obstacle_positive_control",
+      "observer_actor_input_unchanged": false,
+      "critic_state_changed": true,
+      "policies_unchanged": {}
+    }
+  ],
+  "probe_count": 12,
+  "passed": true,
+  "kaggle_jobs_submitted": 0,
+  "scope": "Current observation builder and deterministic raw actor outputs; not a proof for every possible rollout",
+  "safety_caveat": "CBF is a separate privileged geometry filter; it is not fed as actor state",
+  "runtime_source_modified": false,
+  "source_commit": "f7c0133",
+  "related_tests": {
+    "passed": 59,
+    "skipped_cuda_hardware": 3,
+    "command": "python -m pytest -q tests/test_decentralized_observations.py tests/test_xyz_sensing.py tests/test_xyz_warp.py tests/test_xyz_radio.py tests/test_reference_baseline_contract.py tests/test_scaled_ui_notebooks.py"
+  }
+}

@@ -1,3 +1,50 @@
+# 2026-11-07 — Actor privacy audit and requested credential maintenance
+
+User asked whether actor198->228 violates Dec-POMDP, and requested checking,
+pruning and formatting newly appended Kaggle keys. Started clean atf7c0133.
+No runtime algorithm, observation, CBF, reward or notebook source was changed.
+
+Verified observation_dim=158+2*num_targets: only own known/report-status
+vectors add30 fields for20->35 targets. Obstacles15->25 alone add ZERO actor
+fields. Actor uses3 sensor-footprint obstacle slots; privileged full geometry
+is reserved for critic state and the separate CBF layer, not actor tensors.
+Local belief/coarse memory and ideal in-range radio/admission metadata are
+part of the declared observation model. These assumptions must be stated.
+
+12 counterfactual/positive-control probes passed over Native and Warp CPU:
+hidden target/obstacle geometry, other-agent private known data and an
+unannounced GCS receipt leave observer inputs and deterministic MASAC/MATD3
+raw actions unchanged; critic state changes. Own acquired knowledge or a
+visible obstacle changes actor observation as expected. Related regression
+suite:59 passed,3 CUDA-hardware tests skipped. No GPU job submitted/needed.
+Finite probes do not establish a formal all-rollout privacy theorem.
+
+Important deployment qualification: current CBF reads all-agent geometry
+and all obstacles. This does not feed global state into the actor or by
+itself invalidate a Dec-POMDP transition model. Do not describe the ENTIRE
+safety controller as local-only decentralized execution. Current truthful
+claim: CTDE policies with a safety filter using privileged global geometry.
+See ../../methods/DEC_POMDP_OBSERVATION_AUDIT_2026-11-07.md and the two
+2026-11-07-decpomdp-observation-* evidence files, including repro probe code.
+
+Credential maintenance was local/private, outside this repository. Parsed
+6 existing accounts+11 appended tokens. The default CLI was too old to use
+KAGGLE_API_TOKEN; its failed probes were NOT used for removal. Rechecked
+with the installed automation environment's Kaggle2.2.4:13 accounts returned
+GPU quota30h each (2 old+all11 new);4 old entries still returned no quota
+after2 attempts. Removed those4 from the active JSON and renamed retained
+entries account_1..account_13. Verified original private backup, source-hash
+concurrency guard, candidate token set, JSON/load_credentials,0600 mode and
+unchanged W&B/HF/non-account fields before/after atomic replacement.
+No tokens or credential files were copied to Git, Library or notebook.
+
+NEXT: answer actor-dimension concern with the exact local-memory breakdown,
+mention CBF deployment qualification and completed credential cleanup.
+Do not change safety/observation assumptions or launch training based only
+on this question. Existing20t15o/256 and35t25o/512 notebooks remain unchanged.
+
+---
+
 # 2026-11-07 — Separate35t25o/512x512 independent experiment
 
 User asks whether16/32 updates help and explicitly requests wider networks
