@@ -1,3 +1,15 @@
+# 2026-11-08 — Double validation cadence BEFORE starting 10 Kaggle UI runs
+
+User authorized changing validation frequency immediately instead of waiting for training results. Started ~08/11/2026 02:42 UTC+7; verified 08/11/2026 02:46:28 UTC+7. **Active 20k baseline configurations now use `tracking.evaluation_interval_steps=1843200`**, exactly half of old 3686400. Changed only three current profiles: `comparison-independent-35t25o-h512-xyz-sensing.yaml`, `comparison-independent-baseline-xyz-sensing.yaml`, `comparison-reference-masac-matd3-xyz-sensing.yaml`. Did not change old/historical 20k/25k profiles. Kept 5 periodic validation episodes, fixed seeds 1000000044..48, evaluator timeout 900 s, best criterion, CPU async evaluator, checkpoint cadence256 and max20k episodes. No reward/algorithm/CBF/world/observation/scientific changes.
+
+Main source code commit **`a6e07a8`** embeds the new cadence into both MATD3 and MASAC Kaggle UI intros + active YAMLs; test expectations updated. **105 passed**, including baseline MATD3/MASAC notebook tests, async evaluator and controlled study; historical `test_controlled_study` remained on original historical profile. Git diff --check clean.
+
+**Re-exported all 10 Kaggle UI `.ipynb` files** on user's laptop `~/Downloads` and in repo ignored `outputs/kaggle` using the updated source commit `a6e07a8`. Replaced same-name earlier `.ipynb` files plus old-name ZIP to avoid accidental stale imports. Created clearly labeled ZIP: `~/Downloads/UAV_MATD3_MASAC_10_KAGGLE_UI_35T25O_S44_VAL1843200.zip` (same copy in `outputs/kaggle`), with manifest `~/Downloads/UAV_MATD3_MASAC_10_KAGGLE_UI_MANIFEST.json`. Verified actual embedded archive YAML values=1843200/5/256, independent case recipe overrides, PQL disabled, compiled notebook cells, schema, 10 ZIP entries, source integrity and copied notebook byte-for-byte. Notebook source commit `a6e07a8` is intentional snapshot even if subsequent continuity note commit advances HEAD. The downloaded files are **self-contained and sensitive source**, never publish to public git. User must import/reimport updated `.ipynb` in Kaggle; previously imported Kaggle notebooks will **not** auto-update. No training submitted and no W&B/HF mutation.
+
+For old actual MATD3 BASE ~21.19M transitions the new interval gives 11 theoretical validation threshold crossings vs 5 old; at max30M transitions new16 vs8 old. These are thresholds, not guaranteed successful validations: single CPU evaluator may skip_busy, deadline, fail/timeout, and terminal threshold may be skipped. Future work only if user requests changes to busy-skip or evaluation method; avoid modifying algorithm/reward or validation protocol otherwise.
+
+---
+
 # 2026-11-08 — Export 10 Kaggle UI notebooks for user (MATD3 BASE x5, MASAC BASE x5)
 
 User explicitly requested stopping reward plotting/changes and preparing (without running) **exactly 10 manually importable Kaggle UI `.ipynb` files**: MATD3 5 architecture ablations and MASAC 5 identical architecture/update cases. Start ~08/11/2026 02:25:48 UTC+7, verified 08/11/2026 02:33:00 UTC+7.
