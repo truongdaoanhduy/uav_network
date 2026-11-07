@@ -1,3 +1,19 @@
+# 2026-11-08 — Export 10 Kaggle UI notebooks for user (MATD3 BASE x5, MASAC BASE x5)
+
+User explicitly requested stopping reward plotting/changes and preparing (without running) **exactly 10 manually importable Kaggle UI `.ipynb` files**: MATD3 5 architecture ablations and MASAC 5 identical architecture/update cases. Start ~08/11/2026 02:25:48 UTC+7, verified 08/11/2026 02:33:00 UTC+7.
+
+**Implementation commit `89e6274`**, pinned inside every notebook. Only added MASAC Kaggle notebook builder, 10-case export script, tests and guide. No changes to `reward`, algorithm update equations, CBF, world, sensor, episode aggregation, training code, MATD3 builder, validation cadence or checkpoint logic.
+
+Matrix for both MASAC & MATD3: case01 SH H512 U8 ActorLN; case02 SH H512 U16 ActorLN; case03 IND H512 U16 ActorLN; case04 IND H512 U16 ActorNoLN; case05 SH H256 U8 ActorLN. Both Actor and Critic share/independent **across UAVs**, not with each other. Critic never has LN (existing code option actor only). MASAC uses mask-aware target entropy and alpha loss, MATD3 default initialization + policy_delay2. BASE only; PQL disabled.
+
+Actual 10 exported files and one 6.9MB ZIP are ON THE USER'S LAPTOP under `/home/aduy/Downloads/`, duplicated in `/home/aduy/Documents/NCKH/uav_network_study_1200/outputs/kaggle/`; zip exact name `UAV_MATD3_MASAC_10_KAGGLE_UI_35T25O_S44.zip`. Local SHA/file verification manifest in `/home/aduy/Downloads/UAV_MATD3_MASAC_10_KAGGLE_UI_MANIFEST.json`. **Never commit/embed these private notebooks into public repository** — they include full bundled source for manual Kaggle UI, and anyone with notebook access can inspect them.
+
+Source bundle SHA256 `f28cd52ef906e5623a592bffab0822a4b8406bceef5e78de11d89c8ceef96b28`; extracted and compared **all 429 bundled source files byte-for-byte** against repo; validated 10 nbformat schemas, compiled all code cells, full runtime `SPEC` from actual launch cell and reward equality; duplicated Downloads vs outputs/kaggle content hash verified; ZIP contains exactly 10 files and testzip passed. Current full config: 6 UAV, 35 targets, 25 obstacles, 1km, 1500 max steps, 20k episodes, seed44, 4096 env, batch8192, warmup131072, replay1M 75%CPU/25%GPU, no chunk, no compile/AMP/fused, deterministic true, checkpoint every256 episodes, fixed validation 5 episodes per3,686,400 transitions, best HF + W&B online. Manual Kaggle UI private, Internet on, T4x2, Secrets WANDB_API_KEY/HF_TOKEN and edit NOTEBOOK_REF. Kaggle remote runner max nominal 39600s minus cleanup and startup, possibly stops early.
+
+Tests: **70 passed** (`tests/test_masac_ui_ablation.py`, `tests/test_matd3_ui_ablation.py`, reference/scaled UI checks, checkpoint retention). MASAC genuine U16 independent learner updates on CPU passed. No GPU training launched and no Kaggle/W&B/HF resources mutated. Next user action is private Kaggle notebook import and Save & Run All. Notebook source snapshot is pinned to `89e6274`; subsequent note-only commits do not change its program source. Source guide: `docs/methods/MATD3_MASAC_10_KAGGLE_UI_ABLATIONS.md`.
+
+---
+
 # 2026-11-08 — User-selected MATD3/MASAC BASE Reward plots at windows 8/16/32/64
 
 User corrected earlier 'latest' run preference: **MATD3-BASE-SH-NOCHUNK-DEFAULT-S44-971f7cc2** paired with **MASAC-BASE-SH-NOCHUNK-MASKAWARE-S44-f6a196a7**, explicitly **no PQL** and no Kaiming. Completed and verified 08/11/2026 02:16:55 UTC+7. Code + 9 PNGs + README commit: `2dd9229`.
