@@ -278,7 +278,7 @@ def plot_core_mission_metrics(records, path):
     if not n:
         raise ValueError("Cannot plot an empty evaluation")
     rows = [r["comparison_metrics"] for r in records]
-    x = np.arange(1, n+1)
+    x = np.arange(1, n+1) / 10.
     energy = np.cumsum([r["uav_energy_j"] for r in rows])
     delivered = np.cumsum([int(r["targets_delivered"]) for r in records])
     pooled = np.divide(energy, delivered, out=np.full(n,np.nan), where=delivered > 0)
@@ -294,7 +294,7 @@ def plot_core_mission_metrics(records, path):
         ax.plot(x, values, marker='o', markersize=2.5, linewidth=1)
         ax.set(ylabel=unit, title=label)
         ax.grid(alpha=.25)
-    axes[-1].set_xlabel("Evaluation episode")
+    axes[-1].set_xlabel("Evaluation episode (×10¹)")
     fig.suptitle("Multi-UAV mission: held-out evaluation episodes")
     fig.savefig(path, dpi=130)
     plt.close(fig)

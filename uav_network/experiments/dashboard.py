@@ -114,6 +114,8 @@ def panel_axis(metric, title=""):
         return "global_step"
     if title.startswith("Compute-efficiency"):
         return "_runtime"
+    if metric.startswith("evaluation/core/"):
+        return "evaluation/checkpoint_episode"
     if metric == "episode/return" or metric.startswith("outcome/"):
         return "episode/index"
     if metric.startswith("system/"):
@@ -128,16 +130,22 @@ def panel_options(title, metric):
     metric = metric[0] if isinstance(metric, tuple) else metric
     clean_curve = {"smoothing_type": "exponential", "smoothing_factor": 0.99,
                    "smoothing_show_original": False, "point_visualization_method": "sampling"}
+    if metric.startswith("evaluation/core/"):
+        return {"title_x": "Training episode (×10¹)",
+                "xaxis_expression": "${evaluation/checkpoint_episode} / 10"}
+    if metric in CPU_EPISODE_METRICS:
+        return {"title_x": "Test episode (×10¹)",
+                "xaxis_expression": "${evaluation/episodes_completed} / 10"}
     if title == "UAV-paper mission success rate by episode":
         return {"smoothing_type": "average", "smoothing_factor": 0.8,
                 "smoothing_show_original": True, "point_visualization_method": "bucketing-gorilla",
-                "title_x": "Episode (×10²)",
-                "xaxis_expression": "${episode/index} / 100",
+                "title_x": "Episode (×10¹)",
+                "xaxis_expression": "${episode/index} / 10",
                 "title_y": "Mission success rate (fraction; 1 = 100%)",
                 "range_y": (0, 1)}
     if title.startswith("UAV-paper"):
-        return {**clean_curve, "title_x": "Episode (×10²)",
-                "xaxis_expression": "${episode/index} / 100"}
+        return {**clean_curve, "title_x": "Episode (×10¹)",
+                "xaxis_expression": "${episode/index} / 10"}
     if title.startswith("Sample-efficiency"):
         return {**clean_curve, "title_x": "Environment Steps (M)",
                 "xaxis_expression": "${global_step} / 1000000"}

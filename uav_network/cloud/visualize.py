@@ -423,6 +423,9 @@ def run_visualization(spec, output=Path("/kaggle/working")):
                     aggregates["evaluation/" + key] = protocol[key]
             if type(source_step) is int and source_step >= 0:
                 aggregates["evaluation/checkpoint_global_step"] = source_step
+            source_episode = protocol.get("training_episodes")
+            if type(source_episode) is int and source_episode >= 0:
+                aggregates["evaluation/checkpoint_episode"] = source_episode
             core = results[algorithm].get("core_metrics", {})
             aggregates.update({f"evaluation/core/{key}": value for key, value in core.items()})
             tracker.run.summary.update(aggregates)

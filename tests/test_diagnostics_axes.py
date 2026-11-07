@@ -85,7 +85,7 @@ def test_workspace_run_table_is_compact_and_decision_focused():
 
 
 def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source():
-    from uav_network.experiments.dashboard import PANELS, panel_axis
+    from uav_network.experiments.dashboard import PANELS, panel_axis, panel_options
     from uav_network.experiments.dashboard_columns import VISIBLE_COLUMNS
     assert "summary:cohort/return_mean" not in VISIBLE_COLUMNS
     assert "summary:cohort/delivery_rate_percent_mean" in VISIBLE_COLUMNS
@@ -95,6 +95,9 @@ def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source()
     assert panel_axis("outcome/delivery_rate_percent") == "episode/index"
     assert panel_axis("outcome/success") == "episode/index"
     assert panel_axis("evaluation/mean_return") == "evaluation/checkpoint_global_step"
+    assert panel_axis("evaluation/core/discovery_rate_percent") == "evaluation/checkpoint_episode"
+    assert panel_options("1. Target discovery rate (%)", "evaluation/core/discovery_rate_percent")["xaxis_expression"] == "${evaluation/checkpoint_episode} / 10"
+    assert panel_options("CPU evaluation delivery (%) - higher", "evaluation/delivery_rate_percent")["xaxis_expression"] == "${evaluation/episodes_completed} / 10"
     assert panel_axis("eval/mean_return") == "evaluation/checkpoint_global_step"
     assert panel_axis("evaluation_status/failed") == "global_step"
     assert any(metric.startswith("cohort/") for panels in PANELS.values() for _, metric in panels)
@@ -141,8 +144,8 @@ def test_paper_and_benchmark_panels_use_scaled_axes_and_clean_rendering():
     assert paper["smoothing_type"] == "exponential"
     assert paper["smoothing_factor"] == 0.99
     assert paper["smoothing_show_original"] is False
-    assert paper["title_x"] == "Episode (×10²)"
-    assert paper["xaxis_expression"] == "${episode/index} / 100"
+    assert paper["title_x"] == "Episode (×10¹)"
+    assert paper["xaxis_expression"] == "${episode/index} / 10"
     assert paper["point_visualization_method"] == "sampling"
 
     sample_title = "Sample-efficiency training return / reward"
@@ -156,8 +159,8 @@ def test_paper_and_benchmark_panels_use_scaled_axes_and_clean_rendering():
     success_title = "UAV-paper mission success rate by episode"
     success = panel_options(success_title, "outcome/success")
     assert panel_axis("outcome/success", success_title) == "episode/index"
-    assert success["title_x"] == "Episode (×10²)"
-    assert success["xaxis_expression"] == "${episode/index} / 100"
+    assert success["title_x"] == "Episode (×10¹)"
+    assert success["xaxis_expression"] == "${episode/index} / 10"
     assert success["title_y"] == "Mission success rate (fraction; 1 = 100%)"
     assert success["range_y"] == (0, 1)
     assert success["smoothing_type"] == "average"

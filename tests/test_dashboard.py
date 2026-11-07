@@ -92,8 +92,8 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(len(paper_return), 1)
         paper_config = paper_return[0]["config"]
         self.assertEqual(paper_config["xAxis"], "episode/index")
-        self.assertEqual(paper_config["xExpression"], "${episode/index} / 100")
-        self.assertEqual(paper_config["xAxisTitle"], "Episode (×10²)")
+        self.assertEqual(paper_config["xExpression"], "${episode/index} / 10")
+        self.assertEqual(paper_config["xAxisTitle"], "Episode (×10¹)")
         self.assertEqual(paper_config["smoothingType"], "exponential")
         self.assertEqual(paper_config["smoothingWeight"], 0.99)
         self.assertEqual(paper_config["pointVisualizationMethod"], "sampling")
@@ -105,8 +105,8 @@ class DashboardTests(unittest.TestCase):
         success_config = success[0]["config"]
         self.assertEqual(success_config["metrics"], ["outcome/success"])
         self.assertEqual(success_config["xAxis"], "episode/index")
-        self.assertEqual(success_config["xExpression"], "${episode/index} / 100")
-        self.assertEqual(success_config["xAxisTitle"], "Episode (×10²)")
+        self.assertEqual(success_config["xExpression"], "${episode/index} / 10")
+        self.assertEqual(success_config["xAxisTitle"], "Episode (×10¹)")
         self.assertEqual(success_config["yAxisTitle"], "Mission success rate (fraction; 1 = 100%)")
         self.assertEqual(success_config["yAxisMin"], 0.0)
         self.assertEqual(success_config["yAxisMax"], 1.0)
