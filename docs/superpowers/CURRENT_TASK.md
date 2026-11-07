@@ -55,12 +55,16 @@ propagation were verified. Archive SHA256:
 47ce6d1bc875b932cdfd03976f3a4f9d9d629a886623211e91528470d5764ee7.
 Manifest: evidence/2026-11-07-independent-ui-notebook-verification.json.
 
-NEXT: replace the provisional downloadable notebook/manifest/patch versions
-with this final build and hand over. No full GPU training has been submitted.
-User imports each notebook in a separate private Kaggle execution, grants
-WANDB_API_KEY/HF_TOKEN, sets NOTEBOOK_REF, keeps seed 44, and uses Save & Run All.
-A new independent-profile comparison needs fresh training for BOTH algorithms;
-keep old SH runs as controls and compare at equal transition checkpoints.
+Final downloadable notebooks, patch and verification manifest have replaced
+all provisional versions successfully; local checksums match the Downloads
+copies. Verification notes commit 1df65401971d18cb335389fa13b3884903badc67 was
+pushed. No GPU job was submitted. The remaining handoff is manual Kaggle UI:
+separate Private notebooks, T4x2 and Internet, WANDB_API_KEY/HF_TOKEN Secrets,
+real NOTEBOOK_REF, seed 44, fresh Kaggle execution via Save & Run All.
+
+NEXT: user runs the new matched pair; inspect the resulting real GPU logs and
+checkpoint metrics before claiming memory fit, convergence or improved MASAC
+ranking. Preserve old SH runs as controls; compare equal transition budgets.
 
 ---
 
