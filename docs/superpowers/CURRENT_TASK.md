@@ -1,3 +1,61 @@
+# 2026-11-08 — COMPLETED live comparison of 10 latest 35T25O BASE W&B runs
+
+**Current task finished; do not retrain duplicates.** Read
+`docs/methods/WANDB_10_LATEST_35T25O_COMPARISON_2026-11-08.md`,
+the machine-readable `docs/methods/evidence/wandb_latest_ten_2026-11-08.json`,
+and `docs/methods/evidence/wandb_10_case_reuse_registry_2026-11-08.json`
+before discussing MATD3/MASAC 35T25O runs.
+
+Read-only direct W&B API snapshot on 2026-11-08. Ten most recent BASE runs:
+MATD3: 01 `ccaadcd6` (20k), 02 `f55774e2` (20k),
+03 `55158605` (16384), 04 `baf27732` (20k),
+05 `635d7134` (20k). MASAC: 01 `d9c1c5e9` (11675),
+02 `c70aa6f4` (4096), 03 `70eaad3a` (4096),
+04 `c6cf7916` (4096), 05 `7f5fd73f` (20k).
+
+All ten W&B source commits = `a6e07a8f4b199028298b6ffd9a47f2cecd654fc9`;
+world/sensing/network/energy/reward scientific SHA-256 and runtime
+protocol hashes match across all ten. Only five reached target 20k,
+despite W&B state `finished`. At all-run common comparison point:
+last 1024 training episodes through episode4096; independently,
+5-episode fixed-seed validation at checkpoint transition 7,372,800.
+Pairwise comparisons instead use each pair's minimum completed
+episode and latest exact shared validation checkpoint. No future-point
+lookahead; best checkpoints across unequal training horizons are
+not a fair same-budget ranking.
+
+**Observed decision** within seed44, 5-episode validation:
+MATD3 Shared H512 U8 ActorLN `ccaadcd6` is primary
+(best validation delivery58.86%, final58.29%, W&B lifetime2.63h);
+MATD3 Shared H256 U8 ActorLN `635d7134` is faster
+(20k in1.74h, best51.43%); MASAC Shared H256 U8 ActorLN
+`7f5fd73f` is the only completed 20k MASAC
+(best52.0%, lifetime8.33h). MATD3 Shared H512 U8 beats
+Shared H512 U16 by13.71 delivery percentage points at same
+23,961,600-transition checkpoint, and the U8 run completed faster.
+Independent U16 MATD3 substantially underperformed Shared U16
+under pairwise matched comparisons. MASAC H512 U8 improved later but
+stopped at 11,675, so do not claim a 20k ranking for it.
+
+**Best checkpoint metadata:** all ten W&B-reported Hugging Face pinned
+revisions and `uav-network/<run_id>/best/checkpoint.pt` file entries
+verified read-only on 2026-11-08, see
+`docs/methods/evidence/wandb_ten_hf_checkpoint_verification_2026-11-08.json`.
+Full checkpoint bytes were not downloaded/hashed.
+
+**IMPLEMENTED:** Read-only capture/analysis script
+`scripts/audit_latest_ten_wandb_baselines.py`; offline
+report/figures/registry script
+`scripts/render_wandb_ten_case_registry.py`;
+regression test `tests/test_wandb_ten_run_audit.py`.
+No Kaggle training, W&B changes, HF mutation or scientific code changes.
+Raw history cached locally under `outputs/wandb-ten-20261108/`
+and dated copy in `~/Downloads`. Next chat must reuse these records
+instead of re-running identical experiments. If sources or scientific
+settings materially change, treat as a new cohort with its own fingerprint.
+
+---
+
 # 2026-11-08 — Spinning Up SAC/TD3 → CTDE Hybrid-MASAC/MATD3 source audit
 
 User authorized proceeding from a research-only review to an implementation/audit phase,
