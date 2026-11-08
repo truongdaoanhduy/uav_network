@@ -1,3 +1,22 @@
+# 2026-11-08 MASAC correctness and evaluation reproducibility
+
+For scientific/reviewer claims about MASAC lower than MATD3, first
+read `docs/methods/MASAC_REVIEWER_BASELINE_CORRECTNESS_AUDIT_2026-11-08.md`.
+Original hybrid SAC loss is source-checked; NO critical proven
+formula bug. Original Fu Hybrid-MASAC uses different network
+architecture and must not be claimed byte-identical.
+The same MASAC actor check shows early Gaussian movement
+sampling accounts for most of sampled-vs-mean performance delta.
+W&B reveals much higher CBF corrections in MASAC at matched
+early checkpoints (0.93/0.98 per UAV step versus MATD3 0.61/0.80).
+**Original W&B best validation != local replay** even with same
+checkpoint SHA/seeds/scene layout hashes: original MASAC H256
+52.00%, local 57.71%. This is UNRESOLVED; do not claim
+bitwise full reproducibility, do not mix evaluation provenance,
+and do not auto launch training for this audit.
+The documented next task is a no-training, first-divergence
+evaluator runtime trace; no redundant 10-run experiments.
+
 # Explicit paper-core baseline vs previously trained shared variants
 
 User requires **source-faithful MASAC/MATD3 baseline** rather than just

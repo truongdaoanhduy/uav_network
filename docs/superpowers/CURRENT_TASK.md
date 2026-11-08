@@ -1,3 +1,51 @@
+# 2026-11-08 — MASAC reviewer-grade correctness + sampled-vs-mean probe
+
+**New audit:** `docs/methods/MASAC_REVIEWER_BASELINE_CORRECTNESS_AUDIT_2026-11-08.md`.
+Code checked against original SAC, Hybrid SAC, Fu Hybrid-MASAC and
+MATD3 source; checked math updates continue to pass tests; **no proven
+formula bug or loss rewrite**. Do not claim implementation is
+author-paper-exact (no Fu attention critic). No training started.
+
+**Actual existing best MASAC Actors** verified against saved HF SHA and
+run on identical 5 validation seeds in four policy modes (only
+inference): `scripts/diagnose_masac_policy_modes.py`,
+`docs/methods/evidence/masac_four_policy_modes_2026-11-08.json`.
+Early H512/U16 `c70aa6f4`: mean+argmax **18.86%**;
+Gaussian-sampled+argmax **33.14%**; mean+sample-destination
+**21.71%**; sample-both **37.14%**. Thus primary
+early sampled-vs-deterministic gap is continuous movement action,
+not categorical routing. Late H256/U8 `7f5fd73f`:
+deterministic **57.71%** on local replay (original W&B best
+**52.00%**), other three modes 51.43%, 51.43%, 53.71%.
+
+**W&B source matched-global-step 7.37M:** CBF interventions per
+UAV-step MASAC H256 **0.932**, MATD3 H256 **0.610**;
+MASAC H512 **0.977**, MATD3 H512 **0.804**.
+Search and delivery both very low in early MASAC, improving
+as intervention declines; correlation not proof of causation.
+MASAC H256 best W&B **52%** vs MATD3 H256 best **51.43%**
+at unequal checkpoint budgets; do NOT write that MASAC
+always scores lower.
+
+**Critical unresolved reproducibility finding:** W&B run `7f5fd73f`
+original per-seed metrics.json was read via W&B (not rebuilt).
+**5/5 evaluation seed initial layout hashes match** current CPU
+replay with same SHA-verified saved actor, but original W&B
+**91/175 delivered (52%)** vs current local **101/175 (57.71%)**;
+some episode lengths/trajectories diverge. Evidence:
+`docs/methods/evidence/masac_wandb_local_same_seed_replay_2026-11-08.json`.
+Do not silently replace W&B metrics with local replay values.
+Source/environment code diff from recorded training commit
+`a6e07a8f4b199028298b6ffd9a47f2cecd654fc9` contains
+no environment/communication changes; numerical runtime,
+inference and simulator determinism need further isolated diagnosis.
+Next requested task should be **one** no-training
+cross-runtime first-divergence trace (first 10 actions and
+positions in pinned Kaggle-like CPU environment), not any
+relaunch of the old 10 W&B runs.
+
+---
+
 # 2026-11-08 — PAPER-CORE CTDE HYBRID BASELINE CONTRACT + 2 UI BUILDERS
 
 **User asked for an actual source-faithful baseline, not another

@@ -1,0 +1,101 @@
+{
+  "run": "7f5fd73f",
+  "checkpoint_sha256": "208b90b0c65533c6d91444e37711eb9c0c943e30d9bde419f8531fdee4f62861",
+  "global_step": 25804800,
+  "layout_hash_same_all_seeds": true,
+  "original_wandb_delivery": 52.0,
+  "local_mean_argmax_delivery": 57.71428571428571,
+  "reproducibility_status": "unresolved: trajectories diverge despite identical layout/seed and checkpoint SHA; do not infer cause",
+  "records": [
+    {
+      "seed": 1000000044,
+      "layout_hash": "12554eaf7cdc4c692e5495eba59603652e2eb16f3e7ddf2f4287e6ffd87eb8ce",
+      "original_wandb": {
+        "episode_length": 941,
+        "targets_found": 21,
+        "targets_delivered": 20,
+        "search_rate_percent": 60.0,
+        "delivery_rate_percent": 57.142857142857146
+      },
+      "local_mean_argmax": {
+        "episode_length": 1074,
+        "targets_found": 24,
+        "targets_delivered": 24,
+        "search_rate_percent": 68.57142857142857,
+        "delivery_rate_percent": 68.57142857142857
+      }
+    },
+    {
+      "seed": 1000000045,
+      "layout_hash": "c253c1fefbd953c4e3d5cdfc308ae0bbd439932a4fe9abc162074b2870ace096",
+      "original_wandb": {
+        "episode_length": 990,
+        "targets_found": 17,
+        "targets_delivered": 17,
+        "search_rate_percent": 48.57142857142857,
+        "delivery_rate_percent": 48.57142857142857
+      },
+      "local_mean_argmax": {
+        "episode_length": 1016,
+        "targets_found": 17,
+        "targets_delivered": 17,
+        "search_rate_percent": 48.57142857142857,
+        "delivery_rate_percent": 48.57142857142857
+      }
+    },
+    {
+      "seed": 1000000046,
+      "layout_hash": "64b45295fe7172dddf566ebf8ec24318404cc0a3c65b90aac7091f9b6844a8b3",
+      "original_wandb": {
+        "episode_length": 966,
+        "targets_found": 20,
+        "targets_delivered": 19,
+        "search_rate_percent": 57.142857142857146,
+        "delivery_rate_percent": 54.285714285714285
+      },
+      "local_mean_argmax": {
+        "episode_length": 1001,
+        "targets_found": 22,
+        "targets_delivered": 21,
+        "search_rate_percent": 62.857142857142854,
+        "delivery_rate_percent": 60.0
+      }
+    },
+    {
+      "seed": 1000000047,
+      "layout_hash": "166d2adb5e1e8c90e502d5daaf3069a27d1077bbe1c3fa07377e1c88208da1b5",
+      "original_wandb": {
+        "episode_length": 959,
+        "targets_found": 16,
+        "targets_delivered": 15,
+        "search_rate_percent": 45.714285714285715,
+        "delivery_rate_percent": 42.857142857142854
+      },
+      "local_mean_argmax": {
+        "episode_length": 1041,
+        "targets_found": 15,
+        "targets_delivered": 15,
+        "search_rate_percent": 42.857142857142854,
+        "delivery_rate_percent": 42.857142857142854
+      }
+    },
+    {
+      "seed": 1000000048,
+      "layout_hash": "d7e1b2544f3aa6ff06de986c8dbedfe4730bb6240a86d675c35bafbe32ebd55d",
+      "original_wandb": {
+        "episode_length": 936,
+        "targets_found": 21,
+        "targets_delivered": 20,
+        "search_rate_percent": 60.0,
+        "delivery_rate_percent": 57.142857142857146
+      },
+      "local_mean_argmax": {
+        "episode_length": 1056,
+        "targets_found": 24,
+        "targets_delivered": 24,
+        "search_rate_percent": 68.57142857142857,
+        "delivery_rate_percent": 68.57142857142857
+      }
+    }
+  ]
+}

@@ -1,0 +1,887 @@
+{
+  "protocol": "same-checkpoint 2x2 factorial: mean-vs-sampled Gaussian, argmax-vs-sampled Categorical",
+  "environment": "warp_packet CPU, same validation seeds, frozen saved best Actor, no training",
+  "limitations": "Best snapshots only; not comparable directly with intermediate checkpoint validation or training metrics",
+  "runs": [
+    {
+      "run": "c70aa6f4",
+      "case": 2,
+      "saved_actor_sha256": "32c165c00e1b7a8e1e5b2a4303487afdd3caae5b50fa015e56d531a5d4a24c71",
+      "mode": "mean_argmax",
+      "mean": {
+        "search": 20.571428571428573,
+        "delivery": 18.857142857142854,
+        "return": -2085.7885785702733,
+        "eligible_fraction": 0.0044,
+        "send_given_eligible": 1.0
+      },
+      "episodes": [
+        {
+          "mode": "mean_argmax",
+          "seed": 1000000044,
+          "steps": 1500,
+          "return": -2438.096657305956,
+          "search": 11.428571428571429,
+          "delivery": 8.571428571428571,
+          "targets_found": 4,
+          "targets_delivered": 3,
+          "eligible_fraction": 0.002777777777777778,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 9000,
+            "eligible": 25,
+            "eligible_send": 25,
+            "active": 8526,
+            "nonsilent": 25
+          }
+        },
+        {
+          "mode": "mean_argmax",
+          "seed": 1000000045,
+          "steps": 1500,
+          "return": -1975.0989675484598,
+          "search": 20.0,
+          "delivery": 20.0,
+          "targets_found": 7,
+          "targets_delivered": 7,
+          "eligible_fraction": 0.005,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 9000,
+            "eligible": 45,
+            "eligible_send": 45,
+            "active": 8259,
+            "nonsilent": 45
+          }
+        },
+        {
+          "mode": "mean_argmax",
+          "seed": 1000000046,
+          "steps": 1500,
+          "return": -1802.8065620204434,
+          "search": 25.714285714285715,
+          "delivery": 25.714285714285715,
+          "targets_found": 9,
+          "targets_delivered": 9,
+          "eligible_fraction": 0.004555555555555556,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 9000,
+            "eligible": 41,
+            "eligible_send": 41,
+            "active": 8178,
+            "nonsilent": 41
+          }
+        },
+        {
+          "mode": "mean_argmax",
+          "seed": 1000000047,
+          "steps": 1500,
+          "return": -2096.9810157335014,
+          "search": 28.571428571428573,
+          "delivery": 22.857142857142858,
+          "targets_found": 10,
+          "targets_delivered": 8,
+          "eligible_fraction": 0.0034444444444444444,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 9000,
+            "eligible": 31,
+            "eligible_send": 31,
+            "active": 8468,
+            "nonsilent": 31
+          }
+        },
+        {
+          "mode": "mean_argmax",
+          "seed": 1000000048,
+          "steps": 1500,
+          "return": -2115.9596902430058,
+          "search": 17.142857142857142,
+          "delivery": 17.142857142857142,
+          "targets_found": 6,
+          "targets_delivered": 6,
+          "eligible_fraction": 0.006222222222222222,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 9000,
+            "eligible": 56,
+            "eligible_send": 56,
+            "active": 8715,
+            "nonsilent": 56
+          }
+        }
+      ]
+    },
+    {
+      "run": "c70aa6f4",
+      "case": 2,
+      "saved_actor_sha256": "32c165c00e1b7a8e1e5b2a4303487afdd3caae5b50fa015e56d531a5d4a24c71",
+      "mode": "sample_gaussian_argmax",
+      "mean": {
+        "search": 34.28571428571429,
+        "delivery": 33.142857142857146,
+        "return": -807.1968466551741,
+        "eligible_fraction": 0.007483675902036508,
+        "send_given_eligible": 1.0
+      },
+      "episodes": [
+        {
+          "mode": "sample_gaussian_argmax",
+          "seed": 1000000044,
+          "steps": 1492,
+          "return": -801.5675188536989,
+          "search": 34.285714285714285,
+          "delivery": 34.285714285714285,
+          "targets_found": 12,
+          "targets_delivered": 12,
+          "eligible_fraction": 0.006590705987488829,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 8952,
+            "eligible": 59,
+            "eligible_send": 59,
+            "active": 7851,
+            "nonsilent": 59
+          }
+        },
+        {
+          "mode": "sample_gaussian_argmax",
+          "seed": 1000000045,
+          "steps": 1408,
+          "return": -914.4920137465815,
+          "search": 28.571428571428573,
+          "delivery": 25.714285714285715,
+          "targets_found": 10,
+          "targets_delivered": 9,
+          "eligible_fraction": 0.006983901515151515,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 8448,
+            "eligible": 59,
+            "eligible_send": 59,
+            "active": 7575,
+            "nonsilent": 59
+          }
+        },
+        {
+          "mode": "sample_gaussian_argmax",
+          "seed": 1000000046,
+          "steps": 1460,
+          "return": -747.3513167304918,
+          "search": 37.142857142857146,
+          "delivery": 34.285714285714285,
+          "targets_found": 13,
+          "targets_delivered": 12,
+          "eligible_fraction": 0.006392694063926941,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 8760,
+            "eligible": 56,
+            "eligible_send": 56,
+            "active": 7436,
+            "nonsilent": 56
+          }
+        },
+        {
+          "mode": "sample_gaussian_argmax",
+          "seed": 1000000047,
+          "steps": 1500,
+          "return": -1387.7418896370218,
+          "search": 20.0,
+          "delivery": 20.0,
+          "targets_found": 7,
+          "targets_delivered": 7,
+          "eligible_fraction": 0.004888888888888889,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 9000,
+            "eligible": 44,
+            "eligible_send": 44,
+            "active": 8454,
+            "nonsilent": 44
+          }
+        },
+        {
+          "mode": "sample_gaussian_argmax",
+          "seed": 1000000048,
+          "steps": 1340,
+          "return": -184.8314943080768,
+          "search": 51.42857142857143,
+          "delivery": 51.42857142857143,
+          "targets_found": 18,
+          "targets_delivered": 18,
+          "eligible_fraction": 0.012562189054726369,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 8040,
+            "eligible": 101,
+            "eligible_send": 101,
+            "active": 7356,
+            "nonsilent": 101
+          }
+        }
+      ]
+    },
+    {
+      "run": "c70aa6f4",
+      "case": 2,
+      "saved_actor_sha256": "32c165c00e1b7a8e1e5b2a4303487afdd3caae5b50fa015e56d531a5d4a24c71",
+      "mode": "mean_sample_categorical",
+      "mean": {
+        "search": 24.0,
+        "delivery": 21.714285714285715,
+        "return": -1977.2758621496148,
+        "eligible_fraction": 0.006245827303424988,
+        "send_given_eligible": 0.9915492957746478
+      },
+      "episodes": [
+        {
+          "mode": "mean_sample_categorical",
+          "seed": 1000000044,
+          "steps": 1500,
+          "return": -1815.9923803848214,
+          "search": 31.428571428571427,
+          "delivery": 28.571428571428573,
+          "targets_found": 11,
+          "targets_delivered": 10,
+          "eligible_fraction": 0.011444444444444445,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 9000,
+            "eligible": 103,
+            "eligible_send": 103,
+            "active": 8310,
+            "nonsilent": 103
+          }
+        },
+        {
+          "mode": "mean_sample_categorical",
+          "seed": 1000000045,
+          "steps": 1500,
+          "return": -2355.4975725114346,
+          "search": 17.142857142857142,
+          "delivery": 14.285714285714286,
+          "targets_found": 6,
+          "targets_delivered": 5,
+          "eligible_fraction": 0.0033333333333333335,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 9000,
+            "eligible": 30,
+            "eligible_send": 30,
+            "active": 8375,
+            "nonsilent": 30
+          }
+        },
+        {
+          "mode": "mean_sample_categorical",
+          "seed": 1000000046,
+          "steps": 1500,
+          "return": -1835.2434564381838,
+          "search": 31.428571428571427,
+          "delivery": 28.571428571428573,
+          "targets_found": 11,
+          "targets_delivered": 10,
+          "eligible_fraction": 0.0034444444444444444,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 9000,
+            "eligible": 31,
+            "eligible_send": 31,
+            "active": 8279,
+            "nonsilent": 31
+          }
+        },
+        {
+          "mode": "mean_sample_categorical",
+          "seed": 1000000047,
+          "steps": 1500,
+          "return": -2304.6047760248184,
+          "search": 17.142857142857142,
+          "delivery": 14.285714285714286,
+          "targets_found": 6,
+          "targets_delivered": 5,
+          "eligible_fraction": 0.0044444444444444444,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 9000,
+            "eligible": 40,
+            "eligible_send": 40,
+            "active": 7961,
+            "nonsilent": 40
+          }
+        },
+        {
+          "mode": "mean_sample_categorical",
+          "seed": 1000000048,
+          "steps": 1382,
+          "return": -1575.041125388816,
+          "search": 22.857142857142858,
+          "delivery": 22.857142857142858,
+          "targets_found": 8,
+          "targets_delivered": 8,
+          "eligible_fraction": 0.008562469850458273,
+          "send_given_eligible": 0.9577464788732394,
+          "counts": {
+            "actions": 8292,
+            "eligible": 71,
+            "eligible_send": 68,
+            "active": 7567,
+            "nonsilent": 68
+          }
+        }
+      ]
+    },
+    {
+      "run": "c70aa6f4",
+      "case": 2,
+      "saved_actor_sha256": "32c165c00e1b7a8e1e5b2a4303487afdd3caae5b50fa015e56d531a5d4a24c71",
+      "mode": "sample_both",
+      "mean": {
+        "search": 38.28571428571429,
+        "delivery": 37.142857142857146,
+        "return": -689.5225405964069,
+        "eligible_fraction": 0.010127307676867044,
+        "send_given_eligible": 0.9877147910869517
+      },
+      "episodes": [
+        {
+          "mode": "sample_both",
+          "seed": 1000000044,
+          "steps": 1459,
+          "return": -527.5993056613952,
+          "search": 45.714285714285715,
+          "delivery": 42.857142857142854,
+          "targets_found": 16,
+          "targets_delivered": 15,
+          "eligible_fraction": 0.015421521590130226,
+          "send_given_eligible": 0.9925925925925926,
+          "counts": {
+            "actions": 8754,
+            "eligible": 135,
+            "eligible_send": 134,
+            "active": 7735,
+            "nonsilent": 134
+          }
+        },
+        {
+          "mode": "sample_both",
+          "seed": 1000000045,
+          "steps": 1385,
+          "return": -699.6023720167577,
+          "search": 40.0,
+          "delivery": 40.0,
+          "targets_found": 14,
+          "targets_delivered": 14,
+          "eligible_fraction": 0.012154031287605295,
+          "send_given_eligible": 0.9900990099009901,
+          "counts": {
+            "actions": 8310,
+            "eligible": 101,
+            "eligible_send": 100,
+            "active": 7582,
+            "nonsilent": 100
+          }
+        },
+        {
+          "mode": "sample_both",
+          "seed": 1000000046,
+          "steps": 1345,
+          "return": -811.4395280820318,
+          "search": 31.428571428571427,
+          "delivery": 31.428571428571427,
+          "targets_found": 11,
+          "targets_delivered": 11,
+          "eligible_fraction": 0.007558859975216853,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 8070,
+            "eligible": 61,
+            "eligible_send": 61,
+            "active": 7405,
+            "nonsilent": 61
+          }
+        },
+        {
+          "mode": "sample_both",
+          "seed": 1000000047,
+          "steps": 1500,
+          "return": -855.824261933798,
+          "search": 40.0,
+          "delivery": 37.142857142857146,
+          "targets_found": 14,
+          "targets_delivered": 13,
+          "eligible_fraction": 0.007,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 9000,
+            "eligible": 63,
+            "eligible_send": 63,
+            "active": 7899,
+            "nonsilent": 63
+          }
+        },
+        {
+          "mode": "sample_both",
+          "seed": 1000000048,
+          "steps": 1333,
+          "return": -553.1472352880519,
+          "search": 34.285714285714285,
+          "delivery": 34.285714285714285,
+          "targets_found": 12,
+          "targets_delivered": 12,
+          "eligible_fraction": 0.008502125531382845,
+          "send_given_eligible": 0.9558823529411765,
+          "counts": {
+            "actions": 7998,
+            "eligible": 68,
+            "eligible_send": 65,
+            "active": 7578,
+            "nonsilent": 65
+          }
+        }
+      ]
+    },
+    {
+      "run": "7f5fd73f",
+      "case": 5,
+      "saved_actor_sha256": "208b90b0c65533c6d91444e37711eb9c0c943e30d9bde419f8531fdee4f62861",
+      "mode": "mean_argmax",
+      "mean": {
+        "search": 58.28571428571429,
+        "delivery": 57.71428571428571,
+        "return": 105.94148358454113,
+        "eligible_fraction": 0.012101480375694942,
+        "send_given_eligible": 0.9501389716100853
+      },
+      "episodes": [
+        {
+          "mode": "mean_argmax",
+          "seed": 1000000044,
+          "steps": 1074,
+          "return": 346.0841076875222,
+          "search": 68.57142857142857,
+          "delivery": 68.57142857142857,
+          "targets_found": 24,
+          "targets_delivered": 24,
+          "eligible_fraction": 0.010707635009310988,
+          "send_given_eligible": 0.9710144927536232,
+          "counts": {
+            "actions": 6444,
+            "eligible": 69,
+            "eligible_send": 67,
+            "active": 5655,
+            "nonsilent": 67
+          }
+        },
+        {
+          "mode": "mean_argmax",
+          "seed": 1000000045,
+          "steps": 1016,
+          "return": -27.531949813943356,
+          "search": 48.57142857142857,
+          "delivery": 48.57142857142857,
+          "targets_found": 17,
+          "targets_delivered": 17,
+          "eligible_fraction": 0.009186351706036745,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 6096,
+            "eligible": 56,
+            "eligible_send": 56,
+            "active": 5577,
+            "nonsilent": 56
+          }
+        },
+        {
+          "mode": "mean_argmax",
+          "seed": 1000000046,
+          "steps": 1001,
+          "return": 172.47158831669367,
+          "search": 62.857142857142854,
+          "delivery": 60.0,
+          "targets_found": 22,
+          "targets_delivered": 21,
+          "eligible_fraction": 0.015984015984015984,
+          "send_given_eligible": 0.9166666666666666,
+          "counts": {
+            "actions": 6006,
+            "eligible": 96,
+            "eligible_send": 88,
+            "active": 5639,
+            "nonsilent": 88
+          }
+        },
+        {
+          "mode": "mean_argmax",
+          "seed": 1000000047,
+          "steps": 1041,
+          "return": -173.41691258270293,
+          "search": 42.857142857142854,
+          "delivery": 42.857142857142854,
+          "targets_found": 15,
+          "targets_delivered": 15,
+          "eligible_fraction": 0.011687479987191803,
+          "send_given_eligible": 0.863013698630137,
+          "counts": {
+            "actions": 6246,
+            "eligible": 73,
+            "eligible_send": 63,
+            "active": 5489,
+            "nonsilent": 63
+          }
+        },
+        {
+          "mode": "mean_argmax",
+          "seed": 1000000048,
+          "steps": 1056,
+          "return": 212.10058431513608,
+          "search": 68.57142857142857,
+          "delivery": 68.57142857142857,
+          "targets_found": 24,
+          "targets_delivered": 24,
+          "eligible_fraction": 0.012941919191919192,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 6336,
+            "eligible": 82,
+            "eligible_send": 82,
+            "active": 5765,
+            "nonsilent": 82
+          }
+        }
+      ]
+    },
+    {
+      "run": "7f5fd73f",
+      "case": 5,
+      "saved_actor_sha256": "208b90b0c65533c6d91444e37711eb9c0c943e30d9bde419f8531fdee4f62861",
+      "mode": "sample_gaussian_argmax",
+      "mean": {
+        "search": 52.57142857142858,
+        "delivery": 51.42857142857143,
+        "return": -224.93456672795583,
+        "eligible_fraction": 0.012005418318236455,
+        "send_given_eligible": 0.8082206585576337
+      },
+      "episodes": [
+        {
+          "mode": "sample_gaussian_argmax",
+          "seed": 1000000044,
+          "steps": 1052,
+          "return": 214.77835069294088,
+          "search": 60.0,
+          "delivery": 60.0,
+          "targets_found": 21,
+          "targets_delivered": 21,
+          "eligible_fraction": 0.011565272496831432,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 6312,
+            "eligible": 73,
+            "eligible_send": 73,
+            "active": 5546,
+            "nonsilent": 73
+          }
+        },
+        {
+          "mode": "sample_gaussian_argmax",
+          "seed": 1000000045,
+          "steps": 994,
+          "return": -39.758632150129415,
+          "search": 40.0,
+          "delivery": 40.0,
+          "targets_found": 14,
+          "targets_delivered": 14,
+          "eligible_fraction": 0.008215962441314555,
+          "send_given_eligible": 0.9591836734693877,
+          "counts": {
+            "actions": 5964,
+            "eligible": 49,
+            "eligible_send": 47,
+            "active": 5544,
+            "nonsilent": 47
+          }
+        },
+        {
+          "mode": "sample_gaussian_argmax",
+          "seed": 1000000046,
+          "steps": 1130,
+          "return": -29.201499457238242,
+          "search": 60.0,
+          "delivery": 60.0,
+          "targets_found": 21,
+          "targets_delivered": 21,
+          "eligible_fraction": 0.01415929203539823,
+          "send_given_eligible": 0.8645833333333334,
+          "counts": {
+            "actions": 6780,
+            "eligible": 96,
+            "eligible_send": 83,
+            "active": 5888,
+            "nonsilent": 83
+          }
+        },
+        {
+          "mode": "sample_gaussian_argmax",
+          "seed": 1000000047,
+          "steps": 1475,
+          "return": -1215.434225958772,
+          "search": 45.714285714285715,
+          "delivery": 45.714285714285715,
+          "targets_found": 16,
+          "targets_delivered": 16,
+          "eligible_fraction": 0.01231638418079096,
+          "send_given_eligible": 0.45871559633027525,
+          "counts": {
+            "actions": 8850,
+            "eligible": 109,
+            "eligible_send": 50,
+            "active": 6430,
+            "nonsilent": 50
+          }
+        },
+        {
+          "mode": "sample_gaussian_argmax",
+          "seed": 1000000048,
+          "steps": 1053,
+          "return": -55.05682676658034,
+          "search": 57.142857142857146,
+          "delivery": 51.42857142857143,
+          "targets_found": 20,
+          "targets_delivered": 18,
+          "eligible_fraction": 0.013770180436847104,
+          "send_given_eligible": 0.7586206896551724,
+          "counts": {
+            "actions": 6318,
+            "eligible": 87,
+            "eligible_send": 66,
+            "active": 5661,
+            "nonsilent": 66
+          }
+        }
+      ]
+    },
+    {
+      "run": "7f5fd73f",
+      "case": 5,
+      "saved_actor_sha256": "208b90b0c65533c6d91444e37711eb9c0c943e30d9bde419f8531fdee4f62861",
+      "mode": "mean_sample_categorical",
+      "mean": {
+        "search": 53.142857142857146,
+        "delivery": 51.42857142857143,
+        "return": -181.00982869153958,
+        "eligible_fraction": 0.010956608496033714,
+        "send_given_eligible": 0.9160785410054434
+      },
+      "episodes": [
+        {
+          "mode": "mean_sample_categorical",
+          "seed": 1000000044,
+          "steps": 1075,
+          "return": 34.20768629357917,
+          "search": 60.0,
+          "delivery": 60.0,
+          "targets_found": 21,
+          "targets_delivered": 21,
+          "eligible_fraction": 0.012403100775193798,
+          "send_given_eligible": 0.925,
+          "counts": {
+            "actions": 6450,
+            "eligible": 80,
+            "eligible_send": 74,
+            "active": 5877,
+            "nonsilent": 74
+          }
+        },
+        {
+          "mode": "mean_sample_categorical",
+          "seed": 1000000045,
+          "steps": 1057,
+          "return": -184.07387449406087,
+          "search": 45.714285714285715,
+          "delivery": 42.857142857142854,
+          "targets_found": 16,
+          "targets_delivered": 15,
+          "eligible_fraction": 0.010722169662567014,
+          "send_given_eligible": 0.8235294117647058,
+          "counts": {
+            "actions": 6342,
+            "eligible": 68,
+            "eligible_send": 56,
+            "active": 5676,
+            "nonsilent": 56
+          }
+        },
+        {
+          "mode": "mean_sample_categorical",
+          "seed": 1000000046,
+          "steps": 966,
+          "return": 312.8649288639426,
+          "search": 60.0,
+          "delivery": 60.0,
+          "targets_found": 21,
+          "targets_delivered": 21,
+          "eligible_fraction": 0.013802622498274672,
+          "send_given_eligible": 0.975,
+          "counts": {
+            "actions": 5796,
+            "eligible": 80,
+            "eligible_send": 78,
+            "active": 5500,
+            "nonsilent": 78
+          }
+        },
+        {
+          "mode": "mean_sample_categorical",
+          "seed": 1000000047,
+          "steps": 1403,
+          "return": -1274.2443394362926,
+          "search": 42.857142857142854,
+          "delivery": 37.142857142857146,
+          "targets_found": 15,
+          "targets_delivered": 13,
+          "eligible_fraction": 0.0058208600617723925,
+          "send_given_eligible": 0.8979591836734694,
+          "counts": {
+            "actions": 8418,
+            "eligible": 49,
+            "eligible_send": 44,
+            "active": 6046,
+            "nonsilent": 44
+          }
+        },
+        {
+          "mode": "mean_sample_categorical",
+          "seed": 1000000048,
+          "steps": 1011,
+          "return": 206.1964553151338,
+          "search": 57.142857142857146,
+          "delivery": 57.142857142857146,
+          "targets_found": 20,
+          "targets_delivered": 20,
+          "eligible_fraction": 0.012034289482360698,
+          "send_given_eligible": 0.958904109589041,
+          "counts": {
+            "actions": 6066,
+            "eligible": 73,
+            "eligible_send": 70,
+            "active": 5518,
+            "nonsilent": 70
+          }
+        }
+      ]
+    },
+    {
+      "run": "7f5fd73f",
+      "case": 5,
+      "saved_actor_sha256": "208b90b0c65533c6d91444e37711eb9c0c943e30d9bde419f8531fdee4f62861",
+      "mode": "sample_both",
+      "mean": {
+        "search": 54.857142857142854,
+        "delivery": 53.71428571428572,
+        "return": -30.166150906169786,
+        "eligible_fraction": 0.011113249907295387,
+        "send_given_eligible": 0.9110478899952584
+      },
+      "episodes": [
+        {
+          "mode": "sample_both",
+          "seed": 1000000044,
+          "steps": 1078,
+          "return": -75.31083594309166,
+          "search": 57.142857142857146,
+          "delivery": 57.142857142857146,
+          "targets_found": 20,
+          "targets_delivered": 20,
+          "eligible_fraction": 0.00974025974025974,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 6468,
+            "eligible": 63,
+            "eligible_send": 63,
+            "active": 5904,
+            "nonsilent": 63
+          }
+        },
+        {
+          "mode": "sample_both",
+          "seed": 1000000045,
+          "steps": 1015,
+          "return": -41.18966545863077,
+          "search": 51.42857142857143,
+          "delivery": 51.42857142857143,
+          "targets_found": 18,
+          "targets_delivered": 18,
+          "eligible_fraction": 0.009195402298850575,
+          "send_given_eligible": 1.0,
+          "counts": {
+            "actions": 6090,
+            "eligible": 56,
+            "eligible_send": 56,
+            "active": 5681,
+            "nonsilent": 56
+          }
+        },
+        {
+          "mode": "sample_both",
+          "seed": 1000000046,
+          "steps": 1165,
+          "return": -267.9541116710752,
+          "search": 54.285714285714285,
+          "delivery": 48.57142857142857,
+          "targets_found": 19,
+          "targets_delivered": 17,
+          "eligible_fraction": 0.01201716738197425,
+          "send_given_eligible": 0.8333333333333334,
+          "counts": {
+            "actions": 6990,
+            "eligible": 84,
+            "eligible_send": 70,
+            "active": 5959,
+            "nonsilent": 70
+          }
+        },
+        {
+          "mode": "sample_both",
+          "seed": 1000000047,
+          "steps": 957,
+          "return": 153.44274521735497,
+          "search": 51.42857142857143,
+          "delivery": 51.42857142857143,
+          "targets_found": 18,
+          "targets_delivered": 18,
+          "eligible_fraction": 0.013235806339254615,
+          "send_given_eligible": 0.7894736842105263,
+          "counts": {
+            "actions": 5742,
+            "eligible": 76,
+            "eligible_send": 60,
+            "active": 5464,
+            "nonsilent": 60
+          }
+        },
+        {
+          "mode": "sample_both",
+          "seed": 1000000048,
+          "steps": 1084,
+          "return": 80.18111332459375,
+          "search": 60.0,
+          "delivery": 60.0,
+          "targets_found": 21,
+          "targets_delivered": 21,
+          "eligible_fraction": 0.011377613776137762,
+          "send_given_eligible": 0.9324324324324325,
+          "counts": {
+            "actions": 6504,
+            "eligible": 74,
+            "eligible_send": 69,
+            "active": 5727,
+            "nonsilent": 69
+          }
+        }
+      ]
+    }
+  ]
+}
