@@ -126,6 +126,13 @@ class MATD3(nn.Module):
 
     @torch.no_grad()
     def target_actions(self, observations):
+        """Smooth every agent's continuous target action (Ackermann 2019, Eq. 5).
+
+        The original author's TF2 source smooths the current learner's action
+        only in a per-agent update; the published equation specifies all
+        agents. The categorical branch remains a soft Gumbel sample as declared
+        by this UAV hybrid-action adapter.
+        """
         a = self.config.matd3
         if not self.share_actor_parameters:
             actions = []

@@ -213,6 +213,11 @@ class MASAC(nn.Module):
             joint, logs, probs, log_probs, continuous = self._joint_sample(data["next_observation"])
             if self.share_critic_parameters:
                 q = self._expected_q_shared_all(self.target_critics[0], data["next_state"], joint, continuous)
+                # Each agent's categorical expectation conditions on one
+                # sampled joint action of its peers. Averaging these conditional
+                # estimates is unbiased for E_{joint policy}[Q_team] when the
+                # decentralized agents sample independently. This mean is NOT
+                # an average of the team reward or of per-agent entropy.
                 expected_q = (probs * q).sum(-1).mean(-1)
                 entropy_bonus = -(alpha_d[None, :] * (probs * log_probs).sum(-1)
                                   + alpha_c[None, :] * logs).sum(-1)
