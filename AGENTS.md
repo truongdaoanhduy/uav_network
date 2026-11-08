@@ -2,6 +2,15 @@
 
 # Already-run 35T25O MASAC/MATD3 BASE matrix — DO NOT REPEAT
 
+**Gumbel/critic follow-up already executed (2026-11-08):**
+[trained Actor diagnostic](docs/methods/MATD3_TRAINED_ACTOR_GUMBEL_SUPPORT_AUDIT_2026-11-08.md)
+using 5 fixed validation seeds and both best MATD3 Shared U8 checkpoints.
+The original Hugging Face best files are **evaluation-only Actor snapshots**;
+they do NOT include learned Critics. Do not claim a numerical trained Q-gap
+was measured; do not replace Gumbel `hard=False` with `hard=True` based
+on these outputs. Do not train a duplicate run simply to recover
+Critic values missing from saved snapshots. Use the existing registry first.
+
 On 2026-11-08, 10 latest W&B runs were read live and pinned in
 [the 10-run comparison](docs/methods/WANDB_10_LATEST_35T25O_COMPARISON_2026-11-08.md),
 [full evidence](docs/methods/evidence/wandb_latest_ten_2026-11-08.json),

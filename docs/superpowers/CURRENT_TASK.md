@@ -1,3 +1,48 @@
+# 2026-11-08 — COMPLETED: checkpoint-based MATD3 Gumbel/hard action support diagnostic
+
+**Task closed without algorithm change or new training.** After the completed
+10-run W&B analysis, inspected live original W&B model artifacts and pinned
+Hugging Face best snapshots `ccaadcd6` (MATD3 Shared H512 U8 ActorLN)
+and `635d7134` (Shared H256 U8 ActorLN). Both checkpoint files
+have verified SHA256 and type `purpose=evaluation_only` with only
+`actors` tensors (12), zero trained Critic tensors. The W&B model artifacts
+have only `checkpoint.json` pointing back to these same HF best policies.
+**A real trained Q(soft)-Q(hard) result is therefore not available from
+the saved best-checkpoint evidence.** No random Critic Q numbers were used.
+
+Executed read-only rollout of the exact Warp CPU backend on the 5 fixed
+validation seeds 1000000044..1000000048, deterministic trained Actors,
+one Gumbel(tau1,hard=False) per observation and one-hot of same argmax:
+- `ccaadcd6`: 32,484 UAV observations; 338 with >1 valid destination
+  (1.04%), soft-hard eligible L1 mean 0.03724, max 0.86058.
+- `635d7134`: 32,544 observations; 348 with >1 valid destination
+  (1.07%), soft-hard eligible L1 mean 0.01076, max 0.78315.
+Both show mostly forced-silent masks. Action mismatch is **not** Q error.
+
+Read the detailed
+`docs/methods/MATD3_TRAINED_ACTOR_GUMBEL_SUPPORT_AUDIT_2026-11-08.md`
+and numeric evidence
+`docs/methods/evidence/matd3_trained_actor_gumbel_support_2026-11-08.json`.
+Reproduction script `scripts/diagnose_matd3_gumbel_support.py` and test
+`tests/test_matd3_gumbel_support_diagnostic.py`. Original downloaded
+Actor checkpoints and raw outputs stay local under
+`outputs/wandb-ten-20261108/diagnostics/`; do not commit weights or secrets.
+
+**Current decisions:** Shared Actor + Shared Critic, Actor LayerNorm on
+but no isolated Shared LN benefit evidence, Critic LayerNorm off, U8 over
+U16 for the studied 35T25O/seed44 setup. Do NOT change MATD3 Gumbel or
+other algorithm mathematics. Do NOT repeat the original ten training runs
+unless scientific code/config/scenario changes; no run started here.
+
+**Next research task if user explicitly requests:** look for a *real
+historical full-learner critic checkpoint* if any (do not confuse
+W&B best actors with trained critics); otherwise study the existing
+delivery and admissible-link/mask diagnostic metrics without training.
+Any future optional critic-state snapshot must be a newly named
+instrumentation capability, not a silent change to baseline objectives.
+
+---
+
 # 2026-11-08 — COMPLETED live comparison of 10 latest 35T25O BASE W&B runs
 
 **Current task finished; do not retrain duplicates.** Read
