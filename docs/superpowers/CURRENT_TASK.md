@@ -1,3 +1,47 @@
+# 2026-11-08 — MASAC temperature loss vs mask-aware root-cause audit
+
+Completed read-only W&B review and controlled same-batch Warp 35T/25O
+CPU micro stress test. Report:
+`docs/methods/MASAC_TEMPERATURE_MASKAWARE_CAUSAL_AUDIT_2026-11-08.md`.
+
+**Strong paired W&B 20T/15O evidence:** same original source commit
+`4c9f67c`, same seed 44 and science settings; `62cfc303`
+(mask-aware=false) best delivery **1%**, discrete alpha
+**60,630,352**, continuous alpha **27,961**; `f6a196a7`
+(mask-aware=true) best delivery **61%**, alpha_d **0.977**,
+alpha_c **0.0103**. Mask-aware is CRITICAL for masked UAV routing.
+
+**Not the reason 61% vs 52% differs:** Both `f6a196a7` (20T/15O,
+loss=log_alpha) and `7f5fd73f` (35T/25O, loss=alpha)
+have mask-aware=true. Original Actor observation dimension changes
+**198 to 228** (shared Actor 204 to 234); critic state
+**565 to 830**. Best validation metrics: old 20T search67%,
+delivery61%, CBF0.577; new 35T search54.286%, delivery52%,
+CBF0.674. New run actually delivers 18.2 targets/episode
+vs 12.2 old; fraction conditional on found improves
+91% to 95.8%.
+
+No full-budget exact same-scenario alpha-vs-log_alpha W&B pair
+exists for MASAC 35T/25O. Do NOT attribute the 9 percentage
+point rate drop to the temperature formula.
+
+**Executed real-code paired CPU replay stress:** 35T25O Warp
+260 rows, fixed starting Shared-MASAC LayerNorm weights,
+same minibatches, one config variable `temperature_loss`,
+H64 B64, 1200 `MASAC.update` steps.
+Results `log_alpha` alpha_c **0.69728** / alpha_d **0.88730**,
+vs `alpha` alpha_c **0.71512** / alpha_d **0.89106**,
+heldout deterministic action RMS difference **0.00429**.
+This is small-scale off-policy, NOT 20k end-to-end validation.
+Evidence and script:
+`docs/methods/evidence/masac_temp_35t25o_paired_cpu_1200upd_2026-11-08.json`,
+`scripts/diagnose_masac_temperature_35t25o.py`.
+No Kaggle job/training launched, no learning equations edited.
+Next causal full run if user requests: same 35T25O source/seed/architecture
+with only temp=log_alpha vs alpha at equal global-step checkpoints.
+
+---
+
 # 2026-11-08 — MASAC reviewer-grade correctness + sampled-vs-mean probe
 
 **New audit:** `docs/methods/MASAC_REVIEWER_BASELINE_CORRECTNESS_AUDIT_2026-11-08.md`.
