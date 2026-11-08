@@ -1,3 +1,46 @@
+# 2026-11-08 — Q1/A* MASAC/MATD3 source-code paper audit
+
+Full source-backed audit:
+`docs/methods/Q1_ASTAR_MASAC_MATD3_PAPERS_AND_SOURCE_CODE_AUDIT_2026-11-08.md`.
+Open-sourced reference clones at gitignored
+`outputs/reference_source_audit_20261108/` (NOT vendored to UAV).
+BenchMARL official JMLR2024 Q1 MASAC
+`facebookresearch/BenchMARL` pin `65d649d` successfully
+trained on CPU VMAS Balance 4 agents, 192 frames/6 iterations,
+seed44, with alpha/actor/critic CSV. Reproducer:
+`scripts/research/run_benchmarl_masac_cpu_smoke.py`; evidence:
+`docs/methods/evidence/reference_benchmarl_masac_smoke_2026-11-08.json`.
+**Not UAV 35T25O training** and no direct hybrid XYZ/RF+discrete mask
+support: BenchMARL branches `SACLoss` (continuous) vs
+`DiscreteSACLoss` (discrete) rather than their simultaneous hybrid.
+
+Upstream `marlbenchmark/off-policy` MATD3 pin `41fd5eb` has
+`self.q_outs=[...]` Python list: both Q heads absent from
+`critic.parameters()`; actual 3-step Adam probe confirms both
+Q output weights frozen despite gradients. Temporary **in-memory**
+`nn.ModuleList` fix makes heads update. Reproducer/evidence:
+`scripts/research/verify_upstream_matd3_critic_registration.py`,
+`docs/methods/evidence/reference_matd3_q_registration_2026-11-08.json`.
+**NOT a bug in user's UAV TwinCritic**: direct local test verifies
+both registered and both Q heads updated.
+
+Original MATD3 author Ackermann official TF1 2019 NeurIPS **workshop**
+`JohannesAck/MATD3implementation` pin `fd6c7d0`; author TF2
+implementation `JohannesAck/tf2multiagentrl` pin `d5442f6`
+contains both MASAC/MATD3 but MASAC lacks automatic temperature and
+Gaussian policy implementation (TODO in source), README acknowledges
+MATD3 performed better in their MPE tests. Hybrid MASAC CoRL2025
+Fu paper useful mathematically but no official runnable repo verified.
+AAMAS2026 AC-MASAC Liu UAV has real training code pin `771465c`,
+but **ICORE2026 rank A** (CORE2023 A*, downgraded); do not cite
+as current A*. ECCV2024 Qiao CCE paper A* linked repo has
+README/LICENSE only, no training code. Single-agent ICML2018
+A* SAC Haarnoja and TD3 Fujimoto are original citations;
+CTDE from NeurIPS2017 MADDPG Lowe; MATD3 primary Ackermann.
+No Kaggle GPU/full 20k UAV training launched or learning code changed.
+
+---
+
 # 2026-11-08 — MASAC temperature loss vs mask-aware root-cause audit
 
 Completed read-only W&B review and controlled same-batch Warp 35T/25O

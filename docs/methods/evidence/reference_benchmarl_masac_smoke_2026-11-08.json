@@ -1,0 +1,43 @@
+{
+  "source": "facebookresearch/BenchMARL",
+  "upstream_commit": "65d649d80e0bdcbdbe2c5d6a3f02dbfed8f0bec1",
+  "algorithm": "MASAC (upstream TorchRL continuous version)",
+  "task": "VMAS balance (not UAV SAR)",
+  "frames": 192,
+  "seed": 44,
+  "training_success": true,
+  "runtime": "CPU only; independent Python environment",
+  "scope": "Tiny executable training smoke only, not convergence/reward comparison",
+  "metrics": {
+    "counters_total_frames": {
+      "first": 32.0,
+      "last": 192.0,
+      "rows": 6
+    },
+    "train_agents_alpha": {
+      "first": 0.9999749660491943,
+      "last": 0.9994754791259766,
+      "rows": 6
+    },
+    "train_agents_loss_actor": {
+      "first": -1.335953712463379,
+      "last": -1.5283849239349365,
+      "rows": 6
+    },
+    "train_agents_loss_qvalue": {
+      "first": 3.1005640029907227,
+      "last": 2.057222843170166,
+      "rows": 6
+    },
+    "train_agents_loss_alpha": {
+      "first": -5.898212839383632e-05,
+      "last": -0.00120591651648283,
+      "rows": 6
+    },
+    "collection_reward_episode_reward_mean": {
+      "first": -0.6033401489257812,
+      "last": -0.772857666015625,
+      "rows": 4
+    }
+  }
+}
