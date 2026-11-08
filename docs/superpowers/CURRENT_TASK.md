@@ -1,3 +1,48 @@
+# 2026-11-08 — PAPER-CORE CTDE HYBRID BASELINE CONTRACT + 2 UI BUILDERS
+
+**User asked for an actual source-faithful baseline, not another
+posthoc W&B recommendation.** Created separate strict 35T25O config
+`configs/comparison-paper-core-35t25o-xyz-sensing.yaml`:
+6 independent local Actors, 6 independent centralized twin Critics,
+No Actor LayerNorm, no PQL, mask-aware/alpha MASAC, MATD3 original
+delay2/twin min/Gaussian smoothing/replay peer actions/default init;
+H512×512, U8, B8192, replay1M, seed44. World/CBF/reward/network
+identical to preexisting independent H512 scenario. Not source-paper
+byte-exact because the domain has hybrid XYZ/RF + masked destination
+and uses full global CTDE state for Critics.
+
+**Prepared verification** `scripts/verify_paper_core_baseline.py`,
+offline contract JSON `docs/methods/evidence/paper_core_35t25o_contract_2026-11-08.json`,
+unit/math/negative tests `tests/test_paper_core_35t25o_baseline.py`,
+and UI spec tests `tests/test_paper_core_ui_notebooks.py`.
+Added opt-in `paper_core=True` to existing
+`uav_network/cloud/ui_notebooks.py`; default legacy notebook
+generation remains unchanged. `scripts/build_paper_core_35t25o_ui_notebooks.py`
+writes two new source-pinned UI notebooks **after commit**. Do not
+submit any training automatically. Historical ten W&B experiments
+remain archived, unmodified, and are NOT the same strict-U8-NoLN run.
+
+**Actual algorithm equations:** audit
+`docs/methods/PAPER_CORE_VS_EMPIRICAL_BASELINE_35T25O_2026-11-08.md`
+with source references for MASAC and MATD3. Since original code's
+math update functions passed source-oriented numerical tests
+and source commit comparison revealed only comment/docstring edits,
+we have NOT modified the algorithm loss/smoothing/discrete logic.
+Do not claim an exact copy of Ackermann's original MPE code or
+Fu's attention critic, or that shared/LN belongs to the
+paper-core architecture. Existing Shared H512 U8 ActorLN MATD3
+`ccaadcd6` remains the empirically best tested 20k run and
+MASAC Shared H256 U8 ActorLN `7f5fd73f` a completed measured
+baseline; neither run relabeled.
+
+**Next step if requested after this:** full-strict source-aligned
+baseline experiments are new, distinct 2-run cohort, potentially
+computationally expensive, only when explicitly approved. Do not
+run the same earlier ten jobs again. Retain W&B/HF evidence and
+do not rewrite loss based only on Q(soft)-Q(hard) speculation.
+
+---
+
 # 2026-11-08 — COMPLETED: checkpoint-based MATD3 Gumbel/hard action support diagnostic
 
 **Task closed without algorithm change or new training.** After the completed

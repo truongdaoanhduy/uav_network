@@ -1,3 +1,28 @@
+# Explicit paper-core baseline vs previously trained shared variants
+
+User requires **source-faithful MASAC/MATD3 baseline** rather than just
+a well-performing parameter-sharing architecture. Read
+[the detailed code/paper audit](docs/methods/PAPER_CORE_VS_EMPIRICAL_BASELINE_35T25O_2026-11-08.md)
+first. Current 35T25O strict profile:
+`configs/comparison-paper-core-35t25o-xyz-sensing.yaml`.
+It uses independent Actor and Critic modules for each UAV, no Actor
+LayerNorm, no PQL, U8, H512, mask-aware SAC dual temperature adapter.
+Preflight: `PYTHONPATH=. python scripts/verify_paper_core_baseline.py`.
+The profile has **NOT** been trained at 20k as a strict matching pair;
+the ten historical W&B runs are not interchangeable with it.
+For manual Kaggle UI, use
+`scripts/build_paper_core_35t25o_ui_notebooks.py` **only after commit**
+to create two pinned private notebooks. Do not auto-launch or suggest
+the old ten cases need repetition.
+
+Never relabel the best trained Shared+ActorLayerNorm runs as an
+exact per-agent author-paper reproduction. The original source
+equations already passed documented unit tests; do not arbitrarily
+rewrite mathematical loss terms. Source auditing found no proven
+critical formula violation requiring silent mutation. Distinguish
+MATD3 action-space Gumbel and MASAC mask-aware entropy as declared
+UAV-specific adapters, not original single-agent SAC/TD3 formulas.
+
 # UAV training continuity
 
 # Already-run 35T25O MASAC/MATD3 BASE matrix — DO NOT REPEAT

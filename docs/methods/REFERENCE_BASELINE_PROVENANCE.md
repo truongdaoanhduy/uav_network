@@ -1,5 +1,30 @@
 # Reference MASAC / MATD3 Baseline Provenance
 
+## 2026-11-08: distinguish original per-agent paper-core from historical shared reference
+
+The earlier `comparison-reference-masac-matd3-xyz-sensing.yaml` is a
+**shared-parameter + Actor LayerNorm reference VARIANT for 20T15O**.
+It must not be described as the original per-agent topology of Ackermann
+MATD3, or as an author-code-exact MASAC implementation.
+
+For the current 35T25O 6-UAV experiment, the explicit
+`PAPER_CORE_CTDE_HYBRID` profile is
+[`comparison-paper-core-35t25o-xyz-sensing.yaml`](../../configs/comparison-paper-core-35t25o-xyz-sensing.yaml):
+six independent local Actors, six independent centralized twin Qs,
+no LayerNorm, no PQL, original SAC/TD3 core update equations, declared
+hybrid/masked UAV action adapter. It preserves the exact scientific
+world/sensing/network/energy/reward values of the existing
+independent 35T25O profile. This is not a verbatim reproduction of an
+upstream authors' task or architecture widths, and the 10 recent
+Shared/Independent U16/LayerNorm Kaggle jobs do not provide an
+identical completed strict NoLayerNorm/U8 run. The profile is
+verified and ready to launch only when explicitly needed.
+
+See [the source-vs-empirical baseline decision and code audit](PAPER_CORE_VS_EMPIRICAL_BASELINE_35T25O_2026-11-08.md).
+The established Shared+ActorLayerNorm MATD3/MASAC W&B results remain
+a legitimate, separately labeled **empirical parameter-sharing
+baseline** and must never be silently overwritten.
+
 ## 2026-11-07 source-profile clarification
 
 The historical shared/LN runs are preserved. A separate

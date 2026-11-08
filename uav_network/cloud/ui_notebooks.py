@@ -8,6 +8,7 @@ from .kernel import kernel_script
 
 PROFILE = "configs/comparison-independent-baseline-xyz-sensing.yaml"
 SCALED_PROFILE = "configs/comparison-independent-35t25o-h512-xyz-sensing.yaml"
+PAPER_CORE_PROFILE = "configs/comparison-paper-core-35t25o-xyz-sensing.yaml"
 STAGE_START = 'if SPEC["stage"] in {"visualize", "archive"}:'
 
 PREFLIGHT = r'''# Dùng URL thật của notebook Kaggle bạn vừa tạo.
@@ -43,17 +44,21 @@ print("NOCHUNK; BASE; profile 1500 bước")
 '''
 
 
-def build_independent_notebook(algorithm, archive, source_commit, *, seed=44, scaled=False):
+def build_independent_notebook(algorithm, archive, source_commit, *, seed=44, scaled=False, paper_core=False):
     """Build a notebook without contacting Kaggle/W&B or reading credentials."""
     if algorithm not in {"masac", "matd3"}:
         raise ValueError("algorithm must be masac or matd3")
     if type(seed) is not int or not 0 <= seed < 2**31:
         raise ValueError("seed must be an integer in [0, 2**31)")
-    profile = SCALED_PROFILE if scaled else PROFILE
+    if paper_core and not scaled:
+        raise ValueError("Paper-core 35T25O notebook requires scaled=True")
+    profile = (PAPER_CORE_PROFILE if paper_core else
+               SCALED_PROFILE if scaled else PROFILE)
     scene = "35 target, 25 obstacle" if scaled else "20 target, 15 obstacle"
     width = 512 if scaled else 256
     variant = "-T35-O25-H512-U8" if scaled else ""
-    output_prefix = "independent-35t25o-h512-u8" if scaled else "independent"
+    output_prefix = ("paper-core-35t25o-h512-u8" if paper_core else
+                     "independent-35t25o-h512-u8" if scaled else "independent")
     tags = [
         "uav-network", "independent-baseline", "plain-mlp", "independent-actors",
         "independent-critics", "no-critic-chunks", "scenario-v3", "steps1500",
@@ -62,6 +67,8 @@ def build_independent_notebook(algorithm, archive, source_commit, *, seed=44, sc
     ]
     if scaled:
         tags += ["targets35", "obstacles25", "hidden512", "updates8"]
+    if paper_core:
+        tags += ["paper-core-hybrid-ctde", "no-layernorm", "independent-per-agent-Q"]
     tags += (["alpha-dual-loss", "mask-aware-discrete-entropy"] if algorithm == "masac"
              else ["matd3-init-default"])
     spec = {
@@ -76,6 +83,7 @@ def build_independent_notebook(algorithm, archive, source_commit, *, seed=44, sc
         "checkpoint_repo": "duy95/uav-search-checkpoints", "cpu_visualize": False,
     }
     suffix = "ALPHA-MASKAWARE" if algorithm == "masac" else "DEFAULT"
+    variant_label = "PAPERCORE" if paper_core else "BASE"
     identity = f'''# Choose a fresh identity for this Kaggle execution.
 from uuid import uuid4
 if type(TRAIN_SEED) is not int or not 0 <= TRAIN_SEED < 2**31:
@@ -86,7 +94,7 @@ SPEC["submitted_at_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 new_run_id = uuid4().hex[:8]
 SPEC["runs"]["{algorithm}"] = {{
     "id": new_run_id,
-    "name": f"{algorithm.upper()}-BASE-INDEPENDENT-NOCHUNK-{suffix}{variant}-S{{TRAIN_SEED}}-{{new_run_id}}",
+    "name": f"{algorithm.upper()}-{variant_label}-INDEPENDENT-NOCHUNK-{suffix}{variant}-S{{TRAIN_SEED}}-{{new_run_id}}",
 }}
 tags = {tags!r} + [f"seed{{TRAIN_SEED}}"]
 SPEC["overrides"] += [
@@ -102,7 +110,7 @@ print("{algorithm.upper()} BASE independent MLP / NOCHUNK / seed", TRAIN_SEED, f
     launch = kernel_script(spec, source_archive=archive, credential_source="kaggle_secrets")
     launch = launch.replace(STAGE_START, identity + STAGE_START, 1)
     digest = sha256(archive).hexdigest()
-    intro = f"""# {algorithm.upper()} BASE — INDEPENDENT MLP — NOCHUNK
+    intro = f"""# {algorithm.upper()} {'PAPER-CORE CTDE HYBRID' if paper_core else 'BASE'} — INDEPENDENT MLP — NOCHUNK
 
 Cấu hình baseline mới từ lần kiểm tra cặp 971f7cc2 / f6a196a7.
 Actor và twin critic độc lập cho từng UAV; plain MLP, không LayerNorm.
@@ -110,6 +118,7 @@ Actor và twin critic độc lập cho từng UAV; plain MLP, không LayerNorm.
 bản sao toàn bộ thí nghiệm của một paper.
 
 - **Profile:** `{profile}`.
+- **Nhóm:** {'PAPER_CORE_CTDE_HYBRID — kiến trúc per-agent gốc, có adapter UAV; chưa train' if paper_core else 'Independent baseline'}.
 - **MASAC:** alpha tự học, `temperature_loss=alpha`, target entropy theo mask.
 - **MATD3:** khởi tạo mặc định, không chuẩn hóa output; noise/delay giữ nguyên.
 - **Chung:** 6 UAV, {scene}, XYZ/CBF/Bayesian, tối đa 1500 bước;
@@ -149,7 +158,12 @@ VRAM T4 hoặc hội tụ; chưa có kết quả huấn luyện cho profile mớ
             "language_info": {"name": "python"},
             "uav_baseline": {"algorithm": algorithm, "profile": profile,
                              "source_commit": source_commit, "archive_sha256": digest,
-                             "default_training_seed": seed},
+                             "default_training_seed": seed,
+                             **({"baseline_class": "PAPER_CORE_CTDE_HYBRID",
+                                 "actor_layer_norm": False,
+                                 "shared_actor_critic": False,
+                                 "updates_per_collection": 8}
+                                if paper_core else {})},
         },
     )
     nbformat.validate(notebook)
