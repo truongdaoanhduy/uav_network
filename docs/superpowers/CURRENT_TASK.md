@@ -1,3 +1,49 @@
+# 2026-11-08 — Spinning Up SAC/TD3 → CTDE Hybrid-MASAC/MATD3 source audit
+
+User authorized proceeding from a research-only review to an implementation/audit phase,
+with a one-task-at-a-time rule and no unverified baseline algorithm or reward changes.
+Work verified in sandbox at initial HEAD `cc1885f` on
+`experiment/hfbest-embedded-source-steps1500-20261105`. Initial worktree was clean.
+
+**IMPLEMENTED in commit `ec2e069`:**
+
+- Added `tests/test_paper_faithfulness_audit_20261108.py` (5 executable regression
+  tests) for MASAC shared-critic exact conditional expectation against a nonlinear
+  joint-Q reference, MATD3 target noise on all UAVs in both parameter-sharing
+  topologies, soft-vs-hard categorical critic input, and replay command under CBF.
+- Added source-level provenance comments to `masac.py` and `matd3.py`, without
+  modifying their mathematical expressions or training behavior.
+- Added `docs/methods/SPINNINGUP_SAC_TD3_MARL_AUDIT_2026-11-08.md`
+  with paper/source findings and the remaining research caveats.
+
+**VERIFIED:**
+
+- Reference: OpenAI Spinning Up SAC/TD3; Ackermann MATD3 2019 Eq. (5).
+  MATD3 paper smooths **all** agents' target actions, as current implementation
+  does, even though one author TF2 implementation smooths only the learner's own.
+- Shared-MASAC categorical estimator matches the exact joint categorical
+  expectation on a non-additive synthetic Q under a factorized joint policy.
+- Soft Gumbel Q inputs and hard replay one-hot are a documented representational
+  difference, **not** a proven correctness bug or reason to change baseline.
+- The MDP action stored in replay is the issued pre-CBF command; safety filtering
+  lives in the environment transition. A CPU boundary test confirms this.
+- Regression command:
+  `python -m pytest -q tests/test_paper_faithfulness_audit_20261108.py tests/test_algorithm_math_regressions.py tests/test_reference_baseline_contract.py tests/test_reference_critic_gradients.py tests/test_parameter_sharing.py tests/test_matd3.py tests/test_masac.py tests/test_split_updates.py tests/test_xyz_cbf.py tests/test_xyz_cbf_warp.py tests/test_masac_ui_ablation.py tests/test_matd3_ui_ablation.py`
+  → **118 passed, 43 subtests passed**. `python -m py_compile` and
+  `git diff --check` also passed.
+
+**NOT CHANGED:** No policy/critic loss modification, no Gumbel estimator switch,
+no reward, world, CBF, observation, replay schema, seed 44, hyperparameter,
+notebook, Kaggle execution, cloud storage or checkpoint alteration.
+No full GPU-training benchmark was run.
+
+**NEXT ACTION IF REQUESTED:** For a fixed trained checkpoint/replay minibatch,
+measure MATD3 Q(soft Gumbel) versus Q(hard one-hot) and assess any downstream
+bias. Consider any straight-through estimator only as a separately named
+ablation; do not silently modify BASE.
+
+---
+
 # 2026-11-08 — Double validation cadence BEFORE starting 10 Kaggle UI runs
 
 User authorized changing validation frequency immediately instead of waiting for training results. Started ~08/11/2026 02:42 UTC+7; verified 08/11/2026 02:46:28 UTC+7. **Active 20k baseline configurations now use `tracking.evaluation_interval_steps=1843200`**, exactly half of old 3686400. Changed only three current profiles: `comparison-independent-35t25o-h512-xyz-sensing.yaml`, `comparison-independent-baseline-xyz-sensing.yaml`, `comparison-reference-masac-matd3-xyz-sensing.yaml`. Did not change old/historical 20k/25k profiles. Kept 5 periodic validation episodes, fixed seeds 1000000044..48, evaluator timeout 900 s, best criterion, CPU async evaluator, checkpoint cadence256 and max20k episodes. No reward/algorithm/CBF/world/observation/scientific changes.
