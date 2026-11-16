@@ -3,13 +3,14 @@ import torch
 from torch.utils.checkpoint import checkpoint
 
 
-def chunked_call(function, state, joint, continuous, chunk_size):
+def chunked_call(function, state, joint, continuous, chunk_size, *batch_inputs):
     if not chunk_size or len(state) <= chunk_size:
-        return function(state, joint, continuous)
+        return function(state, joint, continuous, *batch_inputs)
     values = []
     for start in range(0, len(state), chunk_size):
-        inputs = (state[start:start + chunk_size], joint[start:start + chunk_size],
-                  continuous[start:start + chunk_size])
+        rows = slice(start, start + chunk_size)
+        inputs = (state[rows], joint[rows], continuous[rows],
+                  *(value[rows] for value in batch_inputs))
         # Sampling happens before this pure critic call. Recompute activations at
         # backward instead of retaining every chunk's large enumeration graph.
         value = (checkpoint(function, *inputs, use_reentrant=False, preserve_rng_state=False)

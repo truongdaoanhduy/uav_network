@@ -80,10 +80,38 @@ class TwinCritic(nn.Module):
         input_dim = state_dim + num_uavs * (continuous_dim + destinations)
         self.q1 = mlp(input_dim, hidden_sizes, 1)
         self.q2 = mlp(input_dim, hidden_sizes, 1)
+        self.state_dim = state_dim
 
     def forward(self, state, joint_actions):
         inputs = torch.cat([state, joint_actions.flatten(1)], dim=-1)
         return self.q1(inputs).squeeze(-1), self.q2(inputs).squeeze(-1)
+
+    def forward_shared_state(self, state, joint_actions, *, q1_only=False):
+        """Evaluate broadcasted alternatives without repeating the global state.
+
+        state: [batch, state_dim]; joint_actions: [candidate, batch,
+        (optional route), num_uavs, action_dim]. Decompose the first
+        affine map as W[s, a] + b = W_s s + W_a a + b.
+        This is a computational optimization, NOT a factorized-Q critic.
+        """
+        if joint_actions.ndim not in (4, 5) or joint_actions.shape[1] != state.shape[0]:
+            raise ValueError("joint_actions must be [candidate, batch, (route), uav, action]")
+        action_inputs = joint_actions.flatten(-2)
+
+        def run(head):
+            first = head[0]
+            shared_projection = F.linear(state, first.weight[:, :self.state_dim])
+            action_projection = F.linear(
+                action_inputs, first.weight[:, self.state_dim:], first.bias)
+            broadcast_shape = (1, len(state), *([1] * (action_inputs.ndim - 3)),
+                               first.out_features)
+            hidden = action_projection + shared_projection.reshape(broadcast_shape)
+            for layer in head[1:]:
+                hidden = layer(hidden)
+            return hidden.squeeze(-1)
+
+        q1 = run(self.q1)
+        return q1 if q1_only else (q1, run(self.q2))
 
 
 def initialize_matd3_orthogonal(actors, critics):

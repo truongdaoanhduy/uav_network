@@ -181,10 +181,34 @@ class MASAC(nn.Module):
         q1, q2 = self._critic_values(critics, repeated_state, alternatives.reshape(n, b * k, n, -1), True, True)
         return torch.minimum(q1, q2).reshape(b, k, n).transpose(1, 2)
 
-    def _expected_q_shared_all(self, critic, state, joint, continuous):
+    def _expected_q_shared_all(self, critic, state, joint, continuous, *, observation=None):
+        chunk_size = self.config.runtime.critic_chunk_size
+        if observation is not None and self.config.masac.shared_critic_mode == "valid_routes":
+            route_mask = valid_destinations(observation, self.destinations)
+            return chunked_call(
+                lambda s, j, a, mask: self._expected_q_shared_valid_routes(critic, s, j, a, mask),
+                state, joint, continuous, chunk_size, route_mask)
         return chunked_call(
             lambda s, j, a: self._expected_q_shared_all_full(critic, s, j, a),
-            state, joint, continuous, self.config.runtime.critic_chunk_size)
+            state, joint, continuous, chunk_size)
+
+    def _expected_q_shared_valid_routes(self, critic, state, joint, continuous, route_mask):
+        """Use the original dense twin critic for the policy's supported routes."""
+        n, b, k = self.num_uavs, len(state), self.destinations
+        agent, row, route = route_mask.transpose(0, 1).nonzero(as_tuple=True)
+        alternatives = joint.detach().index_select(0, row)
+        own = continuous[row, agent]
+        # Silent has zero RF power. Match the dense path's action encoding.
+        power = own[:, -1:].masked_fill(route[:, None] == 0, 0)
+        one_hot = F.one_hot(route, k).to(alternatives.dtype)
+        replacement = torch.cat((own[:, :-1], power, one_hot), dim=-1).to(alternatives.dtype)
+        alternatives[torch.arange(len(row), device=row.device), agent] = replacement
+        q1, q2 = critic(state.index_select(0, row), alternatives)
+        values = torch.minimum(q1, q2)
+        # Keep the same weighted-sum layout in the actor and target losses.
+        index = (agent * b + row) * k + route
+        padded = values.new_zeros(n * b * k).scatter(0, index, values)
+        return padded.reshape(n, b, k).permute(1, 0, 2).contiguous()
 
     def _expected_q_shared_all_full(self, critic, state, joint, continuous):
         """Evaluate one team critic for every agent's categorical alternatives."""
@@ -196,6 +220,9 @@ class MASAC(nn.Module):
         alternatives[indices, :, :, indices, :self.continuous_dim] = choices
         alternatives[indices, :, :, indices, self.continuous_dim:] = torch.eye(
             k, device=self.device, dtype=alternatives.dtype)
+        if self.config.masac.shared_critic_mode == "split":
+            q1, q2 = critic.forward_shared_state(state, alternatives)
+            return torch.minimum(q1, q2).permute(1, 0, 2).contiguous()
         repeated_state = state[None, :, None].expand(n, -1, k, -1).reshape(n * b * k, -1)
         q1, q2 = critic(repeated_state, alternatives.reshape(n * b * k, n, -1))
         return torch.minimum(q1, q2).reshape(n, b, k).permute(1, 0, 2).contiguous()
@@ -212,7 +239,9 @@ class MASAC(nn.Module):
         with torch.no_grad():
             joint, logs, probs, log_probs, continuous = self._joint_sample(data["next_observation"])
             if self.share_critic_parameters:
-                q = self._expected_q_shared_all(self.target_critics[0], data["next_state"], joint, continuous)
+                q = self._expected_q_shared_all(
+                    self.target_critics[0], data["next_state"], joint, continuous,
+                    observation=data["next_observation"])
                 # Each agent's categorical expectation conditions on one
                 # sampled joint action of its peers. Averaging these conditional
                 # estimates is unbiased for E_{joint policy}[Q_team] when the
@@ -279,7 +308,9 @@ class MASAC(nn.Module):
             else:
                 continuous_actions = None
             if self.share_critic_parameters:
-                qs = self._expected_q_shared_all(self.critics[0], data["state"], base_joint, continuous_actions)
+                qs = self._expected_q_shared_all(
+                    self.critics[0], data["state"], base_joint, continuous_actions,
+                    observation=data["observation"])
             else:
                 qs = (self._expected_q_all(self.critics, data["state"], base_joint, continuous_actions)
                       if vectorized else None)

@@ -131,6 +131,7 @@ class OffPolicyConfig:
 
 @dataclass
 class MASACConfig(OffPolicyConfig):
+    shared_critic_mode: str = "dense"
     temperature_loss: str = "log_alpha"  # "alpha" selects the original SAC dual loss.
     initial_alpha: float = 0.2
     target_continuous_entropy: float = -3.0
@@ -352,6 +353,8 @@ class Config:
             raise ValueError("environment_backend must be native or warp_packet")
         if r.algorithm not in {"masac", "matd3"}:
             raise ValueError("algorithm must be masac or matd3")
+        if self.masac.shared_critic_mode not in {"dense", "valid_routes", "split"}:
+            raise ValueError("masac.shared_critic_mode must be dense, valid_routes or split")
         if self.masac.temperature_loss not in {"log_alpha", "alpha"}:
             raise ValueError("masac.temperature_loss must be log_alpha or alpha")
         if self.matd3.initialization not in {"default", "orthogonal", "kaiming"}:
@@ -474,7 +477,8 @@ def with_legacy_feature_defaults(values):
         raise ValueError("Checkpoint configuration must be a mapping")
     result = deepcopy(values)
     for group, defaults in (
-        ("masac", {"actor_layer_norm": False, "temperature_loss": "log_alpha"}),
+        ("masac", {"actor_layer_norm": False, "temperature_loss": "log_alpha",
+                   "shared_critic_mode": "dense"}),
         ("matd3", {"actor_layer_norm": False}),
         ("sensor", {"coverage_grid_cells": 0}),
         ("reward", {"information_gain": 0.0, "investigation_shaping": 0.0,
@@ -495,4 +499,8 @@ def with_legacy_feature_defaults(values):
 
 def config_fingerprint(config):
     """Exact resolved experiment identity, including learner/mode/runtime settings."""
-    return hashlib.sha256(json.dumps(config.to_dict(), sort_keys=True, allow_nan=False).encode()).hexdigest()
+    values = config.to_dict()
+    if values["masac"]["shared_critic_mode"] == "dense":
+        # The dense path was implicit in older experiment fingerprints.
+        del values["masac"]["shared_critic_mode"]
+    return hashlib.sha256(json.dumps(values, sort_keys=True, allow_nan=False).encode()).hexdigest()
