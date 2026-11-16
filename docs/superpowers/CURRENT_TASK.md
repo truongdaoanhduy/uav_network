@@ -1,3 +1,27 @@
+# 2026-11-16 — Restored W&B Personal Workspace after tracker startup
+
+MASAC valid_routes run df258798 started at 15:37 ICT and was still training
+when the Runs table was reported changed. The notebook's embedded
+OnlineTracker called ensure_project_workspace at startup. Its runset
+reconciliation reproduces the exact replacement of the user's 13 columns
+with 17 default columns. A separate post-training command targeted a saved
+view. The two paths were removed from the delivered notebook.
+
+Restored the same Personal Workspace nw=nwusertruongdaoanhduy on the W&B
+server using the 01:37 ICT snapshot and the current personal run selection.
+Readback verified 13 Runs columns, 14 Training plots, 9 Eval plots, 9 Final
+Test plots and zero run filters. Before/after specs are stored under ignored
+outputs/research/wandb_personal_restore_20261116.
+
+Notebook was updated at the original path in Downloads. Embedded SHA256
+1c1e59e200a6ed1e0481a86fae24a788c708f652e919be18aae93d3fe57e90a7.
+It still logs to the run's W&B history and still runs GPU Validation/Test.
+The in-progress Kaggle run used the previously imported notebook archive.
+Tracker fix 3141e96d1bd4be5b75bc94ba0ff7d43a58c6f995. Offline regression reproduced the startup write before
+the fix, and the tracking/dashboard suite passed 33 tests after it.
+
+---
+
 # 2026-11-16 — Four W&B baselines and MASAC valid-route Twin Q
 
 Read W&B live in the Personal Workspace and through the Public API. All four
