@@ -1,3 +1,66 @@
+# 2026-11-16 — Four W&B baselines and MASAC valid-route Twin Q
+
+Read W&B live in the Personal Workspace and through the Public API. All four
+seed-44 runs finished 20,000 training episodes, with 100 held-out Final Test
+scenarios (base seed 2000000044).
+
+| Run | W&B elapsed | Transitions | Learner updates | Discovery % | GCS delivery % |
+|---|---:|---:|---:|---:|---:|
+| MASAC dense `f57a5e0f` | 09:41:00 | 24,485,888 | 47,576 | 56.26 | 54.31 |
+| MASAC ACCEL `d12f350a` | 06:01:56 | 25,079,808 | 48,736 | 47.29 | 45.51 |
+| MATD3 dense `49a76aae` | 02:22:32 | 24,141,824 | 46,904 | 56.09 | 52.97 |
+| MATD3 ACCEL `3facc656` | 02:09:27 | 22,466,560 | 43,632 | 57.17 | 52.86 |
+
+At exactly 17,891,328 validation transitions MASAC GCS delivery was 44.46%
+dense and 38.21% ACCEL. Training-history mean discovery/delivery also fell from
+50.34/47.52% to 45.28/42.60%. Both used the same recorded scientific settings.
+The original and ACCEL notebooks recorded the same git reference but contained
+different source archives. The MASAC shared critic replaced a dense affine
+projection with two projections and a broadcast addition, in both the actor
+and soft Bellman target. FP32 numerical differences are reproducible. This
+identifies a plausible learning-dynamics mechanism. Its effect on final
+performance still needs a controlled T4 comparison. The captured validation
+candidate counts were 129 and 96, respectively. Final test scores keep their
+original W&B provenance.
+
+Implementation commit `d1ee37159495220a8f4a1e5fab754c04cf5f8320` adds
+`masac.shared_critic_mode=valid_routes`. Both learner paths retain the dense
+Twin Q on identical state/joint-action features, evaluate only the observation
+mask's supported discrete routes and retain the original weighted reduction.
+`dense` is the source default with legacy fingerprint compatibility.
+`split` is the explicit archived ACCEL numerical path. The loss, hyperparameters,
+mask-aware temperature and replay sampling are carried over.
+
+CPU test on 500 recorded random-policy Warp transitions from the 35T25O
+scenario with six UAVs, B1024 and two threads. 14.75% of route candidates were
+valid. Median full learner update was 4.17 s dense, 2.33 s split and 0.84 s
+valid_routes across six timed iterations per mode. On the common minibatch
+and weights, max absolute Q delta to dense was 2.98e-8 for split and 7.45e-9
+for valid_routes. Seven matched updates yielded zero measured deterministic
+action RMS delta for valid_routes on this replay. These measurements are CPU
+diagnostics. Worktree regression: 90 passed, 2 CUDA skipped, 43 subtests.
+Isolated git candidate: 71 passed, 2 CUDA skipped, 43 subtests.
+Extracted notebook regression: 4 passed, 2 CUDA skipped. Notebook schema,
+resolved config and embedded archive digest verified.
+
+Kaggle UI notebook in Downloads
+`MASAC_E4096_U8_B8192_H256x512_VALID_ROUTES_TRAIN11H_20261116.ipynb`.
+E4096/U8/B8192, R1M, shared H256x512 with Actor LN, seed 44, 20k episodes,
+39,600 s training cap and 42,600 s session cap, two-GPU Validation and 100
+held-out Final Test. Embedded source SHA256
+`1907be062e9ae6c58cc463f819df2bc38e1810cae6233c0f652fe35b1fb90146`.
+The notebook records execution mode and source bundle/patch hash in W&B.
+Existing notebooks and W&B runs were preserved. No Kaggle training was
+submitted in this audit.
+
+Next validation is a manual Kaggle T4x2 run of valid_routes, with comparisons
+to dense and ACCEL at the same number of transitions, fixed validation and
+held-out scenario seeds, recorded learner wall time and peak VRAM. Keep the
+historical dense MASAC/MATD3 pair as the measured reference until this
+comparison. Assess paper-level uncertainty across independent training seeds.
+
+---
+
 # 2026-11-08 — Q1/A* MASAC/MATD3 source-code paper audit
 
 Full source-backed audit:
