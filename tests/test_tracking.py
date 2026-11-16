@@ -62,6 +62,22 @@ class OnlineRun:
 
 
 class TrackingTests(unittest.TestCase):
+    def test_starting_online_tracker_leaves_project_workspace_alone(self):
+        run = OnlineRun()
+        sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs)
+        config = Config()
+        config.tracking.enabled = True
+        config.tracking.checkpoint_store = "wandb"
+        with TemporaryDirectory() as directory:
+            config.tracking.credentials_file = str(Path(directory) / "absent.txt")
+            with patch.dict(sys.modules, {"wandb": sdk}), patch.dict(os.environ, {
+                "WANDB_API_KEY": "test-key", "WANDB_ENTITY": "owner", "WANDB_PROJECT": "project",
+            }), patch("uav_network.experiments.dashboard.ensure_project_workspace") as ensure_workspace:
+                tracker = OnlineTracker(config, directory)
+                tracker.close()
+            ensure_workspace.assert_not_called()
+        self.assertTrue(run.finished)
+
     def test_online_tracker_does_not_sync_large_raw_run_files(self):
         run = OnlineRun()
         saved = []

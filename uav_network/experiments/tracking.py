@@ -128,9 +128,6 @@ class OnlineTracker:
         import wandb
         entity, project = _authentication(config)
         self.config, self.output, self.wandb = config, Path(output), wandb
-        if config.tracking.enabled:
-            from .dashboard import ensure_project_workspace
-            ensure_project_workspace(config)
         self.started = time.perf_counter()
         initial = initial_progress or {}
         self.initial_step = initial.get("global_step", 0)
