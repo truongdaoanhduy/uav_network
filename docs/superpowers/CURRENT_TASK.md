@@ -1,3 +1,24 @@
+# 2026-11-20 — Episode clock, reset and E4096 follow-up audit
+
+User asked whether the 4096-episode cliff is plotting, parallel collection, reset or learning. Reused all 402 hash-verified HF files and read original Spinning Up, BenchMARL, CleanRL, SB3, MAPPO, Ackermann MATD3 and FastTD3 sources.
+
+- All three MATD3s: episodes 1..4096 finish simultaneously at 6,144,000 transitions; only FIVE distinct completion clocks through 20k retained episodes. Episode 4097 completes at 12,288,000, not immediately after reset. Worker order within one batch is not policy progress.
+- Actual W&B history has 626 sampled episode-return points/run (episode 1 + multiples of 32). All 2,410 points intersecting readable HF rows match both return and completion global_step EXACTLY. 91ba54dc still lacks 2,980 HF episode rows; its 94 extra sampled W&B rows cannot reconstruct them.
+- Every MATD3 has 7,500 reward + progress + optimizer journal rows, no duplicate/gapped global steps. For 12 complete 4096-episode groups, integrating 1500 per-vector mean rewards reproduces episode-return means with error ZERO.
+- Source-based reset probes on all four historical configs (three exact frozen bundles), CPU 4-env / horizon3 / H32 / B4: 44/44 invariants pass after real Adam updates. Model/target weights, Adam moments, learner counters, replay rows/index/size/RNG and Torch RNG persist. Terminal next observations survive reset and next step; 3-D discovery/delivery offsets match nonzero world-info sentinels. This is not a GPU convergence test.
+- Orthogonal reset log: step1500 reward -3.8964, next step +2.0370; battery returns ~100%, live progress restarts. Actor/critic update counts increase across reset.
+- MATD3 learning failure remains after replot: independent 300-world validation return orthogonal -2909.59 at checkpoint0 -> -3249.15; default U4 -2627.53 -> -3250.07. Orthogonal first sampled simultaneous actor-gradient/tanh-derivative zeros already at 3,014,656 transitions BEFORE first reset. Report distinguishes measured saturation from unproven initiating hyperparameter.
+- MASAC same E4096 recovers, final actor gradient 0.0387445. Legacy reward validation namespace is gpu_eval/mean_return + gpu_eval/checkpoint_global_step (30 points), not the absent gpu_eval_periodic/mean_return alias. Best periodic validation return -735.11/delivery35.74% at 22,937,600. Do not fill missing namespace values with zero.
+- E4096 changes scaling: warmup131072 = 32 world steps; replay1M ~244 vector steps; U8/B8192 = 16 sample draws per new joint transition in steady state. Neither learning before full episode nor replay shorter than horizon proves a bug. Reducing E4096->256 while keeping U8 multiplies update density 16x; an E-only causal claim requires controlled update/frame budgets.
+- Framework nuance: SB3 supports episode X; MAPPO uses nested episode/step but logs total_num_steps; BenchMARL backend logger uses iteration, counters/total_frames and evaluation JSON step_count use frames; FastTD3 global_step is vector iterations and frame is global_step*num_envs. Do not declare episode budgets inherently incorrect.
+- New standalone offline deliverable ~/Downloads/UAV_PLOT_RESET_AUDIT_20261120/: Vietnamese report, four PNG/PDF figures, exact scalar exports/CSVs, replot.py, verify_export.py, portable probe_reset.py + configs. Replot/verify pass; independent scalar accounting max error0, float64 CSV aggregation roundoff <5e-13. No online mutation or training job.
+- Existing algorithm changes from previous task remain uncommitted; this follow-up changes NO learner loss/config/dashboard. Do not call the prior optional .001 output regularizer a proven full-training cure.
+- No E/replay/warmup GPU ablation, multi-seed training, or new full Kaggle run executed. Next: use fixed-policy validation vs checkpoint transitions as main learning curve; treat completed episode order and live mission state separately. Keep user 20k-episode stop rule; compare algorithms at common observed transition budgets.
+
+The commit for this note is documentation-only; preexisting dirty work is preserved.
+
+---
+
 # 2026-11-20 — Four-run saturation audit and matched source-reference baselines
 
 Verified at 2026-11-20T12:14:55.887896+07:00; base source commit e346e26a4e595b725736ab521f994862acda7a65.
