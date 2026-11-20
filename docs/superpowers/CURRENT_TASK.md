@@ -1,3 +1,23 @@
+# 2026-11-20 — Four-run saturation audit and matched source-reference baselines
+
+Verified at 2026-11-20T12:14:55.887896+07:00; base source commit e346e26a4e595b725736ab521f994862acda7a65.
+User requested live W&B/HF analysis, source/paper audit, fixes and a fair MATD3/MASAC pair.
+
+- W&B/HF checked for 653793e0, 91ba54dc, 4d398c22, 42980408. 402 HF files verified against LFS SHA256 or Git blob SHA1; raw episode counts 20000/17020/20000/20000. Missing 2980 HF episodes in 91ba54dc; never impute them.
+- Three MATD3 Actors lose gradients with saturated tanh. Orthogonal already has sampled zero Actor/motion derivative at 3,014,656 transitions, before its first completed cohort at 6,144,000. All four runs already have Actor LayerNorm enabled.
+- MASAC training delivery cohort means 37.73 -> 29.30 -> 39.33 -> 43.44 -> 46.40%; final Actor gradient 0.0387445. Deterministic validation delivery 0.66% at ~6M to 35.74% at 22,937,600. Do not call this the same Actor freeze.
+- Original Ackermann TF1 MATD3 p_train includes 1e-3 mean(flatparam^2), absent in UAV. Added opt-in actor_output_regularization (legacy default zero); new matched profile/notebooks enable .001. This is an author-source referenced hybrid action adaptation, NOT a universally required TD3 formula or proven cure for full training collapse. Q1-only TD3 Actor remains correct; no NormXYZ, reward/physics/observation/safety change.
+- New common guard compares all 13 OffPolicyConfig fields and default initialization. Pair: E4096/U8/B8192/H256x512, shared Actor/Critic, Actor LN true / Critic LN false, replay1M, seed44, 20000 completed episodes, validation300/test4000. MASAC dense reference path; entropy/temperature retained.
+- Both NEW notebooks in ~/Downloads/UAV_MATCHED_AUTHOR_REFERENCE_S44_20261120 embed source SHA256 24535a8655a216c3bfa920057ce6964dd8eb5e59582d73152aea68be7f50566a. Their parent is afe4f9c98c5abd1a6f9c0efc46261803bf800cfe52c58588713ee0c497285eca. Original notebooks unchanged.
+- 25 new tests pass in repo and extracted notebook source. Final related suite 118 passed, 2 skipped, 3 subtests passed. Both actual CPU notebook preflights pass. Four coefficient-zero CPU updates are bitwise equal to before patch.
+- Full tests/ run initially 1725 passed,40 failed,105 skipped,1984 subtests passed. Updated two historical fixtures to omit the newly introduced config field; related rerun passes. Remaining 27 failed test/subtest cases reproduced exactly on BEFORE-PATCH source too. See outputs/baseline_rootcause_20261120/test_status.json and logs. Never claim entire repo green.
+- Current repo lacks deferred_gpu_eval_keep_all, so its local matching profile uses target/candidate 1000/2000; notebooks retain the newer keep-all DenseEval implementation. Do not silently replace frozen notebook source with local HEAD.
+- No Kaggle Training/Validation/Test launched, no W&B/HF mutation, no credentials exposed. Full GPU performance, monotonic reward, improved delivery and one-session completion are UNPROVEN.
+- Code and test edits remain in the preexisting dirty working tree (325 paths were already modified). This commit records continuity only, not a clean published learner build. Backups and minimal session-start diff: outputs/baseline_rootcause_20261120/.
+- Read the delivered report UAV_MATD3_MASAC_ROOT_CAUSE_AND_MATCHED_BASELINES_20261120.md and verification_manifest.json before next baseline task. Repro builder: scripts/research/build_matched_author_reference_baselines_20261120.py. Preserve user's outstanding edits; do not reset/clean.
+
+---
+
 # 2026-11-16 — Restored W&B Personal Workspace after tracker startup
 
 MASAC valid_routes run df258798 started at 15:37 ICT and was still training
