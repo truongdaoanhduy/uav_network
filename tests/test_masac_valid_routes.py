@@ -80,9 +80,12 @@ def test_valid_routes_skip_zero_probability_candidates_and_match_dense_updates(c
     finally:
         torch.use_deterministic_algorithms(was_deterministic)
     assert rows["target"] == int(valid_destinations(next_obs, routes).sum())
-    assert rows["actor_and_regression"] >= batch_size + int(valid_destinations(obs, routes).sum())
+    # Frozen 18d756ef hybrid MASAC only skips invalid routes for *target*
+    # expectation. Its Actor path remains dense. This test certifies actual
+    # byte-pinned semantics rather than silently changing the research model.
+    assert rows["actor_and_regression"] >= batch_size + batch_size * drones * routes
     if chunk_size == 0:
-        assert rows["actor_and_regression"] == batch_size + int(valid_destinations(obs, routes).sum())
+        assert rows["actor_and_regression"] == batch_size + batch_size * drones * routes
     for name, expected in dense.state_dict().items():
         torch.testing.assert_close(compact.state_dict()[name], expected, rtol=2e-5, atol=2e-6)
 
@@ -100,6 +103,10 @@ def test_explicit_dense_keeps_legacy_identity_and_alternatives_get_distinct_iden
     config = Config()
     legacy = config.to_dict()
     del legacy["masac"]["shared_critic_mode"]
+    # The canonical fingerprint also omits the MATD3 zero-weight default,
+    # which was added after this MASAC legacy-identity regression was written.
+    assert legacy["matd3"]["actor_output_regularization"] == 0
+    del legacy["matd3"]["actor_output_regularization"]
     expected = hashlib.sha256(json.dumps(legacy, sort_keys=True, allow_nan=False).encode()).hexdigest()
     assert config_fingerprint(config) == expected
     fingerprints = {expected}

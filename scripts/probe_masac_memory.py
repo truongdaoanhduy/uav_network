@@ -1,5 +1,4 @@
 """Bounded dual-T4 MASAC BASE memory diagnostic; never a production training entrypoint.
-
 Run from the repository root. Only this process temporarily replaces MASAC's
 optimizer helpers and compiles its outer vectorized critic callable. Scientific
 loss/target/action equations are always the original MASAC methods.
@@ -15,14 +14,12 @@ import subprocess
 import time
 import traceback
 import torch
-
 def replay_bytes(capacity, observation_shape, state_dim):
     """Exact original TensorReplayBuffer FP32/int64 payload, without allocating."""
     if capacity < 1 or state_dim < 1 or any(dim < 1 for dim in observation_shape):
         raise ValueError("Replay dimensions and capacity must be positive")
     n, obs = observation_shape
     return capacity * (4 * (2 * n * obs + 2 * state_dim + 3 * n + 2) + 8 * n)
-
 def require_two_t4():
     """Fail before models, worlds, replay, or any large CPU fallback allocation."""
     message = "This diagnostic requires exactly two T4 CUDA devices; no CPU fallback"
@@ -91,11 +88,16 @@ class ProbeAMP:
     def __enter__(self):
         import uav_network.algorithms.masac as module
         self.original = (module.step_optimizer, module.step_actor_optimizers)
+        from uav_network.algorithms.masac_gradient_probe import EXTERNAL_GRADIENT_SCALE
+        self._probe_scale_token = EXTERNAL_GRADIENT_SCALE.set(
+            lambda: float(self.scalers["actor"].get_scale()))
         module.step_optimizer, module.step_actor_optimizers = self.single_step, self.actor_steps
         return self
     def __exit__(self, *exc):
         import uav_network.algorithms.masac as module
         module.step_optimizer, module.step_actor_optimizers = self.original
+        from uav_network.algorithms.masac_gradient_probe import EXTERNAL_GRADIENT_SCALE
+        EXTERNAL_GRADIENT_SCALE.reset(self._probe_scale_token)
     def evidence(self):
         return {"counts": self.counts,
                 "scales": {name: scaler.get_scale() for name, scaler in self.scalers.items()},

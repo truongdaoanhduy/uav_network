@@ -211,19 +211,23 @@ def _train(config):
             restore_replay(replay, restored_training["replay"])
         initial["optimizer_replay_restored"] = resumed
         tracker = start_tracking(config, output, initial_progress=initial)
+        # Dense W&B per-vector-step telemetry is optional for minimal external
+        # tracker adapters (e.g. checkpoint-only trackers). A real OnlineTracker
+        # implements step_reward and retains the identical full data path.
+        dense_tracking = tracker is not None and callable(getattr(tracker, "step_reward", None))
         reward_window = (PerVectorStepRewardJournal(
             count, output, host_sync_every=4, plot_windows=(1,2,4,8))
-            if tracker is not None else None)
+            if dense_tracking else None)
         # Same GPU post-step, pre-reset state. Warp -> Torch is zero-copy.
         progress_visited = None
-        if tracker is not None and device_env:
+        if dense_tracking and device_env:
             import warp as wp
             progress_visited = wp.to_torch(vector.s.visited)
             progress_window = PerVectorStepMissionProgressJournal(
                 count, output, config.world.num_uavs,
                 config.world.num_targets, config.world.num_obstacles,
                 host_sync_every=4, plot_windows=(1,2,4,8))
-        if tracker is not None:
+        if dense_tracking:
             loss_window = PerVectorStepOptimizerLossJournal(
                 count, output, host_sync_every=4, plot_windows=(1,2,4,8))
             step_joiner = UnifiedTrainingStepJoiner()

@@ -45,8 +45,13 @@ def _config_hashes(config):
             legacy = deepcopy(values)
             legacy["masac"].pop("temperature_loss", None)
             variants.append(legacy)
-    return {hashlib.sha256(json.dumps(values, sort_keys=True, allow_nan=False).encode()).hexdigest()
-            for values in variants}
+    hashes = {hashlib.sha256(json.dumps(values, sort_keys=True, allow_nan=False).encode()).hexdigest()
+              for values in variants}
+    # config_fingerprint is the canonical writer of snapshot provenance. It
+    # omits certain backwards-compatible zero/default fields; the verifier
+    # must accept the same canonical encoding, not reject valid resume data.
+    hashes.add(config_fingerprint(config))
+    return hashes
 
 
 def _validation_seeds(config):

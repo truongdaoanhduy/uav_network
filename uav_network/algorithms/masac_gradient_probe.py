@@ -5,11 +5,17 @@ so they are *not* dQ/da. No extra stochastic sample/forward/backward.
 """
 from __future__ import annotations
 
+from contextvars import ContextVar
 import torch
+
+# Read-only external gradient scaler, scoped to the standalone diagnostic.
+# The user's checksum-pinned MASAC algorithm is never patched or edited.
+EXTERNAL_GRADIENT_SCALE = ContextVar("uav_masac_probe_grad_scale", default=None)
 
 
 class MASACGradientProbe:
-    def __init__(self, actors, batch_size, agents, shared, motion_dim=3, enabled=False):
+    def __init__(self, actors, batch_size, agents, shared, motion_dim=3, enabled=False,
+                 gradient_scale=None):
         self.actors = actors
         self.batch_size = int(batch_size)
         self.agents = int(agents)
@@ -23,6 +29,11 @@ class MASACGradientProbe:
                      (("packet",) if action_dim == motion_dim + 2 else ()) +
                      ("rf",))
         self.enabled = bool(enabled)
+        external = EXTERNAL_GRADIENT_SCALE.get()
+        self.gradient_scale = float(gradient_scale if gradient_scale is not None else
+                                    external() if callable(external) else 1.0)
+        if not self.gradient_scale > 0:
+            raise ValueError("Invalid gradient scale for MASAC telemetry")
         self.handles = []
         self.activations = {}
         self.head_gradients = {}
@@ -70,12 +81,12 @@ class MASACGradientProbe:
         # Actor update averages per batch/agent; recover approx. per-row signal.
         scale = self.batch_size * (self.agents if self.shared else 1)
         self.head_gradients.setdefault(label, []).append(
-            self._vec_mean(grad.detach() * scale)[1])
+            self._vec_mean(grad.detach() * (scale / self.gradient_scale))[1])
         return None
 
     def _on_weight_gradient(self, label, grad):
         self.param_before.setdefault(label, []).append(
-            torch.linalg.vector_norm(grad.detach()))
+            torch.linalg.vector_norm(grad.detach() / self.gradient_scale))
         return None
 
     @torch.no_grad()
