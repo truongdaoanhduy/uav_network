@@ -21,7 +21,7 @@
 
 ## Evidence of correct interfaces and scope
 
-- Local targeted M2/algorithm/test suite: **155 passed, 23 subtests passed** (final test source after all changes).
+- Local targeted M2/algorithm/test suite: **156 passed, 23 subtests passed** (final test source after all changes).
 - Two real training smoke traces with 6 UAVs, 1000m, 35 targets, 25 obstacles, shared+LN 256×256 networks, 5 continuous actions: both MATD3 and MASAC collected transitions and performed two successful CPU neural updates. This is **NOT convergence**.
 - Native 100-step diagnostic seed 44: GCS coverage **0.13375**; **1,316 GCS events**, **2 verified correct target reports**, zero false verified reports, mean DS unknown mass ≈0.88457, total mission energy ≈98,612 J. This scripted policy result is neither trained nor statistically comparable to RL baselines.
 - Scientific baseline is DOI `10.1109/TIV.2024.3352581`; unlike the paper's fixed mass 0.8 and globally connected UAV map, this experiment uses altitude/Pd/Pf-calibrated correlated conditional evidence, packet-level GCS report, and two-way synchronization.
@@ -46,3 +46,7 @@ python scripts/research/run_cooperative_m2_native_demo_20261121.py --steps 100 -
 ```
 
 `key.txt` intentionally excluded from source snapshots. Account 1 was not invoked: CPU tests cover the Native reference; Warp/GPU work remains deferred at user request.
+
+## Final whole-repository regression comparison (same pinned dependency)
+
+The clean parent commit `2c227ee` (with `third_party/UavNetSim` installed) yielded **1514 passed, 10 failed, 105 skipped, 1713 subtests passed**. The audited M2 source yielded **1535 passed, 10 failed, 105 skipped, 1717 subtests passed**. All ten failed test identifiers are **identical** across clean parent and audited source, i.e. **zero new repository-test regression identifiers**. The source code was unchanged after this full-suite run; one supplementary target-obstacle physical occlusion unit test was added and passed, raising the final focused suite to **156 passed + 23 subtests**. These ten historical failures are **NOT** claimed fixed; they concern legacy checkpoint and source-contract checks.
