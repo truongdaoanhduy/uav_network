@@ -16,3 +16,34 @@ Repeatable validation:
 python -m pytest -q tests/test_matd3_reference_style_kaggle_ui.py tests/test_18d756ef_fullflow_integrity_20261122.py
 # 7 passed on the connected Ubuntu sandbox
 ```
+
+## Kaggle kernel source <1 MB regression (fixed)
+
+The earlier notebook was **invalid for Kaggle Save Version**: the compressed
+GZIP bundle itself was 893,929 bytes, but Base85 encoding in the Python source
+expanded it to more than 1.11 million characters. The resulting `.ipynb` was
+about 1.14 MB, compared with ~778 KB for the original reference notebook.
+**Kaggle refuses kernel source at or above 1,000,000 bytes.**
+
+The corrected builder still embeds **every single original runtime and test
+source file**; the ~4.24 MB raw tar contents are unmodified and no source is
+fetched over the network. The builder converts the identical tar bytes to
+**XZ level 6**, checks SHA256 in the kernel bootstrap, and extracts with
+`tarfile.open(..., mode='r:xz')` instead of `r:gz`. Testing has verified
+all **520 archive entries** remain present and the decompressed tar byte
+sequence matches `gzip.decompress(build_source_archive(root))` exactly.
+
+An automated regression test now rejects the notebook whenever **either the
+flattened Python source or complete serialized notebook reaches 1,000,000
+bytes**. The corrected reference-style notebook measured about **826 KB of
+Python source and 832 KB as `.ipynb`**, safely under the Kaggle limit.
+
+The original reference had 3 cells (`markdown`, `code`, `code`), exactly the
+same as the correction; both still contain preflight, configuration settings,
+and a single self-contained bootstrap cell. The execution code is necessarily
+different because it uses the revised Bayesian no-oracle cell REPORT backend,
+not the historical oracle-assisted target-ID pathway. Logging and optional
+W&B dual-axis view are preserved where supported.
+
+This local proof verifies size, contents, code syntax, and CPU smoke behavior,
+**not** successful Kaggle version commit or 20k-episode T4 training.

@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import ast
 import base64
+import gzip
 import hashlib
+import lzma
 import io
 import json
 import re
@@ -16,6 +18,7 @@ from unittest import mock
 import nbformat
 
 from uav_network.configuration import load_config
+from uav_network.cloud.source_bundle import build_source_archive
 from scripts.build_matd3_reference_style_kaggle_ui import (
     REFERENCE_NOTEBOOK, build,
 )
@@ -36,6 +39,10 @@ def test_kaggle_ui_has_original_three_cell_layout_and_unique_source():
     assert 'CHECKPOINTS_PER_GPU_BATCH = 2' in result.cells[1].source
     assert 'UserSecretsClient' in result.cells[1].source
     assert 'NOORACLE-V7' in result.cells[0].source
+    # Kaggle Save Version enforces < 1,000,000 bytes of kernel source.
+    # Verify *both* flattened Python and the serialized notebook file size.
+    assert sum(len(c.source.encode('utf-8')) for c in result.cells if c.cell_type == 'code') < 1_000_000
+    assert len(nbformat.writes(result).encode('utf-8')) < 1_000_000
     code=result.cells[2].source
     ast.parse(result.cells[1].source)
     ast.parse(code)
@@ -43,7 +50,13 @@ def test_kaggle_ui_has_original_three_cell_layout_and_unique_source():
     assert source_match, 'Missing executable source archive'
     blob=base64.b85decode(source_match.group(1))
     assert hashlib.sha256(blob).hexdigest()==result.metadata['source_sha256']
-    with tarfile.open(fileobj=io.BytesIO(blob),mode='r:gz') as files:
+    assert blob.startswith(b'\xfd7zXZ\x00'), 'expected source to be compact xz'
+    # This must remain the *exact same set of original source bytes* as the
+    # repository GZIP bundle. A size reduction may not silently drop tests,
+    # pinned networking code, or any of the CUDA preflight modules.
+    assert lzma.decompress(blob) == gzip.decompress(build_source_archive(root))
+    assert 'tarfile.open(fileobj=io.BytesIO(payload), mode="r:xz")' in code
+    with tarfile.open(fileobj=io.BytesIO(blob),mode='r:xz') as files:
         for name in ('uav_network/algorithms/matd3.py',
                      'uav_network/environment/gpu/bayesian.py',
                      'uav_network/communication/gpu/mac.py',

@@ -13,7 +13,9 @@ from __future__ import annotations
 import argparse
 import ast
 import copy
+import gzip
 import hashlib
+import lzma
 import json
 from pathlib import Path
 import re
@@ -134,6 +136,12 @@ def patch_execution(source: str, spec: dict) -> str:
     literal = 'SPEC = ' + repr(spec) + '\n'
     assert source.count(literal)==1, 'Source bootstrap not based on provided spec'
     source = source.replace(literal, literal + runtime_spec_injection(spec), 1)
+    # Keep all 520 source files, including CUDA regression tests. Kaggle
+    # rejects source code >= 1 MB; XZ shrinks the same tarball without deleting
+    # any modules, changing file bytes, or requiring a download at runtime.
+    gz_open='tarfile.open(fileobj=io.BytesIO(payload), mode="r:gz")'
+    assert source.count(gz_open)==1
+    source=source.replace(gz_open,'tarfile.open(fileobj=io.BytesIO(payload), mode="r:xz")',1)
     # Preserve the original notebook's optional W&B dual-axis presentation.
     marker = 'spec_file.write_text(json.dumps(SPEC, indent=2))\n'
     assert source.count(marker)==1
@@ -184,7 +192,9 @@ def build(reference: Path, repo_root: Path):
     assert len(original.cells)==3
     assert [cell.cell_type for cell in original.cells]==['markdown','code','code']
     commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo_root,text=True).strip()
-    tarball=build_source_archive(repo_root)
+    original_gzip_tarball=build_source_archive(repo_root)
+    tarball=lzma.compress(gzip.decompress(original_gzip_tarball),
+                          format=lzma.FORMAT_XZ,preset=6)
     spec=make_spec(commit)
     source=kernel_script(spec,source_archive=tarball,credential_source='kaggle_secrets')
     nb=nbformat.v4.new_notebook(cells=[
@@ -202,6 +212,14 @@ def build(reference: Path, repo_root: Path):
                     'test_episodes':4000,'backend':'warp_packet','belief':'bayesian',
                     'report_identity':'observed_cell_id'},
     })
+    # Kaggle checks the Python source size (not the gzip archive size).
+    # Notebook JSON is checked as well to tolerate conservative UI limits.
+    python_bytes=sum(len(cell.source.encode('utf-8')) for cell in nb.cells
+                     if cell.cell_type=='code')
+    notebook_bytes=len(nbformat.writes(nb).encode('utf-8'))
+    if python_bytes>=1_000_000 or notebook_bytes>=1_000_000:
+        raise ValueError(f'Notebook exceeds Kaggle 1 MB: python={python_bytes}, '
+                         f'ipynb={notebook_bytes}')
     return nb
 
 
@@ -217,6 +235,7 @@ def main():
     nbformat.write(nb,args.output)
     print('NOTEBOOK',args.output,'BYTES',args.output.stat().st_size)
     print('CELLS',[(c.cell_type,len(c.source)) for c in nb.cells])
+    print('TOTAL_PYTHON_SOURCE_BYTES',sum(len(c.source.encode('utf-8')) for c in nb.cells if c.cell_type=='code'))
     print('SOURCE_SHA256',nb.metadata['source_sha256'])
     print('SOURCE_COMMIT',nb.metadata['reference_commit'])
 
