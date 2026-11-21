@@ -66,7 +66,9 @@ class CellEvidence:
             raise ValueError("invalid Pd, Pf or visible fraction")
         if q == 0:
             return None  # unseen is never a negative observation
-        p0 = 1 - (1 - pf) ** q
+        # Cancellation-safe for cells grazing the circular FoV: direct
+        # 1-(1-Pf)**q rounds to zero for tiny but nonzero overlap q.
+        p0 = -math.expm1(q * math.log1p(-pf))
         p1 = q * pd + (1 - q) * p0
         return cls(p1=p1, p0=p0, visible_fraction=q)
 

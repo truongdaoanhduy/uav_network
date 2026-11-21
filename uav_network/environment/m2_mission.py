@@ -13,6 +13,7 @@ This CPU reference is NOT the 4096-env Warp production implementation.
 """
 from __future__ import annotations
 import math
+from copy import deepcopy
 import numpy as np
 
 from .world import generate_scenario
@@ -30,8 +31,11 @@ class CooperativeM2Env:
     def __init__(self,config,*,correlation_strength=.5,ds_threshold=.95,
                  sprt_alpha=.05,sprt_beta=.05,max_scan_cells=None,
                  map_buffer_bytes=65536):
-        config.runtime.m2_enabled=True  # Only this opt-in environment uses 5D policy actions.
-        self.config=config.validate()
+        # Config may be reused for the legacy 4D learner. Do not mutate it
+        # merely by constructing this opt-in 5D M2 environment.
+        self.config=deepcopy(config)
+        self.config.runtime.m2_enabled=True
+        self.config.validate()
         if self.config.motion_dim != 3:
             raise ValueError("M2 experiment requires 3D flight")
         if self.config.world.motion_safety=="dynamic_window":
@@ -101,8 +105,9 @@ class CooperativeM2Env:
                     for _ in range(n+1)]
         self.store=M2PacketStore(self.nodes,buffer_bytes=self.map_buffer_bytes,ttl_s=c.network.report_ttl_s)
         self.radio=M2Radio(c,self.store,self.scene,seed=self.seed,battery_j=self.battery_j)
-        self._seen_verified=set();self._seen_candidate=set();self._seen_gcs_claims=set()
+        self._seen_verified=set();self._seen_candidate=set()
         self._rewarded_correct_cells=set()
+        self._penalized_false_cells=set()
         self._delivery_recall_sum=0.
         self._false_report_exposure_s=0.
         self._prev_score=self._map_score()
@@ -187,8 +192,12 @@ class CooperativeM2Env:
                                   if last_seen>=0 else 1.)
                         features.extend((*target,
                                          float(self.nodes[i].coverage[cell]>0),
-                                         np.tanh(sprt/3),age_norm))
-                    else:features.extend((0,0,1,0,0,1))
+                                         np.tanh(sprt/3),
+                                         float(status=="pending"),
+                                         float(status=="verified"),
+                                         float(status=="rejected"),
+                                         age_norm))
+                    else:features.extend((0,0,1,0,0,0,0,0,1))
             peers=[j for j in range(n+1) if j!=i]
             # All destinations stay selectable. True link feasibility is known
             # only to the PHY; never leak perfect instantaneous peer positions
@@ -236,18 +245,18 @@ class CooperativeM2Env:
         self._seen_verified|=local_verified
         # Reward oracle is ONLY the evaluator; actors cannot read it.
         verify_bonus=sum((1. if self._truth_target[cell] else -1.) for cell in newly_verified)
-        notices=[notice for notice,arrived in self.gcs_map.report_history
-                 if notice.message_id not in self._seen_gcs_claims]
-        self._seen_gcs_claims.update(n.message_id for n in notices)
+        # Pay only for CURRENT, non-disputed verified reports at GCS.
+        # Raw report history may include an immediately revoked/contradicted
+        # claim; rewarding such a report would train agents to game the GCS.
         delivered=0.
-        for notice in notices:
-            if notice.status != "verified":continue
-            if self._truth_target[notice.cell]:
-                if notice.cell not in self._rewarded_correct_cells:
+        for cell in self._currently_verified_gcs_cells():
+            if self._truth_target[cell]:
+                if cell not in self._rewarded_correct_cells:
                     delivered+=50.
-                    self._rewarded_correct_cells.add(notice.cell)
-            else:
-                delivered-=10.  # Every false verified transmission costs reward.
+                    self._rewarded_correct_cells.add(cell)
+            elif cell not in self._penalized_false_cells:
+                delivered-=10.
+                self._penalized_false_cells.add(cell)
         result=(.15*len(new_candidates)+verify_bonus+delivered+map_progress+local_information_gain
                 -c.reward.propulsion_energy_per_kj*sum(flight_cost)/1000
                 -c.reward.communication_energy*radio_cost-c.reward.step_cost)

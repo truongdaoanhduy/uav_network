@@ -110,9 +110,9 @@ def test_new_m2_observation_respects_legacy_actor_mask_and_active_positions(algo
         assert masks.shape==(2,3)
         assert masks[:,0].all()
         assert masks[:,2].all(),"both UAVs can reach GCS in this scenario"
-        model=(MATD3 if algorithm=="matd3" else MASAC)(c,obs.shape[-1],e.state().size,device="cpu")
+        model=(MATD3 if algorithm=="matd3" else MASAC)(e.config,obs.shape[-1],e.state().size,device="cpu")
         action=model.act(obs,deterministic=True)
-        assert action.continuous.shape==(2,c.continuous_dim)
+        assert action.continuous.shape==(2,e.config.continuous_dim)
         assert action.destination.shape==(2,)
         for i in range(2):assert masks[i,action.destination[i]]
         e.step(action)
@@ -130,8 +130,8 @@ def test_real_m2_rollout_replay_and_actor_critic_update_cpu_smoke(algorithm):
     e=CooperativeM2Env(c,correlation_strength=.55,max_scan_cells=2)
     try:
         obs,_=e.reset(seed=44,options=scene())
-        model=(MATD3 if algorithm=="matd3" else MASAC)(c,obs.shape[-1],e.state().size,device="cpu")
-        replay=ReplayBuffer(32,obs.shape,e.state().size,continuous_dim=c.continuous_dim)
+        model=(MATD3 if algorithm=="matd3" else MASAC)(e.config,obs.shape[-1],e.state().size,device="cpu")
+        replay=ReplayBuffer(32,obs.shape,e.state().size,continuous_dim=e.config.continuous_dim)
         initial=torch.cat([p.detach().flatten() for p in model.actors.parameters()]).clone()
         for _ in range(6):
             state=e.state()

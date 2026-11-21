@@ -94,8 +94,14 @@ class CooperativeWorldMap:
         self.last_arrival=np.full(num_cells,-1,dtype=np.int64)
         self.events={}
         self._by_cell_layer={}
+        # Incremental conditional likelihoods for chronological local sensing;
+        # late/out-of-order multi-hop evidence triggers exact sorted replay.
+        self._streams={}
         self.candidates={}
         self.decision_changes=[]
+        # Historical revision per cell survives candidate disappearance.
+        # Otherwise a revived candidate reuses v1 and remote GCS rejects it.
+        self._decision_revisions={}
         self.link_contacts={}  # observed delivery/ACK only, not simulator link oracle
         self.claims={}  # (source,cell) -> latest DecisionNotice
         self.report_history=[]  # all accepted versions and their arrival times
@@ -119,50 +125,65 @@ class CooperativeWorldMap:
         self.coverage[event.cell]+=1
         self.last_arrival[event.cell]=max(self.last_arrival[event.cell],arrived_at)
         self.last_observed[event.cell]=max(self.last_observed[event.cell],event.tick)
-        self._replay(event.cell,event.layer,arrived_at)
+        stream=self._streams.get(event.cell)
+        if stream is not None and event.sort_key > stream[6]:
+            self._append_in_order(event,arrived_at,stream)
+        else:
+            self._replay(event.cell,event.layer,arrived_at)
         return True
+
+    def _append_in_order(self,event:Event,arrived_at:int,stream):
+        """O(1) chronological update; replay remains exact for late packets."""
+        engine,A,B,cutoff,sprt,n,_last=stream
+        llr=engine.observe(event)
+        A+=max(llr,0.)
+        B+=max(-llr,0.)
+        masses=stable_mass_from_llr_totals(A,B)
+        if cutoff is None and masses[0]>=self.ds_threshold:
+            cutoff=event.sort_key
+        elif cutoff is not None:
+            sprt+=llr
+            n+=1
+        self._streams[event.cell]=(engine,A,B,cutoff,sprt,n,event.sort_key)
+        self._apply_decision(event.cell,masses,cutoff,sprt,n,arrived_at)
 
     def _replay(self,cell:int,layer:str,arrived_at:int):
         readings=sorted(self._by_cell_layer[(cell,layer)],key=lambda event:event.sort_key)
-        evidence_engine=SharedBiasLikelihood()
-        masses=(0.,0.,1.)
-        positive_llr=0.
-        negative_llr=0.
-        candidate_cutoff=None
-        sprt=0.
+        engine=SharedBiasLikelihood()
+        A=B=sprt=0.
+        cutoff=None
         n=0
         for event in readings:
-            llr=evidence_engine.observe(event)
-            if llr>0:
-                positive_llr+=llr
-            else:
-                negative_llr-=llr
-            masses=stable_mass_from_llr_totals(positive_llr,negative_llr)
-            if layer=="target":
-                if candidate_cutoff is None and masses[0] >= self.ds_threshold:
-                    candidate_cutoff=event.sort_key
-                elif candidate_cutoff is not None and event.sort_key > candidate_cutoff:
-                    # Retain ALL prior events in the conditional latent likelihood,
-                    # but none of the candidate-trigger events contribute to SPRT.
-                    sprt+=llr
-                    n+=1
-        if layer=="target":
-            self.target_masses[cell]=masses
-            old=self.candidates.get(cell)
-            if candidate_cutoff is None:
-                if old is not None:
-                    # Revisions can be triggered by out-of-order negative evidence.
-                    self.decision_changes.append((cell,"retracted",arrived_at,old.revision+1))
-                    self.candidates.pop(cell)
-                return
-            decision="verified" if sprt>=self.upper else ("rejected" if sprt<=self.lower else "pending")
-            cutoff_event=candidate_cutoff[2]
-            new=CandidateState(candidate_cutoff[0],cutoff_event,candidate_cutoff,
-                               decision,n,sprt,old.revision if old else 0)
-            if old is None or old.status!=decision or old.cutoff_key!=candidate_cutoff:
-                new.revision=(old.revision if old else 0)+1
-                self.decision_changes.append((cell,decision,arrived_at,new.revision))
-            self.candidates[cell]=new
+            llr=engine.observe(event)
+            A+=max(llr,0.)
+            B+=max(-llr,0.)
+            masses=stable_mass_from_llr_totals(A,B)
+            if cutoff is None and masses[0]>=self.ds_threshold:
+                cutoff=event.sort_key
+            elif cutoff is not None:
+                sprt+=llr
+                n+=1
+        self._streams[cell]=(engine,A,B,cutoff,sprt,n,readings[-1].sort_key)
+        self._apply_decision(cell,masses,cutoff,sprt,n,arrived_at)
+
+    def _apply_decision(self,cell,masses,cutoff,sprt,n,arrived_at):
+        self.target_masses[cell]=masses
+        old=self.candidates.get(cell)
+        if cutoff is None:
+            if old is not None:
+                revision=self._decision_revisions.get(cell,0)+1
+                self._decision_revisions[cell]=revision
+                self.decision_changes.append((cell,"retracted",arrived_at,revision))
+                self.candidates.pop(cell)
+            return
+        decision="verified" if sprt>=self.upper else ("rejected" if sprt<=self.lower else "pending")
+        new=CandidateState(cutoff[0],cutoff[2],cutoff,decision,n,sprt,
+                           old.revision if old else 0)
+        if old is None or old.status!=decision or old.cutoff_key!=cutoff:
+            new.revision=self._decision_revisions.get(cell,0)+1
+            self._decision_revisions[cell]=new.revision
+            self.decision_changes.append((cell,decision,arrived_at,new.revision))
+        self.candidates[cell]=new
 
     def drain_decisions(self):
         changes=list(self.decision_changes)
@@ -226,8 +247,9 @@ class EncodedBatch:
 
 
 def _wire_bytes(events):
-    # Conservative plain JSON overhead; headers reserved separately.
-    return len(json.dumps([asdict(e) for e in events],separators=(",",":"),sort_keys=True).encode("utf-8"))+24
+    # Reserve message ID, source, timestamp, hops, kind and map metadata.
+    # The transport validates the FINAL envelope's actual serialized length.
+    return len(json.dumps([asdict(e) for e in events],separators=(",",":"),sort_keys=True).encode("utf-8"))+128
 
 
 def packetize_events(events,*,payload_bytes=1024):

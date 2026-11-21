@@ -106,9 +106,10 @@ def test_m2_map_metrics_do_not_leak_truth_into_actor_map():
 
 def test_batching_fits_packet_payload_and_preserves_event_ids():
     events=[obs(i%3,i+1,i%8, bool(i%2)) for i in range(22)]
-    batches=packetize_events(events,payload_bytes=220)
+    # Physical envelope metadata consumes bytes in addition to event JSON.
+    batches=packetize_events(events,payload_bytes=400)
     assert len(batches)>1
-    assert all(b.size_bytes<=220 for b in batches)
+    assert all(b.size_bytes<=400 for b in batches)
     assert [event.event_id for batch in batches for event in batch.events] == [e.event_id for e in events]
 
 

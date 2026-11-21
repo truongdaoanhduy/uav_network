@@ -90,7 +90,7 @@ def test_radio_and_flight_share_same_battery():
         env.reset(seed=44,options=options)
         assert env.radio.network.battery_j is env.battery_j
         before=env.battery_j.copy()
-        action=Action(np.zeros((2,c.continuous_dim),np.float32),np.array([2,2],np.int64))
+        action=Action(np.zeros((2,env.config.continuous_dim),np.float32),np.array([2,2],np.int64))
         action.continuous[:,-1]=1
         env.step(action)
         rf=env.radio.network.energy_j[:-1]
