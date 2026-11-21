@@ -6,7 +6,7 @@ from ..observations import observation_dim, state_dim
 from ..scenario_recovery import SCENE_ATTEMPTS, certified_scenes
 from ...communication.diagnostics import COUNTERS, STATS
 from ...communication.link_budget import report_reference_tx_energy_j
-
+from .state_helpers import seed_rows, allocated_bytes
 
 @wp.struct
 class WorldParams:
@@ -31,6 +31,9 @@ class WorldParams:
     sensor_pf: wp.vec4d
     n: wp.int32
     targets_count: wp.int32
+    report_slots: wp.int32
+    confirm_capacity: wp.int32
+    cell_reports: wp.int32
     obstacles_count: wp.int32
     max_steps: wp.int32
     motion_safety: wp.int32
@@ -129,7 +132,6 @@ class WorldParams:
     reward_shaping_gamma: wp.float64
     report_reference_tx_energy: wp.float64
 
-
 @wp.struct
 class WorldState:
     altitudes: wp.array2d(dtype=wp.float64)
@@ -153,6 +155,10 @@ class WorldState:
     power_histogram: wp.array3d(dtype=wp.int64)
     delivery_hop_histogram: wp.array2d(dtype=wp.int64)
     first_discovery: wp.array2d(dtype=wp.float64)
+    before_false: wp.array2d(dtype=wp.float64)  # false-cell counts at step start, reward-only
+    report_cell: wp.array2d(dtype=wp.int32)  # world-local hypothesis slot -> 2D cell, never target ID
+    confirmed_candidates: wp.array3d(dtype=wp.int32)  # sparse cell IDs of confirmed camera reads this tick
+    confirmed_count: wp.array2d(dtype=wp.int32)
     first_delivery: wp.array2d(dtype=wp.float64)
     buffer_peak: wp.array2d(dtype=wp.int64)
     positions: wp.array2d(dtype=wp.vec2d)
@@ -204,6 +210,8 @@ class WorldState:
     packet_delay_sum: wp.array(dtype=wp.float64)
     report_delay_sum: wp.array(dtype=wp.float64)
     report_hop_sum: wp.array(dtype=wp.float64)
+    true_report_delay_sum: wp.array(dtype=wp.float64)
+    true_report_hop_sum: wp.array(dtype=wp.float64)
     before: wp.array2d(dtype=wp.float64)
     reward_components: wp.array2d(dtype=wp.float64)
     shield_correction_step: wp.array(dtype=wp.float64)
@@ -238,6 +246,7 @@ class WorldState:
     pkt_source: wp.array2d(dtype=wp.int32)
     pkt_destination: wp.array2d(dtype=wp.int32)
     pkt_target: wp.array2d(dtype=wp.int32)
+    pkt_cell: wp.array2d(dtype=wp.int32)  # on-air 2D cell ID, NOT report slot
     pkt_fragment: wp.array2d(dtype=wp.int32)
     pkt_attempt: wp.array2d(dtype=wp.int32)
     pkt_origin: wp.array2d(dtype=wp.int32)
@@ -260,6 +269,7 @@ class WorldState:
     tx_source: wp.array2d(dtype=wp.int32)
     tx_destination: wp.array2d(dtype=wp.int32)
     tx_target: wp.array2d(dtype=wp.int32)
+    tx_cell: wp.array2d(dtype=wp.int32)  # transmitted cell ID
     tx_fragment: wp.array2d(dtype=wp.int32)
     tx_payload: wp.array2d(dtype=wp.int32)
     tx_ttl: wp.array2d(dtype=wp.int32)
@@ -292,7 +302,6 @@ class WorldState:
     mt: wp.array3d(dtype=wp.uint32)
     mt_index: wp.array2d(dtype=wp.int32)
 
-
 def params_from_config(config):
     config.validate()
     w, c, n, en, r = config.world, config.sensor, config.network, config.energy, config.reward
@@ -312,7 +321,12 @@ def params_from_config(config):
     p.belief_prior, p.fine_altitude, p.confirmation_threshold = c.belief_prior, c.fine_altitude_m, c.confirmation_threshold
     p.verified_empty_belief, p.investigation_threshold = c.verified_empty_belief, r.investigation_belief_threshold
     p.sensor_anchors, p.sensor_pd, p.sensor_pf = wp.vec4d(*c.altitude_anchors), wp.vec4d(*c.pd), wp.vec4d(*c.pf)
-    values = dict(n=w.num_uavs, targets_count=w.num_targets, obstacles_count=w.num_obstacles,
+    report_slots=max(64,4*w.num_targets) if c.report_cell_hypotheses and config.motion_dim==3 else w.num_targets
+    confirm_capacity=max(1,min(int(np.ceil(w.map_size_m/c.grid_cell_m))**2,
+        (int(np.ceil(2*c.fine_altitude_m*np.tan(np.deg2rad(c.full_fov_deg/2))/c.grid_cell_m))+2)**2))
+    values = dict(n=w.num_uavs, targets_count=w.num_targets, report_slots=report_slots,
+                  confirm_capacity=confirm_capacity,
+                  cell_reports=int(c.report_cell_hypotheses and config.motion_dim==3), obstacles_count=w.num_obstacles,
                   max_steps=w.max_steps, motion_safety={"reject":0,"dynamic_window":1,"cbf":2}[w.motion_safety],
                   occlusion=int(c.obstacle_occlusion), target_slots=c.visible_target_slots,
                   obstacle_slots=c.visible_obstacle_slots, report_bytes=n.report_bytes,
@@ -374,23 +388,12 @@ def params_from_config(config):
     values.update(packet_capacity=w.num_uavs*(n.max_queue_packets+2),
                   event_capacity=w.num_uavs*(n.max_queue_packets+8)*8,
                   frame_capacity=w.num_uavs*(n.max_queue_packets+4)*4,
-                  session_capacity=w.num_uavs*w.num_targets*(w.num_uavs+1),
+                  session_capacity=w.num_uavs*report_slots*(w.num_uavs+1),
                   trace_capacity=w.num_uavs*(n.max_queue_packets+2)*(n.max_retries*2+1),
                   trace_enabled=1)
     for name, value in values.items():
         setattr(p, name, value)
     return p
-
-
-def seed_rows(seeds):
-    """NumPy PCG64's 128-bit state for the geometry kernel."""
-    rows = []
-    for seed in seeds:
-        d = np.random.PCG64(int(seed)).state["state"]
-        rows.append([d["state"] & ((1<<64)-1), d["state"] >> 64,
-                     d["inc"] & ((1<<64)-1), d["inc"] >> 64])
-    return np.asarray(rows, dtype=np.uint64)
-
 
 def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False, certify=False):
     """Allocate one independent world per row; no native simulator or worker."""
@@ -401,6 +404,7 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False, ce
         p.trace_enabled = 0
         p.trace_capacity = 1
     e, n, t, o = num_envs, p.n, p.targets_count, max(1, p.obstacles_count)
+    slots=p.report_slots
     if seeds is None:
         seeds = np.arange(config.runtime.seed, config.runtime.seed+e, dtype=np.int64)
     seeds = np.asarray(seeds, dtype=np.int64)
@@ -424,11 +428,13 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False, ce
         "power_histogram": ((e,2,6), wp.int64),
         "delivery_hop_histogram": ((e,8), wp.int64),
         "first_discovery": ((e,t), wp.float64), "first_delivery": ((e,t), wp.float64),
+        "report_cell": ((e,slots),wp.int32), "confirmed_count": ((e,n),wp.int32),
+        "confirmed_candidates": ((e,n,p.confirm_capacity),wp.int32),
         "buffer_peak": ((e,n), wp.int64),
         "positions": ((e,n), wp.vec2d), "velocities": ((e,n), wp.vec2d),
         "targets": ((e,t), wp.vec2d), "obstacles": ((e,o), wp.vec3d),
         "gcs": ((e,), wp.vec2d), "battery": ((e,n), wp.float64),
-        "flight_energy": ((e,n), wp.float64), "delivered": ((e,t), wp.int32),
+        "flight_energy": ((e,n), wp.float64), "delivered": ((e,slots), wp.int32),
         "motion_counts": ((e,13), wp.int32), "report_counts": ((e,3), wp.int32),
         "inflight": ((e,n), wp.float64), "communication_energy": ((e,n+1), wp.float64),
         "tx_energy": ((e,n+1), wp.float64), "rx_energy": ((e,n+1), wp.float64),
@@ -436,7 +442,7 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False, ce
         "state": ((e,state_dim(config)), wp.float32), "reward": ((e,), wp.float32),
         "pcg_state": ((e,4), wp.uint64), "seeds": ((e,), wp.int64),
         "motion_work": ((e,n,3), wp.vec2d), "motion_flags": ((e,n,9), wp.int32),
-        "before": ((e,8), wp.float64), "reward_components": ((e,14), wp.float64),
+        "before": ((e,8), wp.float64), "before_false": ((e,2),wp.float64), "reward_components": ((e,14), wp.float64),
         "shield_correction_step": ((e,), wp.float64), "shield_correction": ((e,), wp.float64),
         "unsafe_action_step": ((e,), wp.float64), "shield_intervention_step": ((e,), wp.float64),
         "packet_counts": ((e,8), wp.int32), "selection_counts": ((e,5), wp.int32),
@@ -450,27 +456,27 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False, ce
         sensor_tick=((e,),wp.int32), sensor_counts=((e,6 if p.xyz else 0),wp.int64),
         xyz_work=((e,xn,3),wp.vec3d))
     for name in ("visible", "known", "recovery", "report_present", "report_origin", "report_hops"):
-        shapes[name] = ((e,n,t), wp.int32)
-    shapes["report_created"] = ((e,n,t), wp.float64)
+        shapes[name] = ((e,n,slots), wp.int32)
+    shapes["report_created"] = ((e,n,slots), wp.float64)
     shapes["trace_report"] = ((e,p.trace_capacity if trace else 0,9), wp.float64)
     shapes["tx_propagation_delay"] = ((e,p.frame_capacity,n+1) if p.propagation_delay_enabled else (e,0,n+1), wp.float64)
-    shapes["report_order"] = ((e,n,t), wp.int64)
+    shapes["report_order"] = ((e,n,slots), wp.int64)
     for name in ("steps","terminated","blocked","clipped","errors","event_count","frame_count",
                  "trace_count","report_delivery_count","coalesce_step"):
         shapes[name] = ((e,), wp.int32)
     for name in ("event_sequence","packet_sequence","report_sequence"):
         shapes[name] = ((e,), wp.int64)
-    for name in ("packet_time","mission_time","packet_delay_sum","report_delay_sum","report_hop_sum"):
+    for name in ("packet_time","mission_time","packet_delay_sum","report_delay_sum","report_hop_sum","true_report_delay_sum","true_report_hop_sum"):
         shapes[name] = ((e,), wp.float64)
     groups = (
         (p.event_capacity, wp.float64, "event_time"),
         (p.event_capacity, wp.int32, "event_kind event_arg event_priority event_generation"),
         (p.event_capacity, wp.int64, "event_order"),
         (p.packet_capacity, wp.float64, "pkt_created pkt_deadline pkt_power pkt_report_created pkt_backoff pkt_wait_start pkt_first_attempt"),
-        (p.packet_capacity, wp.int32, "pkt_status pkt_source pkt_destination pkt_target pkt_fragment pkt_attempt pkt_origin pkt_hops pkt_feed pkt_ttl pkt_generation pkt_backoff_version pkt_delivered"),
+        (p.packet_capacity, wp.int32, "pkt_status pkt_source pkt_destination pkt_target pkt_cell pkt_fragment pkt_attempt pkt_origin pkt_hops pkt_feed pkt_ttl pkt_generation pkt_backoff_version pkt_delivered"),
         (p.packet_capacity, wp.int64, "pkt_id pkt_order pkt_session pkt_session_id"),
         (n+1, wp.int32, "node_queue_count node_current node_feed_alive node_wait_finish node_wait_packet node_receiving"),
-        (p.frame_capacity, wp.int32, "frame_order tx_active tx_kind tx_packet tx_generation tx_source tx_destination tx_target tx_fragment tx_payload tx_ttl tx_origin tx_hops tx_receive"),
+        (p.frame_capacity, wp.int32, "frame_order tx_active tx_kind tx_packet tx_generation tx_source tx_destination tx_target tx_cell tx_fragment tx_payload tx_ttl tx_origin tx_hops tx_receive"),
         (p.frame_capacity, wp.float64, "tx_start tx_end tx_power tx_created tx_report_created"),
         (p.frame_capacity, wp.int64, "tx_id tx_session tx_receive_order"),
         ((n+1)*(n+1), wp.float64, "pair_gain pair_time"),
@@ -491,7 +497,3 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False, ce
     s.gcs.assign(np.tile(gcs := [p.gcs_x,p.gcs_y], (e,1)))
     s.battery.fill_(p.capacity)
     return s, p
-
-
-def allocated_bytes(s):
-    return sum(value.capacity for value in vars(s).values() if isinstance(value, wp.array))

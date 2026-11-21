@@ -37,8 +37,8 @@ def clear_pending(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, now: wp
     # rule that retry exhaustion needs a later policy action.
     for session in range(p.session_capacity):
         if s.session_active[e,session] != 0:
-            source = session//((p.n+1)*p.targets_count)
-            target = (session//(p.n+1))%p.targets_count
+            source = session//((p.n+1)*p.report_slots)
+            target = (session//(p.n+1))%p.report_slots
             if (s.report_present[e,source,target] == 0
                 or s.report_created[e,source,target] != s.session_created[e,session]
                 or s.report_origin[e,source,target] != s.session_origin[e,session]
@@ -104,7 +104,8 @@ def fill_session(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, session:
         s.pkt_backoff_version[e,slot] += 1
         s.pkt_source[e,slot] = source
         s.pkt_destination[e,slot] = dest
-        s.pkt_target[e,slot] = target
+        s.pkt_target[e,slot] = target  # local dense report slot
+        s.pkt_cell[e,slot] = s.report_cell[e,target] if p.cell_reports!=0 else target
         s.pkt_fragment[e,slot] = fragment
         s.pkt_attempt[e,slot] = 0
         s.pkt_ttl[e,slot] = 0
@@ -126,7 +127,7 @@ def fill_session(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, session:
 @wp.func
 def inject(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, source: int, dest: int,
            target: int, power: wp.float64, now: wp.float64):
-    session = (source*p.targets_count+target)*(p.n+1)+dest
+    session = (source*p.report_slots+target)*(p.n+1)+dest
     if s.session_active[e,session] == 0:
         s.session_active[e,session] = 1
         s.session_id[e,session] += wp.int64(1)

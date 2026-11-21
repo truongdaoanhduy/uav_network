@@ -17,23 +17,63 @@ def patch_value(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,i:int,cell:int)
 
 @wp.func
 def candidates(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,i:int,offset:int):
-    previous=wp.float64(-1);previous_id=int(-1)
-    for rank in range(p.target_slots):
-        best=wp.float64(1e100);best_id=int(-1)
-        for cell in range(p.grid_n*p.grid_n):
-            if s.positive[e,i,cell]!=0:
-                center=wp.vec2d(wp.min((wp.float64(cell%p.grid_n)+wp.float64(.5))*p.cell_width,p.map_size),wp.min((wp.float64(cell//p.grid_n)+wp.float64(.5))*p.cell_width,p.map_size))
-                distance=wp.length(center-s.positions[e,i])
-                if (distance>previous or (distance==previous and cell>previous_id)) and distance<best:
-                    best=distance;best_id=cell
-        if best_id>=0:
-            center=wp.vec2d(wp.min((wp.float64(best_id%p.grid_n)+wp.float64(.5))*p.cell_width,p.map_size),wp.min((wp.float64(best_id//p.grid_n)+wp.float64(.5))*p.cell_width,p.map_size))
-            rel=(center-s.positions[e,i])/p.map_size
-            s.observation[e,i,offset+4*rank]=wp.float32(rel[0])
-            s.observation[e,i,offset+4*rank+1]=wp.float32(rel[1])
-            s.observation[e,i,offset+4*rank+2]=wp.float32(s.belief[e,i,best_id])
-            s.observation[e,i,offset+4*rank+3]=wp.float32(1)
-            previous=best;previous_id=best_id
+    if p.cell_reports==0:
+        # Unchanged historical source, for exact 18d756ef reproduction.
+        previous=wp.float64(-1);previous_id=int(-1)
+        for rank in range(p.target_slots):
+            best=wp.float64(1e100);best_id=int(-1)
+            for cell in range(p.grid_n*p.grid_n):
+                if s.positive[e,i,cell]!=0:
+                    center=wp.vec2d(wp.min((wp.float64(cell%p.grid_n)+wp.float64(.5))*p.cell_width,p.map_size),wp.min((wp.float64(cell//p.grid_n)+wp.float64(.5))*p.cell_width,p.map_size))
+                    distance=wp.length(center-s.positions[e,i])
+                    if (distance>previous or (distance==previous and cell>previous_id)) and distance<best:
+                        best=distance;best_id=cell
+            if best_id>=0:
+                center=wp.vec2d(wp.min((wp.float64(best_id%p.grid_n)+wp.float64(.5))*p.cell_width,p.map_size),wp.min((wp.float64(best_id//p.grid_n)+wp.float64(.5))*p.cell_width,p.map_size))
+                rel=(center-s.positions[e,i])/p.map_size
+                s.observation[e,i,offset+4*rank]=wp.float32(rel[0])
+                s.observation[e,i,offset+4*rank+1]=wp.float32(rel[1])
+                s.observation[e,i,offset+4*rank+2]=wp.float32(s.belief[e,i,best_id])
+                s.observation[e,i,offset+4*rank+3]=wp.float32(1)
+                previous=best;previous_id=best_id
+    else:
+        # Strongest persistent local Bayesian candidate first. A one-frame yes
+        # alone is NOT a reliable target location; never consult true target XY.
+        prev_belief=wp.float64(2.)
+        prev_distance=wp.float64(-1.)
+        prev_id=int(-1)
+        for rank in range(p.target_slots):
+            best_belief=wp.float64(-1.)
+            best_distance=wp.float64(1e100)
+            best_id=int(-1)
+            for cell in range(p.grid_n*p.grid_n):
+                confidence=s.belief[e,i,cell]
+                if s.visited[e,i,cell]!=0 and confidence>=p.investigation_threshold:
+                    center=wp.vec2d((wp.float64(cell%p.grid_n)+wp.float64(.5))*p.cell_width,
+                                    (wp.float64(cell//p.grid_n)+wp.float64(.5))*p.cell_width)
+                    distance=wp.length(center-s.positions[e,i])
+                    after=confidence<prev_belief-wp.float64(1e-12)
+                    if not after and wp.abs(confidence-prev_belief)<wp.float64(1e-12):
+                        after=(distance>prev_distance+wp.float64(1e-12) or
+                               (wp.abs(distance-prev_distance)<wp.float64(1e-12) and cell>prev_id))
+                    if after and (confidence>best_belief+wp.float64(1e-12) or
+                        (wp.abs(confidence-best_belief)<wp.float64(1e-12) and
+                         (distance<best_distance-wp.float64(1e-12) or
+                          (wp.abs(distance-best_distance)<wp.float64(1e-12) and cell<best_id)))):
+                        best_belief=confidence
+                        best_distance=distance
+                        best_id=cell
+            if best_id>=0:
+                center=wp.vec2d((wp.float64(best_id%p.grid_n)+wp.float64(.5))*p.cell_width,
+                                (wp.float64(best_id//p.grid_n)+wp.float64(.5))*p.cell_width)
+                rel=(center-s.positions[e,i])/p.map_size
+                s.observation[e,i,offset+4*rank]=wp.float32(rel[0])
+                s.observation[e,i,offset+4*rank+1]=wp.float32(rel[1])
+                s.observation[e,i,offset+4*rank+2]=wp.float32(best_belief)
+                s.observation[e,i,offset+4*rank+3]=wp.float32(1)
+                prev_belief=best_belief
+                prev_distance=best_distance
+                prev_id=best_id
 
 
 @wp.func
@@ -72,7 +112,10 @@ def centralized_extras(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,offset:i
         s.state[e,offset+i]=wp.float32(s.altitudes[e,i]/p.altitude_max)
         s.state[e,offset+p.n+i]=wp.float32(s.vertical_velocity[e,i]/p.max_speed)
     offset+=2*p.n
-    for o in range(p.obstacles_count):s.state[e,offset+o]=wp.float32(s.obstacle_heights[e,o]/p.altitude_max)
+    for o in range(p.obstacles_count):
+        value=wp.float64(0)
+        if p.cell_reports==0:value=s.obstacle_heights[e,o]/p.altitude_max
+        s.state[e,offset+o]=wp.float32(value)
     offset+=p.obstacles_count
     for i in range(p.n):
         for cell in range(p.patch_n*p.patch_n):s.state[e,offset+i*p.patch_n*p.patch_n+cell]=wp.float32(patch_value(s,p,e,i,cell))

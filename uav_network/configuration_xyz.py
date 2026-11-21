@@ -24,7 +24,9 @@ class BayesianSettings:
     fine_altitude_m: float = 50.0
     belief_patch_cells: int = 5
     belief_coarse_cells: int = 0
-    verified_empty_belief: float = 0.0
+    verified_empty_belief: float = 0.01
+    # New opt-in experiment: camera-confirmed grid cells are report identities, NOT hidden target IDs.
+    report_cell_hypotheses: bool = False
 
 
 def validate_xyz(config):

@@ -43,8 +43,9 @@ def receive_data(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, frame: i
         source = s.tx_source[e,frame]
         dest = s.tx_destination[e,frame]
         target = s.tx_target[e,frame]
-        session = (source*p.targets_count+target)*(p.n+1)+dest
-        if (s.session_active[e,session] != 0 and s.session_id[e,session] == s.tx_session[e,frame]
+        session = (source*p.report_slots+target)*(p.n+1)+dest
+        if ((p.cell_reports==0 or s.tx_cell[e,frame]==s.report_cell[e,target])
+            and s.session_active[e,session] != 0 and s.session_id[e,session] == s.tx_session[e,frame]
             and s.report_present[e,source,target] != 0
             and s.report_created[e,source,target] == s.tx_report_created[e,frame]
             and s.report_origin[e,source,target] == s.tx_origin[e,frame]
@@ -277,7 +278,7 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
             continue
         selected = int(-1)
         can_forward = bool(False)
-        for t in range(p.targets_count):
+        for t in range(p.report_slots):
             forward = (s.report_present[e,source,t] != 0
                        and now/wp.float64(1e6)-s.report_created[e,source,t] < p.report_ttl
                        and can_receive(s,p,e,dest,t))

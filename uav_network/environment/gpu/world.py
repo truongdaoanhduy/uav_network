@@ -116,7 +116,16 @@ def _place_geometry(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int):
             x = _uniform(s, e, wp.float64(0.0), p.map_size)
             y = _uniform(s, e, wp.float64(0.0), p.map_size)
             point = wp.vec2d(x, y)
-            if wp.length(point - s.gcs[e]) >= p.target_exclusion and _outside(s, e, point, p.obstacles_count, target_clearance):
+            unique_cell=bool(True)
+            if p.cell_reports!=0:
+                cell_x=wp.min(int(point[0]/p.cell_width),p.grid_n-1)
+                cell_y=wp.min(int(point[1]/p.cell_width),p.grid_n-1)
+                for earlier_target in range(t):
+                    other=s.targets[e,earlier_target]
+                    if (cell_x==wp.min(int(other[0]/p.cell_width),p.grid_n-1)
+                        and cell_y==wp.min(int(other[1]/p.cell_width),p.grid_n-1)):
+                        unique_cell=False
+            if unique_cell and wp.length(point - s.gcs[e]) >= p.target_exclusion and _outside(s, e, point, p.obstacles_count, target_clearance):
                 s.targets[e, t] = point
                 placed = bool(True)
                 break
@@ -147,6 +156,11 @@ def reset_geometry(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32)
             return
     if p.fallback_count == 0:
         s.errors[e] = code
+        return
+    if p.cell_reports!=0:
+        # Certified fallback worlds were made under the old target-placement rule.
+        # Never silently reintroduce duplicate-cell targets in this new experiment.
+        s.errors[e]=105
         return
     selected = int(_uniform(s, e, wp.float64(0.0), wp.float64(p.fallback_count)))
     for i in range(p.n):

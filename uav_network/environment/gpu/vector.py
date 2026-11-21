@@ -11,7 +11,7 @@ import warp as wp
 from .state import allocate_state, params_from_config, seed_rows
 from .motion import motion_step
 from .xyz_motion import motion_xyz
-from .bayesian import reset_xyz, sense_bayesian
+from .bayesian import reset_xyz, sense_bayesian, confirm_observed_cells
 from .world import reset_geometry
 from .validation import validate_actions
 from .geometry import sense, scan_coverage
@@ -131,6 +131,7 @@ class WarpVectorEnv:
         if self.p.xyz:
             self._launch(reset_xyz,(self.num_envs,self.p.n),self.s,self.p,wp_mask)
             self._launch(sense_bayesian,(self.num_envs,self.p.n),self.s,self.p,0,wp_mask)
+            if self.p.cell_reports:self._launch(confirm_observed_cells,self.num_envs,self.s,self.p,wp_mask,1)
         else:
             self._launch(sense,(self.num_envs,self.p.n,self.p.targets_count),self.s,self.p)
         if self.p.coverage_grid_cells:
@@ -152,7 +153,7 @@ class WarpVectorEnv:
             raise RuntimeError("Cannot snapshot a closed, waiting, or uninitialized vector")
         self._bind_stream()
         wp.synchronize_device(self.wp_device)
-        return {"version": 2 if self.p.xyz else 1, "config": self._snapshot_config(),
+        return {"version": 3 if self.p.cell_reports else (2 if self.p.xyz else 1), "config": self._snapshot_config(),
                 "device_type": self.device.type,
                 "arrays": {name: wp.to_torch(value).detach().to(device="cpu", copy=True)
                            for name, value in vars(self.s).items() if isinstance(value, wp.array)},
@@ -163,7 +164,7 @@ class WarpVectorEnv:
         """Validate the complete payload before changing any live world."""
         if self._closed or self._waiting:
             raise RuntimeError("Cannot restore a closed or waiting vector")
-        if (not isinstance(snapshot, dict) or snapshot.get("version") != (2 if self.p.xyz else 1)
+        if (not isinstance(snapshot, dict) or snapshot.get("version") != (3 if self.p.cell_reports else (2 if self.p.xyz else 1))
                 or with_legacy_feature_defaults(snapshot.get("config", {})) != self._snapshot_config()
                 or snapshot.get("device_type") != self.device.type):
             raise ValueError("Incompatible Warp snapshot version/config/device")
@@ -262,6 +263,7 @@ class WarpVectorEnv:
         self._launch(motion_xyz if self.p.xyz else motion_step,self.num_envs,self.s,self.p,wc)
         if self.p.xyz:
             self._launch(sense_bayesian,(self.num_envs,self.p.n),self.s,self.p,1,self.s.terminated)
+            if self.p.cell_reports:self._launch(confirm_observed_cells,self.num_envs,self.s,self.p,self.s.terminated,0)
         else:
             self._launch(sense,(self.num_envs,self.p.n,self.p.targets_count),self.s,self.p)
         if self.p.coverage_grid_cells:

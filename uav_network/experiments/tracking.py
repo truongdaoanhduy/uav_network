@@ -21,6 +21,21 @@ CPU_EPISODE_METRICS += tuple("evaluation/episode_core/" + k for k in ("discovery
 def progress_metrics(observations, config):
     local, state = observations["observation"], observations["state"]
     n, t, k = config.world.num_uavs, config.world.num_targets, config.world.num_obstacles
+    if getattr(config.sensor, "report_cell_hypotheses", False):
+        # In cell-based mode the historical target-ID columns are replaced by
+        # LOCAL evidence aggregates. They must never be logged as true recall.
+        # The only ground-truth-rated outcomes are episode-end summaries.
+        if hasattr(local, "detach"):
+            return {
+                "progress/local_confirmed_hypotheses_per_target": float(local[:, :, 10].mean().detach().cpu().item()),
+                "progress/mean_battery_fraction": float(local[:, :, 8].mean().detach().cpu().item()),
+                "progress/mean_active_uavs": float(local[:, :, 9].sum(1).mean().detach().cpu().item()),
+            }
+        return {
+            "progress/local_confirmed_hypotheses_per_target": float(local[:, :, 10].mean()),
+            "progress/mean_battery_fraction": float(local[:, :, 8].mean()),
+            "progress/mean_active_uavs": float(local[:, :, 9].sum(1).mean()),
+        }
     delivered_start = 4 * n + 2 * t + 3 * k + 2 * n * t
     if hasattr(local,"detach"):
         import torch
@@ -59,6 +74,10 @@ def episode_metrics(record, num_uavs, motion_dim=2, motion_safety=None):
               "energy/exhausted_uavs": num_uavs - energy["active_uavs"]}
     if "targets_found" in record and "targets_delivered" in record:
         result["outcome/mission_score"] = mission_score(record["targets_found"], record["targets_delivered"])
+    # These are ground-truth-scored telemetry only, not Actor/Critic inputs.
+    for key in ("false_confirmed_cells", "false_reports_delivered", "total_hypotheses"):
+        if key in record:
+            result[f"outcome/{key}"] = int(record[key])
     result["energy/total_uav_energy_j"] = result["energy/propulsion_energy_j"] + result["energy/uav_rf_energy_j"]
     mapping = {"packet_pdr_percent": "pdr_percent", "packet_e2e_delay_ms": "e2e_delay_ms",
                "payload_throughput_kbps": "payload_throughput_kbps", "phy_success_percent": "phy_success_percent",

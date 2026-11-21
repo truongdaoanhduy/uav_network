@@ -29,6 +29,8 @@ def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32))
         s.packet_delay_sum[e] = wp.float64(0)
         s.report_delay_sum[e] = wp.float64(0)
         s.report_hop_sum[e] = wp.float64(0)
+        s.true_report_delay_sum[e] = wp.float64(0)
+        s.true_report_hop_sum[e] = wp.float64(0)
         s.report_delivery_count[e] = 0
         s.trace_count[e] = 0
         reset_reward_state(s, e)
@@ -44,6 +46,8 @@ def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32))
                 s.power_histogram[e, j, k] = wp.int64(0)
         for i in range(p.n):
             s.buffer_peak[e, i] = wp.int64(0)
+        for t in range(p.report_slots):
+            s.report_cell[e,t]=-1
         for t in range(p.targets_count):
             s.first_discovery[e, t] = wp.float64(-1)
             s.first_delivery[e, t] = wp.float64(-1)
@@ -64,7 +68,7 @@ def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32))
                 s.battery[e, i] = p.capacity
                 s.flight_energy[e, i] = wp.float64(0)
                 s.inflight[e, i] = wp.float64(0)
-                for t in range(p.targets_count):
+                for t in range(p.report_slots):
                     s.known[e, i, t] = 0
                     s.recovery[e, i, t] = 0
                     s.report_present[e, i, t] = 0
@@ -72,7 +76,7 @@ def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32))
                     s.report_hops[e, i, t] = 0
                     s.report_created[e, i, t] = wp.float64(0)
                     s.report_order[e, i, t] = wp.int64(0)
-        for t in range(p.targets_count):
+        for t in range(p.report_slots):
             s.delivered[e, t] = 0
         for j in range(13):
             s.motion_counts[e, j] = 0

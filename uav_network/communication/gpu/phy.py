@@ -226,6 +226,7 @@ def emit(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, packet: int, sou
     s.tx_source[e,frame] = source
     s.tx_destination[e,frame] = destination
     s.tx_target[e,frame] = s.pkt_target[e,packet]
+    s.tx_cell[e,frame] = s.pkt_cell[e,packet]
     s.tx_fragment[e,frame] = s.pkt_fragment[e,packet]
     s.tx_payload[e,frame] = wp.min(p.payload_bytes,p.report_bytes-s.pkt_fragment[e,packet]*p.payload_bytes)
     s.tx_ttl[e,frame] = s.pkt_ttl[e,packet]

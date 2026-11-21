@@ -3,6 +3,7 @@ import warp as wp
 from ...environment.gpu.xyz_geometry import range_distance
 from ...environment.gpu.state import WorldParams, WorldState
 from ...environment.gpu.bayesian import investigation_potential
+from ...environment.gpu.scoring_truth import true_target_cell, is_truth_matched_report, truth_found_and_delivered
 from . import diagnostics as diag
 
 wp.set_module_options({"enable_backward": False})
@@ -16,7 +17,7 @@ def active(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, node: int) -> 
 @wp.func
 def bytes_used(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, node: int) -> int:
     count = int(0)
-    for t in range(p.targets_count):
+    for t in range(p.report_slots):
         count += s.report_present[e,node,t]
     return count*p.report_bytes
 
@@ -31,7 +32,7 @@ def can_receive(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, node: int
 @wp.func
 def discard_sessions(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, source: int, target: int):
     for dest in range(p.n+1):
-        session = (source*p.targets_count+target)*(p.n+1)+dest
+        session = (source*p.report_slots+target)*(p.n+1)+dest
         s.session_active[e,session] = 0
         s.session_window_start[e,session] = 0
         s.session_arrived_mask[e,session] = wp.uint64(0)
@@ -42,7 +43,7 @@ def discard_sessions(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, sour
 @wp.func
 def expire(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, now: wp.float64):
     for i in range(p.n):
-        for t in range(p.targets_count):
+        for t in range(p.report_slots):
             if s.report_present[e,i,t] != 0 and now-s.report_created[e,i,t] >= p.report_ttl:
                 s.report_present[e,i,t] = 0
                 s.recovery[e,i,t] = 1
@@ -73,7 +74,15 @@ def transfer(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, source: int,
     if destination == p.n:
         if s.delivered[e,target] == 0:
             s.delivered[e,target] = 1
-            s.first_delivery[e,target] = now
+            if p.cell_reports==0:
+                s.first_delivery[e,target] = now
+            else:
+                # Bookkeeping only. No truth check affects REPORT generation,
+                # transfer, acknowledgment, or destination admission.
+                cell=s.report_cell[e,target]
+                for t in range(p.targets_count):
+                    if cell==true_target_cell(s,p,e,t) and s.first_delivery[e,t]<wp.float64(0):
+                        s.first_delivery[e,t]=now
             s.delivery_hop_histogram[e,wp.min(hops,7)] += wp.int64(1)
             delivery = diag.RELAYED_GCS_REPORTS
             if hops == 0:
@@ -82,6 +91,9 @@ def transfer(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, source: int,
             s.report_delivery_count[e] += 1
             s.report_delay_sum[e] += now-created
             s.report_hop_sum[e] += wp.float64(hops+1)
+            if p.cell_reports!=0 and is_truth_matched_report(s,p,e,target):
+                s.true_report_delay_sum[e]+=now-created
+                s.true_report_hop_sum[e]+=wp.float64(hops+1)
     else:
         s.diagnostic_counts[e,diag.CUSTODY_PEER_TRANSFERS] += wp.int64(1)
         source_distance = range_distance(s,p,e,source,p.n)
@@ -105,7 +117,7 @@ def transfer(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, source: int,
             s.trace_source[e,trace] = source
             s.trace_destination[e,trace] = destination
             s.trace_kind[e,trace] = 2
-            s.trace_report[e,trace,0] = wp.float64(target)
+            s.trace_report[e,trace,0] = wp.float64(s.report_cell[e,target] if p.cell_reports!=0 else target)
             s.trace_report[e,trace,1] = wp.float64(origin)
             s.trace_report[e,trace,2] = created
             s.trace_report[e,trace,3] = wp.float64(hops+1)
@@ -142,12 +154,18 @@ def begin_step(s: WorldState, p: WorldParams):
     delivered = int(0)
     flight = wp.float64(0)
     comm = wp.float64(0)
-    for t in range(p.targets_count):
-        known = int(0)
-        for i in range(p.n):
-            known = wp.max(known,s.known[e,i,t])
-        found += known
-        delivered += s.delivered[e,t]
+    if p.cell_reports!=0:
+        totals=truth_found_and_delivered(s,p,e)
+        found=int(totals[0]);delivered=int(totals[1])
+        s.before_false[e,0]=totals[2]
+        s.before_false[e,1]=totals[3]
+    else:
+        for t in range(p.report_slots):
+            known = int(0)
+            for i in range(p.n):
+                known = wp.max(known,s.known[e,i,t])
+            found += known
+            delivered += s.delivered[e,t]
     for i in range(p.n):
         flight += s.flight_energy[e,i]
         comm += s.communication_energy[e,i]
@@ -171,13 +189,20 @@ def begin_step(s: WorldState, p: WorldParams):
 def sense_reports_at(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int):
     now = wp.float64(s.steps[e])*p.dt
     for i in range(p.n):
-        for t in range(p.targets_count):
+        for t in range(p.report_slots):
             fresh = s.known[e,i,t] == 0
             recover = p.recovery_enabled != 0 and s.recovery[e,i,t] != 0
             if active(s,p,e,i) and s.visible[e,i,t] != 0 and (fresh or recover):
                 s.known[e,i,t] = 1
-                if s.first_discovery[e,t] < wp.float64(0):
-                    s.first_discovery[e,t] = now
+                if p.cell_reports==0:
+                    if s.first_discovery[e,t] < wp.float64(0):
+                        s.first_discovery[e,t] = now
+                else:
+                    # Scoring-only truth alignment; report creation below is unconditional.
+                    cell=s.report_cell[e,t]
+                    for truth in range(p.targets_count):
+                        if cell==true_target_cell(s,p,e,truth) and s.first_discovery[e,truth]<wp.float64(0):
+                            s.first_discovery[e,truth]=now
                 # Remote GCS delivery does not acknowledge this local sighting.
                 if bytes_used(s,p,e,i)+p.report_bytes <= p.buffer_bytes:
                     insert(s,p,e,i,t,i,now,0)
@@ -212,12 +237,16 @@ def end_step(s: WorldState, p: WorldParams):
     live = int(0)
     flight = wp.float64(0)
     comm = wp.float64(0)
-    for t in range(p.targets_count):
-        known = int(0)
-        for i in range(p.n):
-            known = wp.max(known,s.known[e,i,t])
-        found += known
-        delivered += s.delivered[e,t]
+    if p.cell_reports!=0:
+        totals=truth_found_and_delivered(s,p,e)
+        found=int(totals[0]);delivered=int(totals[1])
+    else:
+        for t in range(p.report_slots):
+            known = int(0)
+            for i in range(p.n):
+                known = wp.max(known,s.known[e,i,t])
+            found += known
+            delivered += s.delivered[e,t]
     for i in range(p.n):
         flight += s.flight_energy[e,i]
         comm += s.communication_energy[e,i]
@@ -234,6 +263,11 @@ def end_step(s: WorldState, p: WorldParams):
         s.inflight[e,i] = wp.float64(pending)
     c0 = p.reward_discovery*(wp.float64(found)-s.before[e,0])
     c1 = p.reward_delivery*(wp.float64(delivered)-s.before[e,1])
+    if p.cell_reports!=0:
+        # False local confirmations and false GCS reports MUST be possible,
+        # and should incur a penalty rather than be silently deleted by truth.
+        c0-=p.reward_dropped*(totals[2]-s.before_false[e,0])
+        c1-=p.reward_dropped*(totals[3]-s.before_false[e,1])
     c2 = -p.reward_blocked*(wp.float64(s.blocked[e])-s.before[e,4])
     c3 = -p.reward_expired*(wp.float64(s.report_counts[e,0])-s.before[e,2])
     c4 = -p.reward_dropped*(wp.float64(s.report_counts[e,1])-s.before[e,3])

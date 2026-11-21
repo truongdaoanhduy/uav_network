@@ -20,7 +20,7 @@ def _active(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, i: int):
 @wp.func
 def _report_count(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, i: int):
     count = int(0)
-    for t in range(p.targets_count):
+    for t in range(p.report_slots):
         count = count + s.report_present[e, i, t]
     return count
 
@@ -40,14 +40,14 @@ def report_age(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, i: int, t:
 def _admissible(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, i: int, destination: int):
     available = bool(False)
     receiver_space = True
-    if destination < p.n:
+    if p.cell_reports==0 and destination < p.n:
         receiver_space = (_report_count(s, p, e, destination) + 1) * p.report_bytes <= p.buffer_bytes
-    for t in range(p.targets_count):
+    for t in range(p.report_slots):
         if (s.report_present[e, i, t] != 0
                 and wp.float64(s.steps[e]) * p.dt - s.report_created[e, i, t] < p.report_ttl):
             if destination == p.n:
                 available = True
-            elif receiver_space and s.known[e, destination, t] == 0:
+            elif p.cell_reports!=0 or (receiver_space and s.known[e,destination,t]==0):
                 available = True
     return available
 
@@ -57,11 +57,13 @@ def destination_allowed(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, i
     allowed = (p.network_enabled != 0 and _active(s, p, e, i)
                and _report_count(s, p, e, i) > 0)
     if destination < p.n:
-        allowed = (allowed and _active(s, p, e, destination)
-                   and range_distance(s,p,e,i,destination) <= p.peer_range)
+        # Without a modeled beacon, receiver state and even receiver location
+        # are private. Keep tentative peer actions selectable; PHY/MAC decides.
+        allowed = allowed and (p.cell_reports!=0 or
+                  (_active(s,p,e,destination) and range_distance(s,p,e,i,destination)<=p.peer_range))
     else:
         allowed = allowed and range_distance(s,p,e,i,p.n) <= p.gcs_range
-    if p.power_limited_admission != 0:
+    if p.power_limited_admission != 0 and p.cell_reports==0:
         allowed = allowed and nominal_required_power(s,p,e,i,destination) <= p.tx_power_max
     if p.admission_mask != 0:
         allowed = allowed and _admissible(s, p, e, i, destination)
@@ -83,9 +85,21 @@ def observe(s: WorldState, p: WorldParams):
     s.observation[e, i, 7] = wp.float32(wp.float64(_report_count(s, p, e, i) * p.report_bytes) / wp.float64(p.buffer_bytes))
     s.observation[e, i, 8] = wp.float32(s.battery[e, i] / p.capacity)
     s.observation[e, i, 9] = wp.float32(int(active))
-    for t in range(p.targets_count):
-        s.observation[e, i, 10 + t] = wp.float32(s.known[e, i, t])
-        s.observation[e, i, 10 + p.targets_count + t] = wp.float32(report_age(s, p, e, i, t))
+    if p.cell_reports==0:
+        # Historical 18d756ef feature contract (target-ID indexed).
+        for t in range(p.targets_count):
+            s.observation[e, i, 10 + t] = wp.float32(s.known[e, i, t])
+            s.observation[e, i, 10 + p.targets_count + t] = wp.float32(report_age(s, p, e, i, t))
+    else:
+        # Local aggregate only. Global slot numbers are an internal sparse
+        # storage detail and must not encode other agents' sensing order.
+        locally_known=int(0)
+        locally_pending=int(0)
+        for slot in range(p.report_slots):
+            locally_known+=s.known[e,i,slot]
+            locally_pending+=s.report_present[e,i,slot]
+        s.observation[e,i,10]=wp.float32(wp.min(wp.float64(1),wp.float64(locally_known)/wp.float64(p.targets_count)))
+        s.observation[e,i,10+p.targets_count]=wp.float32(wp.float64(locally_pending)/wp.float64(p.report_slots))
     offset = 10 + 2 * p.targets_count
     # Rank visible items by distance and ID; stable ties match Python's sort.
     for t in range(p.targets_count):
@@ -130,13 +144,14 @@ def observe(s: WorldState, p: WorldParams):
     slot = int(0)
     for j in range(p.n):
         if j != i:
-            if active and range_distance(s,p,e,i,j) <= p.peer_range:
+            if p.cell_reports==0 and active and range_distance(s,p,e,i,j) <= p.peer_range:
                 relative = (s.positions[e, j] - position) / p.map_size
                 for axis in range(2):
                     s.observation[e, i, offset + 6 * slot + axis] = wp.float32(relative[axis])
                     s.observation[e, i, offset + 6 * slot + 2 + axis] = wp.float32(s.velocities[e, j][axis] / p.max_speed)
-                s.observation[e, i, offset + 6 * slot + 4] = wp.float32(s.battery[e, j] / p.capacity)
-                s.observation[e, i, offset + 6 * slot + 5] = wp.float32(int(_active(s, p, e, j)))
+                if p.cell_reports==0:
+                    s.observation[e, i, offset + 6 * slot + 4] = wp.float32(s.battery[e, j] / p.capacity)
+                    s.observation[e, i, offset + 6 * slot + 5] = wp.float32(int(_active(s, p, e, j)))
             slot = slot + 1
     offset = offset + 6 * (p.n - 1)
     if p.link_state_observation != 0:
@@ -145,7 +160,7 @@ def observe(s: WorldState, p: WorldParams):
         slot = int(0)
         for j in range(p.n):
             if j != i:
-                if active and _active(s,p,e,j) and range_distance(s,p,e,i,j) <= p.peer_range:
+                if p.cell_reports==0 and active and _active(s,p,e,j) and range_distance(s,p,e,i,j) <= p.peer_range:
                     required = nominal_required_power(s,p,e,i,j)
                     progress = wp.clamp((source_gcs-range_distance(s,p,e,j,p.n))/diagonal,
                                         wp.float64(-1),wp.float64(1))
@@ -153,7 +168,7 @@ def observe(s: WorldState, p: WorldParams):
                                     /wp.float64(p.buffer_bytes),wp.float64(0),wp.float64(1))
                     s.observation[e,i,offset+3*slot] = wp.float32(power_fraction(p,required))
                     s.observation[e,i,offset+3*slot+1] = wp.float32(progress)
-                    s.observation[e,i,offset+3*slot+2] = wp.float32(free)
+                    s.observation[e,i,offset+3*slot+2] = wp.float32(wp.float64(.5) if p.cell_reports!=0 else free)
                 slot += 1
         if active and source_gcs <= p.gcs_range:
             required = nominal_required_power(s,p,e,i,p.n)
@@ -185,11 +200,21 @@ def centralized(s: WorldState, p: WorldParams):
     offset = 4 * p.n
     for t in range(p.targets_count):
         for axis in range(2):
-            s.state[e, offset + 2 * t + axis] = wp.float32(s.targets[e, t][axis] / p.map_size)
+            value=wp.float64(0.0)
+            if p.cell_reports==0:
+                value=s.targets[e,t][axis]/p.map_size
+            elif t<p.report_slots and s.report_cell[e,t]>=0:
+                cell=s.report_cell[e,t]
+                value=(wp.float64(cell%p.grid_n)+wp.float64(.5))*p.cell_width/p.map_size
+                if axis==1:
+                    value=(wp.float64(cell//p.grid_n)+wp.float64(.5))*p.cell_width/p.map_size
+            s.state[e,offset+2*t+axis]=wp.float32(value)
     offset = offset + 2 * p.targets_count
     for o in range(p.obstacles_count):
         for axis in range(3):
-            s.state[e, offset + 3 * o + axis] = wp.float32(s.obstacles[e, o][axis] / p.map_size)
+            value=wp.float64(0)
+            if p.cell_reports==0:value=s.obstacles[e,o][axis]/p.map_size
+            s.state[e,offset+3*o+axis]=wp.float32(value)
     offset = offset + 3 * p.obstacles_count
     for i in range(p.n):
         for t in range(p.targets_count):

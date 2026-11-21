@@ -128,7 +128,8 @@ def reset_xyz(s:WorldState,p:WorldParams,mask:wp.array(dtype=wp.int32)):
 def sense_bayesian(s:WorldState,p:WorldParams,advance:int,mask:wp.array(dtype=wp.int32)):
     e,i=wp.tid()
     if advance==0 and mask[e]==0:return
-    for t in range(p.targets_count):s.visible[e,i,t]=0
+    s.confirmed_count[e,i]=0
+    for t in range(p.report_slots):s.visible[e,i,t]=0
     for cell in range(p.grid_n*p.grid_n):s.positive[e,i,cell]=0
     tick=s.steps[e]+advance
     pos=position3(s,e,i)
@@ -157,8 +158,15 @@ def sense_bayesian(s:WorldState,p:WorldParams,advance:int,mask:wp.array(dtype=wp
                     posterior=wp.clamp(a*prior/wp.max(a*prior+b*(wp.float64(1)-prior),wp.float64(1e-8)),wp.float64(1e-8),wp.float64(1)-wp.float64(1e-8))
                     final_belief=posterior
                     false_confirmation=yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold and not has
-                    if false_confirmation and p.verified_empty_belief>wp.float64(0):final_belief=p.verified_empty_belief
+                    if p.cell_reports==0 and false_confirmation and p.verified_empty_belief>wp.float64(0):final_belief=p.verified_empty_belief
                     s.belief[e,i,cell]=final_belief;s.visited[e,i,cell]=1;s.positive[e,i,cell]=int(yes)
+                    if p.cell_reports!=0 and yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold:
+                        idx=s.confirmed_count[e,i]
+                        if idx>=p.confirm_capacity:
+                            s.errors[e]=116
+                        else:
+                            s.confirmed_candidates[e,i,idx]=cell
+                            s.confirmed_count[e,i]=idx+1
                     old_entropy=entropy_bits(prior);new_entropy=entropy_bits(final_belief)
                     wp.atomic_add(s.belief_potential,e,(old_entropy-new_entropy)/(wp.float64(p.n)*wp.float64(p.grid_n*p.grid_n)))
                     if p.coarse_n>0:
@@ -169,7 +177,10 @@ def sense_bayesian(s:WorldState,p:WorldParams,advance:int,mask:wp.array(dtype=wp
                     wp.atomic_add(s.sensor_counts,e,2,wp.int64(int(yes and not has)))
                     wp.atomic_add(s.sensor_counts,e,3,wp.int64(int(not yes and has)))
                     if yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold:
+                        # Truth enters only a diagnostic counter, never the
+                        # report/decision path in cell-report mode.
                         wp.atomic_add(s.sensor_counts,e,4,wp.int64(int(not has)))
+                    if yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold and p.cell_reports==0:
                         for t in range(p.targets_count):
                             target=s.targets[e,t]
                             if wp.min(int(target[0]/p.cell_width),p.grid_n-1)==gx and wp.min(int(target[1]/p.cell_width),p.grid_n-1)==gy and wp.length(target-xy)<=r:
@@ -177,3 +188,34 @@ def sense_bayesian(s:WorldState,p:WorldParams,advance:int,mask:wp.array(dtype=wp
                                     s.visible[e,i,t]=1
                                     wp.atomic_add(s.sensor_counts,e,5,wp.int64(int(s.known[e,i,t]==0)))
     if i==0:s.sensor_tick[e]=tick+1
+
+
+@wp.kernel
+def confirm_observed_cells(s:WorldState,p:WorldParams,mask:wp.array(dtype=wp.int32),masked:int):
+    """Deterministic, sparse candidate matching across UAVs in a world.
+
+    A REPORT slot is assigned solely from observed cell coordinates and Bayes
+    evidence. The TRUE target array never participates in this code path.
+    """
+    e=wp.tid()
+    if p.cell_reports==0 or s.terminated[e]!=0:return
+    if masked!=0 and mask[e]==0:return
+    for i in range(p.n):
+        for idx in range(s.confirmed_count[e,i]):
+            cell=s.confirmed_candidates[e,i,idx]
+            selected=int(-1)
+            free=int(-1)
+            for slot in range(p.report_slots):
+                existing=s.report_cell[e,slot]
+                if existing==cell:selected=slot
+                if existing<0 and free<0:free=slot
+            if selected<0:
+                selected=free
+                if selected>=0:s.report_cell[e,selected]=cell
+            if selected<0:
+                # Fail closed rather than discarding legitimate/false hypotheses.
+                s.errors[e]=115
+            else:
+                s.visible[e,i,selected]=1
+                if s.known[e,i,selected]==0:
+                    s.sensor_counts[e,5]+=wp.int64(1)

@@ -10,6 +10,37 @@ def row(array, index):
     return wp.to_torch(array)[index].detach().cpu().numpy()
 
 
+def hypothesis_truth_summary(s,p,index,known=None,delivered=None,present=None,created=None):
+    """Read-only host scoring: truth is NEVER used to create sensor reports or policy inputs."""
+    if known is None:known=row(s.known,index)
+    if delivered is None:delivered=row(s.delivered,index)
+    if present is None:present=row(s.report_present,index)
+    if created is None:created=row(s.report_created,index)
+    truth=row(s.targets,index)
+    cell_indices=row(s.report_cell,index)
+    g=int(p.grid_n);width=float(p.cell_width)
+    target_cells=[min(int(x/width),g-1)+g*min(int(y/width),g-1) for x,y in truth]
+    occupied=set(target_cells)
+    true_found=0;true_delivered=0
+    report_truth_present=np.zeros((int(p.n),int(p.targets_count)),dtype=bool)
+    report_truth_created=np.zeros((int(p.n),int(p.targets_count)),dtype=np.float64)
+    for t,cell in enumerate(target_cells):
+        slots=np.flatnonzero(cell_indices==cell)
+        if len(slots):
+            true_found+=int(known[:,slots].any())
+            true_delivered+=int(delivered[slots].any())
+            report_truth_present[:,t]=present[:,slots].any(axis=1)
+            for i in range(int(p.n)):
+                active=slots[np.flatnonzero(present[i,slots])]
+                if len(active):report_truth_created[i,t]=created[i,active[0]]
+    invalid=np.array([c not in occupied and c>=0 for c in cell_indices],dtype=bool)
+    false_confirmed=int(known[:,invalid].any(axis=0).sum())
+    false_gcs=int(delivered[invalid].sum())
+    return dict(targets_found=true_found,targets_delivered=true_delivered,
+                false_confirmed_cells=false_confirmed,false_reports_delivered=false_gcs,
+                total_hypotheses=int((cell_indices>=0).sum()),
+                truth_present=report_truth_present,truth_created=report_truth_created)
+
 def network_info(s, p, index=0):
     counts = row(s.packet_counts,index)
     energy = row(s.communication_energy,index)
@@ -17,6 +48,7 @@ def network_info(s, p, index=0):
     rx_energy = row(s.rx_energy,index)
     selection = row(s.selection_counts,index)
     delivered = int(row(s.report_delivery_count,index))
+    true_delivery= (hypothesis_truth_summary(s,p,index)["targets_delivered"] if p.cell_reports else int(row(s.delivered,index).sum()))
     received = int(counts[1])
     phy = int(counts[2]+counts[3])
     elapsed = float(row(s.packet_time,index))/1e6
@@ -41,7 +73,8 @@ def network_info(s, p, index=0):
         "energy_blocked_transmissions": int(counts[5]),
         "obstacle_extra_loss_db": -10*math.log10(p.nlos_scale)-p.nlos_excess_loss_db,
         "payload_throughput_kbps": int(counts[6])*8/max(elapsed,1e-12)/1000,
-        "targets_delivered": int(row(s.delivered,index).sum()),
+        "targets_delivered": true_delivery,
+        "raw_reports_delivered": delivered,
         "report_e2e_delay_s": float(row(s.report_delay_sum,index))/max(delivered,1),
         "report_average_hops": float(row(s.report_hop_sum,index))/max(delivered,1)}
 
@@ -53,6 +86,11 @@ def world_info(s, p, index=0):
     battery = row(s.battery,index)
     found = int(np.any(known,axis=0).sum())
     count = int(delivered.sum())
+    hypothesis=None
+    if p.cell_reports:
+        hypothesis=hypothesis_truth_summary(s,p,index,known=known,delivered=delivered,present=present)
+        found=hypothesis['targets_found']
+        count=hypothesis['targets_delivered']
     steps = int(row(s.steps,index))
     active = battery > 0 if p.energy_enabled else np.ones(p.n,dtype=bool)
     report_counts = row(s.report_counts,index)
@@ -66,14 +104,22 @@ def world_info(s, p, index=0):
         extra = {"sensing": dict(zip(("measurements","positive","false_positive","false_negative","false_confirmation","confirmations"),map(int,row(s.sensor_counts,index)))),
                  "coverage_percent": 100*float(row(s.visited,index).any(axis=0).mean()),
                  "altitudes_m": row(s.altitudes,index).tolist()}
+    if hypothesis is not None:
+        extra.update(false_confirmed_cells=hypothesis['false_confirmed_cells'],
+                     false_reports_delivered=hypothesis['false_reports_delivered'],
+                     total_hypotheses=hypothesis['total_hypotheses'],
+                     report_identity='observed_cell_id',
+                     confirmation_source='posterior_only_no_truth_filter')
     return {
         **extra,
         "generation_fallback": bool(row(s.generation_fallback,index)),
         "generation_attempts": int(row(s.generation_attempts,index)),
         "report_diagnostics": report_diagnostics(row(s.first_discovery,index),row(s.first_delivery,index),
-                                                  present.astype(bool),row(s.report_created,index),
+                                                  (hypothesis['truth_present'] if hypothesis is not None else present.astype(bool)),
+                                                  (hypothesis['truth_created'] if hypothesis is not None else row(s.report_created,index)),
                                                   row(s.buffer_peak,index),steps*p.dt,
-                                                  float(row(s.report_delay_sum,index)),float(row(s.report_hop_sum,index))),
+                                                  float(row(s.true_report_delay_sum,index) if p.cell_reports else row(s.report_delay_sum,index)),
+                                                  float(row(s.true_report_hop_sum,index) if p.cell_reports else row(s.report_hop_sum,index))),
         "step": steps, "targets_found": found, "targets_delivered": count,
         "search_rate_percent": 100*found/p.targets_count,
         "delivery_rate_percent": 100*count/p.targets_count, "success": count == p.targets_count,
