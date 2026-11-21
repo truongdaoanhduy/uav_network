@@ -16,7 +16,7 @@ from typing import Sequence
 import itertools
 import math
 import numpy as np
-from .m2_protocol import CooperativeWorldMap, DecisionNotice, packetize_events
+from .m2_protocol import CooperativeWorldMap, DecisionNotice
 from ..environment.correlated_mapping import Event
 from .link_budget import nominal_required_power_w
 
@@ -103,22 +103,50 @@ class M2PacketStore:
 
     def publish(self,source:int,events:Sequence[Event],*,created_s:float,
                 payload_bytes:int=1024):
+        """Greedily packetize using each *complete* serialized envelope size.
+
+        An event-only size estimate is not sufficient: packet serial numbers,
+        source IDs and timestamps vary throughout a 1500-step mission. Near
+        the 1024-byte boundary a packet may need one additional fragment.
+        Fragmenting instead of raising keeps the full mission trainable.
+        """
         if not (0<=source<self.n):raise ValueError("only UAV sensors can publish observations")
-        batches=packetize_events(events,payload_bytes=payload_bytes)
+        if payload_bytes<64:raise ValueError("payload too small for evidence packet")
+        events=tuple(events)
+        if any(not isinstance(event,Event) for event in events):
+            raise TypeError("observation event expected")
         published=[]
-        for batch in batches:
+        pending=[]
+        identity=None
+        created_s=float(created_s)
+        def packet_for(message_id,contents):
+            draft=M2Envelope(message_id,source,created_s,0,tuple(contents))
+            size=_envelope_wire_size(draft)+16
+            return replace(draft,size_bytes=size)
+        def commit(packet):
+            self._make_room(source,packet.size_bytes)
+            self.buffers[source][packet.message_id]=packet
+            self.received_ids[source].add(packet.message_id)
+            for item in packet.events:
+                self.nodes[source].ingest(item,arrived_at=int(created_s))
+            published.append(packet)
+        for event in events:
+            if not pending:
+                identity=f"e:{source}:{next(self._serial)}"
+            candidate=packet_for(identity,(*pending,event))
+            if candidate.size_bytes<=payload_bytes:
+                pending.append(event)
+                continue
+            if not pending:
+                raise ValueError("one observation event exceeds packet payload budget")
+            commit(packet_for(identity,pending))
             identity=f"e:{source}:{next(self._serial)}"
-            draft=M2Envelope(identity,source,float(created_s),batch.size_bytes,batch.events)
-            size=max(batch.size_bytes,_envelope_wire_size(draft)+16)
-            if size>payload_bytes:
-                raise ValueError("evidence envelope exceeds packet payload budget")
-            envelope=replace(draft,size_bytes=size)
-            self._make_room(source,envelope.size_bytes)
-            self.buffers[source][identity]=envelope
-            self.received_ids[source].add(identity)
-            for event in envelope.events:
-                self.nodes[source].ingest(event,arrived_at=int(created_s))
-            published.append(envelope)
+            candidate=packet_for(identity,(event,))
+            if candidate.size_bytes>payload_bytes:
+                raise ValueError("one observation event exceeds packet payload budget")
+            pending=[event]
+        if pending:
+            commit(packet_for(identity,pending))
         for notice in self.nodes[source].make_decision_notices(source=source):
             self.publish_notice(source,notice)
         return published[0] if len(published)==1 else published
