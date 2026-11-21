@@ -298,7 +298,10 @@ class UavNetSimNetwork:
     def inflight_counts(self):
         counts = np.zeros(self.config.world.num_uavs)
         for transfer in self.sessions.values():
-            counts[transfer.source] += len(transfer.pending)
+            # The opt-in M2 protocol permits GCS downlink transmissions;
+            # this metric deliberately counts only UAV-side inflight packets.
+            if 0 <= transfer.source < len(counts):
+                counts[transfer.source] += len(transfer.pending)
         return counts
 
     def metrics(self):
