@@ -208,3 +208,25 @@ def test_exact_run_actor_uses_rollout_batchnorm_not_layernorm_and_critic_is_plai
     target_bn=next(m for m in learner.target_actors[0].encoder.modules()
                    if isinstance(m,RolloutBatchNorm1d))
     torch.testing.assert_close(bn.running_mean,target_bn.running_mean)
+
+
+def test_frozen_original_runner_archive_matches_sha_manifest():
+    import json, zipfile
+    folder=ROOT/'docs/reference_runs/18d756ef'
+    manifest=json.loads((folder/'manifest.json').read_text())
+    with zipfile.ZipFile(folder/'frozen_runner_reference.zip') as z:
+        assert z.testzip() is None
+        assert set(z.namelist())==set(manifest['files'])
+        for name,digest in manifest['files'].items():
+            assert hashlib.sha256(z.read(name)).hexdigest()==digest
+
+
+def test_exact_18d756ef_auxiliary_algorithm_source_fingerprints():
+    fingerprints = {
+        "optimization.py": "1a092d1964246d55fe81a969e875206aae99e90c6c3b99de82ff53797e3193f6",
+        "hybrid_replay.py": "64eb37f04e93a7877ee229a09650ccc668aaa1cacb9ce1d5dddc0f01122fd5b2",
+        "layerwise_gradient_probe.py": "699b1ce84570db21f25efa8f9a945f4e56b48a532f09b31bc9a9e23e186f2ce6",
+        "factorized_candidate.py": "6030cb509892499281493ff14d72f318203adea700021fe7506145116cfa6984",
+    }
+    for name,digest in fingerprints.items():
+        assert hashlib.sha256((ROOT/"uav_network/algorithms"/name).read_bytes()).hexdigest()==digest

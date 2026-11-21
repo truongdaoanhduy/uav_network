@@ -5,3 +5,5 @@
 This reference preserves the actual `training.py`, `one_session.py`, `deferred_gpu_evaluation.py`, hybrid replay implementation, and Warp vector/MAC/report code so the **E4096 U4 B8192 75/25, validation100 and final4000** workflow can be ported with explicit M2 semantics.
 
 **Never import these copies into a live M2 run.** Old GPU PHY/MAC/report code uses old target identities and Bayesian belief, NOT M2 source-provenanced packet events, DS/SPRT and GCS `MAP_DELTA`. Port each mechanism only after Native-Warp mission/packet parity tests.
+
+All eight exact `.py` reference files are now stored in `frozen_runner_reference.zip`, with original paths and SHA256 checks in `manifest.json`. Do not unzip into the active package.

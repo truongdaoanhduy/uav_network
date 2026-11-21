@@ -1,6 +1,12 @@
 """Tensor updates: periodic scalar checks, gradient safety before every step."""
+import os
 import torch
 from torch import nn
+
+
+def _enabled(name):
+    """Opt-in infrastructure optimization. Baseline remains the default."""
+    return os.environ.get(name, "0").strip().lower() in {"1", "true", "yes"}
 
 
 def tensor_batch(batch, device):
@@ -18,6 +24,22 @@ def tensor_batch(batch, device):
 def gradient_norm_and_clip(parameters, grad_clip, mode="global", *, error_if_nonfinite=True):
     """Apply clipping; report global norm or max tensor norm for per-parameter mode."""
     parameters = list(parameters)
+    if mode == "global" and _enabled("UAV_FAST_GRAD_CLIP"):
+        # Avoid a duplicate full-gradient norm reduction. PyTorch computes the
+        # global pre-clipping norm and applies exactly the same clip threshold.
+        # Keep error_if_nonfinite active even when metrics are disabled.
+        return torch.nn.utils.clip_grad_norm_(
+            parameters, grad_clip, error_if_nonfinite=error_if_nonfinite
+        ).detach()
+    if mode == "per_parameter" and _enabled("UAV_FAST_GRAD_CLIP"):
+        # Each clip_grad_norm_ already returns that parameter's pre-clip norm;
+        # do not compute the same per-tensor norm once more for diagnostics.
+        # Preserve exactly the existing per-parameter clipping policy.
+        norms = [torch.nn.utils.clip_grad_norm_(
+                    [p], grad_clip, error_if_nonfinite=error_if_nonfinite).detach()
+                 for p in parameters if p.grad is not None]
+        return (torch.stack(norms).max() if norms
+                else torch.tensor(0., device=parameters[0].device if parameters else "cpu"))
     gradients = [p.grad for p in parameters if p.grad is not None]
     if gradients:
         individual_norms = torch.stack([torch.linalg.vector_norm(g) for g in gradients])
@@ -57,6 +79,14 @@ def scalar_metrics(values):
     # Metrics may mix Python/CPU scalars with learner scalars on CUDA. Move each
     # detached scalar to host before stacking; this is telemetry-only and does
     # not participate in the learner graph or optimizer step.
+    if _enabled("UAV_BATCH_SCALAR_METRICS") and keys:
+        # A single stacked device-to-host transfer avoids K individual CUDA
+        # synchronization points. Mixed CPU/GPU or non-scalar paths deliberately
+        # preserve the original implementation, including output key order.
+        tensors = [torch.as_tensor(values[k]).detach() for k in keys]
+        if (all(t.is_cuda and t.device == tensors[0].device
+                and t.shape == tensors[0].shape for t in tensors)):
+            return dict(zip(keys, torch.stack(tensors).cpu().tolist()))
     tensors = [torch.as_tensor(values[k]).detach().cpu() for k in keys]
     return dict(zip(keys, torch.stack(tensors).tolist()))
 

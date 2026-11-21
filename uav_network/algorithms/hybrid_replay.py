@@ -1,4 +1,5 @@
 """Hybrid replay uses the same uniform global ring and CPU RNG across both tiers."""
+import os
 import torch
 from .replay import transition_shapes
 
@@ -75,6 +76,11 @@ class HybridMeasuredReplay:
         self.collections = self.inserted = self.sample_uses = 0
         self.overwritten = self.unsampled = self.age_sum = self.age_max = 0
         self.age_count = self.measured_evictions = self.known_rows = 0
+        # Optional bounded staging: only one sampled minibatch is pinned,
+        # never the full 1M-row CPU replay. CUDA events protect the storage
+        # against writes while a non-blocking H2D transfer is still reading it.
+        self._pinned_staging = {}
+        self._pinned_staging_event = None
     def __len__(self):
         return self.size
     @property
@@ -128,6 +134,13 @@ class HybridMeasuredReplay:
     def sample(self, batch_size):
         if batch_size < 1 or batch_size > self.size:
             raise ValueError("Not enough transitions for this batch")
+        pinned_staging = (self.hot_device.type == "cuda" and
+            os.environ.get("UAV_HYBRID_PINNED_STAGING", "0").strip().lower() in {"1", "true", "yes"})
+        # CPU must not reuse pinned host memory while an earlier async copy
+        # is still in flight, even if an update on another stream is pending.
+        if self._pinned_staging_event is not None:
+            self._pinned_staging_event.synchronize()
+            self._pinned_staging_event = None
         indices = torch.randint(self.size, (batch_size,), generator=self.rng)
         self.seen[indices.unique()] = True
         born = self.born[indices]
@@ -150,7 +163,16 @@ class HybridMeasuredReplay:
             if cpu_positions.numel():
                 rows = self.cpu_data[name].index_select(0, cpu_indices)
                 if self.hot_device.type == "cuda":
-                    rows = rows.pin_memory().to(self.hot_device, non_blocking=True)
+                    if pinned_staging:
+                        staging = self._pinned_staging.get(name)
+                        if staging is None or len(staging) < batch_size:
+                            staging = torch.empty((batch_size, *rows.shape[1:]), dtype=rows.dtype,
+                                                  device="cpu", pin_memory=True)
+                            self._pinned_staging[name] = staging
+                        staging[:len(rows)].copy_(rows)
+                        rows = staging[:len(rows)].to(self.hot_device, non_blocking=True)
+                    else:
+                        rows = rows.pin_memory().to(self.hot_device, non_blocking=True)
                 else:
                     rows = rows.to(self.hot_device)
                 out.index_copy_(0, cpu_positions.to(self.hot_device), rows)
@@ -158,6 +180,10 @@ class HybridMeasuredReplay:
                 rows = self.hot_data[name].index_select(0, hot_indices.to(self.hot_device))
                 out.index_copy_(0, hot_positions.to(self.hot_device), rows)
             result[name] = out
+        if pinned_staging and cpu_positions.numel():
+            event = torch.cuda.Event(enable_timing=False)
+            event.record(torch.cuda.current_stream(self.hot_device))
+            self._pinned_staging_event = event
         return result
     def stats(self):
         evictions, ages = self.measured_evictions, self.age_count

@@ -184,7 +184,18 @@ def restore_fixed_learner(saved, learner):
     if training.get("precision") is not None:
         learner.precision.load_state_dict(training["precision"])
     if learner.algorithm == "matd3":
-        learner._last_actor_metrics = {name: value.to(learner.device).clone() for name, value in training["last_actor_metrics"].items()}
+        # The exact 18d756ef model returns both Tensor diagnostics and Python
+        # scalar counters (e.g. gradient-probe hook counts). Those counters
+        # must survive an optimizer/replay resume without calling Tensor.to().
+        restored_metrics = {}
+        for name, value in training["last_actor_metrics"].items():
+            if isinstance(value, torch.Tensor):
+                restored_metrics[name] = value.to(learner.device).clone()
+            elif isinstance(value, (bool, int, float, str, type(None), np.number)):
+                restored_metrics[name] = value
+            else:
+                raise ValueError(f"Invalid MATD3 checkpoint metric value: {name}")
+        learner._last_actor_metrics = restored_metrics
 
 
 def save_fixed_checkpoint(learner, path, progress, replay, rng, *, warmup_origin, random_warmup,

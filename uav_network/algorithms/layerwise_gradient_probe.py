@@ -46,7 +46,12 @@ class LayerwiseGradientProbe(AbstractContextManager):
             for index, layer in enumerate(m for m in module.encoder.modules()
                                           if isinstance(m, nn.LayerNorm)):
                 yield f"encoder_layernorm_{index}", layer
-            yield "motion_head", module.continuous
+            if hasattr(module, "continuous"):
+                yield "motion_head", module.continuous
+            else:
+                # Stochastic MASAC has distinct Gaussian mean and scale heads.
+                yield "mean_head", module.mean
+                yield "log_std_head", module.log_std
             yield "destination_head", module.destination
         else:
             for tower_name in ("q1", "q2"):
