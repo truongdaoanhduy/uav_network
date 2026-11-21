@@ -77,12 +77,43 @@ class CandidateState:
 
 
 class CooperativeWorldMap:
-    """Local perception map for one node (a UAV OR GCS). No network bypass."""
-    def __init__(self, num_cells:int, ds_threshold:float=.95, alpha:float=.05, beta:float=.05):
+    """Per-node target map; radio delivery is required for remote updates.
+
+    ``zhang_max_counts`` reproduces Zhang et al. (T-IV 2024) Eq. (9)-(17):
+    a fixed positive/negative BPA and per-source MAX count fusion. Its
+    threshold detector (Eq. 18, tau=.95 in the paper's experiments) directly
+    confirms a target: it NEVER invokes SPRT. Later threshold reversals are
+    versioned *network state corrections*, not a claim of Wald error control.
+
+    The historical correlated-LLR + SPRT pathway is retained as an opt-in
+    research ablation; it is not the default for the M2 mission.
+    """
+    def __init__(self, num_cells:int, ds_threshold:float=.95, alpha:float=.05, beta:float=.05,
+                 *, confirmation_mode:str="sprt", evidence_mode:str="correlated_llr",
+                 paper_mf:float=.8, paper_me:float=.8):
         if num_cells < 1 or not (0 < ds_threshold <= 1):
             raise ValueError("invalid map dimensions/threshold")
         if not (0 < alpha < 1 and 0 < beta < 1 and alpha+beta < 1):
             raise ValueError("SPRT false alarm/miss budgets must sum below one")
+        if confirmation_mode not in ("sprt", "ds_threshold"):
+            raise ValueError("unknown confirmation_mode")
+        if evidence_mode not in ("correlated_llr", "zhang_max_counts"):
+            raise ValueError("unknown evidence_mode")
+        # These two combined protocols are the only tested scientific modes.
+        # Reject cross-wiring instead of silently applying SPRT to fixed BPA
+        # or calling the correlated likelihood pathway a threshold-only test.
+        if (confirmation_mode,evidence_mode) not in (
+                ("sprt","correlated_llr"),
+                ("ds_threshold","zhang_max_counts")):
+            raise ValueError("unsupported confirmation/evidence mode combination")
+        if not (0. < paper_mf < 1. and 0. < paper_me < 1.):
+            raise ValueError("paper evidence weights must be in (0,1)")
+        self.confirmation_mode=confirmation_mode
+        self.evidence_mode=evidence_mode
+        self.paper_mf=float(paper_mf)
+        self.paper_me=float(paper_me)
+        self._paper_support=( -math.log1p(-paper_mf), -math.log1p(-paper_me))
+        self._paper_counts={}  # cell -> {original_source: [positive, negative]}
         self.num_cells=int(num_cells)
         self.ds_threshold=ds_threshold
         self.upper=math.log((1-beta)/alpha)
@@ -125,12 +156,45 @@ class CooperativeWorldMap:
         self.coverage[event.cell]+=1
         self.last_arrival[event.cell]=max(self.last_arrival[event.cell],arrived_at)
         self.last_observed[event.cell]=max(self.last_observed[event.cell],event.tick)
+        if self.evidence_mode=="zhang_max_counts":
+            # Eq. (16): share original-source counts, fuse with MAX rather than
+            # summing repeated or relayed UAV snapshots. Each unique event
+            # counts once regardless of radio route and arrival order.
+            per_source=self._paper_counts.setdefault(event.cell,{})
+            counts=per_source.setdefault(event.origin,[0,0])
+            counts[0 if event.positive else 1]+=1
+            positive=max(count[0] for count in per_source.values())
+            negative=max(count[1] for count in per_source.values())
+            masses=stable_mass_from_llr_totals(
+                positive*self._paper_support[0], negative*self._paper_support[1])
+            self._apply_paper_threshold(event.cell,masses,event)
+            return True
         stream=self._streams.get(event.cell)
         if stream is not None and event.sort_key > stream[6]:
             self._append_in_order(event,arrived_at,stream)
         else:
             self._replay(event.cell,event.layer,arrived_at)
         return True
+
+    def _apply_paper_threshold(self,cell:int,masses,event:Event):
+        """Zhang's target-present threshold; revisions are M2 transport only."""
+        self.target_masses[cell]=masses
+        old=self.candidates.get(cell)
+        if masses[0]>=self.ds_threshold:
+            if old is None or old.status!="verified":
+                revision=self._decision_revisions.get(cell,0)+1
+                self._decision_revisions[cell]=revision
+                self.candidates[cell]=CandidateState(
+                    event.tick,event.event_id,event.sort_key,"verified",0,0.,revision)
+                self.decision_changes.append((cell,"verified",event.tick,revision))
+        elif old is not None:
+            # Paper Eq.(18) makes a CURRENT target decision. Updating the
+            # previously sent claim is a required M2 packet-consistency
+            # extension, not a new statistical SPRT/retraction theorem.
+            revision=self._decision_revisions.get(cell,0)+1
+            self._decision_revisions[cell]=revision
+            self.decision_changes.append((cell,"retracted",event.tick,revision))
+            self.candidates.pop(cell)
 
     def _append_in_order(self,event:Event,arrived_at:int,stream):
         """O(1) chronological update; replay remains exact for late packets."""

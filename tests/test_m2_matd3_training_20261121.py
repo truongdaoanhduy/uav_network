@@ -65,7 +65,7 @@ def test_train_two_real_m2_episodes_updates_matd3_and_logs_true_gcs_metrics(tmp_
     assert restored.state_dim==255*6
     assert restored.continuous_dim==5
     payload=torch.load(tmp_path/'final_policy.pt',map_location='cpu',weights_only=True)
-    assert payload['format']=='m2-target-belief-2d-matd3-v1'
+    assert payload['format']=='m2-target-belief-2d-matd3-v2'
     for name,value in payload['model_state_dict'].items():
         assert torch.equal(value,restored.state_dict()[name])
     train_rows=list(csv.DictReader((tmp_path/'train_episodes.csv').open()))

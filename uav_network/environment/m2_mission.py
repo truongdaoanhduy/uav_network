@@ -2,8 +2,9 @@
 
 Components:
 * Actual 3D motion + camera FoV/occlusion from the UAV simulator
-* Explicit correlated sensor, shared across UAVs and time, exactly simulated
-* Independent UAV local DS maps + source-provenanced cooperative SPRT
+* Paper baseline: independent binary sensor, Zhang DS fixed BPA + MAX counts
+* Per-UAV target map; threshold detection is immediate (no SPRT in baseline)
+* Correlated sensor + cooperative SPRT remain available for opt-in ablations
 * Real Native UavNetSim packet transport (no shared-map GCS shortcut)
 * Target-only 2D belief F/E/U, coverage/freshness and report corrections
 * Observation-only CTDE Critic and policy-controlled XYZ/destination/TX
@@ -28,9 +29,10 @@ from ..communication.m2_network import M2PacketStore, M2Radio
 
 class CooperativeM2Env:
     """One native 3D mission, with actual packet deliveries and map snapshots."""
-    def __init__(self,config,*,correlation_strength=.5,ds_threshold=.95,
+    def __init__(self,config,*,correlation_strength=0.,ds_threshold=.95,
                  sprt_alpha=.05,sprt_beta=.05,max_scan_cells=None,
-                 map_buffer_bytes=65536):
+                 map_buffer_bytes=65536,confirmation_mode="ds_threshold",
+                 evidence_mode="zhang_max_counts",paper_mf=.8,paper_me=.8):
         # Config may be reused for the legacy 4D learner. Do not mutate it
         # merely by constructing this opt-in 5D M2 environment.
         self.config=deepcopy(config)
@@ -46,6 +48,9 @@ class CooperativeM2Env:
         self.correlation_strength=float(correlation_strength)
         self.ds_threshold=ds_threshold
         self.sprt_alpha=sprt_alpha;self.sprt_beta=sprt_beta
+        self.confirmation_mode=confirmation_mode
+        self.evidence_mode=evidence_mode
+        self.paper_mf=paper_mf;self.paper_me=paper_me
         self.max_scan_cells=None if max_scan_cells is None else int(max_scan_cells)
         self.map_buffer_bytes=int(map_buffer_bytes)
         self.radio=None;self.nodes=None;self.store=None
@@ -101,7 +106,10 @@ class CooperativeM2Env:
         self._truth_target=np.zeros(self.num_cells,dtype=np.bool_)
         for xy in self.scene.targets:self._truth_target[self._cell_xy(xy)]=True
         self._target_sensor=CorrelatedBinarySensor(self.num_cells,self.seed+4501,self.correlation_strength)
-        self.nodes=[CooperativeWorldMap(self.num_cells,self.ds_threshold,self.sprt_alpha,self.sprt_beta)
+        self.nodes=[CooperativeWorldMap(
+            self.num_cells,self.ds_threshold,self.sprt_alpha,self.sprt_beta,
+            confirmation_mode=self.confirmation_mode,evidence_mode=self.evidence_mode,
+            paper_mf=self.paper_mf,paper_me=self.paper_me)
                     for _ in range(n+1)]
         self.store=M2PacketStore(self.nodes,buffer_bytes=self.map_buffer_bytes,ttl_s=c.network.report_ttl_s)
         self.radio=M2Radio(c,self.store,self.scene,seed=self.seed,battery_j=self.battery_j)
@@ -319,6 +327,12 @@ class CooperativeM2Env:
         flight_total=float(self.flight_energy_j.sum())
         rf_total=float(self.radio.network.energy_j[:-1].sum()) if self.radio else 0.
         return {"steps":self.steps,"num_uavs":self.config.world.num_uavs,
+                "confirmation_mode":self.confirmation_mode,
+                "evidence_mode":self.evidence_mode,
+                "ds_target_threshold":float(self.ds_threshold),
+                "ds_positive_bpa":float(self.paper_mf) if self.evidence_mode=="zhang_max_counts" else None,
+                "ds_negative_bpa":float(self.paper_me) if self.evidence_mode=="zhang_max_counts" else None,
+                "sensor_correlation_strength":float(self.correlation_strength),
                 "correct_gcs_delivery_recall":correct/max(int(self._truth_target.sum()),1),
                 "false_report_rate":float(false/n_reports) if n_reports else None,
                 "normalized_delivery_auc":self._delivery_recall_sum/max(self.steps,1),

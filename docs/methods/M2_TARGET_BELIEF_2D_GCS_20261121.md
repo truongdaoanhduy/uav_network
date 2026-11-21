@@ -1,3 +1,5 @@
+> **Current implementation supersedes the SPRT section below:** see `M2_ZHANG_2024_DS_THRESHOLD_FLOW_20261121.md`. M2 default: Zhang 2024 fixed BPA `.8/.8`, source MAX fusion, detection `m(F)>=.95` with no SPRT, independent sensor. This document retains the original M2 development record for provenance.
+
 # M2 2D Target Belief Map – GCS-first multi-hop synchronization (2026-11-21)
 
 **Scope selected by researcher:** 1000 m × 1000 m; 40 × 40 ground target cells with 25 m resolution; 6 UAV; 35 stationary targets; 25 physical cylindrical obstacles for *flight safety and optical occlusion only*. UAV flight remains 3D with Actor-controlled altitude. **There is no reconstructed 3D obstacle geometry, voxel map, SLAM, separate obstacle occupancy map or obstacle-sensing event stream.** Both local UAV and GCS maps hold only three 2D DS target belief masses `F`, `E`, `U` and metadata (coverage, observation timestamp, report status).

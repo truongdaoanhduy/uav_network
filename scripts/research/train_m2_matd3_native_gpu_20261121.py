@@ -67,6 +67,7 @@ def make_config(*,seed:int=44,episode_horizon:int=1500):
     c.world.motion_dimensions=3;c.world.motion_safety='cbf'
     c.world.max_steps=int(episode_horizon)
     c.sensor.model='bayesian'
+    c.sensor.confirmation_threshold=.95  # M2 detector is on DS mass, not legacy belief
     c.sensor.obstacle_occlusion=True
     c.network.peer_range_m=500.;c.network.gcs_range_m=500.
     c.network.report_bytes=1024;c.network.payload_bytes=1024
@@ -109,6 +110,10 @@ def _metrics(info,*,episode,seed,score,steps,phase,global_steps,critic_updates,a
         'phase':phase,'episode':int(episode),'seed':int(seed),
         'steps':int(steps),'global_steps':int(global_steps),
         'episode_return':float(score),
+        'evidence_mode':info['evidence_mode'],
+        'confirmation_mode':info['confirmation_mode'],
+        'ds_target_threshold':float(info['ds_target_threshold']),
+        'sensor_correlation_strength':float(info['sensor_correlation_strength']),
         'num_targets':35,'backend':'native_uavnetsim',
         'correct_gcs_delivery_recall':float(info['correct_gcs_delivery_recall']),
         'gcs_verified_correct':int(info['gcs_verified_correct']),
@@ -148,8 +153,10 @@ def _write_json(path:Path,data):
     draft.replace(path)
 
 
-_M2_CHECKPOINT_FORMAT='m2-target-belief-2d-matd3-v1'
-_M2_OBSERVATION_SCHEMA='m2-local-5x5-f-e-u-verify-v1'
+# Decision semantics changed although the 255D tensor dimension is identical.
+# Old SPRT-based policy files are NOT semantically compatible with paper DS.
+_M2_CHECKPOINT_FORMAT='m2-target-belief-2d-matd3-v2'
+_M2_OBSERVATION_SCHEMA='m2-local-5x5-f-e-u-zhang-ds-v2'
 
 
 def _snapshot_policy(path:Path,agent:MATD3,meta):
@@ -219,7 +226,7 @@ def _plot_progress(output_dir:Path):
 def evaluate_policy(config,agent:MATD3,*,seeds,scan_cells:int):
     results=[]
     for seed in seeds:
-        env=CooperativeM2Env(config,correlation_strength=.55,
+        env=CooperativeM2Env(config,correlation_strength=0.,
                              max_scan_cells=scan_cells,map_buffer_bytes=65536)
         start=time.perf_counter()
         try:
@@ -260,7 +267,7 @@ def train(config:Config,pilot:PilotSettings):
     # Avoid loading an already existing run and silently appending rows.
     if (output_dir/'train_episodes.csv').exists():
         raise FileExistsError('Output directory has train_episodes.csv; choose an empty run directory')
-    probe=CooperativeM2Env(cfg,correlation_strength=.55,
+    probe=CooperativeM2Env(cfg,correlation_strength=0.,
                            max_scan_cells=pilot.scan_cells,map_buffer_bytes=65536)
     try:
         obs,_=probe.reset(seed=pilot.seed)
@@ -276,6 +283,10 @@ def train(config:Config,pilot:PilotSettings):
              'num_uavs':6,'num_targets':35,'num_obstacles':25,
              'sensor_cells_per_uav_step':pilot.scan_cells,
              'learner_matd3_hidden':[256,256],
+             'evidence_mode':'zhang_max_counts','confirmation_mode':'ds_threshold',
+             'ds_target_threshold':.95,'ds_positive_bpa':.8,'ds_negative_bpa':.8,
+             'sensor_correlation_strength':0.,
+             'checkpoint_schema':_M2_OBSERVATION_SCHEMA,
              'replay_sample_ratio':pilot.batch_size/pilot.update_every,
              'science_warning':'This single-world GPU-learner pilot is NOT full Warp E4096 and NOT multi-seed convergence',
              'settings':{key:(str(val) if isinstance(val,Path) else val)
@@ -313,7 +324,7 @@ def train(config:Config,pilot:PilotSettings):
         if pilot.max_train_seconds and time.perf_counter()-started>=pilot.max_train_seconds:
             summary['stopped_by_time_budget']=True
             break
-        env=CooperativeM2Env(cfg,correlation_strength=.55,
+        env=CooperativeM2Env(cfg,correlation_strength=0.,
                              max_scan_cells=pilot.scan_cells,map_buffer_bytes=65536)
         ep_start=time.perf_counter();score=0.
         action_count=0;motion_saturated=0;sum_z=0.;sum_kind=0.;sum_power=0.;silent_count=0;gcs_count=0

@@ -1,3 +1,5 @@
+> **Current 2026-11-21 update (supersedes historical verification rule below):** M2 now defaults to Zhang 2024 **fixed-BPA DS (mf=me=.8), per-UAV MAX source-count fusion and immediate m(F)>=.95 confirmation** with independent sensor (`rho=0`). SPRT is opt-in ablation only; Native MATD3 pilot checkpoint semantics were bumped to v2. This file otherwise preserves prior pilot provenance. See `docs/methods/M2_ZHANG_2024_DS_THRESHOLD_FLOW_20261121.md`.
+
 # MATD3-first M2 Target Belief Map 2D: scientific scope and preflight
 
 Date: 2026-11-21. New task: train MATD3 before MASAC, preserving target search, cooperative verification and real packet-level GCS reporting. The original M2 target-only DS map has 1600 cells (40×40 cells ×25m) in a **1000m ×1000m** field; there are 6 flying 3D UAVs, 35 static ground targets and 25 3D physical obstacles for CBF collision safety and sensor occlusion. There is **no obstacle/3D belief map**.

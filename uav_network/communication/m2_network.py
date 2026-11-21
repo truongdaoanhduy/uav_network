@@ -148,15 +148,21 @@ class M2PacketStore:
         if pending:
             commit(packet_for(identity,pending))
         for notice in self.nodes[source].make_decision_notices(source=source):
-            self.publish_notice(source,notice)
+            self.publish_notice(source,notice,created_s=created_s)
         return published[0] if len(published)==1 else published
 
-    def publish_notice(self,source:int,notice:DecisionNotice):
+    def publish_notice(self,source:int,notice:DecisionNotice,*,created_s:float|None=None):
         if not 0 <= source < self.n or notice.source != source:
             raise ValueError("only a source UAV can publish its own claim")
         identity=f"d:{source}:{next(self._serial)}"
         kind="correction" if notice.status=="retracted" else "report"
-        draft=M2Envelope(identity,source,float(notice.tick),0,(notice,),kind=kind)
+        # A relay may form its OWN DS decision from a delayed observation.
+        # Its packet TTL starts when the relay generated the notice, not when
+        # the original sensor recorded an older observation (notice.tick).
+        emitted_at=float(notice.tick if created_s is None else created_s)
+        if not math.isfinite(emitted_at) or emitted_at < 0:
+            raise ValueError("invalid notice emission time")
+        draft=M2Envelope(identity,source,emitted_at,0,(notice,),kind=kind)
         size=_envelope_wire_size(draft)+16
         if size>1024:raise ValueError("decision notice exceeds the packet payload budget")
         self._make_room(source,size)
@@ -290,7 +296,7 @@ class M2PacketStore:
                 self.nodes[destination].ingest(event,arrived_at=math.ceil(time_s))
         if destination<self.n:
             for notice in self.nodes[destination].make_decision_notices(source=destination):
-                self.publish_notice(destination,notice)
+                self.publish_notice(destination,notice,created_s=time_s)
         if destination==self.n:
             self.event_delivery_count+=len(report.events)
             self.delivery_times_s.append(time_s-report.created_s)

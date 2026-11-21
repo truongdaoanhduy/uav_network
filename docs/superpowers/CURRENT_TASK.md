@@ -1,3 +1,14 @@
+# 2026-11-21 — Paper-grounded DS threshold replaces M2 default SPRT verification
+
+User requires reference-paper-faithful M2 detection and full algorithm flow. Primary source is user-provided Zhang et al., IEEE T-IV 2024 DOI 10.1109/TIV.2024.3352581, PDF pages 4–6 and Table III: fixed evidence mf=me=.8, per-source max positive/negative detection counts, and m(F)>=.95 target decision. Full implementation document: `docs/methods/M2_ZHANG_2024_DS_THRESHOLD_FLOW_20261121.md`.
+
+- New M2 default `CooperativeM2Env`: `evidence_mode=zhang_max_counts`, `confirmation_mode=ds_threshold`, mf=me=.8, tau=.95, independent binary sensor rho0. No candidate/SPRT verification delay; direct DS threshold produces verified REPORT. Legacy correlated-LLR+SPRT intentionally preserved as opt-in ablation with old direct `CooperativeWorldMap` defaults for historical regression tests. Mixed profiles rejected.
+- Native radio transport and GCS map delta unchanged except fix of delayed-relay new REPORT TTL creation time; `DecisionNotice.tick` remains sensing tick while the actual envelope is timestamped at generation. Report/correction revisions keep GCS consistent when DS mass crosses threshold downward/upward; not a Wald statistical guarantee.
+- New tests `tests/test_m2_zhang_ds_confirmation_20261121.py` follow TDD; red tests demonstrated missing DS profile and stale REPORT creation timestamp. Verified **105 passed** targeted M2/protocol/MATD3/exact `18d756ef` parity tests (`/tmp/m2_zhang_all_targets_20261121.log`, 16.91s), no failures; the first parity attempt correctly caught an accidental legacy YAML threshold change, which was reverted before the passing rerun. Historical broader full-suite failures are not claimed fixed; full suite was not rerun. Frozen exact `18d756ef` YAML restored to original sensor.conf_threshold=.99 (which is NOT M2 DS threshold).
+- Demo and standalone 1500step verification script now use rho0. Fresh 35-step Native-UavNetSim seeded demo PASS (`/tmp/m2_zhang_demo_20261121.log`, output `/tmp/m2_zhang_ds_demo_new_20261121`): GCS coverage .11125, 612 delivered evidence events, 244 radio packets received, 1 correct target reported. **Diagnostic scripted policy, not RL result; full 1500-step scenario NOT rerun after this code change**. M2 Native MATD3 GPU learner pilot code uses rho0 and semantic checkpoint format/schema v2; all old v1 SPRT policy files remain distinct. NO GPU Warp full-M2 training, Kaggle launch, or user history overwrite. Current source and tests refer to the **isolated clean M2 worktree**, never reset or clean the dirty legacy source.
+
+---
+
 # 2026-11-20 — Episode clock, reset and E4096 follow-up audit
 
 User asked whether the 4096-episode cliff is plotting, parallel collection, reset or learning. Reused all 402 hash-verified HF files and read original Spinning Up, BenchMARL, CleanRL, SB3, MAPPO, Ackermann MATD3 and FastTD3 sources.

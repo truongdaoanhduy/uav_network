@@ -18,7 +18,7 @@ def run(*,steps=1500,scan_cells=8,seed=44):
     c.world.max_steps=steps;c.sensor.model='bayesian';c.sensor.grid_cell_m=25.
     c.network.enabled=True;c.network.peer_range_m=c.network.gcs_range_m=500.
     c.network.payload_bytes=1024;c.energy.enabled=True
-    env=CooperativeM2Env(c,max_scan_cells=scan_cells,correlation_strength=.55)
+    env=CooperativeM2Env(c,max_scan_cells=scan_cells,correlation_strength=0.)
     rng=np.random.default_rng(seed+2345)
     t0=time.perf_counter()
     failed=[];timestamps=[]

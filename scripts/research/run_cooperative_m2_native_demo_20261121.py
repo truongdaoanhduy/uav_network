@@ -109,7 +109,7 @@ def main():
     c.sensor.grid_cell_m=25.;c.energy.enabled=True
     c.network.report_bytes=c.network.payload_bytes=1024
     c.network.peer_range_m=c.network.gcs_range_m=500.
-    env=CooperativeM2Env(c,correlation_strength=.55,max_scan_cells=None,
+    env=CooperativeM2Env(c,correlation_strength=0.,max_scan_cells=None,
                           map_buffer_bytes=65536)
     timeline=[]
     try:
@@ -140,8 +140,10 @@ def main():
         result={"status":"native_2d_target_belief_smoke_NOT_RL_training","seed":args.seed,
             "configuration":{"uavs":6,"targets":35,"obstacles_for_motion_and_occlusion_only":25,
                 "map_m":1000,"grid_cell_m":25,"belief_map_layers":["F","E","U"],
-                "correlated_sensor":True,"sprt_alpha":.05,"sprt_beta":.05,
-                "ds_candidate_threshold":.95},
+                "correlated_sensor":False,
+                "evidence_mode":"zhang_max_counts","confirmation_mode":"ds_threshold",
+                "ds_positive_bpa":.8,"ds_negative_bpa":.8,
+                "ds_detection_threshold":.95},
             "final":{key:val for key,val in info.items() if key in (
                 "steps","gcs_map","gcs_events","correct_gcs_delivery_recall",
                 "normalized_delivery_auc","gcs_verified_correct","gcs_verified_false",
