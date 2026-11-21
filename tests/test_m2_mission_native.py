@@ -113,7 +113,7 @@ def test_new_m2_observation_respects_legacy_actor_mask_and_active_positions(algo
         assert masks[:,2].all(),"both UAVs can reach GCS in this scenario"
         model=(MATD3 if algorithm=="matd3" else MASAC)(c,obs.shape[-1],e.state().size,device="cpu")
         action=model.act(obs,deterministic=True)
-        assert action.continuous.shape==(2,4)
+        assert action.continuous.shape==(2,c.continuous_dim)
         assert action.destination.shape==(2,)
         for i in range(2):assert masks[i,action.destination[i]]
         e.step(action)

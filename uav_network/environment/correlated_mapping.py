@@ -49,6 +49,35 @@ class Event:
 
 
 @dataclass(frozen=True)
+class ObstacleGeometryEvent:
+    """A noisy 3D cylinder detection (never a simulator obstacle ID).
+
+    Position/size/height are estimated by a simulated range sensor. Only the
+    simulator knows which physical obstacle produced this measurement.
+    """
+    event_id: str
+    origin: int
+    tick: int
+    x: float
+    y: float
+    radius: float
+    height: float
+    sigma_xy: float = 2.0
+    sigma_height: float = 3.0
+
+    def __post_init__(self):
+        vals=(self.x,self.y,self.radius,self.height,self.sigma_xy,self.sigma_height)
+        if (not self.event_id or self.origin<0 or self.tick<0 or
+                not all(math.isfinite(x) for x in vals) or
+                self.radius<=0 or self.height<=0 or self.sigma_xy<=0 or self.sigma_height<=0):
+            raise ValueError("invalid noisy obstacle measurement")
+
+    @property
+    def sort_key(self):
+        return (self.tick,self.origin,self.event_id)
+
+
+@dataclass(frozen=True)
 class CellEvidence:
     """Effective occupancy likelihood for partial FoV under a cell mixture.
 

@@ -45,6 +45,11 @@ class GymMissionEnv(gym.Env):
 
 
 def make_vector(config, *, device=None):
+    # The M2 reference is intentionally Native-only. Routing it through the
+    # legacy/GPU backend would silently produce the wrong observation, events,
+    # GCS map and action semantics despite a valid 5-D actor configuration.
+    if getattr(config.runtime,"m2_enabled",False):
+        raise NotImplementedError("M2 Native reference does not yet support the Warp/legacy vector training backend; defer E4096 to Kaggle integration")
     if config.runtime.environment_backend == "warp_packet":
         from .gpu.vector import WarpVectorEnv
         return WarpVectorEnv(config, device=device)

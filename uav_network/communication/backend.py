@@ -264,8 +264,14 @@ class UavNetSimNetwork:
             if not buffer:
                 self.selection_counts["no_buffer"] += 1
                 continue
-            report = next((r for r in buffer.values()
-                           if self._eligible(source, destination, positions, r)), None)
+            if self.config.runtime.m2_enabled and hasattr(self.reports,"select_packet"):
+                kind=self.reports.payload_choice_from_action(float(action.continuous[source,-2]))
+                report=self.reports.select_packet(
+                    source,destination,self.clock.now/1e6,payload_choice=kind,
+                    eligibility=lambda r:self._eligible(source,destination,positions,r))
+            else:
+                report = next((r for r in buffer.values()
+                               if self._eligible(source, destination, positions, r)), None)
             if report is not None:
                 if self.config.network.power_control == "link_budget":
                     receiver = self.scene.gcs if destination == self.config.world.num_uavs else positions[destination]

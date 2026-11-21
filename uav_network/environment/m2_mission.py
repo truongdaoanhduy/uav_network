@@ -20,7 +20,7 @@ from .xyz_geometry import prepare_scene, camera_clear
 from .energy import funded_motion
 from .bayesian import sensor_profile, cell_coverage
 from .env import Action
-from .correlated_mapping import CorrelatedBinarySensor, CellEvidence, Event
+from .correlated_mapping import CorrelatedBinarySensor, CellEvidence, Event, ObstacleGeometryEvent
 from ..communication.m2_protocol import CooperativeWorldMap, MultiLayerMapMetrics
 from ..communication.m2_network import M2PacketStore, M2Radio
 
@@ -28,8 +28,9 @@ from ..communication.m2_network import M2PacketStore, M2Radio
 class CooperativeM2Env:
     """One native 3D mission, with actual packet deliveries and map snapshots."""
     def __init__(self,config,*,correlation_strength=.5,ds_threshold=.95,
-                 sprt_alpha=.05,sprt_beta=.05,max_scan_cells=4,
+                 sprt_alpha=.05,sprt_beta=.05,max_scan_cells=None,
                  map_buffer_bytes=65536,obstacle_pd=.92,obstacle_pf=.06):
+        config.runtime.m2_enabled=True  # Only this opt-in environment uses 5D policy actions.
         self.config=config.validate()
         if self.config.motion_dim != 3:
             raise ValueError("M2 experiment requires 3D flight")
@@ -37,12 +38,13 @@ class CooperativeM2Env:
             raise ValueError("Native XYZ dynamic_window is retired; choose CBF or reject")
         if not (0<obstacle_pf<obstacle_pd<1):
             raise ValueError("invalid independent obstacle classifier calibration")
-        if not 0<=correlation_strength<=1 or max_scan_cells<=0:
+        if (not 0<=correlation_strength<=1 or
+                (max_scan_cells is not None and max_scan_cells<=0)):
             raise ValueError("invalid M2 sensor correlation or scan capacity")
         self.correlation_strength=float(correlation_strength)
         self.ds_threshold=ds_threshold
         self.sprt_alpha=sprt_alpha;self.sprt_beta=sprt_beta
-        self.max_scan_cells=int(max_scan_cells)
+        self.max_scan_cells=None if max_scan_cells is None else int(max_scan_cells)
         self.map_buffer_bytes=int(map_buffer_bytes)
         self.obstacle_pd=obstacle_pd;self.obstacle_pf=obstacle_pf
         self.radio=None;self.nodes=None;self.store=None
@@ -105,14 +107,20 @@ class CooperativeM2Env:
                 for o in self.scene.obstacles)
         self._target_sensor=CorrelatedBinarySensor(self.num_cells,self.seed+4501,self.correlation_strength)
         self._obstacle_sensor=CorrelatedBinarySensor(self.num_cells,self.seed+4591,self.correlation_strength)
+        self._geometry_rng=np.random.default_rng(self.seed+4681)
+        self._geometry_bias=self._geometry_rng.normal(0,1.0,size=(len(self.scene.obstacles),4))
         self.nodes=[CooperativeWorldMap(self.num_cells,self.ds_threshold,self.sprt_alpha,self.sprt_beta)
                     for _ in range(n+1)]
         self.store=M2PacketStore(self.nodes,buffer_bytes=self.map_buffer_bytes,ttl_s=c.network.report_ttl_s)
-        self.radio=M2Radio(c,self.store,self.scene,seed=self.seed)
+        self.radio=M2Radio(c,self.store,self.scene,seed=self.seed,battery_j=self.battery_j)
         self._seen_verified=set();self._seen_candidate=set();self._seen_gcs_claims=set()
         self._rewarded_correct_cells=set()
+        self._delivery_recall_sum=0.
+        self._false_report_exposure_s=0.
         self._prev_score=self._map_score()
+        self._prev_obstacle_3d_iou=self._obstacle_3d_iou()
         self._sense()
+        self._sense_3d_obstacles()
         return self.local_observations(),self.info()
 
     def _center(self,cell):
@@ -148,7 +156,8 @@ class CooperativeM2Env:
                     candidates.append((priority,age,cell,q,target_los))
             candidates.sort(key=lambda item:(item[0],item[1],item[2]))
             output=[]
-            for _priority,_age,cell,q,target_los in candidates[:self.max_scan_cells]:
+            selected=candidates if self.max_scan_cells is None else candidates[:self.max_scan_cells]
+            for _priority,_age,cell,q,target_los in selected:
                 self._sequence+=1
                 if target_los:
                     effective=CellEvidence.from_footprint(pd,pf,q)
@@ -164,6 +173,69 @@ class CooperativeM2Env:
             if output:
                 self.store.publish(i,output,created_s=self.time_s,
                                    payload_bytes=c.network.payload_bytes)
+
+    def _obstacle_visible_from(self,position,index):
+        """Visible silhouette sample toward cylinder top; block by OTHER volumes.
+
+        The simulator's true geometry is used here ONLY to synthesize an optical
+        measurement, never in an actor or GCS map. This center/top ray is an
+        explicit approximation, not full partial-surface ray tracing.
+        """
+        from .xyz_geometry import cylinder_hit
+        obstacle=self.scene.obstacles[index]
+        target=np.array([obstacle[0],obstacle[1],self.scene.obstacle_heights[index]],float)
+        for j,other in enumerate(self.scene.obstacles):
+            if j==index:continue
+            if cylinder_hit(position,target,np.r_[other,self.scene.obstacle_heights[j]]):
+                return False
+        return True
+
+    def _sense_3d_obstacles(self):
+        """Simulated 3D range/height camera, whose observations contain no IDs.
+
+        Truth is read ONLY inside this simulator sensing function. Measurements
+        are noisy (independent noise plus a stable scene-specific bias shared
+        across UAV viewpoints), delivered to other nodes only by radio packets.
+        """
+        radius_noise=2.0
+        height_noise=3.0
+        for i,position in enumerate(self.positions):
+            if self.config.energy.enabled and self.battery_j[i]<=0:continue
+            if position[2]<=0:continue
+            fov=position[2]*math.tan(math.radians(self.config.sensor.full_fov_deg/2))
+            out=[]
+            for index,obs in enumerate(self.scene.obstacles):
+                distance=np.linalg.norm(position[:2]-obs[:2])
+                if distance>fov+obs[2] or not self._obstacle_visible_from(position,index):continue
+                # As the obstacle approaches the horizon/edge the classifier
+                # becomes less reliable; high false negatives remain possible.
+                detection=self.obstacle_pd*max(.15,min(1.,(fov+obs[2]-distance)/max(obs[2],1.)))
+                if self._geometry_rng.random()>=detection:continue
+                self._sequence+=1
+                bias=self._geometry_bias[index]
+                xy=np.asarray(obs[:2])+bias[:2]+self._geometry_rng.normal(0,radius_noise,size=2)
+                measured_radius=max(.25,float(obs[2]+bias[2]+self._geometry_rng.normal(0,radius_noise)))
+                measured_height=max(.25,float(self.scene.obstacle_heights[index]+bias[3]+
+                                               self._geometry_rng.normal(0,height_noise)))
+                out.append(ObstacleGeometryEvent(
+                    f"geom:{self.seed}:{i}:{self.steps}:{self._sequence}",i,self.steps,
+                    float(xy[0]),float(xy[1]),measured_radius,measured_height,
+                    radius_noise,height_noise))
+            # A small false-geometry clutter process is independent of obstacle
+            # IDs. This is noisy range detection, not an oracle geometry copy.
+            if self._geometry_rng.random()<self.obstacle_pf*.02:
+                self._sequence+=1
+                angle=self._geometry_rng.uniform(0,2*math.pi)
+                distance=self._geometry_rng.uniform(0,max(fov,1.))
+                x=position[0]+distance*math.cos(angle)
+                y=position[1]+distance*math.sin(angle)
+                if 0<=x<=self.config.world.map_size_m and 0<=y<=self.config.world.map_size_m:
+                    out.append(ObstacleGeometryEvent(
+                        f"clutter:{self.seed}:{i}:{self.steps}:{self._sequence}",i,self.steps,
+                        float(x),float(y),float(self._geometry_rng.uniform(3,12)),
+                        float(self._geometry_rng.uniform(5,45)),radius_noise,height_noise))
+            if out:
+                self.store.publish_geometry(i,out,created_s=self.time_s)
 
     def local_observations(self):
         c=self.config;n=c.world.num_uavs;width=c.sensor.grid_cell_m
@@ -191,15 +263,29 @@ class CooperativeM2Env:
                     if 0<=gx<self.grid_n and 0<=gy<self.grid_n:
                         cell=gy*self.grid_n+gx
                         target,obstacle,status,sprt=self.nodes[i].visible_summary(cell)
+                        height=self.nodes[i].estimated_obstacle_height(
+                            cell,grid_n=self.grid_n,cell_m=width)
+                        last_seen=self.nodes[i].last_observed[cell]
+                        age_norm=(min(1.,max(0.,self.steps-last_seen)/max(c.world.max_steps,1))
+                                  if last_seen>=0 else 1.)
                         features.extend((*target,*obstacle,
                                          float(self.nodes[i].coverage[cell]>0),
-                                         np.tanh(sprt/3)))
-                    else:features.extend((0,0,1,0,0,1,0,0))
+                                         np.tanh(sprt/3),
+                                         min(1.,height/c.world.altitude_max_m),age_norm))
+                    else:features.extend((0,0,1,0,0,1,0,0,0,1))
             peers=[j for j in range(n+1) if j!=i]
-            masks=[1.]+[float(self.radio.link_available(i,j,self.positions)) for j in peers]
+            # All destinations stay selectable. True link feasibility is known
+            # only to the PHY; never leak perfect instantaneous peer positions
+            # through an action mask. Actor learns from packet/ACK history.
+            masks=[1. for _ in range(n+1)]
             # Only successfully received contacts, never remote true buffer state.
             contacts=[min(1.,max(0.,self.steps-self.nodes[i].link_contacts[j])/max(1,c.world.max_steps))
                       if j in self.nodes[i].link_contacts else 1. for j in peers]
+            kinds=("evidence","geometry","map_delta","report","correction")
+            queued=[sum(p.kind==kind for p in self.store.buffers[i].values())
+                    for kind in kinds]
+            # No remote buffer counts or ground truth in observation.
+            base.extend(min(1.,v/16.) for v in queued)
             rows.append(np.asarray(base+features+contacts+masks,dtype=np.float32))
         return np.asarray(rows,dtype=np.float32)
 
@@ -217,6 +303,9 @@ class CooperativeM2Env:
         now_score=self._map_score()
         map_progress=4.*(self._prev_score-now_score)
         self._prev_score=now_score
+        current_3d_iou=self._obstacle_3d_iou()
+        obstacle_3d_progress=2.0*(current_3d_iou-self._prev_obstacle_3d_iou)
+        self._prev_obstacle_3d_iou=current_3d_iou
         candidates={cell for j in range(c.world.num_uavs)
                     for cell in self.nodes[j].candidates}
         new_candidates=candidates-self._seen_candidate
@@ -239,12 +328,13 @@ class CooperativeM2Env:
                     self._rewarded_correct_cells.add(notice.cell)
             else:
                 delivered-=10.  # Every false verified transmission costs reward.
-        result=(.15*len(new_candidates)+verify_bonus+delivered+map_progress
+        result=(.15*len(new_candidates)+verify_bonus+delivered+map_progress+obstacle_3d_progress
                 -c.reward.propulsion_energy_per_kj*sum(flight_cost)/1000
                 -c.reward.communication_energy*radio_cost-c.reward.step_cost)
         self.last_reward_components={"candidate":.15*len(new_candidates),
                                      "verification":verify_bonus,"report":delivered,
                                      "map_progress":map_progress,
+                                     "obstacle_3d_progress":obstacle_3d_progress,
                                      "energy":-c.reward.propulsion_energy_per_kj*sum(flight_cost)/1000
                                               -c.reward.communication_energy*radio_cost,
                                      "step":-c.reward.step_cost}
@@ -262,26 +352,83 @@ class CooperativeM2Env:
         self.flight_energy_j+=flight_cost
         self.steps+=1
         self._sense()
-        gcs_peer=next((i for offset in range(n)
-                       for i in [(self.steps+offset)%n]
-                       if self.radio.link_available(n,i,self.positions)
-                       and any(self.store.can_forward(n,i,p,self.time_s)
-                               for p in self.store.buffers[n].values())),None)
+        self._sense_3d_obstacles()
+        # The GCS summarizes delivered evidence into packetized map deltas;
+        # it probes one UAV in round-robin order, never ideal-broadcasts.
+        self.store.prepare_gcs_delta(now=self.time_s)
+        gcs_peer=(self.steps % n) if self.store.buffers[n] else None
         radio_cost=self.radio.step(action.destination,self.positions,time_s=self.time_s,
                                    power_actions=np.asarray(action.continuous)[:,-1],
+                                   payload_actions=np.asarray(action.continuous)[:,3],
                                    gcs_peer=gcs_peer)
         reward=self._reward(flight_cost,radio_cost)
+        self._delivery_recall_sum+=self._current_correct_delivery_count()/max(1,int(self._truth_target.sum()))
+        self._false_report_exposure_s+=self._current_false_delivery_count()*c.world.dt_s
         self._done=(self.steps>=c.world.max_steps or
                     (c.energy.enabled and not (self.battery_j>0).any()))
         return self.local_observations(),reward,self._done,False,self.info()
 
+    def _obstacle_3d_iou(self):
+        levels=np.arange(12.5,self.config.world.altitude_max_m,25.)
+        estimate=self.gcs_map.obstacle_voxel_map(
+            grid_n=self.grid_n,cell_m=self.config.sensor.grid_cell_m,z_levels=levels)
+        truth=self._true_3d_obstacle_voxels(z_levels=levels)
+        union=int(np.logical_or(estimate,truth).sum())
+        return float(np.logical_and(estimate,truth).sum()/union) if union else 1.
+
+    def _currently_verified_gcs_cells(self):
+        # The GCS can have strong local DS evidence without ever receiving a
+        # verified REPORT. Delivery metrics must require a real report packet.
+        cells={cell for (src,cell),claim in self.gcs_map.claims.items()
+               if claim.status=="verified"}
+        return {cell for cell in cells if self.gcs_map.consensus_status(cell)=="verified"}
+
+    def _current_correct_delivery_count(self):
+        return sum(bool(self._truth_target[cell]) for cell in self._currently_verified_gcs_cells())
+
+    def _current_false_delivery_count(self):
+        return sum(not bool(self._truth_target[cell]) for cell in self._currently_verified_gcs_cells())
+
+    def _true_3d_obstacle_voxels(self,*,z_levels):
+        """Evaluator-only geometry, never exposed through policy observation."""
+        width=self.config.sensor.grid_cell_m
+        centers=(np.arange(self.grid_n)+.5)*width
+        xx,yy=np.meshgrid(centers,centers,indexing='xy')
+        out=np.zeros((len(z_levels),self.grid_n,self.grid_n),dtype=bool)
+        for obs,height in zip(self.scene.obstacles,self.scene.obstacle_heights):
+            dx=np.maximum(abs(xx-obs[0])-width/2.,0.)
+            dy=np.maximum(abs(yy-obs[1])-width/2.,0.)
+            footprint=dx*dx+dy*dy<=obs[2]*obs[2]
+            for k,z in enumerate(z_levels):
+                if z<=height:out[k]|=footprint
+        return out
+
     def info(self):
         if self.nodes is None:raise RuntimeError("reset the environment first")
         claims=self.gcs_map.claims
-        verified={n.cell for n in claims.values() if n.status=="verified"}
+        verified=self._currently_verified_gcs_cells()
         correct=sum(bool(self._truth_target[cell]) for cell in verified)
         false=sum(not bool(self._truth_target[cell]) for cell in verified)
+        gcs_geometry=self.gcs_map.obstacle_voxel_map(
+            grid_n=self.grid_n,cell_m=self.config.sensor.grid_cell_m,
+            z_levels=np.arange(12.5,self.config.world.altitude_max_m,25.))
+        truth_geometry=self._true_3d_obstacle_voxels(
+            z_levels=np.arange(12.5,self.config.world.altitude_max_m,25.))
+        union=np.logical_or(gcs_geometry,truth_geometry).sum()
+        voxel_iou=(float(np.logical_and(gcs_geometry,truth_geometry).sum()/union)
+                   if union else 1.)
+        n_reports=correct+false
+        flight_total=float(self.flight_energy_j.sum())
+        rf_total=float(self.radio.network.energy_j[:-1].sum()) if self.radio else 0.
         return {"steps":self.steps,"num_uavs":self.config.world.num_uavs,
+                "correct_gcs_delivery_recall":correct/max(int(self._truth_target.sum()),1),
+                "false_report_rate":float(false/n_reports) if n_reports else None,
+                "normalized_delivery_auc":self._delivery_recall_sum/max(self.steps,1),
+                "false_alert_exposure_seconds":self._false_report_exposure_s,
+                "energy_total_j":flight_total+rf_total,
+                "energy_per_correct_delivery_j":(flight_total+rf_total)/correct if correct else None,
+                "obstacle_3d_voxel_iou":voxel_iou,
+                "gcs_obstacle_3d_track_count":len(self.gcs_map.obstacle_tracks),
                 "gcs_map":MultiLayerMapMetrics.evaluate(
                     self.gcs_map,self._truth_target,self._truth_obstacle,at_tick=self.steps),
                 "gcs_verified_correct":correct,"gcs_verified_false":false,

@@ -143,6 +143,8 @@ class MASACConfig(OffPolicyConfig):
 
 @dataclass
 class MATD3Config(OffPolicyConfig):
+    # Original author p_train uses 1e-3; zero preserves historical UAV runs.
+    actor_output_regularization: float = 0.0
     # Only an explicit ablation changes PyTorch default Linear initialization.
     initialization: str = "default"
     policy_delay: int = 2
@@ -156,6 +158,7 @@ class MATD3Config(OffPolicyConfig):
 
 @dataclass
 class RuntimeConfig:
+    m2_enabled: bool = False  # New M2 policy, not part of frozen legacy world scenario hash.
     algorithm: str = "masac"
     seed: int = 44
     eval_seed: int = 10044
@@ -218,6 +221,12 @@ class TrackingConfig:
     artifact_timeout_seconds: int = 120
     evaluation_interval: int = 50
     evaluation_interval_steps: int = 0  # Absolute joint transitions; zero disables.
+    periodic_evaluation_interval_episodes: int = 0  # Completed training episodes; zero disables.
+    deferred_gpu_eval_enabled: bool = False  # Capture Actor-only snapshots; evaluate after training.
+    online_gpu_eval_enabled: bool = False  # Opt-in: GPU0 Eval concurrently with GPU Training.
+    deferred_gpu_eval_collection_stride: int = 8
+    deferred_gpu_eval_candidate_limit: int = 400
+    deferred_gpu_eval_target: int = 200
     periodic_evaluation_episodes: int = 5
     periodic_evaluation_seed: int = 1000000044
     evaluation_timeout_seconds: int = 300
@@ -250,7 +259,7 @@ class Config:
 
     @property
     def continuous_dim(self):
-        return self.motion_dim + 1
+        return self.motion_dim + 1 + int(self.runtime.m2_enabled)
 
     def validate(self):
         validate_xyz(self)
@@ -359,6 +368,24 @@ class Config:
             raise ValueError("masac.temperature_loss must be log_alpha or alpha")
         if self.matd3.initialization not in {"default", "orthogonal", "kaiming"}:
             raise ValueError("matd3.initialization must be default, orthogonal or kaiming")
+        coefficient = self.matd3.actor_output_regularization
+        if type(coefficient) not in (int, float) or not math.isfinite(coefficient) or coefficient < 0:
+            raise ValueError("matd3.actor_output_regularization must be finite and nonnegative")
+        t = self.tracking
+        if type(t.deferred_gpu_eval_enabled) is not bool:
+            raise ValueError("deferred_gpu_eval_enabled must be bool")
+        if type(t.online_gpu_eval_enabled) is not bool:
+            raise ValueError("online_gpu_eval_enabled must be bool")
+        if t.online_gpu_eval_enabled and not t.deferred_gpu_eval_enabled:
+            raise ValueError("online_gpu_eval_enabled requires Actor-only snapshot capture")
+        if (any(type(x) is not int for x in (t.deferred_gpu_eval_collection_stride,
+                t.deferred_gpu_eval_candidate_limit, t.deferred_gpu_eval_target))
+                or t.deferred_gpu_eval_collection_stride < 1 or t.deferred_gpu_eval_target < 2
+                or t.deferred_gpu_eval_candidate_limit < 2 * t.deferred_gpu_eval_target):
+            raise ValueError("Deferred GPU evaluation snapshot stride/capacity invalid")
+        if t.deferred_gpu_eval_enabled and (r.algorithm not in {"masac", "matd3"}
+                                            or r.environment_backend != "warp_packet"):
+            raise ValueError("Deferred GPU evaluation requires Warp MASAC or MATD3")
         if r.num_envs < 1 or r.log_interval_steps < 1:
             raise ValueError("num_envs and log_interval_steps must be positive")
         if r.critic_chunk_size < 0:
@@ -368,6 +395,7 @@ class Config:
         if r.max_train_seconds < 0:
             raise ValueError("max_train_seconds must be nonnegative; zero disables the soft deadline")
         for name, minimum in (("evaluation_interval", 0), ("evaluation_interval_steps", 0),
+                               ("periodic_evaluation_interval_episodes", 0),
                               ("periodic_evaluation_episodes", 1), ("periodic_evaluation_seed", 0),
                               ("evaluation_timeout_seconds", 1)):
             value = getattr(self.tracking, name)
@@ -479,7 +507,7 @@ def with_legacy_feature_defaults(values):
     for group, defaults in (
         ("masac", {"actor_layer_norm": False, "temperature_loss": "log_alpha",
                    "shared_critic_mode": "dense"}),
-        ("matd3", {"actor_layer_norm": False}),
+        ("matd3", {"actor_layer_norm": False, "actor_output_regularization": 0.0}),
         ("sensor", {"coverage_grid_cells": 0}),
         ("reward", {"information_gain": 0.0, "investigation_shaping": 0.0,
                     "shaping_gamma": 0.99, "investigation_belief_threshold": 0.8}),
@@ -500,6 +528,8 @@ def with_legacy_feature_defaults(values):
 def config_fingerprint(config):
     """Exact resolved experiment identity, including learner/mode/runtime settings."""
     values = config.to_dict()
+    if values["matd3"]["actor_output_regularization"] == 0:
+        del values["matd3"]["actor_output_regularization"]
     if values["masac"]["shared_critic_mode"] == "dense":
         # The dense path was implicit in older experiment fingerprints.
         del values["masac"]["shared_critic_mode"]

@@ -110,7 +110,7 @@ def main():
     c.sensor.grid_cell_m=25.;c.energy.enabled=True
     c.network.report_bytes=c.network.payload_bytes=1024
     c.network.peer_range_m=c.network.gcs_range_m=500.
-    env=CooperativeM2Env(c,correlation_strength=.55,max_scan_cells=4,
+    env=CooperativeM2Env(c,correlation_strength=.55,max_scan_cells=None,
                           map_buffer_bytes=65536)
     timeline=[]
     try:
@@ -126,6 +126,20 @@ def main():
                              "reward":reward})
             if done:break
         write_figure(env,args.output,timeline)
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        levels=[12.5,62.5,112.5]
+        pred3d=env.gcs_map.obstacle_voxel_map(grid_n=env.grid_n,cell_m=c.sensor.grid_cell_m,z_levels=levels)
+        true3d=env._true_3d_obstacle_voxels(z_levels=levels)
+        fig3,axes3=plt.subplots(3,2,figsize=(9,13),constrained_layout=True)
+        for k,z in enumerate(levels):
+            for j,arr in enumerate((true3d,pred3d)):
+                axes3[k,j].imshow(arr[k],origin='lower',vmin=0,vmax=1,cmap='gray_r',interpolation='nearest')
+                axes3[k,j].set_title(f"{'Truth' if j==0 else 'GCS reconstructed'} at altitude {z:g}m")
+                axes3[k,j].set_xlabel('grid x');axes3[k,j].set_ylabel('grid y')
+        fig3.savefig(args.output/'m2_obstacle_3d_voxel_slices.png',dpi=150)
+        plt.close(fig3)
         n=env.grid_n
         np.savez_compressed(args.output/"m2_maps_and_truth_evaluation_only.npz",
             truth_target=env._truth_target.reshape(n,n).astype(np.uint8),
@@ -135,12 +149,16 @@ def main():
             gcs_target_masses=env.gcs_map.target_masses.reshape(n,n,3),
             gcs_obstacle_masses=env.gcs_map.obstacle_masses.reshape(n,n,3),
             gcs_coverage=env.gcs_map.coverage.reshape(n,n),
+            gcs_obstacle_voxels_3d=pred3d,
+            groundtruth_obstacle_voxels_3d=true3d,
             gcs_last_observed=env.gcs_map.last_observed.reshape(n,n))
         report={"status":"native_integration_smoke_NOT_RL_training", "seed":args.seed,
                 "configuration":{"uavs":6,"targets":35,"obstacles":25,"map_m":1000,
                                  "cell_m":25,"correlated_noise":True,"sprt_alpha":.05,
                                  "sprt_beta":.05,"ds_threshold":.95,"map_model":"M2"},
                 "final":{k:v for k,v in info.items() if k in ("steps","gcs_map","gcs_events",
+                    "obstacle_3d_voxel_iou","gcs_obstacle_3d_track_count",
+                    "correct_gcs_delivery_recall","normalized_delivery_auc","energy_total_j",
                     "gcs_verified_correct","gcs_verified_false","gcs_report_history_count",
                     "propulsion_energy_j")},
                 "network":{"backend":info["communication"]["backend"],
