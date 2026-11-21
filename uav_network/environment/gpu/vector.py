@@ -27,6 +27,13 @@ class WarpVectorEnv:
     environment_backend = "warp_packet"
 
     def __init__(self, config, device=None):
+        # Direct class construction must never bypass make_vector's guard.
+        # Legacy Warp PHY/MAC and belief state still use target IDs, not M2
+        # source-provenanced evidence or GCS map deltas. Fail before allocating.
+        if getattr(config.runtime, "m2_enabled", False):
+            raise NotImplementedError(
+                "M2 target-belief Warp packet backend is not yet integrated; "
+                "never run the legacy Warp world as a full M2 environment")
         self.config = config.validate()
         self.num_envs = config.runtime.num_envs
         selected = config.runtime.device if device is None else device

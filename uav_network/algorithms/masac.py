@@ -1,6 +1,7 @@
 """Hybrid MASAC with independent actors and centralized twin soft critics."""
 from copy import deepcopy
 import math
+import os
 
 import numpy as np
 import torch
@@ -16,6 +17,7 @@ from .parallel_critics import critic_values
 from .critic_chunks import chunked_call, chunked_critic_values
 from .precision import MixedPrecision, autocast_update
 from .optimization import scalar_metrics, step_optimizer, step_actor_optimizers, tensor_batch, critic_metrics
+from .masac_gradient_probe import MASACGradientProbe
 
 
 def soft_bellman_target(reward, terminated, soft_value, gamma):
@@ -38,6 +40,7 @@ class MASAC(nn.Module):
         a = config.masac
         self.share_actor_parameters = a.share_actor_parameters
         self.share_critic_parameters = a.share_critic_parameters
+        self._factorized_critic_enabled = os.environ.get("UAV_FACTORIZED_CRITIC", "0").lower() in {"1", "true", "yes"}
         actor_input_dim = observation_dim + n if self.share_actor_parameters else observation_dim
         actor_count = 1 if self.share_actor_parameters else n
         critic_count = 1 if self.share_critic_parameters else n
@@ -152,6 +155,9 @@ class MASAC(nn.Module):
             state, joint, continuous, self.config.runtime.critic_chunk_size)
 
     def _expected_q_full(self, critic, state, joint, continuous, index):
+        if getattr(self, "_factorized_critic_enabled", False):
+            from .factorized_candidate import masac_individual_q
+            return masac_individual_q(critic, state, joint, continuous, index)
         """Enumerate own destination; sample and detach all other agents."""
         b, k = len(state), self.destinations
         alternatives = joint.detach()[:, None].expand(-1, k, -1, -1).clone()
@@ -169,6 +175,10 @@ class MASAC(nn.Module):
             state, joint, continuous, self.config.runtime.critic_chunk_size)
 
     def _expected_q_all_full(self, critics, state, joint, continuous):
+        if getattr(self, "_factorized_critic_enabled", False):
+            from .factorized_candidate import masac_individual_q
+            return torch.stack([masac_individual_q(critics[i], state, joint, continuous[:, i], i)
+                                for i in range(self.num_uavs)], dim=1)
         """Enumerate each critic's own destination, keeping peer actions detached."""
         b, n, k = len(state), self.num_uavs, self.destinations
         alternatives = joint.detach()[None, :, None].expand(n, -1, k, -1, -1).clone()
@@ -183,7 +193,10 @@ class MASAC(nn.Module):
 
     def _expected_q_shared_all(self, critic, state, joint, continuous, *, observation=None):
         chunk_size = self.config.runtime.critic_chunk_size
-        if observation is not None and self.config.masac.shared_critic_mode == "valid_routes":
+        # Hybrid control: source-faithful dense Actor Q and sparse valid-route Target Q.
+        # This changes only the numerical path, not network weights or the loss.
+        if (observation is not None and self.config.masac.shared_critic_mode == "valid_routes"
+                and critic is not self.critics[0]):
             route_mask = valid_destinations(observation, self.destinations)
             return chunked_call(
                 lambda s, j, a, mask: self._expected_q_shared_valid_routes(critic, s, j, a, mask),
@@ -211,6 +224,9 @@ class MASAC(nn.Module):
         return padded.reshape(n, b, k).permute(1, 0, 2).contiguous()
 
     def _expected_q_shared_all_full(self, critic, state, joint, continuous):
+        if getattr(self, "_factorized_critic_enabled", False):
+            from .factorized_candidate import masac_shared_q
+            return masac_shared_q(critic, state, joint, continuous)
         """Evaluate one team critic for every agent's categorical alternatives."""
         b, n, k = len(state), self.num_uavs, self.destinations
         alternatives = joint.detach()[None, :, None].expand(n, -1, k, -1, -1).clone()
@@ -277,6 +293,12 @@ class MASAC(nn.Module):
         critic_step = (lambda *args: self.precision.step("critic", *args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_optimizer(*args, grad_clip_mode=a.grad_clip_mode))
         critic_grad = critic_step(critic_loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
         self.updates += 1
+        # Passive loss collector; original MASAC critic step is unchanged.
+        dense_sink = getattr(self, "_dense_loss_sink", None)
+        if dense_sink is not None:
+            dense_sink.record("critic_loss", critic_loss)
+            dense_sink.record("critic_grad_norm", critic_grad)
+            dense_sink.record("td_error_abs_mean", (q1.detach()-target.detach()).abs().mean())
         if not collect_metrics:
             return {}
         return scalar_metrics({**critic_metrics(q1, q2, target, data),
@@ -295,7 +317,12 @@ class MASAC(nn.Module):
         self.critics.requires_grad_(False)
         actor_grads = []
         actor_losses, entropies_c, entropies_d, targets_c, targets_d = [], [], [], [], []
+        probe = MASACGradientProbe(self.actors, len(data["observation"]),
+                                   self.num_uavs, self.share_actor_parameters, self.config.motion_dim,
+                                   enabled=collect_metrics and not self.precision.enabled)
+        probe_metrics = {}
         try:
+            probe.__enter__()
             samples, batched_samples = None, None
             if vectorized or self.share_critic_parameters or self.share_actor_parameters:
                 if self.share_actor_parameters:
@@ -351,7 +378,9 @@ class MASAC(nn.Module):
             actor_grads = actor_step(step_losses, self.actor_optimizers, parameter_groups,
                                      a.grad_clip_norm, collect_metrics)
             actor_losses = [loss.detach() for loss in actor_losses]
+            probe_metrics = probe.metrics()
         finally:
+            probe.__exit__(None, None, None)
             self.critics.requires_grad_(True)
         hc, hd, tc, td = (torch.stack(v) for v in (entropies_c, entropies_d, targets_c, targets_d))
         before_c, before_d = self.log_alpha_continuous.detach().clone(), self.log_alpha_discrete.detach().clone()
@@ -381,9 +410,15 @@ class MASAC(nn.Module):
             self.log_alpha_continuous.copy_(torch.where(available_c, self.log_alpha_continuous, before_c))
             self.log_alpha_discrete.copy_(torch.where(available_d, self.log_alpha_discrete, before_d))
         self.actor_updates += 1
+        dense_sink = getattr(self, "_dense_loss_sink", None)
+        if dense_sink is not None:
+            # Actor and temperature objectives come from real completed updates.
+            dense_sink.record("actor_loss", torch.stack(actor_losses).mean())
+            dense_sink.record("actor_grad_norm", torch.stack(actor_grads).mean())
+            dense_sink.record("alpha_loss", alpha_loss)
         if not collect_metrics:
             return {}
-        return scalar_metrics({"actor_grad_norm": torch.stack(actor_grads).mean(),
+        return scalar_metrics({**probe_metrics, "actor_grad_norm": torch.stack(actor_grads).mean(),
                                "alpha_grad_norm": alpha_grad,
                                "actor_loss": torch.stack(actor_losses).mean(),
                                "continuous_entropy": hc.mean(), "discrete_entropy": hd.mean(),

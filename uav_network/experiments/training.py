@@ -78,6 +78,14 @@ def refresh_base_collector(collector, learner):
 
 
 def train(config):
+    # Legacy rollout/evaluator assumes oracle target-ID reports and the old
+    # Bayesian observation ABI. Refuse all M2 profiles BEFORE creating output
+    # folders, checkpoints or tracking runs. E4096 M2 needs its own complete
+    # Warp packet/evidence implementation and native-parity tests.
+    if getattr(config.runtime, "m2_enabled", False):
+        raise NotImplementedError(
+            "M2 target-belief training requires the unported Warp M2 packet "
+            "environment, observation and evaluator; no legacy rollout allowed")
     with graceful_termination():
         if config.pql.enabled:
             from .pql_training import train_pql

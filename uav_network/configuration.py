@@ -119,6 +119,8 @@ class OffPolicyConfig:
     share_actor_parameters: bool = False
     share_critic_parameters: bool = False
     actor_layer_norm: bool = False
+    actor_batch_norm: bool = False
+    critic_batch_norm: bool = False
     replay_capacity: int = 50_000
     batch_size: int = 256
     learning_starts: int = 2000
@@ -227,6 +229,7 @@ class TrackingConfig:
     deferred_gpu_eval_collection_stride: int = 8
     deferred_gpu_eval_candidate_limit: int = 400
     deferred_gpu_eval_target: int = 200
+    deferred_gpu_eval_keep_all: bool = False  # Matches 2026-11-20 saved eval semantics.
     periodic_evaluation_episodes: int = 5
     periodic_evaluation_seed: int = 1000000044
     evaluation_timeout_seconds: int = 300
@@ -368,20 +371,34 @@ class Config:
             raise ValueError("masac.temperature_loss must be log_alpha or alpha")
         if self.matd3.initialization not in {"default", "orthogonal", "kaiming"}:
             raise ValueError("matd3.initialization must be default, orthogonal or kaiming")
+        if type(self.matd3.actor_batch_norm) is not bool:
+            raise ValueError("matd3.actor_batch_norm must be a bool")
+        if type(self.matd3.critic_batch_norm) is not bool:
+            raise ValueError("matd3.critic_batch_norm must be a bool")
+        if self.matd3.actor_batch_norm and not self.matd3.actor_layer_norm:
+            raise ValueError("BN ablation replaces the baseline LayerNorm; require actor_layer_norm=true")
         coefficient = self.matd3.actor_output_regularization
         if type(coefficient) not in (int, float) or not math.isfinite(coefficient) or coefficient < 0:
             raise ValueError("matd3.actor_output_regularization must be finite and nonnegative")
         t = self.tracking
         if type(t.deferred_gpu_eval_enabled) is not bool:
             raise ValueError("deferred_gpu_eval_enabled must be bool")
+        if type(t.deferred_gpu_eval_keep_all) is not bool:
+            raise ValueError("deferred_gpu_eval_keep_all must be bool")
+        if t.deferred_gpu_eval_keep_all and t.online_gpu_eval_enabled:
+            raise ValueError("keep_all snapshots must be post-training; live worker is bounded")
         if type(t.online_gpu_eval_enabled) is not bool:
             raise ValueError("online_gpu_eval_enabled must be bool")
         if t.online_gpu_eval_enabled and not t.deferred_gpu_eval_enabled:
             raise ValueError("online_gpu_eval_enabled requires Actor-only snapshot capture")
         if (any(type(x) is not int for x in (t.deferred_gpu_eval_collection_stride,
                 t.deferred_gpu_eval_candidate_limit, t.deferred_gpu_eval_target))
-                or t.deferred_gpu_eval_collection_stride < 1 or t.deferred_gpu_eval_target < 2
-                or t.deferred_gpu_eval_candidate_limit < 2 * t.deferred_gpu_eval_target):
+                or t.deferred_gpu_eval_collection_stride < 1
+                or (not t.deferred_gpu_eval_keep_all and
+                    (t.deferred_gpu_eval_target < 2 or
+                     t.deferred_gpu_eval_candidate_limit < 2 * t.deferred_gpu_eval_target))
+                or (t.deferred_gpu_eval_keep_all and
+                    (t.deferred_gpu_eval_target != 0 or t.deferred_gpu_eval_candidate_limit != 0))):
             raise ValueError("Deferred GPU evaluation snapshot stride/capacity invalid")
         if t.deferred_gpu_eval_enabled and (r.algorithm not in {"masac", "matd3"}
                                             or r.environment_backend != "warp_packet"):

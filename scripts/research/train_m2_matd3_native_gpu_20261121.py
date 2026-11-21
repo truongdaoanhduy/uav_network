@@ -44,7 +44,7 @@ class PilotSettings:
     update_every: int=8
     eval_every: int=10
     eval_episodes: int=2
-    max_train_seconds: float=10.5*3600
+    max_train_seconds: float=0.0
     seed: int=44
     device: str='cuda:0'
     output_dir: Path=Path('/kaggle/working/m2_matd3_native_gpu_pilot')
@@ -397,7 +397,7 @@ def main():
     ap.add_argument('--eval-every',type=int,default=10)
     ap.add_argument('--eval-episodes',type=int,default=2)
     ap.add_argument('--scan-cells',type=int,default=8)
-    ap.add_argument('--max-hours',type=float,default=10.5)
+    ap.add_argument('--max-hours',type=float,default=0.0)
     ap.add_argument('--warmup-steps',type=int,default=1024)
     ap.add_argument('--batch-size',type=int,default=128)
     ap.add_argument('--update-every',type=int,default=8)

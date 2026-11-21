@@ -126,3 +126,8 @@ def test_evidence_packetizer_handles_exact_1024_boundary_with_complete_envelope(
     assert all(msg.size_bytes<=1024 for msg in messages)
     assert all(msg.size_bytes>=_envelope_wire_size(msg) for msg in messages)
     assert nodes[0].events_seen==6
+
+
+def test_diagnostic_native_pilot_never_invents_session_time_limit_by_default():
+    # Existing pilot remains diagnostic only; zero means no code-level timeout.
+    assert PilotSettings().max_train_seconds == 0.0

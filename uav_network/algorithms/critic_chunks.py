@@ -36,3 +36,19 @@ def chunked_critic_values(function, state, joint, chunk_size, per_critic=False):
                  if torch.is_grad_enabled() else function(*inputs))
         values.append(value)
     return tuple(torch.cat([value[i] for value in values], dim=0) for i in range(2))
+
+def chunked_single_q_values(function, state, joints, chunk_size):
+    """Single-head actor Q with checkpointing over the replay batch axis.
+
+    Joints are [candidate, batch, uav, action]. This helper is not used
+    for the twin-Q target or critic training objective.
+    """
+    if not chunk_size or len(state) <= chunk_size:
+        return function(state, joints)
+    values = []
+    for start in range(0, len(state), chunk_size):
+        inputs = (state[start:start + chunk_size], joints[:, start:start + chunk_size])
+        value = (checkpoint(function, *inputs, use_reentrant=False, preserve_rng_state=False)
+                 if torch.is_grad_enabled() else function(*inputs))
+        values.append(value)
+    return torch.cat(values, dim=0)
