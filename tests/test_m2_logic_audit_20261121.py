@@ -221,3 +221,23 @@ def test_gcs_does_not_resend_already_acknowledged_target_evidence_in_new_delta()
     assert repeated is not None and repeated.message_id!=first.message_id
     assert not store.can_forward(3,1,repeated,9), 'acknowledged 2D evidence must not be sent to same UAV again'
     assert store.can_forward(3,2,repeated,9), 'a different UAV still needs the GCS delta'
+
+
+def test_tall_physical_obstacle_blocks_target_sensor_without_building_obstacle_map():
+    c=Config();c.world.motion_dimensions=3;c.world.motion_safety='cbf';c.sensor.model='bayesian'
+    c.world.num_uavs=2;c.world.num_targets=1;c.world.num_obstacles=1;c.world.max_steps=2
+    c.sensor.grid_cell_m=25.;c.energy.enabled=False
+    scene={'positions':np.array([[450.,540.,100.],[800.,800.,100.]]),
+           'targets':np.array([[535.,540.]]),
+           'obstacles':np.array([[490.,540.,12.,120.]])}
+    seen=[]
+    for obstacle_occlusion in (True,False):
+        c.sensor.obstacle_occlusion=obstacle_occlusion
+        env=CooperativeM2Env(c,max_scan_cells=None)
+        try:
+            env.reset(seed=44,options=scene)
+            cell=env._cell_xy(scene['targets'][0])
+            seen.append(cell in [event.cell for event in env.nodes[0].events.values()])
+            assert not hasattr(env.nodes[0],'obstacle_masses')
+        finally:env.close()
+    assert seen==[False,True]
