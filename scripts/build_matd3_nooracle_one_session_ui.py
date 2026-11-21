@@ -66,7 +66,7 @@ def main():
     commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()
     archive=build_source_archive(root)
     spec=make_spec(commit)
-    source=kernel_script(spec, archive, credential_source='kaggle_secrets')
+    source=kernel_script(spec, source_archive=archive, credential_source='kaggle_secrets')
     # When Kaggle supplies its real run ref, preserve actual provenance.
     source=source.replace("SPEC = "+repr(spec),
         "SPEC = "+repr(spec)+"\n"
