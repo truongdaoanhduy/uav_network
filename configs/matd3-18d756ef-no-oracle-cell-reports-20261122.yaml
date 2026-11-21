@@ -190,7 +190,7 @@ runtime:
   log_interval_steps: 65536
   max_train_seconds: 0
   num_envs: 4096
-  output_dir: /kaggle/working/train/matd3-no-oracle-cell-reports
+  output_dir: /kaggle/working/train/matd3-no-oracle-cell-reports-audit-v7
   replay_cpu_fraction: 0.75
   replay_device: cpu
   seed: 44
@@ -218,7 +218,7 @@ tracking:
   evaluation_interval: 0
   evaluation_interval_steps: 0
   evaluation_timeout_seconds: 2400
-  group: MATD3-18D756EF-NO-ORACLE-CELL-REPORTS-20261122
+  group: MATD3-18D756EF-NO-ORACLE-CELL-REPORTS-AUDIT-V7-20261122
   local_checkpoints_to_keep: 2
   log_checkpoint: true
   online_gpu_eval_enabled: false
@@ -248,7 +248,7 @@ tracking:
   - new-mdp
   - cell-reports
   - no-oracle
-  - obs-v6
+  - obs-v7
   - retrain-required
 pql:
   checkpoint_replay: true

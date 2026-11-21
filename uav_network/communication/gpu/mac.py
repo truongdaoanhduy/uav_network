@@ -279,15 +279,25 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
         selected = int(-1)
         can_forward = bool(False)
         for t in range(p.report_slots):
+            # In no-beacon cell-report mode, a source cannot know a peer's
+            # position, power state, or available buffer BEFORE the RF exchange.
+            # Do not prevent a TX attempt using hidden remote simulator state.
+            peer_without_beacon = (p.cell_reports != 0 and dest < p.n)
             forward = (s.report_present[e,source,t] != 0
                        and now/wp.float64(1e6)-s.report_created[e,source,t] < p.report_ttl
-                       and can_receive(s,p,e,dest,t))
+                       and (peer_without_beacon or can_receive(s,p,e,dest,t)))
             can_forward = can_forward or forward
             reach = p.peer_range
             if dest == p.n:
                 reach = p.gcs_range
-            if (forward and active(s,p,e,source) and active(s,p,e,dest)
-                and range_distance(s,p,e,source,dest) <= reach and link_power_feasible(s,p,e,source,dest)):
+            # Skip expensive unobservable PHY/link-budget prechecks entirely
+            # for no-beacon peer attempts; the radio engine runs them after TX.
+            physical_precheck = bool(True)
+            if not peer_without_beacon:
+                physical_precheck = (active(s,p,e,dest)
+                    and range_distance(s,p,e,source,dest) <= reach
+                    and link_power_feasible(s,p,e,source,dest))
+            if forward and active(s,p,e,source) and physical_precheck:
                 if selected < 0 or s.report_order[e,source,t] < s.report_order[e,source,selected]:
                     selected = t
         if selected >= 0:

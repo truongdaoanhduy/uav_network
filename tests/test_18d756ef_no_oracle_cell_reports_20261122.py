@@ -215,7 +215,7 @@ def test_cell_report_checkpoint_snapshot_has_new_version():
     try:
         v.reset(seed=44)
         snap=v.snapshot_state()
-        assert snap['version']==3
+        assert snap['version']==4
         bad=dict(snap,version=2)
         with pytest.raises(ValueError, match='Incompatible'):
             v.restore_state(bad)
@@ -265,7 +265,7 @@ def test_new_observation_semantics_have_distinct_version():
     current=config()
     current.sensor.belief_coarse_cells=5
     assert observation_version(historical)==5
-    assert observation_version(current)==6
+    assert observation_version(current)==7
 
 
 def test_false_alert_metrics_remain_visible_in_training_tracker():

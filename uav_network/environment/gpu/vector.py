@@ -153,7 +153,7 @@ class WarpVectorEnv:
             raise RuntimeError("Cannot snapshot a closed, waiting, or uninitialized vector")
         self._bind_stream()
         wp.synchronize_device(self.wp_device)
-        return {"version": 3 if self.p.cell_reports else (2 if self.p.xyz else 1), "config": self._snapshot_config(),
+        return {"version": 4 if self.p.cell_reports else (2 if self.p.xyz else 1), "config": self._snapshot_config(),
                 "device_type": self.device.type,
                 "arrays": {name: wp.to_torch(value).detach().to(device="cpu", copy=True)
                            for name, value in vars(self.s).items() if isinstance(value, wp.array)},
@@ -164,7 +164,7 @@ class WarpVectorEnv:
         """Validate the complete payload before changing any live world."""
         if self._closed or self._waiting:
             raise RuntimeError("Cannot restore a closed or waiting vector")
-        if (not isinstance(snapshot, dict) or snapshot.get("version") != (3 if self.p.cell_reports else (2 if self.p.xyz else 1))
+        if (not isinstance(snapshot, dict) or snapshot.get("version") != (4 if self.p.cell_reports else (2 if self.p.xyz else 1))
                 or with_legacy_feature_defaults(snapshot.get("config", {})) != self._snapshot_config()
                 or snapshot.get("device_type") != self.device.type):
             raise ValueError("Incompatible Warp snapshot version/config/device")

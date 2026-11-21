@@ -3,6 +3,7 @@ import warp as wp
 
 from .state import WorldParams, WorldState
 from .xyz_observations import candidates, extras, centralized_extras
+from .cell_report_state import write_cell_report_state
 from .xyz_geometry import range_distance
 from .bayesian import profile
 from ...communication.gpu.phy import xy, nominal_required_power
@@ -198,32 +199,27 @@ def centralized(s: WorldState, p: WorldParams):
             s.state[e, 2 * i + axis] = wp.float32(s.positions[e, i][axis] / p.map_size)
             s.state[e, 2 * p.n + 2 * i + axis] = wp.float32(s.velocities[e, i][axis] / p.max_speed)
     offset = 4 * p.n
-    for t in range(p.targets_count):
-        for axis in range(2):
-            value=wp.float64(0.0)
-            if p.cell_reports==0:
-                value=s.targets[e,t][axis]/p.map_size
-            elif t<p.report_slots and s.report_cell[e,t]>=0:
-                cell=s.report_cell[e,t]
-                value=(wp.float64(cell%p.grid_n)+wp.float64(.5))*p.cell_width/p.map_size
-                if axis==1:
-                    value=(wp.float64(cell//p.grid_n)+wp.float64(.5))*p.cell_width/p.map_size
-            s.state[e,offset+2*t+axis]=wp.float32(value)
-    offset = offset + 2 * p.targets_count
+    if p.cell_reports==0:
+        for t in range(p.targets_count):
+            for axis in range(2):
+                s.state[e,offset+2*t+axis]=wp.float32(s.targets[e,t][axis]/p.map_size)
+    offset += 2*p.targets_count
     for o in range(p.obstacles_count):
         for axis in range(3):
-            value=wp.float64(0)
-            if p.cell_reports==0:value=s.obstacles[e,o][axis]/p.map_size
-            s.state[e,offset+3*o+axis]=wp.float32(value)
-    offset = offset + 3 * p.obstacles_count
-    for i in range(p.n):
+            val=wp.float64(0)
+            if p.cell_reports==0:val=s.obstacles[e,o][axis]/p.map_size
+            s.state[e,offset+3*o+axis]=wp.float32(val)
+    offset += 3*p.obstacles_count
+    if p.cell_reports==0:
+        for i in range(p.n):
+            for t in range(p.targets_count):
+                s.state[e,offset+i*p.targets_count+t]=wp.float32(s.known[e,i,t])
+                s.state[e,offset+p.n*p.targets_count+i*p.targets_count+t]=wp.float32(report_age(s,p,e,i,t))
         for t in range(p.targets_count):
-            s.state[e, offset + i * p.targets_count + t] = wp.float32(s.known[e, i, t])
-            s.state[e, offset + p.n * p.targets_count + i * p.targets_count + t] = wp.float32(report_age(s, p, e, i, t))
-    offset = offset + 2 * p.n * p.targets_count
-    for t in range(p.targets_count):
-        s.state[e, offset + t] = wp.float32(s.delivered[e, t])
-    offset = offset + p.targets_count
+            s.state[e,offset+2*p.n*p.targets_count+t]=wp.float32(s.delivered[e,t])
+    else:
+        write_cell_report_state(s,p,e,4*p.n,offset)
+    offset += (2*p.n+1)*p.targets_count
     for i in range(p.n):
         s.state[e, offset + i] = wp.float32(s.inflight[e, i] / wp.float64(p.max_queue_packets))
         s.state[e, offset + p.n + i] = wp.float32(s.battery[e, i] / p.capacity)

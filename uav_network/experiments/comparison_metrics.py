@@ -232,7 +232,9 @@ class MissionMetrics:
             "discovery_auc": float(1. - capped_discovery.mean() / horizon),
             "first_discovery_to_gcs_delay_delivered_mean_s":
                 float((self.delivered[delivered] - self.discovered[delivered]).mean()) if d else None,
-            "report_delay_delivered_mean_s": net.get("report_e2e_delay_s") if d and net.get("enabled") else None,
+            "report_delay_delivered_mean_s": (
+                (net.get("true_report_e2e_delay_s") if info.get("report_identity")=="observed_cell_id"
+                 else net.get("report_e2e_delay_s")) if d and net.get("enabled") else None),
             "uav_energy_j": energy, "uav_j_per_gcs_delivery": energy / d if d else None,
             "uav_radio_energy_j": radio_energy,
             "uav_radio_j_per_gcs_delivery": radio_energy / d if d else None,

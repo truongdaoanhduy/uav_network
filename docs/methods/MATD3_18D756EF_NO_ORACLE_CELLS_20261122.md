@@ -10,7 +10,7 @@ The previous run `MATD3-EVAL100-ACTORBN-PLAINCRITIC-E4096-U4-B8192-H256x512-S44-
 - **New experiment config:** `configs/matd3-18d756ef-no-oracle-cell-reports-20261122.yaml` with `sensor.report_cell_hypotheses: true` and a distinct run group/output directory.
 - Opt-in flag defaults `false` so historical Warp XYZ and legacy XY kernel behavior and old test contracts remain accessible.
 - Model training hyperparameters retained from W&B: 6 UAV, 35 targets, 25 obstacles, 1000 m map, 25 m cells (40×40), dt=1 s, horizon 1500, seed44, 4096 vector worlds, four updates per vector step, minibatch8192, replay1M CPU75%/GPU25%, shared Actor BN/plain Critic, hidden [256,512], warmup131072, checkpoint256, validation100 fixed seeds/checkpoint and test4000 separate seeds **in the config**. These are *planned parameters*, not evidence a new GPU run was performed.
-- Actor vector remains 228-dim, critic 830-dim for this W&B config, **but semantics have changed**. `observation_version=6`, Warp snapshot `version=3`. Do not warm-start/load the old `18d756ef` policy into the new task even though tensor shapes match.
+- Actor vector remains 228-dim, critic 830-dim for this W&B config, **but semantics have changed**. `observation_version=7`, Warp snapshot `version=4`. Do not warm-start/load the old `18d756ef` policy into the new task even though tensor shapes match.
 
 ## Corrected full flow (ground-truth separation)
 
@@ -62,11 +62,36 @@ visible_cell_report[uav,slot] = True
 - **Full repository test attempt (before restoring ignored third_party dependency):** 1560 passed, 36 failed, 105 skipped, 1779 subtests passed in 335.70s. Several failures were missing `third_party/UavNetSim`, an ignored external dependency; these cloud/bundle tests passed on rerun after restoring a local pinned copy. Other historical compatibility/critic and old source-size failures remain. The full suite is **NOT GREEN**.
 - **Reproducing the bundler:** `third_party/UavNetSim` is Git-ignored. A new checkout must provide the source at pinned revision `04daafb815eb377409b40b285574eeb62b9a8d58` before creating a self-contained Kaggle bundle; on the working Sandbox, that pinned checkout has been restored from a previously installed local copy. The public Git branch does not contain this third-party directory.
 
+## Final scenario audit — 2026-11-22
+
+The independently documented final audit is in
+`docs/methods/MATD3_18D756EF_FINAL_SCENARIO_AUDIT_20261122.md`.
+The 2026-11-22 follow-up established and fixed four additional issues in the
+cell-report version: remote UAV altitude/vertical speed leaked to Actor,
+Critic saw only the first 35 of 140 globally allocated report slots and
+depended on their allocation order, true-target report latency was combined
+with false deliveries in paper summaries, and MAC used hidden remote
+receiver/range/buffer state to avoid over-the-air attempts at no energy cost.
+
+Version-7 Critic compresses observed reports into 35 *spatially hashed* buckets.
+This preserves 830 features and removes slot-order dependence, but bucket
+collisions are information loss. These bucket coordinates are NOT true-target IDs.
+No-beacon peer attempts now incur real simulated PHY/MAC costs even if the peer
+is out of range. Realistic packet attempts are more expensive than the previous
+oracle prefilter, and the T4/E4096 throughput must be re-benchmarked.
+
+Crucially, this corrected Warp branch is **Bayesian**, *not* the native M2
+Dempster–Shafer evidence flow. It has no M2 DS report-retraction, global belief
+fusion, or GCS broadcast of belief maps. It still requires altitude<=50m plus
+posterior>=0.99 and is not the Zhang 2024 fixed BPA .8 baseline or a DS
+threshold m(F)>=0.99 variant. The separate Native M2 implementation retains
+its own DS flow and has not been ported fully to this Warp production backend.
+
 ## Remaining issues and research decisions
 
 - **Motion saturation / low battery:** The historical policy caused 84.66% battery-exhausted training episodes and many unsafe/rejected flight commands. Replacing the oracle changes the task; a new policy must be retrained and audited. This patch does not pretend to fix a learned behavior by changing a plotted value. Implementing and validating a physically correct CBF/safety controller or action regularization requires a distinct ablation.
 - **Correlated sensing:** The unchanged original binary sensor likelihood assumes conditional independence of successive observations for Bayes updating. Repeated near-identical observations may over-concentrate belief. Separate calibration tests with correlated measurements, false reports, precision-recall and reliability diagrams are needed before paper claims.
 - **Hypothesis pool:** finite S=140 can signal a clear error when more distinct cell hypotheses are generated in an episode. Do not silently suppress excess false alarms or claim a 1,600-cell fully unbounded report system.
 - **Passive peer telemetry:** no explicit beacon packet is sent; this fix conservatively removes free access to remote peer state and chooses tentative routing actions, meaning performance could decline. A network-accounted beacon protocol can be a subsequent controlled extension.
-- **Off-policy checkpoint/source:** even identical [228,830] tensor shapes do not establish equivalent MDP semantics. Keep `observation_version=6`, snapshot version3 and distinct tracking run/group.
+- **Off-policy checkpoint/source:** even identical [228,830] tensor shapes do not establish equivalent MDP semantics. Keep `observation_version=7`, snapshot version4 and distinct tracking run/group.
 - **Evaluation baselines:** repeat with at least multiple random seeds and held-out worlds, including a no-sensor-oracle baseline and original-run reproduction, and report the changed task conditions alongside any performance differences.

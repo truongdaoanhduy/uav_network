@@ -10,7 +10,7 @@ OBSERVATION_VERSION = 3
 def observation_version(config):
     if config.motion_dim == 3:
         if getattr(config.sensor, "report_cell_hypotheses", False):
-            return 6  # New non-oracle cell reports, local privacy and Bayesian candidate semantics.
+            return 7  # Audit: bucketed critic, no-beacon peer MAC and local-only observation.
         return 5 if config.sensor.belief_coarse_cells else 4
     return OBSERVATION_VERSION
 

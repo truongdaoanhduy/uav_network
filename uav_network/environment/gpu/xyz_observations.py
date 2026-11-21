@@ -95,7 +95,8 @@ def extras(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,i:int,offset:int):
     slot=int(0)
     for j in range(p.n):
         if j!=i:
-            if active and range_distance(s,p,e,i,j)<=p.peer_range:
+            if p.cell_reports==0 and active and range_distance(s,p,e,i,j)<=p.peer_range:
+                # New no-beacon mission must not reveal peer private altitude/velocity.
                 s.observation[e,i,offset+2*slot]=wp.float32((s.altitudes[e,j]-s.altitudes[e,i])/p.altitude_max)
                 s.observation[e,i,offset+2*slot+1]=wp.float32(s.vertical_velocity[e,j]/p.max_speed)
             slot+=1

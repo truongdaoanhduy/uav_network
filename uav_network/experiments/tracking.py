@@ -82,6 +82,7 @@ def episode_metrics(record, num_uavs, motion_dim=2, motion_safety=None):
     mapping = {"packet_pdr_percent": "pdr_percent", "packet_e2e_delay_ms": "e2e_delay_ms",
                "payload_throughput_kbps": "payload_throughput_kbps", "phy_success_percent": "phy_success_percent",
                "collisions": "collisions", "report_e2e_delay_s": "report_e2e_delay_s",
+               "true_report_e2e_delay_s": "true_report_e2e_delay_s",
                "report_average_hops": "report_average_hops", "energy_blocked_transmissions": "energy_blocked"}
     result.update({f"network/{target}": network[source] for source, target in mapping.items() if source in network})
     result.update({f"learner/{key}": value for key, value in learner_telemetry(record.get("learner", {})).items()})

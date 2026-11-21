@@ -75,6 +75,13 @@ def network_info(s, p, index=0):
         "payload_throughput_kbps": int(counts[6])*8/max(elapsed,1e-12)/1000,
         "targets_delivered": true_delivery,
         "raw_reports_delivered": delivered,
+        "true_report_e2e_delay_s": (
+            float(row(s.true_report_delay_sum,index))/true_delivery
+            if p.cell_reports and true_delivery else None),
+        "true_report_average_hops": (
+            float(row(s.true_report_hop_sum,index))/true_delivery
+            if p.cell_reports and true_delivery else None),
+        # This raw radio metric includes false reports for network evaluation.
         "report_e2e_delay_s": float(row(s.report_delay_sum,index))/max(delivered,1),
         "report_average_hops": float(row(s.report_hop_sum,index))/max(delivered,1)}
 
