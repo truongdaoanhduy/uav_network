@@ -117,3 +117,7 @@ Nhánh cô lập từ commit `9c7b081`, đã copy snapshot source đang sửa t�
 - Bản đồ GCS Native demo chỉ phủ 11.625% sau 60 bước với policy diagnostic, **không chứng minh learned routing hoặc improved target search**. Brier target=0.23685095, obstacle=0.22451284; GCS verified reports=0. Đây là kết quả trung thực của demo, không phải benchmark hoặc kết quả Q1.
 - `M2Radio.step` hiện có GCS downlink chọn peer theo chính sách luân phiên trong số node khả dụng (phần node GCS chưa có learned controller). Tất cả quyết định relay của **UAV** vẫn lấy từ action; diagnostic script sử dụng heuristic, chưa phải Actor đã train.
 - Prototype `CooperativeM2Env` có limited `max_scan_cells` và bounded buffering, phù hợp kiểm chứng Native. Không được thay nó vào training E4096 và mong cùng throughput.
+
+### Đối chiếu 27 lỗi lịch sử
+
+Đã đối chiếu `tests/` full-suite failure names với `outputs/baseline_rootcause_20261120/test_status.json` của nguồn gốc. **Cả 27/27 tên case hiện tại trùng đúng 27/27 case lịch sử** (không có tên failure mới). Điều này không chứng minh mọi thay đổi đều chính xác, nhưng xác nhận không xuất hiện tên case regression mới trong full suite hiện có. Khi chạy `pytest tests/` thời điểm 2026-11-21, summary là `1793 passed, 27 failed, 105 skipped, 1982 subtests passed`. File log tạm: `/tmp/m2_full_test_suite_with_scripts_20261121.log`.
