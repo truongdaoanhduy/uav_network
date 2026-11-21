@@ -73,3 +73,39 @@ def test_real_m2_conditioned_unique_event_streams_project_to_same_masses(device)
     projected=np.stack([f.numpy(),e.numpy(),u.numpy()],axis=-1)[0]
     reference=np.stack([node.target_masses for node in nodes])
     np.testing.assert_allclose(projected,reference,atol=5e-6,rtol=5e-6)
+
+@pytest.mark.parametrize('device',['cpu']+(['cuda:0'] if wp.is_cuda_available() else []))
+def test_sparse_warp_support_delta_accumulation_matches_unique_native_events(device):
+    """GCS/UAV cell support can be updated from event deltas without dense scans.
+
+    Event ID de-duplication and conditional LLR are deliberately performed by
+    the owner/source protocol before GPU sparse apply; there is no target truth.
+    """
+    from uav_network.environment.gpu.m2_mass_projector import m2_apply_sparse_llr
+    shape=(2,7,1600)
+    rng=np.random.default_rng(2026)
+    n=700
+    worlds=rng.integers(0,2,n,dtype=np.int32)
+    nodes=rng.integers(0,7,n,dtype=np.int32)
+    cells=rng.integers(0,1600,n,dtype=np.int32)
+    signed=rng.uniform(-2.,2.,n).astype(np.float32)
+    # Interleaved positive/negative and many repeats of one cell.
+    worlds[:30]=1;nodes[:30]=6;cells[:30]=1
+    pos=np.zeros(shape,dtype=np.float32);neg=np.zeros(shape,dtype=np.float32)
+    for i in range(n):
+        key=(worlds[i],nodes[i],cells[i])
+        if signed[i]>=0:pos[key]+=signed[i]
+        else:neg[key]-=signed[i]
+    wp_pos=wp.zeros(shape,dtype=wp.float32,device=device)
+    wp_neg=wp.zeros(shape,dtype=wp.float32,device=device)
+    wp.launch(m2_apply_sparse_llr,dim=n,inputs=[
+        wp_pos,wp_neg,wp.array(worlds,device=device),wp.array(nodes,device=device),
+        wp.array(cells,device=device),wp.array(signed,device=device)],device=device)
+    np.testing.assert_allclose(wp_pos.numpy(),pos,rtol=2e-6,atol=2e-6)
+    np.testing.assert_allclose(wp_neg.numpy(),neg,rtol=2e-6,atol=2e-6)
+    f=wp.zeros(shape,dtype=wp.float32,device=device)
+    e=wp.zeros(shape,dtype=wp.float32,device=device)
+    u=wp.zeros(shape,dtype=wp.float32,device=device)
+    wp.launch(m2_project_mass,dim=shape,inputs=[wp_pos,wp_neg,f,e,u],device=device)
+    assert np.isfinite(f.numpy()).all()
+    np.testing.assert_allclose(f.numpy()+e.numpy()+u.numpy(),1,rtol=0,atol=1e-6)

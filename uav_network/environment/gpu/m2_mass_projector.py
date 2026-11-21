@@ -48,3 +48,30 @@ def m2_project_mass(
     m_f[world,node,cell]=sf/norm
     m_e[world,node,cell]=se/norm
     m_u[world,node,cell]=su/norm
+
+
+@wp.kernel
+def m2_apply_sparse_llr(
+    positive_support: wp.array3d(dtype=wp.float32),
+    negative_support: wp.array3d(dtype=wp.float32),
+    world_indices: wp.array(dtype=wp.int32),
+    node_indices: wp.array(dtype=wp.int32),
+    cell_indices: wp.array(dtype=wp.int32),
+    signed_conditional_llr: wp.array(dtype=wp.float32),
+):
+    """Apply already-validated unique evidence events to resident GPU support.
+
+    One thread per received event; atomics handle simultaneous same-cell
+    arrivals. The upstream protocol MUST deduplicate event IDs and calculate
+    conditional LLRs in sort order before calling this kernel. It does not
+    infer unknown latent correlation sign, verify targets, or route packets.
+    """
+    idx=wp.tid()
+    w=world_indices[idx]
+    n=node_indices[idx]
+    c=cell_indices[idx]
+    value=signed_conditional_llr[idx]
+    if value>wp.float32(0.):
+        wp.atomic_add(positive_support,w,n,c,value)
+    elif value<wp.float32(0.):
+        wp.atomic_add(negative_support,w,n,c,-value)
