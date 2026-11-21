@@ -1,8 +1,8 @@
-"""Diagnostic-only 3D native M2 run with REAL UavNetSim packet deliveries.
+"""Diagnostic-only 2D target belief mapping with actual 3D UAV flight and UavNetSim.
 
 A hand-coded frontier/router policy is used for SMOKE TESTING, not an RL-trained
-MASAC/MATD3 actor. The plot compares GCS reconstructed target/obstacle maps to
-simulator ground truth offline. Ground truth is NEVER passed to policy input.
+MASAC/MATD3 actor. Plots compare only GCS 2D target belief against
+simulator target truth offline. Ground truth is NEVER passed to policy input.
 """
 from __future__ import annotations
 import argparse
@@ -60,38 +60,36 @@ def diagnostics_policy(env:CooperativeM2Env):
 
 
 def write_figure(env,output_dir,timeline):
+    """Plot target belief only: the paper's F/E/U layers on a 2D ground grid."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     n=env.grid_n
-    fig,axes=plt.subplots(2,4,figsize=(18,9),constrained_layout=True)
     local=env.nodes[0];gcs=env.gcs_map
     maps=[
-      (env._truth_target.reshape(n,n).astype(float),"GROUND TRUTH: targets","Greys",0,1),
-      (local.target_masses[:,0].reshape(n,n),"UAV 0: target DS m(F)","viridis",0,1),
-      (gcs.target_masses[:,0].reshape(n,n),"GCS: target DS m(F)","viridis",0,1),
-      (gcs.target_masses[:,2].reshape(n,n),"GCS: uncertainty DS m(U)","magma",0,1),
-      (env._truth_obstacle.reshape(n,n).astype(float),"GROUND TRUTH: obstacles","Greys",0,1),
-      (gcs.obstacle_masses[:,0].reshape(n,n),"GCS: obstacle DS m(F)","viridis",0,1),
-      ((gcs.coverage>0).reshape(n,n).astype(float),"GCS: observed coverage","viridis",0,1),
-      (np.maximum(0,env.steps-gcs.last_observed).reshape(n,n).astype(float),"GCS: information age (steps)","magma",0,env.steps+1),
+      (env._truth_target.reshape(n,n).astype(float),"GROUND TRUTH targets — evaluator only","Greys",0,1),
+      (local.target_masses[:,0].reshape(n,n),"UAV 0 target evidence F","viridis",0,1),
+      (gcs.target_masses[:,0].reshape(n,n),"GCS target evidence F","viridis",0,1),
+      (gcs.target_masses[:,1].reshape(n,n),"GCS empty evidence E","viridis",0,1),
+      (gcs.target_masses[:,2].reshape(n,n),"GCS unknown mass U","magma",0,1),
+      ((gcs.coverage>0).reshape(n,n).astype(float),"GCS received-evidence coverage","viridis",0,1)
     ]
+    fig,axes=plt.subplots(2,3,figsize=(15,9),constrained_layout=True)
     for ax,(values,title,cmap,vmin,vmax) in zip(axes.flat,maps):
         im=ax.imshow(values,origin="lower",cmap=cmap,vmin=vmin,vmax=vmax,interpolation="nearest")
-        ax.set_title(title,fontsize=10)
-        ax.set_xlabel("grid x");ax.set_ylabel("grid y")
-        fig.colorbar(im,ax=ax,fraction=.045,pad=.025)
-    fig.suptitle(f"M2 cooperative mapping / Native UavNetSim / {env.steps} steps — SCRIPTED policy (not trained)",fontsize=13)
-    fig.savefig(output_dir/"m2_groundtruth_vs_gcs.png",dpi=160)
+        ax.set_title(title,fontsize=11);ax.set_xlabel("grid x");ax.set_ylabel("grid y")
+        fig.colorbar(im,ax=ax,fraction=.046,pad=.025)
+    fig.suptitle(f"2D Target Belief Map • Native UavNetSim • {env.steps} steps • scripted (not trained)")
+    fig.savefig(output_dir/"m2_target_belief_2d_groundtruth_vs_gcs.png",dpi=155)
     plt.close(fig)
     fig,ax=plt.subplots(figsize=(10,5),constrained_layout=True)
     t=np.array([x["t"] for x in timeline])
-    for name in ("gcs_coverage","target_brier","obstacle_brier"):
+    for name in ("gcs_coverage","target_brier","normalized_uncertainty","correct_gcs_delivery_recall"):
         ax.plot(t,[x[name] for x in timeline],label=name)
-    ax.set_xlabel("Mission step");ax.set_ylabel("Fraction / Brier score")
-    ax.set_ylim(bottom=0);ax.legend();ax.grid(alpha=.2)
-    ax.set_title("GCS map reconstruction: ONLY physically delivered evidence")
-    fig.savefig(output_dir/"m2_gcs_reconstruction_progress.png",dpi=160)
+    ax.set_ylim(0,1);ax.set_xlabel("Mission step (s)")
+    ax.set_ylabel("Normalized map/search metric")
+    ax.grid(alpha=.2);ax.legend(loc='best');ax.set_title("GCS 2D target-belief reconstruction over actual radio arrivals")
+    fig.savefig(output_dir/"m2_gcs_target_belief_progress.png",dpi=155)
     plt.close(fig)
 
 
@@ -99,7 +97,8 @@ def main():
     parser=argparse.ArgumentParser()
     parser.add_argument("--steps",type=int,default=60)
     parser.add_argument("--seed",type=int,default=44)
-    parser.add_argument("--output",type=Path,default=Path.home()/"Downloads"/"UAV_M2_CORRELATED_COOP_20261121")
+    parser.add_argument("--output",type=Path,
+        default=Path.home()/"Downloads"/"UAV_M2_TARGET_BELIEF_2D_1000M_20261121")
     args=parser.parse_args()
     if not 1<=args.steps<=1500:parser.error("--steps must be in 1..1500")
     args.output.mkdir(parents=True,exist_ok=True)
@@ -114,66 +113,55 @@ def main():
                           map_buffer_bytes=65536)
     timeline=[]
     try:
-        env.reset(seed=args.seed)
+        _,info=env.reset(seed=args.seed)
         for t in range(args.steps):
             obs,reward,done,_,info=env.step(diagnostics_policy(env))
             mm=info["gcs_map"]
-            timeline.append({"t":t+1,"gcs_coverage":mm["coverage"],
-                             "target_brier":mm["target_brier"],
-                             "obstacle_brier":mm["obstacle_brier"],
-                             "gcs_evidence_events":info["gcs_events"],
-                             "received_radio_packets":info["communication"]["received_packets"],
-                             "reward":reward})
+            timeline.append({"t":t+1,
+                "gcs_coverage":mm["coverage"],
+                "target_brier":mm["target_brier"],
+                "normalized_uncertainty":mm["mean_uncertainty"],
+                "correct_gcs_delivery_recall":info["correct_gcs_delivery_recall"],
+                "gcs_evidence_events":info["gcs_events"],
+                "received_radio_packets":info["communication"]["received_packets"],
+                "reward":float(reward)})
             if done:break
         write_figure(env,args.output,timeline)
-        import matplotlib
-        matplotlib.use('Agg')
-        import matplotlib.pyplot as plt
-        levels=[12.5,62.5,112.5]
-        pred3d=env.gcs_map.obstacle_voxel_map(grid_n=env.grid_n,cell_m=c.sensor.grid_cell_m,z_levels=levels)
-        true3d=env._true_3d_obstacle_voxels(z_levels=levels)
-        fig3,axes3=plt.subplots(3,2,figsize=(9,13),constrained_layout=True)
-        for k,z in enumerate(levels):
-            for j,arr in enumerate((true3d,pred3d)):
-                axes3[k,j].imshow(arr[k],origin='lower',vmin=0,vmax=1,cmap='gray_r',interpolation='nearest')
-                axes3[k,j].set_title(f"{'Truth' if j==0 else 'GCS reconstructed'} at altitude {z:g}m")
-                axes3[k,j].set_xlabel('grid x');axes3[k,j].set_ylabel('grid y')
-        fig3.savefig(args.output/'m2_obstacle_3d_voxel_slices.png',dpi=150)
-        plt.close(fig3)
         n=env.grid_n
-        np.savez_compressed(args.output/"m2_maps_and_truth_evaluation_only.npz",
+        np.savez_compressed(args.output/"m2_target_belief_2d_evaluator_only.npz",
             truth_target=env._truth_target.reshape(n,n).astype(np.uint8),
-            truth_obstacle=env._truth_obstacle.reshape(n,n).astype(np.uint8),
             uav_target_masses=np.stack([m.target_masses.reshape(n,n,3) for m in env.nodes[:-1]]),
-            uav_obstacle_masses=np.stack([m.obstacle_masses.reshape(n,n,3) for m in env.nodes[:-1]]),
             gcs_target_masses=env.gcs_map.target_masses.reshape(n,n,3),
-            gcs_obstacle_masses=env.gcs_map.obstacle_masses.reshape(n,n,3),
             gcs_coverage=env.gcs_map.coverage.reshape(n,n),
-            gcs_obstacle_voxels_3d=pred3d,
-            groundtruth_obstacle_voxels_3d=true3d,
             gcs_last_observed=env.gcs_map.last_observed.reshape(n,n))
-        report={"status":"native_integration_smoke_NOT_RL_training", "seed":args.seed,
-                "configuration":{"uavs":6,"targets":35,"obstacles":25,"map_m":1000,
-                                 "cell_m":25,"correlated_noise":True,"sprt_alpha":.05,
-                                 "sprt_beta":.05,"ds_threshold":.95,"map_model":"M2"},
-                "final":{k:v for k,v in info.items() if k in ("steps","gcs_map","gcs_events",
-                    "obstacle_3d_voxel_iou","gcs_obstacle_3d_track_count",
-                    "correct_gcs_delivery_recall","normalized_delivery_auc","energy_total_j",
-                    "gcs_verified_correct","gcs_verified_false","gcs_report_history_count",
-                    "propulsion_energy_j")},
-                "network":{"backend":info["communication"]["backend"],
-                           "generated_packets":info["communication"]["generated_packets"],
-                           "received_packets":info["communication"]["received_packets"],
-                           "packet_pdr_percent":info["communication"]["packet_pdr_percent"]},
-                "timeline":timeline,
-                "notes":["This is a scripted frontier/relay diagnostic; no MATD3/MASAC weights were trained.",
-                         "Truth arrays occur only in the offline evaluation NPZ and are not sent on the radio.",
-                         "Native one-env reference only; not Warp 4096-env training."]}
-        (args.output/"m2_demo_metrics.json").write_text(json.dumps(report,indent=2))
+        import csv
+        with (args.output/"m2_target_belief_2d_timeline.csv").open('w',newline='') as f:
+            w=csv.DictWriter(f,fieldnames=timeline[0].keys());w.writeheader();w.writerows(timeline)
+        result={"status":"native_2d_target_belief_smoke_NOT_RL_training","seed":args.seed,
+            "configuration":{"uavs":6,"targets":35,"obstacles_for_motion_and_occlusion_only":25,
+                "map_m":1000,"grid_cell_m":25,"belief_map_layers":["F","E","U"],
+                "correlated_sensor":True,"sprt_alpha":.05,"sprt_beta":.05,
+                "ds_candidate_threshold":.95},
+            "final":{key:val for key,val in info.items() if key in (
+                "steps","gcs_map","gcs_events","correct_gcs_delivery_recall",
+                "normalized_delivery_auc","gcs_verified_correct","gcs_verified_false",
+                "false_report_rate","energy_total_j","energy_per_correct_delivery_j",
+                "gcs_report_history_count")},
+            "network":{"backend":info["communication"]["backend"],
+                "generated_packets":info["communication"]["generated_packets"],
+                "received_packets":info["communication"]["received_packets"],
+                "packet_pdr_percent":info["communication"]["packet_pdr_percent"]},
+            "timeline":timeline,
+            "notes":["Scripted frontier/relay policy only; no RL convergence measured.",
+                "Only the 2D target F/E/U belief map is built and synchronized; UAV physical flight remains 3D.",
+                "True target coordinates are used only for sensing and offline evaluation.",
+                "UavNetSim packet-level delivery; no global-map memory-copy shortcut."]}
+        (args.output/"m2_demo_metrics.json").write_text(json.dumps(result,indent=2))
         print(json.dumps({"output":str(args.output),"steps":env.steps,
-                          "gcs_coverage":info["gcs_map"]["coverage"],
-                          "gcs_events":info["gcs_events"],
-                          "radio_packets":info["communication"]["received_packets"]},indent=2))
+                "gcs_coverage":info["gcs_map"]["coverage"],
+                "gcs_events":info["gcs_events"],
+                "gcs_reported_true_targets":info["gcs_verified_correct"],
+                "radio_packets":info["communication"]["received_packets"]},indent=2))
     finally:env.close()
 
 if __name__=="__main__":main()

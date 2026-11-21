@@ -85,22 +85,21 @@ def test_gcs_world_map_never_updates_without_delivery():
     assert gcs.last_arrival[1] == 5
 
 
-def test_obstacle_and_target_maps_are_independent_layers():
+def test_target_only_map_rejects_obstacle_events():
     world=CooperativeWorldMap(num_cells=4)
-    world.ingest(obs(0,1,1,True,layer="obstacle"),arrived_at=1)
-    assert world.obstacle_masses[1][0] > 0
+    with pytest.raises(ValueError,match="target"):
+        obs(0,1,1,True,layer="obstacle")
     assert world.target_masses[1] == pytest.approx((0,0,1))
-    assert world.coverage[1] > 0
+    assert world.coverage[1] == 0
 
 
 def test_m2_map_metrics_do_not_leak_truth_into_actor_map():
     gcs=CooperativeWorldMap(num_cells=4)
     gcs.ingest(obs(0,1,2,True),arrived_at=4)
     truth_target=np.array([False,False,True,False])
-    truth_obstacles=np.array([False,True,False,False])
-    measured=MultiLayerMapMetrics.evaluate(gcs,truth_target,truth_obstacles,at_tick=6)
+    measured=MultiLayerMapMetrics.evaluate(gcs,truth_target,at_tick=6)
     assert measured["target_brier"] >= 0
-    assert measured["obstacle_brier"] >= 0
+    assert "obstacle_brier" not in measured
     assert measured["coverage"] == pytest.approx(.25)
     assert not hasattr(gcs,"truth_target")
 

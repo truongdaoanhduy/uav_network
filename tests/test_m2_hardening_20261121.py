@@ -1,4 +1,4 @@
-"""User-selected 1000m M2 science/comm gates, red-green implementation."""
+"""2D target belief M2 numerical, network and reporting safeguards."""
 import math
 import numpy as np
 import pytest
@@ -78,20 +78,6 @@ def test_relay_avoids_sending_identical_message_back_to_known_source():
     assert not store.can_forward(2,0,store.buffers[2][p.message_id],3)
 
 
-def test_3d_obstacle_geometry_reconstructs_from_noisy_observations_without_truth_id():
-    from uav_network.environment.correlated_mapping import ObstacleGeometryEvent
-    gcs=CooperativeWorldMap(100)
-    a=ObstacleGeometryEvent('geom1',0,1,18.0,21.0,5.0,40.0,2.,3.)
-    b=ObstacleGeometryEvent('geom2',1,2,19.0,20.0,6.0,42.0,2.,3.)
-    assert gcs.ingest_geometry(a,arrived_at=1)
-    assert gcs.ingest_geometry(b,arrived_at=2)
-    assert len(gcs.obstacle_tracks)==1
-    assert gcs.obstacle_tracks[0]['height']>40
-    vox=gcs.obstacle_voxel_map(grid_n=10,cell_m=10,z_levels=[10,30,50])
-    assert vox.shape==(3,10,10)
-    assert vox[0].sum()>0 and vox[1].sum()>0
-    assert vox[2].sum()==0
-    assert not hasattr(a,'obstacle_id')
 
 
 def test_radio_and_flight_share_same_battery():
@@ -153,37 +139,8 @@ def test_radio_policy_payload_branch_controls_actual_uavnetsim_packet_type():
     finally:radio.close()
 
 
-def test_3d_obstacle_sensor_event_reaches_gcs_only_by_radio():
-    from types import SimpleNamespace
-    from uav_network.communication.m2_network import M2Radio
-    from uav_network.environment.correlated_mapping import ObstacleGeometryEvent
-    cfg=Config();cfg.world.num_uavs=2;cfg.world.num_targets=1;cfg.world.num_obstacles=0;cfg.world.motion_dimensions=3
-    cfg.network.gcs_range_m=cfg.network.peer_range_m=500
-    cfg.energy.enabled=False
-    pos=np.array([[200.,100.,100.],[300.,100.,100.]])
-    scene=SimpleNamespace(positions=pos.copy(),gcs=np.array([200.,0.,0.]),
-                          targets=np.array([[900.,900.]]),obstacles=np.empty((0,3)),
-                          obstacle_heights=np.empty(0))
-    nodes=[CooperativeWorldMap(4) for _ in range(3)]
-    store=M2PacketStore(nodes,buffer_bytes=8192)
-    radio=M2Radio(cfg,store,scene,seed=44)
-    try:
-        geo=ObstacleGeometryEvent('geo:1',0,0,200.,100.,10.,50.,2.,3.)
-        store.publish_geometry(0,[geo],created_s=0.)
-        assert len(nodes[-1].obstacle_tracks)==0
-        radio.step(np.array([2,0]),pos,time_s=1,power_actions=np.ones(2))
-        assert len(nodes[-1].obstacle_tracks)==1
-        assert nodes[-1].obstacle_tracks[0]['height']==pytest.approx(50.)
-    finally:radio.close()
 
 
-def test_3d_track_association_does_not_merge_nearby_distinct_cylinders():
-    from uav_network.environment.correlated_mapping import ObstacleGeometryEvent
-    m=CooperativeWorldMap(100)
-    # Two large cylinders may overlap footprints yet have separate centers.
-    m.ingest_geometry(ObstacleGeometryEvent('g1',0,1,20.,20.,25.,80.,2.,3.),arrived_at=1)
-    m.ingest_geometry(ObstacleGeometryEvent('g2',1,2,65.,20.,25.,90.,2.,3.),arrived_at=2)
-    assert len(m.obstacle_tracks)==2
 
 
 def test_map_metrics_separate_candidate_recall_from_verified_gcs_recall():
@@ -191,33 +148,15 @@ def test_map_metrics_separate_candidate_recall_from_verified_gcs_recall():
     m=CooperativeWorldMap(4)
     m.target_masses[0]=[.98,0.,.02]
     t=np.array([True,False,False,False]);o=np.zeros(4,bool)
-    x=MultiLayerMapMetrics.evaluate(m,t,o,at_tick=5)
+    x=MultiLayerMapMetrics.evaluate(m,t,at_tick=5)
     assert x['target_recall']==1.0  # backward-compatible candidate threshold metric
     assert x['target_auprc']>0
     assert x['target_brier']>=0
-    assert x['obstacle_iou_2d']>=0
+    assert x['total_uncertainty']>=0
     assert x['target_calibration_ece']>=0
     assert m.consensus_status(0)=='unknown'  # candidate threshold != verified
 
 
-def test_native_m2_1000m_episode_has_energy_coverage_obstacle_3d_delivery_metrics():
-    c=Config();c.world.motion_dimensions=3;c.world.motion_safety='cbf'
-    c.world.map_size_m=1000.;c.world.num_targets=1;c.world.num_obstacles=1;c.world.num_uavs=2
-    c.world.max_steps=3;c.sensor.model='bayesian';c.energy.enabled=True
-    e=CooperativeM2Env(c,max_scan_cells=2)
-    try:
-        obs,data=e.reset(seed=44)
-        a=Action(np.zeros((2,c.continuous_dim),np.float32),np.array([2,2],np.int64))
-        e.step(a)
-        metrics=e.info()
-        for name in ('gcs_obstacle_3d_track_count','obstacle_3d_voxel_iou','correct_gcs_delivery_recall',
-                     'false_report_rate','normalized_delivery_auc','energy_total_j','energy_per_correct_delivery_j',
-                     'gcs_map'):
-            assert name in metrics
-        assert metrics['energy_total_j']>0
-        assert metrics['correct_gcs_delivery_recall']==0
-        assert metrics['energy_per_correct_delivery_j'] is None
-    finally:e.close()
 
 
 def test_m2_actor_observation_contains_no_instantaneous_link_oracle():
@@ -237,43 +176,8 @@ def test_m2_actor_observation_contains_no_instantaneous_link_oracle():
     finally:e.close()
 
 
-def test_actor_observation_changes_when_new_3d_height_estimate_arrives():
-    from uav_network.environment.correlated_mapping import ObstacleGeometryEvent
-    c=Config();c.world.motion_dimensions=3;c.world.motion_safety='cbf';c.sensor.model='bayesian'
-    c.world.num_uavs=2;c.world.num_targets=1;c.world.num_obstacles=0;c.world.max_steps=4;c.energy.enabled=False
-    options={'positions':np.array([[500.,500.,100.],[700.,500.,100.]]),
-             'targets':np.array([[900.,900.]]),'obstacles':np.empty((0,4))}
-    e=CooperativeM2Env(c,max_scan_cells=1)
-    try:
-        obs,_=e.reset(seed=44,options=options)
-        prev=obs[0].copy()
-        geo=ObstacleGeometryEvent('meas:1',0,1,512.,512.,12.,68.,2.,3.)
-        e.nodes[0].ingest_geometry(geo,arrived_at=1)
-        current=e.local_observations()[0]
-        assert not np.array_equal(prev,current)
-        cell=e._cell_xy((512.,512.))
-        height=e.nodes[0].estimated_obstacle_height(cell,grid_n=e.grid_n,cell_m=25.)
-        assert height==pytest.approx(68.)
-    finally:e.close()
 
 
-def test_3d_map_progress_reward_only_when_gcs_receives_useful_geometry():
-    from uav_network.environment.correlated_mapping import ObstacleGeometryEvent
-    c=Config();c.world.motion_dimensions=3;c.world.motion_safety='cbf';c.sensor.model='bayesian'
-    c.world.num_uavs=2;c.world.num_targets=1;c.world.num_obstacles=1;c.world.max_steps=4;c.energy.enabled=False
-    options={'positions':np.array([[500.,100.,100.],[600.,100.,100.]]),
-             'targets':np.array([[800.,800.]]),
-             'obstacles':np.array([[150.,120.,35.,80.]])}
-    e=CooperativeM2Env(c,max_scan_cells=1)
-    try:
-        e.reset(seed=44,options=options)
-        e._reward(np.zeros(2),0)
-        assert e.last_reward_components['obstacle_3d_progress']==pytest.approx(0)
-        geo=ObstacleGeometryEvent('geom:gcs',0,1,150.,120.,35.,80.,2.,3.)
-        e.gcs_map.ingest_geometry(geo,arrived_at=1)
-        e._reward(np.zeros(2),0)
-        assert e.last_reward_components['obstacle_3d_progress']>0
-    finally:e.close()
 
 
 def test_gcs_candidate_alone_never_counts_as_a_delivered_verified_report():
@@ -305,18 +209,6 @@ def test_sender_receives_ack_contact_only_after_successful_radio_delivery():
     assert nodes[0].link_contacts[1]==2
 
 
-def test_m2_3d_geometry_sensor_does_not_see_through_taller_near_obstacle():
-    c=Config();c.world.motion_dimensions=3;c.world.motion_safety='cbf';c.sensor.model='bayesian'
-    c.world.num_uavs=2;c.world.num_targets=1;c.world.num_obstacles=2;c.world.max_steps=4;c.energy.enabled=False
-    opts={'positions':np.array([[100.,100.,130.],[100.,250.,130.]]),
-          'targets':np.array([[900.,900.]]),
-          'obstacles':np.array([[150.,100.,20.,120.],[210.,100.,20.,50.]])}
-    env=CooperativeM2Env(c,max_scan_cells=1)
-    try:
-        env.reset(seed=44,options=opts)
-        assert env._obstacle_visible_from(env.positions[0],0)
-        assert not env._obstacle_visible_from(env.positions[0],1)
-    finally:env.close()
 
 
 def test_m2_opt_in_cannot_silently_enter_legacy_or_warp_training_backend():

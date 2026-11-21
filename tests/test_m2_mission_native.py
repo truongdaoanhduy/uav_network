@@ -44,7 +44,6 @@ def test_m2_native_episode_has_autonomous_z_no_oracle_critic_and_gcs_packet_map(
         env.step(transmit)
         assert env.gcs_map.coverage.sum()>0
         assert env.gcs_map.target_masses.shape[1]==3
-        assert env.gcs_map.obstacle_masses.shape[1]==3
         assert 0<=env.info()["gcs_map"]["target_brier"]<=1
         # XYZ action still selects altitude. No hidden verification descent.
         move=Action(np.zeros((2,env.config.continuous_dim),dtype=np.float32),

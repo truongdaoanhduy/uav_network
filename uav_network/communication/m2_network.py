@@ -17,7 +17,7 @@ import itertools
 import math
 import numpy as np
 from .m2_protocol import CooperativeWorldMap, DecisionNotice, packetize_events
-from ..environment.correlated_mapping import Event, ObstacleGeometryEvent
+from ..environment.correlated_mapping import Event
 from .link_budget import nominal_required_power_w
 
 
@@ -27,7 +27,7 @@ class M2Envelope:
     source_id: int
     created_s: float
     size_bytes: int
-    events: tuple[Event|DecisionNotice|ObstacleGeometryEvent,...]
+    events: tuple[Event|DecisionNotice,...]
     hops: int = 0
     kind: str = "evidence"
     map_snapshots: tuple = ()
@@ -65,7 +65,7 @@ class M2PacketStore:
         self.event_delivery_count=0
         self.overflow_drops=0
         self.acked_pairs=set()  # only populated after actual accepted reception
-        self._delta_prepared=set()
+        self._delta_prepared={}  # evidence_id -> time of last GCS delta creation
 
     def bytes_used(self,node:int):
         return sum(packet.size_bytes for packet in self.buffers[node].values())
@@ -118,29 +118,13 @@ class M2PacketStore:
         self.nodes[source].ingest_notice(notice,arrived_at=notice.tick)
         return packet
 
-    def publish_geometry(self,source:int,observations,*,created_s:float):
-        from dataclasses import asdict
-        import json
-        if not 0<=source<self.n:raise ValueError("UAV sensor source required")
-        result=[]
-        for obs in observations:
-            if not isinstance(obs,ObstacleGeometryEvent):
-                raise TypeError("ObstacleGeometryEvent required")
-            size=len(json.dumps(asdict(obs),separators=(",",":")).encode())+24
-            self._make_room(source,size)
-            identity=f"g:{source}:{next(self._serial)}"
-            packet=M2Envelope(identity,source,float(created_s),size,(obs,),kind="geometry")
-            self.buffers[source][identity]=packet
-            self.received_ids[source].add(identity)
-            self.nodes[source].ingest_geometry(obs,arrived_at=math.ceil(created_s))
-            result.append(packet)
-        return result
+    allowed_packet_kinds=frozenset(("any","evidence","map_delta","report","correction"))
 
     def select_packet(self,source:int,destination:int,time_s:float,*,payload_choice="any",
                       eligibility=None):
-        if payload_choice not in {"any","evidence","geometry","map_delta","report","correction"}:
+        if payload_choice not in self.allowed_packet_kinds:
             raise ValueError("unknown packet kind")
-        rank={"correction":0,"report":1,"map_delta":2,"evidence":3,"geometry":4}
+        rank={"correction":0,"report":1,"map_delta":2,"evidence":3}
         eligible=[p for p in self.buffers[source].values()
                   if (payload_choice=="any" or p.kind==payload_choice)
                   and self.can_forward(source,destination,p,time_s)
@@ -148,45 +132,61 @@ class M2PacketStore:
         return min(eligible,key=lambda p:(rank.get(p.kind,5),p.created_s,p.message_id)) if eligible else None
 
     def prepare_gcs_delta(self,*,now:float):
-        """GCS synthesizes an actual map-state delta with ORIGINAL evidence IDs.
+        """Packetize GCS *target-only* 2D fused state with source provenance.
 
-        Recipients recompute conditioned DS from the attached events, never
-        double-fuse the snapshot as if it were independent evidence.
+        Each MAP_DELTA includes its source evidence IDs, the GCS's latest F/E/U
+        mass for every included cell, and a conservative actual wire-size budget.
+        The receiving node recomputes DS from unique events: a fused snapshot
+        is metadata, NOT another independent observation to fuse.
+        Expired deltas are eventually prepared again if a partition prevented
+        downlink to some UAVs; redundant information is ID-deduplicated.
         """
-        from .m2_protocol import _wire_bytes
+        from dataclasses import asdict
+        import json
         gcs=self.nodes[self.n]
-        fresh=[e for e in gcs.events.values() if e.event_id not in self._delta_prepared]
+        fresh=[e for e in gcs.events.values()
+               if now-self._delta_prepared.get(e.event_id,float('-inf'))>=self.ttl_s]
         if not fresh:return None
         fresh.sort(key=lambda e:e.sort_key)
-        first=fresh[0]
-        # Build a compact cell delta. Other observed cells will be sent later.
         chosen=[]
+        snapshots=[]
+        selected_cells=set()
+        accepted_size=0
         for e in fresh:
-            if e.cell!=first.cell:continue
-            trial=chosen+[e]
-            if _wire_bytes(trial)+192>1024:break
-            chosen=trial
-        if not chosen:chosen=[first]
-        snapshot=(int(first.cell),
-                  tuple(float(x) for x in gcs.target_masses[first.cell]),
-                  tuple(float(x) for x in gcs.obstacle_masses[first.cell]))
-        size=_wire_bytes(chosen)+112
-        if size>1024:raise ValueError("map delta payload too large")
-        self._make_room(self.n,size)
+            proposed=chosen+[e]
+            new_snapshots=list(snapshots)
+            if e.cell not in selected_cells:
+                new_snapshots.append((int(e.cell),tuple(float(x) for x in gcs.target_masses[e.cell])))
+            # Account for serialized fields and 64-byte headroom for envelope ID,
+            # timestamps, message kind, hop metadata and PHY framing.
+            payload={'events':[asdict(x) for x in proposed],
+                     'map_snapshots':new_snapshots,'kind':'map_delta',
+                     'source_id':self.n,'created_s':float(now)}
+            size=len(json.dumps(payload,separators=(',',':')).encode())+64
+            if size>1024:
+                if not chosen:raise ValueError("one target map delta event exceeds 1024-byte payload")
+                break
+            chosen=proposed
+            accepted_size=size
+            snapshots=new_snapshots
+            selected_cells.add(e.cell)
+        self._make_room(self.n,accepted_size)
         identity=f"m:{self.n}:{next(self._serial)}"
-        packet=M2Envelope(identity,self.n,float(now),size,tuple(chosen),kind="map_delta",
-                          map_snapshots=(snapshot,))
+        packet=M2Envelope(identity,self.n,float(now),accepted_size,tuple(chosen),
+                          kind="map_delta",map_snapshots=tuple(snapshots))
         self.buffers[self.n][identity]=packet
         self.received_ids[self.n].add(identity)
-        self._delta_prepared.update(e.event_id for e in chosen)
+        self._delta_prepared.update({e.event_id:float(now) for e in chosen})
         return packet
 
     @staticmethod
     def payload_choice_from_action(kind_action:float):
-        """Policy continuous output mapped to packet category; zero = any."""
+        """5D policy type control for the target-only 2D belief mission.
+
+        No geometry packet type exists. Actor chooses destination separately.
+        """
         a=float(kind_action)
-        if a < -.6:return "evidence"
-        if a < -.2:return "geometry"
+        if a < -.2:return "evidence"
         if a <= .2:return "any"
         if a <= .6:return "map_delta"
         if a <= .85:return "report"
@@ -196,9 +196,14 @@ class M2PacketStore:
         return self.buffers[source].get(report.message_id)==report
 
     def can_forward(self,source:int,destination:int,report:M2Envelope,time_s:float):
+        # The *origin metadata*, not remote buffer inspection, proves that the
+        # original author already owns every item in this envelope.
+        all_from_destination=(bool(report.events) and all(
+            (isinstance(e,Event) and e.origin==destination) or
+            (isinstance(e,DecisionNotice) and e.source==destination)
+            for e in report.events))
         return (source!=destination and self.contains(source,report)
-                and not (destination==report.source_id and
-                         all(getattr(e,"origin",-1)==destination for e in report.events))
+                and not all_from_destination
                 and (source,destination,report.message_id) not in self.acked_pairs
                 and 0 <= time_s-report.created_s < self.ttl_s
                 and report.size_bytes <= self.buffer_bytes)
@@ -225,8 +230,6 @@ class M2PacketStore:
         for event in report.events:
             if isinstance(event,DecisionNotice):
                 self.nodes[destination].ingest_notice(event,arrived_at=math.ceil(time_s))
-            elif isinstance(event,ObstacleGeometryEvent):
-                self.nodes[destination].ingest_geometry(event,arrived_at=math.ceil(time_s))
             else:
                 self.nodes[destination].ingest(event,arrived_at=math.ceil(time_s))
         if destination<self.n:
@@ -297,11 +300,11 @@ class M2Radio:
             # direct memory access. It only schedules *packets it previously got*.
             if self.link_available(n,gcs_peer,positions):
                 self.network.sync_positions(positions)
+                # Revisioned verified reports and corrections must not starve
+                # behind high-rate bulk map-delta traffic. An empty report
+                # backlog naturally falls through to multi-cell MAP_DELTA.
                 msg=self.store.select_packet(n,gcs_peer,self.network.clock.now/1e6,
-                                             payload_choice="map_delta")
-                if msg is None:
-                    msg=self.store.select_packet(n,gcs_peer,self.network.clock.now/1e6,
-                                                 payload_choice="any")
+                                             payload_choice="any")
                 if msg is not None:
                     self.network._inject(n,gcs_peer,self.config.network.tx_power_max_w,msg)
         reward_energy=self.network.step(Action(continuous,destinations),positions,time_s)

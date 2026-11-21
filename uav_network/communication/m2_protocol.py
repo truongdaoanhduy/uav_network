@@ -11,7 +11,7 @@ import json
 import math
 import numpy as np
 
-from ..environment.correlated_mapping import Event, ObstacleGeometryEvent, SharedBiasLikelihood
+from ..environment.correlated_mapping import Event, SharedBiasLikelihood
 from ..environment.ds_evidence import combine_evidence
 
 
@@ -88,8 +88,7 @@ class CooperativeWorldMap:
         self.upper=math.log((1-beta)/alpha)
         self.lower=math.log(beta/(1-alpha))
         self.target_masses=np.zeros((num_cells,3),dtype=np.float64)
-        self.obstacle_masses=np.zeros((num_cells,3),dtype=np.float64)
-        self.target_masses[:,2]=self.obstacle_masses[:,2]=1
+        self.target_masses[:,2]=1
         self.coverage=np.zeros(num_cells,dtype=np.int32)
         self.last_observed=np.full(num_cells,-1,dtype=np.int64)
         self.last_arrival=np.full(num_cells,-1,dtype=np.int64)
@@ -100,14 +99,13 @@ class CooperativeWorldMap:
         self.link_contacts={}  # observed delivery/ACK only, not simulator link oracle
         self.claims={}  # (source,cell) -> latest DecisionNotice
         self.report_history=[]  # all accepted versions and their arrival times
-        self.geometry_events={}  # immutable noisy 3D obstacle observations
-        self.obstacle_tracks=[]  # geometry estimates, NOT simulator geometry IDs
 
     @property
     def events_seen(self):return len(self.events)
 
     def ingest(self,event:Event,*,arrived_at:int) -> bool:
-        if not isinstance(event,Event) or not (0 <= event.cell < self.num_cells):
+        if (not isinstance(event,Event) or event.layer!="target" or
+                not (0 <= event.cell < self.num_cells)):
             raise ValueError("invalid observation event/cell")
         if arrived_at < 0:
             raise ValueError("arrival time must be nonnegative")
@@ -165,8 +163,6 @@ class CooperativeWorldMap:
                 new.revision=(old.revision if old else 0)+1
                 self.decision_changes.append((cell,decision,arrived_at,new.revision))
             self.candidates[cell]=new
-        else:
-            self.obstacle_masses[cell]=masses
 
     def drain_decisions(self):
         changes=list(self.decision_changes)
@@ -199,92 +195,27 @@ class CooperativeWorldMap:
         if not 0 <= cell < self.num_cells:
             raise IndexError(cell)
         local=self.candidates.get(cell)
-        if local and local.status in ("verified","rejected"):
-            return local.status  # fused receiver-local verification evidence
         source_states=[n.status for (src,c),n in self.claims.items() if c==cell]
         votes=set(x for x in source_states if x != "retracted")
         if "verified" in votes and "rejected" in votes:
             return "disputed"
+        if local and local.status in ("verified","rejected"):
+            # Local fused evidence is powerful, but must NOT silently erase
+            # contradictory independent source claims at the GCS.
+            opposite="rejected" if local.status=="verified" else "verified"
+            if opposite in votes:return "disputed"
+            return local.status
         if "verified" in votes:return "verified"
         if "rejected" in votes:return "rejected"
         if "pending" in votes or (local and local.status=="pending"):
             return "pending"
         return "unknown"
 
-    def ingest_geometry(self,event:ObstacleGeometryEvent,*,arrived_at:int):
-        if not isinstance(event,ObstacleGeometryEvent):
-            raise ValueError("obstacle geometry detection required")
-        old=self.geometry_events.get(event.event_id)
-        if old is not None:
-            if old != event:raise ValueError("conflicting geometry event ID")
-            return False
-        self.geometry_events[event.event_id]=event
-        self._rebuild_geometry_tracks()
-        return True
-
-    def _rebuild_geometry_tracks(self):
-        tracks=[]
-        # Deterministic replay despite arbitrarily delayed multi-hop packets.
-        for ev in sorted(self.geometry_events.values(),key=lambda e:e.sort_key):
-            eligible=[]
-            for index,tr in enumerate(tracks):
-                dist=math.hypot(ev.x-tr['x'],ev.y-tr['y'])
-                gate=3.*math.hypot(ev.sigma_xy,tr['sigma_xy'])+0.10*min(ev.radius,tr['radius'])
-                if dist<=gate:
-                    eligible.append((dist,index))
-            if eligible:
-                _,idx=min(eligible)
-                tr=tracks[idx]
-                old_prec=tr['precision_xy'];new_prec=1/(ev.sigma_xy**2)
-                total=old_prec+new_prec
-                for k in ('x','y','radius'):
-                    tr[k]=(tr[k]*old_prec+getattr(ev,k)*new_prec)/total
-                tr['precision_xy']=total
-                hp=tr['precision_height'];ep=1/(ev.sigma_height**2)
-                tr['height']=(tr['height']*hp+ev.height*ep)/(hp+ep)
-                tr['precision_height']=hp+ep
-                tr['sigma_xy']=1/math.sqrt(total)
-                tr['count']+=1
-            else:
-                tracks.append(dict(x=ev.x,y=ev.y,radius=ev.radius,height=ev.height,
-                                   precision_xy=1/(ev.sigma_xy**2),
-                                   precision_height=1/(ev.sigma_height**2),
-                                   sigma_xy=ev.sigma_xy,count=1))
-        self.obstacle_tracks=tracks
-
-    def estimated_obstacle_height(self,cell:int,*,grid_n:int,cell_m:float):
-        """Highest estimated cylinder over a ground cell, using observations only."""
-        if not 0<=cell<grid_n*grid_n:raise IndexError(cell)
-        cx=(cell%grid_n+.5)*cell_m
-        cy=(cell//grid_n+.5)*cell_m
-        answer=0.
-        for tr in self.obstacle_tracks:
-            dx=max(abs(cx-tr['x'])-cell_m/2.,0.)
-            dy=max(abs(cy-tr['y'])-cell_m/2.,0.)
-            if dx*dx+dy*dy<=tr['radius']**2:
-                answer=max(answer,float(tr['height']))
-        return answer
-
-    def obstacle_voxel_map(self,*,grid_n:int,cell_m:float,z_levels):
-        levels=np.asarray(z_levels,dtype=float)
-        if grid_n<=0 or cell_m<=0 or levels.ndim!=1:raise ValueError("bad voxel geometry")
-        centers=(np.arange(grid_n)+.5)*cell_m
-        xx,yy=np.meshgrid(centers,centers,indexing='xy')
-        voxel=np.zeros((len(levels),grid_n,grid_n),dtype=bool)
-        for tr in self.obstacle_tracks:
-            dx=np.maximum(np.abs(xx-tr['x'])-cell_m/2.,0.)
-            dy=np.maximum(np.abs(yy-tr['y'])-cell_m/2.,0.)
-            footprint=dx*dx+dy*dy<=tr['radius']**2
-            for layer,z in enumerate(levels):
-                if z<=tr['height']:voxel[layer]|=footprint
-        return voxel
-
     def visible_summary(self,cell:int):
         """Actor/GCS observation from received evidence, never true occupancy."""
         if not 0<=cell<self.num_cells:raise IndexError(cell)
         cand=self.candidates.get(cell)
         return (tuple(float(x) for x in self.target_masses[cell]),
-                tuple(float(x) for x in self.obstacle_masses[cell]),
                 cand.status if cand else "unseen",cand.sprt_llr if cand else 0.)
 
 
@@ -318,15 +249,13 @@ def packetize_events(events,*,payload_bytes=1024):
 
 
 class MultiLayerMapMetrics:
-    """Evaluator-only class: actor/critic/GCS protocols never receive truth."""
+    """Evaluator-only target belief map metrics; truth is never a policy input."""
     @staticmethod
-    def evaluate(map_node:CooperativeWorldMap,target_occupancy,obstacle_occupancy,*,at_tick:int):
+    def evaluate(map_node:CooperativeWorldMap,target_occupancy,*,at_tick:int):
         target=np.asarray(target_occupancy,dtype=np.float64).ravel()
-        obstacle=np.asarray(obstacle_occupancy,dtype=np.float64).ravel()
-        if target.shape!=(map_node.num_cells,) or obstacle.shape!=(map_node.num_cells,):
-            raise ValueError("truth shape must match ground-cell map")
+        if target.shape!=(map_node.num_cells,):
+            raise ValueError("target truth shape must match ground-cell map")
         p_target=map_node.target_masses[:,0]+.5*map_node.target_masses[:,2]
-        p_obstacle=map_node.obstacle_masses[:,0]+.5*map_node.obstacle_masses[:,2]
         # Threshold-group AP avoids an artificial ranking among untouched
         # cells whose initial pignistic probabilities are identical (0.5).
         def average_precision(y,p):
@@ -347,19 +276,15 @@ class MultiLayerMapMetrics:
             mask=bins==k
             if mask.any():
                 ece+=(mask.mean()*abs(p_target[mask].mean()-y_target[mask].mean()))
-        occupied_pred=map_node.obstacle_masses[:,0]>=map_node.ds_threshold
-        occupied_truth=obstacle>.5
-        obstacle_union=int(np.logical_or(occupied_pred,occupied_truth).sum())
-        obstacle_iou=float(np.logical_and(occupied_pred,occupied_truth).sum()/obstacle_union) if obstacle_union else 1.
         detected=map_node.target_masses[:,0]>=map_node.ds_threshold
         tp=int((detected & (target>0.5)).sum()); fp=int((detected & (target<0.5)).sum())
         ages=np.maximum(0,at_tick-map_node.last_observed[map_node.last_observed>=0])
         return {"target_brier":float(np.square(p_target-target).mean()),
-                "obstacle_brier":float(np.square(p_obstacle-obstacle).mean()),
                 "coverage":float((map_node.coverage>0).mean()),
+                "total_uncertainty":float(map_node.target_masses[:,2].sum()),
+                "mean_uncertainty":float(map_node.target_masses[:,2].mean()),
                 "target_auprc":average_precision(y_target,p_target),
                 "target_calibration_ece":float(ece),
-                "obstacle_iou_2d":obstacle_iou,
                 "target_precision":tp/max(tp+fp,1),
                 "target_recall":tp/max(int((target>.5).sum()),1),
                 "false_target_cells":fp,
