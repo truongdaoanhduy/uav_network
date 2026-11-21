@@ -75,10 +75,19 @@ reused: the v7 observation/action semantics require new training.
   hashes**; seed45 returned a different hash.
 - Source signatures compile (`python -m compileall`), `git diff --check` pass.
 
-The final clean full-functional-suite result must be taken from
-`/tmp/uav_v7_full_audit_FINAL_clean_20261122.log` and should be reported
-only after the process exits. Focused tests run before that full suite cannot
-claim repository-wide verification.
+Final clean, end-to-end functional pytest command and observed completion:
+
+```bash
+python -m pytest -q tests --ignore=tests/test_project_structure.py --disable-warnings
+# 1602 passed, 105 skipped, 8 warnings, 1111 subtests passed
+# completed in 419.85s; process exit 0
+```
+
+This was a new pytest process started after functional fixes were complete,
+not the earlier mixed-source exploratory run. No failing functional tests were
+observed. The explicit **separate** project-structure suite remains red on
+7 inherited file-length violations; its frozen-algorithm checksum subtest is
+passing. CPU test success must not be represented as T4 CUDA certification.
 
 ## Evidence and known limits
 
