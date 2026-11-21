@@ -72,3 +72,13 @@ python scripts/research/run_cooperative_m2_native_demo_20261121.py --steps 30 --
 - Explicit early guard in `environment/vector.py::make_vector` rejects M2 in *legacy* Native/Warp trainers, because the E4096 integration is intentionally deferred. This prevents silently training the old 4D environment under an M2 configuration.
 - Targeted post-guard regression, including `test_scenario_v3.py`: **134 passed, 23 subtests passed**.
 - A full-suite run before moving the M2 flag out of frozen `world` yielded `1811 passed, 28 failed, 105 skipped, 1983 subtests passed` in ~477s; 27 failures exactly matched preexisting baseline, the sole new failure `tests/test_scenario_v3.py::ScenarioV3Tests::test_v3_freezes_large_report_radio_study_and_v2_stays_legacy` was corrected and its direct unit test is now green. A second full-suite run after this fix was started; refer to `/tmp/m2_fullsuite_final_clean_20261121.log` for the final summary once finished.
+
+## FINAL COMPLETE FULL-SUITE REGRESSION, 2026-11-21
+
+Following the runtime-only `m2_enabled` flag fix (which eliminated the single new `scenario_v3` test failure), the complete repository test suite `python -m pytest -q tests` finished in 430.46 seconds:
+
+**1814 passed, 27 failed, 105 skipped, 8 warnings, 1984 subtests passed.**
+
+Comparison of every `FAILED`/`SUBFAILED` test identifier against `/home/aduy/Documents/NCKH/uav_network_study_1200/outputs/baseline_rootcause_20261120/test_status.json` returned **exact match of all 27 previous failures; ZERO additional failing test identifiers**. The historical failures include source structure/hash constraints and checkpoint, logging, W&B/tracking, probe and training test issues; these preexisting unrelated failures were not suppressed or incorrectly marked resolved. The M2-focused suite including the historic `scenario_v3` test yielded **134 passed, 23 subtests passed**, and the extracted source ZIP was retested independently with **54 passed**.
+
+User credential note: the newly appended standalone Kaggle token (KGAT_ form, not printed) authenticated via isolated Kaggle 2.2.5 `quota`. Changing/removing other credential entries in `key.txt` was blocked by tool safety; do not claim the old keys were deleted. The owner must clean the JSON credential document manually.
