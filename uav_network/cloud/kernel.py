@@ -129,6 +129,18 @@ python = root / ".venv/bin/python"
 runner = {"visualize": "uav_network.cloud.visualize", "archive": "uav_network.cloud.archive"}.get(
     SPEC["stage"], "uav_network.cloud.remote")
 subprocess.run([str(python), "-m", runner, "--spec", str(spec_file)], cwd=root, check=True)
+if SPEC.get("one_session_train_eval_test"):
+    # Same semantics as the exact frozen 18d756ef Kaggle script: learner
+    # must finish, then 2-GPU deterministic Validation100 and held-out Test4000.
+    if SPEC["stage"]!="train" or not SPEC.get("training_only"):
+        raise RuntimeError("One-session fullflow requires training_only=True")
+    subprocess.run([str(python), "-m", "uav_network.experiments.one_session",
+        "--spec", str(spec_file), "--policies-per-batch", "2",
+        "--eval-world-pool-size", "0",
+        "--max-eval-worlds-per-gpu", "256",
+        "--max-test-worlds-per-gpu", "256",
+        "--test-batch-size", "0"], cwd=root, check=True)
+    print("MATD3_NO_ORACLE_TRAIN_VALIDATION100_TEST4000_COMPLETE", flush=True)
 '''
     if credential_source == "kaggle_secrets":
         begin = script.index('inputs = Path("/kaggle/input")')

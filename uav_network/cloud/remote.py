@@ -120,7 +120,22 @@ def learner_time_limit(spec, config, gpu_count, index, elapsed):
     waves = math.ceil((len(spec["runs"]) - index) / gpu_count)
     reserve = (max(600, config.tracking.artifact_timeout_seconds + 120)
                if config.pql.enabled or spec.get("auto_continue") else 600)
-    available = (min(spec.get("timeout_seconds", 39600), 39600) - elapsed - reserve) / waves
+    # Training + deferred GPU Validation100/Test4000 share ONE Kaggle session.
+    # Reserve test time from notebook bootstrap, not learner subprocess start.
+    if spec.get("one_session_train_eval_test"):
+        limit=float(spec.get("session_ceiling_seconds",39600))
+        if not 600 <= limit <= 43200:
+            raise ValueError("Invalid one-session Kaggle platform ceiling")
+        eval_reserve=float(spec.get("eval_test_reserved_seconds",5400))
+        if not 600 <= eval_reserve <= 7200:
+            raise ValueError("Invalid GPU eval/test reserved duration")
+        reserve=max(reserve,eval_reserve)
+        origin=os.environ.get("UAV_JOB_STARTED_AT")
+        if origin is not None:
+            elapsed=max(elapsed,time.monotonic()-float(origin))
+        available=(min(spec.get("timeout_seconds",39600),limit,43200)-elapsed-reserve)/waves
+    else:
+        available=(min(spec.get("timeout_seconds",39600),39600)-elapsed-reserve)/waves
     if available <= 0:
         raise RuntimeError("No safe training time remains before the kernel ceiling")
     return min(config.runtime.max_train_seconds or available, available)

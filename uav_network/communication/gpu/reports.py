@@ -150,6 +150,7 @@ def reset_reward_state(s: wp.ref[WorldState], e: int):
 @wp.kernel
 def begin_step(s: WorldState, p: WorldParams):
     e = wp.tid()
+    if p.cell_reports != 0 and s.terminated[e] != 0: return
     found = int(0)
     delivered = int(0)
     flight = wp.float64(0)
@@ -187,6 +188,7 @@ def begin_step(s: WorldState, p: WorldParams):
 
 @wp.func
 def sense_reports_at(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int):
+    if p.cell_reports != 0 and s.terminated[e] != 0: return
     now = wp.float64(s.steps[e])*p.dt
     for i in range(p.n):
         for t in range(p.report_slots):
@@ -230,6 +232,7 @@ def masked_sense_reports(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.
 @wp.kernel
 def end_step(s: WorldState, p: WorldParams):
     e = wp.tid()
+    if p.cell_reports != 0 and s.terminated[e] != 0: return
     s.steps[e] += 1
     expire(s,p,e,wp.float64(s.steps[e])*p.dt)
     found = int(0)

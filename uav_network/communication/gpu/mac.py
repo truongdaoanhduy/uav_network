@@ -256,6 +256,7 @@ def event(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, kind: int, arg:
 def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.float32),
                 destination: wp.array2d(dtype=wp.int64)):
     e = wp.tid()
+    if p.cell_reports != 0 and s.terminated[e] != 0: return
     now = s.packet_time[e]
     end = (s.mission_time[e]+p.dt)*wp.float64(1e6)
     # Motion is fixed during packet_step; invalidate once, then reuse exact link gains.
