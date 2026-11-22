@@ -142,7 +142,9 @@ class HybridMeasuredReplay:
             self._pinned_staging_event.synchronize()
             self._pinned_staging_event = None
         indices = torch.randint(self.size, (batch_size,), generator=self.rng)
-        self.seen[indices.unique()] = True
+        # Every sampled row is set to the SAME True value; duplicate indices
+        # are idempotent. Avoid sorting/allocating unique() on every B8192 update.
+        self.seen[indices] = True
         born = self.born[indices]
         known = born >= 0
         age = torch.where(known, self.collections - born, 0)

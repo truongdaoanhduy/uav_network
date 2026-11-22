@@ -93,9 +93,17 @@ def resolve_base_devices(config):
 def refresh_base_collector(collector, learner):
     if collector is learner:
         return
-    snapshot = cloned_state(learner.actors)
-    synchronize_worker(learner.device)
-    collector.actors.load_state_dict(snapshot)
+    # Optional direct peer-device copy without cloning every Actor tensor on
+    # GPU1. Keep the baseline path as default until measured on a real T4 pair.
+    # All parameters and BatchNorm running buffers are covered by state_dict.
+    direct = os.environ.get("UAV_DIRECT_GPU_COLLECTOR_COPY", "false").lower() in ("true", "1", "yes")
+    if direct:
+        synchronize_worker(learner.device)
+        collector.actors.load_state_dict(learner.actors.state_dict(), strict=True)
+    else:
+        snapshot = cloned_state(learner.actors)
+        synchronize_worker(learner.device)
+        collector.actors.load_state_dict(snapshot)
     synchronize_worker(collector.device)
 
 
