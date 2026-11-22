@@ -49,13 +49,41 @@ def coarse_belief_uncertainty_map(belief_map, output_cells):
     return np.asarray([[entropy[np.ix_(r,c)].mean() for c in cols] for r in rows],dtype=np.float32)
 
 
+def confirmation_shaping_altitude(sensor, max_altitude):
+    """Highest full-cell altitude that meets the configured positive-evidence gate.
+
+    This is a policy *hint* for reward shaping, never used to certify targets.
+    For partial cells the actual likelihood test uses the measured area fraction.
+    """
+    if sensor.confirmation_mode == "fine_altitude":
+        return sensor.fine_altitude_m
+    height = min(float(max_altitude),float(sensor.altitude_anchors[-1]))
+    cutoff = float(sensor.confirmation_min_likelihood_ratio)
+    for lo,hi in zip(sensor.altitude_anchors[:-1],sensor.altitude_anchors[1:]):
+        p0,f0,_=sensor_profile(sensor,lo)
+        p1,f1,_=sensor_profile(sensor,hi)
+        if p0 < cutoff*f0:
+            return max(0.0,float(lo))
+        if p1 < cutoff*f1:
+            denominator=(p1-p0)-cutoff*(f1-f0)
+            return float(lo)-float(p0-cutoff*f0)*(float(hi-lo)/denominator)
+    return height
+
+
+def confirmation_allowed(sensor, altitude, positive_likelihood, false_likelihood):
+    """Permission to certify AFTER a real positive sample and posterior gate."""
+    if sensor.confirmation_mode == "fine_altitude":
+        return altitude <= sensor.fine_altitude_m
+    return positive_likelihood >= sensor.confirmation_min_likelihood_ratio*false_likelihood
+
+
 def investigation_potential(env):
     s,w=env.config.sensor,env.config.world
     threshold=float(env.config.reward.investigation_belief_threshold)
     if not s.belief_prior < threshold < s.confirmation_threshold:
         return 0.0
     radius=s.belief_patch_cells//2;g=env.belief.shape[-1];width=s.grid_cell_m
-    altitude_span=max(w.altitude_max_m-s.fine_altitude_m,1e-6);total=0.0
+    altitude_span=max(w.altitude_max_m-confirmation_shaping_altitude(s,w.altitude_max_m),1e-6);total=0.0
     for i,pos in enumerate(env.positions):
         if not env.active[i]: continue
         gx=min(max(int(math.floor(pos[0]/width)),0),g-1);gy=min(max(int(math.floor(pos[1]/width)),0),g-1)
@@ -80,6 +108,10 @@ def cell_coverage(gx,gy,xy,r,width,map_size):
     if r<=0: return 0.
     x0,x1=gx*width-xy[0],min((gx+1)*width,map_size)-xy[0]
     y0,y1=gy*width-xy[1],min((gy+1)*width,map_size)-xy[1]
+    # Fast exact-zero for cells beyond the disk's nearest corner. Use a
+    # conservative margin to leave tangencies and numerical edge cases alone.
+    dx=max(0.,x0,-x1);dy=max(0.,y0,-y1)
+    if dx*dx+dy*dy>r*r*(1.+1e-10):return 0.
     left,right=max(x0,-r),min(x1,r)
     if right<=left or y1<=-r or y0>=r: return 0.
     cuts=[left,right]
@@ -123,7 +155,7 @@ def sense_bayesian(env):
                 p=bayes_update(env.belief[i,gy,gx],yes,ed,ef)
                 env.belief[i,gy,gx]=p;env.visited[i,gy,gx]=True;env.positive[i,gy,gx]=yes
                 for name,value in (("measurements",1),("positive",yes),("false_positive",yes and not ids),("false_negative",not yes and bool(ids))): env.sensor_counts[name]+=int(value)
-                if yes and pos[2]<=s.fine_altitude_m and p>=s.confirmation_threshold:
+                if yes and confirmation_allowed(s,pos[2],ed,ef) and p>=s.confirmation_threshold:
                     false=not ids;env.sensor_counts["false_confirmation"]+=int(false)
                     if false and s.verified_empty_belief>0: env.belief[i,gy,gx]=s.verified_empty_belief
                     for t in ids: env.sensor_counts["confirmations"]+=int(env.reports.discover(i,t,env.time_s))

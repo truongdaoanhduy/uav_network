@@ -23,6 +23,9 @@ class WorldParams:
     fov_tangent: wp.float64
     belief_prior: wp.float64
     fine_altitude: wp.float64
+    confirmation_mode: wp.int32
+    confirmation_min_likelihood_ratio: wp.float64
+    confirmation_shaping_altitude: wp.float64
     confirmation_threshold: wp.float64
     verified_empty_belief: wp.float64
     investigation_threshold: wp.float64
@@ -321,11 +324,19 @@ def params_from_config(config):
     p.obstacle_min_height, p.obstacle_max_height = w.obstacle_height_min_m, w.obstacle_height_max_m
     p.cell_width, p.fov_tangent = c.grid_cell_m, np.tan(np.deg2rad(c.full_fov_deg/2))
     p.belief_prior, p.fine_altitude, p.confirmation_threshold = c.belief_prior, c.fine_altitude_m, c.confirmation_threshold
+    from ..bayesian import confirmation_shaping_altitude
+    p.confirmation_mode = int(c.confirmation_mode == "likelihood_ratio")
+    p.confirmation_min_likelihood_ratio = c.confirmation_min_likelihood_ratio
+    p.confirmation_shaping_altitude = confirmation_shaping_altitude(c, w.altitude_max_m)
     p.verified_empty_belief, p.investigation_threshold = c.verified_empty_belief, r.investigation_belief_threshold
     p.sensor_anchors, p.sensor_pd, p.sensor_pf = wp.vec4d(*c.altitude_anchors), wp.vec4d(*c.pd), wp.vec4d(*c.pf)
     report_slots=max(64,4*w.num_targets) if c.report_cell_hypotheses and config.motion_dim==3 else w.num_targets
+    # In the quality-driven MDP, qualifying reports may arise above the
+    # historical fine altitude. Reserve enough candidates for any FoV, not
+    # merely the fixed 50m footprint (error 116 otherwise).
+    confirm_height = (w.altitude_max_m if p.confirmation_mode else c.fine_altitude_m)
     confirm_capacity=max(1,min(int(np.ceil(w.map_size_m/c.grid_cell_m))**2,
-        (int(np.ceil(2*c.fine_altitude_m*np.tan(np.deg2rad(c.full_fov_deg/2))/c.grid_cell_m))+2)**2))
+        (int(np.ceil(2*confirm_height*np.tan(np.deg2rad(c.full_fov_deg/2))/c.grid_cell_m))+2)**2))
     values = dict(n=w.num_uavs, targets_count=w.num_targets, report_slots=report_slots,
                   confirm_capacity=confirm_capacity,
                   cell_reports=int(c.report_cell_hypotheses and config.motion_dim==3), obstacles_count=w.num_obstacles,

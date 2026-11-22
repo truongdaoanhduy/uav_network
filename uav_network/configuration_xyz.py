@@ -22,6 +22,10 @@ class BayesianSettings:
     pf: list = field(default_factory=lambda: [.01,.10,.20,.30])
     confirmation_threshold: float = .99
     fine_altitude_m: float = 50.0
+    # Historical behavior: fixed low-altitude confirmation. The optional
+    # likelihood_ratio policy uses sensor evidence, without forcing z<=50m.
+    confirmation_mode: str = "fine_altitude"
+    confirmation_min_likelihood_ratio: float = 4.0
     belief_patch_cells: int = 5
     belief_coarse_cells: int = 0
     verified_empty_belief: float = 0.01
@@ -38,6 +42,7 @@ def validate_xyz(config):
     numbers = [w.altitude_min_m,w.altitude_max_m,w.obstacle_height_min_m,
                w.obstacle_height_max_m,s.grid_cell_m,s.belief_prior,
                s.confirmation_threshold,s.fine_altitude_m,s.verified_empty_belief,
+               s.confirmation_min_likelihood_ratio,
                *s.altitude_anchors,*s.pd,*s.pf]
     if any(type(v) not in (float,int) or not math.isfinite(v) for v in numbers):
         raise ValueError("XYZ camera settings must be finite numbers")
@@ -50,6 +55,14 @@ def validate_xyz(config):
             or any(a>=b for a,b in zip(s.altitude_anchors,s.altitude_anchors[1:]))
             or any(not 0<pf<pd<1 for pd,pf in zip(s.pd,s.pf))):
         raise ValueError("Camera needs four ordered altitude anchors and 0<Pf<Pd<1")
+    if (s.confirmation_mode not in ("fine_altitude", "likelihood_ratio")
+            or s.confirmation_min_likelihood_ratio <= 1.0):
+        raise ValueError("Unknown confirmation mode or invalid positive likelihood ratio")
+    if s.confirmation_mode == "likelihood_ratio":
+        if not (w.motion_dimensions == 3 and s.report_cell_hypotheses):
+            raise ValueError("Likelihood-ratio confirmation requires 3D NoOracle cell reports")
+        if any(a < b for a,b in zip(s.pd,s.pd[1:])) or any(a > b for a,b in zip(s.pf,s.pf[1:])):
+            raise ValueError("Likelihood-ratio altitude policy requires nonincreasing Pd and nondecreasing Pf")
     if w.motion_dimensions==3 and not (w.altitude_min_m<=s.fine_altitude_m<=w.altitude_max_m
             and w.altitude_min_m<=s.altitude_m<=w.altitude_max_m):
         raise ValueError("Initial/fine altitude outside flight bounds")

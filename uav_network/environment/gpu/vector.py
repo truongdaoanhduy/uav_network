@@ -385,8 +385,19 @@ class WarpMissionEnv:
         self.battery_j = s.battery.numpy()[0]
         self.battery_fraction = self.battery_j/self.config.energy.battery_capacity_j
         self.steps = int(s.steps.numpy()[0])
-        self.reports.known = s.known.numpy()[0].astype(bool)
-        self.reports.delivered = s.delivered.numpy()[0].astype(bool)
+        self.reports.slot_known = s.known.numpy()[0].astype(bool)
+        self.reports.slot_delivered = s.delivered.numpy()[0].astype(bool)
+        if self.config.sensor.report_cell_hypotheses:
+            # Host-only ground-truth alignment for MissionMetrics and
+            # rendering; Actor obs/radio queues still use opaque cell IDs.
+            from .evaluation_truth import truth_aligned_report_status
+            self.reports.known, self.reports.delivered = truth_aligned_report_status(
+                self.targets, s.report_cell.numpy()[0], self.reports.slot_known,
+                self.reports.slot_delivered, int(self.vector.p.grid_n),
+                float(self.vector.p.cell_width))
+        else:
+            self.reports.known = self.reports.slot_known
+            self.reports.delivered = self.reports.slot_delivered
 
     def reset(self, seed=None, options=None):
         if options is not None:

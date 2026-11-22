@@ -30,6 +30,15 @@ def profile(p:wp.ref[WorldParams],z:wp.float64):
 
 
 @wp.func
+
+def confirmation_allowed(p:wp.ref[WorldParams],altitude:wp.float64,
+                         positive_likelihood:wp.float64,false_likelihood:wp.float64):
+    if p.confirmation_mode==0:
+        return altitude<=p.fine_altitude
+    return positive_likelihood>=p.confirmation_min_likelihood_ratio*false_likelihood
+
+
+@wp.func
 def integral(x:wp.float64,r:wp.float64):
     a=wp.clamp(x,-r,r)
     return wp.float64(.5)*(a*wp.sqrt(wp.max(wp.float64(0),r*r-a*a))+r*r*wp.asin(a/r))
@@ -41,6 +50,9 @@ def cell_coverage(p:wp.ref[WorldParams],gx:int,gy:int,xy:wp.vec2d,r:wp.float64):
     if r>wp.float64(0):
         x0=wp.float64(gx)*p.cell_width-xy[0];x1=wp.min(wp.float64(gx+1)*p.cell_width,p.map_size)-xy[0]
         y0=wp.float64(gy)*p.cell_width-xy[1];y1=wp.min(wp.float64(gy+1)*p.cell_width,p.map_size)-xy[1]
+        dx=wp.max(wp.float64(0),wp.max(x0,-x1))
+        dy=wp.max(wp.float64(0),wp.max(y0,-y1))
+        if dx*dx+dy*dy>r*r*wp.float64(1.0000000001):return wp.float64(0)
         left=wp.max(x0,-r);right=wp.min(x1,r)
         if right>left and y1>-r and y0<r:
             cuts=Cuts(right);cuts[0]=left;count=int(2)
@@ -82,7 +94,7 @@ def investigation_potential(s:WorldState,p:WorldParams,e:int):
     total=wp.float64(0)
     if p.xyz!=0 and p.reward_investigation!=wp.float64(0):
         radius=p.patch_n//2
-        altitude_span=wp.max(p.altitude_max-p.fine_altitude,wp.float64(1e-6))
+        altitude_span=wp.max(p.altitude_max-p.confirmation_shaping_altitude,wp.float64(1e-6))
         for i in range(p.n):
             active=p.energy_enabled==0 or s.battery[e,i]>wp.float64(0)
             if active:
@@ -90,14 +102,15 @@ def investigation_potential(s:WorldState,p:WorldParams,e:int):
                 gx=wp.clamp(int(wp.floor(xy[0]/p.cell_width)),0,p.grid_n-1)
                 gy=wp.clamp(int(wp.floor(xy[1]/p.cell_width)),0,p.grid_n-1)
                 best=wp.float64(-1);best_gx=gx;best_gy=gy
-                for dy in range(-6,7):
-                    for dx in range(-6,7):
-                        if wp.abs(dx)<=radius and wp.abs(dy)<=radius:
-                            xx=gx+dx;yy=gy+dy
-                            if xx>=0 and xx<p.grid_n and yy>=0 and yy<p.grid_n:
-                                value=s.belief[e,i,yy*p.grid_n+xx]
-                                if value>best:
-                                    best=value;best_gx=xx;best_gy=yy
+                # For patch=5 only 25 cells are eligible, not the 169
+                # iterations of the old fixed-radius=6 implementation.
+                for dy in range(-radius,radius+1):
+                    for dx in range(-radius,radius+1):
+                        xx=gx+dx;yy=gy+dy
+                        if xx>=0 and xx<p.grid_n and yy>=0 and yy<p.grid_n:
+                            value=s.belief[e,i,yy*p.grid_n+xx]
+                            if value>best:
+                                best=value;best_gx=xx;best_gy=yy
                 evidence=wp.clamp((best-p.investigation_threshold)/wp.max(p.confirmation_threshold-p.investigation_threshold,wp.float64(1e-6)),wp.float64(0),wp.float64(1))
                 peak=wp.vec2d((wp.float64(best_gx)+wp.float64(.5))*p.cell_width,(wp.float64(best_gy)+wp.float64(.5))*p.cell_width)
                 max_distance=wp.max(wp.sqrt(wp.float64(2))*(wp.float64(radius)+wp.float64(.5))*p.cell_width,wp.float64(1e-6))
@@ -182,7 +195,7 @@ def sense_bayesian(s:WorldState,p:WorldParams,advance:int,mask:wp.array(dtype=wp
                     if not yes:a=wp.float64(1)-ed;b=wp.float64(1)-ef
                     posterior=wp.clamp(a*prior/wp.max(a*prior+b*(wp.float64(1)-prior),wp.float64(1e-8)),wp.float64(1e-8),wp.float64(1)-wp.float64(1e-8))
                     final_belief=posterior
-                    false_confirmation=yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold and not has
+                    false_confirmation=yes and confirmation_allowed(p,pos[2],ed,ef) and posterior>=p.confirmation_threshold and not has
                     if p.cell_reports==0 and false_confirmation and p.verified_empty_belief>wp.float64(0):final_belief=p.verified_empty_belief
                     # Original 18d coverage-AUC instrumentation: atomic min
                     # counts the first 2D cell visit by ANY UAV exactly once.
@@ -191,7 +204,7 @@ def sense_bayesian(s:WorldState,p:WorldParams,advance:int,mask:wp.array(dtype=wp
                     if first==p.max_steps+1:
                         wp.atomic_add(s.coverage_auc_weight_sum,e,wp.int64(p.max_steps-tick))
                     s.belief[e,i,cell]=final_belief;s.visited[e,i,cell]=1;s.positive[e,i,cell]=int(yes)
-                    if p.cell_reports!=0 and yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold:
+                    if p.cell_reports!=0 and yes and confirmation_allowed(p,pos[2],ed,ef) and posterior>=p.confirmation_threshold:
                         idx=s.confirmed_count[e,i]
                         if idx>=p.confirm_capacity:
                             s.errors[e]=116
@@ -207,11 +220,11 @@ def sense_bayesian(s:WorldState,p:WorldParams,advance:int,mask:wp.array(dtype=wp
                     wp.atomic_add(s.sensor_counts,e,1,wp.int64(int(yes)))
                     wp.atomic_add(s.sensor_counts,e,2,wp.int64(int(yes and not has)))
                     wp.atomic_add(s.sensor_counts,e,3,wp.int64(int(not yes and has)))
-                    if yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold:
+                    if yes and confirmation_allowed(p,pos[2],ed,ef) and posterior>=p.confirmation_threshold:
                         # Truth enters only a diagnostic counter, never the
                         # report/decision path in cell-report mode.
                         wp.atomic_add(s.sensor_counts,e,4,wp.int64(int(not has)))
-                    if yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold and p.cell_reports==0:
+                    if yes and confirmation_allowed(p,pos[2],ed,ef) and posterior>=p.confirmation_threshold and p.cell_reports==0:
                         for t in range(p.targets_count):
                             target=s.targets[e,t]
                             if wp.min(int(target[0]/p.cell_width),p.grid_n-1)==gx and wp.min(int(target[1]/p.cell_width),p.grid_n-1)==gy and wp.length(target-xy)<=r:
@@ -265,7 +278,7 @@ def sense_bayesian_indexed(s:WorldState,p:WorldParams,advance:int,mask:wp.array(
                     if not yes:a=wp.float64(1)-ed;b=wp.float64(1)-ef
                     posterior=wp.clamp(a*prior/wp.max(a*prior+b*(wp.float64(1)-prior),wp.float64(1e-8)),wp.float64(1e-8),wp.float64(1)-wp.float64(1e-8))
                     final_belief=posterior
-                    false_confirmation=yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold and not has
+                    false_confirmation=yes and confirmation_allowed(p,pos[2],ed,ef) and posterior>=p.confirmation_threshold and not has
                     if p.cell_reports==0 and false_confirmation and p.verified_empty_belief>wp.float64(0):final_belief=p.verified_empty_belief
                     # Original 18d coverage-AUC instrumentation: atomic min
                     # counts the first 2D cell visit by ANY UAV exactly once.
@@ -274,7 +287,7 @@ def sense_bayesian_indexed(s:WorldState,p:WorldParams,advance:int,mask:wp.array(
                     if first==p.max_steps+1:
                         wp.atomic_add(s.coverage_auc_weight_sum,e,wp.int64(p.max_steps-tick))
                     s.belief[e,i,cell]=final_belief;s.visited[e,i,cell]=1;s.positive[e,i,cell]=int(yes)
-                    if p.cell_reports!=0 and yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold:
+                    if p.cell_reports!=0 and yes and confirmation_allowed(p,pos[2],ed,ef) and posterior>=p.confirmation_threshold:
                         idx=s.confirmed_count[e,i]
                         if idx>=p.confirm_capacity:
                             s.errors[e]=116
@@ -290,11 +303,11 @@ def sense_bayesian_indexed(s:WorldState,p:WorldParams,advance:int,mask:wp.array(
                     wp.atomic_add(s.sensor_counts,e,1,wp.int64(int(yes)))
                     wp.atomic_add(s.sensor_counts,e,2,wp.int64(int(yes and not has)))
                     wp.atomic_add(s.sensor_counts,e,3,wp.int64(int(not yes and has)))
-                    if yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold:
+                    if yes and confirmation_allowed(p,pos[2],ed,ef) and posterior>=p.confirmation_threshold:
                         # Truth enters only a diagnostic counter, never the
                         # report/decision path in cell-report mode.
                         wp.atomic_add(s.sensor_counts,e,4,wp.int64(int(not has)))
-                    if yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold and p.cell_reports==0:
+                    if yes and confirmation_allowed(p,pos[2],ed,ef) and posterior>=p.confirmation_threshold and p.cell_reports==0:
                         for t in range(p.targets_count):
                             target=s.targets[e,t]
                             if wp.min(int(target[0]/p.cell_width),p.grid_n-1)==gx and wp.min(int(target[1]/p.cell_width),p.grid_n-1)==gy and wp.length(target-xy)<=r:

@@ -155,9 +155,20 @@ assert len(runs)==PAIRS*2
 matched_science=len({x["science_sha256"] for x in runs})==1
 matched_model=len({x["model_sha256"] for x in runs})==1
 matched_episodes=len({x["episode_sha256"] for x in runs})==1
-median={m:statistics.median(x["train_joint_transitions_per_second"]
+# The FIRST Kaggle subprocess pays cold Warp/CUDA JIT and page-cache
+# startup overhead, regardless of whether it is baseline or candidate.
+raw_median={m:statistics.median(x["train_joint_transitions_per_second"]
                          for x in runs if x["variant"]==m)
         for m in ("baseline","candidate")}
+warm_runs=runs[1:]
+warm_counts={m:sum(x["variant"]==m for x in warm_runs)
+        for m in ("baseline","candidate")}
+assert min(warm_counts.values())>0, "Need warm reference samples"
+median={m:statistics.median(x["train_joint_transitions_per_second"]
+                         for x in warm_runs if x["variant"]==m)
+        for m in ("baseline","candidate")}
+episode_records_informative=all(x["completed_episodes"]>0 for x in runs)
+warm_speedup_percent=100*(median["candidate"]/median["baseline"]-1)
 result={
  "benchmark":"bounded_matd3_real_training_no_20k",
  "source_sha256":sha(blob),
@@ -166,15 +177,22 @@ result={
  "scientific_config_match":matched_science,
  "model_weights_match":matched_model,
  "episode_records_match":matched_episodes,
- "median_transitions_per_second":median,
- "candidate_speedup_percent":100*(median["candidate"]/median["baseline"]-1),
- "candidate_verified_beneficial":matched_science and matched_model and matched_episodes and median["candidate"]>median["baseline"],
+ "median_transitions_per_second":median,  # warm only
+ "raw_all_runs_transitions_per_second":raw_median,
+ "raw_all_runs_speedup_percent":100*(raw_median["candidate"]/raw_median["baseline"]-1),
+ "first_run_startup_excluded":True,
+ "cold_start_variant":runs[0]["variant"],
+ "warm_run_counts":warm_counts,
+ "episode_records_informative":episode_records_informative,
+ "candidate_speedup_percent":warm_speedup_percent,
+ "candidate_verified_beneficial":bool(matched_science and matched_model and matched_episodes and
+     episode_records_informative and min(warm_counts.values())>=2 and warm_speedup_percent>2),
  "runs":runs}
 path=Path("/kaggle/working/v9_train_speed_ab_report.json")
 path.write_text(json.dumps(result,indent=2,allow_nan=False))
 print("TRAIN_AB_JSON",path,flush=True)
 print("TRAIN_AB_SUMMARY",json.dumps({k:result[k] for k in
-    ("scientific_config_match","model_weights_match","episode_records_match","median_transitions_per_second","candidate_speedup_percent","candidate_verified_beneficial")}),flush=True)
+    ("scientific_config_match","model_weights_match","episode_records_match","episode_records_informative","first_run_startup_excluded","warm_run_counts","median_transitions_per_second","candidate_speedup_percent","candidate_verified_beneficial")}),flush=True)
 if not matched_science or not matched_model or not matched_episodes:
     raise RuntimeError("MATD3 training parity mismatch: do not apply candidate")
 """
