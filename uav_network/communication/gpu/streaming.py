@@ -31,20 +31,40 @@ def fragment_bit(s: wp.ref[WorldState], e: int, session: int, fragment: int) -> 
 
 
 @wp.func
+def reset_session_pending(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, session: int):
+    """Full historical bookkeeping for one session; no changes to packet semantics."""
+    if s.session_active[e,session] != 0:
+        source = session//((p.n+1)*p.report_slots)
+        target = (session//(p.n+1))%p.report_slots
+        if (s.report_present[e,source,target] == 0
+            or s.report_created[e,source,target] != s.session_created[e,session]
+            or s.report_origin[e,source,target] != s.session_origin[e,session]
+            or s.report_hops[e,source,target] != s.session_hops[e,session]):
+            discard_sessions(s,p,e,source,target)
+        s.session_pending_mask[e,session] = wp.uint64(0)
+
+
+@wp.func
 def clear_pending(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, now: wp.float64):
     # Rebuild at policy boundaries: another streaming session may already have
     # reused a terminal packet slot. Deferring this reconciliation preserves the
     # rule that retry exhaustion needs a later policy action.
-    for session in range(p.session_capacity):
-        if s.session_active[e,session] != 0:
-            source = session//((p.n+1)*p.report_slots)
-            target = (session//(p.n+1))%p.report_slots
-            if (s.report_present[e,source,target] == 0
-                or s.report_created[e,source,target] != s.session_created[e,session]
-                or s.report_origin[e,source,target] != s.session_origin[e,session]
-                or s.report_hops[e,source,target] != s.session_hops[e,session]):
-                discard_sessions(s,p,e,source,target)
-            s.session_pending_mask[e,session] = wp.uint64(0)
+    # In cell-report mode, the slot allocator appends observed cells at the
+    # first free slot. Therefore no active session can exist for targets after
+    # the first unallocated report_cell. Preserve exact logical session order
+    # (source -> target -> destination) and keep the historical full scan for
+    # scenarios using target IDs.
+    if p.cell_reports != 0:
+        for source in range(p.n):
+            for target in range(p.report_slots):
+                if s.report_cell[e,target] < 0:
+                    break
+                for dest in range(p.n+1):
+                    session = (source*p.report_slots+target)*(p.n+1)+dest
+                    reset_session_pending(s,p,e,session)
+    else:
+        for session in range(p.session_capacity):
+            reset_session_pending(s,p,e,session)
     for packet in range(p.packet_capacity):
         if s.pkt_status[e,packet] == 1 or s.pkt_status[e,packet] == 2:
             session = int(s.pkt_session[e,packet])

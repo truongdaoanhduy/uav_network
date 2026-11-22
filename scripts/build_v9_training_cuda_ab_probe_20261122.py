@@ -17,7 +17,7 @@ import nbformat
 
 ROOT=Path(__file__).resolve().parents[1]
 REFERENCE=ROOT/'notebooks/MATD3-EVAL100-ACTORBN-PLAINCRITIC-NOORACLE-V9-E4096-U4-B8192-H256x512-S44-KAGGLE-UI.ipynb'
-OUTPUT=ROOT/'notebooks/MATD3-V9-TRAINING-CPUCUDA-AB-4096-WARP-KERNEL-PROFILER-T4x2.ipynb'
+OUTPUT=ROOT/'notebooks/MATD3-V9-TRAINING-CUDA-AB-4096-MAC-SPARSEFAST-V2-T4x2.ipynb'
 CHANGED_MODULES=(
     'uav_network/communication/gpu/mac.py',
     'uav_network/communication/gpu/reports.py',
@@ -25,6 +25,7 @@ CHANGED_MODULES=(
     'uav_network/environment/gpu/bayesian.py',
     'uav_network/environment/gpu/observations.py',
     'uav_network/environment/gpu/vector.py',
+    'uav_network/communication/gpu/streaming.py',
 )
 BENCH_SCRIPTS=('scripts/profile_nooracle_warp_phases_20261122.py',
                'scripts/verify_v9_training_parity_20261122.py')
@@ -73,7 +74,7 @@ import shutil,subprocess,sys,tarfile,time,statistics
 root=Path('/kaggle/working/v9_training_ab_cpu_cuda')
 root.mkdir(parents=True,exist_ok=True)
 old=root/'original_1346ad47'
-new=root/'optimized_329f527'
+new=root/'optimized_v2_mac_session_sparse'
 if old.exists() or new.exists():
     raise RuntimeError('A/B source directory already exists; start a fresh Kaggle session')
 
@@ -114,7 +115,7 @@ for name,body in encoded.items():
 py=old/'.venv/bin/python'
 subprocess.run([sys.executable,'-m','venv','--system-site-packages','--without-pip',str(old/'.venv')],check=True)
 subprocess.run([str(py),'-m','pip','install','-e','.[cloud]','-r','scripts/requirements-network.txt'],cwd=old,check=True)
-report={{'benchmark_kind':'V9_random_action_cuda_environment_only_not_training',
+report={{'benchmark_kind':'V9_mac_v2_random_action_cuda_environment_only_not_training',
   'source_original_sha256':{original_sha!r},'overlay_sha256':manifest,
   'envs':ENVS,'steps':MEASURED_STEPS,'warmup':WARMUP_STEPS,'repeats':REPEATS,'trials':[]}}
 json_path=root/'v9_gpu_kernel_ab.json'
@@ -181,7 +182,7 @@ Source cũ được nhúng theo SHA256 chính xác từ notebook V9. Source tố
 **Chú ý:** đây là *environment-only* random-action benchmark, chưa đo riêng replay CPU75/GPU25, optimizer và actor inference của toàn bộ training. Dùng kết quả để xác nhận kernel nào chiếm thời gian T4; đừng tự suy ra mức tăng tốc end-to-end.
 '''),nbformat.v4.new_code_cell(marker),nbformat.v4.new_code_cell(runner)],
         metadata={'kernelspec':{'display_name':'Python 3','name':'python3'},
-                  'performance_kind':'V9_CUDA_environment_only_4096_AB',
+                  'performance_kind':'V9_CUDA_environment_only_4096_MAC_V2_AB',
                   'original_v9_sha256':original_sha,
                   'optimized_module_sha256':overlay_manifest,
                   'has_train_commands':False,'scientific_environment_changed':False})

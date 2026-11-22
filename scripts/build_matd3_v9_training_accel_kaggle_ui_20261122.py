@@ -11,8 +11,8 @@ import nbformat
 
 from scripts.build_matd3_reference_style_kaggle_ui import REFERENCE_NOTEBOOK, build
 
-TAG="NOORACLE-V9-TRAINACCEL"
-OUTPUT=Path('notebooks/MATD3-NOORACLE-V9-TRAINACCEL-CELLLOOKUP-OBSFAST-E4096-U4-B8192-H256x512-S44-KAGGLE-UI.ipynb')
+TAG="NOORACLE-V9-TRAINACCEL-MACFAST"
+OUTPUT=Path('notebooks/MATD3-NOORACLE-V9-TRAINACCEL-MACFAST-E4096-U4-B8192-H256x512-S44-KAGGLE-UI.ipynb')
 
 
 def build_notebook(reference=REFERENCE_NOTEBOOK):
@@ -29,7 +29,7 @@ def build_notebook(reference=REFERENCE_NOTEBOOK):
         "replay, ActorBN / plain Critic, HF and W&B as V9 e079eace. "
         "Uses an ephemeral cell→target index for truth-side Bayesian sensing "
         "and reuses full-slot local report eligibility during decentralized "
-        "Actor observation. The derived index is never visible to actors "
+        "Actor observation. V2 also skips unallocated network sessions during per-step reconciliation. The derived index is never visible to actors "
         "and does not enter checkpoint scientific state. "
         "CPU trajectory checksums match V9 pinned commit across 12x180 steps; "
         "T4 speed improvement is UNVERIFIED. The full 20k training is not "
@@ -38,7 +38,7 @@ def build_notebook(reference=REFERENCE_NOTEBOOK):
     n.metadata['baseline_training_run']='e079eace'
     n.metadata['scientific_scenario']='NOORACLE-V9'
     n.metadata['reference_original_source_commit']='1346ad47'
-    n.metadata['accelerated_source_commit']='329f527549722c664eeeb0d56b6b384ae5250f7c'
+    n.metadata['accelerated_science_state']='V9 unchanged; source_sha256 authenticates bundled code'
     n.metadata['change_scope']='target_cell_index_once_per_world_reset+reused_full_slot_observation_eligibility+safe_sparse_mac'
     n.metadata['requires_cuda_t4_validation']=True
     n.metadata['separate_wandb_run_required']=True
