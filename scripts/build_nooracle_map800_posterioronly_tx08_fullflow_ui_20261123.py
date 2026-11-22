@@ -261,7 +261,7 @@ print('FULLFLOW_SOURCE_SHA256',os.environ['UAV_SOURCE_SHA256'],flush=True)
     inspect='''# Verify actual new scientific config before spending any GPU time on 20k episodes.
 subprocess.run([str(python),'-c',
     'from uav_network.configuration import load_config; from uav_network.environment.observations import observation_version; '
-    'c=load_config('+repr(CONFIG)+'); '
+    'c=load_config('+repr(SPEC["config"])+'); '
     'assert c.sensor.confirmation_mode=="posterior_only" and c.sensor.confirmation_min_likelihood_ratio==0; '
     'assert c.sensor.confirmation_threshold==.99 and c.network.tx_power_max_w==.8; '
     'assert c.world.map_size_m==800 and c.sensor.grid_cell_m==20; '
