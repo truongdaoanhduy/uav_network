@@ -85,3 +85,36 @@ new benchmark; the notebook never silently downshifts or claims success.
   corrupt SHA rejection, independent benchmark identity, notebook structure,
   checksum and Kaggle size. Related regression tests passed.
 - No Kaggle GPU benchmark has been run for the newly generated notebook.
+
+## Verified 22 Nov 2026: why current V9 is slow
+
+The **current `e079eace` run is already past training**, in `gpu_validation`.
+The W&B fields show, at the forensic inspection point, 57/74 evaluated
+checkpoints, `gpu_eval/batch_policies=2` and latest recorded
+`gpu_eval/batch_time_s=836.8768`. Among its first 57 saved validation rows,
+the **median batch time is about 715.5s** (min 81.8, max 1078.0).
+The baseline `18d756ef` evaluated 35 policies/GPU/batch, and among its 70
+W&B rows median batch time is about 1305.8s. These figures are genuine
+W&B batch measurements; do not mistake `gpu_eval/gpu_peak_allocated_mib`
+for all GPU allocations because it only measures *PyTorch*, not Warp CUDA.
+
+The independent benchmark now samples real GPU device memory and utilization
+through `nvidia-smi` every ~15 seconds and records per-GPU peak device-used MiB
+and mean utilization percent. This includes Warp allocations. It is
+**not a true CUDA-kernel-level performance counter**, and device-used bytes
+can include unrelated allocations. W&B and local report include these fields.
+
+The V9 training-time W&B cumulative timers show `collector_wait_seconds`
+9073s, `learner_seconds` 3474s, `replay_sample_host_seconds` 2069s,
+`optimizer_update_host_seconds` 1403s; sample throughput 1982 env-transitions/s,
+versus 4600/s on the baseline. The training bottleneck is collector/environment
+work plus hybrid replay sampling; the precise per-kernel share has not been
+verified on T4 CUDA. V9 intentionally differs in scientific semantics
+(`sensor.report_cell_hypotheses=True`, `verified_empty_belief=0`), and these
+settings must NOT be changed to force parity with baseline.
+
+This notebook **does not accelerate already-finished training or modify the
+running Kaggle process**. It makes the entire Val100/Test4000 run independent
+and baseline-batched so the stage with currently confirmed performance issue
+can be rerun without training again. Benchmarking subsequent *training*
+improvements requires a distinct same-config/seed throughput experiment.

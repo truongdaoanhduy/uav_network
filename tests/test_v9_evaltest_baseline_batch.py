@@ -146,3 +146,10 @@ def test_independent_kaggle_notebook_is_3_cell_and_stays_under_1mb():
     match=re.search(r"payload = base64.b85decode\('([^']+)'\)",c2)
     assert match is not None
     assert hashlib.sha256(base64.b85decode(match.group(1))).hexdigest()==notebook.metadata['original_v9_embedded_source_sha256']
+
+
+def test_gpu_memory_parser_does_not_confuse_pytorch_memory_with_warp():
+    from scripts.evaltest_baseline_batch_from_hf import parse_nvidia_smi_csv
+    observed = parse_nvidia_smi_csv('5487, 96\n7925, 88\n')
+    assert observed == [(5487,96),(7925,88)]
+    assert parse_nvidia_smi_csv('N/A, 0\nNo devices found\n') == []

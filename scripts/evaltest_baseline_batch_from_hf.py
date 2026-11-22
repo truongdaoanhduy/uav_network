@@ -49,6 +49,30 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def parse_nvidia_smi_csv(stdout: str) -> list[tuple[int, int]]:
+    """Actual GPU device memory/utilization (includes Warp, unlike torch memory stats)."""
+    rows=[]
+    for line in stdout.splitlines():
+        chunks=[v.strip() for v in line.split(",")]
+        if len(chunks)!=2 or not all(re.fullmatch(r"[0-9]+",v) for v in chunks):
+            continue
+        used_mib, util_percent=map(int,chunks)
+        if 0<=used_mib and 0<=util_percent<=100:
+            rows.append((used_mib,util_percent))
+    return rows
+
+
+def sample_gpu_device_stats():
+    """Return no data rather than silently reporting PyTorch memory as actual VRAM."""
+    try:
+        output=subprocess.run(["nvidia-smi", "--query-gpu=memory.used,utilization.gpu",
+                               "--format=csv,noheader,nounits"],
+                              check=True,text=True,capture_output=True,timeout=3)
+        return parse_nvidia_smi_csv(output.stdout)
+    except (OSError, subprocess.TimeoutExpired, subprocess.CalledProcessError):
+        return []
+
+
 def build_layout_summary(checkpoints: int, validation_episodes: int,
                          policies_per_batch: int, max_eval_worlds_per_gpu: int,
                          test_episodes: int, max_test_worlds_per_gpu: int) -> dict:
@@ -223,6 +247,10 @@ def benchmark(args) -> dict:
         return {**status, "status": "dry_run", "command": command}
 
     begin = time.monotonic()
+    gpu_peak_memory_mib = [0,0]
+    gpu_sum_util = [0,0]
+    gpu_sample_count = [0,0]
+    gpu_memory_samples = 0
     eval_finished = None
     proc = None
     success = False
@@ -250,8 +278,21 @@ def benchmark(args) -> dict:
         try:
             print("BENCHMARK_GPU_START", " ".join(command), flush=True)
             proc = subprocess.Popen(command, env=env)
+            poll_count = 0
             while proc.poll() is None:
                 streamer.poll()
+                # Actual device VRAM includes Warp allocations, unlike
+                # torch.cuda.max_memory_allocated() used in legacy metrics.
+                # Every ~15s to avoid interfering with benchmarking.
+                if poll_count % 5 == 0:
+                    hardware=sample_gpu_device_stats()
+                    if len(hardware)>=2:
+                        gpu_memory_samples+=1
+                        for gpu_i,(used_mib,util_percent) in enumerate(hardware[:2]):
+                            gpu_peak_memory_mib[gpu_i]=max(gpu_peak_memory_mib[gpu_i],used_mib)
+                            gpu_sum_util[gpu_i]+=util_percent
+                            gpu_sample_count[gpu_i]+=1
+                poll_count += 1
                 if eval_finished is None and (gpu_output / "best.pt").is_file():
                     eval_finished = time.monotonic()
                     run.summary["benchmark/eval_wall_s"] = round(eval_finished - begin, 3)
@@ -286,6 +327,11 @@ def benchmark(args) -> dict:
                 "validation_simulated_steps_per_s": validation_steps / max(1e-6, eval_finished - begin),
                 "test_simulated_steps_per_s": test_steps / max(1e-6, stop - eval_finished),
                 "gpu_peak_allocated_mib_observed": max(float(x.get("gpu_eval_gpu_peak_allocated_mib", 0)) for x in records),
+                "nvidia_smi_gpu0_peak_used_mib": (gpu_peak_memory_mib[0] if gpu_memory_samples else None),
+                "nvidia_smi_gpu1_peak_used_mib": (gpu_peak_memory_mib[1] if gpu_memory_samples else None),
+                "nvidia_smi_gpu0_mean_util_percent": (gpu_sum_util[0]/gpu_sample_count[0] if gpu_sample_count[0] else None),
+                "nvidia_smi_gpu1_mean_util_percent": (gpu_sum_util[1]/gpu_sample_count[1] if gpu_sample_count[1] else None),
+                "nvidia_smi_sample_count":gpu_memory_samples,
                 "mean_validation_return": sum(x["mean_return"] for x in records) / len(records),
                 "best_global_step": int(report["best_global_step"]),
                 "best_actor_sha256": sha256(gpu_output / "best.pt"),
@@ -298,7 +344,8 @@ def benchmark(args) -> dict:
             (output / "benchmark_summary.json").write_text(json.dumps(status, indent=2))
             run.summary.update({**{f"benchmark/{key}": value for key, value in score.items()},
                                 "benchmark/status": "completed", "benchmark/complete": True})
-            run.log({f"benchmark/{key}": value for key, value in score.items()})
+            run.log({f"benchmark/{key}": value for key, value in score.items()
+                     if value is not None})
             success = True
         except BaseException as error:
             status["status"] = "failed"
