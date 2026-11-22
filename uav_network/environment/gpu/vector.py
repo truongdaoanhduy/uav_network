@@ -11,7 +11,7 @@ import warp as wp
 from .state import allocate_state, params_from_config, seed_rows
 from .motion import motion_step
 from .xyz_motion import motion_xyz
-from .bayesian import reset_xyz, sense_bayesian, confirm_observed_cells
+from .bayesian import reset_xyz, sense_bayesian_indexed, confirm_observed_cells, build_target_cell_lookup
 from .world import reset_geometry
 from .validation import validate_actions
 from .geometry import sense, scan_coverage
@@ -57,6 +57,12 @@ class WarpVectorEnv:
                                            device=self.device,dtype=torch.float32),
                  "state":torch.empty((self.num_envs,state_dim(config)),device=self.device,dtype=torch.float32)}]
         self._buffer = 0
+        # Derived NoOracle target-cell index is an *ephemeral* accelerator,
+        # not scientific world state. Do not add 1600 cells/world to every
+        # checkpoint; reconstruct from targets after reset / exact restore.
+        self.target_cell_lookup = wp.empty((self.num_envs,
+            self.p.grid_n*self.p.grid_n if self.p.cell_reports else 0),
+            dtype=wp.int32,device=self.wp_device)
         self._seeds = np.arange(config.runtime.seed, config.runtime.seed+self.num_envs,dtype=np.int64)
         self._waiting = self._closed = False
         self._ready = False
@@ -69,7 +75,8 @@ class WarpVectorEnv:
         unique = {int(a.ptr):a for a in arrays if a.size}
         total = sum(a.size * wp.types.type_size_in_bytes(a.dtype) for a in unique.values())
         # Buffer1 is Torch-owned; buffer0 is already counted through the state.
-        return total + sum(t.numel()*t.element_size() for t in self._buffers[1].values())
+        return (total + sum(t.numel()*t.element_size() for t in self._buffers[1].values())
+                + self.target_cell_lookup.size * wp.types.type_size_in_bytes(self.target_cell_lookup.dtype))
 
     def _bind_stream(self):
         if self.device.type == "cuda":
@@ -128,9 +135,12 @@ class WarpVectorEnv:
         self._launch(reset_network,self.num_envs,self.s,self.p,wp_mask)
         self._launch(reset_geometry,self.num_envs,self.s,self.p,wp_mask)
         self._check_errors()
+        if self.p.cell_reports:
+            self._launch(build_target_cell_lookup,self.num_envs,self.s,self.p,wp_mask,self.target_cell_lookup)
+            self._check_errors()
         if self.p.xyz:
             self._launch(reset_xyz,(self.num_envs,self.p.n),self.s,self.p,wp_mask)
-            self._launch(sense_bayesian,(self.num_envs,self.p.n),self.s,self.p,0,wp_mask)
+            self._launch(sense_bayesian_indexed,(self.num_envs,self.p.n),self.s,self.p,0,wp_mask,self.target_cell_lookup)
             if self.p.cell_reports:self._launch(confirm_observed_cells,self.num_envs,self.s,self.p,wp_mask,1)
         else:
             self._launch(sense,(self.num_envs,self.p.n,self.p.targets_count),self.s,self.p)
@@ -216,6 +226,12 @@ class WarpVectorEnv:
         wp.synchronize_device(self.wp_device)
         for name, target in arrays.items():
             target.copy_(incoming[name])
+        if self.p.cell_reports:
+            # Restored snapshots from both the old and accelerated V9 have
+            # exactly the same scientific fields; rebuild this transient cache.
+            mask = wp.from_torch(torch.ones((self.num_envs,),device=self.device,dtype=torch.int32))
+            self._launch(build_target_cell_lookup,self.num_envs,self.s,self.p,mask,self.target_cell_lookup)
+            self._check_errors()
         self._seeds = seeds.numpy().copy()
         self.action_generator.set_state(generator.get_state())
         self._ready = True
@@ -262,7 +278,7 @@ class WarpVectorEnv:
         self._launch(begin_step,self.num_envs,self.s,self.p)
         self._launch(motion_xyz if self.p.xyz else motion_step,self.num_envs,self.s,self.p,wc)
         if self.p.xyz:
-            self._launch(sense_bayesian,(self.num_envs,self.p.n),self.s,self.p,1,self.s.terminated)
+            self._launch(sense_bayesian_indexed,(self.num_envs,self.p.n),self.s,self.p,1,self.s.terminated,self.target_cell_lookup)
             if self.p.cell_reports:self._launch(confirm_observed_cells,self.num_envs,self.s,self.p,self.s.terminated,0)
         else:
             self._launch(sense,(self.num_envs,self.p.n,self.p.targets_count),self.s,self.p)

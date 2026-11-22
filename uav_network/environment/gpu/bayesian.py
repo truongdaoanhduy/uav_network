@@ -127,6 +127,29 @@ def reset_xyz(s:WorldState,p:WorldParams,mask:wp.array(dtype=wp.int32)):
 
 
 @wp.kernel
+def build_target_cell_lookup(s:WorldState,p:WorldParams,mask:wp.array(dtype=wp.int32),lookup:wp.array2d(dtype=wp.int32)):
+    """One-time NoOracle reverse index after geometry reset, not in every sensor tick.
+
+    NoOracle scene placement certifies unique target cells; the table changes
+    only on world reset. No truth is exposed to actors or report generation.
+    """
+    e=wp.tid()
+    if p.cell_reports==0 or mask[e]==0:return
+    for cell in range(p.grid_n*p.grid_n):
+        lookup[e,cell]=-1
+    for t in range(p.targets_count):
+        target=s.targets[e,t]
+        gx=wp.min(int(target[0]/p.cell_width),p.grid_n-1)
+        gy=wp.min(int(target[1]/p.cell_width),p.grid_n-1)
+        cell=gy*p.grid_n+gx
+        if lookup[e,cell]>=0:
+            s.errors[e]=117  # A duplicate cell is not a valid NoOracle scene.
+        else:
+            lookup[e,cell]=t
+
+
+# Historical 4-argument public kernel kept for external reference tests.
+@wp.kernel
 def sense_bayesian(s:WorldState,p:WorldParams,advance:int,mask:wp.array(dtype=wp.int32)):
     e,i=wp.tid()
     if advance==0 and mask[e]==0:return
@@ -150,6 +173,89 @@ def sense_bayesian(s:WorldState,p:WorldParams,advance:int,mask:wp.array(dtype=wp
                         target=s.targets[e,t]
                         if wp.min(int(target[0]/p.cell_width),p.grid_n-1)==gx and wp.min(int(target[1]/p.cell_width),p.grid_n-1)==gy and wp.length(target-xy)<=r:
                             if p.occlusion==0 or camera_clear(s,p,e,pos,target):has=True
+                    ef=wp.float64(1)-wp.pow(wp.float64(1)-pf,q);ed=q*pd+(wp.float64(1)-q)*ef
+                    probability=ef
+                    if has:probability=pd
+                    yes=sensor_uniform(s.seeds[e],tick,i,cell)<probability
+                    prior=wp.clamp(s.belief[e,i,cell],wp.float64(1e-8),wp.float64(1)-wp.float64(1e-8))
+                    a=ed;b=ef
+                    if not yes:a=wp.float64(1)-ed;b=wp.float64(1)-ef
+                    posterior=wp.clamp(a*prior/wp.max(a*prior+b*(wp.float64(1)-prior),wp.float64(1e-8)),wp.float64(1e-8),wp.float64(1)-wp.float64(1e-8))
+                    final_belief=posterior
+                    false_confirmation=yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold and not has
+                    if p.cell_reports==0 and false_confirmation and p.verified_empty_belief>wp.float64(0):final_belief=p.verified_empty_belief
+                    # Original 18d coverage-AUC instrumentation: atomic min
+                    # counts the first 2D cell visit by ANY UAV exactly once.
+                    # It is logging-only, not belief/reward/policy input.
+                    first=wp.atomic_min(s.coverage_first_seen_step,e,cell,tick)
+                    if first==p.max_steps+1:
+                        wp.atomic_add(s.coverage_auc_weight_sum,e,wp.int64(p.max_steps-tick))
+                    s.belief[e,i,cell]=final_belief;s.visited[e,i,cell]=1;s.positive[e,i,cell]=int(yes)
+                    if p.cell_reports!=0 and yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold:
+                        idx=s.confirmed_count[e,i]
+                        if idx>=p.confirm_capacity:
+                            s.errors[e]=116
+                        else:
+                            s.confirmed_candidates[e,i,idx]=cell
+                            s.confirmed_count[e,i]=idx+1
+                    old_entropy=entropy_bits(prior);new_entropy=entropy_bits(final_belief)
+                    wp.atomic_add(s.belief_potential,e,(old_entropy-new_entropy)/(wp.float64(p.n)*wp.float64(p.grid_n*p.grid_n)))
+                    if p.coarse_n>0:
+                        group=p.grid_n//p.coarse_n;coarse=(gy//group)*p.coarse_n+(gx//group)
+                        s.belief_coarse[e,i,coarse]=wp.clamp(s.belief_coarse[e,i,coarse]+(new_entropy-old_entropy)/wp.float64(group*group),wp.float64(0),wp.float64(1))
+                    wp.atomic_add(s.sensor_counts,e,0,wp.int64(1))
+                    wp.atomic_add(s.sensor_counts,e,1,wp.int64(int(yes)))
+                    wp.atomic_add(s.sensor_counts,e,2,wp.int64(int(yes and not has)))
+                    wp.atomic_add(s.sensor_counts,e,3,wp.int64(int(not yes and has)))
+                    if yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold:
+                        # Truth enters only a diagnostic counter, never the
+                        # report/decision path in cell-report mode.
+                        wp.atomic_add(s.sensor_counts,e,4,wp.int64(int(not has)))
+                    if yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold and p.cell_reports==0:
+                        for t in range(p.targets_count):
+                            target=s.targets[e,t]
+                            if wp.min(int(target[0]/p.cell_width),p.grid_n-1)==gx and wp.min(int(target[1]/p.cell_width),p.grid_n-1)==gy and wp.length(target-xy)<=r:
+                                if p.occlusion==0 or camera_clear(s,p,e,pos,target):
+                                    s.visible[e,i,t]=1
+                                    wp.atomic_add(s.sensor_counts,e,5,wp.int64(int(s.known[e,i,t]==0)))
+    if i==0:s.sensor_tick[e]=tick+1
+
+
+
+# New internally indexed kernel, same sensor RNG/Bayesian update.
+@wp.kernel
+def sense_bayesian_indexed(s:WorldState,p:WorldParams,advance:int,mask:wp.array(dtype=wp.int32),lookup:wp.array2d(dtype=wp.int32)):
+    e,i=wp.tid()
+    if advance==0 and mask[e]==0:return
+    s.confirmed_count[e,i]=0
+    for t in range(p.report_slots):s.visible[e,i,t]=0
+    for cell in range(p.grid_n*p.grid_n):s.positive[e,i,cell]=0
+    tick=s.steps[e]+advance
+    pos=position3(s,e,i)
+    if (p.energy_enabled==0 or s.battery[e,i]>wp.float64(0)) and pos[2]>wp.float64(0):
+        v=profile(p,pos[2]);pd=v[0];pf=v[1];r=v[2]
+        lowx=wp.max(0,int(wp.floor((pos[0]-r)/p.cell_width)));highx=wp.min(p.grid_n-1,int(wp.floor((pos[0]+r)/p.cell_width)))
+        lowy=wp.max(0,int(wp.floor((pos[1]-r)/p.cell_width)));highy=wp.min(p.grid_n-1,int(wp.floor((pos[1]+r)/p.cell_width)))
+        for gy in range(lowy,highy+1):
+            for gx in range(lowx,highx+1):
+                cell=gy*p.grid_n+gx;xy=wp.vec2d(pos[0],pos[1])
+                q=cell_coverage(p,gx,gy,xy,r)
+                center=wp.vec2d(wp.min((wp.float64(gx)+wp.float64(.5))*p.cell_width,p.map_size),wp.min((wp.float64(gy)+wp.float64(.5))*p.cell_width,p.map_size))
+                if q>wp.float64(0) and (p.occlusion==0 or camera_clear(s,p,e,pos,center)):
+                    has=bool(False)
+                    if p.cell_reports!=0:
+                        # Same truth condition as the historical 35-target
+                        # loop; just avoid scanning unrelated target cells.
+                        t=lookup[e,cell]
+                        if t>=0:
+                            target=s.targets[e,t]
+                            if wp.length(target-xy)<=r:
+                                if p.occlusion==0 or camera_clear(s,p,e,pos,target):has=True
+                    else:
+                        for t in range(p.targets_count):
+                            target=s.targets[e,t]
+                            if wp.min(int(target[0]/p.cell_width),p.grid_n-1)==gx and wp.min(int(target[1]/p.cell_width),p.grid_n-1)==gy and wp.length(target-xy)<=r:
+                                if p.occlusion==0 or camera_clear(s,p,e,pos,target):has=True
                     ef=wp.float64(1)-wp.pow(wp.float64(1)-pf,q);ed=q*pd+(wp.float64(1)-q)*ef
                     probability=ef
                     if has:probability=pd

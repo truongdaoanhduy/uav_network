@@ -83,7 +83,24 @@ def observe(s: WorldState, p: WorldParams):
         s.observation[e, i, 2 + axis] = wp.float32(velocity[axis] / p.max_speed)
         s.observation[e, i, 4 + axis] = wp.float32((s.gcs[e][axis] - position[axis]) / p.map_size)
     s.observation[e, i, 6] = wp.float32(wp.float64(s.steps[e]) / wp.float64(p.max_steps))
-    s.observation[e, i, 7] = wp.float32(wp.float64(_report_count(s, p, e, i) * p.report_bytes) / wp.float64(p.buffer_bytes))
+    # NoOracle observation previously rescanned 140 report slots in
+    # _report_count (for storage), aggregate (for local belief) and once per
+    # possible destination. Compute the SAME full-slot, order-independent
+    # summary once per agent; never skip hypothetical sparse positions.
+    locally_pending=int(0)
+    locally_known=int(0)
+    has_unexpired_report=bool(False)
+    if p.cell_reports!=0:
+        now=wp.float64(s.steps[e])*p.dt
+        for slot in range(p.report_slots):
+            present=s.report_present[e,i,slot]
+            locally_pending+=present
+            locally_known+=s.known[e,i,slot]
+            if present!=0 and now-s.report_created[e,i,slot]<p.report_ttl:
+                has_unexpired_report=True
+    else:
+        locally_pending=_report_count(s,p,e,i)
+    s.observation[e, i, 7] = wp.float32(wp.float64(locally_pending * p.report_bytes) / wp.float64(p.buffer_bytes))
     s.observation[e, i, 8] = wp.float32(s.battery[e, i] / p.capacity)
     s.observation[e, i, 9] = wp.float32(int(active))
     if p.cell_reports==0:
@@ -94,11 +111,6 @@ def observe(s: WorldState, p: WorldParams):
     else:
         # Local aggregate only. Global slot numbers are an internal sparse
         # storage detail and must not encode other agents' sensing order.
-        locally_known=int(0)
-        locally_pending=int(0)
-        for slot in range(p.report_slots):
-            locally_known+=s.known[e,i,slot]
-            locally_pending+=s.report_present[e,i,slot]
         s.observation[e,i,10]=wp.float32(wp.min(wp.float64(1),wp.float64(locally_known)/wp.float64(p.targets_count)))
         s.observation[e,i,10+p.targets_count]=wp.float32(wp.float64(locally_pending)/wp.float64(p.report_slots))
     offset = 10 + 2 * p.targets_count
@@ -190,11 +202,24 @@ def observe(s: WorldState, p: WorldParams):
         offset = extras(s,p,e,i,offset)
     s.observation[e, i, offset] = wp.float32(1.0)
     slot = int(0)
-    for j in range(p.n):
-        if j != i:
-            s.observation[e, i, offset + slot + 1] = wp.float32(int(destination_allowed(s, p, e, i, j)))
-            slot = slot + 1
-    s.observation[e, i, offset + p.n] = wp.float32(int(destination_allowed(s, p, e, i, p.n)))
+    if p.cell_reports!=0:
+        # In NoOracle, peer destinations are tentative: do NOT inspect
+        # private peer state or positions. destination_allowed only checks
+        # own nonexpired FIFO reports and source activity for these slots.
+        can_send=(p.network_enabled!=0 and active and locally_pending>0)
+        if p.admission_mask!=0:
+            can_send=can_send and has_unexpired_report
+        for j in range(p.n):
+            if j!=i:
+                s.observation[e,i,offset+slot+1]=wp.float32(int(can_send))
+                slot+=1
+        s.observation[e,i,offset+p.n]=wp.float32(int(can_send and range_distance(s,p,e,i,p.n)<=p.gcs_range))
+    else:
+        for j in range(p.n):
+            if j != i:
+                s.observation[e, i, offset + slot + 1] = wp.float32(int(destination_allowed(s, p, e, i, j)))
+                slot = slot + 1
+        s.observation[e, i, offset + p.n] = wp.float32(int(destination_allowed(s, p, e, i, p.n)))
 
 
 @wp.kernel
