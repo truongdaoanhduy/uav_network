@@ -172,8 +172,14 @@ def observe(s: WorldState, p: WorldParams):
                     s.observation[e,i,offset+3*slot+2] = wp.float32(wp.float64(.5) if p.cell_reports!=0 else free)
                 slot += 1
         if active and source_gcs <= p.gcs_range:
-            required = nominal_required_power(s,p,e,i,p.n)
-            s.observation[e,i,offset+3*slot] = wp.float32(power_fraction(p,required))
+            if p.cell_reports==0:
+                required = nominal_required_power(s,p,e,i,p.n)
+                s.observation[e,i,offset+3*slot] = wp.float32(power_fraction(p,required))
+            else:
+                # No GCS beacon or RSSI measurement is modeled in no-oracle
+                # missions. Exact required power would reveal whether an
+                # UNOBSERVED obstacle occludes the GCS radio path.
+                s.observation[e,i,offset+3*slot] = wp.float32(0.0)
             s.observation[e,i,offset+3*slot+1] = wp.float32(wp.clamp(source_gcs/diagonal,wp.float64(-1),wp.float64(1)))
             s.observation[e,i,offset+3*slot+2] = wp.float32(1.0)
         offset = offset + 3*p.n

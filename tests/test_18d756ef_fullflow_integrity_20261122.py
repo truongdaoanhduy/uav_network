@@ -99,7 +99,16 @@ def test_eval_works_with_real_immutable_actor_snapshot_and_heldout_seeds():
     payload=torch.load(base/metadata['snapshots'][-1]['file'],map_location='cpu',weights_only=True)
     from uav_network.configuration import Config,_apply
     c=Config();_apply(c,payload['config']);c.validate()
-    policy=GPUActorOnlyPolicy(c,'cpu');policy.load(payload)
+    from uav_network.environment.observations import observation_version
+    policy=GPUActorOnlyPolicy(c,'cpu')
+    if payload['observation_version'] != observation_version(c):
+        # A stale /tmp immutable snapshot is evidence of an older observation
+        # contract, not a new policy. Loading it must fail closed, not be
+        # relabeled as v8 just to make the test pass.
+        with pytest.raises(ValueError,match='observation semantics differ'):
+            policy.load(payload)
+        return
+    policy.load(payload)
     values=gpu_validate_one(policy,payload,gpu='cpu',seeds=[2000000044,2000000045])
     assert values['episodes']==2
     assert len(values['records'])==2

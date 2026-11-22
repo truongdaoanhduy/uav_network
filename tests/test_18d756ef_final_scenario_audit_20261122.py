@@ -163,7 +163,7 @@ def test_out_of_range_peer_report_attempt_consumes_radio_airtime_without_free_be
 
 def test_semantic_and_network_changes_get_new_checkpoint_version():
     from uav_network.environment.observations import observation_version
-    assert observation_version(c())==7
+    assert observation_version(c())==8
     v=WarpVectorEnv(c(),device='cpu')
     try:
         v.reset(seed=44)

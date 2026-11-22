@@ -9,7 +9,8 @@ from uuid import uuid4
 import numpy as np
 from .hardware import hardware_info
 from .telemetry import episode_telemetry, training_tradeoff_metrics
-from .storage_retention import upload_compressed_journals
+from .storage_retention import CompressedDiagnosticArchive, upload_compressed_journals
+from .public_diagnostic_store import PublicHubDiagnosticUploader
 from .comparison_metrics import mission_score
 from .run_journal import RunJournal, select_evidence
 from .evidence import resource_snapshot
@@ -163,6 +164,8 @@ class OnlineTracker:
         self.latest_evidence = {}
         self.journal = None
         self.live_runtime = None
+        self.compressed_journals = None
+        self.public_diagnostics = None
         self.learning_phase = "initializing"
         run_id = os.environ.get("WANDB_RUN_ID") or uuid4().hex[:8]
         name = config.tracking.run_name
@@ -221,6 +224,21 @@ class OnlineTracker:
                 "batch_size": config.algorithm_config.batch_size,
                 "replay_cpu_fraction": config.runtime.replay_cpu_fraction,
                 "root_kernel_ref": metadata["pipeline"]["root_kernel_ref"]})
+            # The no-oracle runner must initialize the actual archival path,
+            # not merely call upload_compressed_journals() on shutdown.
+            # These are opt-in: default runs retain fast W&B scalar tracking.
+            diagnostic_mode=os.environ.get("UAV_DIAGNOSTIC_STORE", "off")
+            fast_mode=os.environ.get("UAV_FAST_TRAINING", "false").lower() in {"true","1"}
+            if diagnostic_mode=="huggingface_public" and not fast_mode:
+                self.public_diagnostics=PublicHubDiagnosticUploader(
+                    config,self.output,self.run.id,
+                    verify_download=os.environ.get("UAV_HF_VERIFY_PUBLIC_READBACK", "true")=="true")
+                self.compressed_journals=CompressedDiagnosticArchive(
+                    self.output,self.public_diagnostics)
+                self.run.summary["forensic_storage"]={
+                    "backend":"huggingface_public_dataset",
+                    "url":self.public_diagnostics.url,
+                    "repo_id":self.public_diagnostics.repo_id}
             periodic_eval = metadata["stage"] in {"train", "validate"} and bool(
                 config.tracking.evaluation_interval or config.tracking.evaluation_interval_steps)
             self.run.summary["evaluation_status/periodic_enabled"] = periodic_eval
@@ -274,6 +292,13 @@ class OnlineTracker:
             self.last_resource_capture = now
         self.journal.record(event, {**self.latest_resources,
             "resources/age_seconds": max(0., now - self.last_resource_capture), **values})
+        writer=getattr(self,"compressed_journals",None)
+        if writer is not None:
+            try:
+                if writer.tick():
+                    self.run.summary.update(writer.stats())
+            except (OSError,RuntimeError,ValueError) as error:
+                self.journal._warn(error)
         if (event in {"progress", "diagnostic_warning", "evaluation_progress"} and self.last_status_request is not None
                 and now - self.last_status_request < 60):
             return

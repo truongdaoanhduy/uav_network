@@ -265,7 +265,7 @@ def test_new_observation_semantics_have_distinct_version():
     current=config()
     current.sensor.belief_coarse_cells=5
     assert observation_version(historical)==5
-    assert observation_version(current)==7
+    assert observation_version(current)==8
 
 
 def test_false_alert_metrics_remain_visible_in_training_tracker():
