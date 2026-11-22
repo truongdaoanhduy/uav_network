@@ -19,6 +19,9 @@ def build_notebook():
                     ('MAX_WARP_EVAL_WORLDS_PER_GPU = 256', 'MAX_WARP_EVAL_WORLDS_PER_GPU = 8192')]:
         assert pre.count(old)==1
         pre=pre.replace(old,new)
+    pre=pre.replace('2 x 100 = 200 worlds/GPU, conservative T4 VRAM setting',
+                    '81 x 100 = 8100 real worlds/GPU, 92 inactive filler slots')
+    pre=pre.replace('FINAL TEST4000','FINAL TEST1000')
     nb.cells[1].source=pre
     source=nb.cells[2].source
     old='"--eval-world-pool-size", "0"'
@@ -30,6 +33,13 @@ def build_notebook():
         "--checkpoint-assignment", "contiguous_batches",'''
     assert source.count(old)==1
     source=source.replace(old,new)
+    # Reference-style source still held its old 2-policy assertion.  Without
+    # this edit, the 81-policy production notebook aborts before running.
+    assert source.count('assert CHECKPOINTS_PER_GPU_BATCH == 2') == 1
+    source=source.replace('assert CHECKPOINTS_PER_GPU_BATCH == 2',
+                          'assert CHECKPOINTS_PER_GPU_BATCH == 81')
+    source=source.replace('HELD-OUT TEST4000', 'HELD-OUT TEST1000')
+    source=source.replace('HF BEST → TEST4000', 'HF BEST → TEST1000')
     ast.parse(source)
     nb.cells[2].source=source
     nb.cells[0].source += (

@@ -73,6 +73,8 @@ def test_candidate_notebook_passes_8192_pool_and_contiguous_assignment():
     assert 'MAX_WARP_TEST_WORLDS_PER_GPU = 500' in preflight
     assert '"--eval-world-pool-size", str(MAX_WARP_EVAL_WORLDS_PER_GPU)' in code
     assert '"--checkpoint-assignment", "contiguous_batches"' in code
+    assert 'assert CHECKPOINTS_PER_GPU_BATCH == 81' in code
+    assert 'assert CHECKPOINTS_PER_GPU_BATCH == 2' not in code
     assert nb.metadata['protocol']['validation_episodes']==100
     assert nb.metadata['protocol']['test_episodes']==1000
 
