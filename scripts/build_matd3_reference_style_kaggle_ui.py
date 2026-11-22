@@ -1,4 +1,4 @@
-"""Rebuild the *original 18d756ef Kaggle UI layout* for the corrected v7 run.
+"""Rebuild the *original 18d756ef Kaggle UI layout* for the corrected v9 run.
 
 Three cells, like notebook5051433b29.ipynb:
 1) reference-style experiment readme;
@@ -42,9 +42,9 @@ def preflight_cell(old: str) -> str:
     out = out.replace('CHECKPOINTS_PER_GPU_BATCH = 81  # 81 x 100 = 8100 env/GPU; adjust to 64 if VRAM is tight',
                       'CHECKPOINTS_PER_GPU_BATCH = 2  # 2 x 100 = 200 worlds/GPU, conservative T4 VRAM setting')
     out = out.replace('TRAIN_SEED = 44  # Thí nghiệm mới, không dùng lại checkpoint CBF.',
-                      'TRAIN_SEED = 44  # No-oracle v7: không tải checkpoint 18d756ef cũ.')
+                      'TRAIN_SEED = 44  # No-oracle v9: train mới, không nạp checkpoint observation v7.')
     out = out.replace('print("MATD3 EVAL100 / 100 seeds; ActorBN baseline (Critic plain)")',
-                      'print("MATD3 EVAL100 / 100 seeds; ActorBN baseline (Critic plain), Bayesian NOORACLE-V8")')
+                      'print("MATD3 EVAL100 / 100 seeds; ActorBN baseline (Critic plain), Bayesian NOORACLE-V9")')
     # Opt-in research evidence, with a 5-minute bounded archive cadence;
     # kept separate from W&B scalar plots and training learner updates.
     out += ('\nENABLE_HF_FORENSICS = True  # False = fast W&B-only mode\n'
@@ -60,7 +60,7 @@ def preflight_cell(old: str) -> str:
 
 def markdown_cell(old: str) -> str:
     out=old.replace('# MATD3 BenchMARL-style fixed-seed convergence — ActorBN baseline (Critic plain)',
-                    '# MATD3 EVAL100 — ActorBN baseline (Critic plain) — NOORACLE-V8')
+                    '# MATD3 EVAL100 — ActorBN baseline (Critic plain) — NOORACLE-V9')
     out=out.replace('Run: E4096 / U4 / B8192 / 20,000 training episodes / seed44 / 6 UAV / 35 targets / 25 obstacles / safety reject.',
                     'Run: E4096 / U4 / B8192 / H256×512 / 20,000 training episodes / seed44 / 6 UAV / 35 targets / 25 obstacles / safety reject.')
     out=out.replace('**Multi-checkpoint Eval:** up to 81 checkpoints × 100 episodes = 8,100 Warp worlds PER GPU, \nwith torch.vmap over separate trained Actor weights. Actor-only inference, NO Critic/replay/backward. \nThe maximum is a requested upper bound, not a measured safe T4 configuration; reduce CHECKPOINTS_PER_GPU_BATCH to 64 if needed.',
@@ -69,7 +69,7 @@ def markdown_cell(old: str) -> str:
                     '**Only the scenario differs from the historical run:** report generation uses the observed 2D cell ID \nand Bayesian confidence, never ground-truth target ID. Ground truth is used only to simulate the sensor \nand to score reward/evaluation. Actor uses BN, Critic stays plain (no BN). \nThere is **no DS-map fusion at GCS** or **3D obstacle reconstruction** in this experiment.')
     out=out.replace('**Usage:** fill NOTEBOOK_REF, choose Kaggle GPU T4×2, enable Internet and Secrets WANDB_API_KEY + HF_TOKEN, then Save & Run All.',
                     '**Usage:** set NOTEBOOK_REF if Kaggle has not provided KAGGLE_KERNEL_REF, choose Kaggle GPU T4×2, \nenable Internet and Secrets WANDB_API_KEY + HF_TOKEN, then Save & Run All.')
-    out += ('\n**New experiment:** starts MATD3 from random weights (obs-v7), not checkpoint `18d756ef`. '
+    out += ('\n**New experiment:** starts MATD3 from random weights (obs-v8), not checkpoint `18d756ef`. '
             'Selection uses only Val100; independent Test4000 is reserved for the best Actor. '
             'For a fair experiment, CUDA T4×2 capacity and full 20,000-episode completion must still be verified.\n')
     return out
@@ -85,7 +85,7 @@ SPEC["submitted_at_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 _rid = uuid4().hex[:8]
 SPEC["runs"] = {ALGORITHM: {
     "id": _rid,
-    "name": f"{ALGORITHM.upper()}-EVAL100-ACTORBN-PLAINCRITIC-NOORACLE-V8-E4096-U{UPDATES_PER_VECTOR_STEP}-B8192-H256x512-S{TRAIN_SEED}-{_rid}"}}
+    "name": f"{ALGORITHM.upper()}-EVAL100-ACTORBN-PLAINCRITIC-NOORACLE-V9-E4096-U{UPDATES_PER_VECTOR_STEP}-B8192-H256x512-S{TRAIN_SEED}-{_rid}"}}
 SPEC["config"] = "configs/matd3-18d756ef-no-oracle-cell-reports-20261122.yaml"
 SPEC["overrides"] = [
     f"runtime.algorithm={ALGORITHM}",
@@ -106,7 +106,7 @@ SPEC["overrides"] = [
     "tracking.deferred_gpu_eval_target=0",
     "tracking.deferred_gpu_eval_candidate_limit=0",
     "tracking.online_gpu_eval_enabled=false",
-    f"tracking.group=MATD3-EVAL100-ACTORBN-PLAINCRITIC-NOORACLE-V8-E4096-U{UPDATES_PER_VECTOR_STEP}-S{TRAIN_SEED}",
+    f"tracking.group=MATD3-EVAL100-ACTORBN-PLAINCRITIC-NOORACLE-V9-E4096-U{UPDATES_PER_VECTOR_STEP}-S{TRAIN_SEED}",
 ]
 SPEC["validation_step_targets"] = list(range(0, 80_000_001, 100 * 4096))
 SPEC["dense_eval_schedule"] = {
@@ -131,7 +131,14 @@ os.environ["UAV_DIAGNOSTIC_STORE"] = (
 os.environ["UAV_DIAGNOSTIC_HF_REPO"] = UAV_HF_DIAGNOSTIC_REPO
 os.environ["UAV_DEFERRED_EXPORT_HF"] = "true"
 os.environ["UAV_WANDB_COMPACT_LOGS"] = "true"
+# Preserve the historical native episode/global-step W&B paper panels.
+# Raw per-step/episode/replay/PHY evidence belongs to public HF archives.
+os.environ["UAV_WANDB_PLOTS_ONLY"] = "true"
+os.environ["UAV_TRAIN_EPISODE_RETURN_LOG_EVERY"] = "64"
 os.environ["UAV_WANDB_EPISODE_LOG_EVERY"] = "32"
+# Finalized deferred Actor manifest is the handoff; validated best selection
+# MUST only happen inside GPU Val100, before held-out Test4000.
+print("DEFERRED_BEST_SELECTION", "TRAIN → COMPLETE ARCHIVE → GPU VAL100 → HF BEST → TEST4000",flush=True)
 print("Kaggle UI:", "https://www.kaggle.com/code/" + SPEC["kernel_ref"], flush=True)
 print("W&B:", f"https://wandb.ai/{SPEC['entity']}/{SPEC['project']}/runs/{_rid}", flush=True)
 print("CONFIGURATION", SPEC["config"], "E4096/U4/B8192/H256x512/S44", flush=True)
@@ -156,7 +163,7 @@ def patch_execution(source: str, spec: dict) -> str:
 # This does not fabricate evaluation data or modify the training learner.
 _dual_view_path = Path("/kaggle/working") / f"wandb_dual_axis_view_{_rid}.json"
 _dual_view_log = Path("/kaggle/working") / f"wandb_dual_axis_view_{_rid}.log"
-_variant = "MATD3 Bayesian NOORACLE-V8, safety reject, ActorBN / plain Critic"
+_variant = "MATD3 Bayesian NOORACLE-V9, safety reject, ActorBN / plain Critic"
 try:
     _cmd = [str(python), "-m", "uav_network.experiments.wandb_dualaxis_baseline_workspace",
             "--run-id", _rid, "--variant", _variant,

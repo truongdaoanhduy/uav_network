@@ -141,6 +141,8 @@ class WorldState:
     belief_coarse: wp.array3d(dtype=wp.float64)
     belief_potential: wp.array(dtype=wp.float64)
     visited: wp.array3d(dtype=wp.int32)
+    coverage_first_seen_step: wp.array2d(dtype=wp.int32)
+    coverage_auc_weight_sum: wp.array(dtype=wp.int64)
     positive: wp.array3d(dtype=wp.int32)
     sensor_tick: wp.array(dtype=wp.int32)
     sensor_counts: wp.array2d(dtype=wp.int64)
@@ -452,7 +454,9 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False, ce
     shapes.update(altitudes=((e,xn),wp.float64), vertical_velocity=((e,xn),wp.float64),
         obstacle_heights=((e,xo),wp.float64), belief=((e,xn,xg),wp.float64),
         belief_coarse=((e,xn,config.sensor.belief_coarse_cells**2),wp.float64),
-        belief_potential=((e,),wp.float64), visited=((e,xn,xg),wp.int32), positive=((e,xn,xg),wp.int32),
+        belief_potential=((e,),wp.float64), visited=((e,xn,xg),wp.int32),
+        coverage_first_seen_step=((e,xg),wp.int32), coverage_auc_weight_sum=((e,),wp.int64),
+        positive=((e,xn,xg),wp.int32),
         sensor_tick=((e,),wp.int32), sensor_counts=((e,6 if p.xyz else 0),wp.int64),
         xyz_work=((e,xn,3),wp.vec3d))
     for name in ("visible", "known", "recovery", "report_present", "report_origin", "report_hops"):

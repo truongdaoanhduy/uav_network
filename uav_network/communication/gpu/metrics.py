@@ -110,6 +110,8 @@ def world_info(s, p, index=0):
         velocity = np.column_stack((velocity,row(s.vertical_velocity,index)))
         extra = {"sensing": dict(zip(("measurements","positive","false_positive","false_negative","false_confirmation","confirmations"),map(int,row(s.sensor_counts,index)))),
                  "coverage_percent": 100*float(row(s.visited,index).any(axis=0).mean()),
+                 "coverage_auc": float(row(s.coverage_auc_weight_sum,index)) /
+                    (float(p.max_steps) * float(p.grid_n * p.grid_n)),
                  "altitudes_m": row(s.altitudes,index).tolist()}
     if hypothesis is not None:
         extra.update(false_confirmed_cells=hypothesis['false_confirmed_cells'],

@@ -114,10 +114,12 @@ def reset_xyz(s:WorldState,p:WorldParams,mask:wp.array(dtype=wp.int32)):
     s.altitudes[e,i]=p.altitude;s.vertical_velocity[e,i]=wp.float64(0)
     for cell in range(p.grid_n*p.grid_n):
         s.belief[e,i,cell]=p.belief_prior;s.visited[e,i,cell]=0;s.positive[e,i,cell]=0
+        if i==0:s.coverage_first_seen_step[e,cell]=p.max_steps+1
     prior_entropy=entropy_bits(p.belief_prior)
     for coarse in range(p.coarse_n*p.coarse_n):s.belief_coarse[e,i,coarse]=prior_entropy
     if i==0:
         s.belief_potential[e]=wp.float64(1)-prior_entropy
+        s.coverage_auc_weight_sum[e]=wp.int64(0)
         s.sensor_tick[e]=0
         for k in range(6):s.sensor_counts[e,k]=wp.int64(0)
         for o in range(p.obstacles_count):
@@ -159,6 +161,12 @@ def sense_bayesian(s:WorldState,p:WorldParams,advance:int,mask:wp.array(dtype=wp
                     final_belief=posterior
                     false_confirmation=yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold and not has
                     if p.cell_reports==0 and false_confirmation and p.verified_empty_belief>wp.float64(0):final_belief=p.verified_empty_belief
+                    # Original 18d coverage-AUC instrumentation: atomic min
+                    # counts the first 2D cell visit by ANY UAV exactly once.
+                    # It is logging-only, not belief/reward/policy input.
+                    first=wp.atomic_min(s.coverage_first_seen_step,e,cell,tick)
+                    if first==p.max_steps+1:
+                        wp.atomic_add(s.coverage_auc_weight_sum,e,wp.int64(p.max_steps-tick))
                     s.belief[e,i,cell]=final_belief;s.visited[e,i,cell]=1;s.positive[e,i,cell]=int(yes)
                     if p.cell_reports!=0 and yes and pos[2]<=p.fine_altitude and posterior>=p.confirmation_threshold:
                         idx=s.confirmed_count[e,i]

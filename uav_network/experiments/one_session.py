@@ -117,6 +117,23 @@ def run(spec_file, *, policies_per_batch=2, final_test_batch_size=8,
     fullflow_completed = False
     runtime_monitor = None
     process = None
+    post_eval_archive = None
+    if os.environ.get("UAV_DIAGNOSTIC_STORE") == "huggingface_public":
+        try:
+            from ..configuration import load_config
+            from .public_diagnostic_store import PublicHubDiagnosticUploader
+            from .post_eval_hf_forensics import PostEvalHFForensics
+            c=load_config(spec["config"])
+            uploader=PublicHubDiagnosticUploader(
+                c,work/"gpu_batch_eval",run_id,verify_download=True)
+            post_eval_archive=PostEvalHFForensics(
+                work/"gpu_batch_eval",uploader,interval_seconds=180)
+            (work/"gpu_batch_eval"/"one-session-status-start.json").write_text(
+                json.dumps(status,indent=2))
+            wandb_run.summary["storage/eval_hf_url"]=uploader.url
+        except (OSError,RuntimeError,ValueError) as exc:
+            wandb_run.summary["storage/eval_hf_setup_error_type"]=type(exc).__name__
+            print("GPU_FORENSIC_SETUP_WARNING",type(exc).__name__,flush=True)
     try:
         wandb_run.summary.update({
             "fullflow/status":"running",
@@ -147,6 +164,14 @@ def run(spec_file, *, policies_per_batch=2, final_test_batch_size=8,
         process=subprocess.Popen(args)
         while True:
             streamer.poll()
+            if post_eval_archive is not None:
+                try:
+                    if post_eval_archive.tick():
+                        wandb_run.summary.update(post_eval_archive.stats())
+                except (OSError,ValueError,RuntimeError) as exc:
+                    # Optional diagnostic I/O must not kill the Eval/Test worker.
+                    wandb_run.summary["storage/eval_hf_warning_type"]=type(exc).__name__
+                    print("GPU_FORENSIC_HF_TICK_WARNING",type(exc).__name__,flush=True)
             code=process.poll()
             if code is not None:
                 break
@@ -194,6 +219,9 @@ def run(spec_file, *, policies_per_batch=2, final_test_batch_size=8,
             "checkpoint_publication_status":f"gpu_validated_hf_{hf_state}",
         })
         save()
+        if post_eval_archive is not None:
+            (work/"gpu_batch_eval"/"one-session-status-final.json").write_text(
+                json.dumps(status,indent=2))
         fullflow_completed = True
         marker = "MATCHED_PILOT_VALIDATION_COMPLETE" if pilot_steps else "ONE_SESSION_TRAIN_EVAL_TEST_COMPLETE"
         print(marker, json.dumps(status), flush=True)
@@ -204,6 +232,9 @@ def run(spec_file, *, policies_per_batch=2, final_test_batch_size=8,
             status["gpu_test_status"] = "failed_or_incomplete"
         status["error_type"] = type(error).__name__
         save()
+        if post_eval_archive is not None:
+            (work/"gpu_batch_eval"/"one-session-status-error.json").write_text(
+                json.dumps(status,indent=2))
         wandb_run.summary.update({
             "fullflow/status":"failed_or_incomplete",
             "fullflow/phase":"gpu_eval_or_final_test_failed",
@@ -221,6 +252,15 @@ def run(spec_file, *, policies_per_batch=2, final_test_batch_size=8,
                 process.wait()
         if runtime_monitor is not None:
             runtime_monitor.stop(failed=not fullflow_completed)
+        if post_eval_archive is not None:
+            try:
+                post_eval_archive.tick(final=True)
+                wandb_run.summary.update(post_eval_archive.stats())
+                if post_eval_archive.pending is not None:
+                    print("GPU_FORENSIC_HF_ARCHIVE_PENDING",post_eval_archive.last_error,flush=True)
+            except (OSError,ValueError,RuntimeError) as exc:
+                wandb_run.summary["storage/eval_hf_finalize_error_type"]=type(exc).__name__
+                print("GPU_FORENSIC_HF_FINALIZE_WARNING",type(exc).__name__,flush=True)
         # W&B global run STATE becomes finished only when all Train/Eval/Test
         # stages have completed. On failure it becomes failed/crashed instead.
         wandb_run.finish(exit_code=0 if fullflow_completed else 1)

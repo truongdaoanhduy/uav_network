@@ -12,8 +12,11 @@ from .telemetry import episode_telemetry, training_tradeoff_metrics
 from .storage_retention import CompressedDiagnosticArchive, upload_compressed_journals
 from .public_diagnostic_store import PublicHubDiagnosticUploader
 from .comparison_metrics import mission_score
+from .convergence_logging import EpisodeReturnWindow, CompletedMissionWindow
+from .training_mission_metrics import terminal_paper_metrics
+from .wandb_plot_filter import select_plot_metrics
 from .run_journal import RunJournal, select_evidence
-from .evidence import resource_snapshot
+from .evidence import resource_snapshot, json_safe, secret_values
 from ..environment.observations import OBSERVATION_VERSION, observation_version
 CPU_EPISODE_METRICS = ("evaluation/return", "evaluation/search_rate_percent",
                        "evaluation/delivery_rate_percent", "evaluation/success",
@@ -167,6 +170,9 @@ class OnlineTracker:
         self.compressed_journals = None
         self.public_diagnostics = None
         self.learning_phase = "initializing"
+        cohort_size=max(1,int(os.environ.get("UAV_TRAIN_EPISODE_RETURN_LOG_EVERY","64")))
+        self._episode_return_window=EpisodeReturnWindow(every_episodes=cohort_size)
+        self._mission_outcome_window=CompletedMissionWindow(every_episodes=cohort_size)
         run_id = os.environ.get("WANDB_RUN_ID") or uuid4().hex[:8]
         name = config.tracking.run_name
         if name == "auto":
@@ -359,6 +365,16 @@ class OnlineTracker:
             "completed_episodes": completed, "updates": learner.updates, "phase":self.learning_phase})
         self.run.log(values)
         self.next_progress = step + self.config.runtime.log_interval_steps
+    def _plot_log(self, values):
+        if os.environ.get("UAV_WANDB_PLOTS_ONLY") == "true":
+            values=select_plot_metrics(values)
+        if values:
+            self.run.log(values)
+
+    def step_reward(self, scalars):
+        """Real vector collection global_step, distinct from episode/index."""
+        self._plot_log(scalars)
+
     def learner(self, metrics, step):
         publish_overflow(self)
         values = {f"learner/{k}": v for k, v in learner_telemetry(metrics).items()}
@@ -406,6 +422,20 @@ class OnlineTracker:
                 error_type = candidate
         except (OSError, ValueError, TypeError):
             pass
+        # Persist a redacted crash record BEFORE flushing the HF archive.
+        # W&B may be inaccessible when a Kaggle kernel dies, so retain a
+        # trustworthy version of the failure in the immutable HF diagnostics.
+        try:
+            error=json.loads(Path(path).read_text())
+            safe=json_safe({"schema":1,"global_step":int(step),
+                "error_type":error_type,"traceback":error.get("traceback"),
+                "error_category":error.get("error_category"),
+                "root_cause_confirmed":error.get("root_cause_confirmed"),
+                "context":error.get("context",{})},secret_values(self.config))
+            with (self.output/"failure-events.jsonl").open("a") as journal:
+                journal.write(json.dumps(safe,allow_nan=False)+"\n")
+        except (OSError,ValueError,TypeError,AttributeError) as error:
+            if self.journal is not None:self.journal._warn(error)
         if self.journal is not None:
             self._record_event("failure", {**self.latest_evidence,"global_step":step,"phase":"failed", "error_type":error_type})
             self._publish_observability(final=True)
@@ -422,11 +452,33 @@ class OnlineTracker:
         if self.live_runtime is not None:
             self.live_runtime.record_episodes(int(record["episode"]))
         values = episode_metrics(record, self.config.world.num_uavs, self.config.motion_dim, self.config.world.motion_safety)
+        # Heartbeat-only probes may carry an episode count without a terminal
+        # mission record. Never fabricate scientific scores from such probes.
+        full_terminal=("global_step" in record and "return" in record)
+        if full_terminal:values.update(terminal_paper_metrics(record))
+        aggregated={}
+        returns=getattr(self,"_episode_return_window",None)
+        if returns is not None and full_terminal:
+            sample=returns.observe(episode=int(record["episode"]),global_step=int(record["global_step"]),
+                                   episode_return=float(record["return"]))
+            if sample is not None:aggregated.update(sample)
+        mission=getattr(self,"_mission_outcome_window",None)
+        if mission is not None and full_terminal:
+            sample=mission.observe(episode=int(record["episode"]),global_step=int(record["global_step"]),
+                                   metrics=values,reward_components=record.get("reward_components"),
+                                   targets_delivered=record.get("targets_delivered"))
+            if sample is not None:aggregated.update(sample)
+        if aggregated:self._plot_log(aggregated)
         self.latest_evidence.update(select_evidence(values))
         self.latest_evidence.update({"evidence/episode_global_step":record.get("global_step"),
                                      "evidence/episode_seed":record.get("seed"),
                                      "evidence/episode_number":record.get("episode")})
-        self.run.log(values)
+        if os.environ.get("UAV_WANDB_COMPACT_LOGS") == "true":
+            every=max(1,int(os.environ.get("UAV_WANDB_EPISODE_LOG_EVERY","1")))
+            episode=int(record["episode"])
+            if episode>1 and episode%every!=0:
+                return
+        self._plot_log(values)
 
     def checkpoint(self, path, progress, final=False, resumable=False):
         if not self.config.tracking.log_checkpoint:
@@ -521,6 +573,13 @@ class OnlineTracker:
         return reference
 
     def complete(self, result):
+        remaining={}
+        for window in (getattr(self,"_episode_return_window",None),
+                       getattr(self,"_mission_outcome_window",None)):
+            if window is not None:
+                values=window.flush()
+                if values is not None:remaining.update(values)
+        if remaining:self._plot_log(remaining)
         metrics = final_metrics(self.records) if self.records else {}
         completion = result.get("episode_budget_complete")
         session_status = ("episode_budget_complete" if completion is True else
@@ -536,11 +595,43 @@ class OnlineTracker:
         self.run.summary["checkpoint_selection"] = result.get("checkpoint_selection")
         if "reproducibility" in result:
             self.run.summary["reproducibility"] = result["reproducibility"]
-        artifact = self.checkpoint(result["checkpoint"], result, final=True)
+        # `UAV_TRAINING_ONLY` is phase 1 of the **same Kaggle session**:
+        # the deferred Actor archive is validated in phase 2 (Val100), then
+        # and ONLY then can a validation-best checkpoint be published.
+        # Historical V7 erroneously called _checkpoint(final=True) here,
+        # demanding `validation_best` before GPU evaluation had begun.
+        deferred_handoff = (os.environ.get("UAV_TRAINING_ONLY") == "true"
+                            and self.config.tracking.deferred_gpu_eval_enabled)
+        if deferred_handoff:
+            bank = result.get("deferred_gpu_evaluation")
+            if not isinstance(bank, dict):
+                raise ValueError("Deferred GPU validation requires an Actor snapshot archive")
+            archive, manifest_path = Path(bank.get("archive", "")), Path(bank.get("manifest", ""))
+            if not archive.is_file() or not manifest_path.is_file():
+                raise FileNotFoundError("Deferred Actor snapshot archive/manifest missing at training handoff")
+            manifest = json.loads(manifest_path.read_text())
+            count = manifest.get("count")
+            if (type(count) is not int or count < 1
+                    or manifest.get("collected") != count or manifest.get("pruned") != 0
+                    or manifest.get("keep_all_distinct_versions") is not True
+                    or bank.get("snapshot_count") != count):
+                raise ValueError("Incomplete deferred Actor snapshot archive at training handoff")
+            self.run.summary.update({
+                "training_completed_awaiting_best_actor":True,
+                "checkpoint_selection":{"kind":"pending_gpu_validation",
+                                        "reason":"Held-out GPU Val100 has not run"},
+                "fullflow/train_complete":completion is True,
+                "fullflow/status":"awaiting_gpu_validation",
+                "fullflow/phase":"train_complete_pending_gpu_validation",
+                "fullflow/deferred_actor_snapshots":count})
+            artifact = None
+        else:
+            artifact = self.checkpoint(result["checkpoint"], result, final=True)
         self._record_event("training_segment_complete", {**self.latest_evidence,"global_step":result["global_step"],
             "completed_episodes":result["episodes"], "episode_budget_complete":completion is True,
             "stop_reason":result.get("stop_reason","unknown")})
-        return {**metrics, **self.identity(), "checkpoint_artifact": artifact}
+        return {**metrics, **self.identity(), "checkpoint_artifact": artifact,
+                **({"training_completed_awaiting_best_actor":True} if deferred_handoff else {})}
 
     def close(self, failed=False):
         if not self.closed:

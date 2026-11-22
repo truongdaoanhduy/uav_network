@@ -41,7 +41,9 @@ def test_kaggle_ui_has_original_three_cell_layout_and_unique_source():
     assert 'ENABLE_HF_FORENSICS = True' in result.cells[1].source
     assert 'UAV_DIAGNOSTIC_STORE' in result.cells[2].source
     assert 'UAV_DIAGNOSTIC_HF_REPO' in result.cells[2].source
-    assert 'NOORACLE-V8' in result.cells[0].source
+    assert 'UAV_WANDB_PLOTS_ONLY' in result.cells[2].source
+    assert 'UAV_TRAIN_EPISODE_RETURN_LOG_EVERY' in result.cells[2].source
+    assert 'NOORACLE-V9' in result.cells[0].source
     # Kaggle Save Version enforces < 1,000,000 bytes of kernel source.
     # Verify *both* flattened Python and the serialized notebook file size.
     assert sum(len(c.source.encode('utf-8')) for c in result.cells if c.cell_type == 'code') < 1_000_000
@@ -90,7 +92,7 @@ def test_reference_style_ui_controls_drive_actual_nooracle_config():
     spec=context['SPEC']
     cfg=load_config(spec['config'],spec['overrides'])
     assert spec['kernel_ref']=='example/matd3-v7'
-    assert spec['runs']['matd3']['name'].startswith('MATD3-EVAL100-ACTORBN-PLAINCRITIC-NOORACLE-V8')
+    assert spec['runs']['matd3']['name'].startswith('MATD3-EVAL100-ACTORBN-PLAINCRITIC-NOORACLE-V9')
     assert cfg.runtime.num_envs==4096
     assert cfg.matd3.updates_per_step==4
     assert cfg.matd3.batch_size==8192

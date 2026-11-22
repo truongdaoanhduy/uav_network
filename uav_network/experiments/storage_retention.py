@@ -26,6 +26,7 @@ ARCHIVE_SOURCES = (
     "training-step-progress.jsonl",
     "training-step-optimizer.jsonl",
     "training-events.jsonl",
+    "failure-events.jsonl",  # sanitized traceback and failure context, not bare secrets
     "diagnostics.jsonl",
     "cohorts.jsonl",
     "episodes.jsonl",

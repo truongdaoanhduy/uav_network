@@ -87,3 +87,37 @@ def test_forensic_writes_disabled_by_default_to_protect_fast_training():
                 assert getattr(t,'public_diagnostics',None) is None
                 assert getattr(t,'compressed_journals',None) is None
             finally:t.close()
+
+
+def test_failure_trace_is_sanitized_and_uploaded_in_public_hf_forensic_archive():
+    """The historical V7 late ValueError must not live only in W&B Files."""
+    import json
+    import tarfile
+    with TemporaryDirectory() as root:
+        run=_FakeWandbRun()
+        sdk=SimpleNamespace(init=lambda **kw:run,Settings=lambda **kw:kw)
+        env={'WANDB_API_KEY':'fake-test','UAV_DIAGNOSTIC_STORE':'huggingface_public',
+             'UAV_FAST_TRAINING':'false','UAV_HF_VERIFY_PUBLIC_READBACK':'false'}
+        with patch.dict(sys.modules,{'wandb':sdk}),patch.dict(os.environ,env),\
+             patch('uav_network.experiments.tracking.PublicHubDiagnosticUploader',_FakeUploader):
+            tracker=OnlineTracker(_config(root),root)
+            error={'schema':2,'error_type':'ValueError',
+                   'traceback':'ValueError: Training-only requires a validated best checkpoint',
+                   'context':{'global_step':29368320,'episodes':20000}}
+            p=Path(root)/'failure.json'
+            p.write_text(json.dumps(error))
+            try:tracker.failure(p,29368320)
+            finally:tracker.close(failed=True)
+            archived=Path(root)/'failure-events.jsonl'
+            assert archived.is_file()
+            record=json.loads(archived.read_text().splitlines()[0])
+            assert record['error_type']=='ValueError'
+            assert record['context']['global_step']==29368320
+            assert 'Training-only requires' in record['traceback']
+            parts=sorted((Path(root)/'diagnostic-archives').glob('diagnostics-*.tar.gz'))
+            assert parts
+            members=set()
+            for part in parts:
+                with tarfile.open(part,'r:gz') as archive:
+                    members.update(archive.getnames())
+            assert 'failure-events.jsonl' in members
