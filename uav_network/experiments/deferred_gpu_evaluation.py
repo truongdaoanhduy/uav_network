@@ -606,7 +606,7 @@ def main(argv=None):
     p.add_argument("--folder", required=True, help="Directory containing manifest.json and snapshot *.pt")
     p.add_argument("--output", required=True, help="Directory for deterministic results")
     p.add_argument("--gpus", type=int, choices=(1,2), default=2)
-    p.add_argument("--checkpoint-assignment", choices=("strided","contiguous_batches"), default="strided")
+    p.add_argument("--checkpoint-assignment", choices=("strided","contiguous_batches","contiguous_adaptive"), default="strided")
     p.add_argument("--world-pool-size", type=int, default=0,
                    help="Opt-in reusable Warp worlds per GPU worker; 0=legacy evaluator")
     p.add_argument("--policies-per-batch", type=int, default=8,

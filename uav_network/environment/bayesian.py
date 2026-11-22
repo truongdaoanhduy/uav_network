@@ -57,6 +57,9 @@ def confirmation_shaping_altitude(sensor, max_altitude):
     """
     if sensor.confirmation_mode == "fine_altitude":
         return sensor.fine_altitude_m
+    if sensor.confirmation_mode == "posterior_only":
+        # No quality/altitude gate; no descending-to-LR-cutoff reward hint.
+        return float(max_altitude)
     height = min(float(max_altitude),float(sensor.altitude_anchors[-1]))
     cutoff = float(sensor.confirmation_min_likelihood_ratio)
     for lo,hi in zip(sensor.altitude_anchors[:-1],sensor.altitude_anchors[1:]):
@@ -74,6 +77,8 @@ def confirmation_allowed(sensor, altitude, positive_likelihood, false_likelihood
     """Permission to certify AFTER a real positive sample and posterior gate."""
     if sensor.confirmation_mode == "fine_altitude":
         return altitude <= sensor.fine_altitude_m
+    if sensor.confirmation_mode == "posterior_only":
+        return altitude > 0  # camera is inactive at z==0; no independent LR rule
     return positive_likelihood >= sensor.confirmation_min_likelihood_ratio*false_likelihood
 
 
@@ -94,8 +99,11 @@ def investigation_potential(env):
         peak_xy=np.array([(x0+px+.5)*width,(y0+py+.5)*width])
         max_distance=max(math.sqrt(2)*(radius+.5)*width,1e-6)
         proximity=float(np.clip(1-np.linalg.norm(peak_xy-pos[:2])/max_distance,0,1))
-        descent=float(np.clip((w.altitude_max_m-pos[2])/altitude_span,0,1))
-        total+=evidence*.5*(proximity+descent)
+        if s.confirmation_mode == "posterior_only":
+            total+=evidence*proximity  # no artificial descending reward for LR
+        else:
+            descent=float(np.clip((w.altitude_max_m-pos[2])/altitude_span,0,1))
+            total+=evidence*.5*(proximity+descent)
     return float(total/max(1,w.num_uavs))
 
 

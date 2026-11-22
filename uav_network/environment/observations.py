@@ -10,6 +10,8 @@ OBSERVATION_VERSION = 3
 def observation_version(config):
     if config.motion_dim == 3:
         if getattr(config.sensor, "report_cell_hypotheses", False):
+            if getattr(config.sensor, "confirmation_mode", "fine_altitude") == "posterior_only":
+                return 11  # No LR/50m gate; different Bayesian confirmation and reward MDP.
             if getattr(config.sensor, "confirmation_mode", "fine_altitude") == "likelihood_ratio":
                 return 10  # Strict obstacle visibility + LR MDP; reject pre-audit v9 Actors.
             return 8  # No-oracle GCS RF feature no longer reveals hidden 3D-LOS.

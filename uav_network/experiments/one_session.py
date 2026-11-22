@@ -11,6 +11,22 @@ import time
 from .deferred_gpu_evaluation import verify_manifest
 
 
+def select_training_snapshots_for_validation(spec,manifest,folder,train_folder):
+    """Opt-in full validation bank; never hide snapshots behind a shortlist.
+
+    Historical one-session calls preserve their metadata-only shortlist path.
+    Full MAP800 posterior-only experiments explicitly set validate_all_snapshots.
+    """
+    if spec.get("validate_all_snapshots",False):
+        return manifest,Path(folder),"all_collected_actor_snapshots"
+    from .session_shortlist import create_shortlist
+    shortlist_dir=Path(train_folder)/"deferred-gpu-eval-session-shortlist"
+    selected=create_shortlist(folder,shortlist_dir,
+        limit=int(spec.get("gpu_eval_candidate_limit",32)),
+        step_targets=spec.get("validation_step_targets"))
+    return selected,shortlist_dir,selected["shortlist_provenance"]["method"]
+
+
 def run(spec_file, *, policies_per_batch=2, final_test_batch_size=8,
         checkpoint_assignment="strided",
         eval_world_pool_size=0, max_eval_worlds_per_gpu=0,
@@ -56,14 +72,8 @@ def run(spec_file, *, policies_per_batch=2, final_test_batch_size=8,
             raise RuntimeError(f"Unmatched validation checkpoint grid: {observed}, expected {expected}")
         candidate_method = "fixed_environment_steps"
     else:
-        from .session_shortlist import create_shortlist
-        shortlist_dir = train_folder / "deferred-gpu-eval-session-shortlist"
-        step_targets = spec.get("validation_step_targets")
-        manifest = create_shortlist(
-            folder, shortlist_dir, limit=int(spec.get("gpu_eval_candidate_limit", 32)),
-            step_targets=step_targets)
-        folder = shortlist_dir
-        candidate_method = manifest["shortlist_provenance"]["method"]
+        manifest,folder,candidate_method=select_training_snapshots_for_validation(
+            spec,manifest,folder,train_folder)
     status = {
         "algorithm": algorithm,
         "training_requested_episodes": training["requested_episodes"],
@@ -273,7 +283,7 @@ def main():
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--policies-per-batch", type=int, default=2)
     parser.add_argument("--checkpoint-assignment",
-                        choices=("strided","contiguous_batches"), default="strided")
+                        choices=("strided","contiguous_batches","contiguous_adaptive"), default="strided")
     parser.add_argument("--test-batch-size", type=int, default=8)
     parser.add_argument("--eval-world-pool-size", type=int, default=0)
     parser.add_argument("--max-eval-worlds-per-gpu", type=int, default=0)

@@ -33,12 +33,21 @@ def plan_validation(checkpoints: int, episodes: int, capacity: int,
     if (not all(isinstance(x, int) for x in (checkpoints, gpu_index, gpu_count))
             or checkpoints < 0 or gpu_count < 1 or not 0 <= gpu_index < gpu_count):
         raise ValueError("Invalid checkpoint/GPU allocation")
-    if assignment not in {"strided", "contiguous_batches"}:
+    if assignment not in {"strided", "contiguous_batches", "contiguous_adaptive"}:
         raise ValueError("Invalid Eval checkpoint assignment")
     k = policies_per_validation_batch(capacity, episodes)
     if assignment == "strided":
         indices = tuple(range(gpu_index, checkpoints, gpu_count))
         selections = (indices[first:first+k] for first in range(0, len(indices), k))
+    elif assignment == "contiguous_adaptive" and 1 < checkpoints <= k*gpu_count:
+        # For shorter training runs, split a contiguous range per GPU so that
+        # 72 real checkpoints do not leave GPU1 completely idle. As soon as
+        # checkpoints exceed two full 81-policy batches, preserve the exact
+        # GPU0 CP1..81 / GPU1 CP82..162 historical ordering below.
+        first=(checkpoints*gpu_index+gpu_count-1)//gpu_count
+        last=(checkpoints*(gpu_index+1)+gpu_count-1)//gpu_count
+        indices=tuple(range(first,last))
+        selections=(indices[offset:offset+k] for offset in range(0,len(indices),k))
     else:
         # Entire contiguous K-checkpoint blocks are assigned GPU0, GPU1, GPU0...
         # This avoids splitting a checkpoint's 100 fixed-seed worlds across GPUs.

@@ -35,6 +35,8 @@ def confirmation_allowed(p:wp.ref[WorldParams],altitude:wp.float64,
                          positive_likelihood:wp.float64,false_likelihood:wp.float64):
     if p.confirmation_mode==0:
         return altitude<=p.fine_altitude
+    if p.confirmation_mode==2:
+        return altitude>wp.float64(0)  # posterior-only, NO LR or 50m gate
     return positive_likelihood>=p.confirmation_min_likelihood_ratio*false_likelihood
 
 
@@ -115,8 +117,11 @@ def investigation_potential(s:WorldState,p:WorldParams,e:int):
                 peak=wp.vec2d((wp.float64(best_gx)+wp.float64(.5))*p.cell_width,(wp.float64(best_gy)+wp.float64(.5))*p.cell_width)
                 max_distance=wp.max(wp.sqrt(wp.float64(2))*(wp.float64(radius)+wp.float64(.5))*p.cell_width,wp.float64(1e-6))
                 proximity=wp.clamp(wp.float64(1)-wp.length(peak-xy)/max_distance,wp.float64(0),wp.float64(1))
-                descent=wp.clamp((p.altitude_max-s.altitudes[e,i])/altitude_span,wp.float64(0),wp.float64(1))
-                total+=evidence*wp.float64(.5)*(proximity+descent)
+                if p.confirmation_mode==2:
+                    total+=evidence*proximity  # no fixed altitude incentive for posterior-only
+                else:
+                    descent=wp.clamp((p.altitude_max-s.altitudes[e,i])/altitude_span,wp.float64(0),wp.float64(1))
+                    total+=evidence*wp.float64(.5)*(proximity+descent)
     return total/wp.float64(p.n)
 
 

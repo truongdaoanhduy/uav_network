@@ -325,14 +325,14 @@ def params_from_config(config):
     p.cell_width, p.fov_tangent = c.grid_cell_m, np.tan(np.deg2rad(c.full_fov_deg/2))
     p.belief_prior, p.fine_altitude, p.confirmation_threshold = c.belief_prior, c.fine_altitude_m, c.confirmation_threshold
     from ..bayesian import confirmation_shaping_altitude
-    p.confirmation_mode = int(c.confirmation_mode == "likelihood_ratio")
+    p.confirmation_mode = {"fine_altitude":0,"likelihood_ratio":1,"posterior_only":2}[c.confirmation_mode]
     p.confirmation_min_likelihood_ratio = c.confirmation_min_likelihood_ratio
     p.confirmation_shaping_altitude = confirmation_shaping_altitude(c, w.altitude_max_m)
     p.verified_empty_belief, p.investigation_threshold = c.verified_empty_belief, r.investigation_belief_threshold
     p.sensor_anchors, p.sensor_pd, p.sensor_pf = wp.vec4d(*c.altitude_anchors), wp.vec4d(*c.pd), wp.vec4d(*c.pf)
     report_slots=max(64,4*w.num_targets) if c.report_cell_hypotheses and config.motion_dim==3 else w.num_targets
-    # In the quality-driven MDP, qualifying reports may arise above the
-    # historical fine altitude. Reserve enough candidates for any FoV, not
+    # In quality-gated OR posterior-only adaptive MDP, confirmations may arise
+    # above the historical fine altitude. Reserve candidates for ANY FoV, not
     # merely the fixed 50m footprint (error 116 otherwise).
     confirm_height = (w.altitude_max_m if p.confirmation_mode else c.fine_altitude_m)
     confirm_capacity=max(1,min(int(np.ceil(w.map_size_m/c.grid_cell_m))**2,
