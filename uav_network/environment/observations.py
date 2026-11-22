@@ -11,7 +11,7 @@ def observation_version(config):
     if config.motion_dim == 3:
         if getattr(config.sensor, "report_cell_hypotheses", False):
             if getattr(config.sensor, "confirmation_mode", "fine_altitude") == "likelihood_ratio":
-                return 9  # Different confirmation MDP, NEVER reuse old Actor weights.
+                return 10  # Strict obstacle visibility + LR MDP; reject pre-audit v9 Actors.
             return 8  # No-oracle GCS RF feature no longer reveals hidden 3D-LOS.
         return 5 if config.sensor.belief_coarse_cells else 4
     return OBSERVATION_VERSION

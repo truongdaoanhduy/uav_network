@@ -27,7 +27,7 @@ eligible = (Y=1) AND (posterior >= .99) AND (ed >= 4.0 * ef)
 
 The altitude cutoff is **emergent from Pd, Pf, q, and posterior**, not an explicit flight constraint. For well-covered cells this permits 75m and generally excludes 150m with current Pd/Pf; partially covered cells may need to descend farther. Actor may explore high and descend selectively toward promising local belief. `investigation_shaping` uses the quality-rule full-cell evidence horizon (~100m) rather than fixed fine-altitude50m. The ratio4 is a *proposed experiment hyperparameter*, not theoretically or empirically optimized.
 
-Historical mode `fine_altitude` remains the default and strictly preserves 18d/e079-style confirmation at `z<=50`. `observation_version=9` is assigned to adaptive NoOracle (historical NoOracle stays version8): **do not load/resume historical weights or compare science hashes as equal**.
+Historical mode `fine_altitude` remains the default and strictly preserves 18d/e079-style confirmation at `z<=50`. `observation_version=10` is assigned to adaptive NoOracle (historical NoOracle stays version8): **do not load/resume historical weights or compare science hashes as equal**.
 
 Experiment configs:
 - `configs/matd3-nooracle-adaptive-altitude-lr4-h256x512-20261123.yaml` — preserves historical H256x512, E4096/U4/B8192, replay1M/75%CPU, seed44, z<=150. Intended prospective training configuration only; **20k not launched**.
@@ -50,7 +50,7 @@ Experiment configs:
 - **Fixed actual evaluator bug**: `WarpMissionEnv` previously sent 6x140 cell-hypothesis slots to `MissionMetrics`, which expects 6x35 target-indexed flags, raising `ValueError: Target observations must have consistent shapes and monotonic discovery/delivery`. Host-only `truth_aligned_report_status` maps `cell_id` to true target cell for scoring and rendering, discards false cells for true-target counts, preserves raw slot arrays as `reports.slot_known`/`reports.slot_delivered`. The Actor and MAC code do not import this adapter.
 
 ### Actual training/eval/checkpoint
-- Passed short *real* CPU MATD3 train: 4 completed 12-step episodes with at least 9 Adam learner updates -> checkpoint with observation version9 -> load -> 2 held-out CPU evaluation episodes and plot/metrics. No target-oracle errors.
+- Passed short *real* CPU MATD3 train: 4 completed 12-step episodes with at least 9 Adam learner updates -> checkpoint with observation version10 -> load -> 2 held-out CPU evaluation episodes and plot/metrics. No target-oracle errors.
 - Loaded actual HF best.pt checkpoints from `duy95/uav-search-checkpoints` for legacy runs `18d756ef` and `e079eace`, and completed one entire held-out CPU episode for each. Historical 18d: 1,382 steps, 40.00% discovery, 37.14% delivery; NoOracle e079: 1,500 steps, 31.43% discovery, 20.00% delivery. These are **single-episode smoke tests, NOT official validation means**. Re-run future historical evaluations using their pinned historic source for publication-grade reproduction.
 - 2 seeded full-horizon NoOracle Warp CPU worlds at 1,500 steps completed without simulator capacity errors using hand-crafted exploratory altitude actions: seed44 discovered29/35, delivered16, false confirmed cells5; seed45 discovered23/35, delivered15, false confirmed cells3. These outcomes are **not results for a trained Actor**; they validate camera+radio+scoring flows and reaching 0m/150m altitude range.
 

@@ -28,6 +28,11 @@ class Action:
 
 class SwarmSearchEnv:
     def __init__(self, config):
+        # The reference/native environment discovers reports using true
+        # target indices (ReportStore.discover(i,t)). It is NOT a NoOracle
+        # implementation, regardless of runtime.environment_backend.
+        if config.motion_dim==3 and config.sensor.report_cell_hypotheses:
+            raise NotImplementedError("Native XYZ is not NoOracle: reports use true target IDs; use WarpMissionEnv/warp_packet")
         self.config = config.validate()
         self.network = None
         self._communication_trace = False

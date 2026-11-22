@@ -15,7 +15,7 @@ def test_adaptive_pilot_gpu_config_uses_original_h256x512_training_dimensions(tm
     assert c.world.altitude_max_m==150
     assert c.sensor.confirmation_mode=='likelihood_ratio'
     assert c.sensor.confirmation_threshold==.99
-    assert observation_version(c)==9
+    assert observation_version(c)==10
     assert c.tracking.enabled is False
 
 
@@ -27,7 +27,7 @@ def test_adaptive_cpu_bounded_actual_train_from_worker_and_mdp_hash(tmp_path,mon
     data=run(device='cpu',output=tmp_path/'pilot',envs=4,steps=16,
              batch=16,updates=1,horizon=12,learning_starts=16)
     assert data['kind']=='adaptive_altitude_real_matd3_bounded_no_20k'
-    assert data['observation_version']==9
+    assert data['observation_version']==10
     assert data['actual_learner_updates']>0
     assert data['completed_episodes']==4
     assert data['stop_reason']=='env_step_budget'

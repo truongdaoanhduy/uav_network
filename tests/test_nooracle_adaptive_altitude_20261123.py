@@ -29,7 +29,7 @@ def candidate_config():
 
 def test_sensor_quality_profile_gives_policy_a_real_altitude_tradeoff():
     c=candidate_config()
-    assert observation_version(c)==9
+    assert observation_version(c)==10
     pd_low,pf_low,r_low=sensor_profile(c.sensor,50)
     pd_mid,pf_mid,r_mid=sensor_profile(c.sensor,75)
     pd_high,pf_high,r_high=sensor_profile(c.sensor,150)
@@ -85,7 +85,7 @@ def test_adaptive_experiment_yaml_is_separate_new_mdp_and_shaping_does_not_force
     assert c.sensor.confirmation_mode=='likelihood_ratio'
     assert c.sensor.confirmation_min_likelihood_ratio==4
     assert confirmation_shaping_altitude(c.sensor,150)==pytest.approx(100)
-    assert observation_version(c)==9
+    assert observation_version(c)==10
     original=load_config(CONFIG)
     assert original.sensor.confirmation_mode=='fine_altitude'
     assert observation_version(original)==8
@@ -151,6 +151,9 @@ def test_science_changed_policy_does_not_share_observation_version_with_historic
     with pytest.raises(ValueError,match='observation semantics differ'):
         validate_observation_version(payload)
     payload['observation_version']=9
+    with pytest.raises(ValueError,match='observation semantics differ'):
+        validate_observation_version(payload)
+    payload['observation_version']=10
     validate_observation_version(payload)
 
 
@@ -189,7 +192,7 @@ def test_actual_cpu_matd3_train_evaluate_checkpoint_adaptive(tmp_path,monkeypatc
     model=Path(result['checkpoint'])
     assert model.is_file()
     saved=torch.load(model,map_location='cpu',weights_only=True)
-    assert saved['observation_version']==9
+    assert saved['observation_version']==10
     assert saved['config']['sensor']['confirmation_mode']=='likelihood_ratio'
     evaluation=evaluate(model,episodes=2,seed=9000044,output_dir=tmp_path/'eval')
     assert evaluation['episodes']==2
@@ -227,5 +230,5 @@ def test_new_h256x512_adaptive_config_matches_historical_training_dimensions():
     assert adapted.sensor.confirmation_threshold==.99
     assert adapted.world.altitude_max_m==150
     assert adapted.sensor.confirmation_mode=='likelihood_ratio'
-    assert observation_version(adapted)==9
+    assert observation_version(adapted)==10
     assert observation_version(historical)==8

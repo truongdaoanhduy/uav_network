@@ -83,14 +83,17 @@ def extras(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,i:int,offset:int):
     offset+=2
     radius=profile(p,s.altitudes[e,i])[2];pos=s.positions[e,i]
     active=p.energy_enabled==0 or s.battery[e,i]>wp.float64(0)
-    for o in range(p.obstacles_count):
-        v=s.obstacles[e,o];d=wp.length(wp.vec2d(v[0],v[1])-pos)
-        if active and d<=radius+v[2]:
-            rank=int(0)
-            for other in range(p.obstacles_count):
-                q=s.obstacles[e,other];od=wp.length(wp.vec2d(q[0],q[1])-pos)
-                if od<=radius+q[2] and (od<d or (od==d and other<o)):rank+=1
-            if rank<p.obstacle_slots:s.observation[e,i,offset+rank]=wp.float32(s.obstacle_heights[e,o]/p.altitude_max)
+    if p.confirmation_mode==0 or p.cell_reports==0 or p.occlusion==0:
+        # Adaptive strict-visible mode already writes matching heights in
+        # observe(); do not overwrite with an occluded obstacle's height.
+        for o in range(p.obstacles_count):
+            v=s.obstacles[e,o];d=wp.length(wp.vec2d(v[0],v[1])-pos)
+            if active and d<=radius+v[2]:
+                rank=int(0)
+                for other in range(p.obstacles_count):
+                    q=s.obstacles[e,other];od=wp.length(wp.vec2d(q[0],q[1])-pos)
+                    if od<=radius+q[2] and (od<d or (od==d and other<o)):rank+=1
+                if rank<p.obstacle_slots:s.observation[e,i,offset+rank]=wp.float32(s.obstacle_heights[e,o]/p.altitude_max)
     offset+=p.obstacle_slots
     slot=int(0)
     for j in range(p.n):

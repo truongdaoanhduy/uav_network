@@ -118,7 +118,8 @@ def world_info(s, p, index=0):
                      false_reports_delivered=hypothesis['false_reports_delivered'],
                      total_hypotheses=hypothesis['total_hypotheses'],
                      report_identity='observed_cell_id',
-                     confirmation_source='posterior_only_no_truth_filter')
+                     confirmation_source=('posterior_plus_likelihood_ratio_no_truth_filter'
+                                          if p.confirmation_mode!=0 else 'posterior_only_no_truth_filter'))
     return {
         **extra,
         "generation_fallback": bool(row(s.generation_fallback,index)),

@@ -64,6 +64,34 @@ def cylinder_hit(a:wp.vec3d,b:wp.vec3d,o:wp.vec4d,margin:wp.float64):
 
 
 @wp.func
+def camera_sees_obstacle(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,
+                         start:wp.vec3d,candidate:int):
+    """Conservative camera LOS to the candidate cylinder's near-side body.
+
+    This is a sensor-only geometry read; never expose another cylinder
+    behind a taller foreground cylinder via perfect obstacle coordinates.
+    Do not test the candidate cylinder against itself.
+    """
+    item=s.obstacles[e,candidate]
+    horizontal=wp.vec2d(item[0]-start[0],item[1]-start[1])
+    norm=wp.length(horizontal)
+    xy=wp.vec2d(item[0],item[1])
+    if norm>wp.float64(1e-8):
+        xy=xy-horizontal*(wp.min(item[2]/norm,wp.float64(1)))
+    # Use an observable point on the near cylindrical face. This is a
+    # conservative downward-facing sensor approximation, not lidar.
+    height=wp.min(s.obstacle_heights[e,candidate],start[2]*wp.float64(.5))
+    end=wp.vec3d(xy[0],xy[1],height)
+    for obstacle in range(p.obstacles_count):
+        if obstacle!=candidate:
+            other=s.obstacles[e,obstacle]
+            if cylinder_hit(start,end,wp.vec4d(other[0],other[1],other[2],
+                                            s.obstacle_heights[e,obstacle]),wp.float64(0)):
+                return False
+    return True
+
+
+@wp.func
 def camera_clear(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,a:wp.vec3d,xy:wp.vec2d):
     b=wp.vec3d(xy[0],xy[1],0.0);clear=bool(True)
     for o in range(p.obstacles_count):

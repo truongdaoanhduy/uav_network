@@ -72,5 +72,5 @@ def test_actual_embedded_kaggle_source_unpack_and_real_cpu_train(tmp_path):
     a=rows[0]
     assert a['transitions']==64 and a['completed_episodes']==4
     assert a['actual_learner_updates']>0
-    assert a['observation_version']==9 and a['completed_20k'] is False
+    assert a['observation_version']==10 and a['completed_20k'] is False
     assert (tmp_path/'pilot_out'/'adaptive_pilot_report.json').is_file()

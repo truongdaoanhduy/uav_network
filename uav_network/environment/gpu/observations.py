@@ -4,7 +4,7 @@ import warp as wp
 from .state import WorldParams, WorldState
 from .xyz_observations import candidates, extras, centralized_extras
 from .cell_report_state import write_cell_report_state
-from .xyz_geometry import range_distance
+from .xyz_geometry import range_distance, position3, camera_sees_obstacle
 from .bayesian import profile
 from ...communication.gpu.phy import xy, nominal_required_power
 from ...communication.gpu.power import power_fraction
@@ -136,23 +136,62 @@ def observe(s: WorldState, p: WorldParams):
     footprint = p.footprint
     if p.xyz != 0:
         footprint = profile(p,s.altitudes[e,i])[2]
-    for o in range(p.obstacles_count):
-        circle = s.obstacles[e, o]
-        distance = wp.length(wp.vec2d(circle[0], circle[1]) - position)
-        if active and distance <= footprint + circle[2]:
-            rank = int(0)
-            for other in range(p.obstacles_count):
-                other_circle = s.obstacles[e, other]
-                other_distance = wp.length(wp.vec2d(other_circle[0], other_circle[1]) - position)
-                if other_distance <= footprint + other_circle[2]:
-                    if other_distance < distance or (other_distance == distance and other < o):
-                        rank = rank + 1
-            if rank < p.obstacle_slots:
-                relative = (wp.vec2d(circle[0], circle[1]) - position) / p.map_size
-                s.observation[e, i, offset + 4 * rank] = wp.float32(relative[0])
-                s.observation[e, i, offset + 4 * rank + 1] = wp.float32(relative[1])
-                s.observation[e, i, offset + 4 * rank + 2] = wp.float32(circle[2] / p.map_size)
-                s.observation[e, i, offset + 4 * rank + 3] = wp.float32(1.0)
+    if p.confirmation_mode!=0 and p.cell_reports!=0 and p.occlusion!=0:
+        # Strict adaptive NoOracle mode: choose the nearest 3 camera-visible
+        # obstacles, never objects occluded by another cylinder. Insertion
+        # selection runs the costly LOS check once per candidate (O(O^2)),
+        # not once per ranked competitor (O(O^3)).
+        best0=int(-1);best1=int(-1);best2=int(-1)
+        d0=wp.float64(1e100);d1=wp.float64(1e100);d2=wp.float64(1e100)
+        start=position3(s,e,i)
+        for o in range(p.obstacles_count):
+            circle=s.obstacles[e,o]
+            distance=wp.length(wp.vec2d(circle[0],circle[1])-position)
+            if active and start[2]>wp.float64(0) and distance<=footprint+circle[2] and camera_sees_obstacle(s,p,e,start,o):
+                # Obstacles are visited in index order; a strict '<' keeps
+                # deterministic stable tie-breaking by original index.
+                if distance<d0:
+                    d2=d1;best2=best1
+                    d1=d0;best1=best0
+                    d0=distance;best0=o
+                elif distance<d1:
+                    d2=d1;best2=best1
+                    d1=distance;best1=o
+                elif distance<d2:
+                    d2=distance;best2=o
+        height_offset=offset+4*p.obstacle_slots+6*(p.n-1)+p.coverage_grid_cells*p.coverage_grid_cells+2
+        if p.link_state_observation!=0:height_offset+=3*p.n
+        for rank in range(p.obstacle_slots):
+            selected=best0
+            if rank==1:selected=best1
+            if rank==2:selected=best2
+            if selected>=0:
+                circle=s.obstacles[e,selected]
+                relative=(wp.vec2d(circle[0],circle[1])-position)/p.map_size
+                s.observation[e,i,offset+4*rank]=wp.float32(relative[0])
+                s.observation[e,i,offset+4*rank+1]=wp.float32(relative[1])
+                s.observation[e,i,offset+4*rank+2]=wp.float32(circle[2]/p.map_size)
+                s.observation[e,i,offset+4*rank+3]=wp.float32(1)
+                s.observation[e,i,height_offset+rank]=wp.float32(s.obstacle_heights[e,selected]/p.altitude_max)
+    else:
+        # Source-compatible historical behavior retained unchanged.
+        for o in range(p.obstacles_count):
+            circle = s.obstacles[e, o]
+            distance = wp.length(wp.vec2d(circle[0], circle[1]) - position)
+            if active and distance <= footprint + circle[2]:
+                rank = int(0)
+                for other in range(p.obstacles_count):
+                    other_circle = s.obstacles[e, other]
+                    other_distance = wp.length(wp.vec2d(other_circle[0], other_circle[1]) - position)
+                    if other_distance <= footprint + other_circle[2]:
+                        if other_distance < distance or (other_distance == distance and other < o):
+                            rank = rank + 1
+                if rank < p.obstacle_slots:
+                    relative = (wp.vec2d(circle[0], circle[1]) - position) / p.map_size
+                    s.observation[e, i, offset + 4 * rank] = wp.float32(relative[0])
+                    s.observation[e, i, offset + 4 * rank + 1] = wp.float32(relative[1])
+                    s.observation[e, i, offset + 4 * rank + 2] = wp.float32(circle[2] / p.map_size)
+                    s.observation[e, i, offset + 4 * rank + 3] = wp.float32(1.0)
     offset = offset + 4 * p.obstacle_slots
     slot = int(0)
     for j in range(p.n):

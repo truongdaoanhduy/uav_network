@@ -56,7 +56,7 @@ def make_config(*,device,output,envs,steps,batch,updates,horizon,learning_starts
     assert c.sensor.confirmation_min_likelihood_ratio==4.0
     assert c.matd3.hidden_sizes==[256,512]
     assert c.runtime.replay_cpu_fraction==.75
-    assert observation_version(c)==9
+    assert observation_version(c)==10
     assert c.runtime.deterministic
     return c
 
@@ -99,7 +99,7 @@ def run(*,device,output,envs,steps,batch,updates,horizon,learning_starts):
             or summary['episode_budget_complete']):
         raise RuntimeError('Adaptive pilot training did not stop at hard capped environment budget')
     artifact=torch.load(summary['checkpoint'],map_location='cpu',weights_only=True)
-    if artifact['observation_version']!=9:
+    if artifact['observation_version']!=10:
         raise RuntimeError('Adaptive checkpoint schema mismatch')
     digest=hashlib.sha256()
     for name,tensor in sorted(artifact['model'].items()):

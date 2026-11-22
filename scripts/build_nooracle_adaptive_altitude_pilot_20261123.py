@@ -19,6 +19,12 @@ OVERLAY_FILES=(
     'uav_network/environment/gpu/bayesian.py',
     'uav_network/environment/gpu/state.py',
     'uav_network/environment/gpu/vector.py',
+    'uav_network/environment/gpu/xyz_geometry.py',
+    'uav_network/environment/gpu/observations.py',
+    'uav_network/environment/gpu/xyz_observations.py',
+    'uav_network/communication/gpu/metrics.py',
+    'uav_network/experiments/rendering.py',
+    'uav_network/environment/env.py',
     'uav_network/environment/observations.py',
     'uav_network/environment/gpu/evaluation_truth.py',
     'uav_network/algorithms/hybrid_replay.py',
@@ -65,7 +71,7 @@ def build_notebook():
     source_sha=hashlib.sha256(payload).hexdigest()
     files_sha={k:hashlib.sha256(v).hexdigest() for k,v in files.items()}
     token=base64.b85encode(payload).decode()
-    intro='''# NoOracle V9 — Adaptive altitude likelihood-ratio MATD3 scientific CUDA smoke
+    intro='''# NoOracle — Adaptive altitude LR + strict visibility v10 CUDA smoke
 
 **Different MDP from historical 18d756ef/e079eace and CT095.** UAV flight range remains 0–150 m. The camera footprint grows with altitude, but positive evidence decreases (Pd/Pf). A true positive sensor sample and Bayesian posterior >=0.99 plus E[yes|occupied]/E[yes|empty]>=4 permit confirmation without fixed 50m cut-off. All report content remains NoOracle cell IDs.
 
@@ -141,7 +147,7 @@ assert result['transitions']==ENVS*VECTOR_STEPS
 assert result['actual_learner_updates']>0
 assert result['stop_reason']=='env_step_budget'
 assert result['completed_20k'] is False
-assert result['observation_version']==9
+assert result['observation_version']==10
 assert result['gpu_science_convergence_unverified'] is True
 final=Path('/kaggle/working/nooracle_adaptive_altitude_gpu_pilot.json')
 final.write_text(json.dumps(result,indent=2,allow_nan=False))

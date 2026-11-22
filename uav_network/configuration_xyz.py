@@ -39,6 +39,9 @@ def validate_xyz(config):
         raise ValueError("motion_dimensions must be 2 or 3")
     if s.model not in ("exact","bayesian") or (w.motion_dimensions==3)!=(s.model=="bayesian"):
         raise ValueError("XYZ motion requires Bayesian sensing; legacy XY uses exact sensing")
+    if s.report_cell_hypotheses and config.runtime.environment_backend != "warp_packet":
+        # Native reports are still indexed by *true target IDs*: not NoOracle.
+        raise ValueError("NoOracle cell-report mode requires warp_packet; native backend leaks target IDs")
     numbers = [w.altitude_min_m,w.altitude_max_m,w.obstacle_height_min_m,
                w.obstacle_height_max_m,s.grid_cell_m,s.belief_prior,
                s.confirmation_threshold,s.fine_altitude_m,s.verified_empty_belief,
@@ -63,6 +66,8 @@ def validate_xyz(config):
             raise ValueError("Likelihood-ratio confirmation requires 3D NoOracle cell reports")
         if any(a < b for a,b in zip(s.pd,s.pd[1:])) or any(a > b for a,b in zip(s.pf,s.pf[1:])):
             raise ValueError("Likelihood-ratio altitude policy requires nonincreasing Pd and nondecreasing Pf")
+        if s.obstacle_occlusion and s.visible_obstacle_slots != 3:
+            raise ValueError("Strict NoOracle obstacle LOS currently requires exactly 3 visible_obstacle_slots")
     if w.motion_dimensions==3 and not (w.altitude_min_m<=s.fine_altitude_m<=w.altitude_max_m
             and w.altitude_min_m<=s.altitude_m<=w.altitude_max_m):
         raise ValueError("Initial/fine altitude outside flight bounds")

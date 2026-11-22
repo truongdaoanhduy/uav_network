@@ -362,7 +362,10 @@ class WarpMissionEnv:
             self._communication_events.append({
                 "event": "report_received", "time_s": float(times[i]/1e6),
                 "source": int(sources[i]), "destination": int(destinations[i]),
-                "target": int(report[0]), "origin": int(report[1]),
+                "target": int(report[0]),
+                "report_identity": ("observed_cell_id" if self.config.sensor.report_cell_hypotheses
+                                    else "true_target_id"),
+                "origin": int(report[1]),
                 "created_s": float(report[2]), "hops": int(report[3]),
                 "power_w": float(report[4]), "power_scope": "last_fragment",
                 "source_xy": report[5:7].tolist(), "destination_xy": report[7:9].tolist()})

@@ -56,7 +56,9 @@ def _draw_communication(ax, events, now, num_uavs, window_s=COMMUNICATION_WINDOW
                     arrowprops=dict(arrowstyle="-|>", color=color, lw=2, mutation_scale=13),
                     zorder=6)
         midpoint = (np.asarray(source) + np.asarray(destination)) / 2
-        ax.text(*midpoint, f"T{event['target']} {event['power_w']:.2f} W",
+        report_name=(f"Cell {event['target']}" if event.get("report_identity")=="observed_cell_id"
+                     else f"T{event['target']}")
+        ax.text(*midpoint, f"{report_name} {event['power_w']:.2f} W",
                 fontsize=7, color=color, ha="center", zorder=7,
                 bbox=dict(facecolor="white", alpha=.85, edgecolor="none", pad=1))
     return recent
