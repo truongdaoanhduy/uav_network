@@ -162,6 +162,7 @@ class OnlineTracker:
         self.last_warning_count = 0
         self.latest_evidence = {}
         self.journal = None
+        self.live_runtime = None
         self.learning_phase = "initializing"
         run_id = os.environ.get("WANDB_RUN_ID") or uuid4().hex[:8]
         name = config.tracking.run_name
@@ -247,6 +248,16 @@ class OnlineTracker:
                 self.run.define_metric(metric, step_metric="evaluation/episodes_completed", step_sync=True)
             (self.output / "wandb_run.json").write_text(json.dumps(self.identity(), indent=2))
             print(f"W&B Personal Workspace: {self.identity()['wandb_workspace_url']}", flush=True)
+            # Preserve the original 18d756ef Runs-table Runtime/Episodes cells
+            # during live training, including the initial 0/20000 window.
+            # The already-tested heartbeat writes SUMMARY ONLY every 30s;
+            # it never changes the learner, its RNG, or W&B history step.
+            from .live_runtime_heartbeat import LiveRuntimeHeartbeat
+            self.live_runtime = LiveRuntimeHeartbeat(
+                self.run, started=self.started, output=self.output, interval=30,
+                initial_episodes=int(initial.get("episodes", 0)),
+                target_episodes=int(config.runtime.episodes))
+            self.live_runtime.start()
         except BaseException:
             self.close(failed=True)
             raise
@@ -305,6 +316,8 @@ class OnlineTracker:
                     "progress/episode_step_max": int(lengths.max()),
                     "progress/episode_progress_percent_mean": mean_step / self.config.world.max_steps * 100,
                 }
+        if self.live_runtime is not None:
+            self.live_runtime.record_episodes(completed)
         values = {"global_step": step, "train/episodes_completed": completed,
                   "train/updates": learner.updates, "train/replay_size": replay_size,
                   "train/joint_transitions_per_s": (step - self.initial_step) / max(time.perf_counter() - self.started, 1e-9),
@@ -381,6 +394,8 @@ class OnlineTracker:
 
     def episode(self, record):
         self.records.append(record)
+        if self.live_runtime is not None:
+            self.live_runtime.record_episodes(int(record["episode"]))
         values = episode_metrics(record, self.config.world.num_uavs, self.config.motion_dim, self.config.world.motion_safety)
         self.latest_evidence.update(select_evidence(values))
         self.latest_evidence.update({"evidence/episode_global_step":record.get("global_step"),
@@ -509,6 +524,8 @@ class OnlineTracker:
                 self._record_event("closed", {**self.latest_evidence,"phase":"failed" if failed else "closed",
                     "elapsed_seconds":time.perf_counter()-self.started})
                 self._publish_observability(final=True)
+            if self.live_runtime is not None:
+                self.live_runtime.stop(failed=failed)
             self.run.summary.update({"run_ended_at_utc": datetime.now(timezone.utc).isoformat(),
                                      "run_elapsed_seconds": time.perf_counter() - self.started})
             self.run.finish(exit_code=1 if failed else 0)
