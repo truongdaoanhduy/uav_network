@@ -163,7 +163,9 @@ class SwarmSearchEnv:
         self.velocities[~self.active] = 0
         self.reports.expire(self.time_s)
         r = self.config.reward
-        communication_efficiency = (comm_energy / report_reference_tx_energy_j(self.config.network)
+        communication_efficiency = (comm_energy / report_reference_tx_energy_j(
+                    self.config.network,reference_power_w=(
+                        self.config.reward.communication_reference_tx_power_w or None))
                                     if comm_energy else 0.0)
         shield_correction = float(motion_details.get("shield_correction", 0.0))
         unsafe_action = float(motion_details.get("unsafe_action_step", 0.0))

@@ -36,12 +36,16 @@ def add_sample(stats, index, value):
     row[1] += value
 
 
-def network_diagnostics(counts, stats, power_histogram, hops):
+def network_diagnostics(counts, stats, power_histogram, hops, *, tx_power_max_w=None):
     result = dict(zip(COUNTERS, map(int, counts)))
     for name, (count, total, low, high) in zip(STATS, stats):
         result[name] = dict(count=int(count), sum=float(total),
                             mean=float(total / count) if count else None,
                             min=float(low) if count else None, max=float(high) if count else None)
+    if tx_power_max_w is not None and tx_power_max_w > 0.5:
+        result["tx_power_histogram_edges_w"] = [0.01, 0.1, 0.5, 1.0, 3.0]
+    elif tx_power_max_w is not None:
+        result["tx_power_histogram_edges_w"] = list(POWER_EDGES)
     result["data_tx_power_histogram"] = list(map(int, power_histogram[0]))
     result["ack_tx_power_histogram"] = list(map(int, power_histogram[1]))
     result["delivery_hop_histogram"] = list(map(int, hops))

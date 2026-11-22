@@ -110,8 +110,16 @@ def nominal_required_power_w(source_xy, destination_xy, obstacles, network_confi
                             network_config.obstacle_extra_loss_db)
 
 
-def report_reference_tx_energy_j(network_config) -> float:
-    """One complete DATA report emitted once at Pmax; excludes ACKs/retries."""
+def report_reference_tx_energy_j(network_config, *, reference_power_w=None) -> float:
+    """One DATA report at a stable reference TX W; default is legacy Pmax.
+
+    A fixed reference is essential when sweeping the Actor's hardware power cap:
+    otherwise its identical RF Joules incur different RL reward penalties.
+    """
+    chosen = (float(network_config.tx_power_max_w) if reference_power_w is None
+              else float(reference_power_w))
+    if not math.isfinite(chosen) or chosen <= 0:
+        raise ValueError("Reference TX power must be finite and strictly positive")
     remaining = int(network_config.report_bytes)
     total_bits = 0.0
     payload = int(network_config.payload_bytes)
@@ -122,7 +130,7 @@ def report_reference_tx_energy_j(network_config) -> float:
     airtime = total_bits / float(network_config.bit_rate_bps)
     pa_efficiency = float(getattr(network_config, "pa_efficiency", 1.0))
     circuit = float(getattr(network_config, "tx_circuit_power_w", 0.0))
-    return airtime * (circuit + float(network_config.tx_power_max_w) / pa_efficiency)
+    return airtime * (circuit + chosen / pa_efficiency)
 
 
 def link_budget_power_w(required_w: float, network_config) -> float:

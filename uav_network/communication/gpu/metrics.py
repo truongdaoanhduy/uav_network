@@ -54,7 +54,8 @@ def network_info(s, p, index=0):
     elapsed = float(row(s.packet_time,index))/1e6
     return {
         "diagnostics": network_diagnostics(row(s.diagnostic_counts,index), row(s.diagnostic_stats,index),
-                                            row(s.power_histogram,index), row(s.delivery_hop_histogram,index)),
+                                            row(s.power_histogram,index), row(s.delivery_hop_histogram,index),
+                                            tx_power_max_w=float(p.tx_power_max)),
         "enabled": bool(p.network_enabled), "backend": "warp_packet", "upstream_revision": REVISION,
         "selection_counts": dict(zip(("selected","accepted","receiver_rejected",
                                       "out_of_range_or_inactive","no_buffer"),map(int,selection))),

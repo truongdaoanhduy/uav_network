@@ -101,16 +101,21 @@ def emission(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, packet: int,
     s.diagnostic_counts[e,count] += wp.int64(1)
     sample(s,e,stat,power)
     bin_index = int(0)
-    if power >= wp.float64(0.1):
-        bin_index += 1
-    if power >= wp.float64(0.2):
-        bin_index += 1
-    if power >= wp.float64(0.3):
-        bin_index += 1
-    if power >= wp.float64(0.4):
-        bin_index += 1
-    if power >= wp.float64(0.5):
-        bin_index += 1
+    if p.tx_power_max > wp.float64(0.5):
+        # New high-power ablations: do NOT collapse 0.5..Pmax into one bucket.
+        # All boundaries are in Watts, paired with host diagnostics metadata.
+        if power >= wp.float64(0.01): bin_index += 1
+        if power >= wp.float64(0.1): bin_index += 1
+        if power >= wp.float64(0.5): bin_index += 1
+        if power >= wp.float64(1.0): bin_index += 1
+        if power >= wp.float64(3.0): bin_index += 1
+    else:
+        # Historical 0.4W runs retain their exact six-bin semantics.
+        if power >= wp.float64(0.1): bin_index += 1
+        if power >= wp.float64(0.2): bin_index += 1
+        if power >= wp.float64(0.3): bin_index += 1
+        if power >= wp.float64(0.4): bin_index += 1
+        if power >= wp.float64(0.5): bin_index += 1
     s.power_histogram[e,kind,bin_index] += wp.int64(1)
     if kind == 0:
         if s.pkt_attempt[e,packet] > 1:

@@ -82,13 +82,15 @@ class ForensicTransitionRecorder:
             "report_present", "report_origin", "report_hops", "report_created",
             "sensor_counts", "report_counts", "packet_counts", "diagnostic_counts",
             "diagnostic_stats", "selection_counts", "flight_energy",
-            "communication_energy", "power_histogram", "motion_counts",
+            "communication_energy", "tx_energy", "rx_energy", "power_histogram", "motion_counts",
             "action_counts", "motion_flags", "xyz_work", "reward",
             "reward_components", "gcs", "targets", "obstacles",
         )
         if deep:
             names += ("belief", "visited", "positive", "pkt_status",
-                      "pkt_target", "pkt_attempt", "pkt_source", "pkt_destination")
+                      "pkt_target", "pkt_attempt", "pkt_source", "pkt_destination",
+                      "pkt_power", "pkt_cell", "pkt_fragment", "tx_power", "tx_source",
+                      "tx_destination", "tx_receive")
         result = {}
         for name in names:
             field = getattr(state, name, None)

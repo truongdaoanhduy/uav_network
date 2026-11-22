@@ -105,6 +105,8 @@ class RewardConfig:
     communication_energy: float = 0.01
     propulsion_energy_per_kj: float = 0.01
     communication_efficiency: float = 0.0
+    # 0 = historical Pmax-based RF reward reference; >0 fixes cost across TX ablations.
+    communication_reference_tx_power_w: float = 0.0
     shield_correction: float = 0.0
     shield_intervention: float = 0.0
     unsafe_action: float = 0.0
@@ -325,6 +327,8 @@ class Config:
             raise ValueError("network.power_control must be learned or link_budget")
         if not 0 <= n.link_budget_margin_db <= 30:
             raise ValueError("network.link_budget_margin_db must be in [0,30]")
+        if self.reward.communication_reference_tx_power_w < 0:
+            raise ValueError("reward.communication_reference_tx_power_w must be nonnegative")
         if n.tx_power_mapping not in {"linear", "log"}:
             raise ValueError("network.tx_power_mapping must be linear or log")
         if type(n.power_limited_admission) is not bool or type(n.link_state_observation) is not bool:

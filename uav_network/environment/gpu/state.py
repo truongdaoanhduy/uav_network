@@ -389,7 +389,8 @@ def params_from_config(config):
                   reward_unsafe_action=r.unsafe_action,
                   reward_information_gain=r.information_gain, reward_investigation=r.investigation_shaping,
                   reward_shaping_gamma=r.shaping_gamma,
-                  report_reference_tx_energy=report_reference_tx_energy_j(n))
+                  report_reference_tx_energy=report_reference_tx_energy_j(
+                      n,reference_power_w=r.communication_reference_tx_power_w or None))
     gcs = w.gcs_position_m or [w.map_size_m/2, 0.]
     ack_timeout = 240/n.bit_rate_bps*1e6+60
     if n.propagation_delay_enabled:
