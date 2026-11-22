@@ -423,12 +423,9 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False, ce
         setattr(s, "fallback_" + name, wp.array(values, dtype=dtype, device=device))
     shapes = {
         "coverage": ((e,n,config.sensor.coverage_grid_cells**2), wp.int32),
-        "generation_fallback": ((e,), wp.int32),
-        "generation_attempts": ((e,), wp.int32),
-        "diagnostic_counts": ((e,len(COUNTERS)), wp.int64),
-        "diagnostic_stats": ((e,len(STATS),4), wp.float64),
-        "power_histogram": ((e,2,6), wp.int64),
-        "delivery_hop_histogram": ((e,8), wp.int64),
+        "generation_fallback": ((e,), wp.int32), "generation_attempts": ((e,), wp.int32),
+        "diagnostic_counts": ((e,len(COUNTERS)), wp.int64), "diagnostic_stats": ((e,len(STATS),4), wp.float64),
+        "power_histogram": ((e,2,6), wp.int64), "delivery_hop_histogram": ((e,8), wp.int64),
         "first_discovery": ((e,t), wp.float64), "first_delivery": ((e,t), wp.float64),
         "report_cell": ((e,slots),wp.int32), "confirmed_count": ((e,n),wp.int32),
         "confirmed_candidates": ((e,n,p.confirm_capacity),wp.int32),
