@@ -280,6 +280,7 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
         selected = int(-1)
         can_forward = bool(False)
         for t in range(p.report_slots):
+            if p.cell_reports != 0 and s.report_cell[e,t] < 0: break
             # In no-beacon cell-report mode, a source cannot know a peer's
             # position, power state, or available buffer BEFORE the RF exchange.
             # Do not prevent a TX attempt using hidden remote simulator state.

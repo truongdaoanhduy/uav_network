@@ -18,6 +18,7 @@ def active(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, node: int) -> 
 def bytes_used(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, node: int) -> int:
     count = int(0)
     for t in range(p.report_slots):
+        if p.cell_reports != 0 and s.report_cell[e,t] < 0: break
         count += s.report_present[e,node,t]
     return count*p.report_bytes
 
@@ -44,6 +45,7 @@ def discard_sessions(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, sour
 def expire(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, now: wp.float64):
     for i in range(p.n):
         for t in range(p.report_slots):
+            if p.cell_reports != 0 and s.report_cell[e,t] < 0: break
             if s.report_present[e,i,t] != 0 and now-s.report_created[e,i,t] >= p.report_ttl:
                 s.report_present[e,i,t] = 0
                 s.recovery[e,i,t] = 1
@@ -192,6 +194,7 @@ def sense_reports_at(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int):
     now = wp.float64(s.steps[e])*p.dt
     for i in range(p.n):
         for t in range(p.report_slots):
+            if p.cell_reports != 0 and s.report_cell[e,t] < 0: break
             fresh = s.known[e,i,t] == 0
             recover = p.recovery_enabled != 0 and s.recovery[e,i,t] != 0
             if active(s,p,e,i) and s.visible[e,i,t] != 0 and (fresh or recover):

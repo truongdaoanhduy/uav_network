@@ -44,6 +44,7 @@ def record_action(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, source:
                     if (range_distance(s,p,e,source,receiver) <= reach
                         and link_power_feasible(s,p,e,source,receiver)):
                         for target in range(p.report_slots):
+                            if p.cell_reports != 0 and s.report_cell[e,target] < 0: break
                             if (s.report_present[e,source,target] != 0
                                 and now/wp.float64(1e6)-s.report_created[e,source,target] < p.report_ttl
                                 and can_receive(s,p,e,receiver,target)):

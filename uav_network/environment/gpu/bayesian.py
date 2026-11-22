@@ -213,10 +213,17 @@ def confirm_observed_cells(s:WorldState,p:WorldParams,mask:wp.array(dtype=wp.int
             cell=s.confirmed_candidates[e,i,idx]
             selected=int(-1)
             free=int(-1)
+            # Allocator appends at the first free slot and never deletes an
+            # individual cell until a whole-world reset. The first free slot
+            # therefore terminates the allocated prefix.
             for slot in range(p.report_slots):
                 existing=s.report_cell[e,slot]
-                if existing==cell:selected=slot
-                if existing<0 and free<0:free=slot
+                if existing==cell:
+                    selected=slot
+                    break
+                if existing<0:
+                    free=slot
+                    break
             if selected<0:
                 selected=free
                 if selected>=0:s.report_cell[e,selected]=cell
