@@ -72,8 +72,9 @@ def test_embedded_source_is_sha_verified_no_password_and_correct_new_science():
     assert hashlib.sha256(compressed).hexdigest()==n.metadata['source_sha256']
     with tarfile.open(fileobj=io.BytesIO(compressed),mode='r:gz') as tar:
         files={f.name:tar.extractfile(f).read() for f in tar if f.isfile()}
-    assert 280<=len(files)<=320, 'Bundle only runtime sources, not test suites or old experiments'
-    assert not any(n.startswith('tests/') for n in files)
+    assert 300<=len(files)<=335, 'Bundle runtime sources and mandatory cloud preflight tests only'
+    from scripts.build_nooracle_map800_posterioronly_tx08_fullflow_ui_20261123 import required_runtime_preflight_test_sources
+    assert {n for n in files if n.startswith('tests/')}==required_runtime_preflight_test_sources()
     assert [n for n in files if n.startswith('configs/')]==[CONFIG]
     assert 'scripts/requirements-network.txt' in files
     assert 'scripts/upstream-revision.txt' in files

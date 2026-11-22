@@ -23,8 +23,44 @@ from scripts.launch_nooracle_map800_tx08_training_with_hf_forensics_20261123 imp
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE_REF='therwed/notebook5051433b29'
 CONFIG='configs/matd3-nooracle-posterior-only-map800-h256x256-orthogonal-compile-tx08-hf-fullflow-20261123.yaml'
-NAME='MATD3-POSTERIORONLY-MAP800-TX08-T4X2-FULLFLOW-UNDER1MB-20261123.ipynb'
+NAME='MATD3-POSTERIORONLY-MAP800-TX08-T4X2-REF5051433B29-FIX372765124-20261123.ipynb'
 OUT=ROOT/'notebooks'/NAME
+
+# Reference notebook `therwed/notebook5051433b29` includes all project tests.
+# Unlike that 778 KB notebook, the new MAP800/NoOracle version exceeds Kaggle's
+# 1 MB code limit if it includes ~232 test files. Cloud remote.py nevertheless
+# RUNS these three unittest patterns *unconditionally*. Bundle those 3 and
+# their static local test-module imports, never delete their runtime contract.
+REQUIRED_CLOUD_PREFLIGHT_TESTS=(
+    'test_cuda.py','test_cuda_scenario_v2.py',
+    'test_training_audit_regressions.py',
+)
+
+
+def required_runtime_preflight_test_sources():
+    """Recursively compute the direct/local test-module dependency closure."""
+    included=set()
+    pending=list(REQUIRED_CLOUD_PREFLIGHT_TESTS)
+    while pending:
+        filename=pending.pop(0)
+        if filename in included:continue
+        path=ROOT/'tests'/filename
+        if not path.is_file():
+            raise FileNotFoundError('Mandatory Kaggle preflight dependency missing: '+str(path))
+        included.add(filename)
+        tree=ast.parse(path.read_text(encoding='utf-8'))
+        for node in ast.walk(tree):
+            if isinstance(node,ast.ImportFrom):
+                names=[node.module] if node.module else []
+            elif isinstance(node,ast.Import):
+                names=[alias.name for alias in node.names]
+            else:
+                continue
+            for name in names:
+                local=name.split('.')[0]+'.py'
+                if local.startswith('test_') and local not in included:
+                    pending.append(local)
+    return frozenset('tests/'+name for name in included)
 
 
 def minimal_runtime_source_archive():
@@ -32,11 +68,13 @@ def minimal_runtime_source_archive():
 
     The general-purpose cloud archive includes >200 nonruntime test files,
     every earlier experiment YAML and their fixtures. Embedding all of these
-    expands the notebook to ~1.2 MB. Only omit tests and irrelevant YAMLs:
-    keep ALL algorithm, environment, Warp, GPU evaluation, telemetry, HF/W&B
+    expands the notebook to ~1.2 MB. Include the mandatory `remote.py` unittest
+    patterns (and transitive local imports), not ALL 232 test modules.
+    Keep ALL algorithm, environment, Warp, GPU evaluation, telemetry, HF/W&B
     code, pinned UavNetSim and required runtime scripts without modification.
     """
     original=build_source_archive(ROOT)
+    allowed_tests=required_runtime_preflight_test_sources()
     original_names=set()
     included=set()
     raw=io.BytesIO()
@@ -44,7 +82,7 @@ def minimal_runtime_source_archive():
             tarfile.open(fileobj=raw,mode='w') as reduced:
         for entry in source:
             original_names.add(entry.name)
-            if entry.name.startswith('tests/'):
+            if entry.name.startswith('tests/') and entry.name not in allowed_tests:
                 continue
             if entry.name.startswith('configs/') and entry.name!=CONFIG:
                 continue
@@ -53,7 +91,7 @@ def minimal_runtime_source_archive():
             data=source.extractfile(entry).read()
             reduced.addfile(entry,io.BytesIO(data))
             included.add(entry.name)
-    required={CONFIG,'pyproject.toml','scripts/requirements-network.txt',
+    required={CONFIG,*allowed_tests,'pyproject.toml','scripts/requirements-network.txt',
         'scripts/upstream-revision.txt','uav_network/environment/gpu/bayesian.py',
         'uav_network/experiments/training.py','uav_network/experiments/one_session.py',
         'uav_network/experiments/deferred_gpu_evaluation.py',
