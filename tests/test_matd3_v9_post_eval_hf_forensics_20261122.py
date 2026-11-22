@@ -55,3 +55,25 @@ def test_failed_hf_upload_preserves_pending_archive_for_retry(tmp_path):
     assert audit.tick(final=True)==True
     assert audit.published_count==1
     assert hf.attempts==2
+
+
+def test_final_test_gpu_seed_shards_are_kept_for_packet_and_target_forensics(tmp_path):
+    """Preserve pre-aggregation GPU0/GPU1 per-seed reports, not final_test.json only."""
+    base=tmp_path/'gpu_batch_eval';base.mkdir()
+    for gpu,first,last in [(0,0,256),(1,256,512)]:
+        name=f'final_test_gpu{gpu}_{first:06d}_{last:06d}.json'
+        (base/name).write_text(json.dumps({
+            'gpu_index':gpu,'start':first,'stop':last,
+            'checkpoint_sha256':'a'*64,
+            'records':[{'seed':2000000044+first,'targets_found':14,
+                        'targets_delivered':8,'packet_counts':{'sent':18,'received':16}}]}))
+    # Non-JSON temp write must not enter the archive.
+    (base/'final_test_gpu0_000512_000768.json.tmp').write_text('unfinished')
+    hf=FakeHF();tracker=PostEvalHFForensics(base,hf,interval_seconds=0)
+    assert tracker.tick(final=True)
+    assert tracker.published_count==2
+    with tarfile.open(hf.uploaded[0],'r:gz') as t:
+        names=t.getnames()
+        assert 'final_test_gpu0_000000_000256.json' in names
+        assert 'final_test_gpu1_000256_000512.json' in names
+        assert 'final_test_gpu0_000512_000768.json.tmp' not in names

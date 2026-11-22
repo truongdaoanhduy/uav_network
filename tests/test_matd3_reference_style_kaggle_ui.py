@@ -41,6 +41,12 @@ def test_kaggle_ui_has_original_three_cell_layout_and_unique_source():
     assert 'ENABLE_HF_FORENSICS = True' in result.cells[1].source
     assert 'UAV_DIAGNOSTIC_STORE' in result.cells[2].source
     assert 'UAV_DIAGNOSTIC_HF_REPO' in result.cells[2].source
+    assert 'UAV_FORENSIC_WORLD_IDS' in result.cells[2].source
+    assert 'UAV_FORENSIC_STRIDE' in result.cells[2].source
+    assert 'UAV_FORENSIC_FULL_BELIEF' in result.cells[2].source
+    assert 'UAV_FORENSIC_MAX_RAW_MIB' in result.cells[2].source
+    assert 'FORENSIC_WORLD_IDS = "0,1"' in result.cells[1].source
+    assert 'FORENSIC_STRIDE_VECTOR_STEPS = 32' in result.cells[1].source
     assert 'UAV_WANDB_PLOTS_ONLY' in result.cells[2].source
     assert 'UAV_TRAIN_EPISODE_RETURN_LOG_EVERY' in result.cells[2].source
     assert 'NOORACLE-V9' in result.cells[0].source

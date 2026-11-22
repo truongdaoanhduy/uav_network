@@ -48,7 +48,15 @@ def preflight_cell(old: str) -> str:
     # Opt-in research evidence, with a 5-minute bounded archive cadence;
     # kept separate from W&B scalar plots and training learner updates.
     out += ('\nENABLE_HF_FORENSICS = True  # False = fast W&B-only mode\n'
-            'UAV_HF_DIAGNOSTIC_REPO = "duy95/uav-search-diagnostics"\n')
+            'UAV_HF_DIAGNOSTIC_REPO = "duy95/uav-search-diagnostics"\n'
+            '# Two selected worlds sampled 2x as frequently as the old default.\n'
+            '# Selected snapshots, NOT all 4096 worlds at every timestep.\n'
+            '# Higher granularity costs CUDA→CPU diagnostics and HF bandwidth.\n'
+            'FORENSIC_WORLD_IDS = "0,1"\n'
+            'FORENSIC_STRIDE_VECTOR_STEPS = 32\n'
+            'FORENSIC_MAX_RAW_MIB = 384\n'
+            'assert 1 <= FORENSIC_STRIDE_VECTOR_STEPS <= 4096\n'
+            'assert FORENSIC_MAX_RAW_MIB >= 128\n')
     # Add a genuine code-checked pipeline marker before training.
     out += ('\nprint("TRAIN → VAL100 → BEST CHECKPOINT → FINAL TEST4000")\n'
             'print("GPU evaluation budget:", CHECKPOINTS_PER_GPU_BATCH, '
@@ -69,6 +77,11 @@ def markdown_cell(old: str) -> str:
                     '**Only the scenario differs from the historical run:** report generation uses the observed 2D cell ID \nand Bayesian confidence, never ground-truth target ID. Ground truth is used only to simulate the sensor \nand to score reward/evaluation. Actor uses BN, Critic stays plain (no BN). \nThere is **no DS-map fusion at GCS** or **3D obstacle reconstruction** in this experiment.')
     out=out.replace('**Usage:** fill NOTEBOOK_REF, choose Kaggle GPU T4×2, enable Internet and Secrets WANDB_API_KEY + HF_TOKEN, then Save & Run All.',
                     '**Usage:** set NOTEBOOK_REF if Kaggle has not provided KAGGLE_KERNEL_REF, choose Kaggle GPU T4×2, \nenable Internet and Secrets WANDB_API_KEY + HF_TOKEN, then Save & Run All.')
+    out += ('\n**Forensic detail:** all training episode logs + vector-step reward/progress/optimizer, '
+            'learner gradients, replay/PHY, failed-step context, and two Warp worlds sampled '
+            'every 32 vector steps with full belief state (not all E4096 worlds). '
+            'The asynchronous GPU Val100/Test4000 uploader stores raw checkpoint/held-out records '
+            'as SHA256-verified chunks. Live Hugging Face transfer still requires valid Kaggle Secrets.\n')
     out += ('\n**New experiment:** starts MATD3 from random weights (obs-v8), not checkpoint `18d756ef`. '
             'Selection uses only Val100; independent Test4000 is reserved for the best Actor. '
             'For a fair experiment, CUDA T4×2 capacity and full 20,000-episode completion must still be verified.\n')
@@ -129,6 +142,14 @@ os.environ["UAV_FAST_TRAINING"] = "false"
 os.environ["UAV_DIAGNOSTIC_STORE"] = (
     "huggingface_public" if ENABLE_HF_FORENSICS else "off")
 os.environ["UAV_DIAGNOSTIC_HF_REPO"] = UAV_HF_DIAGNOSTIC_REPO
+os.environ["UAV_FORENSIC_ENABLED"] = "true" if ENABLE_HF_FORENSICS else "false"
+os.environ["UAV_FORENSIC_WORLD_IDS"] = FORENSIC_WORLD_IDS
+os.environ["UAV_FORENSIC_STRIDE"] = str(FORENSIC_STRIDE_VECTOR_STEPS)
+os.environ["UAV_FORENSIC_FULL_BELIEF"] = "true"
+os.environ["UAV_FORENSIC_MAX_RAW_MIB"] = str(FORENSIC_MAX_RAW_MIB)
+print("HF_FORENSIC_SCOPE", "worlds", FORENSIC_WORLD_IDS,
+      "stride", FORENSIC_STRIDE_VECTOR_STEPS,
+      "full_belief=true", "max_raw_MiB", FORENSIC_MAX_RAW_MIB,flush=True)
 os.environ["UAV_DEFERRED_EXPORT_HF"] = "true"
 os.environ["UAV_WANDB_COMPACT_LOGS"] = "true"
 # Preserve the historical native episode/global-step W&B paper panels.

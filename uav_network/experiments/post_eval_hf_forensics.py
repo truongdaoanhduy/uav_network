@@ -78,6 +78,7 @@ class PostEvalHFForensics:
     @staticmethod
     def _supported(name):
         return (bool(re.fullmatch(r'eval_\d+\.json',name))
+                or bool(re.fullmatch(r'final_test_gpu\d+_\d{6}_\d{6}\.json',name))
                 or name in {'final_test.json','report.json','validation_results.json',
                             'validation_results.csv','best.json','one-session-status-start.json',
                             'one-session-status-final.json','one-session-status-error.json'}
