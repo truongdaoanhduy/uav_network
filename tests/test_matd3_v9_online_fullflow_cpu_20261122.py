@@ -52,7 +52,10 @@ def test_actual_matd3_training_completes_without_early_best_and_produces_dense_w
     monkeypatch.setenv('UAV_WANDB_EPISODE_LOG_EVERY','2')
     monkeypatch.setenv('UAV_TRAIN_EPISODE_RETURN_LOG_EVERY','2')
     monkeypatch.setenv('WANDB_RUN_ID','aabbcc99')
-    with patch.dict(sys.modules,{'wandb':sdk}),patch('uav_network.experiments.tracking._authentication',return_value=('owner','paper')):
+    # Avoid removing modules lazily imported by torch.manual_seed when the
+    # W&B mock is torn down; PyTorch C++ library registration survives.
+    monkeypatch.setitem(sys.modules,'wandb',sdk)
+    with patch('uav_network.experiments.tracking._authentication',return_value=('owner','paper')):
         result=train(c)
     assert result['episode_budget_complete'] and result['episodes']==4
     assert result['checkpoint_artifact'] is None
