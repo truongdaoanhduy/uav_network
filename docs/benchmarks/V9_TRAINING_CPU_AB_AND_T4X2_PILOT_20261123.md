@@ -39,3 +39,17 @@ File: `notebooks/MATD3-NOORACLE-V9-CT095-H256x256-TRAIN-SPEED-AB-E4096-U4-B8192-
 This is **not production**. On Kaggle T4×2, runs 2 paired A/B (baseline,candidate,candidate,baseline); each trial uses GPU0 for 4096 Warp worlds and GPU1 for learner/replay, training a fresh Actor from seed44 for **64 vector steps** (~262,144 transitions), learning starts after131,072. Physics and horizon remain1500; learner U4 B8192 and R1M unchanged. Parent process sets `UAV_TRAIN_ENV_STEP_LIMIT` and verifies termination reason `env_step_budget`. W&B/HF and posttrain validation/test explicitly disabled in this speed test. Both model SHA256 and episode SHA256 are compared at end; any mismatch is a rejection. Output `/kaggle/working/v9_train_speed_ab_report.json`.
 
 **GPU throughput, full CUDA env memory, and cross-GPU Actor transfer not yet measured**: user will run pilot and share JSON. Do not merge/promote until both same-science exact model parity and speed are demonstrated on T4, and until full Eval/Test1000 is revalidated in later non-production run. The original and final 20k notebooks remain unmodified.
+
+## Kaggle notebook version 372716239 bootstrap failure and fix (2026-11-23)
+
+Exact user Kaggle link: https://www.kaggle.com/code/therwed/notebook43d7d397be?scriptVersionId=372716239
+
+The Kaggle status was ERROR. Pulled its Kaggle execution log from `kaggle kernels output therwed/notebook43d7d397be` and notebook source with `kaggle kernels pull therwed/notebook43d7d397be`. The pulled source cells matched the local producer notebook byte for byte. Kaggle detected both Tesla T4 GPUs, but cell [2] failed before install or training:
+
+`tarfile.open(fileobj=io.BytesIO(lzma.decompress(blob)), mode="r:xz")` raised `LZMAError: Input format not supported by decoder` and `tarfile.ReadError: not an lzma file`.
+
+**Root cause:** `blob` was already a valid, SHA-pinned `.tar.xz` archive (XZ magic `fd377a585a00`); applying `lzma.decompress(blob)` converted it to a plain TAR, then the `r:xz` reader tried to decode that TAR a second time. This was a notebook packaging bug, NOT a CUDA, Warp, NoOracle, network or MATD3 problem.
+
+**Correction:** use `tarfile.open(fileobj=io.BytesIO(blob), mode="r:xz")`. The new Kaggle cell explicitly validates the archive XZ magic. New regression test `tests/test_kaggle_train_ab_archive_unpack_20261123.py` invokes the **actual generated Kaggle unpack cell** (only omitting Kaggle-local venv installation) and verifies 500+ extracted files and every baseline/candidate patched byte and the pinned training worker. It first reproduced the original `ReadError`, then passed after correction.
+
+The same regression now runs **both baseline and candidate actual CPU MATD3 training** from those exact extracted source directories, checks capped 192 transitions, optimizer updates, independently generated source-science and final-model SHA256, plus episode event logs. Both pass with identical hashes. GPU memory/speed has NOT yet been tested on Kaggle after the fix. The failed Kaggle version cannot be repaired in place: upload the newly generated fixed notebook as a *new Kaggle version*.

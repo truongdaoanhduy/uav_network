@@ -68,12 +68,17 @@ print("TRAINING_AB_BOUNDED_NO_20K",flush=True)
         "sha=lambda b:hashlib.sha256(b).hexdigest()",
         "blob=base64.b85decode("+repr(token)+")",
         "assert sha(blob)=="+repr(source_sha),
+        # Fail immediately with a readable message if the archive format ever
+        # changes; avoid silently decoding XZ twice when packaging revisions.
+        'assert blob[:6]==bytes.fromhex("fd377a585a00"), "Expected pinned TAR.XZ source archive"',
         'root=Path("/kaggle/working/ct095_matd3_training_ab")',
         'if root.exists():raise RuntimeError("Use fresh Kaggle session; refuse to replace trial results")',
         'root.mkdir(parents=True)',
         'old_root=root/"source_baseline";new_root=root/"source_candidate"',
         "old_root.mkdir()",
-        'with tarfile.open(fileobj=io.BytesIO(lzma.decompress(blob)),mode="r:xz") as tf:',
+        # blob is already a complete .tar.xz archive. Pass it directly to
+        # tarfile's XZ reader; lzma.decompress(blob) here would decode twice.
+        'with tarfile.open(fileobj=io.BytesIO(blob),mode="r:xz") as tf:',
         "    total=0",
         "    for member in tf:",
         "        rel=PurePosixPath(member.name)",
