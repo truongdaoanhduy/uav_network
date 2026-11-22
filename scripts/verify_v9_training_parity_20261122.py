@@ -18,13 +18,14 @@ from uav_network.environment.gpu.vector import WarpVectorEnv
 
 def main():
     ap=argparse.ArgumentParser()
+    ap.add_argument('--device',choices=['cpu','cuda'],default='cpu')
     ap.add_argument('--steps',type=int,default=80)
     ap.add_argument('--envs',type=int,default=4)
     args=ap.parse_args()
     c=load_config('configs/matd3-18d756ef-no-oracle-cell-reports-20261122.yaml')
-    c.runtime.device='cpu';c.runtime.num_envs=args.envs
+    c.runtime.device=args.device;c.runtime.num_envs=args.envs
     torch.manual_seed(44)
-    vector=WarpVectorEnv(c,device='cpu')
+    vector=WarpVectorEnv(c,device=args.device)
     checksum=hashlib.sha256()
     observed={}
     try:
@@ -39,7 +40,7 @@ def main():
                 'packet_counts','diagnostic_counts','observation','state',
                 'report_counts','first_delivery','true_report_delay_sum')
             for name in names:
-                x=wp.to_torch(getattr(vector.s,name)).contiguous().numpy()
+                x=wp.to_torch(getattr(vector.s,name)).contiguous().cpu().numpy()
                 checksum.update(name.encode());checksum.update(x.tobytes())
             observed[str(label)]=checksum.hexdigest()
         digest('reset')

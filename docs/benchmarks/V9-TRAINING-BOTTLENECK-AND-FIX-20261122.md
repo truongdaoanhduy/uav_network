@@ -103,3 +103,38 @@ and https://nvidia.github.io/warp/latest/user_guide/execution_and_performance/pr
 Do not touch active `e079eace`, shrink map/target count, turn off RF network,
 change reward or episode horizon, leak true target cells into Actor input,
 or silently claim baseline-level performance.
+
+## Deliverables: two isolated Kaggle UI notebooks
+
+1. `notebooks/MATD3-V9-TRAINING-CPUCUDA-AB-4096-WARP-KERNEL-PROFILER-T4x2.ipynb`
+   is the **recommended first run**. It embeds the original source bundle from
+   the pinned historical V9 notebook, then overlays only SHA256-checked module
+   files to generate the accelerated version. Requires Kaggle T4×2 and Internet
+   for package installation, no W&B/HF secrets. Executes three sequential
+   A/B Warp CUDA probes at **4096 worlds** on the SAME physical T4 GPU0,
+   after excluding JIT warmup; collects time and CUDA activity for
+   `sense_bayesian`, `observe`, `packet_step`, etc. Verifies same-seed 4-world
+   CUDA trajectories between source variants. Saves a JSON report to
+   `/kaggle/working/v9_training_ab_cpu_cuda/v9_gpu_kernel_ab.json`.
+   No MATD3 training/replay, no account mutation; it is environment-only.
+2. `notebooks/MATD3-NOORACLE-V9-TRAINACCEL-CELLLOOKUP-OBSFAST-E4096-U4-B8192-H256x512-S44-KAGGLE-UI.ipynb`
+   is the **full fresh training run** in a new W&B run, with original
+   E4096/U4/B8192/20k-episodes/seed44/6UAV/35targets/25obstacles,
+   GPU0 Warp collector, GPU1 MATD3 shared ActorBN and plain Critic, 75/25
+   hybrid replay, fixed checkpoint Eval100, best actor, Test4000, W&B and HF.
+   It **will** retrain MATD3 from random initialization if run. The builder
+   uses original reference notebook's three-cell format and embeds the entire
+   SHA256-verified source archive; no source checkout is required in Kaggle.
+
+   Note: the full training notebook keeps the conservative **2 checkpoints ×
+   100 worlds / GPU batch** V9 Eval setting to avoid changing too many factors
+   in the training throughput A/B. This means its *post-training* Eval can
+   still be slow. Use the separate Eval/Test-only benchmark notebook from
+   branch `experiment/v9-evaltest-baselinebatch-20261122` for the Eval batching
+   experiment, and keep these experiments isolated.
+
+**Interpretation:** First compare the GPU profiler report's per-kernel CUDA
+activity and total simulated-world steps/s, and verify parity. Only after
+both the runtime and scientific match on T4 should a full 20k training job be
+used to claim end-to-end speedup. If CUDA parity fails or GPU throughput is
+worse, stop; retain pinned V9 semantics and do not merge this branch.
