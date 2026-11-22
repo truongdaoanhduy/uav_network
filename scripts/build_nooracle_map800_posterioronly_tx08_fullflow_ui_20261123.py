@@ -8,9 +8,12 @@ from __future__ import annotations
 from datetime import datetime,timezone
 from pathlib import Path
 import ast
+import gzip
 import hashlib
+import io
 import json
 import subprocess
+import tarfile
 import nbformat
 
 from uav_network.cloud.source_bundle import build_source_archive, source_sha256
@@ -20,8 +23,50 @@ from scripts.launch_nooracle_map800_tx08_training_with_hf_forensics_20261123 imp
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE_REF='therwed/notebook5051433b29'
 CONFIG='configs/matd3-nooracle-posterior-only-map800-h256x256-orthogonal-compile-tx08-hf-fullflow-20261123.yaml'
-NAME='MATD3-NOORACLE-POSTERIORONLY-MAP800-TX08-E4096-U4-B8192-H256x256-ORTHO-COMPILE-VAL100-TEST1000-T4X2-FULLFLOW-20261123.ipynb'
+NAME='MATD3-POSTERIORONLY-MAP800-TX08-T4X2-FULLFLOW-UNDER1MB-20261123.ipynb'
 OUT=ROOT/'notebooks'/NAME
+
+
+def minimal_runtime_source_archive():
+    """Verified immutable runtime-only tar; fixes Kaggle's strict 1 MB source cap.
+
+    The general-purpose cloud archive includes >200 nonruntime test files,
+    every earlier experiment YAML and their fixtures. Embedding all of these
+    expands the notebook to ~1.2 MB. Only omit tests and irrelevant YAMLs:
+    keep ALL algorithm, environment, Warp, GPU evaluation, telemetry, HF/W&B
+    code, pinned UavNetSim and required runtime scripts without modification.
+    """
+    original=build_source_archive(ROOT)
+    original_names=set()
+    included=set()
+    raw=io.BytesIO()
+    with tarfile.open(fileobj=io.BytesIO(original),mode='r:gz') as source, \
+            tarfile.open(fileobj=raw,mode='w') as reduced:
+        for entry in source:
+            original_names.add(entry.name)
+            if entry.name.startswith('tests/'):
+                continue
+            if entry.name.startswith('configs/') and entry.name!=CONFIG:
+                continue
+            if not entry.isfile():
+                raise RuntimeError('Unexpected source archive member')
+            data=source.extractfile(entry).read()
+            reduced.addfile(entry,io.BytesIO(data))
+            included.add(entry.name)
+    required={CONFIG,'pyproject.toml','scripts/requirements-network.txt',
+        'scripts/upstream-revision.txt','uav_network/environment/gpu/bayesian.py',
+        'uav_network/experiments/training.py','uav_network/experiments/one_session.py',
+        'uav_network/experiments/deferred_gpu_evaluation.py',
+        'uav_network/experiments/forensic_transitions.py',
+        'third_party/UavNetSim/simulator/simulator.py'}
+    if required-included:
+        raise RuntimeError('Runtime bundle missing required source: '+repr(required-included))
+    if not included.issubset(original_names):
+        raise RuntimeError('Runtime bundle added an unauthorized source file')
+    payload=gzip.compress(raw.getvalue(),compresslevel=9,mtime=0)
+    if len(payload)>640_000:
+        raise RuntimeError('Kaggle runtime archive unexpectedly exceeds 640 KB')
+    return payload
 
 
 def make_spec(commit):
@@ -155,7 +200,7 @@ MAX_WARP_EVAL_WORLDS_PER_GPU = 8192
 CHECKPOINTS_PER_GPU_BATCH = 81  # 81*100=8100 real episodes, 92 masked filler slots
 POSTERIOR_THRESHOLD = .99
 TX_POWER_MAX_W = .8
-NOTEBOOK_REF = os.environ.get('KAGGLE_KERNEL_REF','kaggle-ui/imported-posterioronly-tx08')
+NOTEBOOK_REF = os.environ.get('KAGGLE_KERNEL_REF','longlonthiu/notebookbbd0aec150')
 if not re.fullmatch(r'[\\w-]+/[\\w-]+',NOTEBOOK_REF):
     raise ValueError('KAGGLE_KERNEL_REF must look like username/notebook-slug')
 assert (TRAIN_EPISODES,ENVS,UPDATES_PER_VECTOR_STEP,BATCH)==(20000,4096,4,8192)
@@ -177,7 +222,7 @@ print('PREFLIGHT_OK | Posterior only | No LR/50m | TX<=0.8W | 20k Train/Val100/T
 def build_notebook():
     commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     spec=make_spec(commit)
-    archive=build_source_archive(ROOT)
+    archive=minimal_runtime_source_archive()
     src_sha=source_sha256(archive)
     script=kernel_script(spec,source_archive=archive,credential_source='kaggle_secrets')
     old='SPEC = '+repr(spec)+'\n'
@@ -274,8 +319,9 @@ print('POSTERIORONLY_TX08_FULLFLOW_COMPLETE',json.dumps(actual,indent=2),flush=T
         'test_episodes':1000,
         'deep_hf_forensics':True})
     nbformat.validate(n)
-    if len(nbformat.writes(n).encode())>=2_000_000:
-        raise ValueError('Kaggle bootstrap source bundle unexpectedly oversized')
+    # Budget strictly below Kaggle 1 MB source restriction; leave >150 KB margin.
+    if len(n.cells[2].source.encode('utf-8'))>=825_000 or len(nbformat.writes(n).encode('utf-8'))>=850_000:
+        raise ValueError('Kaggle kernel source exceeds safe 850 KB notebook limit')
     return n
 
 

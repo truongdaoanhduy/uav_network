@@ -31,7 +31,9 @@ def test_three_cell_reference_format_real_run_not_bounded_pilot():
     assert n.metadata['tx_power_max_w']==.8
     assert n.metadata['ref_notebook']=='therwed/notebook5051433b29'
     assert OUT.name.endswith('.ipynb')
-    assert len(nbformat.writes(n).encode())<2_000_000
+    # Kaggle refuses kernel commits at >=1 MB of notebook source. Leave margin.
+    assert len(nbformat.writes(n).encode('utf-8'))<850_000
+    assert len(n.cells[2].source.encode('utf-8'))<825_000
     ast.parse(n.cells[1].source)
     ast.parse(n.cells[2].source)
 
@@ -70,7 +72,15 @@ def test_embedded_source_is_sha_verified_no_password_and_correct_new_science():
     assert hashlib.sha256(compressed).hexdigest()==n.metadata['source_sha256']
     with tarfile.open(fileobj=io.BytesIO(compressed),mode='r:gz') as tar:
         files={f.name:tar.extractfile(f).read() for f in tar if f.isfile()}
-    assert len(files)>=500
+    assert 280<=len(files)<=320, 'Bundle only runtime sources, not test suites or old experiments'
+    assert not any(n.startswith('tests/') for n in files)
+    assert [n for n in files if n.startswith('configs/')]==[CONFIG]
+    assert 'scripts/requirements-network.txt' in files
+    assert 'scripts/upstream-revision.txt' in files
+    assert 'third_party/UavNetSim/simulator/simulator.py' in files
+    assert 'uav_network/experiments/one_session.py' in files
+    assert 'uav_network/experiments/deferred_gpu_evaluation.py' in files
+    assert 'uav_network/experiments/training.py' in files
     assert 'key.txt' not in files and '.env' not in files
     assert not any(name.endswith(('kaggle.json','credentials.json','.pem','.key')) for name in files)
     new=files[CONFIG].decode()
