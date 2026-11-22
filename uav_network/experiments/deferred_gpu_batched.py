@@ -123,27 +123,41 @@ def evaluate_group(config, payloads, *, device, seed, episodes, vector=None):
     owned_vector = vector is None
     if vector is None:
         vector = WarpVectorEnv(env_config, device=device)
-    elif (vector.num_envs != total_envs or vector.device != model.device):
+    elif (vector.num_envs < total_envs or vector.device != model.device):
         raise ValueError("Preallocated Warp pool has incompatible size/device")
+    # A physical 8192-world GPU allocation can accommodate only 81 * 100
+    # genuine validation episodes. The other 92 are inert filler, never metrics.
+    extra = vector.num_envs - total_envs
     seeds = [seed+i for _ in payloads for i in range(episodes)]
+    filler_seeds = [seed + 1_000_000 + i for i in range(extra)]
     done = torch.zeros(total_envs, dtype=torch.bool, device=model.device)
     returns = torch.zeros(total_envs, dtype=torch.float64, device=model.device)
     info_by_world = [None]*total_envs
     try:
-        obs, _ = vector.reset(seed=seeds)
+        obs, _ = vector.reset(seed=seeds + filler_seeds)
         for step in range(config.world.max_steps):
-            actions = model.act_batch(obs["observation"])
+            actions = model.act_batch(obs["observation"][:total_envs])
             actions["continuous"][done] = 0
             actions["destination"][done] = 0
+            if extra:
+                # The actor never sees the filler observations; filled worlds
+                # may advance with zero action, but they contribute zero
+                # observations, rewards and episode records to validation.
+                actions["continuous"] = torch.cat((actions["continuous"],
+                    torch.zeros((extra, model.n, config.continuous_dim),
+                                dtype=actions["continuous"].dtype, device=model.device)))
+                actions["destination"] = torch.cat((actions["destination"],
+                    torch.zeros((extra, model.n),
+                                dtype=actions["destination"].dtype, device=model.device)))
             obs, reward, terminated, truncated, info = vector.step(actions)
-            returns += reward.to(dtype=torch.float64) * (~done)
-            just_done = (terminated | truncated) & (~done)
+            returns += reward[:total_envs].to(dtype=torch.float64) * (~done)
+            just_done = (terminated[:total_envs] | truncated[:total_envs]) & (~done)
             for index in torch.nonzero(just_done).flatten().cpu().tolist():
                 detail = info["device_episode_infos"].get(index)
                 if detail is None:
                     raise RuntimeError("Warp GPU terminal metrics missing for policy world")
                 info_by_world[index] = detail
-            done |= terminated | truncated
+            done |= terminated[:total_envs] | truncated[:total_envs]
             if bool(done.all()):
                 break
         if not bool(done.all()) or any(entry is None for entry in info_by_world):

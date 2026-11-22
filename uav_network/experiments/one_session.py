@@ -12,6 +12,7 @@ from .deferred_gpu_evaluation import verify_manifest
 
 
 def run(spec_file, *, policies_per_batch=2, final_test_batch_size=8,
+        checkpoint_assignment="strided",
         eval_world_pool_size=0, max_eval_worlds_per_gpu=0,
         max_test_worlds_per_gpu=0, work_dir=None):
     spec = json.loads(Path(spec_file).read_text())
@@ -92,6 +93,7 @@ def run(spec_file, *, policies_per_batch=2, final_test_batch_size=8,
         sys.executable, "-m", "uav_network.experiments.deferred_gpu_evaluation",
         "--folder", str(folder), "--output", str(work / "gpu_batch_eval"),
         "--gpus", "2", "--policies-per-batch", str(policies_per_batch),
+        "--checkpoint-assignment", checkpoint_assignment,
         "--world-pool-size", str(eval_world_pool_size),
         "--max-eval-worlds-per-gpu", str(max_eval_worlds_per_gpu),
         "--max-test-worlds-per-gpu", str(max_test_worlds_per_gpu),
@@ -270,6 +272,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--policies-per-batch", type=int, default=2)
+    parser.add_argument("--checkpoint-assignment",
+                        choices=("strided","contiguous_batches"), default="strided")
     parser.add_argument("--test-batch-size", type=int, default=8)
     parser.add_argument("--eval-world-pool-size", type=int, default=0)
     parser.add_argument("--max-eval-worlds-per-gpu", type=int, default=0)
@@ -282,6 +286,7 @@ def main():
             or (opt.test_batch_size == 0 and opt.max_test_worlds_per_gpu == 0)):
         parser.error("Invalid batch sizes / Warp pool size")
     run(opt.spec, policies_per_batch=opt.policies_per_batch,
+        checkpoint_assignment=opt.checkpoint_assignment,
         final_test_batch_size=opt.test_batch_size,
         eval_world_pool_size=opt.eval_world_pool_size,
         max_eval_worlds_per_gpu=opt.max_eval_worlds_per_gpu,

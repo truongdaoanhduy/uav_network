@@ -27,16 +27,27 @@ def policies_per_validation_batch(capacity: int, episodes_per_checkpoint: int) -
 
 
 def plan_validation(checkpoints: int, episodes: int, capacity: int,
-                    gpu_index: int = 0, gpu_count: int = 1) -> tuple[ValidationBatch, ...]:
+                    gpu_index: int = 0, gpu_count: int = 1,
+                    assignment: str = "strided") -> tuple[ValidationBatch, ...]:
     """Plan GPU-strided checkpoints, preserving every checkpoint in exactly one batch."""
     if (not all(isinstance(x, int) for x in (checkpoints, gpu_index, gpu_count))
             or checkpoints < 0 or gpu_count < 1 or not 0 <= gpu_index < gpu_count):
         raise ValueError("Invalid checkpoint/GPU allocation")
+    if assignment not in {"strided", "contiguous_batches"}:
+        raise ValueError("Invalid Eval checkpoint assignment")
     k = policies_per_validation_batch(capacity, episodes)
-    indices = tuple(range(gpu_index, checkpoints, gpu_count))
+    if assignment == "strided":
+        indices = tuple(range(gpu_index, checkpoints, gpu_count))
+        selections = (indices[first:first+k] for first in range(0, len(indices), k))
+    else:
+        # Entire contiguous K-checkpoint blocks are assigned GPU0, GPU1, GPU0...
+        # This avoids splitting a checkpoint's 100 fixed-seed worlds across GPUs.
+        indices = tuple(i for first in range(gpu_index*k, checkpoints, gpu_count*k)
+                        for i in range(first, min(first+k, checkpoints)))
+        selections = (tuple(range(first, min(first+k, checkpoints)))
+                      for first in range(gpu_index*k, checkpoints, gpu_count*k))
     result = []
-    for first in range(0, len(indices), k):
-        selected = indices[first:first+k]
+    for selected in selections:
         offsets = tuple((idx, slot*episodes, (slot+1)*episodes)
                         for slot, idx in enumerate(selected))
         result.append(ValidationBatch(selected, len(selected)*episodes, offsets))

@@ -247,7 +247,7 @@ def result_from_records(path, payload, records, *, device, engine=None):
 
 
 def worker(folder, out, index, workers, device, *, policies_per_batch=8,
-           world_pool_size=0):
+           world_pool_size=0, checkpoint_assignment="strided"):
     folder, out = Path(folder), Path(out)
     manifest = verify_manifest(folder)
     out.mkdir(parents=True, exist_ok=True)
@@ -255,26 +255,31 @@ def worker(folder, out, index, workers, device, *, policies_per_batch=8,
     n = manifest["validation_episodes"]
     if policies_per_batch < 1 or world_pool_size < 0:
         raise ValueError("Invalid policy batch / Warp world pool size")
-    if world_pool_size and world_pool_size != n * policies_per_batch:
-        raise ValueError("World pool must equal policies_per_batch * validation episodes")
-    pending, completed = [], 0
-    for idx, row in enumerate(manifest["snapshots"]):
-        if idx % workers != index:
-            continue
-        dest = out / ("eval_%04d.json" % idx)
-        if dest.exists():
-            existing = json.loads(dest.read_text())
-            if existing.get("policy_provenance", {}).get("checkpoint_sha256") != row["sha256"]:
-                raise ValueError("Existing GPU evaluation provenance mismatch: " + str(dest))
-            completed += 1
-        else:
-            pending.append((idx, row, dest))
+    if world_pool_size and world_pool_size < n * policies_per_batch:
+        raise ValueError("World pool must fit complete validation policy batch")
+    from .gpu_eval_layout import plan_validation
+    layout = plan_validation(manifest["count"], n, n * policies_per_batch,
+                             gpu_index=index, gpu_count=workers,
+                             assignment=checkpoint_assignment)
+    pending_batches, completed = [], 0
+    for group in layout:
+        pending = []
+        for idx in group.checkpoint_indices:
+            row = manifest["snapshots"][idx]
+            dest = out / ("eval_%04d.json" % idx)
+            if dest.exists():
+                existing = json.loads(dest.read_text())
+                if existing.get("policy_provenance", {}).get("checkpoint_sha256") != row["sha256"]:
+                    raise ValueError("Existing GPU evaluation provenance mismatch: " + str(dest))
+                completed += 1
+            else:
+                pending.append((idx, row, dest))
+        if pending:
+            pending_batches.append(pending)
     policy = None
     pool = None
     try:
-        while pending:
-            batch = pending[:policies_per_batch]
-            del pending[:len(batch)]
+        for batch in pending_batches:
             snapshots = []
             for idx, row, dest in batch:
                 path = folder / row["file"]
@@ -295,13 +300,12 @@ def worker(folder, out, index, workers, device, *, policies_per_batch=8,
                         env_config.runtime.num_envs = world_pool_size
                         env_config.runtime.device = ("cuda" if torch.device(device).type == "cuda" else "cpu")
                         pool = WarpVectorEnv(env_config, device=device)
-                    # The final partial batch reuses the same 4,000 worlds;
-                    # duplicate only its last Actor into unused policy slots.
-                    # Discard padded records; do not count them as validation.
-                    padded = payloads + [payloads[-1]] * (policies_per_batch - len(payloads))
+                    # Fixed 8192 world pool: up to 81 independent policies
+                    # each use exactly 100 true worlds. Any unused slots are
+                    # excluded from actor inference and from all metrics.
                     records_by_policy = evaluate_group(
-                        config, padded, device=device, seed=seed, episodes=n,
-                        vector=pool)[:len(payloads)]
+                        config, payloads, device=device, seed=seed, episodes=n,
+                        vector=pool)
                 else:
                     records_by_policy = evaluate_group(config, payloads,
                                                         device=device, seed=seed, episodes=n)
@@ -602,6 +606,7 @@ def main(argv=None):
     p.add_argument("--folder", required=True, help="Directory containing manifest.json and snapshot *.pt")
     p.add_argument("--output", required=True, help="Directory for deterministic results")
     p.add_argument("--gpus", type=int, choices=(1,2), default=2)
+    p.add_argument("--checkpoint-assignment", choices=("strided","contiguous_batches"), default="strided")
     p.add_argument("--world-pool-size", type=int, default=0,
                    help="Opt-in reusable Warp worlds per GPU worker; 0=legacy evaluator")
     p.add_argument("--policies-per-batch", type=int, default=8,
@@ -640,7 +645,8 @@ def main(argv=None):
     if args.worker:
         count = worker(folder, output, args.index, args.workers, args.device,
                        policies_per_batch=args.policies_per_batch,
-                       world_pool_size=args.world_pool_size)
+                       world_pool_size=args.world_pool_size,
+                       checkpoint_assignment=args.checkpoint_assignment)
         print(json.dumps({"worker": args.index, "evaluated": count}), flush=True)
         return 0
     if not torch.cuda.is_available() or torch.cuda.device_count() < args.gpus:
@@ -659,7 +665,8 @@ def main(argv=None):
                    "--worker", "--folder", str(folder), "--output", str(output),
                    "--index", str(index), "--workers", str(args.gpus), "--device", "cuda:0",
                    "--policies-per-batch", str(args.policies_per_batch),
-                   "--world-pool-size", str(args.world_pool_size)]
+                   "--world-pool-size", str(args.world_pool_size),
+                   "--checkpoint-assignment", args.checkpoint_assignment]
         processes.append(subprocess.Popen(command, env=env))
     failed = []
     for index, process in enumerate(processes):
