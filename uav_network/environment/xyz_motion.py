@@ -17,6 +17,8 @@ def move_xyz(positions,velocities,acceleration,obstacles,heights,config,disabled
         raise NotImplementedError("XYZ dynamic-window safety was retired; use its pinned historical source")
     disabled=np.zeros(n,bool) if disabled is None else disabled
     nominal=reachable_velocities(velocities+acceleration*step,velocities,w);nominal[disabled]=0
+    if w.max_vertical_speed_mps > 0:
+        nominal[:,2] = np.clip(nominal[:,2],-w.max_vertical_speed_mps,w.max_vertical_speed_mps)
     lo=np.array([0.,0.,w.altitude_min_m]);hi=np.array([w.map_size_m,w.map_size_m,w.altitude_max_m])
     cylinders=[np.r_[o,h] for o,h in zip(obstacles,heights)]
     counts={f"shield_{k}":0 for k in ("interventions","obstacle_interventions","peer_interventions","boundary_interventions","infeasible")}
@@ -28,6 +30,9 @@ def move_xyz(positions,velocities,acceleration,obstacles,heights,config,disabled
         safe_accel,cbf=filter_xyz_acceleration(positions,velocities,physical_nominal,obstacles,heights,w,disabled)
         nominal=reachable_velocities(velocities+physical_nominal*w.dt_s,velocities,w);nominal[disabled]=0
         chosen=reachable_velocities(velocities+safe_accel*w.dt_s,velocities,w);chosen[disabled]=0
+        if w.max_vertical_speed_mps > 0:
+            nominal[:,2] = np.clip(nominal[:,2],-w.max_vertical_speed_mps,w.max_vertical_speed_mps)
+            chosen[:,2] = np.clip(chosen[:,2],-w.max_vertical_speed_mps,w.max_vertical_speed_mps)
         active=~disabled
         if active.any():
             shield_correction=float(np.linalg.norm(safe_accel[active]-physical_nominal[active],axis=1).mean()/w.max_accel_mps2)

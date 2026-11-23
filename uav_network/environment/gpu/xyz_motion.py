@@ -31,6 +31,9 @@ def project(desired:wp.vec3d,previous:wp.vec3d,p:wp.ref[WorldParams]):
                 else:high=mid
             result=clip3(desired/(wp.float64(1)+high),lower,upper)
         else:result=cap(result,p.max_speed)
+    # Safety/acceleration projection above stays identical when disabled.
+    if p.max_vertical_speed > wp.float64(0):
+        result[2] = wp.clamp(result[2], -p.max_vertical_speed, p.max_vertical_speed)
     return result
 
 

@@ -76,8 +76,10 @@ def transfer(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, source: int,
     if destination == p.n:
         if s.delivered[e,target] == 0:
             s.delivered[e,target] = 1
+            freshness=wp.clamp(wp.float64(1)-(now-created)/p.report_ttl,wp.float64(0),wp.float64(1))
             if p.cell_reports==0:
                 s.first_delivery[e,target] = now
+                s.true_delivery_freshness[e] += freshness
             else:
                 # Bookkeeping only. No truth check affects REPORT generation,
                 # transfer, acknowledgment, or destination admission.
@@ -85,6 +87,10 @@ def transfer(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, source: int,
                 for t in range(p.targets_count):
                     if cell==true_target_cell(s,p,e,t) and s.first_delivery[e,t]<wp.float64(0):
                         s.first_delivery[e,t]=now
+                # One unique delivered cell counts as one reward event even
+                # if the scene generator ever permits multiple targets/cell.
+                if is_truth_matched_report(s,p,e,target):
+                    s.true_delivery_freshness[e] += freshness
             s.delivery_hop_histogram[e,wp.min(hops,7)] += wp.int64(1)
             delivery = diag.RELAYED_GCS_REPORTS
             if hops == 0:
@@ -140,6 +146,8 @@ def transfer(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, source: int,
 @wp.func
 def reset_reward_state(s: wp.ref[WorldState], e: int):
     s.reward[e] = wp.float32(0)
+    s.true_delivery_freshness[e] = wp.float64(0)
+    s.before_freshness[e] = wp.float64(0)
     s.shield_correction_step[e] = wp.float64(0)
     s.shield_correction[e] = wp.float64(0)
     s.unsafe_action_step[e] = wp.float64(0)
@@ -172,6 +180,7 @@ def begin_step(s: WorldState, p: WorldParams):
     for i in range(p.n):
         flight += s.flight_energy[e,i]
         comm += s.communication_energy[e,i]
+    s.before_freshness[e] = s.true_delivery_freshness[e]
     s.before[e,0] = wp.float64(found)
     s.before[e,1] = wp.float64(delivered)
     s.before[e,2] = wp.float64(s.report_counts[e,0])
@@ -268,7 +277,14 @@ def end_step(s: WorldState, p: WorldParams):
                 pending += 1
         s.inflight[e,i] = wp.float64(pending)
     c0 = p.reward_discovery*(wp.float64(found)-s.before[e,0])
+    # AoI = arrival - report_created, not time since the initial world step.
+    # Reward stays bitwise historical when the feature flag is zero.
     c1 = p.reward_delivery*(wp.float64(delivered)-s.before[e,1])
+    if p.reward_delivery_aoi_weight > wp.float64(0):
+        normal = wp.float64(delivered)-s.before[e,1]
+        fresh = s.true_delivery_freshness[e]-s.before_freshness[e]
+        c1 = p.reward_delivery*((wp.float64(1)-p.reward_delivery_aoi_weight)*normal
+                                + p.reward_delivery_aoi_weight*fresh)
     if p.cell_reports!=0:
         # False local confirmations and false GCS reports MUST be possible,
         # and should incur a penalty rather than be silently deleted by truth.

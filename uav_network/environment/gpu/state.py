@@ -75,6 +75,7 @@ class WorldParams:
     map_size: wp.float64
     dt: wp.float64
     max_speed: wp.float64
+    max_vertical_speed: wp.float64
     max_accel: wp.float64
     safety_distance: wp.float64
     obstacle_clearance: wp.float64
@@ -120,6 +121,7 @@ class WorldParams:
     retention: wp.float64
     reward_discovery: wp.float64
     reward_delivery: wp.float64
+    reward_delivery_aoi_weight: wp.float64
     reward_blocked: wp.float64
     reward_expired: wp.float64
     reward_dropped: wp.float64
@@ -214,6 +216,8 @@ class WorldState:
     mission_time: wp.array(dtype=wp.float64)
     packet_delay_sum: wp.array(dtype=wp.float64)
     report_delay_sum: wp.array(dtype=wp.float64)
+    true_delivery_freshness: wp.array(dtype=wp.float64)
+    before_freshness: wp.array(dtype=wp.float64)
     report_hop_sum: wp.array(dtype=wp.float64)
     true_report_delay_sum: wp.array(dtype=wp.float64)
     true_report_hop_sum: wp.array(dtype=wp.float64)
@@ -359,6 +363,7 @@ def params_from_config(config):
                   link_state_observation=int(n.link_state_observation), cw_min=31,
                   coalesce_idle_polls=int(config.runtime.coalesce_idle_polls),
                   map_size=w.map_size_m, dt=w.dt_s, max_speed=w.max_speed_mps,
+                  max_vertical_speed=w.max_vertical_speed_mps,
                   max_accel=w.max_accel_mps2, safety_distance=w.safety_distance_m,
                   obstacle_clearance=w.obstacle_clearance_m, altitude=c.altitude_m,
                   footprint=c.footprint_radius_m, peer_range=n.peer_range_m, gcs_range=n.gcs_range_m,
@@ -385,6 +390,7 @@ def params_from_config(config):
                   reward_dropped=r.dropped_report, reward_step=r.step_cost,
                   reward_communication=r.communication_energy, reward_propulsion=r.propulsion_energy_per_kj,
                   reward_communication_efficiency=r.communication_efficiency,
+                  reward_delivery_aoi_weight=r.delivery_aoi_weight,
                   reward_shield_correction=r.shield_correction, reward_shield_intervention=r.shield_intervention,
                   reward_unsafe_action=r.unsafe_action,
                   reward_information_gain=r.information_gain, reward_investigation=r.investigation_shaping,
@@ -479,7 +485,7 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False, ce
         shapes[name] = ((e,), wp.int32)
     for name in ("event_sequence","packet_sequence","report_sequence"):
         shapes[name] = ((e,), wp.int64)
-    for name in ("packet_time","mission_time","packet_delay_sum","report_delay_sum","report_hop_sum","true_report_delay_sum","true_report_hop_sum"):
+    for name in ("packet_time","mission_time","packet_delay_sum","report_delay_sum","report_hop_sum","true_report_delay_sum","true_report_hop_sum","true_delivery_freshness","before_freshness"):
         shapes[name] = ((e,), wp.float64)
     groups = (
         (p.event_capacity, wp.float64, "event_time"),

@@ -8,6 +8,8 @@ class FlightSettings:
     motion_dimensions: int = 2
     altitude_min_m: float = 0.0
     altitude_max_m: float = 150.0
+    # 0 keeps historical XYZ dynamics unchanged; positive value caps |vz|.
+    max_vertical_speed_mps: float = 0.0
     obstacle_height_min_m: float = 30.0
     obstacle_height_max_m: float = 120.0
 
@@ -42,7 +44,7 @@ def validate_xyz(config):
     if s.report_cell_hypotheses and config.runtime.environment_backend != "warp_packet":
         # Native reports are still indexed by *true target IDs*: not NoOracle.
         raise ValueError("NoOracle cell-report mode requires warp_packet; native backend leaks target IDs")
-    numbers = [w.altitude_min_m,w.altitude_max_m,w.obstacle_height_min_m,
+    numbers = [w.altitude_min_m,w.altitude_max_m,w.max_vertical_speed_mps,w.obstacle_height_min_m,
                w.obstacle_height_max_m,s.grid_cell_m,s.belief_prior,
                s.confirmation_threshold,s.fine_altitude_m,s.verified_empty_belief,
                s.confirmation_min_likelihood_ratio,
@@ -54,6 +56,9 @@ def validate_xyz(config):
             s.grid_cell_m>0 and 0<=s.verified_empty_belief<s.belief_prior<1
             and s.belief_prior<s.confirmation_threshold<1):
         raise ValueError("Invalid XYZ bounds, grid or probabilities")
+    if w.max_vertical_speed_mps < 0 or (w.max_vertical_speed_mps > 0 and
+            (w.motion_dimensions != 3 or w.max_vertical_speed_mps > w.max_speed_mps)):
+        raise ValueError('Vertical speed cap requires XYZ and 0 < cap <= max speed')
     if (len(s.altitude_anchors)!=4 or len(s.pd)!=4 or len(s.pf)!=4
             or any(a>=b for a,b in zip(s.altitude_anchors,s.altitude_anchors[1:]))
             or any(not 0<pf<pd<1 for pd,pf in zip(s.pd,s.pf))):
