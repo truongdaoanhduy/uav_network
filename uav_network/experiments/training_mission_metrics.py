@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import math
 
+from .report_quality_metrics import terminal_report_quality
+
 
 def _capped_times(values, horizon):
     if not isinstance(values, (list, tuple)):
@@ -32,6 +34,8 @@ def terminal_paper_metrics(record):
         'training/mission_success_rate_percent':100.*float(bool(record['success'])),
         'training/search_delivery_gap_percentage_points':float(record['search_rate_percent'])-float(record['delivery_rate_percent']),
     }
+    for key,value in terminal_report_quality(record).items():
+        result['training/'+key]=value
     for key,label in [('targets_found','training/targets_found'),('targets_delivered','training/targets_delivered')]:
         if key in record:
             result[label]=int(record[key])

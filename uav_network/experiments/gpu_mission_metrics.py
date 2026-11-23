@@ -5,6 +5,8 @@ mission horizon. Targets missing at the horizon are right-censored. Energy
 per delivered target is pooled across episodes, not averaged per episode.
 """
 import math
+
+from .report_quality_metrics import terminal_report_quality
 from statistics import fmean
 from .comparison_metrics import core_mission_metrics
 
@@ -76,6 +78,7 @@ def gpu_episode_record(info, config, *, seed, episode, episode_return):
         packet_sent = packet_delivered = None
     d_time, g_time = fmean(discovery), fmean(delivery)
     comparison = {
+        **terminal_report_quality(info),
         "target_discovery_fraction": found/n, "gcs_delivery_fraction": delivered/n,
         "mission_success": float(success),
         "target_discovery_time_capped_mean_s": d_time,
@@ -126,7 +129,20 @@ def aggregate_gpu_mission_metrics(records):
                                        report["first_delivery_s"]):
             if discovery is not None and delivery is not None:
                 delivered_delays.append(float(delivery) - float(discovery))
-    mission = {**core,
+    # Pool actual counts over all heldout scenarios. Never hallucinate
+    # 100% precision for an episode where the policy never confirmed a cell.
+    report_quality = {}
+    if all('false_confirmed_cells' in rec['comparison_metrics'] for rec in records):
+        ntrue = sum(r['targets_found'] for r in records)
+        nfalse = sum(r['comparison_metrics']['false_confirmed_cells'] for r in records)
+        delivered_true = sum(r['targets_delivered'] for r in records)
+        delivered_false = sum(r['comparison_metrics']['false_reports_delivered'] for r in records)
+        report_quality.update(false_confirmed_cells=nfalse, false_reports_delivered=delivered_false)
+        if ntrue+nfalse>0:
+            report_quality['confirmation_precision_percent']=100.*ntrue/(ntrue+nfalse)
+        if delivered_true+delivered_false>0:
+            report_quality['gcs_report_precision_percent']=100.*delivered_true/(delivered_true+delivered_false)
+    mission = {**core, **report_quality,
         "discovery_auc": average("discovery_auc"),
         "delivery_auc": average("delivery_auc"),
         "mission_success_rate_percent": 100. * fmean(int(r["success"]) for r in records),
@@ -182,6 +198,8 @@ _PERIODIC_METRICS = (
     "discovery_rate_percent", "gcs_delivery_rate_percent", "discovery_auc",
     "delivery_auc", "map_coverage_percent", "coverage_auc", "energy_per_delivered_target_j",
     "gcs_delivery_time_capped_mean_s", "mission_success_rate_percent",
+    "confirmation_precision_percent", "gcs_report_precision_percent",
+    "false_confirmed_cells", "false_reports_delivered",
 )
 
 
