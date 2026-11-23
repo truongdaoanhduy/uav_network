@@ -1,0 +1,126 @@
+{
+  "captured_at_utc": "2026-11-08T08:52:37.163079+00:00",
+  "verification_scope": "Hugging Face pinned Git revision and best/checkpoint.pt tree entry exist; file contents / LFS checksum not downloaded",
+  "runs": [
+    {
+      "run_id": "d9c1c5e9",
+      "algorithm": "masac",
+      "case": 1,
+      "repo_id": "duy95/uav-search-checkpoints",
+      "revision": "d27b5e044f2c09213cc20629365a496b758cb967",
+      "wandb_reported_checkpoint_sha256": "0266c825d5f8f0c1f0b55500ceb20324094d6cc9914bcdec34badd2f4a728f5e",
+      "revision_found": true,
+      "checkpoint_tree_path": "uav-network/d9c1c5e9/best/checkpoint.pt",
+      "checkpoint_entry_found": true,
+      "resolved_revision": "d27b5e044f2c09213cc20629365a496b758cb967"
+    },
+    {
+      "run_id": "c70aa6f4",
+      "algorithm": "masac",
+      "case": 2,
+      "repo_id": "duy95/uav-search-checkpoints",
+      "revision": "e80f5cbc4cd9b562dd0e68ed42bb2f7eb1b3cb12",
+      "wandb_reported_checkpoint_sha256": "32c165c00e1b7a8e1e5b2a4303487afdd3caae5b50fa015e56d531a5d4a24c71",
+      "revision_found": true,
+      "checkpoint_tree_path": "uav-network/c70aa6f4/best/checkpoint.pt",
+      "checkpoint_entry_found": true,
+      "resolved_revision": "e80f5cbc4cd9b562dd0e68ed42bb2f7eb1b3cb12"
+    },
+    {
+      "run_id": "70eaad3a",
+      "algorithm": "masac",
+      "case": 3,
+      "repo_id": "duy95/uav-search-checkpoints",
+      "revision": "1633e032f11bf86871ce49a4e1da5d728221f76b",
+      "wandb_reported_checkpoint_sha256": "0986670079f6b858e33715884e43450fb0189e67c865fcd55386c8b27a4deaf8",
+      "revision_found": true,
+      "checkpoint_tree_path": "uav-network/70eaad3a/best/checkpoint.pt",
+      "checkpoint_entry_found": true,
+      "resolved_revision": "1633e032f11bf86871ce49a4e1da5d728221f76b"
+    },
+    {
+      "run_id": "c6cf7916",
+      "algorithm": "masac",
+      "case": 4,
+      "repo_id": "duy95/uav-search-checkpoints",
+      "revision": "3191c54e93554df2d9cb192519dc396548d4ad21",
+      "wandb_reported_checkpoint_sha256": "f7661d0836097ef364b5dcda2c6ab2e30a077623b45ee1fdd29b674bc25747bd",
+      "revision_found": true,
+      "checkpoint_tree_path": "uav-network/c6cf7916/best/checkpoint.pt",
+      "checkpoint_entry_found": true,
+      "resolved_revision": "3191c54e93554df2d9cb192519dc396548d4ad21"
+    },
+    {
+      "run_id": "7f5fd73f",
+      "algorithm": "masac",
+      "case": 5,
+      "repo_id": "duy95/uav-search-checkpoints",
+      "revision": "8a859d3be963e6a664b249bfa222814989bcdcb4",
+      "wandb_reported_checkpoint_sha256": "208b90b0c65533c6d91444e37711eb9c0c943e30d9bde419f8531fdee4f62861",
+      "revision_found": true,
+      "checkpoint_tree_path": "uav-network/7f5fd73f/best/checkpoint.pt",
+      "checkpoint_entry_found": true,
+      "resolved_revision": "8a859d3be963e6a664b249bfa222814989bcdcb4"
+    },
+    {
+      "run_id": "ccaadcd6",
+      "algorithm": "matd3",
+      "case": 1,
+      "repo_id": "duy95/uav-search-checkpoints",
+      "revision": "18fa9fef8d4e4f14911933a33a343ca81d14aa9f",
+      "wandb_reported_checkpoint_sha256": "155a98dac577b9b5bb2dc6285a67f678d9a07bd6b56f14a99b1c5fc01e9a2fc9",
+      "revision_found": true,
+      "checkpoint_tree_path": "uav-network/ccaadcd6/best/checkpoint.pt",
+      "checkpoint_entry_found": true,
+      "resolved_revision": "18fa9fef8d4e4f14911933a33a343ca81d14aa9f"
+    },
+    {
+      "run_id": "f55774e2",
+      "algorithm": "matd3",
+      "case": 2,
+      "repo_id": "duy95/uav-search-checkpoints",
+      "revision": "58e021faf14138f721ab6832874a1745b58a69d7",
+      "wandb_reported_checkpoint_sha256": "3cf13ccc7c963c93cdc24a52bd90dfa44bd8897530e8908454d77611e15218b9",
+      "revision_found": true,
+      "checkpoint_tree_path": "uav-network/f55774e2/best/checkpoint.pt",
+      "checkpoint_entry_found": true,
+      "resolved_revision": "58e021faf14138f721ab6832874a1745b58a69d7"
+    },
+    {
+      "run_id": "55158605",
+      "algorithm": "matd3",
+      "case": 3,
+      "repo_id": "duy95/uav-search-checkpoints",
+      "revision": "31154cc12c9169eb3832cb3d8efbb8a1a1dc9f23",
+      "wandb_reported_checkpoint_sha256": "e8afe292cb4aa5e9ecf61cb99d37f5e83e31c8551378b4866bc7eddfd9f102e7",
+      "revision_found": true,
+      "checkpoint_tree_path": "uav-network/55158605/best/checkpoint.pt",
+      "checkpoint_entry_found": true,
+      "resolved_revision": "31154cc12c9169eb3832cb3d8efbb8a1a1dc9f23"
+    },
+    {
+      "run_id": "baf27732",
+      "algorithm": "matd3",
+      "case": 4,
+      "repo_id": "duy95/uav-search-checkpoints",
+      "revision": "cad27b66c150ac0d5063f100ffda8675c6ba4390",
+      "wandb_reported_checkpoint_sha256": "5ba1c4f151831739f284d4c6b7c6ff7795936b948983a4f19e73e7e99e1262f4",
+      "revision_found": true,
+      "checkpoint_tree_path": "uav-network/baf27732/best/checkpoint.pt",
+      "checkpoint_entry_found": true,
+      "resolved_revision": "cad27b66c150ac0d5063f100ffda8675c6ba4390"
+    },
+    {
+      "run_id": "635d7134",
+      "algorithm": "matd3",
+      "case": 5,
+      "repo_id": "duy95/uav-search-checkpoints",
+      "revision": "8725fb014433977d3e706652b714792bb6038550",
+      "wandb_reported_checkpoint_sha256": "57c4a90f7dafc8673f40a7a524106ecacc4cc12fc466a605b36a3dcd7ce69320",
+      "revision_found": true,
+      "checkpoint_tree_path": "uav-network/635d7134/best/checkpoint.pt",
+      "checkpoint_entry_found": true,
+      "resolved_revision": "8725fb014433977d3e706652b714792bb6038550"
+    }
+  ]
+}

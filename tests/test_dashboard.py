@@ -83,12 +83,57 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(pinned,{"run:displayName","run:state","run:createdAt","run:duration"})
         plots = [p for section in spec["panelBankConfig"]["sections"] for p in section["panels"]
                  if "metrics" in p.get("config",{})]
-        self.assertEqual(len(plots),27)
+        self.assertEqual(len(plots),25)
+        self.assertTrue({"episode/return", "outcome/search_rate_percent",
+                         "outcome/delivery_rate_percent", "evaluation/discovery_auc",
+                         "evaluation/target_delivery_time_capped_mean_s",
+                         "evaluation/pooled_uav_j_per_gcs_delivery"} <= {
+            metric for plot in plots for metric in plot["config"]["metrics"]
+        })
+        assert len([p for p in plots if p['config'].get('chartTitle') in (
+            'Actor loss', 'Critic loss', 'Actor gradient norm', 'Critic gradient norm',
+            'TD error', 'Action saturation', 'CBF intervention rate')]) == 7
+        sections_by_name = {sec['name']: sec for sec in spec['panelBankConfig']['sections']}
+        assert len(sections_by_name) >= 3
+        train = sections_by_name['Training convergence (in-sample; not final benchmark)']
+        evaluation = sections_by_name['Periodic evaluation on fixed seeds (held-out checkpoint curves)']
+        assert len(train['panels']) == 9
+        assert len(evaluation['panels']) == 9
+        assert not any(name.startswith('Supplemental:') for name in sections_by_name)
+        assert all(metric in [p['config']['metrics'][0] for p in train['panels']]
+                   for metric in ('training/delivery_given_discovery_fraction',
+                                  'training/first_discovery_to_gcs_delay_delivered_mean_s',
+                                  'training/false_confirmation_per_1000_measurements',
+                                  'training/map_coverage_percent'))
+        assert all(metric in [p['config']['metrics'][0] for p in evaluation['panels']]
+                   for metric in ('evaluation/delivery_given_discovery_fraction',
+                                  'evaluation/first_discovery_to_gcs_delay_delivered_mean_s',
+                                  'evaluation/false_confirmation_per_1000_measurements',
+                                  'evaluation/map_coverage_percent'))
+        fixed = next(plot for plot in plots if plot['config'].get('chartTitle') ==
+                     '3. Discovery AUC (higher = faster/better search)')
+        assert fixed['config']['xAxis'] == 'evaluation/checkpoint_episode'
+        assert fixed['config']['xExpression'] == '${evaluation/checkpoint_episode} / 10'
+        paper_return = [p for p in plots if p.get("config", {}).get("chartTitle") == "UAV-paper training return / reward"]
+        self.assertEqual(len(paper_return), 1)
+        paper_config = paper_return[0]["config"]
+        self.assertEqual(paper_config["xAxis"], "episode/index")
+        self.assertEqual(paper_config["xExpression"], "${episode/index} / 10")
+        self.assertEqual(paper_config["xAxisTitle"], "Episode (×10¹)")
+        self.assertEqual(paper_config["smoothingType"], "exponential")
+        self.assertEqual(paper_config["smoothingWeight"], 0.99)
+        self.assertEqual(paper_config["pointVisualizationMethod"], "sampling")
+        self.assertFalse(paper_config["showOriginalAfterSmoothing"])
+
+
         for panel in plots:
             config = panel["config"]
             self.assertEqual(config.get("limit"),12)
             self.assertFalse(config.get("aggregate",False))
-            metric=config["metrics"][0]
+            metrics=config.get("metrics", [])
+            if not metrics:
+                continue
+            metric=metrics[0]
             if metric.startswith("system/"): self.assertEqual(config["xAxis"],"_runtime")
             elif metric in {"evaluation/delivery_rate_percent","evaluation/success"}:
                 self.assertEqual(config["xAxis"],"evaluation/episodes_completed")

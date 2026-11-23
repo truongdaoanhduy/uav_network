@@ -49,6 +49,53 @@ def run_kaggle(args, account, timeout=45):
 
 
 
+
+def prepare_submit_job(spec, folder):
+    """Build nonsecret fields for a direct Kaggle API call; no metadata file."""
+    stage = spec["stage"]
+    data_sources = [spec["credential_dataset"]]
+    if spec.get("storage_credential_dataset"):
+        data_sources.append(spec["storage_credential_dataset"])
+    requires_launch_token = (spec.get("requires_kaggle_token") or
+        (spec.get("cpu_visualize") and spec.get("orchestration") != "github_actions"))
+    if requires_launch_token:
+        data_sources.append(spec["pipeline_credential_dataset"])
+    job = {
+        "kernel_ref": spec["kernel_ref"],
+        "code_file": str(Path(folder).resolve() / "kernel.py"),
+        "enable_gpu": stage not in {"visualize", "archive", "continuation-watch"},
+        "dataset_sources": data_sources,
+        "timeout_seconds": int(spec.get("timeout_seconds", 39600)),
+        "accelerator": spec.get("accelerator", "NvidiaTeslaT4"),
+    }
+    return job
+
+
+def submit_kernel(spec, folder, account, timeout=50):
+    """Submit a private Kaggle script directly: no kernel-metadata.json or CLI push."""
+    job = prepare_submit_job(spec, folder)
+    if not Path(job["code_file"]).is_file():
+        raise FileNotFoundError("Generated kernel.py was not found")
+    env = os.environ.copy()
+    env["KAGGLE_API_TOKEN"] = account.token
+    for variable in ("KAGGLE_USERNAME", "KAGGLE_KEY"):
+        env.pop(variable, None)
+    process = subprocess.run([sys.executable, "-m", "uav_network.cloud.direct_submit"],
+                             input=json.dumps(job), text=True, capture_output=True,
+                             env=env, timeout=timeout, check=False)
+    stdout = process.stdout.replace(account.token, "[REDACTED]")
+    stderr = process.stderr.replace(account.token, "[REDACTED]")
+    if process.returncode:
+        raise RuntimeError("Kaggle direct API submission failed: " + (stderr or stdout)[-1000:])
+    try:
+        receipt = json.loads(stdout)
+    except (ValueError, TypeError) as error:
+        raise RuntimeError("Kaggle direct API returned no parseable receipt") from error
+    if receipt.get("ref") != spec["kernel_ref"]:
+        raise RuntimeError("Kaggle did not confirm the expected kernel reference")
+    return receipt["url"]
+
+
 def record_submission_phase(output, kind, ref, phase):
     """A local receipt distinguishes a rejected preparation from a lost push response."""
     path = Path(output) / (kind + "-submission.json")
@@ -228,6 +275,7 @@ def _ensure_single_credential(account, username, slug, title, filename, value, t
                 raise TimeoutError("Private CPU credential dataset was not ready")
             time.sleep(2)
     # Kaggle can expose owned private metadata while DownloadDataset is unavailable.
+    refresh_requested = False
     while True:
         remaining = deadline - time.monotonic()
         if remaining <= 0:
@@ -235,7 +283,19 @@ def _ensure_single_credential(account, username, slug, title, filename, value, t
         try:
             _, token = private_dataset_file(account, ref, username, {filename},
                                             min(15, max(1, int(remaining))), only_selected=True)
-            break
+            if token == value:
+                return ref
+            if created:
+                raise RuntimeError("Private CPU-flow credential does not match the selected local credential")
+            if not refresh_requested:
+                try:
+                    publish("version")
+                except subprocess.TimeoutExpired:
+                    # The version may have been accepted even though the client timed out.
+                    pass
+                refresh_requested = True
+            time.sleep(min(2, remaining))
+            continue
         except subprocess.TimeoutExpired:
             # A mounted private dataset remains usable even when the DownloadDataset
             # endpoint stalls. Refresh an existing dataset from the exact local value
@@ -256,9 +316,6 @@ def _ensure_single_credential(account, username, slug, title, filename, value, t
             if '404 Client Error' not in str(error):
                 raise
             time.sleep(min(2, remaining))
-    if token != value:
-        raise RuntimeError("Private CPU-flow credential does not match the selected local credential")
-    return ref
 
 
 def ensure_pipeline_dataset(account, username, timeout=120):

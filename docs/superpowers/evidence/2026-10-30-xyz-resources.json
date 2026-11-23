@@ -1,0 +1,113 @@
+{
+  "scope": "Static allocation estimates; excludes activation peaks, CUDA context and allocator overhead. No CUDA hardware test.",
+  "profiles": [
+    {
+      "profile": "comparison-20k-hybrid75-1kb-xyz-sensing.yaml",
+      "observation_dim": 173,
+      "critic_feature_dim": 565,
+      "continuous_dim": 4,
+      "replay_bytes_per_transition": 12976,
+      "replay_transition_bytes": 12976000000,
+      "measurement_arrays_bytes": 9000000,
+      "replay_cpu_fraction": 0.75,
+      "warp_state": {
+        "bytes_per_env": 689240,
+        "shared_bytes": 3104,
+        "estimated_bytes": {
+          "1": 692344,
+          "4096": 2823130144
+        },
+        "fragments_per_report": 1,
+        "session_capacity_per_env": 840,
+        "packet_capacity_per_env": 396,
+        "session_fragment_dense_bytes": 0,
+        "max_queue_packets": 64
+      },
+      "second_observation_buffer_bytes": 26263552,
+      "models": {
+        "masac": {
+          "all_model_tensors_bytes": 24613368,
+          "adam_moments_bytes": 27354000,
+          "collector_actor_bytes": 2740584
+        },
+        "matd3": {
+          "all_model_tensors_bytes": 27304560,
+          "adam_moments_bytes": 27304560,
+          "collector_actor_bytes": 2715912
+        }
+      }
+    },
+    {
+      "profile": "comparison-20k-hybrid75-1kb-shared-actor-critic-xyz-sensing.yaml",
+      "observation_dim": 173,
+      "critic_feature_dim": 565,
+      "continuous_dim": 4,
+      "replay_bytes_per_transition": 12976,
+      "replay_transition_bytes": 12976000000,
+      "measurement_arrays_bytes": 9000000,
+      "replay_cpu_fraction": 0.75,
+      "warp_state": {
+        "bytes_per_env": 689240,
+        "shared_bytes": 3104,
+        "estimated_bytes": {
+          "1": 692344,
+          "4096": 2823130144
+        },
+        "fragments_per_report": 1,
+        "session_capacity_per_env": 840,
+        "packet_capacity_per_env": 396,
+        "session_fragment_dense_bytes": 0,
+        "max_queue_packets": 64
+      },
+      "second_observation_buffer_bytes": 26263552,
+      "models": {
+        "masac": {
+          "all_model_tensors_bytes": 4108412,
+          "adam_moments_bytes": 4571368,
+          "collector_actor_bytes": 462908
+        },
+        "matd3": {
+          "all_model_tensors_bytes": 4563048,
+          "adam_moments_bytes": 4563048,
+          "collector_actor_bytes": 458796
+        }
+      }
+    },
+    {
+      "profile": "comparison-20k-fullgpu-1kb-shared-actor-critic-xyz-sensing.yaml",
+      "observation_dim": 173,
+      "critic_feature_dim": 565,
+      "continuous_dim": 4,
+      "replay_bytes_per_transition": 12976,
+      "replay_transition_bytes": 12976000000,
+      "measurement_arrays_bytes": 9000000,
+      "replay_cpu_fraction": 0,
+      "warp_state": {
+        "bytes_per_env": 689240,
+        "shared_bytes": 3104,
+        "estimated_bytes": {
+          "1": 692344,
+          "4096": 2823130144
+        },
+        "fragments_per_report": 1,
+        "session_capacity_per_env": 840,
+        "packet_capacity_per_env": 396,
+        "session_fragment_dense_bytes": 0,
+        "max_queue_packets": 64
+      },
+      "second_observation_buffer_bytes": 26263552,
+      "models": {
+        "masac": {
+          "all_model_tensors_bytes": 4108412,
+          "adam_moments_bytes": 4571368,
+          "collector_actor_bytes": 462908
+        },
+        "matd3": {
+          "all_model_tensors_bytes": 4563048,
+          "adam_moments_bytes": 4563048,
+          "collector_actor_bytes": 458796
+        }
+      }
+    }
+  ]
+}

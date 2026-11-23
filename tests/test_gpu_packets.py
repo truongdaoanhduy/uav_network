@@ -135,6 +135,11 @@ class GPUPacketTests(unittest.TestCase):
                                    rtol=0, atol=1e-9)
         return wp, s, p, mac
 
+    def test_reset_network_isolated_from_packet_scheduler_module(self):
+        _, _, mac = self.backend()
+        self.assertEqual(mac.reset_network.__module__,
+                         "uav_network.communication.gpu.network_reset")
+
     def test_event_heap_exposes_root_reschedule_primitive(self):
         events = importlib.import_module("uav_network.communication.gpu.events")
         self.assertTrue(hasattr(events, "replace_root"))

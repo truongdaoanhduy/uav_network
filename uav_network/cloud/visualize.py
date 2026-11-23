@@ -12,9 +12,9 @@ from uuid import uuid4
 
 from .identities import related_run_name
 
-from .client import record_submission_phase, pushed_kernel_ref, run_kaggle, verify_credential_dataset
+from .client import record_submission_phase, pushed_kernel_ref, run_kaggle, submit_kernel, verify_credential_dataset
 from .credentials import Account, Credentials
-from .kernel import kernel_metadata, kernel_script
+from .kernel import kernel_script
 
 # Lazy, patchable hooks keep GitHub orchestration free of the torch dependency.
 class _LazyTorch:
@@ -147,8 +147,9 @@ def build_visualization_spec(parent, results):
         raise ValueError("CPU visualization needs at least one completed learner checkpoint")
     from .continuation import kernel_ref_for_segment
     cpu_ref = kernel_ref_for_segment(parent.get("root_kernel_ref", parent["kernel_ref"]), 0, cpu=True)
-    runs = {a: {"id": uuid4().hex[:8],
-                "name": related_run_name(parent["runs"][a]["name"], "EVALCPU", uuid4().hex[:6])}
+    run_ids = {a: uuid4().hex[:8] for a in artifacts}
+    runs = {a: {"id": run_ids[a],
+                "name": related_run_name(parent["runs"][a]["name"], "EVALCPU", run_ids[a])}
             for a in artifacts}
     return {"stage": "visualize", "runs": runs,
             "config": parent.get("config"), "overrides": parent.get("overrides", []),
@@ -194,9 +195,8 @@ def submit_visualization_spec(spec, output, account, credentials):
     folder = Path(output) / "cpu-kernel"
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "kernel.py").write_text(kernel_script(spec))
-    (folder / "kernel-metadata.json").write_text(json.dumps(kernel_metadata(spec), indent=2))
     record_submission_phase(output, "cpu", spec["kernel_ref"], "pushing")
-    response = run_kaggle(["kernels", "push", "-p", str(folder), "--timeout", str(spec["timeout_seconds"])], account, timeout=50)
+    response = submit_kernel(spec, folder, account, timeout=50)
     ref = pushed_kernel_ref(response)
     manifest = {**spec, "kernel_ref": ref, "kernel_url": "https://www.kaggle.com/code/" + ref}
     (Path(output) / "cpu-visualization.json").write_text(json.dumps(manifest, indent=2))
@@ -365,7 +365,10 @@ def run_visualization(spec, output=Path("/kaggle/working")):
             def record_episode(record):
                 nonlocal completed_eval_episodes
                 completed_eval_episodes = record["episode"]
+                from ..experiments.comparison_metrics import core_mission_metrics
+                episode_core = core_mission_metrics([record])
                 tracker.diagnostic({"evaluation/episodes_completed": record["episode"],
+                    **{f"evaluation/episode_core/{k}": v for k, v in episode_core.items()},
                     "evaluation/return": record["return"],
                     "evaluation/search_rate_percent": record["search_rate_percent"],
                     "evaluation/delivery_rate_percent": record["delivery_rate_percent"],
@@ -420,8 +423,17 @@ def run_visualization(spec, output=Path("/kaggle/working")):
                     aggregates["evaluation/" + key] = protocol[key]
             if type(source_step) is int and source_step >= 0:
                 aggregates["evaluation/checkpoint_global_step"] = source_step
+            source_episode = protocol.get("training_episodes")
+            if type(source_episode) is int and source_episode >= 0:
+                aggregates["evaluation/checkpoint_episode"] = source_episode
+            core = results[algorithm].get("core_metrics", {})
+            aggregates.update({f"evaluation/core/{key}": value for key, value in core.items()})
             tracker.run.summary.update(aggregates)
             tracker.diagnostic(aggregates, results[algorithm]["episodes"])
+            figure = output / "visualize" / algorithm / "core_mission_metrics.png"
+            if figure.is_file() and hasattr(tracker, "wandb") and hasattr(tracker.wandb, "Image"):
+                tracker.run.log({"evaluation/episodes_completed": results[algorithm]["episodes"],
+                                 "evaluation/core/figure": tracker.wandb.Image(str(figure))})
             tracker.run.summary["evaluation/episodes_completed"] = results[algorithm]["episodes"]
             tracker.run.save(str(output / "visualize" / algorithm / "metrics.json"),
                              base_path=str(output), policy="now")

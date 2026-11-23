@@ -29,6 +29,9 @@ class ComparisonEvaluationTests(unittest.TestCase):
             self.assertIn("protocol", report, "Missing scientific evaluation protocol")
             self.assertFalse(report["protocol"]["training_seed_overlap"])
             self.assertIn("metric_summary", report)
+            self.assertEqual(len(report["core_metrics"]), 5)
+            self.assertTrue(Path(report["core_plot_path"]).is_file())
+            assert report["core_metrics"]["discovery_time_capped_mean_s"] >= 0
             self.assertEqual(report["records"][0]["comparison_metrics"]["safety_violation_steps"], 0)
             self.assertEqual(len(report["records"][0]["comparison_metrics"]["first_discovery_observed_s"]), 2)
             leaked = evaluate(checkpoint, episodes=1, seed=44, output_dir=Path(folder) / "leaked")

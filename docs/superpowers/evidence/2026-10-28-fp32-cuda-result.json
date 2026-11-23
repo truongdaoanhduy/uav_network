@@ -1,0 +1,458 @@
+{
+  "source_commit": "d290b7157a85428eacdfa3343c731a343af9fa37",
+  "kernel_ref": "fwelfijwelfj/diag-fp32-canonical-1028-c36d75",
+  "status": "passed",
+  "production_training": false,
+  "cases": [
+    {
+      "status": "passed",
+      "scope": "execution preflight; zero production episodes",
+      "algorithm": "masac",
+      "pql": false,
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 1000000,
+      "diagnostic_pql_warmup": 3,
+      "production_pql_warmup": 32,
+      "amp_mode": "off",
+      "compile": true,
+      "fused": false,
+      "seconds": 110.33295707499997,
+      "all_adam_groups_fused": false,
+      "replay_bytes": 13105000000,
+      "replay_layout": "hybrid",
+      "replay_cpu_bytes": 9831000000,
+      "replay_hot_bytes": 3274000000,
+      "devices": {
+        "world": "cuda:0",
+        "collector": "cuda:0",
+        "learner": "cuda:1",
+        "replay": "cuda:1"
+      },
+      "collections": 6,
+      "critic_updates": 32,
+      "actor_updates": 32,
+      "precision": {
+        "critic": {
+          "mode": "off",
+          "scalers": {},
+          "counts": {
+            "critic": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "actor": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "alpha": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            }
+          }
+        },
+        "policy": {
+          "mode": "off",
+          "scalers": {},
+          "counts": {
+            "critic": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "actor": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "alpha": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            }
+          }
+        }
+      },
+      "amp_autocast_fp16": 0,
+      "compiled_unique_graphs": 3,
+      "inductor_generated_kernels": 78,
+      "dynamo_graph_breaks": 0,
+      "dynamo_frames_total": 3,
+      "dynamo_frames_ok": 3,
+      "dynamo_frames_fallback": 0,
+      "memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "peak_allocated_bytes": 81147392,
+          "peak_reserved_bytes": 96468992,
+          "total_bytes": 15636037632
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "peak_allocated_bytes": 3937141248,
+          "peak_reserved_bytes": 4051697664,
+          "total_bytes": 15636037632
+        }
+      ],
+      "dtype_checks": [
+        {
+          "parameter_dtypes": [
+            "torch.float32"
+          ],
+          "gradient_dtypes": [
+            "torch.float32"
+          ],
+          "gradient_tensor_count": 134,
+          "encoder_spot_check_dtype": "torch.float32",
+          "scalers_empty": true
+        }
+      ],
+      "default_dtype": "torch.float32",
+      "no_amp_override": true,
+      "dtype_checks_passed": true
+    },
+    {
+      "status": "passed",
+      "scope": "execution preflight; zero production episodes",
+      "algorithm": "masac",
+      "pql": true,
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 1000000,
+      "diagnostic_pql_warmup": 3,
+      "production_pql_warmup": 32,
+      "amp_mode": "off",
+      "compile": true,
+      "fused": false,
+      "seconds": 38.71032895899998,
+      "all_adam_groups_fused": false,
+      "replay_bytes": 13105000000,
+      "replay_layout": "hybrid",
+      "replay_cpu_bytes": 9831000000,
+      "replay_hot_bytes": 3274000000,
+      "devices": {
+        "world": "cuda:0",
+        "collector": "cuda:0",
+        "learner": "cuda:1",
+        "replay": "cuda:1"
+      },
+      "collections": 6,
+      "critic_updates": 32,
+      "actor_updates": 32,
+      "precision": {
+        "critic": {
+          "mode": "off",
+          "scalers": {},
+          "counts": {
+            "critic": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "actor": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "alpha": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            }
+          }
+        },
+        "policy": {
+          "mode": "off",
+          "scalers": {},
+          "counts": {
+            "critic": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "actor": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "alpha": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            }
+          }
+        }
+      },
+      "amp_autocast_fp16": 0,
+      "compiled_unique_graphs": 3,
+      "inductor_generated_kernels": 78,
+      "dynamo_graph_breaks": 0,
+      "dynamo_frames_total": 3,
+      "dynamo_frames_ok": 3,
+      "dynamo_frames_fallback": 0,
+      "memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "peak_allocated_bytes": 284919296,
+          "peak_reserved_bytes": 322961408,
+          "total_bytes": 15636037632
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "peak_allocated_bytes": 4441296384,
+          "peak_reserved_bytes": 4754243584,
+          "total_bytes": 15636037632
+        }
+      ],
+      "dtype_checks": [
+        {
+          "parameter_dtypes": [
+            "torch.float32"
+          ],
+          "gradient_dtypes": [
+            "torch.float32"
+          ],
+          "gradient_tensor_count": 72,
+          "encoder_spot_check_dtype": "torch.float32",
+          "scalers_empty": true
+        },
+        {
+          "parameter_dtypes": [
+            "torch.float32"
+          ],
+          "gradient_dtypes": [
+            "torch.float32"
+          ],
+          "gradient_tensor_count": 62,
+          "encoder_spot_check_dtype": "torch.float32",
+          "scalers_empty": true
+        }
+      ],
+      "default_dtype": "torch.float32",
+      "no_amp_override": true,
+      "dtype_checks_passed": true
+    },
+    {
+      "status": "passed",
+      "scope": "execution preflight; zero production episodes",
+      "algorithm": "matd3",
+      "pql": false,
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 1000000,
+      "diagnostic_pql_warmup": 3,
+      "production_pql_warmup": 32,
+      "amp_mode": "off",
+      "compile": true,
+      "fused": false,
+      "seconds": 32.058725084,
+      "all_adam_groups_fused": false,
+      "replay_bytes": 13105000000,
+      "replay_layout": "hybrid",
+      "replay_cpu_bytes": 9831000000,
+      "replay_hot_bytes": 3274000000,
+      "devices": {
+        "world": "cuda:0",
+        "collector": "cuda:0",
+        "learner": "cuda:1",
+        "replay": "cuda:1"
+      },
+      "collections": 6,
+      "critic_updates": 32,
+      "actor_updates": 16,
+      "precision": {
+        "critic": {
+          "mode": "off",
+          "scalers": {},
+          "counts": {
+            "critic": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "actor": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            }
+          }
+        },
+        "policy": {
+          "mode": "off",
+          "scalers": {},
+          "counts": {
+            "critic": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "actor": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            }
+          }
+        }
+      },
+      "amp_autocast_fp16": 0,
+      "compiled_unique_graphs": 3,
+      "inductor_generated_kernels": 78,
+      "dynamo_graph_breaks": 0,
+      "dynamo_frames_total": 3,
+      "dynamo_frames_ok": 3,
+      "dynamo_frames_fallback": 0,
+      "memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "peak_allocated_bytes": 81125888,
+          "peak_reserved_bytes": 92274688,
+          "total_bytes": 15636037632
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "peak_allocated_bytes": 3973793792,
+          "peak_reserved_bytes": 4129292288,
+          "total_bytes": 15636037632
+        }
+      ],
+      "dtype_checks": [
+        {
+          "parameter_dtypes": [
+            "torch.float32"
+          ],
+          "gradient_dtypes": [
+            "torch.float32"
+          ],
+          "gradient_tensor_count": 120,
+          "encoder_spot_check_dtype": "torch.float32",
+          "scalers_empty": true
+        }
+      ],
+      "default_dtype": "torch.float32",
+      "no_amp_override": true,
+      "dtype_checks_passed": true
+    },
+    {
+      "status": "passed",
+      "scope": "execution preflight; zero production episodes",
+      "algorithm": "matd3",
+      "pql": true,
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 1000000,
+      "diagnostic_pql_warmup": 3,
+      "production_pql_warmup": 32,
+      "amp_mode": "off",
+      "compile": false,
+      "fused": false,
+      "seconds": 17.446516729999985,
+      "all_adam_groups_fused": false,
+      "replay_bytes": 13105000000,
+      "replay_layout": "hybrid",
+      "replay_cpu_bytes": 9831000000,
+      "replay_hot_bytes": 3274000000,
+      "devices": {
+        "world": "cuda:0",
+        "collector": "cuda:0",
+        "learner": "cuda:1",
+        "replay": "cuda:1"
+      },
+      "collections": 6,
+      "critic_updates": 32,
+      "actor_updates": 16,
+      "precision": {
+        "critic": {
+          "mode": "off",
+          "scalers": {},
+          "counts": {
+            "critic": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "actor": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            }
+          }
+        },
+        "policy": {
+          "mode": "off",
+          "scalers": {},
+          "counts": {
+            "critic": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            },
+            "actor": {
+              "attempted": 0,
+              "applied": 0,
+              "skipped": 0
+            }
+          }
+        }
+      },
+      "amp_autocast_fp16": 0,
+      "compiled_unique_graphs": 0,
+      "inductor_generated_kernels": 0,
+      "dynamo_graph_breaks": 0,
+      "dynamo_frames_total": 0,
+      "dynamo_frames_ok": 0,
+      "dynamo_frames_fallback": 0,
+      "memory": [
+        {
+          "device": 0,
+          "name": "Tesla T4",
+          "peak_allocated_bytes": 296182272,
+          "peak_reserved_bytes": 337641472,
+          "total_bytes": 15636037632
+        },
+        {
+          "device": 1,
+          "name": "Tesla T4",
+          "peak_allocated_bytes": 4255951872,
+          "peak_reserved_bytes": 5003804672,
+          "total_bytes": 15636037632
+        }
+      ],
+      "dtype_checks": [
+        {
+          "parameter_dtypes": [
+            "torch.float32"
+          ],
+          "gradient_dtypes": [
+            "torch.float32"
+          ],
+          "gradient_tensor_count": 72,
+          "encoder_spot_check_dtype": "torch.float32",
+          "scalers_empty": true
+        },
+        {
+          "parameter_dtypes": [
+            "torch.float32"
+          ],
+          "gradient_dtypes": [
+            "torch.float32"
+          ],
+          "gradient_tensor_count": 48,
+          "encoder_spot_check_dtype": "torch.float32",
+          "scalers_empty": true
+        }
+      ],
+      "default_dtype": "torch.float32",
+      "no_amp_override": true,
+      "dtype_checks_passed": true
+    }
+  ]
+}

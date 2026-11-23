@@ -1,0 +1,414 @@
+{
+  "observed_at_utc": "2026-10-29T10:51:44.050060+00:00",
+  "verified_runtime_commit": "2dbfdc860d57cf23b391c117d70576f95c323ff8",
+  "branch": "feat/cpu-replay-20261022",
+  "initial_base": "a470a4022166d94a656b81efa51eebd715ae3c57",
+  "preserved_production_source": "80b690ada7aaab7005dd9bba38fe8106a57b4ccb",
+  "canonical_config": "configs/comparison-20k-hybrid75-1kb.yaml",
+  "historical_profile": "configs/comparison-20k-hybrid75-1kb-35t25o.yaml",
+  "profile": {
+    "num_uavs": 6,
+    "map_size_m": 1000.0,
+    "num_targets": 20,
+    "num_obstacles": 15,
+    "max_steps": 1800,
+    "power_control": "link_budget",
+    "link_budget_margin_db": 3.0,
+    "buffer_bytes": 3072,
+    "report_ttl_s": 300.0,
+    "battery_capacity_j": 277200.0
+  },
+  "variants": {
+    "baseline": {},
+    "learned_power": {
+      "network": {
+        "power_control": "learned"
+      }
+    },
+    "buffer16": {
+      "network": {
+        "buffer_bytes": 16384
+      }
+    },
+    "buffer32": {
+      "network": {
+        "buffer_bytes": 32768
+      }
+    },
+    "ttl600": {
+      "network": {
+        "report_ttl_s": 600.0
+      }
+    },
+    "coverage8": {
+      "sensor": {
+        "coverage_grid_cells": 8
+      }
+    },
+    "battery2x": {
+      "energy": {
+        "battery_capacity_j": 554400.0
+      }
+    }
+  },
+  "production_protocol": {
+    "requested_training_episodes": 20000,
+    "num_envs": 4096,
+    "batch_size": 8192,
+    "amp_mode": "off",
+    "training_seeds": [
+      44,
+      100044,
+      200044
+    ],
+    "evaluation_interval_steps": 3686400,
+    "validation_episodes": 5,
+    "validation_seed": 1000000044,
+    "final_evaluation_episodes": 30,
+    "final_evaluation_seed": 2000000044,
+    "prepared_cases": 84,
+    "completed_production_cases": 0,
+    "submitted_cloud_jobs": 0,
+    "manifest": "outputs/controlled-20t15o-study-20261029/manifest.json"
+  },
+  "verification": {
+    "baseline_unittest": {
+      "run": 627,
+      "skipped": 71,
+      "exit_code": 0,
+      "elapsed_s": 166.372
+    },
+    "controlled_power_focused": {
+      "passed": 53,
+      "subtests_passed": 57
+    },
+    "coverage_resume_focused": {
+      "passed": 46,
+      "skipped": 3,
+      "subtests_passed": 759
+    },
+    "study_async_production_focused": {
+      "passed": 62
+    },
+    "review_fixes_focused": {
+      "passed": 59,
+      "skipped": 5,
+      "subtests_passed": 464,
+      "elapsed_s": 20.87
+    },
+    "initial_full_pytest": {
+      "passed": 1007,
+      "failed": 10,
+      "skipped": 95,
+      "resolution": "Nine historical hardcoded25-obstacle assertions updated to configured counts; both20/15 and35/25 recovery retained. Authorized scientific source hashes updated for controller-owned power semantics; behavior tested separately."
+    },
+    "final_pytest": {
+      "command": "python -m pytest -q --junitxml=/tmp/uav-2015-final.xml",
+      "exit_code": 0,
+      "passed": 1028,
+      "skipped": 97,
+      "warnings": 8,
+      "subtests_passed": 1470,
+      "elapsed_s": 301.89,
+      "failures": 0,
+      "errors": 0
+    },
+    "final_unittest": {
+      "command": "python -m unittest discover -s tests -v",
+      "exit_code": 0,
+      "run": 628,
+      "skipped": 71,
+      "elapsed_s": 162.819
+    },
+    "compileall": {
+      "command": "python -m compileall -q uav_network tests",
+      "exit_code": 0
+    },
+    "diff_check": {
+      "command": "git diff --check",
+      "exit_code": 0
+    },
+    "credential_scan": {
+      "credential_values_scanned": 19,
+      "changed_files_scanned": 36,
+      "hits": 0
+    },
+    "versions": {
+      "torch": "2.7.1+cu126",
+      "warp": "1.18.0",
+      "cuda_available": false
+    }
+  },
+  "review": {
+    "range": "80b690a..9cfb83a",
+    "independent": true,
+    "findings_fixed": [
+      "Bind final evaluation to checkpoint SHA256, full config, algorithm, BASE/PQL and precision; real swap regression RED->GREEN.",
+      "Expose actual protocol/budget in standalone summary; regression RED->GREEN."
+    ],
+    "unresolved_critical_or_important": 0,
+    "bounds": [
+      "No CUDA hardware runtime/performance verification",
+      "No production convergence evidence"
+    ]
+  },
+  "feasibility": {
+    "controller": "privileged_feasibility_oracle",
+    "not_a_policy_baseline": true,
+    "complete": true,
+    "environment_backend": "warp_packet",
+    "episodes": 5,
+    "success_rate": 1.0,
+    "mean_search_rate_percent": 100.0,
+    "mean_delivery_rate_percent": 100.0,
+    "mean_episode_length": 138.4,
+    "mean_final_battery_fraction": 0.8807270987822543,
+    "records": [
+      {
+        "seed": 3000000044,
+        "success": true,
+        "episode_length": 157,
+        "targets_found": 20,
+        "targets_delivered": 20,
+        "layout_hash": "05053e91638f48f08cd317adfc728e8a10851e6cfd2b359475aadec0212d21e7"
+      },
+      {
+        "seed": 3000000045,
+        "success": true,
+        "episode_length": 194,
+        "targets_found": 20,
+        "targets_delivered": 20,
+        "layout_hash": "a764632c6a23a42c92a8f7a7d4a870e93b86cd5dd7d85d9531d607953a9e4959"
+      },
+      {
+        "seed": 3000000046,
+        "success": true,
+        "episode_length": 89,
+        "targets_found": 20,
+        "targets_delivered": 20,
+        "layout_hash": "75f2fcadcf700e56552f0424657a6f1a7089b2a3715ef7445c1bafdb64dead70"
+      },
+      {
+        "seed": 3000000047,
+        "success": true,
+        "episode_length": 97,
+        "targets_found": 20,
+        "targets_delivered": 20,
+        "layout_hash": "75ab1ba655ccc56b6b4b584e13a475416627e980eeabcb9593bd16a766676c6c"
+      },
+      {
+        "seed": 3000000048,
+        "success": true,
+        "episode_length": 155,
+        "targets_found": 20,
+        "targets_delivered": 20,
+        "layout_hash": "0cb13dee297c6852fd58e7bef58d8684693b12074fa886dfdd624881033aca4a"
+      }
+    ]
+  },
+  "smoke": {
+    "artifact": "outputs/controlled-20t15o-verification/smoke-final/smoke_summary.json",
+    "completed_cases": 18,
+    "selected_cases": [
+      "20t15o-baseline-masac-base-s44",
+      "20t15o-baseline-masac-base-s100044",
+      "20t15o-baseline-masac-base-s200044",
+      "20t15o-baseline-masac-pql-s44",
+      "20t15o-baseline-masac-pql-s100044",
+      "20t15o-baseline-masac-pql-s200044",
+      "20t15o-baseline-matd3-base-s44",
+      "20t15o-baseline-matd3-base-s100044",
+      "20t15o-baseline-matd3-base-s200044",
+      "20t15o-baseline-matd3-pql-s44",
+      "20t15o-baseline-matd3-pql-s100044",
+      "20t15o-baseline-matd3-pql-s200044",
+      "20t15o-learned_power-matd3-base-s44",
+      "20t15o-buffer16-matd3-base-s44",
+      "20t15o-buffer32-matd3-base-s44",
+      "20t15o-ttl600-matd3-base-s44",
+      "20t15o-coverage8-matd3-base-s44",
+      "20t15o-battery2x-matd3-base-s44"
+    ],
+    "learning": [
+      {
+        "id": "20t15o-baseline-masac-base-s44",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      },
+      {
+        "id": "20t15o-baseline-masac-base-s100044",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      },
+      {
+        "id": "20t15o-baseline-masac-base-s200044",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      },
+      {
+        "id": "20t15o-baseline-masac-pql-s44",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      },
+      {
+        "id": "20t15o-baseline-masac-pql-s100044",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      },
+      {
+        "id": "20t15o-baseline-masac-pql-s200044",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      },
+      {
+        "id": "20t15o-baseline-matd3-base-s44",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      },
+      {
+        "id": "20t15o-baseline-matd3-base-s100044",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      },
+      {
+        "id": "20t15o-baseline-matd3-base-s200044",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      },
+      {
+        "id": "20t15o-baseline-matd3-pql-s44",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      },
+      {
+        "id": "20t15o-baseline-matd3-pql-s100044",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      },
+      {
+        "id": "20t15o-baseline-matd3-pql-s200044",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      },
+      {
+        "id": "20t15o-learned_power-matd3-base-s44",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      },
+      {
+        "id": "20t15o-buffer16-matd3-base-s44",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      },
+      {
+        "id": "20t15o-buffer32-matd3-base-s44",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      },
+      {
+        "id": "20t15o-ttl600-matd3-base-s44",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      },
+      {
+        "id": "20t15o-coverage8-matd3-base-s44",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      },
+      {
+        "id": "20t15o-battery2x-matd3-base-s44",
+        "episodes": 2,
+        "updates": 5,
+        "budget_complete": true,
+        "global_step": 16
+      }
+    ],
+    "verified_evaluation_count": 18,
+    "rejected_evaluations": [],
+    "missing_unrun_cases": 66,
+    "horizon": 8,
+    "num_envs": 2,
+    "hidden_sizes": [
+      8,
+      8
+    ],
+    "final_eval_episodes": 2,
+    "tracking_enabled": false,
+    "periodic_evaluator": "Verified separately with real child-process test",
+    "production_result": false
+  },
+  "reference_sensing": {
+    "repo": "/home/aduy/Documents/NCKH/uav_search_target",
+    "files": [
+      "uav_marl/world/sensing.py",
+      "configs/task/uav_search.yaml"
+    ],
+    "read_only": true,
+    "implemented_in_this_phase": false,
+    "altitude_anchors_m": [
+      0,
+      50,
+      100,
+      150
+    ],
+    "pd": [
+      0.99,
+      0.9,
+      0.8,
+      0.7
+    ],
+    "pf": [
+      0.01,
+      0.1,
+      0.2,
+      0.3
+    ],
+    "confirmation": {
+      "active": true,
+      "altitude_max_m": 50,
+      "posterior_min": 0.99,
+      "positive_observation": true
+    }
+  },
+  "limitations": [
+    "Feasibility oracle knows hidden targets; five passing scenes do not prove universal feasibility or learned-policy convergence.",
+    "Smoke is a bounded pipeline check, not a paper experiment.",
+    "Production84-case matrix is prepared only; no cloud training was launched.",
+    "CUDA parity/performance not checked on hardware in this phase.",
+    "Probabilistic sensing and XYZ remain next phase."
+  ]
+}

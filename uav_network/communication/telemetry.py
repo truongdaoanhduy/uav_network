@@ -22,10 +22,10 @@ def install_telemetry(bridge):
             destination = packet.dst_drone.identifier
             link = "gcs" if destination == bridge.config.world.num_uavs else "peer"
             add_sample(stats, STAT["data_" + link + "_tx_power_w"], power)
-            src_xy = bridge.simulator.drones[source].coords[:2]
-            dst_xy = bridge.simulator.drones[destination].coords[:2]
+            src_xy = bridge.simulator.drones[source].coords[:(3 if bridge.config.motion_dim==3 else 2)]
+            dst_xy = bridge.simulator.drones[destination].coords[:(3 if bridge.config.motion_dim==3 else 2)]
             required = nominal_required_power_w(src_xy, dst_xy, bridge.scene.obstacles, bridge.config.network,
-                                                bridge.config.sensor.altitude_m, destination == bridge.config.world.num_uavs)
+                                                bridge.config.sensor.altitude_m, destination == bridge.config.world.num_uavs, heights=getattr(bridge.scene,'obstacle_heights',None))
             add_sample(stats, STAT["data_required_power_w"], required)
             margin = 10 * math.log10(power / required)
             add_sample(stats, STAT["data_power_margin_db"], margin)

@@ -6,9 +6,12 @@ import numpy as np
 import torch
 
 from ..algorithms.checkpoints import load_policy
+from ..configuration import config_fingerprint
+from .checkpoint_store import file_sha256
 from ..environment.env import SwarmSearchEnv
 from .rendering import COMMUNICATION_WINDOW_S, animation_frame, render_animation, render_episode
-from .comparison_metrics import MissionMetrics, evaluation_protocol, summarize_metrics
+from .comparison_metrics import (MissionMetrics, evaluation_protocol, summarize_metrics,
+                                 core_mission_metrics, plot_core_mission_metrics)
 from .evaluation_snapshots import load_evaluation_snapshot
 from .telemetry import OutcomePool
 
@@ -36,10 +39,12 @@ def run_episode(env, learner, *, seed, episode=1, action_control=None, trace=Fal
     obs, _ = env.reset(seed=seed)
     layout = {"positions": env.positions.tolist(), "targets": env.targets.tolist(),
               "obstacles": env.obstacles.tolist(), "gcs": env.gcs.tolist()}
+    if env.config.motion_dim==3:
+        layout["obstacle_heights"] = env.obstacle_heights.tolist()
     layout_hash = hashlib.sha256(json.dumps(layout, sort_keys=True, allow_nan=False).encode()).hexdigest()
     paths = [env.positions.copy()] if capture_paths or animate else []
     mission = MissionMetrics(env.config, env.positions, env.obstacles,
-                             env.reports.known.any(axis=0), env.reports.delivered)
+                             env.reports.known.any(axis=0), env.reports.delivered, obstacle_heights=getattr(env,'obstacle_heights',None))
     frames = [animation_frame(env)] if animate else []
     events = []
     episode_return = 0.0
@@ -91,6 +96,11 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=Fals
         raise ValueError("video_format must be auto, mp4 or gif")
     learner, progress, source = load_evaluation_policy(checkpoint)
     config = learner.config
+    provenance = {"checkpoint_sha256": file_sha256(checkpoint),
+                  "config_sha256": config_fingerprint(config),
+                  "algorithm": learner.algorithm,
+                  "training_mode": "pql" if config.pql.enabled else "base",
+                  "amp_mode": config.runtime.amp_mode}
     torch.set_num_threads(config.runtime.torch_threads)
     episodes = config.runtime.eval_episodes if episodes is None else episodes
     seed = config.runtime.eval_seed if seed is None else seed
@@ -123,7 +133,9 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=Fals
             if on_episode is not None:
                 on_episode(record)
         preview = render_episode(env, paths, output / "final_episode.png")
+        core_plot = plot_core_mission_metrics(records, output / "core_mission_metrics.png")
         result = {"algorithm": learner.algorithm, "episodes": episodes, "device": "cpu", "render_path": preview,
+                  "policy_provenance": provenance,
                   "environment_backend": config.runtime.environment_backend,
                   "mean_return": float(np.mean([r["return"] for r in records])),
                   "success_rate": float(np.mean([r["success"] for r in records])),
@@ -131,6 +143,7 @@ def evaluate(checkpoint, episodes=None, output_dir=None, seed=None, animate=Fals
                   "mean_delivery_rate_percent": float(np.mean([r["delivery_rate_percent"] for r in records])),
                   "protocol": evaluation_protocol(config, [r["seed"] for r in records], progress),
                   "metric_summary": summarize_metrics(records),
+                  "core_metrics": core_mission_metrics(records), "core_plot_path": core_plot,
                   "records": records}
         pool = OutcomePool()
         pool.add(records)

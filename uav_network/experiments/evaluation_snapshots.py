@@ -5,7 +5,7 @@ from pathlib import Path
 import torch
 
 from ..configuration import Config, _apply
-from ..environment.observations import OBSERVATION_VERSION, observation_dim, state_dim
+from ..environment.observations import OBSERVATION_VERSION, observation_version, observation_dim, state_dim
 from ..algorithms.checkpoints import make_learner, validate_observation_version
 
 
@@ -24,7 +24,7 @@ def save_evaluation_snapshot(config, folder, actors, version, progress):
         raise ValueError("Evaluation actors must be finite and nonempty")
     saved = {"version": 1, "purpose": "evaluation_only", "algorithm": config.runtime.algorithm,
              "config": config.to_dict(), "observation_dim": observation_dim(config),
-             "state_dim": state_dim(config), "observation_version": OBSERVATION_VERSION, "actors": frozen,
+             "state_dim": state_dim(config), "observation_version": observation_version(config), "actors": frozen,
              "progress": {key: progress[key] for key in
                           ("episodes", "global_step", "collection_steps", "next_seed") if key in progress},
              "source": {"policy_version": int(version), "global_step": int(progress["global_step"]),

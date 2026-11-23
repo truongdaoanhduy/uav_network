@@ -1,13 +1,15 @@
 """Deterministic SimPy-order packet scheduler; one Warp thread per world."""
 import warp as wp
 from ...environment.gpu.state import WorldParams, WorldState
-from .rng import seed_mt, randbelow
+from .rng import randbelow
+from .network_reset import reset_network
 from .reports import (active, bytes_used, can_receive, transfer, begin_step, sense_reports,
                       masked_sense_reports, end_step, reset_reward_state)
 from .phy import xy, busy, emit, evaluate, arrival_start, arrival_end, latest_arrival_end
+from ...environment.gpu.xyz_geometry import range_distance
 from .events import push, pop, replace_root, next_time_after_root
 from .telemetry import record_action
-from .power import power_from_action, link_power_feasible
+from .power import selected_power, link_power_feasible
 from .streaming import (clear_pending, fill_session, fragment_bit, inject, window_count, window_mask)
 from . import diagnostics as diag
 
@@ -19,7 +21,7 @@ BACKOFF_DONE, TX_START, DATA_END, DELIVER, ACK_TIMEOUT, RELEASE = range(8,14)
 RECEIVE, ACK_START, RECEIVE_DONE = range(14,17)
 
 @wp.func
-def next_receive(s: WorldState, p: WorldParams, e: int, node: int, now: wp.float64):
+def next_receive(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, node: int, now: wp.float64):
     if s.node_receiving[e,node] == 0:
         frame = int(-1)
         for j in range(p.frame_capacity):
@@ -32,7 +34,7 @@ def next_receive(s: WorldState, p: WorldParams, e: int, node: int, now: wp.float
             push(s,p,e,now,14,frame,0,0)
 
 @wp.func
-def receive_data(s: WorldState, p: WorldParams, e: int, frame: int, now: wp.float64):
+def receive_data(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, frame: int, now: wp.float64):
     packet = s.tx_packet[e,frame]
     if s.pkt_generation[e,packet] == s.tx_generation[e,frame] and s.pkt_delivered[e,packet] == 0:
         s.pkt_delivered[e,packet] = 1
@@ -41,8 +43,9 @@ def receive_data(s: WorldState, p: WorldParams, e: int, frame: int, now: wp.floa
         source = s.tx_source[e,frame]
         dest = s.tx_destination[e,frame]
         target = s.tx_target[e,frame]
-        session = (source*p.targets_count+target)*(p.n+1)+dest
-        if (s.session_active[e,session] != 0 and s.session_id[e,session] == s.tx_session[e,frame]
+        session = (source*p.report_slots+target)*(p.n+1)+dest
+        if ((p.cell_reports==0 or s.tx_cell[e,frame]==s.report_cell[e,target])
+            and s.session_active[e,session] != 0 and s.session_id[e,session] == s.tx_session[e,frame]
             and s.report_present[e,source,target] != 0
             and s.report_created[e,source,target] == s.tx_report_created[e,frame]
             and s.report_origin[e,source,target] == s.tx_origin[e,frame]
@@ -73,7 +76,7 @@ def receive_data(s: WorldState, p: WorldParams, e: int, frame: int, now: wp.floa
                     fill_session(s,p,e,session,source,dest,target,now)
 
 @wp.func
-def poll_delay(s: WorldState, p: WorldParams, e: int, now: wp.float64) -> wp.float64:
+def poll_delay(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, now: wp.float64) -> wp.float64:
     delay = p.queue_poll
     if (s.coalesce_step[e] != 0 and wp.floor(p.queue_poll) == p.queue_poll
         and wp.floor(now) == now):
@@ -83,7 +86,7 @@ def poll_delay(s: WorldState, p: WorldParams, e: int, now: wp.float64) -> wp.flo
 
 
 @wp.func
-def event(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
+def event(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, kind: int, arg: int,
           generation: int, now: wp.float64):
     if kind == 1:
         node = arg
@@ -250,101 +253,10 @@ def event(s: WorldState, p: WorldParams, e: int, kind: int, arg: int,
 
 
 @wp.kernel
-def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32)):
-    e = wp.tid()
-    if mask[e] != 0:
-        s.steps[e] = 0
-        s.terminated[e] = 0
-        s.blocked[e] = 0
-        s.clipped[e] = 0
-        s.errors[e] = 0
-        s.frame_count[e] = 0
-        s.event_count[e] = 0
-        s.event_sequence[e] = wp.int64(0)
-        s.packet_sequence[e] = wp.int64(0)
-        s.report_sequence[e] = wp.int64(0)
-        s.packet_time[e] = wp.float64(0)
-        s.mission_time[e] = wp.float64(0)
-        s.packet_delay_sum[e] = wp.float64(0)
-        s.report_delay_sum[e] = wp.float64(0)
-        s.report_hop_sum[e] = wp.float64(0)
-        s.report_delivery_count[e] = 0
-        s.trace_count[e] = 0
-        reset_reward_state(s,e)
-        for j in range(diag.COUNTER_COUNT):
-            s.diagnostic_counts[e,j] = wp.int64(0)
-        for j in range(8):
-            s.delivery_hop_histogram[e,j] = wp.int64(0)
-        for j in range(diag.STAT_COUNT):
-            for k in range(4):
-                s.diagnostic_stats[e,j,k] = wp.float64(0)
-        for j in range(2):
-            for k in range(6):
-                s.power_histogram[e,j,k] = wp.int64(0)
-        for i in range(p.n):
-            s.buffer_peak[e,i] = wp.int64(0)
-        for t in range(p.targets_count):
-            s.first_discovery[e,t] = wp.float64(-1)
-            s.first_delivery[e,t] = wp.float64(-1)
-        for i in range(p.n+1):
-            seed_mt(s,e,i)
-            s.node_queue_count[e,i] = 0
-            s.node_current[e,i] = -1
-            s.node_feed_alive[e,i] = 1
-            s.node_wait_finish[e,i] = 1
-            s.node_wait_packet[e,i] = -1
-            s.node_receiving[e,i] = 0
-            s.communication_energy[e,i] = wp.float64(0)
-            s.tx_energy[e,i] = wp.float64(0)
-            s.rx_energy[e,i] = wp.float64(0)
-            if p.network_enabled != 0:
-                push(s,p,e,p.queue_poll,1,i,0,1)
-            if i < p.n:
-                s.battery[e,i] = p.capacity
-                s.flight_energy[e,i] = wp.float64(0)
-                s.inflight[e,i] = wp.float64(0)
-                for t in range(p.targets_count):
-                    s.known[e,i,t] = 0
-                    s.recovery[e,i,t] = 0
-                    s.report_present[e,i,t] = 0
-                    s.report_origin[e,i,t] = 0
-                    s.report_hops[e,i,t] = 0
-                    s.report_created[e,i,t] = wp.float64(0)
-                    s.report_order[e,i,t] = wp.int64(0)
-        for t in range(p.targets_count):
-            s.delivered[e,t] = 0
-        for j in range(9):
-            s.motion_counts[e,j] = 0
-        for j in range(8):
-            s.packet_counts[e,j] = 0
-        for j in range(5):
-            s.selection_counts[e,j] = 0
-        for j in range(4):
-            s.action_counts[e,j] = wp.int64(0)
-        for j in range(3):
-            s.report_counts[e,j] = 0
-        for j in range(p.packet_capacity):
-            s.pkt_status[e,j] = 0
-            s.pkt_generation[e,j] = 0
-            s.pkt_backoff_version[e,j] = 0
-        for j in range(p.frame_capacity):
-            s.tx_active[e,j] = 0
-        for j in range((p.n+1)*(p.n+1)):
-            s.pair_time[e,j] = wp.float64(-1)
-        for j in range(p.session_capacity):
-            s.session_active[e,j] = 0
-            s.session_id[e,j] = wp.int64(0)
-            s.session_window_start[e,j] = 0
-            s.session_arrived_mask[e,j] = wp.uint64(0)
-            s.session_pending_mask[e,j] = wp.uint64(0)
-            s.session_created[e,j] = wp.float64(0)
-            s.session_power[e,j] = wp.float64(0)
-
-
-@wp.kernel
 def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.float32),
                 destination: wp.array2d(dtype=wp.int64)):
     e = wp.tid()
+    if p.cell_reports != 0 and s.terminated[e] != 0: return
     now = s.packet_time[e]
     end = (s.mission_time[e]+p.dt)*wp.float64(1e6)
     # Motion is fixed during packet_step; invalidate once, then reuse exact link gains.
@@ -367,20 +279,31 @@ def packet_step(s: WorldState, p: WorldParams, continuous: wp.array3d(dtype=wp.f
             continue
         selected = int(-1)
         can_forward = bool(False)
-        for t in range(p.targets_count):
+        for t in range(p.report_slots):
+            if p.cell_reports != 0 and s.report_cell[e,t] < 0: break
+            # In no-beacon cell-report mode, a source cannot know a peer's
+            # position, power state, or available buffer BEFORE the RF exchange.
+            # Do not prevent a TX attempt using hidden remote simulator state.
+            peer_without_beacon = (p.cell_reports != 0 and dest < p.n)
             forward = (s.report_present[e,source,t] != 0
                        and now/wp.float64(1e6)-s.report_created[e,source,t] < p.report_ttl
-                       and can_receive(s,p,e,dest,t))
+                       and (peer_without_beacon or can_receive(s,p,e,dest,t)))
             can_forward = can_forward or forward
             reach = p.peer_range
             if dest == p.n:
                 reach = p.gcs_range
-            if (forward and active(s,p,e,source) and active(s,p,e,dest)
-                and wp.length(xy(s,p,e,source)-xy(s,p,e,dest)) <= reach and link_power_feasible(s,p,e,source,dest)):
+            # Skip expensive unobservable PHY/link-budget prechecks entirely
+            # for no-beacon peer attempts; the radio engine runs them after TX.
+            physical_precheck = bool(True)
+            if not peer_without_beacon:
+                physical_precheck = (active(s,p,e,dest)
+                    and range_distance(s,p,e,source,dest) <= reach
+                    and link_power_feasible(s,p,e,source,dest))
+            if forward and active(s,p,e,source) and physical_precheck:
                 if selected < 0 or s.report_order[e,source,t] < s.report_order[e,source,selected]:
                     selected = t
         if selected >= 0:
-            power = power_from_action(p,continuous[e,source,2])
+            power = selected_power(s,p,e,source,dest,continuous[e,source,p.continuous_dim-1])
             s.selection_counts[e,1] += 1
             inject(s,p,e,source,dest,selected,power,now)
         elif can_forward:

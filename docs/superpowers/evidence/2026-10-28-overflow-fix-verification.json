@@ -1,0 +1,394 @@
+{
+  "source_commit": "98724b827ce0dd017bb319dea09aa3c31b90282a",
+  "recorded_at_utc": "2026-10-28T06:53:40.907434+00:00",
+  "fp16_max": 65504,
+  "observed_cases": [
+    {
+      "label": "matd3-pql",
+      "algorithm": "matd3",
+      "group": "critic",
+      "source_run": "128d227d",
+      "source_snapshot": "matd3-pql/overflow-critic-critic.pt",
+      "all_inputs_finite": true,
+      "first_bad_parameter": "critics.0.q2.4.weight",
+      "fp32_loss_finite": true,
+      "fp32_grad_norm": 35.04880905151367,
+      "fp16_skip": 1,
+      "fp16_model_finite": true,
+      "exceeds_fp16_names": [
+        "critics.0.q2.4.weight",
+        "critics.4.q2.4.weight",
+        "critics.5.q2.4.weight",
+        "critics.1.q1.4.weight",
+        "critics.5.q1.4.weight",
+        "critics.4.q1.4.weight"
+      ],
+      "fp16_nonfinite_gradient_names": [
+        "critics.0.q2.4.weight",
+        "critics.4.q2.4.weight",
+        "critics.5.q2.4.weight",
+        "critics.1.q1.4.weight",
+        "critics.5.q1.4.weight",
+        "critics.4.q1.4.weight"
+      ],
+      "largest_scaled_reference": [
+        {
+          "parameter": "critics.5.q2.4.weight",
+          "unscaled_abs_max_fp32": 1.052014708518982,
+          "abs_max_at_source_scale": 68944.8359375
+        },
+        {
+          "parameter": "critics.4.q2.4.weight",
+          "unscaled_abs_max_fp32": 1.0516648292541504,
+          "abs_max_at_source_scale": 68921.90625
+        },
+        {
+          "parameter": "critics.0.q2.4.weight",
+          "unscaled_abs_max_fp32": 1.0508334636688232,
+          "abs_max_at_source_scale": 68867.421875
+        },
+        {
+          "parameter": "critics.1.q1.4.weight",
+          "unscaled_abs_max_fp32": 1.0373090505599976,
+          "abs_max_at_source_scale": 67981.0859375
+        },
+        {
+          "parameter": "critics.5.q1.4.weight",
+          "unscaled_abs_max_fp32": 1.0208017826080322,
+          "abs_max_at_source_scale": 66899.265625
+        },
+        {
+          "parameter": "critics.4.q1.4.weight",
+          "unscaled_abs_max_fp32": 1.0194573402404785,
+          "abs_max_at_source_scale": 66811.15625
+        },
+        {
+          "parameter": "critics.2.q1.4.weight",
+          "unscaled_abs_max_fp32": 0.9921079874038696,
+          "abs_max_at_source_scale": 65018.7890625
+        },
+        {
+          "parameter": "critics.3.q2.4.weight",
+          "unscaled_abs_max_fp32": 0.9743018746376038,
+          "abs_max_at_source_scale": 63851.84765625
+        }
+      ]
+    },
+    {
+      "label": "masac-pql",
+      "algorithm": "masac",
+      "group": "critic",
+      "source_run": "128d227d",
+      "source_snapshot": "masac-pql/overflow-critic-critic.pt",
+      "all_inputs_finite": true,
+      "first_bad_parameter": "critics.5.q2.4.weight",
+      "fp32_loss_finite": true,
+      "fp32_grad_norm": 29.8266544342041,
+      "fp16_skip": 1,
+      "fp16_model_finite": true,
+      "exceeds_fp16_names": [
+        "critics.5.q2.4.weight",
+        "critics.2.q1.4.weight"
+      ],
+      "fp16_nonfinite_gradient_names": [
+        "critics.5.q2.4.weight",
+        "critics.2.q1.4.weight"
+      ],
+      "largest_scaled_reference": [
+        {
+          "parameter": "critics.2.q1.4.weight",
+          "unscaled_abs_max_fp32": 1.0643646717071533,
+          "abs_max_at_source_scale": 69754.203125
+        },
+        {
+          "parameter": "critics.5.q2.4.weight",
+          "unscaled_abs_max_fp32": 1.006357192993164,
+          "abs_max_at_source_scale": 65952.625
+        },
+        {
+          "parameter": "critics.5.q1.4.weight",
+          "unscaled_abs_max_fp32": 0.984817624092102,
+          "abs_max_at_source_scale": 64541.0078125
+        },
+        {
+          "parameter": "critics.1.q1.4.weight",
+          "unscaled_abs_max_fp32": 0.9825496077537537,
+          "abs_max_at_source_scale": 64392.37109375
+        },
+        {
+          "parameter": "critics.0.q1.4.weight",
+          "unscaled_abs_max_fp32": 0.9607958793640137,
+          "abs_max_at_source_scale": 62966.71875
+        },
+        {
+          "parameter": "critics.0.q2.4.weight",
+          "unscaled_abs_max_fp32": 0.9602173566818237,
+          "abs_max_at_source_scale": 62928.8046875
+        },
+        {
+          "parameter": "critics.3.q2.4.weight",
+          "unscaled_abs_max_fp32": 0.9304174184799194,
+          "abs_max_at_source_scale": 60975.8359375
+        },
+        {
+          "parameter": "critics.4.q2.4.weight",
+          "unscaled_abs_max_fp32": 0.9294513463973999,
+          "abs_max_at_source_scale": 60912.5234375
+        }
+      ]
+    },
+    {
+      "label": "trained-matd3-critic",
+      "algorithm": "matd3",
+      "group": "critic",
+      "source_run": "c031f202",
+      "source_snapshot": "critic-0/overflow-trained-critic.pt",
+      "all_inputs_finite": true,
+      "first_bad_parameter": "critics.0.q2.4.weight",
+      "fp32_loss_finite": true,
+      "fp32_grad_norm": 8542.00390625,
+      "fp16_skip": 1,
+      "fp16_model_finite": true,
+      "exceeds_fp16_names": [
+        "critics.0.q2.4.weight",
+        "critics.1.q2.4.weight",
+        "critics.3.q2.4.weight",
+        "critics.4.q2.4.weight",
+        "critics.2.q2.4.weight",
+        "critics.5.q2.4.weight",
+        "critics.0.q2.2.bias",
+        "critics.3.q2.2.bias",
+        "critics.1.q2.2.bias",
+        "critics.0.q2.2.weight",
+        "critics.3.q2.2.weight",
+        "critics.5.q2.2.weight",
+        "critics.4.q2.2.weight",
+        "critics.1.q2.2.weight",
+        "critics.2.q2.2.weight",
+        "critics.0.q2.0.bias",
+        "critics.4.q2.0.bias",
+        "critics.5.q2.0.bias",
+        "critics.1.q2.0.bias",
+        "critics.2.q2.0.bias",
+        "critics.3.q2.0.bias",
+        "critics.0.q2.0.weight",
+        "critics.5.q2.0.weight",
+        "critics.1.q2.0.weight",
+        "critics.3.q2.0.weight",
+        "critics.4.q2.0.weight",
+        "critics.2.q2.0.weight",
+        "critics.0.q1.4.weight",
+        "critics.1.q1.4.weight",
+        "critics.2.q1.4.weight",
+        "critics.3.q1.4.weight",
+        "critics.5.q1.4.weight",
+        "critics.4.q1.4.weight",
+        "critics.1.q1.2.bias",
+        "critics.0.q1.2.weight",
+        "critics.3.q1.2.weight",
+        "critics.4.q1.2.weight",
+        "critics.1.q1.2.weight",
+        "critics.2.q1.2.weight",
+        "critics.5.q1.2.weight",
+        "critics.0.q1.0.bias",
+        "critics.1.q1.0.bias",
+        "critics.4.q1.0.bias",
+        "critics.5.q1.0.bias",
+        "critics.3.q1.0.bias",
+        "critics.2.q1.0.bias",
+        "critics.0.q1.0.weight",
+        "critics.2.q1.0.weight",
+        "critics.5.q1.0.weight",
+        "critics.4.q1.0.weight",
+        "critics.1.q1.0.weight",
+        "critics.3.q1.0.weight"
+      ],
+      "fp16_nonfinite_gradient_names": [
+        "critics.0.q2.4.weight",
+        "critics.1.q2.4.weight",
+        "critics.3.q2.4.weight",
+        "critics.4.q2.4.weight",
+        "critics.2.q2.4.weight",
+        "critics.5.q2.4.weight",
+        "critics.0.q2.2.weight",
+        "critics.3.q2.2.weight",
+        "critics.5.q2.2.weight",
+        "critics.4.q2.2.weight",
+        "critics.1.q2.2.weight",
+        "critics.2.q2.2.weight",
+        "critics.0.q2.0.weight",
+        "critics.5.q2.0.weight",
+        "critics.1.q2.0.weight",
+        "critics.3.q2.0.weight",
+        "critics.4.q2.0.weight",
+        "critics.2.q2.0.weight",
+        "critics.0.q1.4.weight",
+        "critics.1.q1.4.weight",
+        "critics.2.q1.4.weight",
+        "critics.3.q1.4.weight",
+        "critics.5.q1.4.weight",
+        "critics.4.q1.4.weight",
+        "critics.0.q1.2.weight",
+        "critics.3.q1.2.weight",
+        "critics.4.q1.2.weight",
+        "critics.1.q1.2.weight",
+        "critics.2.q1.2.weight",
+        "critics.5.q1.2.weight",
+        "critics.0.q1.0.weight",
+        "critics.2.q1.0.weight",
+        "critics.5.q1.0.weight",
+        "critics.4.q1.0.weight",
+        "critics.1.q1.0.weight",
+        "critics.3.q1.0.weight"
+      ],
+      "largest_scaled_reference": [
+        {
+          "parameter": "critics.4.q2.0.weight",
+          "unscaled_abs_max_fp32": 139.45526123046875,
+          "abs_max_at_source_scale": 1142417.5
+        },
+        {
+          "parameter": "critics.4.q2.0.bias",
+          "unscaled_abs_max_fp32": 139.4551544189453,
+          "abs_max_at_source_scale": 1142416.625
+        },
+        {
+          "parameter": "critics.1.q2.0.weight",
+          "unscaled_abs_max_fp32": 133.35720825195312,
+          "abs_max_at_source_scale": 1092462.25
+        },
+        {
+          "parameter": "critics.1.q2.0.bias",
+          "unscaled_abs_max_fp32": 133.3571014404297,
+          "abs_max_at_source_scale": 1092461.375
+        },
+        {
+          "parameter": "critics.5.q2.0.weight",
+          "unscaled_abs_max_fp32": 123.82740020751953,
+          "abs_max_at_source_scale": 1014394.0625
+        },
+        {
+          "parameter": "critics.5.q2.0.bias",
+          "unscaled_abs_max_fp32": 123.8271484375,
+          "abs_max_at_source_scale": 1014392.0
+        },
+        {
+          "parameter": "critics.1.q1.0.bias",
+          "unscaled_abs_max_fp32": 120.81681823730469,
+          "abs_max_at_source_scale": 989731.375
+        },
+        {
+          "parameter": "critics.1.q1.0.weight",
+          "unscaled_abs_max_fp32": 120.81678771972656,
+          "abs_max_at_source_scale": 989731.125
+        }
+      ]
+    }
+  ],
+  "diagnostic_runs": [
+    {
+      "id": "128d227d",
+      "source": "4e3a9423111c8697021f3e76f49b8a987ab8b854",
+      "kernel": "egkljwigojwof/overflow-fp16-diagnostics-cbac3c",
+      "purpose": "fresh canonical-sized BASE/PQL cases; no production rerun"
+    },
+    {
+      "id": "c031f202",
+      "source": "fd5d207ba3ec82743f814fb26d58c5606ee5f337",
+      "kernel": "gkgijewjf/diag-trained-overflow-1028-33be7a",
+      "purpose": "historical finite MATD3 weights, fresh canonical batch, not original lost batch"
+    },
+    {
+      "id": "9299f2f9",
+      "source": "98724b827ce0dd017bb319dea09aa3c31b90282a",
+      "kernel": "egkljwigojwof/diag-overflow-reference-1028-e761e3",
+      "purpose": "CUDA FP32 reference gradients on the three captured snapshots"
+    }
+  ],
+  "production_snapshot": [
+    {
+      "run_id": "4f98f2c9",
+      "kaggle": "duytrngoanh/gh-tra-g3-masac-base-h75-102803-a0b159 has status \"KernelWorkerStatus.RUNNING\"",
+      "state": "running",
+      "heartbeat": "2026-10-28T06:52:12Z",
+      "global_step": 13430784,
+      "episodes": 4424,
+      "recovery_available": 1,
+      "checked_at": "2026-10-28T06:52:24.148689+00:00"
+    },
+    {
+      "run_id": "a04dbdef",
+      "kaggle": "fwklgeewjlfew/gh-tra-g3-masac-base-h75-1028-a76638 has status \"KernelWorkerStatus.RUNNING\"",
+      "state": "running",
+      "heartbeat": "2026-10-28T06:52:20Z",
+      "global_step": 5171200,
+      "episodes": 2048,
+      "recovery_available": 0,
+      "checked_at": "2026-10-28T06:52:24.556466+00:00"
+    },
+    {
+      "run_id": "8db188ea",
+      "kaggle": "lkejflwejf/gh-tra-g3-masac-pql-h75-10280520-a7f572 has status \"KernelWorkerStatus.RUNNING\"",
+      "state": "running",
+      "heartbeat": "2026-10-28T06:52:09Z",
+      "global_step": 5771264,
+      "episodes": 2048,
+      "recovery_available": 0,
+      "checked_at": "2026-10-28T06:52:24.982549+00:00"
+    }
+  ],
+  "limitations": [
+    "Historical failed batches are unavailable; no claim of exact original-episode reproduction.",
+    "Historical MATD3 BASE actor inf was not reproduced in eight fresh actor batches.",
+    "Diagnostic replay is eager and cannot reconstruct original compiled execution or async RNG interleaving.",
+    "FP32 counter applied is unmeasured/null; success is supported by finite forward/backward and no exception."
+  ],
+  "review": {
+    "findings": 2,
+    "fixed": "telemetry idempotence and original gradient tensor payload; RED/GREEN verified"
+  },
+  "previous_suite": {
+    "source": "fd5d207ba3ec82743f814fb26d58c5606ee5f337",
+    "passed": 959,
+    "skipped": 95,
+    "subtests": 1408,
+    "warnings": 8,
+    "seconds": 523.18
+  },
+  "final_suite": {
+    "source_commit": "98724b827ce0dd017bb319dea09aa3c31b90282a",
+    "command": "python -m pytest -q --junitxml=outputs/overflow-fix-final-suite.xml",
+    "passed": 959,
+    "skipped": 95,
+    "subtests": 1408,
+    "warnings": 8,
+    "seconds": 525.47,
+    "junit": {
+      "tests": 2462,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 95
+    }
+  },
+  "diagnostic_kaggle_status": [
+    {
+      "ref": "egkljwigojwof/overflow-fp16-diagnostics-cbac3c",
+      "status": "egkljwigojwof/overflow-fp16-diagnostics-cbac3c has status \"KernelWorkerStatus.COMPLETE\"",
+      "checked_at": "2026-10-28T06:54:16.193746+00:00"
+    },
+    {
+      "ref": "gkgijewjf/diag-trained-overflow-1028-33be7a",
+      "status": "gkgijewjf/diag-trained-overflow-1028-33be7a has status \"KernelWorkerStatus.COMPLETE\"",
+      "checked_at": "2026-10-28T06:54:16.259988+00:00"
+    },
+    {
+      "ref": "egkljwigojwof/diag-overflow-reference-1028-e761e3",
+      "status": "egkljwigojwof/diag-overflow-reference-1028-e761e3 has status \"KernelWorkerStatus.COMPLETE\"",
+      "checked_at": "2026-10-28T06:54:16.248778+00:00"
+    }
+  ],
+  "secret_scan": {
+    "credential_values": 12,
+    "hits": 0
+  }
+}

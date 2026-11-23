@@ -1,0 +1,37 @@
+{
+  "source_commit": "789bc1a0f0976922e351f59fe2b72a32d0e9a368",
+  "archive_sha256": "47ce6d1bc875b932cdfd03976f3a4f9d9d629a886623211e91528470d5764ee7",
+  "archive_bytes": 655075,
+  "bundled_files": 417,
+  "artifact_checks": [
+    {
+      "algorithm": "masac",
+      "file": "MASAC_BASE_INDEPENDENT_NOCHUNK_S44_Kaggle_UI.ipynb",
+      "bytes": 832183,
+      "sha256": "9a00f2e045d156a02791725fe01ac1bd203b3960300ac8f5efd9c768048177d0",
+      "schema_valid": true,
+      "code_compiles": true,
+      "both_copies_identical": true,
+      "all_archived_source_bytes_match": true,
+      "seed_44_and_45_names_configs_match": true
+    },
+    {
+      "algorithm": "matd3",
+      "file": "MATD3_BASE_INDEPENDENT_NOCHUNK_S44_Kaggle_UI.ipynb",
+      "bytes": 832147,
+      "sha256": "21d331ce7c79f75278ca8451ede327e7c66ef16c47856d5a648d36933a5a331f",
+      "schema_valid": true,
+      "code_compiles": true,
+      "both_copies_identical": true,
+      "all_archived_source_bytes_match": true,
+      "seed_44_and_45_names_configs_match": true
+    }
+  ],
+  "pytest_summary_before_static_guard_refresh": "4 failed, 1356 passed, 103 skipped, 8 warnings, 1644 subtests passed in 634.26s (0:10:34)",
+  "full_suite_exit_code_before_static_guard_refresh": 1,
+  "remaining_failures_were_static_guards": true,
+  "guard_rerun_summary": "13 passed, 578 subtests passed in 0.70s",
+  "configuration_tracking_ast_equivalence": "docs/superpowers/evidence/2026-11-07-source-structure-refresh.json",
+  "gpu_training_submitted": false,
+  "full_suite_log": "outputs/independent-ui-preflight-20261107/full-suite.log"
+}

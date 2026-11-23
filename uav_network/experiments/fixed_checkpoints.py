@@ -1,4 +1,5 @@
 """Complete fixed-schedule learner state with optional in-flight mission state."""
+from ..configuration import with_legacy_feature_defaults
 import random
 
 import numpy as np
@@ -92,7 +93,7 @@ def validate_fixed_checkpoint(saved, config):
         raise ValueError("Fixed-schedule checkpoint is missing optimizer/replay/RNG/schedule state")
     if saved.get("algorithm") != config.runtime.algorithm:
         raise ValueError("Fixed-schedule resume algorithm differs from checkpoint")
-    before, current = saved["config"], config.to_dict()
+    before, current = with_legacy_feature_defaults(saved["config"]), config.to_dict()
     if before["runtime"].get("replay_cpu_fraction", 0.0) != config.runtime.replay_cpu_fraction:
         raise ValueError("Fixed-schedule resume runtime.replay_cpu_fraction differs from checkpoint")
     if before["pql"]["enabled"] or config.pql.enabled:
@@ -128,7 +129,7 @@ def validate_fixed_checkpoint(saved, config):
     names = {"critic", "actors", "alpha"} if saved["algorithm"] == "masac" else {"critic", "actors"}
     if (not isinstance(optimizers, dict) or optimizers.keys() != names
             or not isinstance(optimizers["actors"], list)
-            or len(optimizers["actors"]) != config.world.num_uavs):
+            or len(optimizers["actors"]) != (1 if config.algorithm_config.share_actor_parameters else config.world.num_uavs)):
         raise ValueError("Fixed-schedule checkpoint optimizer state is incomplete")
     for state in [optimizers["critic"], *optimizers["actors"], *([optimizers["alpha"]] if "alpha" in names else [])]:
         if not isinstance(state, dict) or not {"state", "param_groups"} <= state.keys():
@@ -149,11 +150,11 @@ def validate_fixed_checkpoint(saved, config):
             or replay["size"] != min(capacity, inserted) or type(replay["index"]) is not int
             or replay["index"] != inserted % capacity):
         raise ValueError("Fixed-schedule checkpoint replay cursor differs from verified progress")
-    shapes = transition_shapes((config.world.num_uavs, saved["observation_dim"]), saved["state_dim"])
+    shapes = transition_shapes((config.world.num_uavs, saved["observation_dim"]), saved["state_dim"], config.continuous_dim)
     if hybrid:
         from ..algorithms.hybrid_replay import validate_hybrid_state
         validate_hybrid_state(replay, capacity, (config.world.num_uavs, saved["observation_dim"]),
-                              saved["state_dim"], config.runtime.replay_cpu_fraction)
+                              saved["state_dim"], config.runtime.replay_cpu_fraction, continuous_dim=config.continuous_dim)
     elif not isinstance(replay["data"], dict) or replay["data"].keys() != shapes.keys():
         raise ValueError("Fixed-schedule checkpoint replay fields are incomplete")
     for name, shape in (() if hybrid else shapes.items()):
@@ -183,11 +184,22 @@ def restore_fixed_learner(saved, learner):
     if training.get("precision") is not None:
         learner.precision.load_state_dict(training["precision"])
     if learner.algorithm == "matd3":
-        learner._last_actor_metrics = {name: value.to(learner.device).clone() for name, value in training["last_actor_metrics"].items()}
+        # The exact 18d756ef model returns both Tensor diagnostics and Python
+        # scalar counters (e.g. gradient-probe hook counts). Those counters
+        # must survive an optimizer/replay resume without calling Tensor.to().
+        restored_metrics = {}
+        for name, value in training["last_actor_metrics"].items():
+            if isinstance(value, torch.Tensor):
+                restored_metrics[name] = value.to(learner.device).clone()
+            elif isinstance(value, (bool, int, float, str, type(None), np.number)):
+                restored_metrics[name] = value
+            else:
+                raise ValueError(f"Invalid MATD3 checkpoint metric value: {name}")
+        learner._last_actor_metrics = restored_metrics
 
 
 def save_fixed_checkpoint(learner, path, progress, replay, rng, *, warmup_origin, random_warmup,
-                          next_metrics_at, latest, pending_learning, action_generator=None, environment=None):
+                          next_metrics_at, latest, pending_learning, action_generator=None, environment=None, selection_state=None):
     training = {"trainer": "fixed_schedule", "optimizers": optimizer_states(learner, learner),
                 "precision": learner.precision.state_dict(),
                 "replay": replay_state(replay, copy=False), "rng": runtime_rng_state(rng, action_generator=action_generator),
@@ -197,4 +209,6 @@ def save_fixed_checkpoint(learner, path, progress, replay, rng, *, warmup_origin
                 "learner_device_type": learner.device.type}
     if environment is not None:
         training["environment"] = environment
+    if selection_state is not None:
+        training["best_checkpoint"] = selection_state
     save_policy(learner, path, progress, training=training)

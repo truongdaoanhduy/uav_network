@@ -1,9 +1,10 @@
 """Hybrid replay uses the same uniform global ring and CPU RNG across both tiers."""
+import os
 import torch
 from .replay import transition_shapes
 
 
-def validate_hybrid_state(saved, capacity, observation_shape, state_dim, cpu_fraction, hot_device_type=None):
+def validate_hybrid_state(saved, capacity, observation_shape, state_dim, cpu_fraction, hot_device_type=None, continuous_dim=3):
     if (not isinstance(saved, dict) or saved.get("layout") != "hybrid"
             or saved.get("capacity") != capacity
             or saved.get("cpu_capacity") != round(capacity * cpu_fraction)
@@ -25,7 +26,7 @@ def validate_hybrid_state(saved, capacity, observation_shape, state_dim, cpu_fra
         torch.Generator(device="cpu").set_state(saved["rng"].cpu())
     except (KeyError, RuntimeError, TypeError, AttributeError) as error:
         raise ValueError("Hybrid replay RNG checkpoint is invalid") from error
-    shapes = transition_shapes(observation_shape, state_dim)
+    shapes = transition_shapes(observation_shape, state_dim, continuous_dim)
     sizes = {"cpu_data": min(saved["size"], saved["cpu_capacity"]),
              "hot_data": max(0, saved["size"] - saved["cpu_capacity"])}
     for group, size in sizes.items():
@@ -49,10 +50,11 @@ def validate_hybrid_state(saved, capacity, observation_shape, state_dim, cpu_fra
 
 class HybridMeasuredReplay:
     """CPU + hot-device replay with one global ring/RNG."""
-    def __init__(self, capacity, observation_shape, state_dim_value, seed=44, hot_device="cuda:1", cpu_fraction=0.5):
+    def __init__(self, capacity, observation_shape, state_dim_value, seed=44, hot_device="cuda:1", cpu_fraction=0.5, continuous_dim=3):
         if capacity < 2 or not 0 < cpu_fraction < 1:
             raise ValueError("Hybrid replay requires capacity >= 2 and 0 < cpu_fraction < 1")
         self.capacity = capacity
+        self.continuous_dim = continuous_dim
         self.observation_shape, self.state_dim = observation_shape, state_dim_value
         self.cpu_capacity = round(capacity * cpu_fraction)
         self.hot_capacity = capacity - self.cpu_capacity
@@ -62,7 +64,7 @@ class HybridMeasuredReplay:
         self.device = self.hot_device
         self.index = self.size = 0
         self.rng = torch.Generator(device="cpu").manual_seed(seed)
-        shapes = transition_shapes(observation_shape, state_dim_value)
+        shapes = transition_shapes(observation_shape, state_dim_value, continuous_dim)
         self.cpu_data = {name: torch.empty((self.cpu_capacity, *shape), device="cpu",
                                            dtype=torch.long if name == "destination" else torch.float32)
                          for name, shape in shapes.items()}
@@ -74,6 +76,11 @@ class HybridMeasuredReplay:
         self.collections = self.inserted = self.sample_uses = 0
         self.overwritten = self.unsampled = self.age_sum = self.age_max = 0
         self.age_count = self.measured_evictions = self.known_rows = 0
+        # Optional bounded staging: only one sampled minibatch is pinned,
+        # never the full 1M-row CPU replay. CUDA events protect the storage
+        # against writes while a non-blocking H2D transfer is still reading it.
+        self._pinned_staging = {}
+        self._pinned_staging_event = None
     def __len__(self):
         return self.size
     @property
@@ -127,8 +134,17 @@ class HybridMeasuredReplay:
     def sample(self, batch_size):
         if batch_size < 1 or batch_size > self.size:
             raise ValueError("Not enough transitions for this batch")
+        pinned_staging = (self.hot_device.type == "cuda" and
+            os.environ.get("UAV_HYBRID_PINNED_STAGING", "0").strip().lower() in {"1", "true", "yes"})
+        # CPU must not reuse pinned host memory while an earlier async copy
+        # is still in flight, even if an update on another stream is pending.
+        if self._pinned_staging_event is not None:
+            self._pinned_staging_event.synchronize()
+            self._pinned_staging_event = None
         indices = torch.randint(self.size, (batch_size,), generator=self.rng)
-        self.seen[indices.unique()] = True
+        # Every sampled row is set to the SAME True value; duplicate indices
+        # are idempotent. Avoid sorting/allocating unique() on every B8192 update.
+        self.seen[indices] = True
         born = self.born[indices]
         known = born >= 0
         age = torch.where(known, self.collections - born, 0)
@@ -149,7 +165,16 @@ class HybridMeasuredReplay:
             if cpu_positions.numel():
                 rows = self.cpu_data[name].index_select(0, cpu_indices)
                 if self.hot_device.type == "cuda":
-                    rows = rows.pin_memory().to(self.hot_device, non_blocking=True)
+                    if pinned_staging:
+                        staging = self._pinned_staging.get(name)
+                        if staging is None or len(staging) < batch_size:
+                            staging = torch.empty((batch_size, *rows.shape[1:]), dtype=rows.dtype,
+                                                  device="cpu", pin_memory=True)
+                            self._pinned_staging[name] = staging
+                        staging[:len(rows)].copy_(rows)
+                        rows = staging[:len(rows)].to(self.hot_device, non_blocking=True)
+                    else:
+                        rows = rows.pin_memory().to(self.hot_device, non_blocking=True)
                 else:
                     rows = rows.to(self.hot_device)
                 out.index_copy_(0, cpu_positions.to(self.hot_device), rows)
@@ -157,6 +182,10 @@ class HybridMeasuredReplay:
                 rows = self.hot_data[name].index_select(0, hot_indices.to(self.hot_device))
                 out.index_copy_(0, hot_positions.to(self.hot_device), rows)
             result[name] = out
+        if pinned_staging and cpu_positions.numel():
+            event = torch.cuda.Event(enable_timing=False)
+            event.record(torch.cuda.current_stream(self.hot_device))
+            self._pinned_staging_event = event
         return result
     def stats(self):
         evictions, ages = self.measured_evictions, self.age_count
@@ -193,7 +222,7 @@ class HybridMeasuredReplay:
 
     def load_state_dict(self, saved):
         validate_hybrid_state(saved, self.capacity, self.observation_shape, self.state_dim,
-                              self.cpu_capacity / self.capacity, self.hot_device.type)
+                              self.cpu_capacity / self.capacity, self.hot_device.type, self.continuous_dim)
         if (saved.get("layout") != "hybrid" or saved["capacity"] != self.capacity
                 or saved["cpu_capacity"] != self.cpu_capacity or not 0 <= saved["size"] <= self.capacity
                 or not 0 <= saved["index"] < self.capacity):

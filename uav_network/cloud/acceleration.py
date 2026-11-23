@@ -3,7 +3,6 @@ from pathlib import Path
 
 
 _ACCELERATION_KEYS = (
-    "runtime.amp_mode",
     "runtime.compile_models",
     "runtime.fused_optimizers",
 )
@@ -27,7 +26,6 @@ def apply_measured_acceleration_policy(config_path, stage, algorithm, config, ov
 
     compile_models = not (config.pql.enabled and algorithm == "matd3")
     desired = {
-        "runtime.amp_mode": '"fp16"',
         "runtime.compile_models": str(compile_models).lower(),
         "runtime.fused_optimizers": "false",
     }

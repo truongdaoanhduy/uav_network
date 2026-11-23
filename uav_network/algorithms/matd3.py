@@ -1,7 +1,8 @@
-"""MATD3 with a straight-through categorical next-hop branch."""
+"""MATD3 with a soft Gumbel-Softmax categorical next-hop branch."""
 from copy import deepcopy
 
 import numpy as np
+import os
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -9,14 +10,19 @@ from torch.nn import functional as F
 from ..environment.env import Action
 from .action_utils import canonical_continuous, joint_action, valid_destinations
 from .checkpoints import load_policy, save_policy
-from .models import DeterministicActor, TwinCritic
+from .models import DeterministicActor, TwinCritic, initialize_matd3_orthogonal, initialize_matd3_kaiming
 from .parallel_critics import critic_values
+from .critic_chunks import chunked_critic_values, chunked_single_q_values
 from .precision import MixedPrecision, autocast_update
 from .optimization import scalar_metrics, step_optimizer, step_actor_optimizers, tensor_batch, critic_metrics
+from .matd3_gradient_probe import MATD3GradientProbe
+from .layerwise_gradient_probe import LayerwiseGradientProbe
 
 
 def td3_target(reward, terminated, q1, q2, gamma):
-    return reward + gamma * (1 - terminated) * torch.minimum(q1, q2)
+    """TD3 clipped-double-Q target. Do not bootstrap from true terminations."""
+    nonterminal = 1.0 - terminated.to(dtype=reward.dtype)
+    return reward + gamma * nonterminal * torch.minimum(q1, q2)
 
 
 class MATD3(nn.Module):
@@ -30,12 +36,37 @@ class MATD3(nn.Module):
         self.device = torch.device(device)
         self.num_uavs = n = config.world.num_uavs
         self.destinations = k = n + 1
+        self.continuous_dim = config.continuous_dim
+        self.learn_power = config.network.power_control == "learned"
         a = config.matd3
-        self.actors = nn.ModuleList(DeterministicActor(observation_dim, k, a.hidden_sizes) for _ in range(n))
-        self.critics = nn.ModuleList(TwinCritic(state_dim, n, k, a.hidden_sizes) for _ in range(n))
+        self.share_actor_parameters = a.share_actor_parameters
+        self.share_critic_parameters = a.share_critic_parameters
+        self._factorized_critic_enabled = os.environ.get("UAV_FACTORIZED_CRITIC", "0").lower() in {"1", "true", "yes"}
+        actor_input_dim = observation_dim + n if self.share_actor_parameters else observation_dim
+        actor_count = 1 if self.share_actor_parameters else n
+        critic_count = 1 if self.share_critic_parameters else n
+        self.actors = nn.ModuleList(DeterministicActor(actor_input_dim, k, a.hidden_sizes, config.continuous_dim,
+                                                       a.output_normalization, config.motion_dim,
+                                                       layer_norm=a.actor_layer_norm,
+                                                       batch_norm=a.actor_batch_norm)
+                                    for _ in range(actor_count))
+        self.critics = nn.ModuleList(TwinCritic(state_dim, n, k, a.hidden_sizes, config.continuous_dim,
+                                                       batch_norm=a.critic_batch_norm) for _ in range(critic_count))
+        if a.initialization in {"orthogonal", "kaiming"}:
+            # Preserve the CPU RNG state after the standard Module creation so
+            # the ablation does not shift subsequent exploration/replay draws.
+            with torch.random.fork_rng(devices=[]):
+                initializer = (initialize_matd3_orthogonal if a.initialization == "orthogonal"
+                               else initialize_matd3_kaiming)
+                initializer(self.actors, self.critics)
         self.target_actors, self.target_critics = deepcopy(self.actors), deepcopy(self.critics)
         self.target_actors.requires_grad_(False)
         self.target_critics.requires_grad_(False)
+        if a.actor_batch_norm:
+            # Fixed target running statistics are required for valid Bellman targets.
+            self.target_actors.eval()
+        if a.critic_batch_norm:
+            self.target_critics.eval()
         self.to(self.device)
         adam = dict(lr=a.learning_rate)
         if config.runtime.fused_optimizers and self.device.type == "cuda":
@@ -47,58 +78,274 @@ class MATD3(nn.Module):
         self.updates = self.actor_updates = 0
         self._last_actor_metrics = {}
 
-    def _actor_action(self, actor, observation, straight_through=False):
-        continuous, probs = actor(observation, valid_destinations(observation, self.destinations))
-        destination = probs.argmax(-1)
-        hard = F.one_hot(destination, self.destinations).to(probs.dtype)
-        discrete = hard + probs - probs.detach() if straight_through else hard
-        continuous = canonical_continuous(continuous, observation, destination)
+    def _actor_at(self, index, *, target=False):
+        actors = self.target_actors if target else self.actors
+        return actors[0] if self.share_actor_parameters else actors[index]
+
+    def _actor_input(self, observation, index):
+        if not self.share_actor_parameters:
+            return observation
+        if isinstance(index, int):
+            index = torch.full((len(observation),), index, device=observation.device, dtype=torch.long)
+        else:
+            index = torch.as_tensor(index, device=observation.device, dtype=torch.long)
+        identity = F.one_hot(index, num_classes=self.num_uavs).to(observation.dtype)
+        return torch.cat((observation, identity), dim=-1)
+
+    @staticmethod
+    def _relaxed_destination(probs):
+        # Ackermann MATD3 uses a soft categorical (Gumbel-Softmax) sample for
+        # differentiable discrete policies. Invalid masked choices stay outside
+        # the support by receiving the minimum finite logit.
+        tiny = torch.finfo(probs.dtype).tiny
+        logits = probs.clamp_min(tiny).log().masked_fill(probs == 0, torch.finfo(probs.dtype).min)
+        return F.gumbel_softmax(logits, tau=1.0, hard=False, dim=-1)
+
+    def _actor_action(self, actor, observation, relaxed_discrete=False, agent_index=0):
+        actor_observation = self._actor_input(observation, agent_index)
+        continuous, probs = actor(actor_observation, valid_destinations(observation, self.destinations))
+        discrete = (self._relaxed_destination(probs) if relaxed_discrete
+                    else F.one_hot(probs.argmax(-1), self.destinations).to(probs.dtype))
+        destination = discrete.argmax(-1)
+        continuous = canonical_continuous(continuous, observation, destination, learn_power=self.learn_power)
+        return torch.cat((continuous, discrete), -1)
+
+    def _policy_outputs(self, observations, *, target=False):
+        """Return continuous actions/probabilities for every UAV.
+
+        A shared actor is evaluated once on a flattened B*N batch so sharing
+        reduces kernel-launch and graph overhead in addition to parameter count.
+        """
+        if self.share_actor_parameters:
+            b, n = observations.shape[:2]
+            flat = observations.reshape(b * n, -1)
+            indices = torch.arange(n, device=observations.device).expand(b, n).reshape(-1)
+            actor = self._actor_at(0, target=target)
+            continuous, probs = actor(self._actor_input(flat, indices),
+                                      valid_destinations(flat, self.destinations))
+            return continuous.reshape(b, n, self.continuous_dim), probs.reshape(b, n, self.destinations)
+        actors = self.target_actors if target else self.actors
+        values = [actor(observations[:, i], valid_destinations(observations[:, i], self.destinations))
+                  for i, actor in enumerate(actors)]
+        return tuple(torch.stack([value[j] for value in values], 1) for j in range(2))
+
+    def _actor_actions(self, observations, *, relaxed_discrete=False, target=False):
+        continuous, probs = self._policy_outputs(observations, target=target)
+        discrete = (self._relaxed_destination(probs) if relaxed_discrete
+                    else F.one_hot(probs.argmax(-1), self.destinations).to(probs.dtype))
+        destination = discrete.argmax(-1)
+        continuous = canonical_continuous(continuous, observations, destination, learn_power=self.learn_power)
         return torch.cat((continuous, discrete), -1)
 
     @torch.no_grad()
     def target_actions(self, observations):
+        """Smooth every agent's continuous target action (Ackermann 2019, Eq. 5).
+
+        The original author's TF2 source smooths the current learner's action
+        only in a per-agent update; the published equation specifies all
+        agents. The categorical branch remains a soft Gumbel sample as declared
+        by this UAV hybrid-action adapter.
+        """
         a = self.config.matd3
-        actions = []
-        for i, actor in enumerate(self.target_actors):
-            obs = observations[:, i]
-            continuous, probs = actor(obs, valid_destinations(obs, self.destinations))
-            noise = (torch.randn_like(continuous) * a.target_noise_std).clamp(-a.target_noise_clip, a.target_noise_clip)
-            destination = probs.argmax(-1)
-            continuous = canonical_continuous((continuous + noise).clamp(-1, 1), obs, destination)
-            actions.append(joint_action(continuous, destination, self.destinations))
-        return torch.stack(actions, 1)
+        if not self.share_actor_parameters:
+            actions = []
+            for i, actor in enumerate(self.target_actors):
+                obs = observations[:, i]
+                continuous, probs = actor(obs, valid_destinations(obs, self.destinations))
+                discrete = self._relaxed_destination(probs)
+                destination = discrete.argmax(-1)
+                noise = (torch.randn_like(continuous) * a.target_noise_std).clamp(
+                    -a.target_noise_clip, a.target_noise_clip)
+                continuous = canonical_continuous((continuous + noise).clamp(-1, 1), obs, destination,
+                                                  learn_power=self.learn_power)
+                actions.append(torch.cat((continuous, discrete), -1))
+            return torch.stack(actions, 1)
+        continuous, probs = self._policy_outputs(observations, target=True)
+        discrete = self._relaxed_destination(probs)
+        destination = discrete.argmax(-1)
+        noise = (torch.randn_like(continuous) * a.target_noise_std).clamp(-a.target_noise_clip, a.target_noise_clip)
+        continuous = canonical_continuous((continuous + noise).clamp(-1, 1), observations, destination,
+                                          learn_power=self.learn_power)
+        return torch.cat((continuous, discrete), -1)
 
     @torch.no_grad()
     def act_batch(self, observations, deterministic=False, step=0, *, return_tensors=False):
         obs = torch.as_tensor(observations, dtype=torch.float32, device=self.device)
         a = self.config.matd3
-        fraction = min(1, max(0, step) / a.epsilon_decay_steps)
-        epsilon = a.initial_epsilon + fraction * (a.final_epsilon - a.initial_epsilon)
-        actions = []
-        for i, actor in enumerate(self.actors):
-            local = obs[:, i]
-            mask = valid_destinations(local, self.destinations)
-            continuous, probs = actor(local, mask)
-            destination = probs.argmax(-1)
-            if not deterministic:
+        if not self.share_actor_parameters:
+            actions = []
+            for i, actor in enumerate(self.actors):
+                local = obs[:, i]
+                continuous, probs = actor(local, valid_destinations(local, self.destinations))
+                if deterministic:
+                    destination = probs.argmax(-1)
+                else:
+                    continuous = (continuous + torch.randn_like(continuous) * a.exploration_noise_std).clamp(-1, 1)
+                    destination = self._relaxed_destination(probs).argmax(-1)
+                continuous = canonical_continuous(continuous, local, destination, learn_power=self.learn_power)
+                actions.append(joint_action(continuous, destination, self.destinations))
+            joint = torch.stack(actions, 1)
+        else:
+            continuous, probs = self._policy_outputs(obs)
+            if deterministic:
+                destination = probs.argmax(-1)
+            else:
                 continuous = (continuous + torch.randn_like(continuous) * a.exploration_noise_std).clamp(-1, 1)
-                random_destination = torch.multinomial(mask.float(), 1).squeeze(-1)
-                explore = torch.rand(len(local), device=self.device) < epsilon
-                destination = torch.where(explore, random_destination, destination)
-            continuous = canonical_continuous(continuous, local, destination)
-            actions.append(joint_action(continuous, destination, self.destinations))
-        joint = torch.stack(actions, 1)
+                destination = self._relaxed_destination(probs).argmax(-1)
+            continuous = canonical_continuous(continuous, obs, destination, learn_power=self.learn_power)
+            joint = joint_action(continuous, destination, self.destinations)
         if return_tensors:
-            return Action(joint[..., :3].contiguous(), joint[..., 3:].argmax(-1))
+            return Action(joint[..., :self.continuous_dim].contiguous(), joint[..., self.continuous_dim:].argmax(-1))
         values = joint.cpu().numpy()
-        return Action(values[..., :3], values[..., 3:].argmax(-1).astype(np.int64))
+        return Action(values[..., :self.continuous_dim], values[..., self.continuous_dim:].argmax(-1).astype(np.int64))
 
     def act(self, observations, deterministic=False, step=0):
         action = self.act_batch(np.asarray(observations)[None], deterministic, step)
         return Action(action.continuous[0], action.destination[0])
 
-    def _critic_values(self, *args):
-        return getattr(self, "_compiled_critic_values", critic_values)(*args)
+    def _critic_values(self, critics, state, actions, vectorized=False, per_critic=False):
+        evaluate = getattr(self, "_compiled_critic_values", critic_values)
+        return chunked_critic_values(
+            lambda s, j: evaluate(critics, s, j, vectorized, per_critic),
+            state, actions, self.config.runtime.critic_chunk_size, per_critic)
+
+    def _shared_critic_actor_values(self, state, joints):
+        return chunked_critic_values(self._shared_critic_actor_values_full, state, joints,
+                                       self.config.runtime.critic_chunk_size, per_critic=True)
+
+    def _shared_critic_actor_values_full(self, state, joints):
+        if (getattr(self, "_factorized_critic_enabled", False) and
+                not self.config.matd3.critic_batch_norm and self.config.runtime.critic_chunk_size == 0):
+            # TD3 actor loss consumes Q1 only. Twin Q remains enabled for Critic Bellman update.
+            from .factorized_candidate import matd3_shared_actor_q1
+            return matd3_shared_actor_q1(self.critics[0], state, joints)
+        """Evaluate one team critic for each agent-specific joint action.
+
+        `joints` is [agent, batch, agent, action]. The single shared critic is
+        evaluated in one flattened batch and returned as [batch, agent].
+        """
+        n, b = joints.shape[:2]
+        repeated_state = state[None].expand(n, -1, -1).reshape(n * b, -1)
+        q1, q2 = self.critics[0](repeated_state, joints.reshape(n * b, self.num_uavs, -1))
+        return (q1.reshape(n, b).transpose(0, 1).contiguous(),
+                q2.reshape(n, b).transpose(0, 1).contiguous())
+
+    def _shared_critic_actor_q1_values(self, state, joints):
+        # Preserve notebook's OPTIONAL factorized branch if explicitly requested.
+        if (getattr(self, "_factorized_critic_enabled", False)
+                and not self.config.matd3.critic_batch_norm
+                and self.config.runtime.critic_chunk_size == 0):
+            return self._shared_critic_actor_values(state, joints)[0]
+        return chunked_single_q_values(
+            lambda s, j: self.critics[0].forward_shared_state(
+                s, j, q1_only=True).transpose(0, 1).contiguous(),
+            state, joints, self.config.runtime.critic_chunk_size)
+
+    @torch.no_grad()
+    def _actor_output_diagnostics(self, observations):
+        """Read-only, sampled pre-tanh/route diagnostics; no policy modification.
+
+        LayerNorm acts on hidden features, not on the final tanh output. Track
+        final-layer saturation separately from an action mask that permits
+        only silence. This is intentionally limited to a small sample to
+        avoid material overhead with large replay batches.
+        """
+        probe = observations[:32]
+        if self.share_actor_parameters:
+            batch, n = probe.shape[:2]
+            flat = probe.reshape(batch * n, -1)
+            ids = torch.arange(n, device=probe.device).expand(batch, n).reshape(-1)
+            actor = self.actors[0]
+            hidden = F.relu(actor.encoder(self._actor_input(flat, ids)))
+            raw = actor.continuous(hidden).reshape(batch, n, self.continuous_dim)
+            pretanh = actor.normalize_pretanh(raw)
+            logits = actor.destination(hidden).reshape(batch, n, self.destinations)
+            hidden = hidden.reshape(batch, n, -1)
+        else:
+            hidden = torch.stack([
+                F.relu(actor.encoder(probe[:, i]))
+                for i, actor in enumerate(self.actors)
+            ], dim=1)
+            raw = torch.stack([
+                actor.continuous(hidden[:, i])
+                for i, actor in enumerate(self.actors)
+            ], dim=1)
+            logits = torch.stack([
+                actor.destination(hidden[:, i])
+                for i, actor in enumerate(self.actors)
+            ], dim=1)
+            pretanh = torch.stack([
+                actor.normalize_pretanh(raw[:, i])
+                for i, actor in enumerate(self.actors)
+            ], dim=1)
+        derivative = 1 - pretanh.tanh().square()
+        motion = pretanh[..., :self.config.motion_dim]
+        motion_derivative = derivative[..., :self.config.motion_dim]
+        rf_derivative = derivative[..., -1]
+        mask = valid_destinations(probe, self.destinations)
+        valid_count = mask.sum(-1)
+        masked_logits = logits.masked_fill(~mask, torch.finfo(logits.dtype).min)
+        probabilities = F.softmax(masked_logits, dim=-1)
+        entropy = -(probabilities * probabilities.clamp_min(1e-12).log()).sum(-1)
+        metrics = {
+            "actor_motion_head_raw_abs_mean": raw[..., :self.config.motion_dim].abs().mean(),
+            "actor_motion_pretanh_abs_mean": motion.abs().mean(),
+            "actor_motion_pretanh_abs_max": motion.abs().max(),
+            "actor_motion_tanh_derivative_mean": motion_derivative.mean(),
+            "actor_motion_tanh_derivative_lt_1e3_fraction":
+                (motion_derivative < 1e-3).float().mean(),
+            "actor_motion_abs_action_gt_0_99_fraction":
+                (motion.tanh().abs() > .99).float().mean(),
+            "actor_rf_pretanh_abs_mean": raw[..., -1].abs().mean(),
+            "actor_rf_tanh_derivative_lt_1e3_fraction":
+                (rf_derivative < 1e-3).float().mean(),
+            "actor_mask_only_silent_fraction": (valid_count == 1).float().mean(),
+            "actor_mask_eligible_fraction": (valid_count > 1).float().mean(),
+            "actor_destination_entropy_mean": entropy.mean(),
+            "actor_destination_max_probability_mean": probabilities.max(-1).values.mean(),
+            "actor_hidden_relu_zero_fraction": (hidden == 0).float().mean(),
+            "actor_hidden_activation_abs_mean": hidden.abs().mean(),
+        }
+        for axis, label in enumerate("xyz"[:self.config.motion_dim]):
+            metrics[f"actor_{label}_pretanh_abs_mean"] = pretanh[..., axis].abs().mean()
+            metrics[f"actor_{label}_tanh_derivative_lt_1e3_fraction"] = (
+                derivative[..., axis] < 1e-3).float().mean()
+        return metrics
+
+    @torch.no_grad()
+    def _actor_head_gradient_diagnostics(self):
+        """Post-clipping head gradient norms, reported only at log intervals."""
+        def head_norms(extract):
+            values = []
+            for actor in self.actors:
+                parameter = extract(actor)
+                if parameter.grad is not None:
+                    values.append(parameter.grad.detach().norm())
+            if values:
+                return torch.stack(values).mean()
+            return torch.zeros((), device=self.device)
+
+        first_linear = lambda actor: next(
+            module.weight for module in actor.encoder.modules() if isinstance(module, nn.Linear)
+        )
+        return {
+            "actor_motion_head_grad_postclip": self._sliced_continuous_grad_norm(is_motion=True),
+            "actor_rf_head_grad_postclip": self._sliced_continuous_grad_norm(is_motion=False),
+            "actor_destination_head_grad_postclip": head_norms(
+                lambda actor: actor.destination.weight
+            ),
+            "actor_first_encoder_grad_postclip": head_norms(first_linear),
+        }
+
+    @torch.no_grad()
+    def _sliced_continuous_grad_norm(self, *, is_motion):
+        values = []
+        for actor in self.actors:
+            gradient = actor.continuous.weight.grad
+            if gradient is not None:
+                component = gradient[:self.config.motion_dim] if is_motion else gradient[-1:]
+                values.append(component.norm())
+        return torch.stack(values).mean() if values else torch.zeros((), device=self.device)
 
     @autocast_update
     def update_critic(self, batch, collect_metrics=True):
@@ -106,65 +353,152 @@ class MATD3(nn.Module):
         vectorized = self.config.runtime.vectorize_critics
         with torch.no_grad():
             next_actions = self.target_actions(data["next_observation"])
-            if vectorized:
-                target = td3_target(data["reward"][:, None], data["terminated"][:, None],
-                                    *self._critic_values(self.target_critics, data["next_state"], next_actions, True), a.gamma)
-            else:
-                target = torch.stack([td3_target(data["reward"], data["terminated"],
-                                                *critic(data["next_state"], next_actions), a.gamma)
-                                      for critic in self.target_critics], 1)
-        replay_actions = joint_action(data["continuous"], data["destination"], self.destinations)
-        q1, q2 = self._critic_values(self.critics, data["state"], replay_actions, vectorized)
-        loss = F.mse_loss(q1, target) + F.mse_loss(q2, target)
-        critic_step = (lambda *args: self.precision.step("critic", *args)) if self.precision.enabled else step_optimizer
-        critic_grad = critic_step(loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
+            target = td3_target(data["reward"][:, None], data["terminated"][:, None],
+                                *self._critic_values(self.target_critics, data["next_state"],
+                                                     next_actions, vectorized), a.gamma)
+        with LayerwiseGradientProbe(
+                self.critics, "critic", enabled=(collect_metrics and not self.precision.enabled and
+                     os.environ.get("UAV_FAST_TRAINING", "false").lower() not in ("1", "true"))) as layer_probe:
+            # Register forward/output/parameter gradient hooks BEFORE the
+            # existing online Q1/Q2 forward, then observe the same backward.
+            replay_actions = joint_action(data["continuous"], data["destination"], self.destinations,
+                                          learn_power=self.learn_power)
+            q1, q2 = self._critic_values(self.critics, data["state"], replay_actions, vectorized)
+            loss = F.mse_loss(q1, target) + F.mse_loss(q2, target)
+            if a.grad_clip_mode == "per_parameter":
+                # Preserve the baseline loss scale and update semantics.
+                loss = loss * len(self.critics)
+            critic_step = (lambda *args: self.precision.step("critic", *args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_optimizer(*args, grad_clip_mode=a.grad_clip_mode))
+            critic_grad = critic_step(loss, self.critic_optimizer,
+                                      self.critics.parameters(), a.grad_clip_norm, collect_metrics)
+            layer_metrics = layer_probe.metrics()
         batch_metrics = critic_metrics(q1, q2, target, data) if collect_metrics else {}
         self.updates += 1
+        # Passive: read already-computed optimizer scalars, no gradients/RNG/Adam changes.
+        dense_sink = getattr(self, "_dense_loss_sink", None)
+        if dense_sink is not None:
+            dense_sink.record("critic_loss", loss)
+            dense_sink.record("critic_grad_norm", critic_grad)
+            dense_sink.record("td_error_abs_mean", (q1.detach()-target.detach()).abs().mean())
         if not collect_metrics:
             return {}
-        return scalar_metrics({**batch_metrics, **self._last_actor_metrics,
+        return scalar_metrics({**batch_metrics, **layer_metrics, **self._last_actor_metrics,
                                "critic_loss": loss, "critic_grad_norm": critic_grad,
-                               "critic_gradient_clipped": (critic_grad > a.grad_clip_norm).float(),
+                               "critic_gradient_clipped": (critic_grad > a.grad_clip_norm).float() * (a.grad_clip_mode != "none"),
                                "policy_updated": torch.tensor(0., device=self.device)})
+
+    def _actor_output_regularization(self, observations):
+        """One batch-mean author output penalty per decentralized agent."""
+        if self.share_actor_parameters:
+            b, n = observations.shape[:2]
+            flat = observations.reshape(b * n, -1)
+            ids = torch.arange(n, device=flat.device).expand(b, n).reshape(-1)
+            penalties = self.actors[0].output_regularization(self._actor_input(flat, ids))
+            return penalties.reshape(b, n).mean(0)
+        return torch.stack([actor.output_regularization(observations[:, i]).mean()
+                            for i, actor in enumerate(self.actors)])
+
 
     @autocast_update
     def update_actor(self, batch, collect_metrics=True):
         data, a = tensor_batch(batch, self.device), self.config.matd3
         vectorized = self.config.runtime.vectorize_critics
         actor_losses, actor_grads = [], []
-        with torch.no_grad():
-            base = torch.stack([self._actor_action(actor, data["observation"][:, i])
-                                for i, actor in enumerate(self.actors)], 1)
+        grad_probe = MATD3GradientProbe(
+            self.actors, batch_size=len(data["observation"]),
+            num_agents=self.num_uavs, motion_dim=self.config.motion_dim,
+            continuous_dim=self.continuous_dim, share_actor=self.share_actor_parameters,
+            grad_clip=a.grad_clip_norm, grad_clip_mode=a.grad_clip_mode,
+            enabled=(collect_metrics and not self.precision.enabled and
+                     os.environ.get("UAV_FAST_TRAINING", "false").lower() not in ("1", "true")))
+        probe_metrics = {}
+        layer_probe = LayerwiseGradientProbe(
+            self.actors,"actor",enabled=(collect_metrics and not self.precision.enabled and
+                     os.environ.get("UAV_FAST_TRAINING", "false").lower() not in ("1", "true")))
+        base = joint_action(data["continuous"], data["destination"], self.destinations,
+                            learn_power=self.learn_power).detach()
         self.critics.requires_grad_(False)
+        critic_was_training = self.critics.training
+        if a.critic_batch_norm:
+            # Actor Q-gradient flows through BN in eval mode (affine, fixed
+            # running stats) without corrupting replay-critic BN moments.
+            self.critics.eval()
         try:
+            grad_probe.__enter__()
+            layer_probe.__enter__()
+            regularization = (self._actor_output_regularization(data["observation"])
+                              if a.actor_output_regularization > 0 else None)
             batched_q = None
-            if vectorized:
+            candidate_actions = None
+            if vectorized or self.share_critic_parameters or self.share_actor_parameters:
+                if self.share_actor_parameters:
+                    candidate_actions = self._actor_actions(data["observation"], relaxed_discrete=True)
+                else:
+                    candidate_actions = torch.stack([
+                        self._actor_action(actor, data["observation"][:, i],
+                                           relaxed_discrete=True, agent_index=i)
+                        for i, actor in enumerate(self.actors)], 1)
+            if candidate_actions is not None:
+                grad_probe.watch_action(candidate_actions)
+            if vectorized or self.share_critic_parameters:
                 joints = base[None].expand(self.num_uavs, -1, -1, -1).clone()
                 indices = torch.arange(self.num_uavs, device=self.device)
-                joints[indices, :, indices] = torch.stack([
-                    self._actor_action(actor, data["observation"][:, i], straight_through=True)
-                    for i, actor in enumerate(self.actors)])
-                batched_q, _ = self._critic_values(self.critics, data["state"], joints, True, True)
-            for i, actor in enumerate(self.actors):
-                if vectorized:
+                joints[indices, :, indices] = candidate_actions.transpose(0, 1).to(joints.dtype)
+                if self.share_critic_parameters:
+                    batched_q = self._shared_critic_actor_q1_values(data["state"], joints)
+                else:
+                    batched_q, _ = self._critic_values(self.critics, data["state"], joints, True, True)
+            for i in range(self.num_uavs):
+                if batched_q is not None:
                     q1 = batched_q[:, i]
                 else:
                     joint = base.clone()
-                    joint[:, i] = self._actor_action(actor, data["observation"][:, i], straight_through=True)
-                    q1, _ = self.critics[i](data["state"], joint)
+                    own_action = (candidate_actions[:, i] if candidate_actions is not None
+                                  else self._actor_action(self.actors[i], data["observation"][:, i],
+                                                          relaxed_discrete=True, agent_index=i))
+                    grad_probe.watch_action(own_action)
+                    joint[:, i] = own_action.to(joint.dtype)
+                    q1, _ = chunked_critic_values(self.critics[i], data["state"], joint,
+                                                   self.config.runtime.critic_chunk_size)
                 actor_loss = -q1.mean()
+                if regularization is not None:
+                    actor_loss = actor_loss + a.actor_output_regularization * regularization[i]
                 actor_losses.append(actor_loss)
-            actor_step = self.precision.step_actors if self.precision.enabled else step_actor_optimizers
-            actor_grads = actor_step(actor_losses, self.actor_optimizers,
-                                               [actor.parameters() for actor in self.actors],
-                                               a.grad_clip_norm, collect_metrics)
+            actor_step = (lambda *args: self.precision.step_actors(*args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_actor_optimizers(*args, grad_clip_mode=a.grad_clip_mode))
+            if self.share_actor_parameters:
+                step_losses = [torch.stack(actor_losses).mean()]
+                parameter_groups = [self.actors[0].parameters()]
+            else:
+                step_losses = actor_losses
+                parameter_groups = [actor.parameters() for actor in self.actors]
+            actor_grads = actor_step(step_losses, self.actor_optimizers, parameter_groups,
+                                     a.grad_clip_norm, collect_metrics)
             actor_losses = [loss.detach() for loss in actor_losses]
+            probe_metrics = {**grad_probe.metrics(), **layer_probe.metrics()}
         finally:
+            layer_probe.__exit__(None, None, None)
+            grad_probe.__exit__(None, None, None)
             self.critics.requires_grad_(True)
+            if a.critic_batch_norm and critic_was_training:
+                self.critics.train()
         self._last_actor_metrics = {"actor_loss": torch.stack(actor_losses).mean(),
+                                    "actor_output_penalty": (a.actor_output_regularization * regularization.detach().mean()
+                                                             if regularization is not None else torch.zeros((), device=self.device)),
                                     "actor_grad_norm": torch.stack(actor_grads).mean(),
                                     "actor_update_step": torch.tensor(float(self.updates), device=self.device)}
+        if (collect_metrics and os.environ.get("UAV_FAST_TRAINING", "false").lower()
+                not in ("1", "true")):
+            # These are diagnostics only; do not change the TD3 objective,
+            # Actor/target gradient paths, or random sampling.
+            self._last_actor_metrics.update(self._actor_output_diagnostics(data["observation"]))
+            self._last_actor_metrics.update(self._actor_head_gradient_diagnostics())
+            self._last_actor_metrics.update(probe_metrics)
         self.actor_updates += 1
+        # Only an ACTUAL delayed MATD3 Actor update contributes to the sample.
+        dense_sink = getattr(self, "_dense_loss_sink", None)
+        if dense_sink is not None:
+            dense_sink.record("actor_loss", self._last_actor_metrics["actor_loss"])
+            dense_sink.record("actor_grad_norm", self._last_actor_metrics["actor_grad_norm"])
         if not collect_metrics:
             return {}
         return scalar_metrics({**self._last_actor_metrics,
@@ -180,6 +514,19 @@ class MATD3(nn.Module):
         for target_collection, collection in collections:
             for target_p, p in zip(target_collection.parameters(), collection.parameters()):
                 target_p.lerp_(p, self.config.matd3.tau)
+        if actor and self.config.matd3.actor_batch_norm:
+            # Unlike LN, BN stores non-parameter running statistics. The old
+            # MATD3 Polyak routine only synchronized parameters; without these
+            # buffers, target networks use permanently stale BN states.
+            for target_actor, source_actor in zip(self.target_actors, self.actors):
+                source_buffers = dict(source_actor.named_buffers())
+                for name, target_buffer in target_actor.named_buffers():
+                    target_buffer.copy_(source_buffers[name])
+        if critic and self.config.matd3.critic_batch_norm:
+            for target_critic, source_critic in zip(self.target_critics, self.critics):
+                source_buffers = dict(source_critic.named_buffers())
+                for name, target_buffer in target_critic.named_buffers():
+                    target_buffer.copy_(source_buffers[name])
 
     def update(self, batch, collect_metrics=True):
         result = self.update_critic(batch, collect_metrics)

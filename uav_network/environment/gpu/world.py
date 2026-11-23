@@ -44,12 +44,12 @@ def pcg_uniform(rows: wp.array2d(dtype=wp.uint64), e: int):
 
 
 @wp.func
-def _uniform(s: WorldState, e: int, low: wp.float64, high: wp.float64):
+def _uniform(s: wp.ref[WorldState], e: int, low: wp.float64, high: wp.float64):
     return low + (high - low) * pcg_uniform(s.pcg_state, e)
 
 
 @wp.func
-def _outside(s: WorldState, e: int, point: wp.vec2d, count: int, clearance: wp.float64):
+def _outside(s: wp.ref[WorldState], e: int, point: wp.vec2d, count: int, clearance: wp.float64):
     valid = bool(True)
     for o in range(count):
         circle = s.obstacles[e, o]
@@ -59,14 +59,14 @@ def _outside(s: WorldState, e: int, point: wp.vec2d, count: int, clearance: wp.f
 
 
 @wp.func
-def _place_geometry(s: WorldState, p: WorldParams, e: int):
+def _place_geometry(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int):
     s.errors[e] = 0
     s.gcs[e] = wp.vec2d(p.gcs_x, p.gcs_y)
     s.steps[e] = 0
     s.terminated[e] = 0
     s.blocked[e] = 0
     s.clipped[e] = 0
-    for k in range(9):
+    for k in range(13):
         s.motion_counts[e, k] = 0
     for i in range(p.n):
         s.velocities[e, i] = wp.vec2d(0.0, 0.0)
@@ -116,7 +116,16 @@ def _place_geometry(s: WorldState, p: WorldParams, e: int):
             x = _uniform(s, e, wp.float64(0.0), p.map_size)
             y = _uniform(s, e, wp.float64(0.0), p.map_size)
             point = wp.vec2d(x, y)
-            if wp.length(point - s.gcs[e]) >= p.target_exclusion and _outside(s, e, point, p.obstacles_count, target_clearance):
+            unique_cell=bool(True)
+            if p.cell_reports!=0:
+                cell_x=wp.min(int(point[0]/p.cell_width),p.grid_n-1)
+                cell_y=wp.min(int(point[1]/p.cell_width),p.grid_n-1)
+                for earlier_target in range(t):
+                    other=s.targets[e,earlier_target]
+                    if (cell_x==wp.min(int(other[0]/p.cell_width),p.grid_n-1)
+                        and cell_y==wp.min(int(other[1]/p.cell_width),p.grid_n-1)):
+                        unique_cell=False
+            if unique_cell and wp.length(point - s.gcs[e]) >= p.target_exclusion and _outside(s, e, point, p.obstacles_count, target_clearance):
                 s.targets[e, t] = point
                 placed = bool(True)
                 break
@@ -131,6 +140,9 @@ def reset_geometry(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32)
     e = wp.tid()
     if mask[e] == 0:
         return
+    for i in range(p.n):
+        for cell in range(p.coverage_grid_cells*p.coverage_grid_cells):
+            s.coverage[e,i,cell] = 0
     code = int(0)
     for attempt in range(p.scene_attempts):
         code = _place_geometry(s, p, e)
@@ -144,6 +156,11 @@ def reset_geometry(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32)
             return
     if p.fallback_count == 0:
         s.errors[e] = code
+        return
+    if p.cell_reports!=0:
+        # Certified fallback worlds were made under the old target-placement rule.
+        # Never silently reintroduce duplicate-cell targets in this new experiment.
+        s.errors[e]=105
         return
     selected = int(_uniform(s, e, wp.float64(0.0), wp.float64(p.fallback_count)))
     for i in range(p.n):

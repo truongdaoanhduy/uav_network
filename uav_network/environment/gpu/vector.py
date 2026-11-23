@@ -1,6 +1,8 @@
 """Warp worlds sharing Torch storage; no simulator process or per-step array transport."""
+from ...configuration import with_legacy_feature_defaults
 from contextlib import nullcontext
 from copy import deepcopy
+import os
 from types import SimpleNamespace
 
 import numpy as np
@@ -9,9 +11,11 @@ import warp as wp
 
 from .state import allocate_state, params_from_config, seed_rows
 from .motion import motion_step
+from .xyz_motion import motion_xyz
+from .bayesian import reset_xyz, sense_bayesian_indexed, confirm_observed_cells, build_target_cell_lookup
 from .world import reset_geometry
 from .validation import validate_actions
-from .geometry import sense
+from .geometry import sense, scan_coverage
 from .observations import observe, centralized
 from ...communication.gpu.mac import reset_network, begin_step, sense_reports, masked_sense_reports, packet_step, end_step
 from ...communication.gpu.metrics import world_info
@@ -24,6 +28,13 @@ class WarpVectorEnv:
     environment_backend = "warp_packet"
 
     def __init__(self, config, device=None):
+        # Direct class construction must never bypass make_vector's guard.
+        # Legacy Warp PHY/MAC and belief state still use target IDs, not M2
+        # source-provenanced evidence or GCS map deltas. Fail before allocating.
+        if getattr(config.runtime, "m2_enabled", False):
+            raise NotImplementedError(
+                "M2 target-belief Warp packet backend is not yet integrated; "
+                "never run the legacy Warp world as a full M2 environment")
         self.config = config.validate()
         self.num_envs = config.runtime.num_envs
         selected = config.runtime.device if device is None else device
@@ -34,6 +45,16 @@ class WarpVectorEnv:
             raise ValueError("Warp environment requires a cpu or cuda device")
         if self.device.type == "cuda" and not torch.cuda.is_available():
             raise RuntimeError("CUDA environment requested without a CUDA device")
+        # Optional CUDA-only launch scheduling for the one-world-per-thread
+        # variable-length CSMA/CA event kernel; 0 keeps Warp's stock block.
+        # This changes neither action/science config nor radio event semantics.
+        raw_block_dim=os.environ.get("UAV_WARP_MAC_BLOCK_DIM", "0")
+        try:
+            self._mac_block_dim=int(raw_block_dim)
+        except (TypeError,ValueError) as exc:
+            raise ValueError("Invalid UAV_WARP_MAC_BLOCK_DIM") from exc
+        if self._mac_block_dim not in (0,1,2,4,8,16,32,64,128,256):
+            raise ValueError("Invalid UAV_WARP_MAC_BLOCK_DIM; permitted 0/1/2/4/8/16/32/64/128/256")
         self.wp_device = str(self.device)
         wp.init()
         self._torch_stream = torch.cuda.current_stream(self.device) if self.device.type == "cuda" else None
@@ -47,6 +68,12 @@ class WarpVectorEnv:
                                            device=self.device,dtype=torch.float32),
                  "state":torch.empty((self.num_envs,state_dim(config)),device=self.device,dtype=torch.float32)}]
         self._buffer = 0
+        # Derived NoOracle target-cell index is an *ephemeral* accelerator,
+        # not scientific world state. Do not add 1600 cells/world to every
+        # checkpoint; reconstruct from targets after reset / exact restore.
+        self.target_cell_lookup = wp.empty((self.num_envs,
+            self.p.grid_n*self.p.grid_n if self.p.cell_reports else 0),
+            dtype=wp.int32,device=self.wp_device)
         self._seeds = np.arange(config.runtime.seed, config.runtime.seed+self.num_envs,dtype=np.int64)
         self._waiting = self._closed = False
         self._ready = False
@@ -59,7 +86,8 @@ class WarpVectorEnv:
         unique = {int(a.ptr):a for a in arrays if a.size}
         total = sum(a.size * wp.types.type_size_in_bytes(a.dtype) for a in unique.values())
         # Buffer1 is Torch-owned; buffer0 is already counted through the state.
-        return total + sum(t.numel()*t.element_size() for t in self._buffers[1].values())
+        return (total + sum(t.numel()*t.element_size() for t in self._buffers[1].values())
+                + self.target_cell_lookup.size * wp.types.type_size_in_bytes(self.target_cell_lookup.dtype))
 
     def _bind_stream(self):
         if self.device.type == "cuda":
@@ -70,7 +98,12 @@ class WarpVectorEnv:
                 self.stream = wp.stream_from_torch(current)
 
     def _launch(self, kernel, dim, *args):
-        wp.launch(kernel,dim=dim,inputs=list(args),device=self.wp_device,stream=self.stream)
+        if (kernel is packet_step and self.device.type == "cuda"
+                and self.p.cell_reports != 0 and self._mac_block_dim):
+            wp.launch(kernel,dim=dim,inputs=list(args),device=self.wp_device,
+                      stream=self.stream,block_dim=self._mac_block_dim)
+        else:
+            wp.launch(kernel,dim=dim,inputs=list(args),device=self.wp_device,stream=self.stream)
 
     def _check_errors(self):
         error = wp.to_torch(self.s.errors)
@@ -118,7 +151,17 @@ class WarpVectorEnv:
         self._launch(reset_network,self.num_envs,self.s,self.p,wp_mask)
         self._launch(reset_geometry,self.num_envs,self.s,self.p,wp_mask)
         self._check_errors()
-        self._launch(sense,(self.num_envs,self.p.n,self.p.targets_count),self.s,self.p)
+        if self.p.cell_reports:
+            self._launch(build_target_cell_lookup,self.num_envs,self.s,self.p,wp_mask,self.target_cell_lookup)
+            self._check_errors()
+        if self.p.xyz:
+            self._launch(reset_xyz,(self.num_envs,self.p.n),self.s,self.p,wp_mask)
+            self._launch(sense_bayesian_indexed,(self.num_envs,self.p.n),self.s,self.p,0,wp_mask,self.target_cell_lookup)
+            if self.p.cell_reports:self._launch(confirm_observed_cells,self.num_envs,self.s,self.p,wp_mask,1)
+        else:
+            self._launch(sense,(self.num_envs,self.p.n,self.p.targets_count),self.s,self.p)
+        if self.p.coverage_grid_cells:
+            self._launch(scan_coverage,(self.num_envs,self.p.n,self.p.coverage_grid_cells**2),self.s,self.p)
         self._launch(masked_sense_reports,self.num_envs,self.s,self.p,wp_mask)
         observation = self._publish(self._buffers[self._buffer])
         self._ready = True
@@ -136,7 +179,7 @@ class WarpVectorEnv:
             raise RuntimeError("Cannot snapshot a closed, waiting, or uninitialized vector")
         self._bind_stream()
         wp.synchronize_device(self.wp_device)
-        return {"version": 1, "config": self._snapshot_config(),
+        return {"version": 4 if self.p.cell_reports else (2 if self.p.xyz else 1), "config": self._snapshot_config(),
                 "device_type": self.device.type,
                 "arrays": {name: wp.to_torch(value).detach().to(device="cpu", copy=True)
                            for name, value in vars(self.s).items() if isinstance(value, wp.array)},
@@ -147,13 +190,20 @@ class WarpVectorEnv:
         """Validate the complete payload before changing any live world."""
         if self._closed or self._waiting:
             raise RuntimeError("Cannot restore a closed or waiting vector")
-        if (not isinstance(snapshot, dict) or snapshot.get("version") != 1
-                or snapshot.get("config") != self._snapshot_config()
+        if (not isinstance(snapshot, dict) or snapshot.get("version") != (4 if self.p.cell_reports else (2 if self.p.xyz else 1))
+                or with_legacy_feature_defaults(snapshot.get("config", {})) != self._snapshot_config()
                 or snapshot.get("device_type") != self.device.type):
             raise ValueError("Incompatible Warp snapshot version/config/device")
         arrays = {name: wp.to_torch(value) for name, value in vars(self.s).items()
                   if isinstance(value, wp.array)}
         incoming = snapshot.get("arrays")
+        if isinstance(incoming,dict) and not self.p.xyz:
+            incoming = dict(incoming)
+            for name in ("altitudes","vertical_velocity","obstacle_heights","belief","visited","positive","sensor_tick","sensor_counts","xyz_work"):
+                incoming.setdefault(name,torch.zeros_like(arrays[name],device="cpu"))
+        if (isinstance(incoming, dict) and not self.p.coverage_grid_cells
+                and "coverage" not in incoming):
+            incoming = dict(incoming, coverage=torch.empty_like(arrays["coverage"], device="cpu"))
         if not isinstance(incoming, dict) or incoming.keys() != arrays.keys():
             raise ValueError("Warp snapshot array fields mismatch")
         for name, target in arrays.items():
@@ -162,6 +212,21 @@ class WarpVectorEnv:
                     or value.shape != target.shape or value.dtype != target.dtype
                     or value.layout != torch.strided):
                 raise ValueError(f"Warp snapshot array shape/dtype mismatch: {name}")
+        if self.p.xyz:
+            for name,value in incoming.items():
+                if value.is_floating_point() and not torch.isfinite(value).all():
+                    raise ValueError(f"Non-finite XYZ snapshot field: {name}")
+            z=incoming["altitudes"]
+            if bool(((z<self.p.altitude_min)|(z>self.p.altitude_max)).any()) or bool(((incoming["belief"]<0)|(incoming["belief"]>1)).any()):
+                raise ValueError("Invalid XYZ altitude/belief bounds")
+            if bool((incoming["obstacle_heights"][:,:self.p.obstacles_count]<=0).any()):
+                raise ValueError("Invalid XYZ obstacle heights")
+            for name in ("visited","positive"):
+                if bool(((incoming[name]!=0)&(incoming[name]!=1)).any()):
+                    raise ValueError(f"Invalid XYZ binary sensor field: {name}")
+            for name in ("sensor_tick","sensor_counts"):
+                if bool((incoming[name]<0).any()):
+                    raise ValueError(f"Invalid XYZ nonnegative sensor field: {name}")
         seeds = snapshot.get("seeds")
         if (not isinstance(seeds, torch.Tensor) or seeds.shape != (self.num_envs,)
                 or seeds.dtype != torch.int64 or seeds.device.type != "cpu"
@@ -177,6 +242,12 @@ class WarpVectorEnv:
         wp.synchronize_device(self.wp_device)
         for name, target in arrays.items():
             target.copy_(incoming[name])
+        if self.p.cell_reports:
+            # Restored snapshots from both the old and accelerated V9 have
+            # exactly the same scientific fields; rebuild this transient cache.
+            mask = wp.from_torch(torch.ones((self.num_envs,),device=self.device,dtype=torch.int32))
+            self._launch(build_target_cell_lookup,self.num_envs,self.s,self.p,mask,self.target_cell_lookup)
+            self._check_errors()
         self._seeds = seeds.numpy().copy()
         self.action_generator.set_state(generator.get_state())
         self._ready = True
@@ -187,15 +258,15 @@ class WarpVectorEnv:
 
     def random_actions(self, observations):
         shape = observations.shape[:-1]
-        continuous = torch.rand((*shape,3),device=self.device,generator=self.action_generator)*2-1
+        continuous = torch.rand((*shape,self.config.continuous_dim),device=self.device,generator=self.action_generator)*2-1
         scores = torch.rand((*shape,self.p.n+1),device=self.device,generator=self.action_generator)
         mask = observations[..., -(self.p.n+1):] > .5
         mask[...,0] = True
         scores.masked_fill_(~mask,-1)
         destination = scores.argmax(-1)
         active = observations[...,9] > .5
-        continuous[..., :2] *= active[...,None]
-        continuous[..., 2] *= active & (destination != 0)
+        continuous[..., :-1] *= active[...,None]
+        continuous[..., -1] *= active & (destination != 0)
         return Action(continuous,destination)
 
     def step_async(self, actions):
@@ -209,7 +280,7 @@ class WarpVectorEnv:
         if destination.dtype not in integer_types:
             raise ValueError("Destination actions require an integer dtype")
         destination = destination.to(dtype=torch.int64).contiguous()
-        if continuous.shape != (self.num_envs,self.p.n,3) or destination.shape != (self.num_envs,self.p.n):
+        if continuous.shape != (self.num_envs,self.p.n,self.config.continuous_dim) or destination.shape != (self.num_envs,self.p.n):
             raise ValueError("Invalid batched action shape")
         # Native policy validation is performed by checked kernels; no host action copy.
         wc, wd = wp.from_torch(continuous), wp.from_torch(destination)
@@ -221,8 +292,14 @@ class WarpVectorEnv:
         self.s.observation = wp.from_torch(next_buffer["observation"])
         self.s.state = wp.from_torch(next_buffer["state"])
         self._launch(begin_step,self.num_envs,self.s,self.p)
-        self._launch(motion_step,self.num_envs,self.s,self.p,wc)
-        self._launch(sense,(self.num_envs,self.p.n,self.p.targets_count),self.s,self.p)
+        self._launch(motion_xyz if self.p.xyz else motion_step,self.num_envs,self.s,self.p,wc)
+        if self.p.xyz:
+            self._launch(sense_bayesian_indexed,(self.num_envs,self.p.n),self.s,self.p,1,self.s.terminated,self.target_cell_lookup)
+            if self.p.cell_reports:self._launch(confirm_observed_cells,self.num_envs,self.s,self.p,self.s.terminated,0)
+        else:
+            self._launch(sense,(self.num_envs,self.p.n,self.p.targets_count),self.s,self.p)
+        if self.p.coverage_grid_cells:
+            self._launch(scan_coverage,(self.num_envs,self.p.n,self.p.coverage_grid_cells**2),self.s,self.p)
         self._launch(sense_reports,self.num_envs,self.s,self.p)
         self._launch(packet_step,self.num_envs,self.s,self.p,wc,wd)
         self._launch(end_step,self.num_envs,self.s,self.p)
@@ -301,7 +378,10 @@ class WarpMissionEnv:
             self._communication_events.append({
                 "event": "report_received", "time_s": float(times[i]/1e6),
                 "source": int(sources[i]), "destination": int(destinations[i]),
-                "target": int(report[0]), "origin": int(report[1]),
+                "target": int(report[0]),
+                "report_identity": ("observed_cell_id" if self.config.sensor.report_cell_hypotheses
+                                    else "true_target_id"),
+                "origin": int(report[1]),
                 "created_s": float(report[2]), "hops": int(report[3]),
                 "power_w": float(report[4]), "power_scope": "last_fragment",
                 "source_xy": report[5:7].tolist(), "destination_xy": report[7:9].tolist()})
@@ -310,14 +390,33 @@ class WarpMissionEnv:
         s = self.vector.s
         self.positions = s.positions.numpy()[0]
         self.velocities = s.velocities.numpy()[0]
+        if self.config.motion_dim == 3:
+            self.positions = np.column_stack((self.positions,s.altitudes.numpy()[0]))
+            self.velocities = np.column_stack((self.velocities,s.vertical_velocity.numpy()[0]))
+            self.obstacle_heights = s.obstacle_heights.numpy()[0,:self.config.world.num_obstacles]
+            g = self.vector.p.grid_n
+            self.belief = s.belief.numpy()[0].reshape(self.config.world.num_uavs,g,g)
+            self.visited = s.visited.numpy()[0].reshape(self.config.world.num_uavs,g,g).astype(bool)
+            self.positive = s.positive.numpy()[0].reshape(self.config.world.num_uavs,g,g).astype(bool)
         self.targets = s.targets.numpy()[0]
         self.obstacles = s.obstacles.numpy()[0,:self.config.world.num_obstacles]
         self.gcs = s.gcs.numpy()[0]
         self.battery_j = s.battery.numpy()[0]
         self.battery_fraction = self.battery_j/self.config.energy.battery_capacity_j
         self.steps = int(s.steps.numpy()[0])
-        self.reports.known = s.known.numpy()[0].astype(bool)
-        self.reports.delivered = s.delivered.numpy()[0].astype(bool)
+        self.reports.slot_known = s.known.numpy()[0].astype(bool)
+        self.reports.slot_delivered = s.delivered.numpy()[0].astype(bool)
+        if self.config.sensor.report_cell_hypotheses:
+            # Host-only ground-truth alignment for MissionMetrics and
+            # rendering; Actor obs/radio queues still use opaque cell IDs.
+            from .evaluation_truth import truth_aligned_report_status
+            self.reports.known, self.reports.delivered = truth_aligned_report_status(
+                self.targets, s.report_cell.numpy()[0], self.reports.slot_known,
+                self.reports.slot_delivered, int(self.vector.p.grid_n),
+                float(self.vector.p.cell_width))
+        else:
+            self.reports.known = self.reports.slot_known
+            self.reports.delivered = self.reports.slot_delivered
 
     def reset(self, seed=None, options=None):
         if options is not None:

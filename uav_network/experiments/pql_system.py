@@ -1,4 +1,5 @@
 """PQL-inspired three-component training with measured, bounded rate feedback."""
+from ..configuration import with_legacy_feature_defaults
 from copy import deepcopy
 import math
 from queue import Empty, Full, Queue
@@ -45,6 +46,9 @@ class PQLSystem:
         self.collector_device, self.critic_device, self.policy_device = resolve_devices(config)
         self.replay_device = resolve_replay_device(config.runtime.replay_device, self.critic_device)
         self.asynchronous = config.pql.mode == "async"
+        # Keep split PQL learners in async mode, but deterministic runs must not
+        # depend on OS/GPU worker scheduling order.
+        self.concurrent = self.asynchronous and not config.runtime.deterministic
         self.condition, self.stop = Condition(), Event()
         self.error = None
         self.threads = []
@@ -60,16 +64,22 @@ class PQLSystem:
                                  "next_seed": config.runtime.seed, "records": []}
         saved = torch.load(checkpoint, map_location="cpu", weights_only=True, mmap=True) if checkpoint else None
         self.initial_environment = None
+        self.initial_selection = None
         self.initial_collector_rng = None
         if saved:
             validate_pql_checkpoint(saved, config)
+            algorithm_config = saved["config"][config.runtime.algorithm]
+            algorithm_config.setdefault("share_actor_parameters", False)
+            algorithm_config.setdefault("share_critic_parameters", False)
             self.initial_environment = saved["training"].get("environment")
+            self.initial_selection = saved["training"].get("best_checkpoint")
             if self.initial_environment is not None:
                 from .environment_checkpoints import validate_environment
                 validate_environment(self.initial_environment, config, saved["progress"])
             self.initial_collector_rng = saved["training"]["rng"].get("collector")
+            saved_config = with_legacy_feature_defaults(saved["config"])
             for group in ("world", "sensor", "network", "energy", "reward", config.runtime.algorithm):
-                if saved["config"][group] != config.to_dict()[group]:
+                if saved_config[group] != config.to_dict()[group]:
                     raise ValueError(f"PQL resume {group} differs from checkpoint")
             if (saved["config"]["runtime"]["seed"] != config.runtime.seed
                     or saved["config"]["runtime"]["environment_backend"] != config.runtime.environment_backend
@@ -121,6 +131,11 @@ class PQLSystem:
         self.next_metric_update = self.critic.updates + 1
         self.metric_interval = max(1, math.ceil(config.runtime.log_interval_steps /
                                                config.runtime.num_envs * config.pql.critic_sample_ratio))
+        if saved and saved["training"].get("diagnostics"):
+            diagnostic = saved["training"]["diagnostics"]
+            self.latest = deepcopy(diagnostic["latest"])
+            if diagnostic["metric_interval"] == self.metric_interval:
+                self.next_metric_update = diagnostic["next_metric_update"]
         if self.asynchronous:
             # Optimizers and live parameters have exactly one writer.
             del self.critic.actor_optimizers
@@ -151,7 +166,7 @@ class PQLSystem:
             numpy_state = rng["numpy"]
             np.random.set_state((numpy_state[0], np.asarray(numpy_state[1], dtype=np.uint32),
                                  *numpy_state[2:]))
-        if self.asynchronous:
+        if self.concurrent:
             for name, queue, operation, device in (
                     ("critic", self.collection_queue, self._collect_and_learn, self.critic_device),
                     ("policy", self.policy_queue, self._policy_learn, self.policy_device)):
@@ -206,7 +221,7 @@ class PQLSystem:
         self._raise_error()
         frozen = freeze_transition(transition)
         self.collections += 1
-        if self.asynchronous:
+        if self.concurrent:
             with self.condition:
                 self.pending_collections += 1
             try:
@@ -244,14 +259,18 @@ class PQLSystem:
                     if step % delay == 0:
                         snapshot = cloned_state(self.critic.critics)
                         synchronize(self.critic.device)
-                        with self.condition:
-                            self.pending_policies += 1
-                        try:
-                            self.policy_wait_s += self._put(self.policy_queue, (step, batch, snapshot))
-                        except BaseException:
+                        task = (step, batch, snapshot)
+                        if self.concurrent:
                             with self.condition:
-                                self.pending_policies -= 1
-                            raise
+                                self.pending_policies += 1
+                            try:
+                                self.policy_wait_s += self._put(self.policy_queue, task)
+                            except BaseException:
+                                with self.condition:
+                                    self.pending_policies -= 1
+                                raise
+                        else:
+                            self._policy_learn(task)
                     self.critic_worker.update_targets()
                 else:
                     actor_before = self.critic.actor_updates
@@ -336,9 +355,9 @@ class PQLSystem:
                     "pql/critic_policy_lag": self.policy.actor_updates - self.critic_worker.last_policy_version,
                     "pql/policy_critic_lag": self.critic.updates - self.policy_worker.last_critic_version,
                     "pql/ratio_credit": self.credit,
-                    "pql/scheduling_deterministic": int(not self.asynchronous)}
+                    "pql/scheduling_deterministic": int(not self.concurrent)}
 
-    def save(self, path, progress, collector_rng=None, environment=None):
+    def save(self, path, progress, collector_rng=None, environment=None, selection_state=None):
         self.flush()
         numpy_state = np.random.get_state()
         training = {"optimizers": optimizer_states(self.critic, self.policy),
@@ -354,8 +373,13 @@ class PQLSystem:
                             "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else [],
                             "python": random.getstate(), "collector": collector_rng,
                             "numpy": (numpy_state[0], numpy_state[1].tolist(), *numpy_state[2:])}}
+        training["diagnostics"] = {"latest":deepcopy(self.latest),
+                                   "next_metric_update":self.next_metric_update,
+                                   "metric_interval":self.metric_interval}
         if environment is not None:
             training["environment"] = environment
+        if selection_state is not None:
+            training["best_checkpoint"] = selection_state
         save_policy(self.critic, path, progress, training=training)
 
     def close(self):

@@ -2,6 +2,8 @@
 import warp as wp
 
 from .state import WorldParams, WorldState
+from .bayesian import profile
+from .xyz_geometry import position3,camera_clear
 
 # Keep native NumPy operation rounding; these simulator kernels need no gradients.
 wp.set_module_options({"enable_backward": False, "fuse_fp": False})
@@ -31,12 +33,12 @@ def brake(velocity: wp.vec2d, step: wp.float64):
 
 
 @wp.func
-def outside_map(point: wp.vec2d, p: WorldParams):
+def outside_map(point: wp.vec2d, p: wp.ref[WorldParams]):
     return point[0] < wp.float64(0.0) or point[1] < wp.float64(0.0) or point[0] > p.map_size or point[1] > p.map_size
 
 
 @wp.func
-def static_point(s: WorldState, p: WorldParams, e: int, point: wp.vec2d):
+def static_point(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, point: wp.vec2d):
     valid = not outside_map(point, p)
     for o in range(p.obstacles_count):
         circle = s.obstacles[e, o]
@@ -46,7 +48,7 @@ def static_point(s: WorldState, p: WorldParams, e: int, point: wp.vec2d):
 
 
 @wp.func
-def static_path(s: WorldState, p: WorldParams, e: int, position: wp.vec2d, velocity: wp.vec2d):
+def static_path(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, position: wp.vec2d, velocity: wp.vec2d):
     valid = not outside_map(position, p)
     point = position
     speed = velocity
@@ -67,7 +69,7 @@ def static_path(s: WorldState, p: WorldParams, e: int, position: wp.vec2d, veloc
 
 
 @wp.func
-def peer_path(p: WorldParams, position: wp.vec2d, velocity: wp.vec2d,
+def peer_path(p: wp.ref[WorldParams], position: wp.vec2d, velocity: wp.vec2d,
               other_position: wp.vec2d, other_velocity: wp.vec2d):
     valid = bool(True)
     point, other = position, other_position
@@ -84,7 +86,7 @@ def peer_path(p: WorldParams, position: wp.vec2d, velocity: wp.vec2d,
 
 
 @wp.func
-def target_visible(s: WorldState, p: WorldParams, e: int, i: int, t: int):
+def target_visible(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, i: int, t: int):
     visible = p.energy_enabled == 0 or s.battery[e, i] > wp.float64(0.0)
     position, target = s.positions[e, i], s.targets[e, t]
     if wp.length(target - position) > p.footprint + wp.float64(1e-9):
@@ -101,3 +103,30 @@ def target_visible(s: WorldState, p: WorldParams, e: int, i: int, t: int):
 def sense(s: WorldState, p: WorldParams):
     e, i, t = wp.tid()
     s.visible[e, i, t] = int(target_visible(s, p, e, i, t))
+
+
+@wp.kernel
+def scan_coverage(s: WorldState, p: WorldParams):
+    e, i, cell = wp.tid()
+    if p.energy_enabled != 0 and s.battery[e,i] <= wp.float64(0):
+        return
+    width = p.map_size / wp.float64(p.coverage_grid_cells)
+    point = wp.vec2d((wp.float64(cell % p.coverage_grid_cells)+wp.float64(.5))*width,
+                     (wp.float64(cell // p.coverage_grid_cells)+wp.float64(.5))*width)
+    position = s.positions[e,i]
+    footprint=p.footprint
+    if p.xyz!=0:
+        if s.altitudes[e,i]<=wp.float64(0):return
+        footprint=profile(p,s.altitudes[e,i])[2]
+    if wp.length(point-position) > footprint + wp.float64(1e-9):
+        return
+    visible = bool(True)
+    if p.occlusion != 0 and p.xyz!=0:
+        visible=camera_clear(s,p,e,position3(s,e,i),point)
+    elif p.occlusion != 0:
+        for o in range(p.obstacles_count):
+            circle = s.obstacles[e,o]
+            if segment_distance(position,point,wp.vec2d(circle[0],circle[1])) < circle[2]+wp.float64(1e-9):
+                visible = bool(False)
+    if visible:
+        s.coverage[e,i,cell] = 1

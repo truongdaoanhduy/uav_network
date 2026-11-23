@@ -209,7 +209,8 @@ class BaselineResumeTests(unittest.TestCase):
             from unittest.mock import patch
             with patch("uav_network.experiments.training.start_tracking", return_value=tracker):
                 result = train(config)
-            self.assertEqual(periodic, [(False, None), (True, 2)])
+            self.assertEqual(periodic, [(False, None), (False, None)])
+            self.assertEqual(torch.load(result["resume_checkpoint"], weights_only=True)["progress"]["episodes"], 2)
             saved = torch.load(result["resume_checkpoint"], weights_only=True)
             self.assertEqual(saved["progress"]["episodes"], 2)
 

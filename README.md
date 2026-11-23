@@ -5,6 +5,8 @@ Khi tiếp tục công việc W&B/Kaggle hoặc CPU replay, đọc [trạng thá
 Mặc định **6 UAV đồng nhất**, map 1000 × 1000 m, 10 target và 8 vật cản tròn.
 Chuyển động XY, camera FOV, pin hữu hạn, lựa chọn relay/GCS và công suất phát.
 Report đi qua **UavNetSim thật**: CSMA/CA, packet, ACK, retry và SINR.
+Profile tùy chọn [XYZ/Bayesian sensing](docs/xyz-sensing.md) thêm điều khiển độ cao,
+belief theo từng UAV và camera phụ thuộc độ cao; visualize vẫn2D.
 Train bằng **Hybrid MASAC hoặc Hybrid MATD3**, với 6 actor riêng và critic tập trung.
 
 ## Cài đặt và kiểm tra
@@ -28,7 +30,7 @@ commit. Scenario được sinh theo seed; không cần tải dataset target.
 | --- | --- |
 | `configs/` | Default, smoke, smoke song song và workstation |
 | `uav_network/configuration.py` | Dataclass, validate và YAML/CLI overrides |
-| `uav_network/environment/` | World, XY/safety, pin, FOV, observation và Gym adapter |
+| `uav_network/environment/` | World, XY/XYZ safety, pin, camera/Bayes, observation và Gym adapter |
 | `uav_network/communication/` | Report/buffer/TTL, native PHY budget, NLOS và selected routing |
 | `uav_network/algorithms/` | Actor/critic, MASAC, MATD3, tensor replay, checkpoint |
 | `uav_network/experiments/` | Train, evaluate, hardware, benchmark và ảnh quỹ đạo |
@@ -41,7 +43,7 @@ commit. Scenario được sinh theo seed; không cần tải dataset target.
 → communication/backend → observations/env → models → masac/matd3 → vector
 → replay → training`. Mỗi file project không quá 500 dòng.
 
-## Action và observation
+## Action và observation mặc định XY
 
 | Thành phần action mỗi UAV | Ý nghĩa |
 | --- | --- |

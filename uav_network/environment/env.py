@@ -1,4 +1,5 @@
 """Decentralized observations and team rewards for a 2D search mission."""
+from .coverage import scan_coverage
 from dataclasses import dataclass
 import numpy as np
 
@@ -15,11 +16,11 @@ class Action:
     continuous: np.ndarray  # [N,3]: acceleration X/Y and normalized TX power
     destination: np.ndarray  # [N]: silent, ordered peers, GCS
 
-    def validate(self, num_uavs):
+    def validate(self, num_uavs, continuous_dim=3):
         a, d = np.asarray(self.continuous), np.asarray(self.destination)
-        if (a.shape != (num_uavs, 3) or not np.issubdtype(a.dtype, np.number)
+        if (a.shape != (num_uavs, continuous_dim) or not np.issubdtype(a.dtype, np.number)
                 or not np.isfinite(a).all() or np.any(np.abs(a) > 1)):
-            raise ValueError(f"Continuous actions must be finite [-1,1] values of shape ({num_uavs},3)")
+            raise ValueError(f"Continuous actions must be finite [-1,1] values of shape ({num_uavs},{continuous_dim})")
         if (d.shape != (num_uavs,) or not np.issubdtype(d.dtype, np.integer)
                 or np.any(d < 0) or np.any(d > num_uavs)):
             raise ValueError("Destination indices must be integers from 0 through num_uavs")
@@ -27,6 +28,11 @@ class Action:
 
 class SwarmSearchEnv:
     def __init__(self, config):
+        # The reference/native environment discovers reports using true
+        # target indices (ReportStore.discover(i,t)). It is NOT a NoOracle
+        # implementation, regardless of runtime.environment_backend.
+        if config.motion_dim==3 and config.sensor.report_cell_hypotheses:
+            raise NotImplementedError("Native XYZ is not NoOracle: reports use true target IDs; use WarpMissionEnv/warp_packet")
         self.config = config.validate()
         self.network = None
         self._communication_trace = False
@@ -68,12 +74,24 @@ class SwarmSearchEnv:
     def reset(self, seed=None, options=None):
         self.close()
         self.seed = self.config.runtime.seed if seed is None else int(seed)
-        scene = generate_scenario(self.config, np.random.default_rng(self.seed), options)
+        selected = options
+        if self.config.motion_dim == 3 and options is not None:
+            selected = dict(options)
+            selected["positions"] = np.asarray(options["positions"])[:, :2]
+            raw = np.asarray(options["obstacles"])
+            selected["obstacles"] = raw[:, :3] if raw.size else []
+        scene = generate_scenario(self.config, np.random.default_rng(self.seed), selected)
+        if self.config.motion_dim == 3:
+            from .xyz_geometry import prepare_scene
+            scene = prepare_scene(scene, self.config, self.seed, options)
+            self.obstacle_heights = scene.obstacle_heights
         self.positions, self.targets, self.obstacles, self.gcs = (
             scene.positions, scene.targets, scene.obstacles, scene.gcs)
         self.generation_fallback = scene.generation_fallback
         self.generation_attempts = scene.generation_attempts
         self.velocities = np.zeros_like(self.positions)
+        self.coverage = np.zeros((self.config.world.num_uavs,
+                                  self.config.sensor.coverage_grid_cells ** 2), dtype=np.int32)
         self.battery_j = np.full(self.config.world.num_uavs, self.config.energy.battery_capacity_j, dtype=float)
         self.propulsion_energy_j = np.zeros_like(self.battery_j)
         self.reports = ReportStore(self.config)
@@ -88,13 +106,25 @@ class SwarmSearchEnv:
         self.motion_counts.update({f"shield_{name}": 0 for name in (
             "interventions", "obstacle_interventions", "peer_interventions",
             "boundary_interventions", "infeasible")})
+        self.motion_counts.update({name: 0 for name in (
+            "raw_unsafe_attempts", "raw_boundary_attempts", "raw_obstacle_attempts",
+            "raw_peer_attempts", "shield_rescues")})
         self.motion_counts["shield_correction"] = 0.0
         self.reward_components = {}
         self.action_counts = {"silent": 0, "peer": 0, "gcs": 0, "saturated": 0}
+        if self.config.motion_dim == 3:
+            from .bayesian import initialize_sensor
+            initialize_sensor(self)
         self._sense()
         return local_observations(self), self.info()
 
     def _sense(self):
+        if self.config.motion_dim == 3:
+            from .bayesian import sense_bayesian
+            sense_bayesian(self)
+            scan_coverage(self)
+            return
+        scan_coverage(self)
         for i, position in enumerate(self.positions):
             if not self.active[i]:
                 continue
@@ -104,16 +134,22 @@ class SwarmSearchEnv:
     def step(self, action):
         if self._ended:
             raise RuntimeError("Call reset before stepping a finished environment")
-        action.validate(self.config.world.num_uavs)
+        action.validate(self.config.world.num_uavs, self.config.continuous_dim)
         before_found = self.reports.known.any(axis=0).sum()
         before_delivery = self.reports.delivered.sum()
         before_expired, before_dropped = self.reports.expired, self.reports.dropped
+        belief_before = investigation_before = 0.0
+        if self.config.motion_dim == 3:
+            from .bayesian import belief_certainty_potential, investigation_potential
+            belief_before = belief_certainty_potential(self.belief)
+            investigation_before = investigation_potential(self)
         motion_details = {}
         self.positions, self.velocities, blocked, clipped, flight_energy = funded_motion(
-            self.positions, self.velocities, np.asarray(action.continuous)[:, :2],
-            self.obstacles, self.battery_j, self.config, diagnostics=motion_details)
+            self.positions, self.velocities, np.asarray(action.continuous)[:, :self.config.motion_dim],
+            self.obstacles, self.battery_j, self.config, diagnostics=motion_details, obstacle_heights=getattr(self, 'obstacle_heights', None))
         for key, value in motion_details.items():
-            self.motion_counts[key] += value
+            if key not in {"unsafe_action_step", "shield_intervention_step"}:
+                self.motion_counts[key] += value
         self.propulsion_energy_j += flight_energy
         self.blocked_moves += blocked
         self.boundary_clips += clipped
@@ -127,9 +163,24 @@ class SwarmSearchEnv:
         self.velocities[~self.active] = 0
         self.reports.expire(self.time_s)
         r = self.config.reward
-        communication_efficiency = (comm_energy / report_reference_tx_energy_j(self.config.network)
+        communication_efficiency = (comm_energy / report_reference_tx_energy_j(
+                    self.config.network,reference_power_w=(
+                        self.config.reward.communication_reference_tx_power_w or None))
                                     if comm_energy else 0.0)
         shield_correction = float(motion_details.get("shield_correction", 0.0))
+        unsafe_action = float(motion_details.get("unsafe_action_step", 0.0))
+        shield_intervention = float(motion_details.get("shield_intervention_step", 0.0))
+        terminated = bool(self.reports.delivered.all() or not self.active.any()
+                          or self.steps >= self.config.world.max_steps)
+        information_gain = investigation_shaping = 0.0
+        if self.config.motion_dim == 3:
+            from .bayesian import belief_certainty_potential, investigation_potential
+            belief_after = belief_certainty_potential(self.belief)
+            investigation_after = investigation_potential(self)
+            next_belief = 0.0 if terminated else belief_after
+            next_investigation = 0.0 if terminated else investigation_after
+            information_gain = r.information_gain * (r.shaping_gamma * next_belief - belief_before)
+            investigation_shaping = r.investigation_shaping * (r.shaping_gamma * next_investigation - investigation_before)
         reward = (r.discovery * (self.reports.known.any(axis=0).sum() - before_found)
                   + r.delivery * (self.reports.delivered.sum() - before_delivery)
                   - r.blocked_motion * blocked - r.step_cost
@@ -138,7 +189,10 @@ class SwarmSearchEnv:
                   - r.communication_energy * comm_energy
                   - r.propulsion_energy_per_kj * flight_energy.sum() / 1000
                   - r.communication_efficiency * communication_efficiency
-                  - r.shield_correction * shield_correction)
+                  - r.shield_correction * shield_correction
+                  - r.shield_intervention * shield_intervention
+                  - r.unsafe_action * unsafe_action
+                  + information_gain + investigation_shaping)
         components = {"discovery": r.discovery * (self.reports.known.any(axis=0).sum() - before_found),
                       "delivery": r.delivery * (self.reports.delivered.sum() - before_delivery),
                       "blocked_motion": -r.blocked_motion * blocked, "step_cost": -r.step_cost,
@@ -147,18 +201,20 @@ class SwarmSearchEnv:
                       "communication_energy": -r.communication_energy * comm_energy,
                       "propulsion_energy": -r.propulsion_energy_per_kj * flight_energy.sum() / 1000,
                       "communication_efficiency": -r.communication_efficiency * communication_efficiency,
-                      "shield_correction": -r.shield_correction * shield_correction}
+                      "shield_correction": -r.shield_correction * shield_correction,
+                      "shield_intervention": -r.shield_intervention * shield_intervention,
+                      "unsafe_action": -r.unsafe_action * unsafe_action,
+                      "information_gain": information_gain,
+                      "investigation_shaping": investigation_shaping}
         for key, value in components.items():
             self.reward_components[key] = self.reward_components.get(key, 0.0) + float(value)
         dest = np.asarray(action.destination)
         self.action_counts["silent"] += int((dest == 0).sum())
         self.action_counts["gcs"] += int((dest == self.config.world.num_uavs).sum())
         self.action_counts["peer"] += int(((dest > 0) & (dest < self.config.world.num_uavs)).sum())
-        self.action_counts["saturated"] += int((np.abs(np.asarray(action.continuous)[:, :2]) >= .99).sum())
+        self.action_counts["saturated"] += int((np.abs(np.asarray(action.continuous)[:, :self.config.motion_dim]) >= .99).sum())
         # max_steps is the mission deadline, observed by the actor and critic.
         # It is a finite-horizon terminal state, not an external collection cutoff.
-        terminated = bool(self.reports.delivered.all() or not self.active.any()
-                          or self.steps >= self.config.world.max_steps)
         truncated = False
         self._ended = terminated or truncated
         return local_observations(self), float(reward), terminated, truncated, self.info()
@@ -173,6 +229,9 @@ class SwarmSearchEnv:
         tx_rf = self.network.tx_energy_j[:-1] if self.network else np.zeros_like(self.propulsion_energy_j)
         rx_rf = self.network.rx_energy_j[:-1] if self.network else np.zeros_like(self.propulsion_energy_j)
         return {
+            **({"sensing": dict(self.sensor_counts),
+                 "coverage_percent": 100*float(self.visited.any(axis=0).mean()),
+                 "altitudes_m": self.positions[:,2].tolist()} if self.config.motion_dim==3 else {}),
             "generation_fallback": self.generation_fallback,
             "generation_attempts": self.generation_attempts,
             "report_diagnostics": self.reports.diagnostics(self.time_s),"motion_counts": dict(self.motion_counts), "reward_components": dict(self.reward_components), "action_counts": dict(self.action_counts),

@@ -79,11 +79,21 @@ def test_tracker_journals_actual_progress_and_registers_only_small_live_file(tmp
         assert status["context"]["phase"]=="learning"
         assert status["context"]["learner/critic_loss"]==2.5
         assert ("training-status.json","live") in saved
-        assert ("training-events.jsonl","end") in saved
+        assert not any(name == "training-events.jsonl" for name, _ in saved)
         assert ("metrics-guide.md","now") in saved
         assert not any(name=="episodes.jsonl" for name,policy in saved)
         assert run.logged[-1]["run/episode_budget_percent"]==0.0
         t.close()
+        # Journals are kept in the local run directory and, when configured,
+        # published as incremental compressed HF tar parts. This version does
+        # NOT duplicate raw/gz training events as W&B Files (storage contract).
+        assert run.finished
+        assert not any(name in {"training-events.jsonl", "training-events.jsonl.gz"}
+                       for name, _ in saved)
+        journal = tmp_path / "training-events.jsonl"
+        assert journal.is_file()
+        assert any(json.loads(line)["event"] == "progress"
+                   for line in journal.read_text().splitlines())
 
 
 def test_full_upload_clock_is_not_reset_by_light_policy_uploads(tmp_path):

@@ -38,7 +38,7 @@ class ControllerLaunchTests(unittest.TestCase):
              patch.object(cli, "verify_credential_dataset"), \
              patch.object(cli, "ensure_pipeline_dataset", return_value="owner/pipeline"), \
              patch.object(cli, "load_config", return_value=config), \
-             patch.object(cli, "run_kaggle", return_value="https://www.kaggle.com/code/owner/actual-gpu"), \
+             patch.object(cli, "submit_kernel", return_value="https://www.kaggle.com/code/owner/actual-gpu"), \
              patch.object(controller, "submit_controller", side_effect=submit), \
              patch.object(controller, "wait_controller_ready", return_value={
                  "ready": ready, "wandb_url": "https://wandb.ai/owner/main/runs/actual-controller"}):
@@ -69,7 +69,7 @@ class ControllerLaunchTests(unittest.TestCase):
              patch.object(cli, "verify_credential_dataset",
                           side_effect=lambda *a, **k: events.append("verify")), \
              patch.object(cli, "load_config", return_value=config), \
-             patch.object(cli, "run_kaggle", return_value="https://www.kaggle.com/code/owner/actual-gpu"), \
+             patch.object(cli, "submit_kernel", return_value="https://www.kaggle.com/code/owner/actual-gpu"), \
              patch.object(cli, "pushed_kernel_ref", return_value="owner/actual-gpu"):
             cli.launch(args, credentials)
         self.assertEqual(events[:2], ["refresh", "verify"])
@@ -96,7 +96,6 @@ def test_github_orchestrated_training_kernel_does_not_mount_or_run_old_controlle
         "account": "selected", "training_mode": "base", "auto_continue": True,
         "orchestration": "github_actions",
     }
-    metadata = controller.kernel_metadata(spec)
     source = controller.kernel_script(spec)
-    assert metadata["dataset_sources"] == ["owner/wandb"]
+    assert spec["credential_dataset"] == "owner/wandb"
     assert "continuation-watch" not in source

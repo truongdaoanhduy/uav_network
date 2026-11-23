@@ -43,9 +43,13 @@ class CloudHandoffFailureTests(unittest.TestCase):
                 (folder / "summary.json").write_text(json.dumps(summary))
                 return process
 
-            def submit(args, account, **kwargs):
+            submissions = []
+            def submit(child_spec, folder, account, **kwargs):
                 self.assertEqual(json.loads((output / "job-result.json").read_text()), {"masac": summary})
-                return "Kernel version 1 successfully pushed. https://www.kaggle.com/code/owner/parent-cpu"
+                self.assertFalse((folder / "kernel-metadata.json").exists())
+                submissions.append({"stage": child_spec["stage"],
+                                    "credential_dataset": child_spec["credential_dataset"]})
+                return "https://www.kaggle.com/code/owner/parent-cpu"
 
             limits = [1, 1] if fail_at_start else [1, failure]
             with (
@@ -60,7 +64,7 @@ class CloudHandoffFailureTests(unittest.TestCase):
                 patch.object(remote.subprocess, "Popen", side_effect=start),
                 patch.object(remote, "stop_process_tree"),
                 patch.object(visualize, "verify_credential_dataset"),
-                patch.object(visualize, "run_kaggle", side_effect=submit),
+                patch.object(visualize, "submit_kernel", side_effect=submit),
                 patch.dict("os.environ", {"KAGGLE_API_TOKEN": "test-kaggle-token",
                                          "WANDB_API_KEY": "test-wandb-key"}),
             ):
@@ -74,9 +78,8 @@ class CloudHandoffFailureTests(unittest.TestCase):
             self.assertEqual(scheduling, {"algorithm": "matd3", "error_type": type(failure).__name__})
             child = json.loads((output / "cpu-visualization.json").read_text())
             self.assertEqual(child["artifacts"], {"masac": summary["checkpoint_artifact"]})
-            metadata = json.loads((output / "cpu-kernel" / "kernel-metadata.json").read_text())
-            self.assertFalse(metadata["enable_gpu"])
-            self.assertEqual(metadata["dataset_sources"], ["owner/private-wandb"])
+            self.assertEqual(submissions, [{"stage": "visualize", "credential_dataset": "owner/private-wandb"}])
+            self.assertFalse((output / "cpu-kernel" / "kernel-metadata.json").exists())
 
 
 if __name__ == "__main__":

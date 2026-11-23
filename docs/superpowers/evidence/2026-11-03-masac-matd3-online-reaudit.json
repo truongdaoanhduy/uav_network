@@ -1,0 +1,1118 @@
+{
+  "configuration": {
+    "source_commits": {
+      "c8d5ce6b": "05beef6cd0d97d39d51b220f9f7789e915b5bc10",
+      "2ce9fb9e": "05beef6cd0d97d39d51b220f9f7789e915b5bc10",
+      "58c56ba8": "05beef6cd0d97d39d51b220f9f7789e915b5bc10",
+      "db61bd0c": "05beef6cd0d97d39d51b220f9f7789e915b5bc10",
+      "d51b0350": "05beef6cd0d97d39d51b220f9f7789e915b5bc10"
+    },
+    "scenario_fields_compared": [
+      "world",
+      "sensor",
+      "network",
+      "energy",
+      "reward"
+    ],
+    "all_scenarios_identical": true,
+    "replica_namespaces_compared": [
+      "world",
+      "sensor",
+      "network",
+      "energy",
+      "reward",
+      "runtime",
+      "masac",
+      "matd3",
+      "pql"
+    ],
+    "replica_resolved_identical": true,
+    "scenario": {
+      "world": {
+        "dt_s": 1,
+        "num_uavs": 6,
+        "max_steps": 1500,
+        "map_size_m": 1000,
+        "num_targets": 20,
+        "max_speed_mps": 20,
+        "motion_safety": "cbf",
+        "num_obstacles": 15,
+        "altitude_max_m": 150,
+        "altitude_min_m": 0,
+        "gcs_position_m": null,
+        "max_accel_mps2": 2,
+        "launch_radius_m": 150,
+        "motion_dimensions": 3,
+        "safety_distance_m": 15,
+        "generation_version": 3,
+        "placement_attempts": 5000,
+        "launch_min_spacing_m": 30,
+        "obstacle_clearance_m": 10,
+        "obstacle_height_max_m": 120,
+        "obstacle_height_min_m": 30,
+        "obstacle_radius_max_m": 70,
+        "obstacle_radius_min_m": 30,
+        "target_exclusion_radius_m": 200
+      },
+      "sensor": {
+        "pd": [
+          0.99,
+          0.9,
+          0.8,
+          0.7
+        ],
+        "pf": [
+          0.01,
+          0.1,
+          0.2,
+          0.3
+        ],
+        "model": "bayesian",
+        "altitude_m": 100,
+        "grid_cell_m": 25,
+        "belief_prior": 0.5,
+        "full_fov_deg": 90,
+        "fine_altitude_m": 50,
+        "altitude_anchors": [
+          0,
+          50,
+          100,
+          150
+        ],
+        "belief_patch_cells": 5,
+        "obstacle_occlusion": true,
+        "belief_coarse_cells": 5,
+        "coverage_grid_cells": 0,
+        "visible_target_slots": 4,
+        "verified_empty_belief": 0.01,
+        "confirmation_threshold": 0.99,
+        "visible_obstacle_slots": 3
+      },
+      "network": {
+        "enabled": true,
+        "nlos_model": "urban",
+        "gcs_range_m": 500,
+        "max_retries": 5,
+        "bandwidth_hz": 22000000,
+        "bit_rate_bps": 2000000,
+        "buffer_bytes": 3072,
+        "peer_range_m": 500,
+        "report_bytes": 1024,
+        "report_ttl_s": 300,
+        "pa_efficiency": 0.35,
+        "payload_bytes": 1024,
+        "power_control": "learned",
+        "queue_poll_us": 1000,
+        "upstream_path": "third_party/UavNetSim",
+        "tx_power_max_w": 0.4,
+        "tx_power_min_w": 0.001,
+        "noise_figure_db": 7,
+        "tx_power_mapping": "log",
+        "cca_threshold_dbm": -82,
+        "max_queue_packets": 64,
+        "packet_lifetime_s": 10,
+        "sinr_threshold_db": 6,
+        "rx_circuit_power_w": 0.1,
+        "tx_circuit_power_w": 0.1,
+        "ack_uses_data_power": true,
+        "carrier_frequency_hz": 2400000000,
+        "noise_density_dbm_hz": -174,
+        "rediscovery_recovery": true,
+        "link_budget_margin_db": 3,
+        "link_state_observation": true,
+        "obstacle_extra_loss_db": 0,
+        "obstacle_polygon_sides": 16,
+        "power_limited_admission": true,
+        "receiver_admission_mask": true,
+        "propagation_delay_enabled": true
+      },
+      "energy": {
+        "enabled": true,
+        "idle_power_w": 20,
+        "hover_power_w": 120,
+        "battery_capacity_j": 277200,
+        "speed_squared_coefficient": 0.5,
+        "acceleration_squared_coefficient": 2
+      },
+      "reward": {
+        "delivery": 50,
+        "discovery": 10,
+        "step_cost": 0.01,
+        "shaping_gamma": 0.99,
+        "unsafe_action": 1,
+        "blocked_motion": 0.2,
+        "dropped_report": 10,
+        "expired_report": 10,
+        "information_gain": 10,
+        "shield_correction": 0.1,
+        "shield_intervention": 0.5,
+        "communication_energy": 0.01,
+        "investigation_shaping": 10,
+        "communication_efficiency": 1,
+        "propulsion_energy_per_kj": 0.01,
+        "investigation_belief_threshold": 0.8
+      }
+    },
+    "replica_runtime": {
+      "seed": 44,
+      "device": "cuda",
+      "amp_mode": "off",
+      "episodes": 20000,
+      "num_envs": 4096,
+      "algorithm": "masac",
+      "eval_seed": 2000000044,
+      "output_dir": "/kaggle/working/train/masac",
+      "deterministic": true,
+      "eval_episodes": 30,
+      "replay_device": "cpu",
+      "shared_memory": true,
+      "torch_threads": 1,
+      "compile_models": false,
+      "fused_optimizers": false,
+      "collector_overlap": true,
+      "critic_chunk_size": 1024,
+      "max_train_seconds": 36000,
+      "vectorize_critics": true,
+      "log_interval_steps": 4096,
+      "checkpoint_interval": 128,
+      "coalesce_idle_polls": true,
+      "environment_backend": "warp_packet",
+      "replay_cpu_fraction": 0.75,
+      "warm_start_checkpoint": "none"
+    },
+    "replica_masac": {
+      "tau": 0.005,
+      "gamma": 0.99,
+      "batch_size": 8192,
+      "hidden_sizes": [
+        256,
+        256
+      ],
+      "initial_alpha": 0.2,
+      "learning_rate": 0.0003,
+      "grad_clip_norm": 10,
+      "learning_starts": 131072,
+      "replay_capacity": 1000000,
+      "updates_per_step": 8,
+      "share_actor_parameters": true,
+      "share_critic_parameters": true,
+      "target_continuous_entropy": -4,
+      "target_discrete_entropy_ratio": 0.9
+    },
+    "replica_matd3": {
+      "tau": 0.005,
+      "gamma": 0.99,
+      "batch_size": 8192,
+      "hidden_sizes": [
+        256,
+        256
+      ],
+      "policy_delay": 2,
+      "final_epsilon": 0.05,
+      "learning_rate": 0.0003,
+      "grad_clip_norm": 10,
+      "initial_epsilon": 1,
+      "learning_starts": 131072,
+      "replay_capacity": 1000000,
+      "target_noise_std": 0.2,
+      "updates_per_step": 8,
+      "target_noise_clip": 0.5,
+      "epsilon_decay_steps": 14745600,
+      "output_normalization": true,
+      "exploration_noise_std": 0.1,
+      "share_actor_parameters": true,
+      "share_critic_parameters": true
+    },
+    "replica_pql": {
+      "mode": "async",
+      "enabled": true,
+      "policy_device": "auto",
+      "learner_device": "auto",
+      "collector_device": "auto",
+      "worker_timeout_s": 600,
+      "checkpoint_replay": true,
+      "critic_sample_ratio": 8,
+      "max_pending_collections": 2,
+      "warmup_collection_steps": 32,
+      "max_pending_policy_updates": 2
+    }
+  },
+  "metrics": {
+    "observed_at": "2026-11-03T07:25:32.770615+00:00",
+    "runs": [
+      {
+        "id": "c8d5ce6b",
+        "last_progress": {
+          "train/joint_transitions_per_s": 695.440844772797,
+          "train/episodes_completed": 16384,
+          "_runtime": 35997.323447546,
+          "global_step": 25034752,
+          "_step": 51070,
+          "train/updates": 48648
+        },
+        "cohorts": [
+          {
+            "cohort/return_mean": -332.64638506926957,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.11234923154125505,
+            "cohort/episodes": 4096,
+            "cohort/delivery_rate_percent_mean": 48.494873046875,
+            "cohort/search_rate_percent_mean": 52.056884765625,
+            "cohort/network/packet_pdr_fraction": 0.7632469389890815,
+            "_step": 12632,
+            "cohort/source_end_step": 6144000
+          },
+          {
+            "cohort/return_mean": -1664.8522563974607,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.0025661723680428807,
+            "cohort/episodes": 4096,
+            "cohort/delivery_rate_percent_mean": 26.212158203125,
+            "cohort/search_rate_percent_mean": 31.231689453125,
+            "cohort/network/packet_pdr_fraction": 0.10241693613778685,
+            "_step": 25332,
+            "cohort/source_end_step": 12288000
+          },
+          {
+            "cohort/return_mean": -2375.8299903388365,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.0022913564495298626,
+            "cohort/episodes": 4096,
+            "cohort/delivery_rate_percent_mean": 7.56591796875,
+            "cohort/search_rate_percent_mean": 16.483154296875,
+            "cohort/network/packet_pdr_fraction": 0.07306576044200809,
+            "_step": 38030,
+            "cohort/source_end_step": 18432000
+          },
+          {
+            "cohort/return_mean": -2504.632957060156,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.0011405063125893755,
+            "cohort/episodes": 4096,
+            "cohort/delivery_rate_percent_mean": 5.029296875,
+            "cohort/search_rate_percent_mean": 18.876953125,
+            "cohort/network/packet_pdr_fraction": 0.05499529367897889,
+            "_step": 50730,
+            "cohort/source_end_step": 24576000
+          }
+        ],
+        "learner_milestones": [
+          {
+            "learner/discrete_entropy": 0.02295810729265213,
+            "train/episodes_completed": null,
+            "learner/critic_grad_norm": 201.63316345214844,
+            "learner/continuous_entropy": -4.10703182220459,
+            "global_step": 6144000,
+            "learner/q_abs_max": 307.4996337890625,
+            "learner/alpha_continuous": 0.011568693444132805,
+            "_step": 12634,
+            "learner/alpha_discrete": 6.545967102050781
+          },
+          {
+            "learner/discrete_entropy": 0.009902456775307655,
+            "train/episodes_completed": null,
+            "learner/critic_grad_norm": 1676.1097412109375,
+            "learner/continuous_entropy": -3.222236156463623,
+            "global_step": 12288000,
+            "learner/q_abs_max": 1079.881591796875,
+            "learner/alpha_continuous": 0.05343983322381973,
+            "_step": 25334,
+            "learner/alpha_discrete": 36.20113754272461
+          },
+          {
+            "learner/discrete_entropy": 0.05402332544326782,
+            "train/episodes_completed": null,
+            "learner/critic_grad_norm": 90209.6171875,
+            "learner/continuous_entropy": -4.4517412185668945,
+            "global_step": 18432000,
+            "learner/q_abs_max": 5253.5908203125,
+            "learner/alpha_continuous": 0.460664838552475,
+            "_step": 38033,
+            "learner/alpha_discrete": 109.7479476928711
+          },
+          {
+            "learner/discrete_entropy": 0.04806208238005638,
+            "train/episodes_completed": null,
+            "learner/critic_grad_norm": 118380.9296875,
+            "learner/continuous_entropy": -3.189380407333374,
+            "global_step": 25034752,
+            "learner/q_abs_max": 6517.744140625,
+            "learner/alpha_continuous": 0.6397583484649658,
+            "_step": 51067,
+            "learner/alpha_discrete": 130.9590606689453
+          }
+        ]
+      },
+      {
+        "id": "2ce9fb9e",
+        "last_progress": {
+          "_step": 49509,
+          "train/updates": 44440,
+          "_runtime": 35993.142206313,
+          "train/episodes_completed": 16362,
+          "train/joint_transitions_per_s": 635.6644004222899,
+          "global_step": 22880256
+        },
+        "cohorts": [
+          {
+            "_step": 12694,
+            "cohort/return_mean": -295.4259508256303,
+            "cohort/episodes": 4096,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.05922260509940261,
+            "cohort/search_rate_percent_mean": 52.406005859375,
+            "cohort/delivery_rate_percent_mean": 49.317626953125,
+            "cohort/source_end_step": 6144000,
+            "cohort/network/packet_pdr_fraction": 0.5846009254995508
+          },
+          {
+            "_step": 25394,
+            "cohort/return_mean": -899.9927456804616,
+            "cohort/episodes": 4096,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.007309332950267595,
+            "cohort/search_rate_percent_mean": 37.4951171875,
+            "cohort/delivery_rate_percent_mean": 34.4873046875,
+            "cohort/source_end_step": 12288000,
+            "cohort/network/packet_pdr_fraction": 0.1873865263760267
+          },
+          {
+            "_step": 38092,
+            "cohort/return_mean": -1743.4702924475118,
+            "cohort/episodes": 4096,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.003667908640621936,
+            "cohort/search_rate_percent_mean": 28.272705078125,
+            "cohort/delivery_rate_percent_mean": 23.27392578125,
+            "cohort/source_end_step": 18432000,
+            "cohort/network/packet_pdr_fraction": 0.10058939702524224
+          },
+          {
+            "_step": 49506,
+            "cohort/return_mean": -2318.386838503103,
+            "cohort/episodes": 4074,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.0025672740019775666,
+            "cohort/search_rate_percent_mean": 22.73686794305351,
+            "cohort/delivery_rate_percent_mean": 16.038291605301914,
+            "cohort/source_end_step": 22880256,
+            "cohort/network/packet_pdr_fraction": 0.06296061025796905
+          }
+        ],
+        "learner_milestones": [
+          {
+            "learner/continuous_entropy": -3.717127561569214,
+            "_step": 12695,
+            "learner/q_abs_max": 238.6933135986328,
+            "train/episodes_completed": null,
+            "learner/discrete_entropy": 0.012581316754221916,
+            "learner/alpha_discrete": 5.7664313316345215,
+            "learner/critic_grad_norm": 188.91307067871094,
+            "global_step": 6144000,
+            "learner/alpha_continuous": 0.012427136301994324
+          },
+          {
+            "learner/continuous_entropy": -3.1309916973114014,
+            "_step": 25395,
+            "learner/q_abs_max": 1009.0372924804688,
+            "train/episodes_completed": null,
+            "learner/discrete_entropy": 0.05405312031507492,
+            "learner/alpha_discrete": 19.71805191040039,
+            "learner/critic_grad_norm": 5226.35986328125,
+            "global_step": 12288000,
+            "learner/alpha_continuous": 0.05489926040172577
+          },
+          {
+            "learner/continuous_entropy": -2.8962104320526123,
+            "_step": 38094,
+            "learner/q_abs_max": 1469.856689453125,
+            "train/episodes_completed": null,
+            "learner/discrete_entropy": 0.06894709169864655,
+            "learner/alpha_discrete": 19.73072052001953,
+            "learner/critic_grad_norm": 2968.871826171875,
+            "global_step": 18432000,
+            "learner/alpha_continuous": 0.0767119824886322
+          },
+          {
+            "learner/continuous_entropy": -3.9857699871063232,
+            "_step": 49504,
+            "learner/q_abs_max": 3324.28662109375,
+            "train/episodes_completed": null,
+            "learner/discrete_entropy": 0.047020938247442245,
+            "learner/alpha_discrete": 61.4546012878418,
+            "learner/critic_grad_norm": 32472.677734375,
+            "global_step": 22880256,
+            "learner/alpha_continuous": 0.2336551398038864
+          }
+        ]
+      },
+      {
+        "id": "58c56ba8",
+        "last_progress": {
+          "global_step": 21159936,
+          "train/joint_transitions_per_s": 587.828186387749,
+          "_step": 42297,
+          "train/episodes_completed": 13387,
+          "_runtime": 35995.587620191,
+          "train/updates": 41080
+        },
+        "cohorts": [
+          {
+            "cohort/search_rate_percent_mean": 52.406005859375,
+            "cohort/delivery_rate_percent_mean": 49.317626953125,
+            "cohort/network/packet_pdr_fraction": 0.5846009254995508,
+            "_step": 12694,
+            "cohort/return_mean": -295.4259508256303,
+            "cohort/source_end_step": 6144000,
+            "cohort/episodes": 4096,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.05922260509940261
+          },
+          {
+            "cohort/search_rate_percent_mean": 37.4951171875,
+            "cohort/delivery_rate_percent_mean": 34.4873046875,
+            "cohort/network/packet_pdr_fraction": 0.1873865263760267,
+            "_step": 25394,
+            "cohort/return_mean": -899.9927456804616,
+            "cohort/source_end_step": 12288000,
+            "cohort/episodes": 4096,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.007309332950267595
+          },
+          {
+            "cohort/search_rate_percent_mean": 28.272705078125,
+            "cohort/delivery_rate_percent_mean": 23.27392578125,
+            "cohort/network/packet_pdr_fraction": 0.10058939702524224,
+            "_step": 38092,
+            "cohort/return_mean": -1743.4702924475118,
+            "cohort/source_end_step": 18432000,
+            "cohort/episodes": 4096,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.003667908640621936
+          },
+          {
+            "cohort/search_rate_percent_mean": 22.30209281164695,
+            "cohort/delivery_rate_percent_mean": 15.673339399454049,
+            "cohort/network/packet_pdr_fraction": 0.06245878573519196,
+            "_step": 42294,
+            "cohort/return_mean": -2287.011614376831,
+            "cohort/source_end_step": 21159936,
+            "cohort/episodes": 1099,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.0026186206213144165
+          }
+        ],
+        "learner_milestones": [
+          {
+            "global_step": 6144000,
+            "_step": 12695,
+            "learner/alpha_continuous": 0.012427136301994324,
+            "train/episodes_completed": null,
+            "learner/discrete_entropy": 0.012581316754221916,
+            "learner/critic_grad_norm": 188.91307067871094,
+            "learner/continuous_entropy": -3.717127561569214,
+            "learner/alpha_discrete": 5.7664313316345215,
+            "learner/q_abs_max": 238.6933135986328
+          },
+          {
+            "global_step": 12288000,
+            "_step": 25395,
+            "learner/alpha_continuous": 0.05489926040172577,
+            "train/episodes_completed": null,
+            "learner/discrete_entropy": 0.05405312031507492,
+            "learner/critic_grad_norm": 5226.35986328125,
+            "learner/continuous_entropy": -3.1309916973114014,
+            "learner/alpha_discrete": 19.71805191040039,
+            "learner/q_abs_max": 1009.0372924804688
+          },
+          {
+            "global_step": 18432000,
+            "_step": 38094,
+            "learner/alpha_continuous": 0.0767119824886322,
+            "train/episodes_completed": null,
+            "learner/discrete_entropy": 0.06894709169864655,
+            "learner/critic_grad_norm": 2968.871826171875,
+            "learner/continuous_entropy": -2.8962104320526123,
+            "learner/alpha_discrete": 19.73072052001953,
+            "learner/q_abs_max": 1469.856689453125
+          },
+          {
+            "global_step": 21159936,
+            "_step": 42270,
+            "learner/alpha_continuous": 0.08299382030963898,
+            "train/episodes_completed": null,
+            "learner/discrete_entropy": 0.01597357913851738,
+            "learner/critic_grad_norm": 2010.9345703125,
+            "learner/continuous_entropy": -1.7366199493408203,
+            "learner/alpha_discrete": 28.42108154296875,
+            "learner/q_abs_max": 2016.7802734375
+          }
+        ]
+      },
+      {
+        "id": "db61bd0c",
+        "last_progress": {
+          "_step": 57695,
+          "train/episodes_completed": 20000,
+          "_runtime": 6519.673864244,
+          "global_step": 24219648,
+          "train/updates": 47056,
+          "train/joint_transitions_per_s": 3714.1264497254188
+        },
+        "cohorts": [
+          {
+            "cohort/return_mean": -1190.2552784992276,
+            "_step": 12629,
+            "cohort/source_end_step": 6144000,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.14265420560194123,
+            "cohort/network/packet_pdr_fraction": 0.8069219587434392,
+            "cohort/delivery_rate_percent_mean": 29.0478515625,
+            "cohort/episodes": 4096,
+            "cohort/search_rate_percent_mean": 43.1640625
+          },
+          {
+            "cohort/return_mean": -879.8936383981211,
+            "_step": 25329,
+            "cohort/source_end_step": 12288000,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.19109171364859723,
+            "cohort/network/packet_pdr_fraction": 0.9248399509350899,
+            "cohort/delivery_rate_percent_mean": 40.16357421875,
+            "cohort/episodes": 4096,
+            "cohort/search_rate_percent_mean": 45.001220703125
+          },
+          {
+            "cohort/return_mean": -253.69463195949953,
+            "_step": 38106,
+            "cohort/source_end_step": 18432000,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.3567321062455195,
+            "cohort/network/packet_pdr_fraction": 0.9979907379315477,
+            "cohort/delivery_rate_percent_mean": 58.23785351704134,
+            "cohort/episodes": 4137,
+            "cohort/search_rate_percent_mean": 63.946096204979455
+          },
+          {
+            "cohort/return_mean": -170.60978530695692,
+            "_step": 57694,
+            "cohort/source_end_step": 24219648,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.3597510739514674,
+            "cohort/network/packet_pdr_fraction": 0.9990250804220663,
+            "cohort/delivery_rate_percent_mean": 57.55442575935341,
+            "cohort/episodes": 7671,
+            "cohort/search_rate_percent_mean": 60.250293312475556
+          }
+        ]
+      },
+      {
+        "id": "d51b0350",
+        "last_progress": {
+          "train/joint_transitions_per_s": 3014.193454736158,
+          "_step": 58193,
+          "train/updates": 48216,
+          "_runtime": 8231.38210775,
+          "global_step": 24813568,
+          "train/episodes_completed": 20000
+        },
+        "cohorts": [
+          {
+            "cohort/network/packet_pdr_fraction": 0.823150614628901,
+            "_step": 12691,
+            "cohort/return_mean": -1226.480076268911,
+            "cohort/episodes": 4096,
+            "cohort/search_rate_percent_mean": 40.7666015625,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.15698254644342213,
+            "cohort/source_end_step": 6144000,
+            "cohort/delivery_rate_percent_mean": 31.93603515625
+          },
+          {
+            "cohort/network/packet_pdr_fraction": 0.9976225041553578,
+            "_step": 25391,
+            "cohort/return_mean": -1440.63853798113,
+            "cohort/episodes": 4096,
+            "cohort/search_rate_percent_mean": 40.09765625,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.3568925529998789,
+            "cohort/source_end_step": 12288000,
+            "cohort/delivery_rate_percent_mean": 37.293701171875
+          },
+          {
+            "cohort/network/packet_pdr_fraction": 0.708524096948405,
+            "_step": 38086,
+            "cohort/return_mean": -288.79922457950937,
+            "cohort/episodes": 4096,
+            "cohort/search_rate_percent_mean": 58.634033203125,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.11439193390403761,
+            "cohort/source_end_step": 18432000,
+            "cohort/delivery_rate_percent_mean": 55.458984375
+          },
+          {
+            "cohort/network/packet_pdr_fraction": 0.9989858397880406,
+            "_step": 57279,
+            "cohort/return_mean": -58.18615394774112,
+            "cohort/episodes": 7344,
+            "cohort/search_rate_percent_mean": 65.0272331154684,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.35971515687616673,
+            "cohort/source_end_step": 24576000,
+            "cohort/delivery_rate_percent_mean": 62.23856209150327
+          },
+          {
+            "cohort/network/packet_pdr_fraction": 0.9990646009938614,
+            "_step": 58190,
+            "cohort/return_mean": -41.928710157539335,
+            "cohort/episodes": 368,
+            "cohort/search_rate_percent_mean": 67.48641304347827,
+            "cohort/network/diagnostics/data_tx_power_w/mean": 0.3594745192268988,
+            "cohort/source_end_step": 24813568,
+            "cohort/delivery_rate_percent_mean": 65.08152173913044
+          }
+        ]
+      }
+    ],
+    "replica_history": {
+      "common_learner_rows": 18514,
+      "nonidentical_rows": 631,
+      "first_diffs": [
+        966,
+        969,
+        972
+      ],
+      "same_global_step_groups": 5135,
+      "different_global_step_groups": 0,
+      "raw_wandb_row_index_comparison_note": "The 631 differences counted before canonical alignment are W&B row-position shifts, not learner differences. Canonical global_step groups all match."
+    }
+  },
+  "alpha_intervention": {
+    "checkpoint": {
+      "updates": 44440,
+      "actor_updates": 44440,
+      "alpha_d": [
+        25.462322235107422,
+        45.520179748535156,
+        41.180118560791016,
+        77.31400299072266,
+        30.837793350219727,
+        148.4131622314453
+      ],
+      "obs_version": 5
+    },
+    "entropy": {
+      "rows": 262,
+      "eligible_counts": [
+        1,
+        13,
+        1,
+        25,
+        2,
+        229
+      ],
+      "global_ratio": 0.7824504971504211,
+      "per_agent": [
+        {
+          "agent": 0,
+          "count": 1,
+          "entropy": 0.644524097442627,
+          "max_entropy": 0.6931471824645996,
+          "ratio": 0.9298517165588336
+        },
+        {
+          "agent": 1,
+          "count": 13,
+          "entropy": 0.6088603138923645,
+          "max_entropy": 0.7464662790298462,
+          "ratio": 0.8156568233513202
+        },
+        {
+          "agent": 2,
+          "count": 1,
+          "entropy": 0.6230759620666504,
+          "max_entropy": 0.6931471824645996,
+          "ratio": 0.8989085981006236
+        },
+        {
+          "agent": 3,
+          "count": 25,
+          "entropy": 0.9218488931655884,
+          "max_entropy": 1.082393765449524,
+          "ratio": 0.8516760929260707
+        },
+        {
+          "agent": 4,
+          "count": 2,
+          "entropy": 0.02639809623360634,
+          "max_entropy": 0.8958797454833984,
+          "ratio": 0.02946611569989504
+        },
+        {
+          "agent": 5,
+          "count": 229,
+          "entropy": 1.130703091621399,
+          "max_entropy": 1.4508233070373535,
+          "ratio": 0.7793527207185178
+        }
+      ]
+    },
+    "before": {
+      "constant": {
+        "ratio": 0.9,
+        "alpha_mean": 61.454593658447266,
+        "alpha": [
+          25.462322235107422,
+          45.520179748535156,
+          41.180118560791016,
+          77.31400299072266,
+          30.837793350219727,
+          148.4131622314453
+        ]
+      },
+      "anneal": {
+        "ratio": 0.5,
+        "alpha_mean": 61.454593658447266,
+        "alpha": [
+          25.462322235107422,
+          45.520179748535156,
+          41.180118560791016,
+          77.31400299072266,
+          30.837793350219727,
+          148.4131622314453
+        ]
+      }
+    },
+    "after": {
+      "constant": {
+        "ratio": 0.9,
+        "alpha_mean": 61.50674057006836,
+        "alpha": [
+          25.385456085205078,
+          45.65656661987305,
+          41.10538101196289,
+          77.5494613647461,
+          30.930395126342773,
+          148.4131622314453
+        ]
+      },
+      "anneal": {
+        "ratio": 0.5,
+        "alpha_mean": 61.30417251586914,
+        "alpha": [
+          25.385910034179688,
+          45.38373947143555,
+          41.0565185546875,
+          77.08345794677734,
+          30.930356979370117,
+          147.9850616455078
+        ]
+      },
+      "constant_metric_ratio": 0.8999999761581421,
+      "anneal_metric_ratio": 0.5
+    },
+    "offline_actor_updates": 10,
+    "states_source": "single deterministic evaluation rollout; biased toward states with at least one available nonsilent destination; same states and random seeds in both arms",
+    "limitation": "proves target-to-alpha direction locally; not proof of improved rollout delivery or sole cause of collapse"
+  },
+  "target_sensitivity": {
+    "scope": "262 policy-visited states with at least one communication choice; fixed target critic, fixed sampled actions, alpha_discrete only intervention",
+    "states": 262,
+    "expected_q_mean": 856.423095703125,
+    "continuous_bonus_mean": -8.564519882202148,
+    "discrete_bonus_current_mean": 155.01742553710938,
+    "discrete_bonus_initial_point2_mean": 0.22229987382888794,
+    "gamma": 0.99,
+    "soft_value_current_mean": 1002.8759765625,
+    "soft_value_cf_mean": 848.0808715820312,
+    "quantity": "Fixed-state soft-value sensitivity. For a nonterminal bootstrap, the discounted difference is gamma*delta soft value; complete replay transitions/rewards/terminal masks were not used.",
+    "discounted_soft_value_difference_mean": 153.24717712402344,
+    "discounted_soft_value_difference_max": 227.3373260498047
+  },
+  "exhaustive_oracle": {
+    "source": "05beef6cd0d97d39d51b220f9f7789e915b5bc10",
+    "tests": "two-agent exhaustive nonlinear/cross-agent categorical Q expectation; silent-power marginal; actor mean-gradient equals team objective gradient/N; vectorized/scalar values and gradients",
+    "continuous_dim": 4,
+    "joint_categorical_configurations": 9,
+    "brute_expectation": 4.75814962387085,
+    "implementation_expected_estimator": 4.75814962387085,
+    "max_action_gradient_error_scaled_back_to_team": 2.384185791015625e-7,
+    "max_logits_gradient_error_scaled_back_to_team": 2.384185791015625e-7,
+    "vectorized_value_error": 0,
+    "vectorized_gradient_error": 0,
+    "passed": true
+  },
+  "replica_checkpoint": {
+    "ids": [
+      "2ce9fb9e",
+      "58c56ba8"
+    ],
+    "global_step": 17346560,
+    "episodes": 12288,
+    "updates": [
+      33632,
+      33632
+    ],
+    "counter_comparison": {
+      "episodes": {
+        "values": [
+          12288,
+          12288
+        ],
+        "equal": true
+      },
+      "global_step": {
+        "values": [
+          17346560,
+          17346560
+        ],
+        "equal": true
+      },
+      "collection_steps": {
+        "values": [
+          4235,
+          4235
+        ],
+        "equal": true
+      },
+      "next_seed": {
+        "values": [
+          16427,
+          16427
+        ],
+        "equal": true
+      }
+    },
+    "model": {
+      "log_alpha_continuous": {
+        "tensors": 1,
+        "equal": 1,
+        "elements": 6
+      },
+      "log_alpha_discrete": {
+        "tensors": 1,
+        "equal": 1,
+        "elements": 6
+      },
+      "actors": {
+        "tensors": 10,
+        "equal": 10,
+        "elements": 122127
+      },
+      "critics": {
+        "tensors": 12,
+        "equal": 12,
+        "elements": 455682
+      },
+      "target_critics": {
+        "tensors": 12,
+        "equal": 12,
+        "elements": 455682
+      }
+    },
+    "records": {
+      "type": "list",
+      "lengths": [
+        12288,
+        12288
+      ],
+      "equal": false,
+      "first_keys": [
+        "episode",
+        "worker",
+        "seed",
+        "global_step",
+        "return",
+        "episode_length",
+        "terminated",
+        "truncated",
+        "sensing",
+        "coverage_percent",
+        "altitudes_m",
+        "generation_fallback",
+        "generation_attempts",
+        "report_diagnostics",
+        "step",
+        "targets_found",
+        "targets_delivered",
+        "search_rate_percent",
+        "delivery_rate_percent",
+        "success"
+      ],
+      "different_records": 143,
+      "different_fields": {
+        "reward_components": {
+          "components": {
+            "information_gain": 143
+          },
+          "max_abs_difference": {
+            "information_gain": 2.842170943040401e-14
+          }
+        }
+      }
+    },
+    "model_total_tensors": 36,
+    "model_total_equal": 36,
+    "alpha_continuous": [
+      0.05235893651843071,
+      0.07432738691568375,
+      0.12573930621147156,
+      0.07419443875551224,
+      0.03950316458940506,
+      0.10278128832578659
+    ],
+    "alpha_discrete": [
+      11.542181015014648,
+      11.96479320526123,
+      8.269401550292969,
+      10.48160457611084,
+      7.755947589874268,
+      46.822383880615234
+    ],
+    "missing_state": [
+      "actor_optimizers",
+      "critic_optimizer",
+      "alpha_optimizer",
+      "rng",
+      "replay",
+      "environment"
+    ],
+    "matched_full_resume_steps": [],
+    "stop_events": {
+      "2ce9fb9e": [
+        {
+          "line": 7802,
+          "timestamp_utc": "2026-11-02T13:55:46.923898+00:00",
+          "event": "training_segment_complete",
+          "context": {
+            "global_step": 22880256,
+            "episodes_completed": null,
+            "train/episodes_completed": 16362,
+            "stop_reason": "time_budget",
+            "run/elapsed_seconds": 35994.238446587995,
+            "phase": "learning",
+            "train/updates": 44440
+          }
+        }
+      ],
+      "58c56ba8": [
+        {
+          "line": 6925,
+          "timestamp_utc": "2026-11-02T13:58:52.419104+00:00",
+          "event": "training_segment_complete",
+          "context": {
+            "global_step": 21159936,
+            "episodes_completed": null,
+            "train/episodes_completed": 13387,
+            "stop_reason": "time_budget",
+            "run/elapsed_seconds": 35996.80398266,
+            "phase": "learning",
+            "train/updates": 41080
+          }
+        }
+      ]
+    },
+    "provenance": {
+      "2ce9fb9e": {
+        "schema": 1,
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "3caa06a60813db4a34d23787d3d21344d51cdade",
+        "files": {
+          "checkpoint.pt": {
+            "path": "uav-network/2ce9fb9e/step-17346560-episodes-12288/checkpoint.pt",
+            "size": 106441435,
+            "sha256": "000a1af4109d1e4d7d6d9995867c7b66ea2c6e0982473113f2fc168c23d0a92f"
+          }
+        }
+      },
+      "58c56ba8": {
+        "schema": 1,
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "8f25592f61f2a05381087c73838381121ea1a7b3",
+        "files": {
+          "checkpoint.pt": {
+            "path": "uav-network/58c56ba8/step-17346560-episodes-12288/checkpoint.pt",
+            "size": 106441435,
+            "sha256": "f66d07d55864b279ba76500ce9dbb456216a57bc3c8b124b2d552835c5200df1"
+          }
+        }
+      }
+    }
+  },
+  "replica_matched_timing": {
+    "2ce9fb9e": [
+      {
+        "line": 5846,
+        "event": "progress",
+        "timestamp_utc": "2026-11-02T11:14:15.824924+00:00",
+        "global_step": 17346560,
+        "train/episodes_completed": 12288,
+        "train/updates": 33632,
+        "pql/critic_updates": 33632,
+        "pql/actor_updates": 33632,
+        "run/elapsed_seconds": 26905.427059617,
+        "pql/transitions_per_s": 644.5276399743179,
+        "pql/critic_seconds": 20958.45851955035,
+        "pql/policy_seconds": 14090.859977040778,
+        "pql/collector_seconds": 3393.8451267989385,
+        "pql/queued_collections": 0,
+        "pql/scheduling_deterministic": 1,
+        "recovery/elapsed_seconds": 554.9622634209991
+      }
+    ],
+    "58c56ba8": [
+      {
+        "line": 5846,
+        "event": "progress",
+        "timestamp_utc": "2026-11-02T11:52:10.772889+00:00",
+        "global_step": 17346560,
+        "train/episodes_completed": 12288,
+        "train/updates": 33632,
+        "pql/critic_updates": 33632,
+        "pql/actor_updates": 33632,
+        "run/elapsed_seconds": 29167.587824739,
+        "pql/transitions_per_s": 594.5481867450554,
+        "pql/critic_seconds": 22512.360174445068,
+        "pql/policy_seconds": 15348.031444677279,
+        "pql/collector_seconds": 3422.3995877519164,
+        "pql/queued_collections": 0,
+        "pql/scheduling_deterministic": 1,
+        "recovery/elapsed_seconds": 725.1965300909978
+      }
+    ]
+  },
+  "replica_final_timing": {
+    "58c56ba8": {
+      "global_step": 21159936,
+      "episodes_completed": 13387,
+      "train/updates": 41080,
+      "pql/transitions_per_s": 587.6902425927663,
+      "pql/critic_seconds": 27479.167872770027,
+      "pql/policy_seconds": 18746.866852503415,
+      "pql/collector_seconds": 4343.068811679962,
+      "run/elapsed_seconds": 35996.80398266,
+      "run_elapsed_seconds": 36769.248423321,
+      "stop_reason": "time_budget",
+      "session_status": "session_time_budget_reached",
+      "inclusive_learner_seconds_per_update": 0.6689184000187446,
+      "policy_seconds_per_update": 0.4563502154942409,
+      "learner_excluding_nested_policy_seconds_per_update": 0.21256818452450368
+    },
+    "2ce9fb9e": {
+      "global_step": 22880256,
+      "episodes_completed": 16362,
+      "train/updates": 44440,
+      "pql/transitions_per_s": 635.5200739833394,
+      "pql/critic_seconds": 27658.321556770978,
+      "pql/policy_seconds": 18609.55227474812,
+      "pql/collector_seconds": 4709.258160533978,
+      "run/elapsed_seconds": 35994.238446587995,
+      "run_elapsed_seconds": 36596.539491022995,
+      "stop_reason": "time_budget",
+      "session_status": "session_time_budget_reached",
+      "inclusive_learner_seconds_per_update": 0.6223744724745944,
+      "policy_seconds_per_update": 0.41875680186201886,
+      "learner_excluding_nested_policy_seconds_per_update": 0.20361767061257557
+    }
+  },
+  "focused_tests_log": "......................                                  [100%]\n22 passed, 17 subtests passed in 11.01s\n",
+  "scope": "Read-only online audit, no production algorithm changes, no new training jobs or W&B runs. Offline 10-actor-update probes only.",
+  "verification": {
+    "pinned_source": "05beef6cd0d97d39d51b220f9f7789e915b5bc10",
+    "checkpoint_loader_and_entropy_intervention_source": "6f7d2d7f7190c1a4d0604dcf67ed7b916311a8a3",
+    "focused_tests_passed": 22,
+    "focused_subtests_passed": 17,
+    "full_suite_rerun": false,
+    "new_gpu_benchmark": false,
+    "new_cloud_training_jobs": false,
+    "new_wandb_runs": false,
+    "notes": [
+      "Policy checkpoint model equality does not establish full resumable training-state equality.",
+      "W&B row indices are not canonical: align by global_step.",
+      "Fixed-state entropy sensitivity is not a rollout causal effect.",
+      "All scenario namespaces and replica learning namespaces compared before equation audit."
+    ]
+  }
+}

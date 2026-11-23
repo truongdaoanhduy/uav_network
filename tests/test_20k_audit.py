@@ -18,11 +18,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class Production20kAuditTests(unittest.TestCase):
-    def test_matd3_keeps_destination_exploration_after_vector_warmup(self):
+    def test_matd3_keeps_source_categorical_sampling_during_training(self):
         torch.set_num_threads(1)
         torch.manual_seed(44)
         config = load_config(ROOT / 'configs/comparison-20k.yaml')
-        # Zero logits give a known greedy action; only epsilon can change it.
+        # Zero logits make deterministic evaluation choose destination 0. During
+        # training, Ackermann-style Gumbel categorical sampling remains stochastic
+        # rather than following the removed epsilon-greedy schedule.
         config.matd3.hidden_sizes = [16, 16]
         learner = MATD3(config, observation_dim(config), state_dim(config))
         with torch.no_grad():
@@ -31,15 +33,12 @@ class Production20kAuditTests(unittest.TestCase):
         obs = np.zeros((4096, config.world.num_uavs, observation_dim(config)), dtype=np.float32)
         obs[:, :, 9] = 1
         obs[:, :, -(config.world.num_uavs + 1):] = 1
-        for pql in (False, True):
-            with self.subTest(pql=pql):
-                warmup = (config.pql.warmup_collection_steps * config.runtime.num_envs
-                          if pql else config.matd3.learning_starts)
-                early = learner.act_batch(obs, step=warmup).destination
-                self.assertGreater(float((early != 0).mean()), .7,
-                                   'Destination exploration collapsed before the learned actor was used')
-        late = learner.act_batch(obs, step=config.matd3.epsilon_decay_steps).destination
-        self.assertLess(float((late != 0).mean()), .1)
+        for step in (config.matd3.learning_starts,
+                     config.pql.warmup_collection_steps * config.runtime.num_envs,
+                     config.matd3.epsilon_decay_steps):
+            with self.subTest(step=step):
+                sampled = learner.act_batch(obs, step=step).destination
+                self.assertGreater(float((sampled != 0).mean()), .7)
         deterministic = learner.act_batch(obs, deterministic=True, step=0).destination
         self.assertTrue(np.all(deterministic == 0))
 

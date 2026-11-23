@@ -1,5 +1,6 @@
 """Bounded full-state backups; only owned staging files are ever released."""
 from contextlib import suppress
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import time
@@ -16,7 +17,8 @@ def _report(tracker, values, step):
 class PeriodicRecovery:
     def __init__(self, config, output, *, started):
         settings = config.tracking
-        self.enabled = (settings.enabled and settings.log_checkpoint
+        self.enabled = (os.environ.get("UAV_TRAINING_ONLY") != "true"
+                        and settings.enabled and settings.log_checkpoint
                         and settings.checkpoint_store == "huggingface"
                         and settings.resumable_checkpoint_interval_seconds > 0)
         self.output = Path(output)
@@ -25,7 +27,8 @@ class PeriodicRecovery:
         # every backup slot in its first few minutes.
         self.interval = max(settings.resumable_checkpoint_interval_seconds,
                             config.runtime.max_train_seconds / self.maximum)
-        self.next_due = started + self.interval
+        # Protect the early segment before spreading the remaining bounded slots.
+        self.next_due = started + min(self.interval, 1800.)
         self.attempts = 0
 
     def maybe_save(self, save, tracker, *, step=0):

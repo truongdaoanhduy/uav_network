@@ -15,17 +15,17 @@ if HAS_WARP:
     from uav_network.environment.gpu.state import WorldState, WorldParams
     from uav_network.communication.gpu.phy import emit, busy, evaluate
 
-    @wp.kernel
+    @wp.kernel(enable_backward=False)
     def emit_probe(s: WorldState, p: WorldParams, packet: int, source: int, dest: int,
                    now: wp.float64, result: wp.array(dtype=wp.int32)):
         result[0] = emit(s,p,0,packet,source,dest,0,now)
 
-    @wp.kernel
+    @wp.kernel(enable_backward=False)
     def busy_probe(s: WorldState, p: WorldParams, node: int, now: wp.float64,
                    result: wp.array(dtype=wp.int32)):
         result[0] = int(busy(s,p,0,node,now))
 
-    @wp.kernel
+    @wp.kernel(enable_backward=False)
     def evaluate_probe(s: WorldState, p: WorldParams, frame: int, now: wp.float64,
                        result: wp.array(dtype=wp.int32)):
         result[0] = int(evaluate(s,p,0,frame,now))

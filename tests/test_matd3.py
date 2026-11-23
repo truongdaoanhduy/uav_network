@@ -62,6 +62,23 @@ class MATD3Tests(unittest.TestCase):
         self.assertFalse(torch.equal(dest, actor.destination.weight))
         self.assertTrue(all(np.isfinite(v) for v in second.values()))
 
+    def test_output_normalization_prevents_tanh_squashing_collapse(self):
+        c = self.config
+        c.matd3.output_normalization = True
+        learner = MATD3(c, observation_dim(c), state_dim(c))
+        actor = learner.actors[0]
+        with torch.no_grad():
+            actor.continuous.weight.zero_()
+            actor.continuous.bias.copy_(torch.tensor([20., -20., 20.]))
+        obs = torch.as_tensor(self.obs[:1], dtype=torch.float32)
+        mask = torch.ones((1, c.world.num_uavs + 1), dtype=torch.bool)
+        action, _ = actor(obs, mask)
+        # Apply Wang et al. normalization to flight controls only. The final
+        # continuous component is RF power and must keep the existing network semantics.
+        motion = action[..., :c.motion_dim]
+        self.assertLessEqual(float(motion.abs().max()), float(torch.tanh(torch.tensor(1.0))) + 1e-6)
+        self.assertEqual(float(action[0, -1]), float(torch.tanh(torch.tensor(20.0))))
+
     def test_target_noise_clips_continuous_actions_and_respects_dead_mask(self):
         obs = torch.tensor(self.batch()["observation"], dtype=torch.float32)
         obs[:, 0, 9] = 0

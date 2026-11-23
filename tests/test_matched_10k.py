@@ -18,7 +18,7 @@ class Matched10kTests(unittest.TestCase):
         base = load_config("configs/comparison-10k.yaml", ["pql.enabled=false"])
         longer = load_config("configs/comparison-20k.yaml", ["pql.enabled=false"])
         self.assertEqual(longer.runtime.episodes, 20000)
-        self.assertEqual(longer.world.max_steps, 1200)
+        self.assertEqual(longer.world.max_steps, 1500)
         self.assertEqual((base.world.num_targets, base.world.num_obstacles), (25, 15))
         self.assertEqual((longer.world.num_targets, longer.world.num_obstacles), (35, 25))
         self.assertFalse(base.network.propagation_delay_enabled)
@@ -189,7 +189,7 @@ class Matched10kTests(unittest.TestCase):
                  patch.object(cli, "resolve_username", return_value="owner"), \
                  patch.object(cli, "verify_credential_dataset"), \
                  patch.object(cli, "ensure_pipeline_dataset", return_value="owner/private-launch"), \
-                 patch.object(cli, "run_kaggle", return_value="Kernel version 1 successfully pushed. https://www.kaggle.com/code/owner/root-run") as push, \
+                 patch.object(cli, "submit_kernel", return_value="https://www.kaggle.com/code/owner/root-run") as push, \
                  patch.object(cli.subprocess, "check_output", side_effect=["", "a" * 40]):
                 try:
                     result = cli.main(["--key-file", str(key), "launch", "--stage", "validate",
@@ -203,7 +203,7 @@ class Matched10kTests(unittest.TestCase):
     def test_auto_continue_cli_caps_initial_session_to_verified_quota(self):
         result, args = self._launch_auto_continue(hours=1)
         self.assertEqual(result["timeout_seconds"], 2700)
-        self.assertEqual(args[args.index("--timeout") + 1], "2700")
+        self.assertEqual(args["timeout_seconds"], 2700)
 
     def test_auto_continue_cli_rejects_quota_without_safe_upload_window(self):
         with self.assertRaisesRegex(RuntimeError, "quota|safe"):

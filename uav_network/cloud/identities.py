@@ -19,16 +19,52 @@ def replay_layout(config):
     return "FULLGPU" if runtime.replay_device == "cuda" else "AUTO"
 
 
-def run_name(config, algorithm, mode, stage, suffix):
+def sharing_marker(config, algorithm):
     settings = getattr(config, algorithm)
-    stage = {"benchmark": "BENCH", "train": "TRAIN", "validate": "VALIDATE"}.get(stage, stage.upper())
-    return (f"{stage}-{algorithm.upper()}-{mode.upper()}-{replay_layout(config)}"
-            f"-E{config.runtime.num_envs}-B{settings.batch_size}"
-            f"-R{compact_count(settings.replay_capacity)}-G{config.world.generation_version}"
-            f"-S{config.runtime.seed}-{suffix}")
+    if settings.share_actor_parameters and settings.share_critic_parameters:
+        return "SHARED-ACTOR-CRITIC"
+    if settings.share_actor_parameters:
+        return "SHARED-ACTOR"
+    if settings.share_critic_parameters:
+        return "SHARED-CRITIC"
+    return None
+
+
+def _compact_sharing(config, algorithm):
+    """A concise actor/critic layout label for the W&B run list."""
+    settings = getattr(config, algorithm)
+    actor = settings.share_actor_parameters
+    critic = settings.share_critic_parameters
+    return "SH" if actor and critic else "IND" if not actor and not critic else "AS" if actor else "CS"
+
+
+def run_name(config, algorithm, mode, stage, suffix):
+    """Small unique W&B label; all detailed experiment settings remain in config/tags.
+
+    e.g. MASAC-BASE-SH-S44-a1b2c3d4 or BENCH-MATD3-PQL-IND-S44-a1b2c3d4.
+    """
+    stages = {"train": "", "benchmark": "BENCH-", "validate": "VAL-"}
+    prefix = stages.get(stage.lower(), stage.upper() + "-")
+    sharing = _compact_sharing(config, algorithm)
+    vectorized = "-VEC" if config.runtime.vectorize_critics else ""
+    # UUID/run id supplies unique per-launch traceability without a timestamp.
+    # Historical callers may pass a timestamp-token: only its final token matters.
+    run_id = str(suffix).rsplit("-", 1)[-1][-8:]
+    return (f"{prefix}{algorithm.upper()}-{mode.upper()}-{sharing}{vectorized}"
+            f"-S{config.runtime.seed}-{run_id}")
 
 
 def kernel_slug(owner, config, algorithm, mode, stage, stamp, token, external_supervisor=False):
+    # Ordinary API launches use the same anonymous notebook-style names as Kaggle UI.
+    # Keep the reserved gh- prefix for the existing GitHub continuation reconciler:
+    # it deliberately must not adopt unrelated user notebooks.
+    if not external_supervisor:
+        if not re.fullmatch(r"[0-9a-f]{10}", token):
+            raise ValueError("UI-style Kaggle notebook ID must contain ten lowercase hex digits")
+        slug = "notebook" + token
+        if len(owner) + 1 + len(slug) > 50:
+            raise ValueError("Kaggle notebook reference exceeds 50 characters")
+        return slug
     layout = replay_layout(config)
     layout = "h" + layout.split("-")[1][1:] if layout.startswith("HYBRID") else layout.lower()
     marker = "gh-" if external_supervisor else ""
@@ -36,11 +72,13 @@ def kernel_slug(owner, config, algorithm, mode, stage, stamp, token, external_su
     return prefix[:50 - len(owner) - 1 - len(token) - 1].rstrip("-") + "-" + token
 
 
-def authoritative_tags(config):
+def authoritative_tags(config, algorithm=None):
     tags = [tag for tag in config.tracking.tags
             if not re.fullmatch(
                 r"cpu\d+[-_]gpu\d+|replay-(?:fullgpu|cpu|auto|hybrid-c\d+-g\d+)|"
-                r"amp-(?:fp16|off)|torch-compile|compile-off|fused-adam|fused-off",
+                r"amp-(?:fp16|off)|torch-compile|compile-off|fused-adam|fused-off|"
+                r"(?:masac-|matd3-)?actor-(?:shared|independent)|"
+                r"(?:masac-|matd3-)?critic-(?:shared|independent)",
                 tag, re.I)]
     runtime = config.runtime
     acceleration = [
@@ -48,7 +86,18 @@ def authoritative_tags(config):
         "torch-compile" if runtime.compile_models else "compile-off",
         "fused-adam" if runtime.fused_optimizers else "fused-off",
     ]
-    return list(dict.fromkeys([*tags, *acceleration,
+    selected = algorithm or runtime.algorithm
+    if selected == "both":
+        sharing = []
+        for name in ("masac", "matd3"):
+            settings = getattr(config, name)
+            sharing.extend([f"{name}-actor-" + ("shared" if settings.share_actor_parameters else "independent"),
+                            f"{name}-critic-" + ("shared" if settings.share_critic_parameters else "independent")])
+    else:
+        settings = getattr(config, selected)
+        sharing = ["actor-shared" if settings.share_actor_parameters else "actor-independent",
+                   "critic-shared" if settings.share_critic_parameters else "critic-independent"]
+    return list(dict.fromkeys([*tags, *acceleration, *sharing,
                                "replay-" + replay_layout(config).lower(),
                                f"generation{config.world.generation_version}"]))
 
@@ -58,4 +107,11 @@ def related_run_name(root_name, stage, suffix):
         if root_name.startswith(prefix):
             root_name = root_name[len(prefix):]
             break
+    # Do not duplicate the parent's W&B ID inside the CPU/controller run title.
+    match = re.fullmatch(
+        r"((?:MASAC|MATD3)-(?:BASE|PQL)-(?:SH|IND|AS|CS)(?:-VEC)?-S\d+)-[0-9a-f]{8}",
+        root_name, re.I)
+    if match:
+        label = "CPU" if stage.upper() == "EVALCPU" else stage.upper()
+        return f"{label}-{match.group(1)}-{suffix}"
     return f"{stage}-{root_name}-{suffix}"

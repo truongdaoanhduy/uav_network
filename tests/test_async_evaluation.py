@@ -128,6 +128,8 @@ def test_real_evaluation_child_leaves_rng_immutable_logs_checkpoint_axis_at_arri
     assert arriving[0][0] == 99
     assert arriving[0][1]["evaluation/checkpoint_global_step"] == 4
     assert arriving[0][1]["eval/mean_return"] == report["mean_return"]
+    assert arriving[0][1]["evaluation/core/discovery_rate_percent"] == report["core_metrics"]["discovery_rate_percent"]
+    assert arriving[0][1]["evaluation/core/gcs_delivery_time_capped_mean_s"] == report["core_metrics"]["gcs_delivery_time_capped_mean_s"]
     assert "network/generated_packets" in report["pooled"]
 
 

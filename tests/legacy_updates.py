@@ -77,6 +77,7 @@ def legacy_masac_update(self, batch, collect_metrics=True):
                            "critic_gradient_clipped": (critic_grad > a.grad_clip_norm).float(),
                            "critic_loss": critic_loss, "actor_loss": torch.stack(actor_losses).mean(),
                            "continuous_entropy": hc.mean(), "discrete_entropy": hd.mean(),
+                           "target_discrete_entropy_ratio": a.target_discrete_entropy_ratio,
                            "alpha_continuous": self.log_alpha_continuous.exp().mean(),
                            "alpha_discrete": self.log_alpha_discrete.exp().mean()})
 

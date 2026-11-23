@@ -1,0 +1,69 @@
+{
+  "status": "paper-core baseline source-aligned and contract-verified; training NOT RUN",
+  "profile": "configs/comparison-paper-core-35t25o-xyz-sensing.yaml",
+  "algorithmic_reference_is_not_exact_author_environment_or_network": true,
+  "algorithmic_core": {
+    "masac": "stochastic tanh Gaussian + categorical exact finite support expectation; independent actors/Q_i, twin min, separated continuous/discrete temperatures",
+    "matd3": "deterministic continuous actor + soft Gumbel categorical adapter; independent actors/twin Q_i, clipped min, smoothing, delayed updates, replay peer actions"
+  },
+  "necessary_uav_adaptations": [
+    "CTDE critic uses global 3D UAV/world state rather than the authors' exact MPE joint-observation features",
+    "Actor uses local belief/sensing/mask; no privileged hidden targets",
+    "Hybrid continuous XYZ/RF power + masked destination; replay has hard one-hot destinations",
+    "RF power gated silent; 3D dynamics, CBF, network, sensor and rewards untouched",
+    "MASAC mask-aware discrete entropy target adapts attainable entropy to valid destination support"
+  ],
+  "controlled_hyperparameters_not_claimed_original_paper_defaults": [
+    "H512x512",
+    "B8192",
+    "U8 per 4096-vector collection",
+    "replay1M",
+    "20k target completed episodes",
+    "LR3e-4",
+    "tau0.005"
+  ],
+  "provenance": {
+    "source_urls": {
+      "td3": "https://spinningup.openai.com/en/latest/algorithms/td3.html",
+      "sac": "https://spinningup.openai.com/en/latest/algorithms/sac.html",
+      "matd3_paper": "https://arxiv.org/abs/1910.01465",
+      "matd3_author": "https://github.com/JohannesAck/MATD3implementation",
+      "hybrid_sac": "https://arxiv.org/abs/1912.11077",
+      "hybrid_masac": "https://proceedings.mlr.press/v270/fu25c.html"
+    },
+    "scientific_scenario_identical_to_existing_35t25o_profile": true,
+    "historical_exact_reference_runs": [],
+    "historical_cohort_code_sha": "a6e07a8f4b199028298b6ffd9a47f2cecd654fc9"
+  },
+  "numerical_oracles": {
+    "td3_clipped_twin_q_and_terminal": true,
+    "sac_soft_bellman_and_terminal": true
+  },
+  "shapes": {
+    "observation": 228,
+    "centralized_state": 830,
+    "num_uavs": 6,
+    "categorical_destinations": 7,
+    "continuous_controls": 4
+  },
+  "models": {
+    "matd3": {
+      "actor_count": 6,
+      "centralized_twin_critic_count": 6,
+      "actor_optimizer_count": 6,
+      "actor_parameters_per_agent": 385547,
+      "critic_parameters_per_agent": 1444866,
+      "input_scope": "local observation for actor, centralized state+joint actions for critic"
+    },
+    "masac": {
+      "actor_count": 6,
+      "centralized_twin_critic_count": 6,
+      "actor_optimizer_count": 6,
+      "actor_parameters_per_agent": 387599,
+      "critic_parameters_per_agent": 1444866,
+      "input_scope": "local observation for actor, centralized state+joint actions for critic"
+    }
+  },
+  "not_run": "The 2026-11-07 ten-run W&B cohort does not contain the exact Independent+NoLN+U8 H512 pair; no training is silently started.",
+  "contract_sha256": "57f4775afeb423e68ef309b632326a4ab6806c90e82084dff905df50bd7c34a7"
+}

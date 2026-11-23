@@ -1,0 +1,190 @@
+{
+  "initial_full_suite": {
+    "exit_code": 1,
+    "passed": 1123,
+    "failed": 5,
+    "skipped": 97,
+    "passed_subtests": 1549,
+    "duration_s": 613.6,
+    "junit_suite": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "5",
+      "skipped": "97",
+      "tests": "2774",
+      "time": "613.570",
+      "timestamp": "2026-10-30T14:13:00.130007+07:00",
+      "hostname": "aduy-HP-Pavilion-Laptop-15-eg0xxx"
+    }
+  },
+  "base": "c18c65c89630607792c8e6da0b6068b1dbcf6588",
+  "pre_final_fix_head": "5ab785e939a3b7843a5fa009755fd352b49274b1",
+  "runtime_base": "3382feee81047c82d000e5c598ef685aec435297",
+  "post_review_full_suite": {
+    "exit_code": 1,
+    "failed": 4,
+    "passed": 1140,
+    "skipped": 97,
+    "passed_subtests": 1554,
+    "duration_s": 624.61,
+    "cause": "Restore height guard checked the unused zero padding slot in zero-obstacle worlds; all four failures occurred at restore, before model equality assertions."
+  },
+  "final_full_suite": {
+    "exit_code": 0,
+    "summary": "1146 passed, 98 skipped, 8 warnings, 1555 subtests passed in 648.58s (0:10:48)",
+    "passed": 1146,
+    "skipped": 98,
+    "warnings": 8,
+    "passed_subtests": 1555,
+    "duration_s": 648.58,
+    "junit_suite": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "98",
+      "tests": "2799",
+      "time": "648.531",
+      "timestamp": "2026-10-30T23:33:01.184505+07:00",
+      "hostname": "aduy-HP-Pavilion-Laptop-15-eg0xxx"
+    }
+  },
+  "reset_refactor_targeted_checks": {
+    "passed": 93,
+    "skipped": 1,
+    "passed_subtests": 12,
+    "duration_s": 30.79
+  },
+  "cuda_preflight_status": "pending; previous external launch blocked by automatic approval review; no new submission attempted",
+  "verified_at": "2026-10-30T23:44:57.433102+07:00",
+  "runtime_commit": "7dd41d01c7b0c0df8af0ff35d0e2a7314f0a71af",
+  "branch": "feat/cpu-replay-20261022",
+  "approved_design": "docs/superpowers/specs/2026-10-30-xyz-bayesian-sensing-design.md",
+  "targeted_final_fix_checks": [
+    {
+      "passed": 32,
+      "passed_subtests": 3,
+      "duration_s": 7.12
+    },
+    {
+      "passed": 40,
+      "duration_s": 23.24
+    }
+  ],
+  "environment": {
+    "observed_utc": "2026-10-30T16:46:56.179294+00:00",
+    "python": "3.13.2",
+    "torch": "2.7.1+cu126",
+    "warp": "1.18.0",
+    "cuda_available": false,
+    "cuda_device_count": 0,
+    "machine": "x86_64"
+  },
+  "pre_final_documentation_static_checks": {
+    "checked_utc": "2026-10-30T07:34:37.915092+00:00",
+    "compileall": "passed",
+    "owned_text_file_count": 504,
+    "max_lines": 500,
+    "legacy_xy_profiles_byte_identical_to": "3382feee81047c82d000e5c598ef685aec435297",
+    "legacy_xy_profiles": [
+      "comparison-20k-hybrid75-1kb.yaml",
+      "comparison-20k-hybrid75-1kb-shared-actor-critic.yaml",
+      "comparison-20k-fullgpu-1kb-shared-actor-critic.yaml"
+    ],
+    "initial_user_record_unchanged_before_final_update": true
+  },
+  "review": {
+    "review_range": "c18c65c..5ab785e",
+    "fresh_context": true,
+    "critical": 0,
+    "important_fixed": 4,
+    "second_review_requested": false,
+    "fix_regressions": [
+      "tests/test_xyz_restore_validation.py (8 invalid +1 valid-padding RED->GREEN)",
+      "tests/test_xyz_entrypoints.py (6 RED->GREEN)",
+      "tests/test_propagation.py::PropagationTests::test_roundtrip_allowance_prevents_a_false_ack_timeout_on_a_long_link (RED->GREEN)"
+    ],
+    "minor_deferred": "XYZ obstacle/peer/boundary intervention categories unavailable/zero; total interventions recorded"
+  },
+  "rulings": [
+    "Ruling: Warp keeps XY arrays plus dedicated altitude/vertical-velocity arrays, exposing actual XYZ at mission boundary — retain legacy kernels/checkpoints without duplicating packet simulator — wrong coupling would break 3D safety/physics, covered by parity tests.",
+    "Ruling: Hosted skill helper scripts are unavailable on remote filesystem; use equivalent task briefs/ledger/test logs in this plan's ignored workspace — preserves auditable execution without extra infrastructure — ledger omission risks repeated work after compaction.",
+    "Task4/5 Ruling: evaluate() always renders a preview; bring Task5 rendering forward before closing Task4 train/eval verification — avoid disabling the real integration seam — wrong frame projection would invalidate evaluation visualization, covered by rendering tests.",
+    "Ruling: uninterrupted full-learner parity uses serial BASE and synchronous PQL; final forced drains change BASE overlap collection/learning interleaving, and final metrics sampling changes diagnostic hashes — preserve existing scheduling and compare models, mission records and every world array — if mistaken, overlap could be advertised as bitwise parity; docs explicitly limit that claim. Raw world snapshot next-measurement parity remains tested independently.",
+    "Final: Ruling: designing a new XYZ privileged feasibility oracle — reject XYZ at all old XY oracle boundaries rather than invent a new controller outside approved scope — XYZ20/20 oracle feasibility remains unproven and requires a separate study.",
+    "Final: Ruling: production CUDA performance and convergence — leave explicitly unmeasured, preserve requested E/B/replay/FP32 and launch no jobs in this implementation — requested profiles may not fit the eventual hardware and policy convergence remains unknown.",
+    "Ruling: isolate the existing Warp network reset kernel in its own Python module while keeping mac.reset_network alias — official Warp module-compilation behavior and archived CUDA reset timeout motivate a minimal compile boundary change — extra module load/dependency compilation may still leave CUDA startup slow; no CUDA speed/fit claim until measured. Kernel body AST is identical to c63 and reset registry contains only reset_network."
+  ],
+  "deferred_minors": [
+    "Final: minor (deferred): XYZ obstacle/peer/boundary intervention counters remain unavailable/zero; total interventions remain recorded. docs/xyz-sensing.md states the limitation; category comparisons must wait for instrumentation."
+  ],
+  "precision": {
+    "belief_geometry": "float64",
+    "learners": "float32",
+    "amp": false
+  },
+  "guarantees": {
+    "world_next_measurement_resume": "verified on Warp CPU",
+    "full_learner_uncut_resume": "verified for serial BASE and synchronous PQL",
+    "overlap_async_bitwise_equivalence": "not guaranteed"
+  },
+  "limits": [
+    "No CUDA fit/performance measurement",
+    "No20k study or policy convergence result",
+    "No new XYZ20/20 privileged-oracle feasibility proof",
+    "Compact critic does not contain full Bayesian state"
+  ],
+  "demo": {
+    "controller": "Scripted altitude controller, not a trained policy",
+    "purpose": "Camera/FOV/Bayes/report pipeline demonstration",
+    "initial_image": "outputs/xyz-camera-demo-20261030/high.png",
+    "final_image": "outputs/xyz-camera-demo-20261030/final.png",
+    "animation": "outputs/xyz-camera-demo-20261030/camera.gif",
+    "targets_found": 1,
+    "targets_delivered": 1,
+    "sensing": {
+      "measurements": 5276,
+      "positive": 766,
+      "false_positive": 713,
+      "false_negative": 8,
+      "false_confirmation": 0,
+      "confirmations": 1
+    },
+    "steps": 60
+  },
+  "resources": "docs/superpowers/evidence/2026-10-30-xyz-resources.json",
+  "initial_user_record_suffix_preserved": true,
+  "post_documentation_source_size_check": {
+    "owned_text_files": 506,
+    "max_lines": 500,
+    "passed": true
+  },
+  "core_xyz_commit": "c63c8f7bcaacf5d1be9d8324fec05859d1993b48",
+  "core_xyz_full_suites": [
+    {
+      "passed": 1145,
+      "skipped": 97,
+      "passed_subtests": 1554,
+      "duration_s": 577.22
+    },
+    {
+      "passed": 1145,
+      "skipped": 97,
+      "passed_subtests": 1554,
+      "duration_s": 655.14
+    }
+  ],
+  "source_files_unchanged_during_closure_suite": 295,
+  "reset_boundary_regression": {
+    "baseline_commit": "c63c8f7bcaacf5d1be9d8324fec05859d1993b48",
+    "baseline_exit": 1,
+    "current_exit": 0,
+    "test": "tests/test_gpu_packets.py::GPUPacketTests::test_reset_network_isolated_from_packet_scheduler_module",
+    "baseline_run_isolated_from_live_worktree": true
+  },
+  "source_manifest_sha256": "2c61ac79c08c7226b9a9f0fca2b782c507fab482ac537d70d257ac0bbaa34d90",
+  "post_documentation_project_structure": {
+    "passed": 2,
+    "passed_subtests": 506,
+    "duration_s": 0.22
+  }
+}

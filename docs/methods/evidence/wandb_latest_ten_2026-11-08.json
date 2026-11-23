@@ -1,0 +1,2958 @@
+{
+  "capture_date_utc": "2026-11-08T08:50:03.011142+00:00",
+  "selection": "10 newest W&B runs by created_at, exact 5x2 35T25O BASE matrix",
+  "project": "truongdaoanhduy-uit/uav_search_target",
+  "protocol": {
+    "scenario_sha256": "5dc95846027125c7e097e2f455c6195844f86bef34cae04445f1acf605d8cedb",
+    "source_git_commit": "a6e07a8f4b199028298b6ffd9a47f2cecd654fc9",
+    "evaluation_protocol_sha256": "193106e536d00b260b8e4eaa54b9df77ee2c0d5a6207d4cfeb96e4f957b3ed91",
+    "observation_version": 5,
+    "all_run_common_episode_cutoff": 4096,
+    "all_run_shared_eval_checkpoint_global_step": 7372800,
+    "training_window": "last 1024 COMPLETED TRAINING EPISODES before inclusive episode cutoff",
+    "episode_metrics_not_fixed_policy": true,
+    "evaluation_metrics_fixed_seed_bank_and_policy": true,
+    "early_stopping_not_imputed": true,
+    "best_checkpoint_not_used_as_fair_same_budget_ranking": true
+  },
+  "runs": [
+    {
+      "algorithm": "masac",
+      "case": 1,
+      "id": "d9c1c5e9",
+      "name": "MASAC-BASE-SH-NOCHUNK-MASKAWARE-ALN-H512-U8-T35-O25-S44-d9c1c5e9",
+      "created_at": "2026-11-07T20:18:36Z",
+      "state": "finished",
+      "configured_episodes": 20000,
+      "observed_episodes": 11675,
+      "last_episode_global_step": 16412672,
+      "summary_global_step": 16412672,
+      "best_checkpoint_step": 14745600,
+      "best_validation": {
+        "delivery": 46.28571428571429,
+        "search": 47.42857142857143,
+        "return": -393.9086645102594
+      },
+      "best_checkpoint_storage": {
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "d27b5e044f2c09213cc20629365a496b758cb967",
+        "sha256": "0266c825d5f8f0c1f0b55500ceb20324094d6cc9914bcdec34badd2f4a728f5e",
+        "checkpoint_config_sha256": "e23f5d75967419a89152d7a3e12950e5195ae7cd36cdd80cde8b4d74dfe1c07f",
+        "episode": 8192
+      },
+      "runtime_seconds": 38786,
+      "scenario_sha256": "5dc95846027125c7e097e2f455c6195844f86bef34cae04445f1acf605d8cedb",
+      "runtime_protocol_sha256": "16fec3b868f5b7a8ca595fb55f4646af54197ac8a8f213a9d8f8e37fa00146a8",
+      "case_fingerprint_sha256": "a894edca0a2b1912258477632586a1d3340693aeaae7df29505f744703476cac",
+      "source_git_commit": "a6e07a8f4b199028298b6ffd9a47f2cecd654fc9",
+      "evaluation_protocol": {
+        "evaluation_interval_steps": 1843200,
+        "periodic_evaluation_episodes": 5,
+        "periodic_evaluation_seed": 1000000044,
+        "evaluation_interval": 0,
+        "evaluation_timeout_seconds": 900,
+        "eval_seed": 2000000044,
+        "eval_episodes": 30
+      },
+      "scientific_config": {
+        "world": {
+          "num_uavs": 6,
+          "num_targets": 35,
+          "num_obstacles": 25,
+          "map_size_m": 1000,
+          "max_steps": 1500
+        },
+        "actor_layer_norm": true,
+        "share_actor_parameters": true,
+        "share_critic_parameters": true,
+        "hidden_sizes": [
+          512,
+          512
+        ],
+        "updates_per_step": 8,
+        "batch_size": 8192,
+        "replay_capacity": 1000000,
+        "seed": 44
+      },
+      "training_milestones": {
+        "4096": {
+          "episode": 4096,
+          "window": 1024,
+          "return": 29.933640016021325,
+          "return_std": 192.4672818169793,
+          "search": 50.60267857142858,
+          "delivery": 44.188058035714285,
+          "global_step_at_episode": 6144000,
+          "episode_length_mean": 1500.0,
+          "cumulative_return": 55.74394078522552,
+          "cumulative_search": 50.518973214285715,
+          "cumulative_delivery": 44.305245535714285
+        },
+        "8192": {
+          "episode": 8192,
+          "window": 1024,
+          "return": -1275.2128016137437,
+          "return_std": 174.20499989956744,
+          "search": 30.23716517857143,
+          "delivery": 27.954799107142858,
+          "global_step_at_episode": 12288000,
+          "episode_length_mean": 1469.9130859375,
+          "cumulative_return": -575.0722462240797,
+          "cumulative_search": 40.6689453125,
+          "cumulative_delivery": 36.48716517857143
+        },
+        "10000": {
+          "episode": 10000,
+          "window": 1024,
+          "return": 21.660173555322448,
+          "return_std": 197.3888569676509,
+          "search": 51.57645089285714,
+          "delivery": 49.47265625,
+          "global_step_at_episode": 16056320,
+          "episode_length_mean": 1037.2939453125,
+          "cumulative_return": -471.01913866819683,
+          "cumulative_search": 42.47228571428572,
+          "cumulative_delivery": 38.676571428571435
+        },
+        "11675": {
+          "episode": 11675,
+          "window": 1024,
+          "return": 9.50903733253459,
+          "return_std": 231.4409794846335,
+          "search": 52.940848214285715,
+          "delivery": 50.853794642857146,
+          "global_step_at_episode": 16412672,
+          "episode_length_mean": 1064.408203125,
+          "cumulative_return": -400.96628823573275,
+          "cumulative_search": 43.91287855613338,
+          "cumulative_delivery": 40.36145610278373
+        }
+      },
+      "training_at_common_episode": {
+        "episode": 4096,
+        "window": 1024,
+        "return": 29.933640016021325,
+        "return_std": 192.4672818169793,
+        "search": 50.60267857142858,
+        "delivery": 44.188058035714285,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1500.0,
+        "cumulative_return": 55.74394078522552,
+        "cumulative_search": 50.518973214285715,
+        "cumulative_delivery": 44.305245535714285
+      },
+      "validation": [
+        {
+          "checkpoint_global_step": 1843200,
+          "logged_global_step": 1880064,
+          "delivery": 0.0,
+          "search": 0.0,
+          "return": -3498.110729005374
+        },
+        {
+          "checkpoint_global_step": 3686400,
+          "logged_global_step": 3715072,
+          "delivery": 1.1428571428571428,
+          "search": 1.1428571428571428,
+          "return": -3628.902263179235
+        },
+        {
+          "checkpoint_global_step": 5529600,
+          "logged_global_step": 5558272,
+          "delivery": 2.8571428571428568,
+          "search": 5.7142857142857135,
+          "return": -3187.018368867505
+        },
+        {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7401472,
+          "delivery": 3.4285714285714284,
+          "search": 6.2857142857142865,
+          "return": -3258.939951676503
+        },
+        {
+          "checkpoint_global_step": 9216000,
+          "logged_global_step": 9244672,
+          "delivery": 17.714285714285715,
+          "search": 17.714285714285715,
+          "return": -2351.375457777828
+        },
+        {
+          "checkpoint_global_step": 11059200,
+          "logged_global_step": 11087872,
+          "delivery": 35.42857142857143,
+          "search": 36.0,
+          "return": -824.5349254054017
+        },
+        {
+          "checkpoint_global_step": 12902400,
+          "logged_global_step": 12931072,
+          "delivery": 30.857142857142854,
+          "search": 31.428571428571434,
+          "return": -1380.2203510860738
+        },
+        {
+          "checkpoint_global_step": 14745600,
+          "logged_global_step": 14770176,
+          "delivery": 46.28571428571429,
+          "search": 47.42857142857143,
+          "return": -393.9086645102594
+        }
+      ],
+      "validation_at_common_checkpoint": {
+        "checkpoint_global_step": 7372800,
+        "logged_global_step": 7401472,
+        "delivery": 3.4285714285714284,
+        "search": 6.2857142857142865,
+        "return": -3258.939951676503
+      },
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/d9c1c5e9"
+    },
+    {
+      "algorithm": "masac",
+      "case": 2,
+      "id": "c70aa6f4",
+      "name": "MASAC-BASE-SH-NOCHUNK-MASKAWARE-ALN-H512-U16-T35-O25-S44-c70aa6f4",
+      "created_at": "2026-11-07T20:15:05Z",
+      "state": "finished",
+      "configured_episodes": 20000,
+      "observed_episodes": 4096,
+      "last_episode_global_step": 6144000,
+      "summary_global_step": 8966144,
+      "best_checkpoint_step": 3686400,
+      "best_validation": {
+        "delivery": 19.428571428571427,
+        "search": 21.142857142857146,
+        "return": -2073.9852190465435
+      },
+      "best_checkpoint_storage": {
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "e80f5cbc4cd9b562dd0e68ed42bb2f7eb1b3cb12",
+        "sha256": "32c165c00e1b7a8e1e5b2a4303487afdd3caae5b50fa015e56d531a5d4a24c71",
+        "checkpoint_config_sha256": "4e24d59fee83816829c3b0f093b011871aa52c83491af0c123914121e6f36ac9",
+        "episode": 0
+      },
+      "runtime_seconds": 38805,
+      "scenario_sha256": "5dc95846027125c7e097e2f455c6195844f86bef34cae04445f1acf605d8cedb",
+      "runtime_protocol_sha256": "16fec3b868f5b7a8ca595fb55f4646af54197ac8a8f213a9d8f8e37fa00146a8",
+      "case_fingerprint_sha256": "8467c0fc4986c8b92283fa24056792426eac7c6e36a5c6009800bf8e736b7960",
+      "source_git_commit": "a6e07a8f4b199028298b6ffd9a47f2cecd654fc9",
+      "evaluation_protocol": {
+        "evaluation_interval_steps": 1843200,
+        "periodic_evaluation_episodes": 5,
+        "periodic_evaluation_seed": 1000000044,
+        "evaluation_interval": 0,
+        "evaluation_timeout_seconds": 900,
+        "eval_seed": 2000000044,
+        "eval_episodes": 30
+      },
+      "scientific_config": {
+        "world": {
+          "num_uavs": 6,
+          "num_targets": 35,
+          "num_obstacles": 25,
+          "map_size_m": 1000,
+          "max_steps": 1500
+        },
+        "actor_layer_norm": true,
+        "share_actor_parameters": true,
+        "share_critic_parameters": true,
+        "hidden_sizes": [
+          512,
+          512
+        ],
+        "updates_per_step": 16,
+        "batch_size": 8192,
+        "replay_capacity": 1000000,
+        "seed": 44
+      },
+      "training_milestones": {
+        "4096": {
+          "episode": 4096,
+          "window": 1024,
+          "return": -548.5534716065406,
+          "return_std": 207.04067279003297,
+          "search": 43.49330357142857,
+          "delivery": 37.26004464285714,
+          "global_step_at_episode": 6144000,
+          "episode_length_mean": 1463.826171875,
+          "cumulative_return": -455.82555105210247,
+          "cumulative_search": 42.700892857142854,
+          "cumulative_delivery": 37.393275669642854
+        }
+      },
+      "training_at_common_episode": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -548.5534716065406,
+        "return_std": 207.04067279003297,
+        "search": 43.49330357142857,
+        "delivery": 37.26004464285714,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1463.826171875,
+        "cumulative_return": -455.82555105210247,
+        "cumulative_search": 42.700892857142854,
+        "cumulative_delivery": 37.393275669642854
+      },
+      "validation": [
+        {
+          "checkpoint_global_step": 1843200,
+          "logged_global_step": 1863680,
+          "delivery": 7.428571428571428,
+          "search": 17.142857142857146,
+          "return": -2883.1899273731747
+        },
+        {
+          "checkpoint_global_step": 3686400,
+          "logged_global_step": 3702784,
+          "delivery": 19.428571428571427,
+          "search": 21.142857142857146,
+          "return": -2073.9852190465435
+        },
+        {
+          "checkpoint_global_step": 5529600,
+          "logged_global_step": 5545984,
+          "delivery": 1.1428571428571428,
+          "search": 1.1428571428571428,
+          "return": -4126.604369391501
+        },
+        {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7389184,
+          "delivery": 5.714285714285714,
+          "search": 7.428571428571429,
+          "return": -3138.7148140370846
+        }
+      ],
+      "validation_at_common_checkpoint": {
+        "checkpoint_global_step": 7372800,
+        "logged_global_step": 7389184,
+        "delivery": 5.714285714285714,
+        "search": 7.428571428571429,
+        "return": -3138.7148140370846
+      },
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/c70aa6f4"
+    },
+    {
+      "algorithm": "masac",
+      "case": 3,
+      "id": "70eaad3a",
+      "name": "MASAC-BASE-IND-NOCHUNK-MASKAWARE-ALN-H512-U16-T35-O25-S44-70eaad3a",
+      "created_at": "2026-11-07T20:11:11Z",
+      "state": "finished",
+      "configured_episodes": 20000,
+      "observed_episodes": 4096,
+      "last_episode_global_step": 6144000,
+      "summary_global_step": 8687616,
+      "best_checkpoint_step": 3686400,
+      "best_validation": {
+        "delivery": 21.142857142857146,
+        "search": 26.857142857142854,
+        "return": -2031.1639516248833
+      },
+      "best_checkpoint_storage": {
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "1633e032f11bf86871ce49a4e1da5d728221f76b",
+        "sha256": "0986670079f6b858e33715884e43450fb0189e67c865fcd55386c8b27a4deaf8",
+        "checkpoint_config_sha256": "3156e58dc31fa95dda6d66fd4332bcf6290116ccb881ff080b6a2ad24b852d39",
+        "episode": 0
+      },
+      "runtime_seconds": 38790,
+      "scenario_sha256": "5dc95846027125c7e097e2f455c6195844f86bef34cae04445f1acf605d8cedb",
+      "runtime_protocol_sha256": "16fec3b868f5b7a8ca595fb55f4646af54197ac8a8f213a9d8f8e37fa00146a8",
+      "case_fingerprint_sha256": "fb5ca933c1ea5cdf008c43330aa6c597c19291d0451b092724f0fb43fef95318",
+      "source_git_commit": "a6e07a8f4b199028298b6ffd9a47f2cecd654fc9",
+      "evaluation_protocol": {
+        "evaluation_interval_steps": 1843200,
+        "periodic_evaluation_episodes": 5,
+        "periodic_evaluation_seed": 1000000044,
+        "evaluation_interval": 0,
+        "evaluation_timeout_seconds": 900,
+        "eval_seed": 2000000044,
+        "eval_episodes": 30
+      },
+      "scientific_config": {
+        "world": {
+          "num_uavs": 6,
+          "num_targets": 35,
+          "num_obstacles": 25,
+          "map_size_m": 1000,
+          "max_steps": 1500
+        },
+        "actor_layer_norm": true,
+        "share_actor_parameters": false,
+        "share_critic_parameters": false,
+        "hidden_sizes": [
+          512,
+          512
+        ],
+        "updates_per_step": 16,
+        "batch_size": 8192,
+        "replay_capacity": 1000000,
+        "seed": 44
+      },
+      "training_milestones": {
+        "4096": {
+          "episode": 4096,
+          "window": 1024,
+          "return": -349.1934506856769,
+          "return_std": 186.08362264581692,
+          "search": 45.259486607142854,
+          "delivery": 42.15959821428571,
+          "global_step_at_episode": 6144000,
+          "episode_length_mean": 1442.9833984375,
+          "cumulative_return": -268.06814480802115,
+          "cumulative_search": 44.41755022321428,
+          "cumulative_delivery": 41.45647321428571
+        }
+      },
+      "training_at_common_episode": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -349.1934506856769,
+        "return_std": 186.08362264581692,
+        "search": 45.259486607142854,
+        "delivery": 42.15959821428571,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1442.9833984375,
+        "cumulative_return": -268.06814480802115,
+        "cumulative_search": 44.41755022321428,
+        "cumulative_delivery": 41.45647321428571
+      },
+      "validation": [
+        {
+          "checkpoint_global_step": 1843200,
+          "logged_global_step": 1867776,
+          "delivery": 13.142857142857144,
+          "search": 13.142857142857144,
+          "return": -2458.7847306948156
+        },
+        {
+          "checkpoint_global_step": 3686400,
+          "logged_global_step": 3706880,
+          "delivery": 21.142857142857146,
+          "search": 26.857142857142854,
+          "return": -2031.1639516248833
+        },
+        {
+          "checkpoint_global_step": 5529600,
+          "logged_global_step": 5550080,
+          "delivery": 7.428571428571428,
+          "search": 9.142857142857142,
+          "return": -2729.8881395712497
+        },
+        {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7397376,
+          "delivery": 2.2857142857142856,
+          "search": 10.285714285714285,
+          "return": -2722.015389575064
+        }
+      ],
+      "validation_at_common_checkpoint": {
+        "checkpoint_global_step": 7372800,
+        "logged_global_step": 7397376,
+        "delivery": 2.2857142857142856,
+        "search": 10.285714285714285,
+        "return": -2722.015389575064
+      },
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/70eaad3a"
+    },
+    {
+      "algorithm": "masac",
+      "case": 4,
+      "id": "c6cf7916",
+      "name": "MASAC-BASE-IND-NOCHUNK-MASKAWARE-NOLN-H512-U16-T35-O25-S44-c6cf7916",
+      "created_at": "2026-11-07T20:06:23Z",
+      "state": "finished",
+      "configured_episodes": 20000,
+      "observed_episodes": 4096,
+      "last_episode_global_step": 6144000,
+      "summary_global_step": 9232384,
+      "best_checkpoint_step": 3686400,
+      "best_validation": {
+        "delivery": 12.571428571428573,
+        "search": 19.42857142857143,
+        "return": -2455.9299402944744
+      },
+      "best_checkpoint_storage": {
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "3191c54e93554df2d9cb192519dc396548d4ad21",
+        "sha256": "f7661d0836097ef364b5dcda2c6ab2e30a077623b45ee1fdd29b674bc25747bd",
+        "checkpoint_config_sha256": "8db06ce93576b960bcd36428b26b91f12d02520a59979f1901ecaaac584ab661",
+        "episode": 0
+      },
+      "runtime_seconds": 38789,
+      "scenario_sha256": "5dc95846027125c7e097e2f455c6195844f86bef34cae04445f1acf605d8cedb",
+      "runtime_protocol_sha256": "16fec3b868f5b7a8ca595fb55f4646af54197ac8a8f213a9d8f8e37fa00146a8",
+      "case_fingerprint_sha256": "a15ed084bd24cac000c2ef6a5750096fdf3d35725f5321f168d92da79881c9b8",
+      "source_git_commit": "a6e07a8f4b199028298b6ffd9a47f2cecd654fc9",
+      "evaluation_protocol": {
+        "evaluation_interval_steps": 1843200,
+        "periodic_evaluation_episodes": 5,
+        "periodic_evaluation_seed": 1000000044,
+        "evaluation_interval": 0,
+        "evaluation_timeout_seconds": 900,
+        "eval_seed": 2000000044,
+        "eval_episodes": 30
+      },
+      "scientific_config": {
+        "world": {
+          "num_uavs": 6,
+          "num_targets": 35,
+          "num_obstacles": 25,
+          "map_size_m": 1000,
+          "max_steps": 1500
+        },
+        "actor_layer_norm": false,
+        "share_actor_parameters": false,
+        "share_critic_parameters": false,
+        "hidden_sizes": [
+          512,
+          512
+        ],
+        "updates_per_step": 16,
+        "batch_size": 8192,
+        "replay_capacity": 1000000,
+        "seed": 44
+      },
+      "training_milestones": {
+        "4096": {
+          "episode": 4096,
+          "window": 1024,
+          "return": -424.23008801017636,
+          "return_std": 185.3670694053604,
+          "search": 44.53962053571429,
+          "delivery": 41.81361607142857,
+          "global_step_at_episode": 6144000,
+          "episode_length_mean": 1458.79296875,
+          "cumulative_return": -336.6795920868609,
+          "cumulative_search": 43.741629464285715,
+          "cumulative_delivery": 41.026088169642854
+        }
+      },
+      "training_at_common_episode": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -424.23008801017636,
+        "return_std": 185.3670694053604,
+        "search": 44.53962053571429,
+        "delivery": 41.81361607142857,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1458.79296875,
+        "cumulative_return": -336.6795920868609,
+        "cumulative_search": 43.741629464285715,
+        "cumulative_delivery": 41.026088169642854
+      },
+      "validation": [
+        {
+          "checkpoint_global_step": 1843200,
+          "logged_global_step": 1871872,
+          "delivery": 12.571428571428571,
+          "search": 12.571428571428571,
+          "return": -2345.51196473809
+        },
+        {
+          "checkpoint_global_step": 3686400,
+          "logged_global_step": 3710976,
+          "delivery": 12.571428571428573,
+          "search": 19.42857142857143,
+          "return": -2455.9299402944744
+        },
+        {
+          "checkpoint_global_step": 5529600,
+          "logged_global_step": 5550080,
+          "delivery": 2.857142857142857,
+          "search": 4.571428571428571,
+          "return": -3206.823235592246
+        },
+        {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7393280,
+          "delivery": 1.1428571428571428,
+          "search": 2.2857142857142856,
+          "return": -3183.2673417679966
+        }
+      ],
+      "validation_at_common_checkpoint": {
+        "checkpoint_global_step": 7372800,
+        "logged_global_step": 7393280,
+        "delivery": 1.1428571428571428,
+        "search": 2.2857142857142856,
+        "return": -3183.2673417679966
+      },
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/c6cf7916"
+    },
+    {
+      "algorithm": "masac",
+      "case": 5,
+      "id": "7f5fd73f",
+      "name": "MASAC-BASE-SH-NOCHUNK-MASKAWARE-ALN-H256-U8-T35-O25-S44-7f5fd73f",
+      "created_at": "2026-11-07T20:00:12Z",
+      "state": "finished",
+      "configured_episodes": 20000,
+      "observed_episodes": 20000,
+      "last_episode_global_step": 26378240,
+      "summary_global_step": 26378240,
+      "best_checkpoint_step": 25804800,
+      "best_validation": {
+        "delivery": 52,
+        "search": 54.28571428571429,
+        "return": 164.99461462661276
+      },
+      "best_checkpoint_storage": {
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "8a859d3be963e6a664b249bfa222814989bcdcb4",
+        "sha256": "208b90b0c65533c6d91444e37711eb9c0c943e30d9bde419f8531fdee4f62861",
+        "checkpoint_config_sha256": "f8344363be65bcea5196f10a5b67ec475b4bca9fb5b3541b261357931e7a841d",
+        "episode": 17987
+      },
+      "runtime_seconds": 29972,
+      "scenario_sha256": "5dc95846027125c7e097e2f455c6195844f86bef34cae04445f1acf605d8cedb",
+      "runtime_protocol_sha256": "16fec3b868f5b7a8ca595fb55f4646af54197ac8a8f213a9d8f8e37fa00146a8",
+      "case_fingerprint_sha256": "0c2daa34d6523c4966d5ec67e176dc176134db7404af789ee3f53c00b6b28337",
+      "source_git_commit": "a6e07a8f4b199028298b6ffd9a47f2cecd654fc9",
+      "evaluation_protocol": {
+        "evaluation_interval_steps": 1843200,
+        "periodic_evaluation_episodes": 5,
+        "periodic_evaluation_seed": 1000000044,
+        "evaluation_interval": 0,
+        "evaluation_timeout_seconds": 900,
+        "eval_seed": 2000000044,
+        "eval_episodes": 30
+      },
+      "scientific_config": {
+        "world": {
+          "num_uavs": 6,
+          "num_targets": 35,
+          "num_obstacles": 25,
+          "map_size_m": 1000,
+          "max_steps": 1500
+        },
+        "actor_layer_norm": true,
+        "share_actor_parameters": true,
+        "share_critic_parameters": true,
+        "hidden_sizes": [
+          256,
+          256
+        ],
+        "updates_per_step": 8,
+        "batch_size": 8192,
+        "replay_capacity": 1000000,
+        "seed": 44
+      },
+      "training_milestones": {
+        "4096": {
+          "episode": 4096,
+          "window": 1024,
+          "return": 76.85864296375863,
+          "return_std": 179.11041365486392,
+          "search": 49.52287946428571,
+          "delivery": 44.69866071428571,
+          "global_step_at_episode": 6144000,
+          "episode_length_mean": 1500.0,
+          "cumulative_return": 88.75739580439753,
+          "cumulative_search": 49.495675223214285,
+          "cumulative_delivery": 44.78515625
+        },
+        "8192": {
+          "episode": 8192,
+          "window": 1024,
+          "return": -1094.0269908533583,
+          "return_std": 156.71788011841105,
+          "search": 33.228236607142854,
+          "delivery": 32.30747767857143,
+          "global_step_at_episode": 12288000,
+          "episode_length_mean": 1429.9345703125,
+          "cumulative_return": -471.08558967166647,
+          "cumulative_search": 40.96993582589286,
+          "cumulative_delivery": 38.203125
+        },
+        "10000": {
+          "episode": 10000,
+          "window": 1024,
+          "return": -718.8772837675581,
+          "return_std": 193.98278071145106,
+          "search": 41.824776785714285,
+          "delivery": 40.493861607142854,
+          "global_step_at_episode": 16785408,
+          "episode_length_mean": 1230.978515625,
+          "cumulative_return": -514.1938479891074,
+          "cumulative_search": 41.16771428571429,
+          "cumulative_delivery": 38.644
+        },
+        "11675": {
+          "episode": 11675,
+          "window": 1024,
+          "return": -730.9592613024581,
+          "return_std": 202.9032259697547,
+          "search": 42.37723214285714,
+          "delivery": 41.38671875,
+          "global_step_at_episode": 17256448,
+          "episode_length_mean": 1269.615234375,
+          "cumulative_return": -543.8495503482746,
+          "cumulative_search": 41.327378403181406,
+          "cumulative_delivery": 39.01645763230346
+        },
+        "12000": {
+          "episode": 12000,
+          "window": 1024,
+          "return": -768.8425264119729,
+          "return_std": 198.58199640904712,
+          "search": 42.20703125,
+          "delivery": 41.222098214285715,
+          "global_step_at_episode": 17440768,
+          "episode_length_mean": 1292.8173828125,
+          "cumulative_return": -551.209795414918,
+          "cumulative_search": 41.34428571428572,
+          "cumulative_delivery": 39.06809523809524
+        },
+        "15000": {
+          "episode": 15000,
+          "window": 1024,
+          "return": -354.33330646755576,
+          "return_std": 208.1349145178694,
+          "search": 46.356026785714285,
+          "delivery": 44.453125,
+          "global_step_at_episode": 21774336,
+          "episode_length_mean": 1173.99609375,
+          "cumulative_return": -520.0723319898029,
+          "cumulative_search": 42.216,
+          "cumulative_delivery": 40.033142857142856
+        },
+        "16384": {
+          "episode": 16384,
+          "window": 1024,
+          "return": -374.87543830641306,
+          "return_std": 270.8921294112242,
+          "search": 47.513950892857146,
+          "delivery": 45.945870535714285,
+          "global_step_at_episode": 23306240,
+          "episode_length_mean": 1191.3310546875,
+          "cumulative_return": -507.2050717340744,
+          "cumulative_search": 42.64404296875,
+          "cumulative_delivery": 40.50816127232143
+        },
+        "20000": {
+          "episode": 20000,
+          "window": 1024,
+          "return": 4.262353989057052,
+          "return_std": 225.89206337070266,
+          "search": 50.85100446428571,
+          "delivery": 49.41964285714286,
+          "global_step_at_episode": 26378240,
+          "episode_length_mean": 1054.2470703125,
+          "cumulative_return": -410.8461454620924,
+          "cumulative_search": 44.00414285714286,
+          "cumulative_delivery": 42.02657142857143
+        }
+      },
+      "training_at_common_episode": {
+        "episode": 4096,
+        "window": 1024,
+        "return": 76.85864296375863,
+        "return_std": 179.11041365486392,
+        "search": 49.52287946428571,
+        "delivery": 44.69866071428571,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1500.0,
+        "cumulative_return": 88.75739580439753,
+        "cumulative_search": 49.495675223214285,
+        "cumulative_delivery": 44.78515625
+      },
+      "validation": [
+        {
+          "checkpoint_global_step": 1843200,
+          "logged_global_step": 1929216,
+          "delivery": 0.0,
+          "search": 0.0,
+          "return": -3448.2060198444874
+        },
+        {
+          "checkpoint_global_step": 3686400,
+          "logged_global_step": 3751936,
+          "delivery": 1.1428571428571428,
+          "search": 1.1428571428571428,
+          "return": -3774.783127811365
+        },
+        {
+          "checkpoint_global_step": 5529600,
+          "logged_global_step": 5595136,
+          "delivery": 2.8571428571428568,
+          "search": 2.8571428571428568,
+          "return": -3063.8175820041447
+        },
+        {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7438336,
+          "delivery": 4.571428571428571,
+          "search": 5.142857142857143,
+          "return": -2526.8980518348517
+        },
+        {
+          "checkpoint_global_step": 9216000,
+          "logged_global_step": 9281536,
+          "delivery": 27.428571428571427,
+          "search": 28.0,
+          "return": -1534.3620277857408
+        },
+        {
+          "checkpoint_global_step": 11059200,
+          "logged_global_step": 11128832,
+          "delivery": 30.85714285714286,
+          "search": 32.57142857142857,
+          "return": -1592.2708067846884
+        },
+        {
+          "checkpoint_global_step": 12902400,
+          "logged_global_step": 12963840,
+          "delivery": 32.0,
+          "search": 33.142857142857146,
+          "return": -1367.2979325457359
+        },
+        {
+          "checkpoint_global_step": 14745600,
+          "logged_global_step": 14815232,
+          "delivery": 39.42857142857143,
+          "search": 40.57142857142857,
+          "return": -1293.2827272501775
+        },
+        {
+          "checkpoint_global_step": 16588800,
+          "logged_global_step": 16646144,
+          "delivery": 33.71428571428571,
+          "search": 37.142857142857146,
+          "return": -1504.6576813974184
+        },
+        {
+          "checkpoint_global_step": 18432000,
+          "logged_global_step": 18489344,
+          "delivery": 37.142857142857146,
+          "search": 42.857142857142854,
+          "return": -866.9005573797971
+        },
+        {
+          "checkpoint_global_step": 20275200,
+          "logged_global_step": 20336640,
+          "delivery": 37.142857142857146,
+          "search": 38.857142857142854,
+          "return": -1030.6823143610732
+        },
+        {
+          "checkpoint_global_step": 22118400,
+          "logged_global_step": 22179840,
+          "delivery": 39.99999999999999,
+          "search": 43.42857142857143,
+          "return": -1111.0393085941673
+        },
+        {
+          "checkpoint_global_step": 23961600,
+          "logged_global_step": 24027136,
+          "delivery": 47.42857142857142,
+          "search": 47.42857142857142,
+          "return": -869.86197681528
+        },
+        {
+          "checkpoint_global_step": 25804800,
+          "logged_global_step": 25849856,
+          "delivery": 52.0,
+          "search": 54.28571428571429,
+          "return": 164.99461462661276
+        }
+      ],
+      "validation_at_common_checkpoint": {
+        "checkpoint_global_step": 7372800,
+        "logged_global_step": 7438336,
+        "delivery": 4.571428571428571,
+        "search": 5.142857142857143,
+        "return": -2526.8980518348517
+      },
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/7f5fd73f"
+    },
+    {
+      "algorithm": "matd3",
+      "case": 1,
+      "id": "ccaadcd6",
+      "name": "MATD3-BASE-SH-NOCHUNK-DEFAULT-ALN-H512-U8-T35-O25-S44-ccaadcd6",
+      "created_at": "2026-11-07T20:29:56Z",
+      "state": "finished",
+      "configured_episodes": 20000,
+      "observed_episodes": 20000,
+      "last_episode_global_step": 24190976,
+      "summary_global_step": 24190976,
+      "best_checkpoint_step": 12902400,
+      "best_validation": {
+        "delivery": 58.857142857142854,
+        "search": 60.57142857142857,
+        "return": 289.44318105600905
+      },
+      "best_checkpoint_storage": {
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "18fa9fef8d4e4f14911933a33a343ca81d14aa9f",
+        "sha256": "155a98dac577b9b5bb2dc6285a67f678d9a07bd6b56f14a99b1c5fc01e9a2fc9",
+        "checkpoint_config_sha256": "d62243884393d22191fdc29f3a71b1a9678869b48dfced6b256e8e68319c9239",
+        "episode": 8192
+      },
+      "runtime_seconds": 9463,
+      "scenario_sha256": "5dc95846027125c7e097e2f455c6195844f86bef34cae04445f1acf605d8cedb",
+      "runtime_protocol_sha256": "16fec3b868f5b7a8ca595fb55f4646af54197ac8a8f213a9d8f8e37fa00146a8",
+      "case_fingerprint_sha256": "4cdbe566e0ca1660728c4d6fa2b63b17c3699112d5689269a8a87c9b35eeb8b5",
+      "source_git_commit": "a6e07a8f4b199028298b6ffd9a47f2cecd654fc9",
+      "evaluation_protocol": {
+        "evaluation_interval_steps": 1843200,
+        "periodic_evaluation_episodes": 5,
+        "periodic_evaluation_seed": 1000000044,
+        "evaluation_interval": 0,
+        "evaluation_timeout_seconds": 900,
+        "eval_seed": 2000000044,
+        "eval_episodes": 30
+      },
+      "scientific_config": {
+        "world": {
+          "num_uavs": 6,
+          "num_targets": 35,
+          "num_obstacles": 25,
+          "map_size_m": 1000,
+          "max_steps": 1500
+        },
+        "actor_layer_norm": true,
+        "share_actor_parameters": true,
+        "share_critic_parameters": true,
+        "hidden_sizes": [
+          512,
+          512
+        ],
+        "updates_per_step": 8,
+        "batch_size": 8192,
+        "replay_capacity": 1000000,
+        "seed": 44
+      },
+      "training_milestones": {
+        "4096": {
+          "episode": 4096,
+          "window": 1024,
+          "return": -1034.7144153960355,
+          "return_std": 188.33706763726028,
+          "search": 42.24330357142857,
+          "delivery": 40.108816964285715,
+          "global_step_at_episode": 6144000,
+          "episode_length_mean": 1387.447265625,
+          "cumulative_return": -882.0215517322736,
+          "cumulative_search": 41.064453125,
+          "cumulative_delivery": 38.680245535714285
+        },
+        "8192": {
+          "episode": 8192,
+          "window": 1024,
+          "return": -648.7491805479177,
+          "return_std": 282.72042812230404,
+          "search": 44.949776785714285,
+          "delivery": 42.08984375,
+          "global_step_at_episode": 11702272,
+          "episode_length_mean": 1287.5673828125,
+          "cumulative_return": -786.2172426855808,
+          "cumulative_search": 42.737862723214285,
+          "cumulative_delivery": 40.166015625
+        },
+        "10000": {
+          "episode": 10000,
+          "window": 1024,
+          "return": 178.15544932261,
+          "return_std": 211.27030267575225,
+          "search": 51.61830357142857,
+          "delivery": 50.11160714285715,
+          "global_step_at_episode": 14749696,
+          "episode_length_mean": 1026.0615234375,
+          "cumulative_return": -612.2884341285016,
+          "cumulative_search": 44.180285714285716,
+          "cumulative_delivery": 41.79971428571429
+        },
+        "11675": {
+          "episode": 11675,
+          "window": 1024,
+          "return": 68.15743929174467,
+          "return_std": 281.05157720957465,
+          "search": 52.21261160714286,
+          "delivery": 50.45200892857143,
+          "global_step_at_episode": 15335424,
+          "episode_length_mean": 1088.7294921875,
+          "cumulative_return": -509.2615658755777,
+          "cumulative_search": 45.372162740899356,
+          "cumulative_delivery": 43.0884062404405
+        },
+        "12000": {
+          "episode": 12000,
+          "window": 1024,
+          "return": -6.983508825912132,
+          "return_std": 304.62073343636985,
+          "search": 51.886160714285715,
+          "delivery": 50.22600446428571,
+          "global_step_at_episode": 15613952,
+          "episode_length_mean": 1121.2578125,
+          "cumulative_return": -498.17464123701274,
+          "cumulative_search": 45.54095238095238,
+          "cumulative_delivery": 43.278333333333336
+        },
+        "15000": {
+          "episode": 15000,
+          "window": 1024,
+          "return": 99.62261313276476,
+          "return_std": 246.74083203281376,
+          "search": 48.95089285714286,
+          "delivery": 47.76506696428571,
+          "global_step_at_episode": 19345408,
+          "episode_length_mean": 1036.9453125,
+          "cumulative_return": -375.4939487939523,
+          "cumulative_search": 46.33676190476191,
+          "cumulative_delivery": 44.281904761904755
+        },
+        "16384": {
+          "episode": 16384,
+          "window": 1024,
+          "return": -153.98747409528727,
+          "return_std": 343.7360802980514,
+          "search": 47.098214285714285,
+          "delivery": 45.81752232142857,
+          "global_step_at_episode": 21561344,
+          "episode_length_mean": 1141.4580078125,
+          "cumulative_return": -353.12660956717076,
+          "cumulative_search": 46.41549246651786,
+          "cumulative_delivery": 44.427490234375
+        },
+        "20000": {
+          "episode": 20000,
+          "window": 1024,
+          "return": 169.3974359480962,
+          "return_std": 320.0445934419117,
+          "search": 54.07366071428571,
+          "delivery": 52.44698660714286,
+          "global_step_at_episode": 24190976,
+          "episode_length_mean": 1031.5556640625,
+          "cumulative_return": -241.1117043759326,
+          "cumulative_search": 47.82042857142857,
+          "cumulative_delivery": 45.90614285714286
+        }
+      },
+      "training_at_common_episode": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -1034.7144153960355,
+        "return_std": 188.33706763726028,
+        "search": 42.24330357142857,
+        "delivery": 40.108816964285715,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1387.447265625,
+        "cumulative_return": -882.0215517322736,
+        "cumulative_search": 41.064453125,
+        "cumulative_delivery": 38.680245535714285
+      },
+      "validation": [
+        {
+          "checkpoint_global_step": 1843200,
+          "logged_global_step": 2097152,
+          "delivery": 11.428571428571429,
+          "search": 17.714285714285715,
+          "return": -2343.7177913958208
+        },
+        {
+          "checkpoint_global_step": 3686400,
+          "logged_global_step": 3887104,
+          "delivery": 29.714285714285715,
+          "search": 30.857142857142854,
+          "return": -1368.6069941789203
+        },
+        {
+          "checkpoint_global_step": 5529600,
+          "logged_global_step": 5685248,
+          "delivery": 24.571428571428573,
+          "search": 26.285714285714285,
+          "return": -1960.9670039906166
+        },
+        {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7565312,
+          "delivery": 25.142857142857146,
+          "search": 26.285714285714285,
+          "return": -2142.867543902248
+        },
+        {
+          "checkpoint_global_step": 9216000,
+          "logged_global_step": 9388032,
+          "delivery": 30.857142857142854,
+          "search": 32.0,
+          "return": -761.0844766644295
+        },
+        {
+          "checkpoint_global_step": 11059200,
+          "logged_global_step": 11223040,
+          "delivery": 27.428571428571427,
+          "search": 30.285714285714285,
+          "return": -1110.2798150305753
+        },
+        {
+          "checkpoint_global_step": 12902400,
+          "logged_global_step": 13066240,
+          "delivery": 58.857142857142854,
+          "search": 60.57142857142857,
+          "return": 289.44318105600905
+        },
+        {
+          "checkpoint_global_step": 14745600,
+          "logged_global_step": 14839808,
+          "delivery": 54.857142857142854,
+          "search": 58.28571428571429,
+          "return": -97.33515593006742
+        },
+        {
+          "checkpoint_global_step": 16588800,
+          "logged_global_step": 16748544,
+          "delivery": 54.28571428571429,
+          "search": 55.42857142857143,
+          "return": 111.63780413691711
+        },
+        {
+          "checkpoint_global_step": 18432000,
+          "logged_global_step": 18538496,
+          "delivery": 41.142857142857146,
+          "search": 42.28571428571429,
+          "return": -159.23091131602413
+        },
+        {
+          "checkpoint_global_step": 20275200,
+          "logged_global_step": 20414464,
+          "delivery": 34.857142857142854,
+          "search": 35.42857142857143,
+          "return": -22.424117381247925
+        },
+        {
+          "checkpoint_global_step": 22118400,
+          "logged_global_step": 22253568,
+          "delivery": 43.42857142857143,
+          "search": 45.142857142857146,
+          "return": -329.15569580337035
+        },
+        {
+          "checkpoint_global_step": 23961600,
+          "logged_global_step": 24088576,
+          "delivery": 58.28571428571429,
+          "search": 60.0,
+          "return": 366.97217682260344
+        }
+      ],
+      "validation_at_common_checkpoint": {
+        "checkpoint_global_step": 7372800,
+        "logged_global_step": 7565312,
+        "delivery": 25.142857142857146,
+        "search": 26.285714285714285,
+        "return": -2142.867543902248
+      },
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/ccaadcd6"
+    },
+    {
+      "algorithm": "matd3",
+      "case": 2,
+      "id": "f55774e2",
+      "name": "MATD3-BASE-SH-NOCHUNK-DEFAULT-ALN-H512-U16-T35-O25-S44-f55774e2",
+      "created_at": "2026-11-07T20:27:25Z",
+      "state": "finished",
+      "configured_episodes": 20000,
+      "observed_episodes": 20000,
+      "last_episode_global_step": 24965120,
+      "summary_global_step": 24965120,
+      "best_checkpoint_step": 22118400,
+      "best_validation": {
+        "delivery": 51.42857142857143,
+        "search": 53.142857142857146,
+        "return": -386.4650126732129
+      },
+      "best_checkpoint_storage": {
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "58e021faf14138f721ab6832874a1745b58a69d7",
+        "sha256": "3cf13ccc7c963c93cdc24a52bd90dfa44bd8897530e8908454d77611e15218b9",
+        "checkpoint_config_sha256": "af1f2c904ae7122487bba4d0b12074c15fd049b4de3d85a2ab0209eabf12bfa1",
+        "episode": 16384
+      },
+      "runtime_seconds": 17520,
+      "scenario_sha256": "5dc95846027125c7e097e2f455c6195844f86bef34cae04445f1acf605d8cedb",
+      "runtime_protocol_sha256": "16fec3b868f5b7a8ca595fb55f4646af54197ac8a8f213a9d8f8e37fa00146a8",
+      "case_fingerprint_sha256": "cd74e3fc02ea957fd7c361c3813e08d25891eaecfd9220e47434ef6a344c4718",
+      "source_git_commit": "a6e07a8f4b199028298b6ffd9a47f2cecd654fc9",
+      "evaluation_protocol": {
+        "evaluation_interval_steps": 1843200,
+        "periodic_evaluation_episodes": 5,
+        "periodic_evaluation_seed": 1000000044,
+        "evaluation_interval": 0,
+        "evaluation_timeout_seconds": 900,
+        "eval_seed": 2000000044,
+        "eval_episodes": 30
+      },
+      "scientific_config": {
+        "world": {
+          "num_uavs": 6,
+          "num_targets": 35,
+          "num_obstacles": 25,
+          "map_size_m": 1000,
+          "max_steps": 1500
+        },
+        "actor_layer_norm": true,
+        "share_actor_parameters": true,
+        "share_critic_parameters": true,
+        "hidden_sizes": [
+          512,
+          512
+        ],
+        "updates_per_step": 16,
+        "batch_size": 8192,
+        "replay_capacity": 1000000,
+        "seed": 44
+      },
+      "training_milestones": {
+        "4096": {
+          "episode": 4096,
+          "window": 1024,
+          "return": -1052.2686369442104,
+          "return_std": 223.536089552239,
+          "search": 39.36941964285714,
+          "delivery": 33.08872767857142,
+          "global_step_at_episode": 6144000,
+          "episode_length_mean": 1289.4609375,
+          "cumulative_return": -870.636032960085,
+          "cumulative_search": 39.954659598214285,
+          "cumulative_delivery": 34.38685825892857
+        },
+        "8192": {
+          "episode": 8192,
+          "window": 1024,
+          "return": -685.9904197423226,
+          "return_std": 303.17794761255686,
+          "search": 44.171316964285715,
+          "delivery": 42.18470982142857,
+          "global_step_at_episode": 11677696,
+          "episode_length_mean": 1283.7666015625,
+          "cumulative_return": -706.2007673666642,
+          "cumulative_search": 42.020089285714285,
+          "cumulative_delivery": 38.31229073660714
+        },
+        "10000": {
+          "episode": 10000,
+          "window": 1024,
+          "return": -488.3862483257684,
+          "return_std": 210.16511454672548,
+          "search": 43.33984375,
+          "delivery": 41.56529017857143,
+          "global_step_at_episode": 14692352,
+          "episode_length_mean": 1155.845703125,
+          "cumulative_return": -664.684028957538,
+          "cumulative_search": 42.21114285714286,
+          "cumulative_delivery": 38.85542857142857
+        },
+        "11675": {
+          "episode": 11675,
+          "window": 1024,
+          "return": -533.4325604987157,
+          "return_std": 240.99464006789313,
+          "search": 44.88560267857143,
+          "delivery": 43.018973214285715,
+          "global_step_at_episode": 15216640,
+          "episode_length_mean": 1196.955078125,
+          "cumulative_return": -644.2394311767843,
+          "cumulative_search": 42.54389721627409,
+          "cumulative_delivery": 39.40825940654634
+        },
+        "12000": {
+          "episode": 12000,
+          "window": 1024,
+          "return": -551.0049876493424,
+          "return_std": 262.7482075949456,
+          "search": 45.298549107142854,
+          "delivery": 43.426339285714285,
+          "global_step_at_episode": 15466496,
+          "episode_length_mean": 1212.0927734375,
+          "cumulative_return": -642.5960325670651,
+          "cumulative_search": 42.629285714285714,
+          "cumulative_delivery": 39.527142857142856
+        },
+        "15000": {
+          "episode": 15000,
+          "window": 1024,
+          "return": -392.3579235789073,
+          "return_std": 210.2532008748777,
+          "search": 45.809151785714285,
+          "delivery": 44.64285714285714,
+          "global_step_at_episode": 19689472,
+          "episode_length_mean": 1151.7294921875,
+          "cumulative_return": -596.8302350343334,
+          "cumulative_search": 43.09771428571429,
+          "cumulative_delivery": 40.37161904761904
+        },
+        "16384": {
+          "episode": 16384,
+          "window": 1024,
+          "return": -491.5254544321562,
+          "return_std": 271.0825475047824,
+          "search": 46.79129464285714,
+          "delivery": 45.30412946428571,
+          "global_step_at_episode": 21934080,
+          "episode_length_mean": 1207.6103515625,
+          "cumulative_return": -586.3329305632968,
+          "cumulative_search": 43.39076450892857,
+          "cumulative_delivery": 40.77671595982143
+        },
+        "20000": {
+          "episode": 20000,
+          "window": 1024,
+          "return": -328.29190359133645,
+          "return_std": 268.31538277357157,
+          "search": 50.560825892857146,
+          "delivery": 49.16294642857143,
+          "global_step_at_episode": 24965120,
+          "episode_length_mean": 1169.63671875,
+          "cumulative_return": -522.4272911512775,
+          "cumulative_search": 44.61785714285714,
+          "cumulative_delivery": 42.235
+        }
+      },
+      "training_at_common_episode": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -1052.2686369442104,
+        "return_std": 223.536089552239,
+        "search": 39.36941964285714,
+        "delivery": 33.08872767857142,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1289.4609375,
+        "cumulative_return": -870.636032960085,
+        "cumulative_search": 39.954659598214285,
+        "cumulative_delivery": 34.38685825892857
+      },
+      "validation": [
+        {
+          "checkpoint_global_step": 1843200,
+          "logged_global_step": 1978368,
+          "delivery": 14.285714285714286,
+          "search": 26.857142857142854,
+          "return": -2386.386140931584
+        },
+        {
+          "checkpoint_global_step": 3686400,
+          "logged_global_step": 3780608,
+          "delivery": 28.571428571428573,
+          "search": 29.71428571428571,
+          "return": -1456.483038010169
+        },
+        {
+          "checkpoint_global_step": 5529600,
+          "logged_global_step": 5619712,
+          "delivery": 25.714285714285715,
+          "search": 27.428571428571427,
+          "return": -1586.7550924213604
+        },
+        {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7471104,
+          "delivery": 32.0,
+          "search": 34.28571428571429,
+          "return": -1844.6147633968853
+        },
+        {
+          "checkpoint_global_step": 9216000,
+          "logged_global_step": 9306112,
+          "delivery": 32.57142857142857,
+          "search": 32.57142857142857,
+          "return": -1150.1571891232393
+        },
+        {
+          "checkpoint_global_step": 11059200,
+          "logged_global_step": 11145216,
+          "delivery": 44.0,
+          "search": 45.714285714285715,
+          "return": -968.9746146331833
+        },
+        {
+          "checkpoint_global_step": 12902400,
+          "logged_global_step": 12992512,
+          "delivery": 49.71428571428571,
+          "search": 50.85714285714285,
+          "return": -1025.7186552894302
+        },
+        {
+          "checkpoint_global_step": 14745600,
+          "logged_global_step": 14807040,
+          "delivery": 41.71428571428571,
+          "search": 41.71428571428571,
+          "return": -1118.0651042162208
+        },
+        {
+          "checkpoint_global_step": 16588800,
+          "logged_global_step": 16670720,
+          "delivery": 34.857142857142854,
+          "search": 34.857142857142854,
+          "return": -967.3236740730703
+        },
+        {
+          "checkpoint_global_step": 18432000,
+          "logged_global_step": 18513920,
+          "delivery": 40.0,
+          "search": 40.57142857142857,
+          "return": -904.4122150199255
+        },
+        {
+          "checkpoint_global_step": 20275200,
+          "logged_global_step": 20340736,
+          "delivery": 41.142857142857146,
+          "search": 42.28571428571428,
+          "return": -966.1142428201711
+        },
+        {
+          "checkpoint_global_step": 22118400,
+          "logged_global_step": 22192128,
+          "delivery": 51.42857142857143,
+          "search": 53.142857142857146,
+          "return": -386.4650126732129
+        },
+        {
+          "checkpoint_global_step": 23961600,
+          "logged_global_step": 24031232,
+          "delivery": 44.57142857142857,
+          "search": 44.57142857142857,
+          "return": -434.96298029655884
+        }
+      ],
+      "validation_at_common_checkpoint": {
+        "checkpoint_global_step": 7372800,
+        "logged_global_step": 7471104,
+        "delivery": 32.0,
+        "search": 34.28571428571429,
+        "return": -1844.6147633968853
+      },
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/f55774e2"
+    },
+    {
+      "algorithm": "matd3",
+      "case": 3,
+      "id": "55158605",
+      "name": "MATD3-BASE-IND-NOCHUNK-DEFAULT-ALN-H512-U16-T35-O25-S44-55158605",
+      "created_at": "2026-11-07T20:25:07Z",
+      "state": "finished",
+      "configured_episodes": 20000,
+      "observed_episodes": 16384,
+      "last_episode_global_step": 24576000,
+      "summary_global_step": 29003776,
+      "best_checkpoint_step": 3686400,
+      "best_validation": {
+        "delivery": 22.85714285714286,
+        "search": 24,
+        "return": -2596.3516903191803
+      },
+      "best_checkpoint_storage": {
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "31154cc12c9169eb3832cb3d8efbb8a1a1dc9f23",
+        "sha256": "e8afe292cb4aa5e9ecf61cb99d37f5e83e31c8551378b4866bc7eddfd9f102e7",
+        "checkpoint_config_sha256": "c6d29eaba73b89ca47483e3c7985c272681b4cd6e6349959592e28c7b39c937f",
+        "episode": 0
+      },
+      "runtime_seconds": 38799,
+      "scenario_sha256": "5dc95846027125c7e097e2f455c6195844f86bef34cae04445f1acf605d8cedb",
+      "runtime_protocol_sha256": "16fec3b868f5b7a8ca595fb55f4646af54197ac8a8f213a9d8f8e37fa00146a8",
+      "case_fingerprint_sha256": "172a5c8084a81a04c38007ba159d318d193435369fb903324541c058467ea714",
+      "source_git_commit": "a6e07a8f4b199028298b6ffd9a47f2cecd654fc9",
+      "evaluation_protocol": {
+        "evaluation_interval_steps": 1843200,
+        "periodic_evaluation_episodes": 5,
+        "periodic_evaluation_seed": 1000000044,
+        "evaluation_interval": 0,
+        "evaluation_timeout_seconds": 900,
+        "eval_seed": 2000000044,
+        "eval_episodes": 30
+      },
+      "scientific_config": {
+        "world": {
+          "num_uavs": 6,
+          "num_targets": 35,
+          "num_obstacles": 25,
+          "map_size_m": 1000,
+          "max_steps": 1500
+        },
+        "actor_layer_norm": true,
+        "share_actor_parameters": false,
+        "share_critic_parameters": false,
+        "hidden_sizes": [
+          512,
+          512
+        ],
+        "updates_per_step": 16,
+        "batch_size": 8192,
+        "replay_capacity": 1000000,
+        "seed": 44
+      },
+      "training_milestones": {
+        "4096": {
+          "episode": 4096,
+          "window": 1024,
+          "return": -1958.786928455474,
+          "return_std": 168.31555638550813,
+          "search": 28.247767857142858,
+          "delivery": 23.289620535714285,
+          "global_step_at_episode": 6144000,
+          "episode_length_mean": 1500.0,
+          "cumulative_return": -1961.6256468772142,
+          "cumulative_search": 28.016880580357142,
+          "cumulative_delivery": 23.065708705357142
+        },
+        "8192": {
+          "episode": 8192,
+          "window": 1024,
+          "return": -2316.52907390794,
+          "return_std": 102.47285201540592,
+          "search": 11.107700892857142,
+          "delivery": 8.57142857142857,
+          "global_step_at_episode": 12288000,
+          "episode_length_mean": 1500.0,
+          "cumulative_return": -2140.8487580764904,
+          "cumulative_search": 19.520438058035715,
+          "cumulative_delivery": 15.747767857142858
+        },
+        "10000": {
+          "episode": 10000,
+          "window": 1024,
+          "return": -2266.5498100504165,
+          "return_std": 139.62850072197796,
+          "search": 13.962053571428573,
+          "delivery": 13.459821428571429,
+          "global_step_at_episode": 18432000,
+          "episode_length_mean": 1500.0,
+          "cumulative_return": -2163.1107817921,
+          "cumulative_search": 18.519714285714286,
+          "cumulative_delivery": 15.339714285714287
+        },
+        "11675": {
+          "episode": 11675,
+          "window": 1024,
+          "return": -2269.9842011346364,
+          "return_std": 130.92678513076604,
+          "search": 13.814174107142858,
+          "delivery": 13.334263392857142,
+          "global_step_at_episode": 18432000,
+          "episode_length_mean": 1500.0,
+          "cumulative_return": -2178.0691021424554,
+          "cumulative_search": 17.864790455796882,
+          "cumulative_delivery": 15.06931783420006
+        },
+        "12000": {
+          "episode": 12000,
+          "window": 1024,
+          "return": -2264.0083682468085,
+          "return_std": 133.5733401128831,
+          "search": 14.015066964285714,
+          "delivery": 13.515625,
+          "global_step_at_episode": 18432000,
+          "episode_length_mean": 1500.0,
+          "cumulative_return": -2180.321116616765,
+          "cumulative_search": 17.761904761904763,
+          "cumulative_delivery": 15.026666666666667
+        },
+        "15000": {
+          "episode": 15000,
+          "window": 1024,
+          "return": -2948.325667956493,
+          "return_std": 110.51192025594311,
+          "search": 5.535714285714285,
+          "delivery": 2.720424107142857,
+          "global_step_at_episode": 24576000,
+          "episode_length_mean": 1500.0,
+          "cumulative_return": -2321.5321471788966,
+          "cumulative_search": 15.475428571428573,
+          "cumulative_delivery": 12.764761904761905
+        },
+        "16384": {
+          "episode": 16384,
+          "window": 1024,
+          "return": -2947.7319292038246,
+          "return_std": 113.22144692965416,
+          "search": 5.611049107142857,
+          "delivery": 2.7622767857142856,
+          "global_step_at_episode": 24576000,
+          "episode_length_mean": 1500.0,
+          "cumulative_return": -2374.6383957396656,
+          "cumulative_search": 14.641985212053571,
+          "cumulative_delivery": 11.920514787946429
+        }
+      },
+      "training_at_common_episode": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -1958.786928455474,
+        "return_std": 168.31555638550813,
+        "search": 28.247767857142858,
+        "delivery": 23.289620535714285,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1500.0,
+        "cumulative_return": -1961.6256468772142,
+        "cumulative_search": 28.016880580357142,
+        "cumulative_delivery": 23.065708705357142
+      },
+      "validation": [
+        {
+          "checkpoint_global_step": 1843200,
+          "logged_global_step": 1912832,
+          "delivery": 6.857142857142857,
+          "search": 12.0,
+          "return": -2474.4229806265794
+        },
+        {
+          "checkpoint_global_step": 3686400,
+          "logged_global_step": 3743744,
+          "delivery": 22.85714285714286,
+          "search": 24.0,
+          "return": -2596.3516903191803
+        },
+        {
+          "checkpoint_global_step": 5529600,
+          "logged_global_step": 5586944,
+          "delivery": 15.428571428571427,
+          "search": 16.57142857142857,
+          "return": -2672.815786833316
+        },
+        {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7430144,
+          "delivery": 1.1428571428571428,
+          "search": 2.857142857142857,
+          "return": -2536.337095688004
+        },
+        {
+          "checkpoint_global_step": 9216000,
+          "logged_global_step": 9273344,
+          "delivery": 1.7142857142857142,
+          "search": 1.7142857142857142,
+          "return": -2505.5472785964607
+        },
+        {
+          "checkpoint_global_step": 11059200,
+          "logged_global_step": 11116544,
+          "delivery": 10.857142857142858,
+          "search": 10.857142857142858,
+          "return": -2202.349250791967
+        },
+        {
+          "checkpoint_global_step": 12902400,
+          "logged_global_step": 12959744,
+          "delivery": 6.2857142857142865,
+          "search": 8.571428571428571,
+          "return": -3044.343803960085
+        },
+        {
+          "checkpoint_global_step": 14745600,
+          "logged_global_step": 14802944,
+          "delivery": 10.857142857142858,
+          "search": 10.857142857142858,
+          "return": -2748.5538011144845
+        },
+        {
+          "checkpoint_global_step": 16588800,
+          "logged_global_step": 16646144,
+          "delivery": 4.0,
+          "search": 4.0,
+          "return": -2997.823025048617
+        },
+        {
+          "checkpoint_global_step": 18432000,
+          "logged_global_step": 18481152,
+          "delivery": 2.2857142857142856,
+          "search": 2.2857142857142856,
+          "return": -3522.036983559653
+        },
+        {
+          "checkpoint_global_step": 20275200,
+          "logged_global_step": 20332544,
+          "delivery": 0.5714285714285714,
+          "search": 0.5714285714285714,
+          "return": -3440.984367930144
+        },
+        {
+          "checkpoint_global_step": 22118400,
+          "logged_global_step": 22171648,
+          "delivery": 0.0,
+          "search": 0.0,
+          "return": -3183.701701368764
+        },
+        {
+          "checkpoint_global_step": 23961600,
+          "logged_global_step": 24014848,
+          "delivery": 1.7142857142857142,
+          "search": 3.4285714285714284,
+          "return": -3040.37781518437
+        },
+        {
+          "checkpoint_global_step": 25804800,
+          "logged_global_step": 25858048,
+          "delivery": 0.0,
+          "search": 0.0,
+          "return": -2599.1825063183906
+        },
+        {
+          "checkpoint_global_step": 27648000,
+          "logged_global_step": 27705344,
+          "delivery": 0.0,
+          "search": 1.1428571428571428,
+          "return": -2634.126195811853
+        }
+      ],
+      "validation_at_common_checkpoint": {
+        "checkpoint_global_step": 7372800,
+        "logged_global_step": 7430144,
+        "delivery": 1.1428571428571428,
+        "search": 2.857142857142857,
+        "return": -2536.337095688004
+      },
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/55158605"
+    },
+    {
+      "algorithm": "matd3",
+      "case": 4,
+      "id": "baf27732",
+      "name": "MATD3-BASE-IND-NOCHUNK-DEFAULT-NOLN-H512-U16-T35-O25-S44-baf27732",
+      "created_at": "2026-11-07T20:23:20Z",
+      "state": "finished",
+      "configured_episodes": 20000,
+      "observed_episodes": 20000,
+      "last_episode_global_step": 30720000,
+      "summary_global_step": 30720000,
+      "best_checkpoint_step": 22118400,
+      "best_validation": {
+        "delivery": 25.14285714285714,
+        "search": 27.428571428571427,
+        "return": -2410.2433308653535
+      },
+      "best_checkpoint_storage": {
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "cad27b66c150ac0d5063f100ffda8675c6ba4390",
+        "sha256": "5ba1c4f151831739f284d4c6b7c6ff7795936b948983a4f19e73e7e99e1262f4",
+        "checkpoint_config_sha256": "50251f8e4fa32a5120a7080f9ff9c11bcfe707bf7c460d639354d5fd42064f1e",
+        "episode": 12288
+      },
+      "runtime_seconds": 37505,
+      "scenario_sha256": "5dc95846027125c7e097e2f455c6195844f86bef34cae04445f1acf605d8cedb",
+      "runtime_protocol_sha256": "16fec3b868f5b7a8ca595fb55f4646af54197ac8a8f213a9d8f8e37fa00146a8",
+      "case_fingerprint_sha256": "240db49d13b0c44b04788fb9cdd5c9ead9610a9226b7615c77b1792cc690db90",
+      "source_git_commit": "a6e07a8f4b199028298b6ffd9a47f2cecd654fc9",
+      "evaluation_protocol": {
+        "evaluation_interval_steps": 1843200,
+        "periodic_evaluation_episodes": 5,
+        "periodic_evaluation_seed": 1000000044,
+        "evaluation_interval": 0,
+        "evaluation_timeout_seconds": 900,
+        "eval_seed": 2000000044,
+        "eval_episodes": 30
+      },
+      "scientific_config": {
+        "world": {
+          "num_uavs": 6,
+          "num_targets": 35,
+          "num_obstacles": 25,
+          "map_size_m": 1000,
+          "max_steps": 1500
+        },
+        "actor_layer_norm": false,
+        "share_actor_parameters": false,
+        "share_critic_parameters": false,
+        "hidden_sizes": [
+          512,
+          512
+        ],
+        "updates_per_step": 16,
+        "batch_size": 8192,
+        "replay_capacity": 1000000,
+        "seed": 44
+      },
+      "training_milestones": {
+        "4096": {
+          "episode": 4096,
+          "window": 1024,
+          "return": -2179.1244654287684,
+          "return_std": 161.72131989436645,
+          "search": 24.45033482142857,
+          "delivery": 21.595982142857142,
+          "global_step_at_episode": 6144000,
+          "episode_length_mean": 1500.0,
+          "cumulative_return": -2180.877801645412,
+          "cumulative_search": 24.344308035714285,
+          "cumulative_delivery": 21.4453125
+        },
+        "8192": {
+          "episode": 8192,
+          "window": 1024,
+          "return": -2561.744364013009,
+          "return_std": 136.22768393937446,
+          "search": 15.686383928571429,
+          "delivery": 12.310267857142858,
+          "global_step_at_episode": 12288000,
+          "episode_length_mean": 1500.0,
+          "cumulative_return": -2371.29545561729,
+          "cumulative_search": 20.02685546875,
+          "cumulative_delivery": 16.86279296875
+        },
+        "10000": {
+          "episode": 10000,
+          "window": 1024,
+          "return": -2058.60980883292,
+          "return_std": 162.22433645398345,
+          "search": 21.41183035714286,
+          "delivery": 19.506138392857142,
+          "global_step_at_episode": 18432000,
+          "episode_length_mean": 1500.0,
+          "cumulative_return": -2315.0454132453237,
+          "cumulative_search": 20.27914285714286,
+          "cumulative_delivery": 17.332
+        },
+        "11675": {
+          "episode": 11675,
+          "window": 1024,
+          "return": -2071.113886173203,
+          "return_std": 155.04695071168464,
+          "search": 20.78125,
+          "delivery": 18.939732142857146,
+          "global_step_at_episode": 18432000,
+          "episode_length_mean": 1500.0,
+          "cumulative_return": -2280.4877931363535,
+          "cumulative_search": 20.355582747017436,
+          "cumulative_delivery": 17.554236769654327
+        },
+        "12000": {
+          "episode": 12000,
+          "window": 1024,
+          "return": -2071.82429387454,
+          "return_std": 155.98087747351863,
+          "search": 20.792410714285715,
+          "delivery": 18.973214285714285,
+          "global_step_at_episode": 18432000,
+          "episode_length_mean": 1500.0,
+          "cumulative_return": -2274.707201522968,
+          "cumulative_search": 20.374761904761908,
+          "cumulative_delivery": 17.60047619047619
+        },
+        "15000": {
+          "episode": 15000,
+          "window": 1024,
+          "return": -2153.8952944762095,
+          "return_std": 166.49523380578188,
+          "search": 26.763392857142854,
+          "delivery": 24.82700892857143,
+          "global_step_at_episode": 24576000,
+          "episode_length_mean": 1500.0,
+          "cumulative_return": -2247.8738736083847,
+          "cumulative_search": 21.56,
+          "cumulative_delivery": 18.953523809523812
+        },
+        "16384": {
+          "episode": 16384,
+          "window": 1024,
+          "return": -2146.850157021367,
+          "return_std": 163.89063101092924,
+          "search": 26.79408482142857,
+          "delivery": 24.955357142857142,
+          "global_step_at_episode": 24576000,
+          "episode_length_mean": 1500.0,
+          "cumulative_return": -2239.2473052775094,
+          "cumulative_search": 22.010498046875,
+          "cumulative_delivery": 19.46934291294643
+        },
+        "20000": {
+          "episode": 20000,
+          "window": 1024,
+          "return": -2283.309539874266,
+          "return_std": 144.250279553246,
+          "search": 15.666852678571427,
+          "delivery": 14.732142857142856,
+          "global_step_at_episode": 30720000,
+          "episode_length_mean": 1500.0,
+          "cumulative_return": -2246.651369342394,
+          "cumulative_search": 20.883142857142857,
+          "cumulative_delivery": 18.628857142857147
+        }
+      },
+      "training_at_common_episode": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -2179.1244654287684,
+        "return_std": 161.72131989436645,
+        "search": 24.45033482142857,
+        "delivery": 21.595982142857142,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1500.0,
+        "cumulative_return": -2180.877801645412,
+        "cumulative_search": 24.344308035714285,
+        "cumulative_delivery": 21.4453125
+      },
+      "validation": [
+        {
+          "checkpoint_global_step": 1843200,
+          "logged_global_step": 1925120,
+          "delivery": 0.0,
+          "search": 0.0,
+          "return": -3499.5939831804485
+        },
+        {
+          "checkpoint_global_step": 3686400,
+          "logged_global_step": 3760128,
+          "delivery": 18.285714285714285,
+          "search": 18.857142857142858,
+          "return": -2412.2553753875195
+        },
+        {
+          "checkpoint_global_step": 5529600,
+          "logged_global_step": 5599232,
+          "delivery": 21.142857142857146,
+          "search": 26.857142857142854,
+          "return": -2186.8093556063714
+        },
+        {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7442432,
+          "delivery": 0.0,
+          "search": 0.0,
+          "return": -3285.2697400175966
+        },
+        {
+          "checkpoint_global_step": 9216000,
+          "logged_global_step": 9289728,
+          "delivery": 9.714285714285714,
+          "search": 13.142857142857144,
+          "return": -2654.1965612947943
+        },
+        {
+          "checkpoint_global_step": 11059200,
+          "logged_global_step": 11132928,
+          "delivery": 13.142857142857142,
+          "search": 15.428571428571427,
+          "return": -2644.7680702591315
+        },
+        {
+          "checkpoint_global_step": 12902400,
+          "logged_global_step": 12967936,
+          "delivery": 3.4285714285714284,
+          "search": 3.4285714285714284,
+          "return": -2564.5959375068546
+        },
+        {
+          "checkpoint_global_step": 14745600,
+          "logged_global_step": 14819328,
+          "delivery": 4.571428571428571,
+          "search": 7.428571428571428,
+          "return": -2433.781304212287
+        },
+        {
+          "checkpoint_global_step": 16588800,
+          "logged_global_step": 16658432,
+          "delivery": 10.285714285714286,
+          "search": 13.142857142857142,
+          "return": -2338.510816381872
+        },
+        {
+          "checkpoint_global_step": 18432000,
+          "logged_global_step": 18497536,
+          "delivery": 9.714285714285714,
+          "search": 10.285714285714286,
+          "return": -2548.401316838339
+        },
+        {
+          "checkpoint_global_step": 20275200,
+          "logged_global_step": 20344832,
+          "delivery": 10.857142857142858,
+          "search": 12.571428571428573,
+          "return": -2877.2684803538023
+        },
+        {
+          "checkpoint_global_step": 22118400,
+          "logged_global_step": 22188032,
+          "delivery": 25.14285714285714,
+          "search": 27.428571428571427,
+          "return": -2410.2433308653535
+        },
+        {
+          "checkpoint_global_step": 23961600,
+          "logged_global_step": 24031232,
+          "delivery": 13.142857142857142,
+          "search": 14.285714285714283,
+          "return": -2419.469554774719
+        },
+        {
+          "checkpoint_global_step": 25804800,
+          "logged_global_step": 25870336,
+          "delivery": 1.7142857142857142,
+          "search": 1.7142857142857142,
+          "return": -2730.616705623269
+        },
+        {
+          "checkpoint_global_step": 27648000,
+          "logged_global_step": 27717632,
+          "delivery": 22.28571428571429,
+          "search": 22.28571428571429,
+          "return": -2027.230969126243
+        },
+        {
+          "checkpoint_global_step": 29491200,
+          "logged_global_step": 29560832,
+          "delivery": 7.428571428571429,
+          "search": 10.285714285714286,
+          "return": -3074.4763392910363
+        }
+      ],
+      "validation_at_common_checkpoint": {
+        "checkpoint_global_step": 7372800,
+        "logged_global_step": 7442432,
+        "delivery": 0.0,
+        "search": 0.0,
+        "return": -3285.2697400175966
+      },
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/baf27732"
+    },
+    {
+      "algorithm": "matd3",
+      "case": 5,
+      "id": "635d7134",
+      "name": "MATD3-BASE-SH-NOCHUNK-DEFAULT-ALN-H256-U8-T35-O25-S44-635d7134",
+      "created_at": "2026-11-07T20:20:37Z",
+      "state": "finished",
+      "configured_episodes": 20000,
+      "observed_episodes": 20000,
+      "last_episode_global_step": 22331392,
+      "summary_global_step": 22331392,
+      "best_checkpoint_step": 12902400,
+      "best_validation": {
+        "delivery": 51.42857142857142,
+        "search": 53.14285714285713,
+        "return": -413.38954237051513
+      },
+      "best_checkpoint_storage": {
+        "backend": "huggingface",
+        "repo_id": "duy95/uav-search-checkpoints",
+        "revision": "8725fb014433977d3e706652b714792bb6038550",
+        "sha256": "57c4a90f7dafc8673f40a7a524106ecacc4cc12fc466a605b36a3dcd7ce69320",
+        "checkpoint_config_sha256": "08135f917ea372f781c3dcdda82ac58ef94dbb2518ba8ae49b588ed6e67cb584",
+        "episode": 8923
+      },
+      "runtime_seconds": 6260,
+      "scenario_sha256": "5dc95846027125c7e097e2f455c6195844f86bef34cae04445f1acf605d8cedb",
+      "runtime_protocol_sha256": "16fec3b868f5b7a8ca595fb55f4646af54197ac8a8f213a9d8f8e37fa00146a8",
+      "case_fingerprint_sha256": "29ec6aceb55fd800f87fd30fe71ae829e40f63e063dc69103a6546ac5f3a5876",
+      "source_git_commit": "a6e07a8f4b199028298b6ffd9a47f2cecd654fc9",
+      "evaluation_protocol": {
+        "evaluation_interval_steps": 1843200,
+        "periodic_evaluation_episodes": 5,
+        "periodic_evaluation_seed": 1000000044,
+        "evaluation_interval": 0,
+        "evaluation_timeout_seconds": 900,
+        "eval_seed": 2000000044,
+        "eval_episodes": 30
+      },
+      "scientific_config": {
+        "world": {
+          "num_uavs": 6,
+          "num_targets": 35,
+          "num_obstacles": 25,
+          "map_size_m": 1000,
+          "max_steps": 1500
+        },
+        "actor_layer_norm": true,
+        "share_actor_parameters": true,
+        "share_critic_parameters": true,
+        "hidden_sizes": [
+          256,
+          256
+        ],
+        "updates_per_step": 8,
+        "batch_size": 8192,
+        "replay_capacity": 1000000,
+        "seed": 44
+      },
+      "training_milestones": {
+        "4096": {
+          "episode": 4096,
+          "window": 1024,
+          "return": -561.7495017156349,
+          "return_std": 202.15978450998003,
+          "search": 48.98158482142857,
+          "delivery": 45.708705357142854,
+          "global_step_at_episode": 5939200,
+          "episode_length_mean": 1194.1318359375,
+          "cumulative_return": -411.8844739492746,
+          "cumulative_search": 47.72739955357143,
+          "cumulative_delivery": 45.28041294642857
+        },
+        "8192": {
+          "episode": 8192,
+          "window": 1024,
+          "return": -234.9972526917405,
+          "return_std": 217.14484644022008,
+          "search": 41.66573660714286,
+          "delivery": 40.87053571428571,
+          "global_step_at_episode": 10592256,
+          "episode_length_mean": 1093.1845703125,
+          "cumulative_return": -304.0854431613967,
+          "cumulative_search": 44.463936941964285,
+          "cumulative_delivery": 42.918526785714285
+        },
+        "10000": {
+          "episode": 10000,
+          "window": 1024,
+          "return": 141.3429768502034,
+          "return_std": 182.67649102084707,
+          "search": 49.31640625,
+          "delivery": 47.65625,
+          "global_step_at_episode": 13099008,
+          "episode_length_mean": 1015.08984375,
+          "cumulative_return": -221.861367867772,
+          "cumulative_search": 45.32657142857143,
+          "cumulative_delivery": 43.75542857142857
+        },
+        "11675": {
+          "episode": 11675,
+          "window": 1024,
+          "return": 107.36674501963651,
+          "return_std": 204.65233518074515,
+          "search": 49.74330357142857,
+          "delivery": 48.13895089285714,
+          "global_step_at_episode": 13475840,
+          "episode_length_mean": 1035.7568359375,
+          "cumulative_return": -174.528917301843,
+          "cumulative_search": 45.899296420923825,
+          "cumulative_delivery": 44.32768430712756
+        },
+        "12000": {
+          "episode": 12000,
+          "window": 1024,
+          "return": 90.60245773653459,
+          "return_std": 213.16600343257932,
+          "search": 49.715401785714285,
+          "delivery": 48.04966517857143,
+          "global_step_at_episode": 13668352,
+          "episode_length_mean": 1043.7421875,
+          "cumulative_return": -168.48987801720153,
+          "cumulative_search": 45.99285714285714,
+          "cumulative_delivery": 44.413333333333334
+        },
+        "15000": {
+          "episode": 15000,
+          "window": 1024,
+          "return": 87.1380220084672,
+          "return_std": 187.75071862562936,
+          "search": 46.96149553571429,
+          "delivery": 45.43247767857143,
+          "global_step_at_episode": 17530880,
+          "episode_length_mean": 1032.607421875,
+          "cumulative_return": -116.27538622150668,
+          "cumulative_search": 46.17923809523809,
+          "cumulative_delivery": 44.61257142857142
+        },
+        "16384": {
+          "episode": 16384,
+          "window": 1024,
+          "return": -37.73167471678413,
+          "return_std": 285.3694918399802,
+          "search": 46.77734375,
+          "delivery": 44.7265625,
+          "global_step_at_episode": 20246528,
+          "episode_length_mean": 1086.251953125,
+          "cumulative_return": -107.39928538812151,
+          "cumulative_search": 46.22907366071428,
+          "cumulative_delivery": 44.624197823660715
+        },
+        "20000": {
+          "episode": 20000,
+          "window": 1024,
+          "return": 4.266980234576431,
+          "return_std": 238.42437049447213,
+          "search": 46.85267857142857,
+          "delivery": 45.203683035714285,
+          "global_step_at_episode": 22331392,
+          "episode_length_mean": 1069.0595703125,
+          "cumulative_return": -80.28982994492571,
+          "cumulative_search": 46.01271428571428,
+          "cumulative_delivery": 44.40442857142857
+        }
+      },
+      "training_at_common_episode": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -561.7495017156349,
+        "return_std": 202.15978450998003,
+        "search": 48.98158482142857,
+        "delivery": 45.708705357142854,
+        "global_step_at_episode": 5939200,
+        "episode_length_mean": 1194.1318359375,
+        "cumulative_return": -411.8844739492746,
+        "cumulative_search": 47.72739955357143,
+        "cumulative_delivery": 45.28041294642857
+      },
+      "validation": [
+        {
+          "checkpoint_global_step": 1843200,
+          "logged_global_step": 2224128,
+          "delivery": 15.428571428571427,
+          "search": 18.285714285714285,
+          "return": -2288.5019055237995
+        },
+        {
+          "checkpoint_global_step": 3686400,
+          "logged_global_step": 3993600,
+          "delivery": 22.857142857142858,
+          "search": 29.142857142857146,
+          "return": -1560.2239698055666
+        },
+        {
+          "checkpoint_global_step": 5529600,
+          "logged_global_step": 5783552,
+          "delivery": 30.85714285714286,
+          "search": 31.428571428571434,
+          "return": -961.9431801738101
+        },
+        {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7614464,
+          "delivery": 40.57142857142857,
+          "search": 42.28571428571429,
+          "return": -200.82172617607867
+        },
+        {
+          "checkpoint_global_step": 9216000,
+          "logged_global_step": 9363456,
+          "delivery": 41.142857142857146,
+          "search": 42.28571428571429,
+          "return": -143.47216965659464
+        },
+        {
+          "checkpoint_global_step": 11059200,
+          "logged_global_step": 11296768,
+          "delivery": 46.857142857142854,
+          "search": 54.28571428571428,
+          "return": -275.7350411570631
+        },
+        {
+          "checkpoint_global_step": 12902400,
+          "logged_global_step": 13012992,
+          "delivery": 51.42857142857142,
+          "search": 53.14285714285713,
+          "return": -413.38954237051513
+        },
+        {
+          "checkpoint_global_step": 14745600,
+          "logged_global_step": 14962688,
+          "delivery": 36.0,
+          "search": 36.57142857142857,
+          "return": -268.92455982989634
+        },
+        {
+          "checkpoint_global_step": 16588800,
+          "logged_global_step": 16789504,
+          "delivery": 50.85714285714286,
+          "search": 54.28571428571429,
+          "return": 176.71541016097763
+        },
+        {
+          "checkpoint_global_step": 18432000,
+          "logged_global_step": 18640896,
+          "delivery": 33.714285714285715,
+          "search": 34.28571428571429,
+          "return": -109.33080048526463
+        },
+        {
+          "checkpoint_global_step": 20275200,
+          "logged_global_step": 20500480,
+          "delivery": 27.428571428571427,
+          "search": 34.28571428571429,
+          "return": -624.6478381264257
+        },
+        {
+          "checkpoint_global_step": 22118400,
+          "logged_global_step": 22249472,
+          "delivery": 46.85714285714286,
+          "search": 48.0,
+          "return": -84.29303425808902
+        }
+      ],
+      "validation_at_common_checkpoint": {
+        "checkpoint_global_step": 7372800,
+        "logged_global_step": 7614464,
+        "delivery": 40.57142857142857,
+        "search": 42.28571428571429,
+        "return": -200.82172617607867
+      },
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/635d7134"
+    }
+  ],
+  "pairwise": {
+    "matd3_01_vs_02_updates8_vs16": {
+      "episode_cutoff": 20000,
+      "window": 1024,
+      "left": {
+        "episode": 20000,
+        "window": 1024,
+        "return": 169.3974359480962,
+        "return_std": 320.0445934419117,
+        "search": 54.07366071428571,
+        "delivery": 52.44698660714286,
+        "global_step_at_episode": 24190976,
+        "episode_length_mean": 1031.5556640625,
+        "cumulative_return": -241.1117043759326,
+        "cumulative_search": 47.82042857142857,
+        "cumulative_delivery": 45.90614285714286
+      },
+      "right": {
+        "episode": 20000,
+        "window": 1024,
+        "return": -328.29190359133645,
+        "return_std": 268.31538277357157,
+        "search": 50.560825892857146,
+        "delivery": 49.16294642857143,
+        "global_step_at_episode": 24965120,
+        "episode_length_mean": 1169.63671875,
+        "cumulative_return": -522.4272911512775,
+        "cumulative_search": 44.61785714285714,
+        "cumulative_delivery": 42.235
+      },
+      "delta_delivery_left_minus_right": 3.2840401785714306,
+      "delta_return_left_minus_right": 497.68933953943264,
+      "validation_at_latest_shared_checkpoint": {
+        "checkpoint_global_step": 23961600,
+        "left": {
+          "checkpoint_global_step": 23961600,
+          "logged_global_step": 24088576,
+          "delivery": 58.28571428571429,
+          "search": 60.0,
+          "return": 366.97217682260344
+        },
+        "right": {
+          "checkpoint_global_step": 23961600,
+          "logged_global_step": 24031232,
+          "delivery": 44.57142857142857,
+          "search": 44.57142857142857,
+          "return": -434.96298029655884
+        },
+        "delta_delivery_left_minus_right": 13.714285714285722,
+        "delta_return_left_minus_right": 801.9351571191623
+      }
+    },
+    "matd3_01_vs_05_width512_vs256": {
+      "episode_cutoff": 20000,
+      "window": 1024,
+      "left": {
+        "episode": 20000,
+        "window": 1024,
+        "return": 169.3974359480962,
+        "return_std": 320.0445934419117,
+        "search": 54.07366071428571,
+        "delivery": 52.44698660714286,
+        "global_step_at_episode": 24190976,
+        "episode_length_mean": 1031.5556640625,
+        "cumulative_return": -241.1117043759326,
+        "cumulative_search": 47.82042857142857,
+        "cumulative_delivery": 45.90614285714286
+      },
+      "right": {
+        "episode": 20000,
+        "window": 1024,
+        "return": 4.266980234576431,
+        "return_std": 238.42437049447213,
+        "search": 46.85267857142857,
+        "delivery": 45.203683035714285,
+        "global_step_at_episode": 22331392,
+        "episode_length_mean": 1069.0595703125,
+        "cumulative_return": -80.28982994492571,
+        "cumulative_search": 46.01271428571428,
+        "cumulative_delivery": 44.40442857142857
+      },
+      "delta_delivery_left_minus_right": 7.2433035714285765,
+      "delta_return_left_minus_right": 165.13045571351975,
+      "validation_at_latest_shared_checkpoint": {
+        "checkpoint_global_step": 22118400,
+        "left": {
+          "checkpoint_global_step": 22118400,
+          "logged_global_step": 22253568,
+          "delivery": 43.42857142857143,
+          "search": 45.142857142857146,
+          "return": -329.15569580337035
+        },
+        "right": {
+          "checkpoint_global_step": 22118400,
+          "logged_global_step": 22249472,
+          "delivery": 46.85714285714286,
+          "search": 48.0,
+          "return": -84.29303425808902
+        },
+        "delta_delivery_left_minus_right": -3.4285714285714306,
+        "delta_return_left_minus_right": -244.86266154528133
+      }
+    },
+    "matd3_02_vs_03_shared_vs_independent": {
+      "episode_cutoff": 16384,
+      "window": 1024,
+      "left": {
+        "episode": 16384,
+        "window": 1024,
+        "return": -491.5254544321562,
+        "return_std": 271.0825475047824,
+        "search": 46.79129464285714,
+        "delivery": 45.30412946428571,
+        "global_step_at_episode": 21934080,
+        "episode_length_mean": 1207.6103515625,
+        "cumulative_return": -586.3329305632968,
+        "cumulative_search": 43.39076450892857,
+        "cumulative_delivery": 40.77671595982143
+      },
+      "right": {
+        "episode": 16384,
+        "window": 1024,
+        "return": -2947.7319292038246,
+        "return_std": 113.22144692965416,
+        "search": 5.611049107142857,
+        "delivery": 2.7622767857142856,
+        "global_step_at_episode": 24576000,
+        "episode_length_mean": 1500.0,
+        "cumulative_return": -2374.6383957396656,
+        "cumulative_search": 14.641985212053571,
+        "cumulative_delivery": 11.920514787946429
+      },
+      "delta_delivery_left_minus_right": 42.54185267857142,
+      "delta_return_left_minus_right": 2456.2064747716686,
+      "validation_at_latest_shared_checkpoint": {
+        "checkpoint_global_step": 23961600,
+        "left": {
+          "checkpoint_global_step": 23961600,
+          "logged_global_step": 24031232,
+          "delivery": 44.57142857142857,
+          "search": 44.57142857142857,
+          "return": -434.96298029655884
+        },
+        "right": {
+          "checkpoint_global_step": 23961600,
+          "logged_global_step": 24014848,
+          "delivery": 1.7142857142857142,
+          "search": 3.4285714285714284,
+          "return": -3040.37781518437
+        },
+        "delta_delivery_left_minus_right": 42.857142857142854,
+        "delta_return_left_minus_right": 2605.414834887811
+      }
+    },
+    "matd3_03_vs_04_actor_layernorm_vs_plain": {
+      "episode_cutoff": 16384,
+      "window": 1024,
+      "left": {
+        "episode": 16384,
+        "window": 1024,
+        "return": -2947.7319292038246,
+        "return_std": 113.22144692965416,
+        "search": 5.611049107142857,
+        "delivery": 2.7622767857142856,
+        "global_step_at_episode": 24576000,
+        "episode_length_mean": 1500.0,
+        "cumulative_return": -2374.6383957396656,
+        "cumulative_search": 14.641985212053571,
+        "cumulative_delivery": 11.920514787946429
+      },
+      "right": {
+        "episode": 16384,
+        "window": 1024,
+        "return": -2146.850157021367,
+        "return_std": 163.89063101092924,
+        "search": 26.79408482142857,
+        "delivery": 24.955357142857142,
+        "global_step_at_episode": 24576000,
+        "episode_length_mean": 1500.0,
+        "cumulative_return": -2239.2473052775094,
+        "cumulative_search": 22.010498046875,
+        "cumulative_delivery": 19.46934291294643
+      },
+      "delta_delivery_left_minus_right": -22.193080357142858,
+      "delta_return_left_minus_right": -800.8817721824576,
+      "validation_at_latest_shared_checkpoint": {
+        "checkpoint_global_step": 27648000,
+        "left": {
+          "checkpoint_global_step": 27648000,
+          "logged_global_step": 27705344,
+          "delivery": 0.0,
+          "search": 1.1428571428571428,
+          "return": -2634.126195811853
+        },
+        "right": {
+          "checkpoint_global_step": 27648000,
+          "logged_global_step": 27717632,
+          "delivery": 22.28571428571429,
+          "search": 22.28571428571429,
+          "return": -2027.230969126243
+        },
+        "delta_delivery_left_minus_right": -22.28571428571429,
+        "delta_return_left_minus_right": -606.8952266856099
+      }
+    },
+    "masac_01_vs_02_updates8_vs16": {
+      "episode_cutoff": 4096,
+      "window": 1024,
+      "left": {
+        "episode": 4096,
+        "window": 1024,
+        "return": 29.933640016021325,
+        "return_std": 192.4672818169793,
+        "search": 50.60267857142858,
+        "delivery": 44.188058035714285,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1500.0,
+        "cumulative_return": 55.74394078522552,
+        "cumulative_search": 50.518973214285715,
+        "cumulative_delivery": 44.305245535714285
+      },
+      "right": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -548.5534716065406,
+        "return_std": 207.04067279003297,
+        "search": 43.49330357142857,
+        "delivery": 37.26004464285714,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1463.826171875,
+        "cumulative_return": -455.82555105210247,
+        "cumulative_search": 42.700892857142854,
+        "cumulative_delivery": 37.393275669642854
+      },
+      "delta_delivery_left_minus_right": 6.928013392857146,
+      "delta_return_left_minus_right": 578.4871116225619,
+      "validation_at_latest_shared_checkpoint": {
+        "checkpoint_global_step": 7372800,
+        "left": {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7401472,
+          "delivery": 3.4285714285714284,
+          "search": 6.2857142857142865,
+          "return": -3258.939951676503
+        },
+        "right": {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7389184,
+          "delivery": 5.714285714285714,
+          "search": 7.428571428571429,
+          "return": -3138.7148140370846
+        },
+        "delta_delivery_left_minus_right": -2.285714285714286,
+        "delta_return_left_minus_right": -120.22513763941834
+      }
+    },
+    "masac_01_vs_05_width512_vs256": {
+      "episode_cutoff": 11675,
+      "window": 1024,
+      "left": {
+        "episode": 11675,
+        "window": 1024,
+        "return": 9.50903733253459,
+        "return_std": 231.4409794846335,
+        "search": 52.940848214285715,
+        "delivery": 50.853794642857146,
+        "global_step_at_episode": 16412672,
+        "episode_length_mean": 1064.408203125,
+        "cumulative_return": -400.96628823573275,
+        "cumulative_search": 43.91287855613338,
+        "cumulative_delivery": 40.36145610278373
+      },
+      "right": {
+        "episode": 11675,
+        "window": 1024,
+        "return": -730.9592613024581,
+        "return_std": 202.9032259697547,
+        "search": 42.37723214285714,
+        "delivery": 41.38671875,
+        "global_step_at_episode": 17256448,
+        "episode_length_mean": 1269.615234375,
+        "cumulative_return": -543.8495503482746,
+        "cumulative_search": 41.327378403181406,
+        "cumulative_delivery": 39.01645763230346
+      },
+      "delta_delivery_left_minus_right": 9.467075892857146,
+      "delta_return_left_minus_right": 740.4682986349927,
+      "validation_at_latest_shared_checkpoint": {
+        "checkpoint_global_step": 14745600,
+        "left": {
+          "checkpoint_global_step": 14745600,
+          "logged_global_step": 14770176,
+          "delivery": 46.28571428571429,
+          "search": 47.42857142857143,
+          "return": -393.9086645102594
+        },
+        "right": {
+          "checkpoint_global_step": 14745600,
+          "logged_global_step": 14815232,
+          "delivery": 39.42857142857143,
+          "search": 40.57142857142857,
+          "return": -1293.2827272501775
+        },
+        "delta_delivery_left_minus_right": 6.857142857142861,
+        "delta_return_left_minus_right": 899.374062739918
+      }
+    },
+    "masac_02_vs_03_shared_vs_independent": {
+      "episode_cutoff": 4096,
+      "window": 1024,
+      "left": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -548.5534716065406,
+        "return_std": 207.04067279003297,
+        "search": 43.49330357142857,
+        "delivery": 37.26004464285714,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1463.826171875,
+        "cumulative_return": -455.82555105210247,
+        "cumulative_search": 42.700892857142854,
+        "cumulative_delivery": 37.393275669642854
+      },
+      "right": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -349.1934506856769,
+        "return_std": 186.08362264581692,
+        "search": 45.259486607142854,
+        "delivery": 42.15959821428571,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1442.9833984375,
+        "cumulative_return": -268.06814480802115,
+        "cumulative_search": 44.41755022321428,
+        "cumulative_delivery": 41.45647321428571
+      },
+      "delta_delivery_left_minus_right": -4.899553571428569,
+      "delta_return_left_minus_right": -199.3600209208637,
+      "validation_at_latest_shared_checkpoint": {
+        "checkpoint_global_step": 7372800,
+        "left": {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7389184,
+          "delivery": 5.714285714285714,
+          "search": 7.428571428571429,
+          "return": -3138.7148140370846
+        },
+        "right": {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7397376,
+          "delivery": 2.2857142857142856,
+          "search": 10.285714285714285,
+          "return": -2722.015389575064
+        },
+        "delta_delivery_left_minus_right": 3.428571428571429,
+        "delta_return_left_minus_right": -416.6994244620205
+      }
+    },
+    "masac_03_vs_04_actor_layernorm_vs_plain": {
+      "episode_cutoff": 4096,
+      "window": 1024,
+      "left": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -349.1934506856769,
+        "return_std": 186.08362264581692,
+        "search": 45.259486607142854,
+        "delivery": 42.15959821428571,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1442.9833984375,
+        "cumulative_return": -268.06814480802115,
+        "cumulative_search": 44.41755022321428,
+        "cumulative_delivery": 41.45647321428571
+      },
+      "right": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -424.23008801017636,
+        "return_std": 185.3670694053604,
+        "search": 44.53962053571429,
+        "delivery": 41.81361607142857,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1458.79296875,
+        "cumulative_return": -336.6795920868609,
+        "cumulative_search": 43.741629464285715,
+        "cumulative_delivery": 41.026088169642854
+      },
+      "delta_delivery_left_minus_right": 0.3459821428571388,
+      "delta_return_left_minus_right": 75.03663732449945,
+      "validation_at_latest_shared_checkpoint": {
+        "checkpoint_global_step": 7372800,
+        "left": {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7397376,
+          "delivery": 2.2857142857142856,
+          "search": 10.285714285714285,
+          "return": -2722.015389575064
+        },
+        "right": {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7393280,
+          "delivery": 1.1428571428571428,
+          "search": 2.2857142857142856,
+          "return": -3183.2673417679966
+        },
+        "delta_delivery_left_minus_right": 1.1428571428571428,
+        "delta_return_left_minus_right": 461.25195219293255
+      }
+    },
+    "cross_algorithm_case_01": {
+      "episode_cutoff": 11675,
+      "window": 1024,
+      "left": {
+        "episode": 11675,
+        "window": 1024,
+        "return": 68.15743929174467,
+        "return_std": 281.05157720957465,
+        "search": 52.21261160714286,
+        "delivery": 50.45200892857143,
+        "global_step_at_episode": 15335424,
+        "episode_length_mean": 1088.7294921875,
+        "cumulative_return": -509.2615658755777,
+        "cumulative_search": 45.372162740899356,
+        "cumulative_delivery": 43.0884062404405
+      },
+      "right": {
+        "episode": 11675,
+        "window": 1024,
+        "return": 9.50903733253459,
+        "return_std": 231.4409794846335,
+        "search": 52.940848214285715,
+        "delivery": 50.853794642857146,
+        "global_step_at_episode": 16412672,
+        "episode_length_mean": 1064.408203125,
+        "cumulative_return": -400.96628823573275,
+        "cumulative_search": 43.91287855613338,
+        "cumulative_delivery": 40.36145610278373
+      },
+      "delta_delivery_left_minus_right": -0.4017857142857153,
+      "delta_return_left_minus_right": 58.64840195921008,
+      "validation_at_latest_shared_checkpoint": {
+        "checkpoint_global_step": 14745600,
+        "left": {
+          "checkpoint_global_step": 14745600,
+          "logged_global_step": 14839808,
+          "delivery": 54.857142857142854,
+          "search": 58.28571428571429,
+          "return": -97.33515593006742
+        },
+        "right": {
+          "checkpoint_global_step": 14745600,
+          "logged_global_step": 14770176,
+          "delivery": 46.28571428571429,
+          "search": 47.42857142857143,
+          "return": -393.9086645102594
+        },
+        "delta_delivery_left_minus_right": 8.571428571428562,
+        "delta_return_left_minus_right": 296.573508580192
+      }
+    },
+    "cross_algorithm_case_02": {
+      "episode_cutoff": 4096,
+      "window": 1024,
+      "left": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -1052.2686369442104,
+        "return_std": 223.536089552239,
+        "search": 39.36941964285714,
+        "delivery": 33.08872767857142,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1289.4609375,
+        "cumulative_return": -870.636032960085,
+        "cumulative_search": 39.954659598214285,
+        "cumulative_delivery": 34.38685825892857
+      },
+      "right": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -548.5534716065406,
+        "return_std": 207.04067279003297,
+        "search": 43.49330357142857,
+        "delivery": 37.26004464285714,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1463.826171875,
+        "cumulative_return": -455.82555105210247,
+        "cumulative_search": 42.700892857142854,
+        "cumulative_delivery": 37.393275669642854
+      },
+      "delta_delivery_left_minus_right": -4.171316964285715,
+      "delta_return_left_minus_right": -503.71516533766976,
+      "validation_at_latest_shared_checkpoint": {
+        "checkpoint_global_step": 7372800,
+        "left": {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7471104,
+          "delivery": 32.0,
+          "search": 34.28571428571429,
+          "return": -1844.6147633968853
+        },
+        "right": {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7389184,
+          "delivery": 5.714285714285714,
+          "search": 7.428571428571429,
+          "return": -3138.7148140370846
+        },
+        "delta_delivery_left_minus_right": 26.285714285714285,
+        "delta_return_left_minus_right": 1294.1000506401992
+      }
+    },
+    "cross_algorithm_case_03": {
+      "episode_cutoff": 4096,
+      "window": 1024,
+      "left": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -1958.786928455474,
+        "return_std": 168.31555638550813,
+        "search": 28.247767857142858,
+        "delivery": 23.289620535714285,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1500.0,
+        "cumulative_return": -1961.6256468772142,
+        "cumulative_search": 28.016880580357142,
+        "cumulative_delivery": 23.065708705357142
+      },
+      "right": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -349.1934506856769,
+        "return_std": 186.08362264581692,
+        "search": 45.259486607142854,
+        "delivery": 42.15959821428571,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1442.9833984375,
+        "cumulative_return": -268.06814480802115,
+        "cumulative_search": 44.41755022321428,
+        "cumulative_delivery": 41.45647321428571
+      },
+      "delta_delivery_left_minus_right": -18.869977678571423,
+      "delta_return_left_minus_right": -1609.5934777697971,
+      "validation_at_latest_shared_checkpoint": {
+        "checkpoint_global_step": 7372800,
+        "left": {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7430144,
+          "delivery": 1.1428571428571428,
+          "search": 2.857142857142857,
+          "return": -2536.337095688004
+        },
+        "right": {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7397376,
+          "delivery": 2.2857142857142856,
+          "search": 10.285714285714285,
+          "return": -2722.015389575064
+        },
+        "delta_delivery_left_minus_right": -1.1428571428571428,
+        "delta_return_left_minus_right": 185.67829388706014
+      }
+    },
+    "cross_algorithm_case_04": {
+      "episode_cutoff": 4096,
+      "window": 1024,
+      "left": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -2179.1244654287684,
+        "return_std": 161.72131989436645,
+        "search": 24.45033482142857,
+        "delivery": 21.595982142857142,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1500.0,
+        "cumulative_return": -2180.877801645412,
+        "cumulative_search": 24.344308035714285,
+        "cumulative_delivery": 21.4453125
+      },
+      "right": {
+        "episode": 4096,
+        "window": 1024,
+        "return": -424.23008801017636,
+        "return_std": 185.3670694053604,
+        "search": 44.53962053571429,
+        "delivery": 41.81361607142857,
+        "global_step_at_episode": 6144000,
+        "episode_length_mean": 1458.79296875,
+        "cumulative_return": -336.6795920868609,
+        "cumulative_search": 43.741629464285715,
+        "cumulative_delivery": 41.026088169642854
+      },
+      "delta_delivery_left_minus_right": -20.217633928571427,
+      "delta_return_left_minus_right": -1754.894377418592,
+      "validation_at_latest_shared_checkpoint": {
+        "checkpoint_global_step": 7372800,
+        "left": {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7442432,
+          "delivery": 0.0,
+          "search": 0.0,
+          "return": -3285.2697400175966
+        },
+        "right": {
+          "checkpoint_global_step": 7372800,
+          "logged_global_step": 7393280,
+          "delivery": 1.1428571428571428,
+          "search": 2.2857142857142856,
+          "return": -3183.2673417679966
+        },
+        "delta_delivery_left_minus_right": -1.1428571428571428,
+        "delta_return_left_minus_right": -102.00239824959999
+      }
+    },
+    "cross_algorithm_case_05": {
+      "episode_cutoff": 20000,
+      "window": 1024,
+      "left": {
+        "episode": 20000,
+        "window": 1024,
+        "return": 4.266980234576431,
+        "return_std": 238.42437049447213,
+        "search": 46.85267857142857,
+        "delivery": 45.203683035714285,
+        "global_step_at_episode": 22331392,
+        "episode_length_mean": 1069.0595703125,
+        "cumulative_return": -80.28982994492571,
+        "cumulative_search": 46.01271428571428,
+        "cumulative_delivery": 44.40442857142857
+      },
+      "right": {
+        "episode": 20000,
+        "window": 1024,
+        "return": 4.262353989057052,
+        "return_std": 225.89206337070266,
+        "search": 50.85100446428571,
+        "delivery": 49.41964285714286,
+        "global_step_at_episode": 26378240,
+        "episode_length_mean": 1054.2470703125,
+        "cumulative_return": -410.8461454620924,
+        "cumulative_search": 44.00414285714286,
+        "cumulative_delivery": 42.02657142857143
+      },
+      "delta_delivery_left_minus_right": -4.2159598214285765,
+      "delta_return_left_minus_right": 0.004626245519379069,
+      "validation_at_latest_shared_checkpoint": {
+        "checkpoint_global_step": 22118400,
+        "left": {
+          "checkpoint_global_step": 22118400,
+          "logged_global_step": 22249472,
+          "delivery": 46.85714285714286,
+          "search": 48.0,
+          "return": -84.29303425808902
+        },
+        "right": {
+          "checkpoint_global_step": 22118400,
+          "logged_global_step": 22179840,
+          "delivery": 39.99999999999999,
+          "search": 43.42857142857143,
+          "return": -1111.0393085941673
+        },
+        "delta_delivery_left_minus_right": 6.857142857142868,
+        "delta_return_left_minus_right": 1026.7462743360784
+      }
+    }
+  }
+}

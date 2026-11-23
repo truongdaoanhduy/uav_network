@@ -1,0 +1,364 @@
+{
+  "snapshot_utc": "2026-11-05T18:20:55.908245+00:00",
+  "snapshot_ict": "2026-11-06T01:20:55.908245+07:00",
+  "source_head": "db5345a63a5e5fab5843109dc46a952e49f1814b",
+  "report": "docs/methods/MASAC_MATD3_CODE_COMPARISON_2026-11-06.md",
+  "method": "Fresh authenticated W&B Public API run/config/summary/files/system samples; local git source comparisons; official source/doc reads; CPU checks. No production training or algorithm/config edits.",
+  "runs": [
+    {
+      "id": "c8d5ce6b",
+      "name": "TRAIN-MASAC-BASE-SHARED-ACTOR-CRITIC-XYZ-BAYES-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261102-034013-d522cf",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/c8d5ce6b",
+      "source_commit": "05beef6cd0d97d39d51b220f9f7789e915b5bc10",
+      "state": "finished",
+      "episodes_summary": 16384,
+      "global_step_summary": 25034752,
+      "updates_summary": 48648,
+      "stop_reason": "time_budget",
+      "rolling_return": -2549.3555031066526,
+      "rolling_search_percent": 19.75,
+      "rolling_delivery_percent": 4.5,
+      "rolling_success": 0,
+      "actor_grad_norm": 2.1988017559051514,
+      "last_status": {
+        "timestamp_utc": "2026-11-02T13:52:30.127513+00:00",
+        "event": "closed",
+        "phase": "closed",
+        "global_step": 25034752,
+        "updates": 48648
+      },
+      "system_samples": 300,
+      "sampled_gpu_max_gib": {
+        "0": 3.364135742,
+        "1": 4.428588867
+      },
+      "config_sha256": "23ed1af417be9a6dfe11f2f7fca2c691cbc0267c2d36981b43703b6e36b10893"
+    },
+    {
+      "id": "2ce9fb9e",
+      "name": "TRAIN-MASAC-PQL-SHARED-ACTOR-CRITIC-XYZ-BAYES-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261102-033955-e9729e",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/2ce9fb9e",
+      "source_commit": "05beef6cd0d97d39d51b220f9f7789e915b5bc10",
+      "state": "finished",
+      "episodes_summary": 16362,
+      "global_step_summary": 22880256,
+      "updates_summary": 44440,
+      "stop_reason": "time_budget",
+      "rolling_return": -2233.6341397508572,
+      "rolling_search_percent": 20,
+      "rolling_delivery_percent": 15,
+      "rolling_success": 0,
+      "actor_grad_norm": 1.742221117019653,
+      "last_status": {
+        "timestamp_utc": "2026-11-02T13:55:46.928646+00:00",
+        "event": "closed",
+        "phase": "closed",
+        "global_step": 22880256,
+        "updates": 44440
+      },
+      "system_samples": 300,
+      "sampled_gpu_max_gib": {
+        "0": 3.422729492,
+        "1": 4.436401367
+      },
+      "config_sha256": "076a7ace491b07dedf629179605dc0fb7cadb57e0e9e6fbd9bb029e1b787410a"
+    },
+    {
+      "id": "db61bd0c",
+      "name": "TRAIN-MATD3-BASE-SHARED-ACTOR-CRITIC-XYZ-BAYES-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261102-031752-e3778d",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/db61bd0c",
+      "source_commit": "05beef6cd0d97d39d51b220f9f7789e915b5bc10",
+      "state": "finished",
+      "episodes_summary": 20000,
+      "global_step_summary": 24219648,
+      "updates_summary": 47056,
+      "stop_reason": "episode_budget",
+      "rolling_return": -160.06447053204465,
+      "rolling_search_percent": 60.75,
+      "rolling_delivery_percent": 59,
+      "rolling_success": 0,
+      "actor_grad_norm": 0.07417140156030655,
+      "last_status": {
+        "timestamp_utc": "2026-11-02T05:21:34.427205+00:00",
+        "event": "closed",
+        "phase": "closed",
+        "global_step": 24219648,
+        "updates": 47056
+      },
+      "system_samples": 300,
+      "sampled_gpu_max_gib": {
+        "0": 3.364135742,
+        "1": 4.428588867
+      },
+      "config_sha256": "b2363050bd59acab855ee3dc8d4f4a19ca4fed7d2c7547971751d47e0b413ea7"
+    },
+    {
+      "id": "d51b0350",
+      "name": "TRAIN-MATD3-PQL-SHARED-ACTOR-CRITIC-XYZ-BAYES-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261102-031752-c338a0",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/d51b0350",
+      "source_commit": "05beef6cd0d97d39d51b220f9f7789e915b5bc10",
+      "state": "finished",
+      "episodes_summary": 20000,
+      "global_step_summary": 24813568,
+      "updates_summary": 48216,
+      "stop_reason": "episode_budget",
+      "rolling_return": -34.486548053839215,
+      "rolling_search_percent": 69.75,
+      "rolling_delivery_percent": 67.75,
+      "rolling_success": 0,
+      "actor_grad_norm": 0.06974276155233383,
+      "last_status": {
+        "timestamp_utc": "2026-11-02T05:50:12.222770+00:00",
+        "event": "closed",
+        "phase": "closed",
+        "global_step": 24813568,
+        "updates": 48216
+      },
+      "system_samples": 300,
+      "sampled_gpu_max_gib": {
+        "0": 3.422729492,
+        "1": 4.530151367
+      },
+      "config_sha256": "7991c6c7722e765a672bada2172b0ebc8df81873ba08f63406ac169c1b8a5c47"
+    },
+    {
+      "id": "0006c2a7",
+      "name": "TRAIN-MASAC-BASE-SHARED-ACTOR-CRITIC-XYZ-BAYES-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261105-083901-6eac30",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/0006c2a7",
+      "source_commit": "574f36c6d36d6182d3204a53f9e497498d3470f8",
+      "state": "crashed",
+      "episodes_summary": 0,
+      "global_step_summary": 2498560,
+      "updates_summary": 4632,
+      "stop_reason": null,
+      "rolling_return": null,
+      "rolling_search_percent": null,
+      "rolling_delivery_percent": null,
+      "rolling_success": null,
+      "actor_grad_norm": 0.02876041643321514,
+      "last_status": {
+        "timestamp_utc": "2026-11-05T09:35:19.600181+00:00",
+        "event": "progress",
+        "phase": "learning",
+        "global_step": 2506752,
+        "updates": 4648
+      },
+      "system_samples": 184,
+      "sampled_gpu_max_gib": {
+        "0": 3.364135742,
+        "1": 7.998901367
+      },
+      "config_sha256": "f558bb77fd5cc32a08badca14590f3ccc2b0a1f541beaf99666ef2024d2c9ee9"
+    },
+    {
+      "id": "550c3c6b",
+      "name": "TRAIN-MASAC-PQL-SHARED-ACTOR-CRITIC-XYZ-BAYES-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261105-083930-44fb15",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/550c3c6b",
+      "source_commit": "ab2e953d37520eb5896700f1264d1e4ba80fdfad",
+      "state": "crashed",
+      "episodes_summary": 0,
+      "global_step_summary": 143360,
+      "updates_summary": 32,
+      "stop_reason": null,
+      "rolling_return": null,
+      "rolling_search_percent": null,
+      "rolling_delivery_percent": null,
+      "rolling_success": null,
+      "actor_grad_norm": 0.039062146097421646,
+      "last_status": {
+        "timestamp_utc": "2026-11-05T09:35:15.450544+00:00",
+        "event": "progress",
+        "phase": "learning",
+        "global_step": 143360,
+        "updates": 32
+      },
+      "system_samples": 3,
+      "sampled_gpu_max_gib": {
+        "0": 3.422729492,
+        "1": 8.002807617
+      },
+      "config_sha256": "30ab08bcb80b4c589d762f6598eded008643118ac3a2eeb64aaefdd7c56e16f6"
+    },
+    {
+      "id": "140e6169",
+      "name": "TRAIN-MATD3-BASE-SHARED-ACTOR-CRITIC-XYZ-BAYES-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261105-084019-5796b3",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/140e6169",
+      "source_commit": "574f36c6d36d6182d3204a53f9e497498d3470f8",
+      "state": "finished",
+      "episodes_summary": 20000,
+      "global_step_summary": 30720000,
+      "updates_summary": 59752,
+      "stop_reason": "episode_budget",
+      "rolling_return": -4221.481003066758,
+      "rolling_search_percent": 0,
+      "rolling_delivery_percent": 0,
+      "rolling_success": 0,
+      "actor_grad_norm": 0,
+      "last_status": {
+        "timestamp_utc": "2026-11-05T10:52:12.019367+00:00",
+        "event": "closed",
+        "phase": "closed",
+        "global_step": 30720000,
+        "updates": 59752
+      },
+      "system_samples": 300,
+      "sampled_gpu_max_gib": {
+        "0": 3.364135742,
+        "1": 4.426635742
+      },
+      "config_sha256": "d1da6856fd6970c59ab07eeeb172b17bc125e602d99a4625a514427174c0c224"
+    },
+    {
+      "id": "ead641c4",
+      "name": "TRAIN-MATD3-PQL-SHARED-ACTOR-CRITIC-XYZ-BAYES-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261105-084128-2ed224",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/ead641c4",
+      "source_commit": "ab2e953d37520eb5896700f1264d1e4ba80fdfad",
+      "state": "finished",
+      "episodes_summary": 20000,
+      "global_step_summary": 30720000,
+      "updates_summary": 59752,
+      "stop_reason": "episode_budget",
+      "rolling_return": -4221.481003066758,
+      "rolling_search_percent": 0,
+      "rolling_delivery_percent": 0,
+      "rolling_success": 0,
+      "actor_grad_norm": 0,
+      "last_status": {
+        "timestamp_utc": "2026-11-05T11:32:09.335753+00:00",
+        "event": "closed",
+        "phase": "closed",
+        "global_step": 30720000,
+        "updates": 59752
+      },
+      "system_samples": 300,
+      "sampled_gpu_max_gib": {
+        "0": 3.422729492,
+        "1": 4.530151367
+      },
+      "config_sha256": "686750281bbd2bd588506e31960452ca0c4bd383bb2aae6527bed6d4e0010118"
+    },
+    {
+      "id": "78d36ef3",
+      "name": "TRAIN-MASAC-PQL-SHARED-ACTOR-CRITIC-XYZ-BAYES-HYBRID-C75-G25-E4096-B8192-R1M-G3-S44-20261105-084215-e85c98",
+      "url": "https://wandb.ai/truongdaoanhduy-uit/uav_search_target/runs/78d36ef3",
+      "source_commit": "ab2e953d37520eb5896700f1264d1e4ba80fdfad",
+      "state": "crashed",
+      "episodes_summary": 0,
+      "global_step_summary": 126976,
+      "updates_summary": 0,
+      "stop_reason": null,
+      "rolling_return": null,
+      "rolling_search_percent": null,
+      "rolling_delivery_percent": null,
+      "rolling_success": null,
+      "actor_grad_norm": null,
+      "last_status": {
+        "timestamp_utc": "2026-11-05T09:35:19.637394+00:00",
+        "event": "progress",
+        "phase": "collecting_before_first_update",
+        "global_step": 126976,
+        "updates": 0
+      },
+      "system_samples": 2,
+      "sampled_gpu_max_gib": {
+        "0": 3.307495117,
+        "1": 8.002807617
+      },
+      "config_sha256": "089926e925a52fb46c0861f6f9d73598e7299a9cd250094f1fd9726a7574c20e"
+    }
+  ],
+  "gpu_memory_interpretation": "Max over sampled system memoryAllocatedBytes; not tensor allocator peak and not OOM proof. Per-T4 capacity reported14.56219482421875GiB.",
+  "environment_groups_equal_old_new": [
+    "world",
+    "sensor",
+    "network",
+    "energy",
+    "reward"
+  ],
+  "unchanged_source_domains_old_to_head": [
+    "environment",
+    "communication",
+    "pql_system.py",
+    "pql_workers.py"
+  ],
+  "crash_verdict": {
+    "oom_confirmed": false,
+    "memory_pressure_increase_supported": true,
+    "exception_traceback_in_retrieved_wandb_files": false,
+    "last_three_progress_window_seconds": 4.18685,
+    "external_termination_confirmed": false,
+    "kaggle_console_access": "CLI2.2.5 Authentication required to call the Kaggle API. No console retrieved. No credential modifications."
+  },
+  "memory_shape_fp32": {
+    "N": 6,
+    "B": 8192,
+    "K": 7,
+    "continuous": 4,
+    "state": 565,
+    "critic_input": 631,
+    "enumerated_rows": 344064,
+    "expanded_state_mib": 741.5625,
+    "critic_input_mib": 828.1875,
+    "hidden_output_mib": 336.0,
+    "two_hidden_two_q_mib": 1344.0,
+    "gpu_replay_bytes": 3544000000,
+    "allocation_lifetime_caveat": "Do not sum these as exact measured peak."
+  },
+  "verification": {
+    "focused_test_command": "python -m pytest -q tests/test_critic_chunks.py tests/test_reference_baseline_contract.py tests/test_reference_critic_gradients.py tests/test_actor_layer_norm.py --tb=short",
+    "focused_passed": 64,
+    "focused_seconds": 4.77,
+    "shared_oracle": [
+      {
+        "shared_actor": true,
+        "shared_critic": true,
+        "layer_norm": false,
+        "batch": 11,
+        "agents": 6,
+        "destinations": 7,
+        "continuous_dim": 4,
+        "observation_dim": 198,
+        "state_dim": 565,
+        "hidden_sizes": [
+          16,
+          16
+        ],
+        "full_chunk": 0,
+        "bounded_chunk": 4,
+        "updates": 3,
+        "rng_exact": true,
+        "state_and_metrics_close_rtol_atol": 3e-05,
+        "max_parameter_difference": 0.0
+      },
+      {
+        "shared_actor": true,
+        "shared_critic": true,
+        "layer_norm": true,
+        "batch": 11,
+        "agents": 6,
+        "destinations": 7,
+        "continuous_dim": 4,
+        "observation_dim": 198,
+        "state_dim": 565,
+        "hidden_sizes": [
+          16,
+          16
+        ],
+        "full_chunk": 0,
+        "bounded_chunk": 4,
+        "updates": 3,
+        "rng_exact": true,
+        "state_and_metrics_close_rtol_atol": 3e-05,
+        "max_parameter_difference": 0.0
+      }
+    ],
+    "cuda_available_locally": false,
+    "full8192_gpu_peak_or_oom_reproduction": false,
+    "prior_checkpoint_probe_reused": "docs/superpowers/evidence/2026-11-05-matd3-saturation-audit.json; not redownloaded/reprobed this task.",
+    "structure_guard": {
+      "passed": 2,
+      "subtests_passed": 554,
+      "seconds": 0.16
+    }
+  }
+}

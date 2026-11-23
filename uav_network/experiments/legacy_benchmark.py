@@ -116,7 +116,7 @@ def benchmark_legacy(config, steps=40):
         vector = make_vector(c, device=device)
         obs, _ = vector.reset(seed=c.runtime.seed)
         replay = TensorReplayBuffer(settings.replay_capacity, obs["observation"].shape[1:],
-                                    state_dim(c), c.runtime.seed, replay_device)
+                                    state_dim(c), c.runtime.seed, replay_device, continuous_dim=c.continuous_dim)
         rng = np.random.default_rng(c.runtime.seed + 1)
         next_seed = c.runtime.seed + c.runtime.num_envs
         device_env = c.runtime.environment_backend == "warp_packet"
@@ -126,7 +126,7 @@ def benchmark_legacy(config, steps=40):
         for iteration in range(steps):
             if global_step < settings.learning_starts:
                 action = (vector.random_actions(obs["observation"]) if device_env else
-                          random_actions(obs["observation"], rng, c.world.num_uavs + 1))
+                          random_actions(obs["observation"], rng, c.world.num_uavs + 1,c.continuous_dim))
             else:
                 action = learner.act_batch(obs["observation"], step=global_step, return_tensors=device_env)
             actions = {"continuous": action.continuous, "destination": action.destination}

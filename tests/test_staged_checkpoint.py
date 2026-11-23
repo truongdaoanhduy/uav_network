@@ -61,13 +61,13 @@ def test_staged_resume_is_unmapped_and_removed_before_next_atomic_save(tmp_path,
 
 
 @pytest.mark.parametrize("auto_continue", [False, True])
-def test_only_cloud_full_resume_marks_its_downloaded_input_for_release(tmp_path, auto_continue):
+def test_cloud_warm_start_always_marks_downloaded_input_for_release(tmp_path, auto_continue):
     staged = tmp_path / "inputs" / "masac" / "resume.pt"
     spec = {"config": "configs/kaggle.yaml", "overrides": [],
             "auto_continue": auto_continue, "warm_start_paths": {"masac": staged}}
     with patch.dict(os.environ, {"UAV_STAGED_RESUME_CHECKPOINT": "/unrelated/input.pt"}):
         _, env = learner_command(spec, "masac", {"id": "id", "name": "name"}, 0, tmp_path / "train")
-    assert env.get("UAV_STAGED_RESUME_CHECKPOINT") == (str(staged) if auto_continue else None)
+    assert env.get("UAV_STAGED_RESUME_CHECKPOINT") == str(staged)
 
 
 @pytest.mark.parametrize("pql", [False, True])

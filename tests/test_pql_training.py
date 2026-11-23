@@ -49,6 +49,16 @@ class PQLTrainingTests(unittest.TestCase):
                 self.assertEqual(results[0]["reproducibility"][key], results[1]["reproducibility"][key])
             self.assertTrue(results[0]["reproducibility"]["scheduling_deterministic"])
 
+    def test_deterministic_async_mode_repeats_scientific_outcomes_and_weights(self):
+        with TemporaryDirectory() as folder:
+            results = [train(self.config(Path(folder) / name, mode="async"))
+                       for name in ("first-async", "second-async")]
+            for key in ("model_hash", "episode_hash", "settings_hash"):
+                self.assertEqual(results[0]["reproducibility"][key], results[1]["reproducibility"][key])
+            self.assertEqual(results[0]["pql_mode"], "async")
+            self.assertTrue(results[0]["reproducibility"]["scheduling_deterministic"] )
+            self.assertFalse(results[0]["collector_overlap"] )
+
     def test_periodic_checkpoint_writes_full_resume_only_at_segment_end(self):
         from uav_network.experiments.pql_system import PQLSystem
         with TemporaryDirectory() as folder:
@@ -58,8 +68,8 @@ class PQLTrainingTests(unittest.TestCase):
             c.runtime.checkpoint_interval = 4
             writes = []
             real_save = PQLSystem.save
-            def record_save(engine, path, progress, collector_rng=None, environment=None):
-                result = real_save(engine, path, progress, collector_rng=collector_rng, environment=environment)
+            def record_save(engine, path, progress, collector_rng=None, environment=None, selection_state=None):
+                result = real_save(engine, path, progress, collector_rng=collector_rng, environment=environment, selection_state=selection_state)
                 writes.append(progress["episodes"])
                 return result
             with patch.object(PQLSystem, "save", record_save):
@@ -75,6 +85,7 @@ class PQLTrainingTests(unittest.TestCase):
                 output = Path(folder) / "run"
                 c = self.config(output, algorithm)
                 c.runtime.episodes, c.runtime.checkpoint_interval = 8, 4
+                c.runtime.deterministic = False
                 c.runtime.vectorize_critics = True
                 c.world.max_steps = 1
                 c.pql.warmup_collection_steps = 1

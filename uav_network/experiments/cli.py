@@ -36,6 +36,8 @@ def main():
     comparison.add_argument("--bootstrap-samples", type=int, default=2000)
     comparison.add_argument("--animate", action="store_true")
     commands.add_parser("hardware", help="Show CPU affinity and CUDA devices usable by PyTorch")
+    study = commands.add_parser("study", help="Prepare/run/summarize controlled multi-seed 20/15 cases")
+    study.add_argument("study_args", nargs=argparse.REMAINDER)
     cloud = commands.add_parser("kaggle", help="Quota, private CUDA jobs and online W&B")
     cloud.add_argument("cloud_args", nargs=argparse.REMAINDER)
     dashboard = commands.add_parser("dashboard", help="Create or update your default online W&B Personal Workspace")
@@ -53,7 +55,10 @@ def main():
     speed.add_argument("--learner-updates", type=int, default=10)
     speed.add_argument("--output", help="Optional JSON report path; must not exist")
     args = parser.parse_args()
-    if args.command == "kaggle":
+    if args.command == "study":
+        from .study import main as study_main
+        result = study_main(args.study_args)
+    elif args.command == "kaggle":
         from ..cloud.cli import main as cloud_main
         result = cloud_main(args.cloud_args)
     elif args.command == "hardware":

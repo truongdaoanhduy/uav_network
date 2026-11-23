@@ -1,0 +1,3170 @@
+{
+  "query_time_utc": "2026-10-30T01:27:52.415043+00:00",
+  "window_scope": "Per-episode training outcomes at identical4096-episode windows; not deterministic checkpoint eval, seed44 only. Different global-step endpoints and source commits disclosed. Sparse/incomplete windows excluded.",
+  "matched": {
+    "queried_at_utc": "2026-10-30T01:27:52.415043+00:00",
+    "downloaded_runs": 37,
+    "lineages": [
+      {
+        "ids": [
+          "d17a279d"
+        ],
+        "algorithm": "masac",
+        "mode": "BASE",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 5508,
+        "history_rows": 5508,
+        "observed_rewinds": [],
+        "source_commits": [
+          "f39f45682b0b8a387cf8d95906c6730bf4337742"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": false,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 786.8560487216052,
+            "search": 91.91127232142857,
+            "delivery": 64.63588169642857,
+            "success_rate": 0,
+            "global_step_first": 6385664.0,
+            "global_step_last": 7245824.0
+          }
+        ],
+        "primary_eligible": false
+      },
+      {
+        "ids": [
+          "93fdf127"
+        ],
+        "algorithm": "matd3",
+        "mode": "BASE",
+        "sharing": "independent",
+        "replay": "FULLGPU",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 20000,
+        "history_rows": 20000,
+        "observed_rewinds": [],
+        "source_commits": [
+          "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": false,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 564.5511758093226,
+            "search": 93.59933035714286,
+            "delivery": 59.117606026785715,
+            "success_rate": 0,
+            "global_step_first": 6590464.0,
+            "global_step_last": 7356416.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 585.6370279548381,
+            "search": 85.25530133928571,
+            "delivery": 51.23744419642857,
+            "success_rate": 0,
+            "global_step_first": 13492224.0,
+            "global_step_last": 14389248.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": 445.9927394356937,
+            "search": 85.33203125,
+            "delivery": 48.609793526785715,
+            "success_rate": 0,
+            "global_step_first": 20320256.0,
+            "global_step_last": 21475328.0
+          },
+          {
+            "episode_start": 12289,
+            "episode_end": 16384,
+            "n": 4096,
+            "complete": true,
+            "return": 522.526065587497,
+            "search": 89.59821428571429,
+            "delivery": 52.093331473214285,
+            "success_rate": 0,
+            "global_step_first": 27365376.0,
+            "global_step_last": 28692480.0
+          },
+          {
+            "episode_start": 15905,
+            "episode_end": 20000,
+            "n": 4096,
+            "complete": true,
+            "return": 725.1781060657438,
+            "search": 89.39383370535714,
+            "delivery": 57.89271763392857,
+            "success_rate": 0,
+            "global_step_first": 28098560.0,
+            "global_step_last": 35262464.0
+          }
+        ],
+        "primary_eligible": false
+      },
+      {
+        "ids": [
+          "25eecfd1"
+        ],
+        "algorithm": "masac",
+        "mode": "BASE",
+        "sharing": "independent",
+        "replay": "FULLGPU",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 8192,
+        "history_rows": 8192,
+        "observed_rewinds": [],
+        "source_commits": [
+          "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 737.9162226181365,
+            "search": 89.61356026785714,
+            "delivery": 60.18833705357143,
+            "success_rate": 0,
+            "global_step_first": 6426624.0,
+            "global_step_last": 7323648.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 370.30997730525974,
+            "search": 79.20200892857143,
+            "delivery": 53.300083705357146,
+            "success_rate": 0,
+            "global_step_first": 13107200.0,
+            "global_step_last": 14499840.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "63202ad9"
+        ],
+        "algorithm": "masac",
+        "mode": "BASE",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 8192,
+        "history_rows": 8192,
+        "observed_rewinds": [],
+        "source_commits": [
+          "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 786.8560487216052,
+            "search": 91.91127232142857,
+            "delivery": 64.63588169642857,
+            "success_rate": 0,
+            "global_step_first": 6385664.0,
+            "global_step_last": 7245824.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 414.9601339598969,
+            "search": 74.06668526785714,
+            "delivery": 49.036690848214285,
+            "success_rate": 0,
+            "global_step_first": 13152256.0,
+            "global_step_last": 14565376.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "76b73021"
+        ],
+        "algorithm": "matd3",
+        "mode": "PQL",
+        "sharing": "independent",
+        "replay": "FULLGPU",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 20000,
+        "history_rows": 20000,
+        "observed_rewinds": [],
+        "source_commits": [
+          "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": false,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 642.1120087162826,
+            "search": 93.12430245535714,
+            "delivery": 60.298549107142854,
+            "success_rate": 0,
+            "global_step_first": 6615040.0,
+            "global_step_last": 7262208.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 626.7828012590287,
+            "search": 86.77525111607143,
+            "delivery": 57.490931919642854,
+            "success_rate": 0,
+            "global_step_first": 13537280.0,
+            "global_step_last": 14467072.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": 1114.8458665367177,
+            "search": 79.32686941964286,
+            "delivery": 65.927734375,
+            "success_rate": 0,
+            "global_step_first": 20598784.0,
+            "global_step_last": 21667840.0
+          },
+          {
+            "episode_start": 12289,
+            "episode_end": 16384,
+            "n": 4096,
+            "complete": true,
+            "return": 1325.6688697401514,
+            "search": 91.3720703125,
+            "delivery": 79.33733258928571,
+            "success_rate": 0.0029296875,
+            "global_step_first": 25550848.0,
+            "global_step_last": 28872704.0
+          },
+          {
+            "episode_start": 15905,
+            "episode_end": 20000,
+            "n": 4096,
+            "complete": true,
+            "return": 1338.3449729319423,
+            "search": 95.37737165178571,
+            "delivery": 83.99204799107143,
+            "success_rate": 0.011474609375,
+            "global_step_first": 28532736.0,
+            "global_step_last": 35672064.0
+          }
+        ],
+        "primary_eligible": false
+      },
+      {
+        "ids": [
+          "ce8f3be6"
+        ],
+        "algorithm": "matd3",
+        "mode": "BASE",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 20000,
+        "history_rows": 20000,
+        "observed_rewinds": [],
+        "source_commits": [
+          "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": false,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 720.6754222262252,
+            "search": 90.71707589285714,
+            "delivery": 61.160714285714285,
+            "success_rate": 0,
+            "global_step_first": 6713344.0,
+            "global_step_last": 7372800.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 485.9371837349506,
+            "search": 87.31026785714286,
+            "delivery": 54.589146205357146,
+            "success_rate": 0,
+            "global_step_first": 13721600.0,
+            "global_step_last": 14491648.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": 569.0219660645871,
+            "search": 70.0048828125,
+            "delivery": 45.794503348214285,
+            "success_rate": 0,
+            "global_step_first": 20672512.0,
+            "global_step_last": 21676032.0
+          },
+          {
+            "episode_start": 12289,
+            "episode_end": 16384,
+            "n": 4096,
+            "complete": true,
+            "return": 715.6979931405638,
+            "search": 72.55301339285714,
+            "delivery": 52.41420200892857,
+            "success_rate": 0,
+            "global_step_first": 27844608.0,
+            "global_step_last": 28905472.0
+          },
+          {
+            "episode_start": 15905,
+            "episode_end": 20000,
+            "n": 4096,
+            "complete": true,
+            "return": 883.5539091321998,
+            "search": 83.12360491071429,
+            "delivery": 58.4326171875,
+            "success_rate": 0,
+            "global_step_first": 28528640.0,
+            "global_step_last": 35672064.0
+          }
+        ],
+        "primary_eligible": false
+      },
+      {
+        "ids": [
+          "3b39b0c8"
+        ],
+        "algorithm": "masac",
+        "mode": "PQL",
+        "sharing": "independent",
+        "replay": "FULLGPU",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 8196,
+        "history_rows": 8196,
+        "observed_rewinds": [],
+        "source_commits": [
+          "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 820.3833056974947,
+            "search": 90.84402901785714,
+            "delivery": 63.912527901785715,
+            "success_rate": 0,
+            "global_step_first": 6467584.0,
+            "global_step_last": 7266304.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 1138.6174281238082,
+            "search": 85.05998883928571,
+            "delivery": 74.43289620535714,
+            "success_rate": 0.007080078125,
+            "global_step_first": 8736768.0,
+            "global_step_last": 14512128.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "6f0bcde3"
+        ],
+        "algorithm": "masac",
+        "mode": "PQL",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 7059,
+        "history_rows": 7059,
+        "observed_rewinds": [],
+        "source_commits": [
+          "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 816.8382134602359,
+            "search": 89.66238839285714,
+            "delivery": 63.4326171875,
+            "success_rate": 0,
+            "global_step_first": 6443008.0,
+            "global_step_last": 7249920.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "3fcf25c7"
+        ],
+        "algorithm": "matd3",
+        "mode": "PQL",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 20000,
+        "history_rows": 20000,
+        "observed_rewinds": [],
+        "source_commits": [
+          "77a1d0f52ed4e78bc2823c3ada03d661568cd923"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 667.1245619837259,
+            "search": 93.93136160714286,
+            "delivery": 63.03501674107143,
+            "success_rate": 0,
+            "global_step_first": 6553600.0,
+            "global_step_last": 7372800.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 551.0008697478245,
+            "search": 81.6015625,
+            "delivery": 52.036830357142854,
+            "success_rate": 0,
+            "global_step_first": 13496320.0,
+            "global_step_last": 14520320.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": 1019.9085678841423,
+            "search": 81.76199776785714,
+            "delivery": 64.37360491071429,
+            "success_rate": 0,
+            "global_step_first": 20488192.0,
+            "global_step_last": 21528576.0
+          },
+          {
+            "episode_start": 12289,
+            "episode_end": 16384,
+            "n": 4096,
+            "complete": true,
+            "return": 884.4540043814615,
+            "search": 71.9140625,
+            "delivery": 57.732979910714285,
+            "success_rate": 0,
+            "global_step_first": 27447296.0,
+            "global_step_last": 28581888.0
+          },
+          {
+            "episode_start": 15905,
+            "episode_end": 20000,
+            "n": 4096,
+            "complete": true,
+            "return": 1096.931164672074,
+            "search": 77.94224330357143,
+            "delivery": 65.80636160714286,
+            "success_rate": 0,
+            "global_step_first": 28168192.0,
+            "global_step_last": 35344384.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "4f98f2c9",
+          "b1cb5c67"
+        ],
+        "algorithm": "masac",
+        "mode": "BASE",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "fp16",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 19320,
+        "history_rows": 19320,
+        "observed_rewinds": [
+          {
+            "child": "b1cb5c67",
+            "first_observed_child_episode": 16385,
+            "discarded_old_branch_episodes": 2936
+          }
+        ],
+        "source_commits": [
+          "1aa095f29b8505bbf43ca42033c51ea96d144dd5"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 803.4413860470718,
+            "search": 90.66824776785714,
+            "delivery": 63.359375,
+            "success_rate": 0,
+            "global_step_first": 6438912.0,
+            "global_step_last": 7258112.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 726.9497143134766,
+            "search": 88.01548549107143,
+            "delivery": 65.64313616071429,
+            "success_rate": 0.0009765625,
+            "global_step_first": 11063296.0,
+            "global_step_last": 14454784.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": -51.54078431252037,
+            "search": 69.07505580357143,
+            "delivery": 38.163364955357146,
+            "success_rate": 0,
+            "global_step_first": 18259968.0,
+            "global_step_last": 21688320.0
+          },
+          {
+            "episode_start": 12289,
+            "episode_end": 16384,
+            "n": 4096,
+            "complete": true,
+            "return": 2.2627014348033754,
+            "search": 79.72865513392857,
+            "delivery": 42.4560546875,
+            "success_rate": 0,
+            "global_step_first": 25341952.0,
+            "global_step_last": 28938240.0
+          }
+        ],
+        "primary_eligible": false
+      },
+      {
+        "ids": [
+          "03df03cc"
+        ],
+        "algorithm": "masac",
+        "mode": "PQL",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "fp16",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 2720,
+        "history_rows": 2720,
+        "observed_rewinds": [],
+        "source_commits": [
+          "1aa095f29b8505bbf43ca42033c51ea96d144dd5"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [],
+        "primary_eligible": false
+      },
+      {
+        "ids": [
+          "3befcfb8"
+        ],
+        "algorithm": "matd3",
+        "mode": "BASE",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "fp16",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 7620,
+        "history_rows": 7620,
+        "observed_rewinds": [],
+        "source_commits": [
+          "1aa095f29b8505bbf43ca42033c51ea96d144dd5"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 537.9472901583902,
+            "search": 83.27357700892857,
+            "delivery": 50.985630580357146,
+            "success_rate": 0,
+            "global_step_first": 6692864.0,
+            "global_step_last": 7372800.0
+          }
+        ],
+        "primary_eligible": false
+      },
+      {
+        "ids": [
+          "4f8f7d7d"
+        ],
+        "algorithm": "matd3",
+        "mode": "PQL",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "fp16",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 7861,
+        "history_rows": 7861,
+        "observed_rewinds": [],
+        "source_commits": [
+          "1aa095f29b8505bbf43ca42033c51ea96d144dd5"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 322.3349998718761,
+            "search": 94.13434709821429,
+            "delivery": 49.40708705357143,
+            "success_rate": 0,
+            "global_step_first": 6664192.0,
+            "global_step_last": 7372800.0
+          }
+        ],
+        "primary_eligible": false
+      },
+      {
+        "ids": [
+          "a04dbdef",
+          "d14860f6"
+        ],
+        "algorithm": "masac",
+        "mode": "BASE",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "fp16",
+        "num_envs": 2048,
+        "batch_size": 4096,
+        "seed": 44,
+        "max_episode": 14480,
+        "history_rows": 14480,
+        "observed_rewinds": [],
+        "source_commits": [
+          "55a264cf27505d97f66aae4eadf73f61422169f7"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 638.1170214595425,
+            "search": 90.62081473214286,
+            "delivery": 62.550223214285715,
+            "success_rate": 0.000244140625,
+            "global_step_first": 2660352.0,
+            "global_step_last": 7235584.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": -229.33351332154598,
+            "search": 65.81403459821429,
+            "delivery": 31.239536830357142,
+            "success_rate": 0,
+            "global_step_first": 9641984.0,
+            "global_step_last": 14487552.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": -28.74121167978319,
+            "search": 52.723911830357146,
+            "delivery": 33.872767857142854,
+            "success_rate": 0,
+            "global_step_first": 16723968.0,
+            "global_step_last": 21747712.0
+          }
+        ],
+        "primary_eligible": false
+      },
+      {
+        "ids": [
+          "8db188ea",
+          "1063a053"
+        ],
+        "algorithm": "masac",
+        "mode": "PQL",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "fp16",
+        "num_envs": 2048,
+        "batch_size": 4096,
+        "seed": 44,
+        "max_episode": 10146,
+        "history_rows": 10146,
+        "observed_rewinds": [
+          {
+            "child": "1063a053",
+            "first_observed_child_episode": 8193,
+            "discarded_old_branch_episodes": 1762
+          }
+        ],
+        "source_commits": [
+          "55a264cf27505d97f66aae4eadf73f61422169f7"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 728.1857036646546,
+            "search": 87.73995535714286,
+            "delivery": 64.49776785714286,
+            "success_rate": 0,
+            "global_step_first": 3192832.0,
+            "global_step_last": 7233536.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": -85.69975892950038,
+            "search": 47.71484375,
+            "delivery": 31.350446428571427,
+            "success_rate": 0,
+            "global_step_first": 10125312.0,
+            "global_step_last": 14587904.0
+          }
+        ],
+        "primary_eligible": false
+      },
+      {
+        "ids": [
+          "44558e6c"
+        ],
+        "algorithm": "matd3",
+        "mode": "BASE",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "fp16",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 20000,
+        "history_rows": 20000,
+        "observed_rewinds": [],
+        "source_commits": [
+          "0042166fb0408d9efa487ad2ccd31c59b709cd69"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 537.9472901583902,
+            "search": 83.27357700892857,
+            "delivery": 50.985630580357146,
+            "success_rate": 0,
+            "global_step_first": 6692864.0,
+            "global_step_last": 7372800.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 818.677241452226,
+            "search": 77.83830915178571,
+            "delivery": 55.77915736607143,
+            "success_rate": 0,
+            "global_step_first": 13631488.0,
+            "global_step_last": 14487552.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": 826.3292701826622,
+            "search": 82.93805803571429,
+            "delivery": 61.84779575892857,
+            "success_rate": 0,
+            "global_step_first": 20516864.0,
+            "global_step_last": 21590016.0
+          },
+          {
+            "episode_start": 12289,
+            "episode_end": 16384,
+            "n": 4096,
+            "complete": true,
+            "return": 850.4015485942316,
+            "search": 78.51632254464286,
+            "delivery": 61.57993861607143,
+            "success_rate": 0,
+            "global_step_first": 27512832.0,
+            "global_step_last": 28594176.0
+          },
+          {
+            "episode_start": 15905,
+            "episode_end": 20000,
+            "n": 4096,
+            "complete": true,
+            "return": 618.3732538617046,
+            "search": 70.37458147321429,
+            "delivery": 50.521065848214285,
+            "success_rate": 0,
+            "global_step_first": 28323840.0,
+            "global_step_last": 35467264.0
+          }
+        ],
+        "primary_eligible": false
+      },
+      {
+        "ids": [
+          "87a9500e"
+        ],
+        "algorithm": "matd3",
+        "mode": "PQL",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "fp16",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 20000,
+        "history_rows": 20000,
+        "observed_rewinds": [],
+        "source_commits": [
+          "0042166fb0408d9efa487ad2ccd31c59b709cd69"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 334.3701072332444,
+            "search": 94.33942522321429,
+            "delivery": 50.352260044642854,
+            "success_rate": 0,
+            "global_step_first": 6631424.0,
+            "global_step_last": 7266304.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 619.8945327825415,
+            "search": 74.33035714285714,
+            "delivery": 50.20228794642857,
+            "success_rate": 0,
+            "global_step_first": 13778944.0,
+            "global_step_last": 14536704.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": 866.9231419843957,
+            "search": 86.21442522321429,
+            "delivery": 62.452566964285715,
+            "success_rate": 0,
+            "global_step_first": 20721664.0,
+            "global_step_last": 21737472.0
+          },
+          {
+            "episode_start": 12289,
+            "episode_end": 16384,
+            "n": 4096,
+            "complete": true,
+            "return": 750.3126843178549,
+            "search": 86.19001116071429,
+            "delivery": 56.321847098214285,
+            "success_rate": 0,
+            "global_step_first": 27668480.0,
+            "global_step_last": 28712960.0
+          },
+          {
+            "episode_start": 15905,
+            "episode_end": 20000,
+            "n": 4096,
+            "complete": true,
+            "return": 683.8972393096933,
+            "search": 82.77204241071429,
+            "delivery": 51.707589285714285,
+            "success_rate": 0,
+            "global_step_first": 28315648.0,
+            "global_step_last": 35483648.0
+          }
+        ],
+        "primary_eligible": false
+      },
+      {
+        "ids": [
+          "0650d5b1"
+        ],
+        "algorithm": "masac",
+        "mode": "PQL",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "fp16",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 20000,
+        "history_rows": 20000,
+        "observed_rewinds": [],
+        "source_commits": [
+          "0042166fb0408d9efa487ad2ccd31c59b709cd69"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 821.5961871604375,
+            "search": 90.81124441964286,
+            "delivery": 64.03599330357143,
+            "success_rate": 0.000244140625,
+            "global_step_first": 4919296.0,
+            "global_step_last": 7294976.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 6.017503065994333,
+            "search": 60.55873325892857,
+            "delivery": 39.832589285714285,
+            "success_rate": 0,
+            "global_step_first": 11431936.0,
+            "global_step_last": 14508032.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": 545.5729124015877,
+            "search": 82.72739955357143,
+            "delivery": 59.386160714285715,
+            "success_rate": 0,
+            "global_step_first": 18616320.0,
+            "global_step_last": 21778432.0
+          },
+          {
+            "episode_start": 12289,
+            "episode_end": 16384,
+            "n": 4096,
+            "complete": true,
+            "return": 330.8874452045943,
+            "search": 80.14927455357143,
+            "delivery": 52.91782924107143,
+            "success_rate": 0,
+            "global_step_first": 25518080.0,
+            "global_step_last": 28872704.0
+          },
+          {
+            "episode_start": 15905,
+            "episode_end": 20000,
+            "n": 4096,
+            "complete": true,
+            "return": 285.38273708862243,
+            "search": 88.80650111607143,
+            "delivery": 57.527901785714285,
+            "success_rate": 0,
+            "global_step_first": 28262400.0,
+            "global_step_last": 35151872.0
+          }
+        ],
+        "primary_eligible": false
+      },
+      {
+        "ids": [
+          "a85d067a"
+        ],
+        "algorithm": "matd3",
+        "mode": "BASE",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 20000,
+        "history_rows": 20000,
+        "observed_rewinds": [],
+        "source_commits": [
+          "ca53c74bcdea557cca681f77082eb6cf323f64cd"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 675.0500093725045,
+            "search": 86.34905133928571,
+            "delivery": 56.971261160714285,
+            "success_rate": 0,
+            "global_step_first": 6705152.0,
+            "global_step_last": 7307264.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 897.0458527342353,
+            "search": 77.20145089285714,
+            "delivery": 58.614676339285715,
+            "success_rate": 0,
+            "global_step_first": 13643776.0,
+            "global_step_last": 14450688.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": 483.0148387815009,
+            "search": 83.3251953125,
+            "delivery": 49.58286830357143,
+            "success_rate": 0,
+            "global_step_first": 20635648.0,
+            "global_step_last": 21536768.0
+          },
+          {
+            "episode_start": 12289,
+            "episode_end": 16384,
+            "n": 4096,
+            "complete": true,
+            "return": 771.6502078387539,
+            "search": 79.22781808035714,
+            "delivery": 55.171595982142854,
+            "success_rate": 0,
+            "global_step_first": 27504640.0,
+            "global_step_last": 28536832.0
+          },
+          {
+            "episode_start": 15905,
+            "episode_end": 20000,
+            "n": 4096,
+            "complete": true,
+            "return": 750.2540362481789,
+            "search": 68.19754464285714,
+            "delivery": 52.53627232142857,
+            "success_rate": 0,
+            "global_step_first": 28151808.0,
+            "global_step_last": 35258368.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "b8d0b40a"
+        ],
+        "algorithm": "matd3",
+        "mode": "PQL",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 20000,
+        "history_rows": 20000,
+        "observed_rewinds": [],
+        "source_commits": [
+          "ca53c74bcdea557cca681f77082eb6cf323f64cd"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 603.0914685342893,
+            "search": 94.11760602678571,
+            "delivery": 62.294921875,
+            "success_rate": 0,
+            "global_step_first": 6553600.0,
+            "global_step_last": 7307264.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 773.4223304972809,
+            "search": 77.23423549107143,
+            "delivery": 54.740513392857146,
+            "success_rate": 0,
+            "global_step_first": 13590528.0,
+            "global_step_last": 14475264.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": 930.915569646888,
+            "search": 83.57631138392857,
+            "delivery": 62.188895089285715,
+            "success_rate": 0,
+            "global_step_first": 20525056.0,
+            "global_step_last": 21725184.0
+          },
+          {
+            "episode_start": 12289,
+            "episode_end": 16384,
+            "n": 4096,
+            "complete": true,
+            "return": 893.3759876176373,
+            "search": 88.2568359375,
+            "delivery": 64.54729352678571,
+            "success_rate": 0,
+            "global_step_first": 27738112.0,
+            "global_step_last": 28954624.0
+          },
+          {
+            "episode_start": 15905,
+            "episode_end": 20000,
+            "n": 4096,
+            "complete": true,
+            "return": 941.7417329595943,
+            "search": 92.79087611607143,
+            "delivery": 68.19754464285714,
+            "success_rate": 0.000244140625,
+            "global_step_first": 28409856.0,
+            "global_step_last": 35581952.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "dff78acf"
+        ],
+        "algorithm": "masac",
+        "mode": "PQL",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 11875,
+        "history_rows": 11875,
+        "observed_rewinds": [],
+        "source_commits": [
+          "ca53c74bcdea557cca681f77082eb6cf323f64cd"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 778.5786096843578,
+            "search": 90.17647879464286,
+            "delivery": 62.95200892857143,
+            "success_rate": 0,
+            "global_step_first": 6365184.0,
+            "global_step_last": 7237632.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 760.7900028126517,
+            "search": 78.93624441964286,
+            "delivery": 62.2119140625,
+            "success_rate": 0,
+            "global_step_first": 12894208.0,
+            "global_step_last": 14577664.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "6618c985"
+        ],
+        "algorithm": "masac",
+        "mode": "BASE",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 4096,
+        "history_rows": 4096,
+        "observed_rewinds": [],
+        "source_commits": [
+          "a470a4022166d94a656b81efa51eebd715ae3c57"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 780.1509277925111,
+            "search": 90.22251674107143,
+            "delivery": 62.04520089285714,
+            "success_rate": 0,
+            "global_step_first": 6479872.0,
+            "global_step_last": 7372800.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "8a3028b9",
+          "3f7cd7c0"
+        ],
+        "algorithm": "masac",
+        "mode": "BASE",
+        "sharing": "independent",
+        "replay": "FULLGPU",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 20000,
+        "history_rows": 20000,
+        "observed_rewinds": [],
+        "source_commits": [
+          "a470a4022166d94a656b81efa51eebd715ae3c57"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 830.1186177046858,
+            "search": 92.31236049107143,
+            "delivery": 65.37737165178571,
+            "success_rate": 0,
+            "global_step_first": 6434816.0,
+            "global_step_last": 7266304.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 927.1395953263066,
+            "search": 84.15666852678571,
+            "delivery": 69.17759486607143,
+            "success_rate": 0.00048828125,
+            "global_step_first": 10485760.0,
+            "global_step_last": 14483456.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": -54.54955343271513,
+            "search": 49.55357142857143,
+            "delivery": 32.915736607142854,
+            "success_rate": 0,
+            "global_step_first": 17698816.0,
+            "global_step_last": 21778432.0
+          },
+          {
+            "episode_start": 12289,
+            "episode_end": 16384,
+            "n": 4096,
+            "complete": true,
+            "return": 233.82969335857274,
+            "search": 80.23228236607143,
+            "delivery": 50.50083705357143,
+            "success_rate": 0,
+            "global_step_first": 24829952.0,
+            "global_step_last": 29011968.0
+          },
+          {
+            "episode_start": 15905,
+            "episode_end": 20000,
+            "n": 4096,
+            "complete": true,
+            "return": 231.78949417724402,
+            "search": 76.30719866071429,
+            "delivery": 49.95814732142857,
+            "success_rate": 0,
+            "global_step_first": 28332032.0,
+            "global_step_last": 35389440.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "2d76fbf2"
+        ],
+        "algorithm": "masac",
+        "mode": "PQL",
+        "sharing": "independent",
+        "replay": "FULLGPU",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 4096,
+        "history_rows": 4096,
+        "observed_rewinds": [],
+        "source_commits": [
+          "a470a4022166d94a656b81efa51eebd715ae3c57"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 817.7996905315181,
+            "search": 91.74386160714286,
+            "delivery": 65.1123046875,
+            "success_rate": 0,
+            "global_step_first": 6365184.0,
+            "global_step_last": 7241728.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "bc3695bd"
+        ],
+        "algorithm": "masac",
+        "mode": "BASE",
+        "sharing": "actor",
+        "replay": "HYBRID75",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 12350,
+        "history_rows": 12350,
+        "observed_rewinds": [],
+        "source_commits": [
+          "a470a4022166d94a656b81efa51eebd715ae3c57"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 626.7340958551545,
+            "search": 86.93219866071429,
+            "delivery": 56.825474330357146,
+            "success_rate": 0,
+            "global_step_first": 6479872.0,
+            "global_step_last": 7196672.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 1322.9703226003012,
+            "search": 94.49497767857143,
+            "delivery": 84.21735491071429,
+            "success_rate": 0.0185546875,
+            "global_step_first": 9179136.0,
+            "global_step_last": 14524416.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": 145.96826795923994,
+            "search": 70.94517299107143,
+            "delivery": 43.55678013392857,
+            "success_rate": 0,
+            "global_step_first": 16355328.0,
+            "global_step_last": 21839872.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "f1cd8533"
+        ],
+        "algorithm": "masac",
+        "mode": "BASE",
+        "sharing": "actor",
+        "replay": "FULLGPU",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 12293,
+        "history_rows": 12293,
+        "observed_rewinds": [],
+        "source_commits": [
+          "a470a4022166d94a656b81efa51eebd715ae3c57"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 671.5106833925486,
+            "search": 86.13351004464286,
+            "delivery": 57.22098214285714,
+            "success_rate": 0,
+            "global_step_first": 6529024.0,
+            "global_step_last": 7294976.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 1212.6386839717484,
+            "search": 87.22028459821429,
+            "delivery": 78.86579241071429,
+            "success_rate": 0.001220703125,
+            "global_step_first": 8978432.0,
+            "global_step_last": 14561280.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": -21.453638674904823,
+            "search": 73.93833705357143,
+            "delivery": 33.1884765625,
+            "success_rate": 0,
+            "global_step_first": 16044032.0,
+            "global_step_last": 21823488.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "81cd777d"
+        ],
+        "algorithm": "masac",
+        "mode": "BASE",
+        "sharing": "critic",
+        "replay": "HYBRID75",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 12298,
+        "history_rows": 12298,
+        "observed_rewinds": [],
+        "source_commits": [
+          "a470a4022166d94a656b81efa51eebd715ae3c57"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 776.3788488378414,
+            "search": 89.59612165178571,
+            "delivery": 61.270926339285715,
+            "success_rate": 0,
+            "global_step_first": 6356992.0,
+            "global_step_last": 7262208.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 1091.6503257746438,
+            "search": 81.82338169642857,
+            "delivery": 66.40764508928571,
+            "success_rate": 0.000244140625,
+            "global_step_first": 12107776.0,
+            "global_step_last": 14352384.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": 1010.9013481979389,
+            "search": 74.57240513392857,
+            "delivery": 66.30161830357143,
+            "success_rate": 0.000732421875,
+            "global_step_first": 18075648.0,
+            "global_step_last": 21565440.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "92e50d5b"
+        ],
+        "algorithm": "masac",
+        "mode": "BASE",
+        "sharing": "critic",
+        "replay": "FULLGPU",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 12290,
+        "history_rows": 12290,
+        "observed_rewinds": [],
+        "source_commits": [
+          "a470a4022166d94a656b81efa51eebd715ae3c57"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 766.4648605747659,
+            "search": 90.84821428571429,
+            "delivery": 62.06333705357143,
+            "success_rate": 0,
+            "global_step_first": 6287360.0,
+            "global_step_last": 7299072.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 993.0745450941349,
+            "search": 74.4775390625,
+            "delivery": 62.09263392857143,
+            "success_rate": 0,
+            "global_step_first": 12992512.0,
+            "global_step_last": 14409728.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": 967.8502498602581,
+            "search": 73.54422433035714,
+            "delivery": 64.47684151785714,
+            "success_rate": 0.00048828125,
+            "global_step_first": 18657280.0,
+            "global_step_last": 21430272.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "7317eeba"
+        ],
+        "algorithm": "masac",
+        "mode": "BASE",
+        "sharing": "both",
+        "replay": "HYBRID75",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 12353,
+        "history_rows": 12353,
+        "observed_rewinds": [],
+        "source_commits": [
+          "a470a4022166d94a656b81efa51eebd715ae3c57"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 704.6234031181064,
+            "search": 88.92717633928571,
+            "delivery": 59.2626953125,
+            "success_rate": 0,
+            "global_step_first": 6541312.0,
+            "global_step_last": 7249920.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 1384.7117820644978,
+            "search": 94.10993303571429,
+            "delivery": 83.0859375,
+            "success_rate": 0.013916015625,
+            "global_step_first": 10571776.0,
+            "global_step_last": 14172160.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": 1229.9373670528169,
+            "search": 94.76771763392857,
+            "delivery": 78.86997767857143,
+            "success_rate": 0.004638671875,
+            "global_step_first": 14540800.0,
+            "global_step_last": 21037056.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "af6502a8"
+        ],
+        "algorithm": "masac",
+        "mode": "BASE",
+        "sharing": "both",
+        "replay": "FULLGPU",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 16384,
+        "history_rows": 16384,
+        "observed_rewinds": [],
+        "source_commits": [
+          "a470a4022166d94a656b81efa51eebd715ae3c57"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 4096,
+            "complete": true,
+            "return": 776.5817311567339,
+            "search": 89.72307477678571,
+            "delivery": 60.457589285714285,
+            "success_rate": 0,
+            "global_step_first": 6569984.0,
+            "global_step_last": 7266304.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 1096.8791016364742,
+            "search": 81.44182477678571,
+            "delivery": 68.76116071428571,
+            "success_rate": 0,
+            "global_step_first": 13000704.0,
+            "global_step_last": 14397440.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": 1190.735944636306,
+            "search": 84.98186383928571,
+            "delivery": 73.00920758928571,
+            "success_rate": 0.0009765625,
+            "global_step_first": 18063360.0,
+            "global_step_last": 21495808.0
+          },
+          {
+            "episode_start": 12289,
+            "episode_end": 16384,
+            "n": 4096,
+            "complete": true,
+            "return": 1054.3894466121774,
+            "search": 82.32840401785714,
+            "delivery": 69.45242745535714,
+            "success_rate": 0.000244140625,
+            "global_step_first": 24731648.0,
+            "global_step_last": 28499968.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "a6efa19d"
+        ],
+        "algorithm": "masac",
+        "mode": "PQL",
+        "sharing": "independent",
+        "replay": "FULLGPU",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 16445,
+        "history_rows": 12349,
+        "observed_rewinds": [],
+        "source_commits": [
+          "a470a4022166d94a656b81efa51eebd715ae3c57"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 0,
+            "complete": false
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 631.5170291639752,
+            "search": 83.20591517857143,
+            "delivery": 60.33900669642857,
+            "success_rate": 0,
+            "global_step_first": 12873728.0,
+            "global_step_last": 14422016.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": -251.29497170488594,
+            "search": 53.192661830357146,
+            "delivery": 29.439174107142858,
+            "success_rate": 0,
+            "global_step_first": 19832832.0,
+            "global_step_last": 21721088.0
+          },
+          {
+            "episode_start": 12289,
+            "episode_end": 16384,
+            "n": 4096,
+            "complete": true,
+            "return": -87.28164582232671,
+            "search": 74.20270647321429,
+            "delivery": 44.151088169642854,
+            "success_rate": 0,
+            "global_step_first": 26984448.0,
+            "global_step_last": 28868608.0
+          }
+        ],
+        "primary_eligible": true
+      },
+      {
+        "ids": [
+          "d62f1326",
+          "957751a6"
+        ],
+        "algorithm": "masac",
+        "mode": "BASE",
+        "sharing": "independent",
+        "replay": "HYBRID75",
+        "amp": "off",
+        "num_envs": 4096,
+        "batch_size": 8192,
+        "seed": 44,
+        "max_episode": 16633,
+        "history_rows": 12737,
+        "observed_rewinds": [],
+        "source_commits": [
+          "a470a4022166d94a656b81efa51eebd715ae3c57"
+        ],
+        "scenario": {
+          "targets": 35,
+          "obstacles": 25,
+          "horizon": 1800,
+          "map": 1000
+        },
+        "overlaps_27_29_vn": true,
+        "windows": [
+          {
+            "episode_start": 1,
+            "episode_end": 4096,
+            "n": 200,
+            "complete": false,
+            "return": 757.9504625780042,
+            "search": 90.08571428571429,
+            "delivery": 60.72857142857143,
+            "success_rate": 0,
+            "global_step_first": 7127040.0,
+            "global_step_last": 7372800.0
+          },
+          {
+            "episode_start": 4097,
+            "episode_end": 8192,
+            "n": 4096,
+            "complete": true,
+            "return": 519.3833353450689,
+            "search": 76.55203683035714,
+            "delivery": 55.90122767857143,
+            "success_rate": 0,
+            "global_step_first": 13049856.0,
+            "global_step_last": 14565376.0
+          },
+          {
+            "episode_start": 8193,
+            "episode_end": 12288,
+            "n": 4096,
+            "complete": true,
+            "return": 232.47571351937358,
+            "search": 81.3720703125,
+            "delivery": 50.664760044642854,
+            "success_rate": 0,
+            "global_step_first": 19992576.0,
+            "global_step_last": 21782528.0
+          },
+          {
+            "episode_start": 12289,
+            "episode_end": 16384,
+            "n": 4096,
+            "complete": true,
+            "return": -82.91888728676167,
+            "search": 63.8916015625,
+            "delivery": 37.87806919642857,
+            "success_rate": 0,
+            "global_step_first": 26570752.0,
+            "global_step_last": 28983296.0
+          }
+        ],
+        "primary_eligible": true
+      }
+    ],
+    "comparison_scope": "Per-episode training outcomes at identical4096-episode windows; not deterministic checkpoint eval, seed44 only. Different global-step endpoints and source commits disclosed. Sparse/incomplete windows excluded."
+  },
+  "relay_cohorts": {
+    "7317eeba": [
+      {
+        "cohort/episodes": 4096,
+        "cohort/return_mean": 704.6234031181064,
+        "cohort/search_rate_percent_mean": 88.92717633928592,
+        "cohort/delivery_rate_percent_mean": 59.26269531249997,
+        "cohort/network/diagnostics/custody_peer_transfers": 260210,
+        "cohort/network/diagnostics/direct_gcs_reports": 45900,
+        "cohort/network/diagnostics/relayed_gcs_reports": 39059
+      },
+      {
+        "cohort/episodes": 4096,
+        "cohort/return_mean": 1229.6467692733734,
+        "cohort/search_rate_percent_mean": 94.76074218750091,
+        "cohort/delivery_rate_percent_mean": 78.85881696428594,
+        "cohort/network/diagnostics/custody_peer_transfers": 238795,
+        "cohort/network/diagnostics/direct_gcs_reports": 39073,
+        "cohort/network/diagnostics/relayed_gcs_reports": 73979
+      }
+    ],
+    "af6502a8": [
+      {
+        "cohort/episodes": 4096,
+        "cohort/return_mean": 776.5817311567339,
+        "cohort/search_rate_percent_mean": 89.72307477678638,
+        "cohort/delivery_rate_percent_mean": 60.45758928571412,
+        "cohort/network/diagnostics/custody_peer_transfers": 286058,
+        "cohort/network/diagnostics/direct_gcs_reports": 45614,
+        "cohort/network/diagnostics/relayed_gcs_reports": 41058
+      },
+      {
+        "cohort/episodes": 4096,
+        "cohort/return_mean": 1096.8791016364742,
+        "cohort/search_rate_percent_mean": 81.44182477678555,
+        "cohort/delivery_rate_percent_mean": 68.76116071428571,
+        "cohort/network/diagnostics/custody_peer_transfers": 234601,
+        "cohort/network/diagnostics/direct_gcs_reports": 35218,
+        "cohort/network/diagnostics/relayed_gcs_reports": 63358
+      },
+      {
+        "cohort/episodes": 4096,
+        "cohort/return_mean": 1190.735944636306,
+        "cohort/search_rate_percent_mean": 84.98186383928585,
+        "cohort/delivery_rate_percent_mean": 73.00920758928562,
+        "cohort/network/diagnostics/custody_peer_transfers": 227180,
+        "cohort/network/diagnostics/direct_gcs_reports": 30288,
+        "cohort/network/diagnostics/relayed_gcs_reports": 74378
+      },
+      {
+        "cohort/episodes": 4096,
+        "cohort/return_mean": 1054.3894466121774,
+        "cohort/search_rate_percent_mean": 82.32840401785732,
+        "cohort/delivery_rate_percent_mean": 69.45242745535703,
+        "cohort/network/diagnostics/custody_peer_transfers": 213826,
+        "cohort/network/diagnostics/direct_gcs_reports": 29372,
+        "cohort/network/diagnostics/relayed_gcs_reports": 70195
+      }
+    ],
+    "76b73021": [
+      {
+        "cohort/episodes": 4096,
+        "cohort/return_mean": 642.1120087162826,
+        "cohort/search_rate_percent_mean": 93.12430245535799,
+        "cohort/delivery_rate_percent_mean": 60.29854910714274,
+        "cohort/network/diagnostics/custody_peer_transfers": 212532,
+        "cohort/network/diagnostics/direct_gcs_reports": 27110,
+        "cohort/network/diagnostics/relayed_gcs_reports": 59334
+      },
+      {
+        "cohort/episodes": 4096,
+        "cohort/return_mean": 626.7828012590287,
+        "cohort/search_rate_percent_mean": 86.77525111607142,
+        "cohort/delivery_rate_percent_mean": 57.49093191964284,
+        "cohort/network/diagnostics/custody_peer_transfers": 181160,
+        "cohort/network/diagnostics/direct_gcs_reports": 33978,
+        "cohort/network/diagnostics/relayed_gcs_reports": 48441
+      },
+      {
+        "cohort/episodes": 4096,
+        "cohort/return_mean": 1114.8458665367177,
+        "cohort/search_rate_percent_mean": 79.3268694196427,
+        "cohort/delivery_rate_percent_mean": 65.92773437500003,
+        "cohort/network/diagnostics/custody_peer_transfers": 175439,
+        "cohort/network/diagnostics/direct_gcs_reports": 26209,
+        "cohort/network/diagnostics/relayed_gcs_reports": 68305
+      },
+      {
+        "cohort/episodes": 4096,
+        "cohort/return_mean": 1325.6688697401514,
+        "cohort/search_rate_percent_mean": 91.3720703125006,
+        "cohort/delivery_rate_percent_mean": 79.33733258928582,
+        "cohort/network/diagnostics/custody_peer_transfers": 208759,
+        "cohort/network/diagnostics/direct_gcs_reports": 34462,
+        "cohort/network/diagnostics/relayed_gcs_reports": 79276
+      }
+    ]
+  },
+  "historical_validation": {
+    "seed_first": 1000000044,
+    "evaluation_episodes": 5,
+    "scope": "Post-hoc validation of seven pre-existing MASAC/MATD3 candidates; matched8192/12288 and nearby12421 budgets plus own final endpoints; not multi-training-seed evidence or exhaustive best search",
+    "rows": [
+      {
+        "label": "hybrid-ep12288",
+        "artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-7317eeba:v19",
+        "sha256": "e37001cb85dc634e3a95abe2466c719ebf92171ee8312a76e8e40d9bd2960b5f",
+        "training_episode": 12288,
+        "training_global_step": 21037056,
+        "evaluated_at_utc": "2026-10-30T02:08:25.262257+00:00",
+        "mean_return": 1425.9025897564366,
+        "mean_search_rate_percent": 91.42857142857143,
+        "mean_delivery_rate_percent": 80.57142857142858,
+        "success_rate": 0.0,
+        "episodes": 5,
+        "protocol": {
+          "version": 3,
+          "scenario_hash": "a81e1f48710bcaf434d659cce837840a52b06a6eb041fe3833bea9602ce69370",
+          "scenario": {
+            "world": {
+              "generation_version": 3,
+              "map_size_m": 1000.0,
+              "num_uavs": 6,
+              "num_targets": 35,
+              "num_obstacles": 25,
+              "dt_s": 1.0,
+              "max_steps": 1800,
+              "max_speed_mps": 20.0,
+              "max_accel_mps2": 2.0,
+              "safety_distance_m": 15.0,
+              "obstacle_clearance_m": 10.0,
+              "motion_safety": "dynamic_window",
+              "obstacle_radius_min_m": 30.0,
+              "obstacle_radius_max_m": 70.0,
+              "launch_radius_m": 150.0,
+              "launch_min_spacing_m": 30.0,
+              "target_exclusion_radius_m": 200.0,
+              "gcs_position_m": null,
+              "placement_attempts": 5000
+            },
+            "sensor": {
+              "altitude_m": 100.0,
+              "full_fov_deg": 90.0,
+              "obstacle_occlusion": true,
+              "visible_target_slots": 4,
+              "visible_obstacle_slots": 3
+            },
+            "network": {
+              "enabled": true,
+              "receiver_admission_mask": true,
+              "rediscovery_recovery": true,
+              "ack_uses_data_power": true,
+              "upstream_path": "third_party/UavNetSim",
+              "peer_range_m": 500.0,
+              "gcs_range_m": 500.0,
+              "tx_power_min_w": 0.001,
+              "tx_power_max_w": 0.4,
+              "tx_power_mapping": "log",
+              "pa_efficiency": 0.35,
+              "tx_circuit_power_w": 0.1,
+              "rx_circuit_power_w": 0.1,
+              "power_limited_admission": true,
+              "link_state_observation": true,
+              "report_bytes": 1024,
+              "buffer_bytes": 3072,
+              "report_ttl_s": 300.0,
+              "payload_bytes": 1024,
+              "packet_lifetime_s": 10.0,
+              "max_queue_packets": 64,
+              "queue_poll_us": 1000.0,
+              "max_retries": 5,
+              "obstacle_polygon_sides": 16,
+              "bit_rate_bps": 2000000.0,
+              "carrier_frequency_hz": 2400000000.0,
+              "bandwidth_hz": 22000000.0,
+              "sinr_threshold_db": 6.0,
+              "cca_threshold_dbm": -82.0,
+              "noise_density_dbm_hz": -174.0,
+              "noise_figure_db": 7.0,
+              "nlos_model": "urban",
+              "propagation_delay_enabled": true,
+              "obstacle_extra_loss_db": 0.0
+            },
+            "energy": {
+              "enabled": true,
+              "battery_capacity_j": 277200.0,
+              "idle_power_w": 20.0,
+              "hover_power_w": 120.0,
+              "speed_squared_coefficient": 0.5,
+              "acceleration_squared_coefficient": 2.0
+            },
+            "reward": {
+              "discovery": 10.0,
+              "delivery": 50.0,
+              "blocked_motion": 0.2,
+              "expired_report": 10.0,
+              "dropped_report": 10.0,
+              "step_cost": 0.01,
+              "communication_energy": 0.01,
+              "propulsion_energy_per_kj": 0.01,
+              "communication_efficiency": 1.0,
+              "shield_correction": 0.1
+            },
+            "environment_backend": "warp_packet",
+            "observation_version": 3
+          },
+          "seeds": [
+            1000000044,
+            1000000045,
+            1000000046,
+            1000000047,
+            1000000048
+          ],
+          "deterministic_policy": true,
+          "training_seed_interval_conservative": [
+            44,
+            16426
+          ],
+          "training_seed_overlap": false,
+          "training_seed": 44,
+          "validation_seed_interval_current": null,
+          "validation_seed_intervals_current": [],
+          "validation_seed_overlap": false,
+          "exposure_provenance": "saved_fresh_training_configuration",
+          "training_global_step": 21037056,
+          "training_episodes": 12288,
+          "timing_resolution_s": 1.0,
+          "timing_basis": "first observation at simulation step boundary; not exact packet timestamp",
+          "safety_tolerance_m": 0.001,
+          "scope": "evaluation scenarios conditional on this trained checkpoint; not training-seed robustness"
+        },
+        "metrics_file": "outputs/learned-power-best-20261030/historical-validation/hybrid-ep12288/evaluation/metrics.json"
+      },
+      {
+        "label": "fullgpu-ep12288",
+        "artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-af6502a8:v16",
+        "sha256": "39d688799e3e334623457e5b1226945781deffc878c9bd6e86f2ca3819bacde9",
+        "training_episode": 12288,
+        "training_global_step": 21495808,
+        "evaluated_at_utc": "2026-10-30T02:08:27.238766+00:00",
+        "mean_return": 881.8017281800509,
+        "mean_search_rate_percent": 77.14285714285714,
+        "mean_delivery_rate_percent": 60.57142857142857,
+        "success_rate": 0.0,
+        "episodes": 5,
+        "protocol": {
+          "version": 3,
+          "scenario_hash": "a81e1f48710bcaf434d659cce837840a52b06a6eb041fe3833bea9602ce69370",
+          "scenario": {
+            "world": {
+              "generation_version": 3,
+              "map_size_m": 1000.0,
+              "num_uavs": 6,
+              "num_targets": 35,
+              "num_obstacles": 25,
+              "dt_s": 1.0,
+              "max_steps": 1800,
+              "max_speed_mps": 20.0,
+              "max_accel_mps2": 2.0,
+              "safety_distance_m": 15.0,
+              "obstacle_clearance_m": 10.0,
+              "motion_safety": "dynamic_window",
+              "obstacle_radius_min_m": 30.0,
+              "obstacle_radius_max_m": 70.0,
+              "launch_radius_m": 150.0,
+              "launch_min_spacing_m": 30.0,
+              "target_exclusion_radius_m": 200.0,
+              "gcs_position_m": null,
+              "placement_attempts": 5000
+            },
+            "sensor": {
+              "altitude_m": 100.0,
+              "full_fov_deg": 90.0,
+              "obstacle_occlusion": true,
+              "visible_target_slots": 4,
+              "visible_obstacle_slots": 3
+            },
+            "network": {
+              "enabled": true,
+              "receiver_admission_mask": true,
+              "rediscovery_recovery": true,
+              "ack_uses_data_power": true,
+              "upstream_path": "third_party/UavNetSim",
+              "peer_range_m": 500.0,
+              "gcs_range_m": 500.0,
+              "tx_power_min_w": 0.001,
+              "tx_power_max_w": 0.4,
+              "tx_power_mapping": "log",
+              "pa_efficiency": 0.35,
+              "tx_circuit_power_w": 0.1,
+              "rx_circuit_power_w": 0.1,
+              "power_limited_admission": true,
+              "link_state_observation": true,
+              "report_bytes": 1024,
+              "buffer_bytes": 3072,
+              "report_ttl_s": 300.0,
+              "payload_bytes": 1024,
+              "packet_lifetime_s": 10.0,
+              "max_queue_packets": 64,
+              "queue_poll_us": 1000.0,
+              "max_retries": 5,
+              "obstacle_polygon_sides": 16,
+              "bit_rate_bps": 2000000.0,
+              "carrier_frequency_hz": 2400000000.0,
+              "bandwidth_hz": 22000000.0,
+              "sinr_threshold_db": 6.0,
+              "cca_threshold_dbm": -82.0,
+              "noise_density_dbm_hz": -174.0,
+              "noise_figure_db": 7.0,
+              "nlos_model": "urban",
+              "propagation_delay_enabled": true,
+              "obstacle_extra_loss_db": 0.0
+            },
+            "energy": {
+              "enabled": true,
+              "battery_capacity_j": 277200.0,
+              "idle_power_w": 20.0,
+              "hover_power_w": 120.0,
+              "speed_squared_coefficient": 0.5,
+              "acceleration_squared_coefficient": 2.0
+            },
+            "reward": {
+              "discovery": 10.0,
+              "delivery": 50.0,
+              "blocked_motion": 0.2,
+              "expired_report": 10.0,
+              "dropped_report": 10.0,
+              "step_cost": 0.01,
+              "communication_energy": 0.01,
+              "propulsion_energy_per_kj": 0.01,
+              "communication_efficiency": 1.0,
+              "shield_correction": 0.1
+            },
+            "environment_backend": "warp_packet",
+            "observation_version": 3
+          },
+          "seeds": [
+            1000000044,
+            1000000045,
+            1000000046,
+            1000000047,
+            1000000048
+          ],
+          "deterministic_policy": true,
+          "training_seed_interval_conservative": [
+            44,
+            16426
+          ],
+          "training_seed_overlap": false,
+          "training_seed": 44,
+          "validation_seed_interval_current": null,
+          "validation_seed_intervals_current": [],
+          "validation_seed_overlap": false,
+          "exposure_provenance": "saved_fresh_training_configuration",
+          "training_global_step": 21495808,
+          "training_episodes": 12288,
+          "timing_resolution_s": 1.0,
+          "timing_basis": "first observation at simulation step boundary; not exact packet timestamp",
+          "safety_tolerance_m": 0.001,
+          "scope": "evaluation scenarios conditional on this trained checkpoint; not training-seed robustness"
+        },
+        "metrics_file": "outputs/learned-power-best-20261030/historical-validation/fullgpu-ep12288/evaluation/metrics.json"
+      },
+      {
+        "label": "hybrid-final12353",
+        "artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-7317eeba:v21",
+        "sha256": "00b51acf1326c345c06968cd5ec47559d07c2150fb36af085c44867c0c53ed35",
+        "training_episode": 12353,
+        "training_global_step": 25550848,
+        "evaluated_at_utc": "2026-10-30T02:08:29.082431+00:00",
+        "mean_return": 986.9103948758915,
+        "mean_search_rate_percent": 88.0,
+        "mean_delivery_rate_percent": 72.0,
+        "success_rate": 0.0,
+        "episodes": 5,
+        "protocol": {
+          "version": 3,
+          "scenario_hash": "a81e1f48710bcaf434d659cce837840a52b06a6eb041fe3833bea9602ce69370",
+          "scenario": {
+            "world": {
+              "generation_version": 3,
+              "map_size_m": 1000.0,
+              "num_uavs": 6,
+              "num_targets": 35,
+              "num_obstacles": 25,
+              "dt_s": 1.0,
+              "max_steps": 1800,
+              "max_speed_mps": 20.0,
+              "max_accel_mps2": 2.0,
+              "safety_distance_m": 15.0,
+              "obstacle_clearance_m": 10.0,
+              "motion_safety": "dynamic_window",
+              "obstacle_radius_min_m": 30.0,
+              "obstacle_radius_max_m": 70.0,
+              "launch_radius_m": 150.0,
+              "launch_min_spacing_m": 30.0,
+              "target_exclusion_radius_m": 200.0,
+              "gcs_position_m": null,
+              "placement_attempts": 5000
+            },
+            "sensor": {
+              "altitude_m": 100.0,
+              "full_fov_deg": 90.0,
+              "obstacle_occlusion": true,
+              "visible_target_slots": 4,
+              "visible_obstacle_slots": 3
+            },
+            "network": {
+              "enabled": true,
+              "receiver_admission_mask": true,
+              "rediscovery_recovery": true,
+              "ack_uses_data_power": true,
+              "upstream_path": "third_party/UavNetSim",
+              "peer_range_m": 500.0,
+              "gcs_range_m": 500.0,
+              "tx_power_min_w": 0.001,
+              "tx_power_max_w": 0.4,
+              "tx_power_mapping": "log",
+              "pa_efficiency": 0.35,
+              "tx_circuit_power_w": 0.1,
+              "rx_circuit_power_w": 0.1,
+              "power_limited_admission": true,
+              "link_state_observation": true,
+              "report_bytes": 1024,
+              "buffer_bytes": 3072,
+              "report_ttl_s": 300.0,
+              "payload_bytes": 1024,
+              "packet_lifetime_s": 10.0,
+              "max_queue_packets": 64,
+              "queue_poll_us": 1000.0,
+              "max_retries": 5,
+              "obstacle_polygon_sides": 16,
+              "bit_rate_bps": 2000000.0,
+              "carrier_frequency_hz": 2400000000.0,
+              "bandwidth_hz": 22000000.0,
+              "sinr_threshold_db": 6.0,
+              "cca_threshold_dbm": -82.0,
+              "noise_density_dbm_hz": -174.0,
+              "noise_figure_db": 7.0,
+              "nlos_model": "urban",
+              "propagation_delay_enabled": true,
+              "obstacle_extra_loss_db": 0.0
+            },
+            "energy": {
+              "enabled": true,
+              "battery_capacity_j": 277200.0,
+              "idle_power_w": 20.0,
+              "hover_power_w": 120.0,
+              "speed_squared_coefficient": 0.5,
+              "acceleration_squared_coefficient": 2.0
+            },
+            "reward": {
+              "discovery": 10.0,
+              "delivery": 50.0,
+              "blocked_motion": 0.2,
+              "expired_report": 10.0,
+              "dropped_report": 10.0,
+              "step_cost": 0.01,
+              "communication_energy": 0.01,
+              "propulsion_energy_per_kj": 0.01,
+              "communication_efficiency": 1.0,
+              "shield_correction": 0.1
+            },
+            "environment_backend": "warp_packet",
+            "observation_version": 3
+          },
+          "seeds": [
+            1000000044,
+            1000000045,
+            1000000046,
+            1000000047,
+            1000000048
+          ],
+          "deterministic_policy": true,
+          "training_seed_interval_conservative": [
+            44,
+            16490
+          ],
+          "training_seed_overlap": false,
+          "training_seed": 44,
+          "validation_seed_interval_current": null,
+          "validation_seed_intervals_current": [],
+          "validation_seed_overlap": false,
+          "exposure_provenance": "saved_fresh_training_configuration",
+          "training_global_step": 25550848,
+          "training_episodes": 12353,
+          "timing_resolution_s": 1.0,
+          "timing_basis": "first observation at simulation step boundary; not exact packet timestamp",
+          "safety_tolerance_m": 0.001,
+          "scope": "evaluation scenarios conditional on this trained checkpoint; not training-seed robustness"
+        },
+        "metrics_file": "outputs/learned-power-best-20261030/historical-validation/hybrid-final12353/evaluation/metrics.json"
+      },
+      {
+        "label": "fullgpu-final16384",
+        "artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-af6502a8:v26",
+        "sha256": "62e4c0f0d539ef6a1735b128df588b1c4c8cca8ad30f6746fee8e931d52b1a45",
+        "training_episode": 16384,
+        "training_global_step": 29831168,
+        "evaluated_at_utc": "2026-10-30T02:08:31.090944+00:00",
+        "mean_return": 1001.214682763815,
+        "mean_search_rate_percent": 67.42857142857143,
+        "mean_delivery_rate_percent": 56.57142857142857,
+        "success_rate": 0.0,
+        "episodes": 5,
+        "protocol": {
+          "version": 3,
+          "scenario_hash": "a81e1f48710bcaf434d659cce837840a52b06a6eb041fe3833bea9602ce69370",
+          "scenario": {
+            "world": {
+              "generation_version": 3,
+              "map_size_m": 1000.0,
+              "num_uavs": 6,
+              "num_targets": 35,
+              "num_obstacles": 25,
+              "dt_s": 1.0,
+              "max_steps": 1800,
+              "max_speed_mps": 20.0,
+              "max_accel_mps2": 2.0,
+              "safety_distance_m": 15.0,
+              "obstacle_clearance_m": 10.0,
+              "motion_safety": "dynamic_window",
+              "obstacle_radius_min_m": 30.0,
+              "obstacle_radius_max_m": 70.0,
+              "launch_radius_m": 150.0,
+              "launch_min_spacing_m": 30.0,
+              "target_exclusion_radius_m": 200.0,
+              "gcs_position_m": null,
+              "placement_attempts": 5000
+            },
+            "sensor": {
+              "altitude_m": 100.0,
+              "full_fov_deg": 90.0,
+              "obstacle_occlusion": true,
+              "visible_target_slots": 4,
+              "visible_obstacle_slots": 3
+            },
+            "network": {
+              "enabled": true,
+              "receiver_admission_mask": true,
+              "rediscovery_recovery": true,
+              "ack_uses_data_power": true,
+              "upstream_path": "third_party/UavNetSim",
+              "peer_range_m": 500.0,
+              "gcs_range_m": 500.0,
+              "tx_power_min_w": 0.001,
+              "tx_power_max_w": 0.4,
+              "tx_power_mapping": "log",
+              "pa_efficiency": 0.35,
+              "tx_circuit_power_w": 0.1,
+              "rx_circuit_power_w": 0.1,
+              "power_limited_admission": true,
+              "link_state_observation": true,
+              "report_bytes": 1024,
+              "buffer_bytes": 3072,
+              "report_ttl_s": 300.0,
+              "payload_bytes": 1024,
+              "packet_lifetime_s": 10.0,
+              "max_queue_packets": 64,
+              "queue_poll_us": 1000.0,
+              "max_retries": 5,
+              "obstacle_polygon_sides": 16,
+              "bit_rate_bps": 2000000.0,
+              "carrier_frequency_hz": 2400000000.0,
+              "bandwidth_hz": 22000000.0,
+              "sinr_threshold_db": 6.0,
+              "cca_threshold_dbm": -82.0,
+              "noise_density_dbm_hz": -174.0,
+              "noise_figure_db": 7.0,
+              "nlos_model": "urban",
+              "propagation_delay_enabled": true,
+              "obstacle_extra_loss_db": 0.0
+            },
+            "energy": {
+              "enabled": true,
+              "battery_capacity_j": 277200.0,
+              "idle_power_w": 20.0,
+              "hover_power_w": 120.0,
+              "speed_squared_coefficient": 0.5,
+              "acceleration_squared_coefficient": 2.0
+            },
+            "reward": {
+              "discovery": 10.0,
+              "delivery": 50.0,
+              "blocked_motion": 0.2,
+              "expired_report": 10.0,
+              "dropped_report": 10.0,
+              "step_cost": 0.01,
+              "communication_energy": 0.01,
+              "propulsion_energy_per_kj": 0.01,
+              "communication_efficiency": 1.0,
+              "shield_correction": 0.1
+            },
+            "environment_backend": "warp_packet",
+            "observation_version": 3
+          },
+          "seeds": [
+            1000000044,
+            1000000045,
+            1000000046,
+            1000000047,
+            1000000048
+          ],
+          "deterministic_policy": true,
+          "training_seed_interval_conservative": [
+            44,
+            20523
+          ],
+          "training_seed_overlap": false,
+          "training_seed": 44,
+          "validation_seed_interval_current": null,
+          "validation_seed_intervals_current": [],
+          "validation_seed_overlap": false,
+          "exposure_provenance": "saved_fresh_training_configuration",
+          "training_global_step": 29831168,
+          "training_episodes": 16384,
+          "timing_resolution_s": 1.0,
+          "timing_basis": "first observation at simulation step boundary; not exact packet timestamp",
+          "safety_tolerance_m": 0.001,
+          "scope": "evaluation scenarios conditional on this trained checkpoint; not training-seed robustness"
+        },
+        "metrics_file": "outputs/learned-power-best-20261030/historical-validation/fullgpu-final16384/evaluation/metrics.json"
+      },
+      {
+        "label": "hybrid-actor-ep8192",
+        "artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-bc3695bd:v10",
+        "sha256": "7df0414bfbe39193bdf7e24a099d14b486b07e94de847cb59912f0c8c9cb9d2c",
+        "training_episode": 8192,
+        "training_global_step": 14524416,
+        "evaluated_at_utc": "2026-10-30T02:12:25.968616+00:00",
+        "mean_return": -864.591798748821,
+        "mean_search_rate_percent": 68.0,
+        "mean_delivery_rate_percent": 32.0,
+        "success_rate": 0.0,
+        "episodes": 5,
+        "protocol": {
+          "version": 3,
+          "scenario_hash": "a81e1f48710bcaf434d659cce837840a52b06a6eb041fe3833bea9602ce69370",
+          "scenario": {
+            "world": {
+              "generation_version": 3,
+              "map_size_m": 1000.0,
+              "num_uavs": 6,
+              "num_targets": 35,
+              "num_obstacles": 25,
+              "dt_s": 1.0,
+              "max_steps": 1800,
+              "max_speed_mps": 20.0,
+              "max_accel_mps2": 2.0,
+              "safety_distance_m": 15.0,
+              "obstacle_clearance_m": 10.0,
+              "motion_safety": "dynamic_window",
+              "obstacle_radius_min_m": 30.0,
+              "obstacle_radius_max_m": 70.0,
+              "launch_radius_m": 150.0,
+              "launch_min_spacing_m": 30.0,
+              "target_exclusion_radius_m": 200.0,
+              "gcs_position_m": null,
+              "placement_attempts": 5000
+            },
+            "sensor": {
+              "altitude_m": 100.0,
+              "full_fov_deg": 90.0,
+              "obstacle_occlusion": true,
+              "visible_target_slots": 4,
+              "visible_obstacle_slots": 3
+            },
+            "network": {
+              "enabled": true,
+              "receiver_admission_mask": true,
+              "rediscovery_recovery": true,
+              "ack_uses_data_power": true,
+              "upstream_path": "third_party/UavNetSim",
+              "peer_range_m": 500.0,
+              "gcs_range_m": 500.0,
+              "tx_power_min_w": 0.001,
+              "tx_power_max_w": 0.4,
+              "tx_power_mapping": "log",
+              "pa_efficiency": 0.35,
+              "tx_circuit_power_w": 0.1,
+              "rx_circuit_power_w": 0.1,
+              "power_limited_admission": true,
+              "link_state_observation": true,
+              "report_bytes": 1024,
+              "buffer_bytes": 3072,
+              "report_ttl_s": 300.0,
+              "payload_bytes": 1024,
+              "packet_lifetime_s": 10.0,
+              "max_queue_packets": 64,
+              "queue_poll_us": 1000.0,
+              "max_retries": 5,
+              "obstacle_polygon_sides": 16,
+              "bit_rate_bps": 2000000.0,
+              "carrier_frequency_hz": 2400000000.0,
+              "bandwidth_hz": 22000000.0,
+              "sinr_threshold_db": 6.0,
+              "cca_threshold_dbm": -82.0,
+              "noise_density_dbm_hz": -174.0,
+              "noise_figure_db": 7.0,
+              "nlos_model": "urban",
+              "propagation_delay_enabled": true,
+              "obstacle_extra_loss_db": 0.0
+            },
+            "energy": {
+              "enabled": true,
+              "battery_capacity_j": 277200.0,
+              "idle_power_w": 20.0,
+              "hover_power_w": 120.0,
+              "speed_squared_coefficient": 0.5,
+              "acceleration_squared_coefficient": 2.0
+            },
+            "reward": {
+              "discovery": 10.0,
+              "delivery": 50.0,
+              "blocked_motion": 0.2,
+              "expired_report": 10.0,
+              "dropped_report": 10.0,
+              "step_cost": 0.01,
+              "communication_energy": 0.01,
+              "propulsion_energy_per_kj": 0.01,
+              "communication_efficiency": 1.0,
+              "shield_correction": 0.1
+            },
+            "environment_backend": "warp_packet",
+            "observation_version": 3
+          },
+          "seeds": [
+            1000000044,
+            1000000045,
+            1000000046,
+            1000000047,
+            1000000048
+          ],
+          "deterministic_policy": true,
+          "training_seed_interval_conservative": [
+            44,
+            12330
+          ],
+          "training_seed_overlap": false,
+          "training_seed": 44,
+          "validation_seed_interval_current": null,
+          "validation_seed_intervals_current": [],
+          "validation_seed_overlap": false,
+          "exposure_provenance": "saved_fresh_training_configuration",
+          "training_global_step": 14524416,
+          "training_episodes": 8192,
+          "timing_resolution_s": 1.0,
+          "timing_basis": "first observation at simulation step boundary; not exact packet timestamp",
+          "safety_tolerance_m": 0.001,
+          "scope": "evaluation scenarios conditional on this trained checkpoint; not training-seed robustness"
+        },
+        "metrics_file": "outputs/learned-power-best-20261030/historical-validation/hybrid-actor-ep8192/evaluation/metrics.json"
+      },
+      {
+        "label": "hybrid-sharedboth-ep8192",
+        "artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-masac-7317eeba:v10",
+        "sha256": "470d0f4e79c3d1baf904534898b1d7ac9e0c00343941488cc9976eff5ef6de6e",
+        "training_episode": 8192,
+        "training_global_step": 14172160,
+        "evaluated_at_utc": "2026-10-30T02:14:29.179378+00:00",
+        "mean_return": 1228.623965605721,
+        "mean_search_rate_percent": 98.28571428571429,
+        "mean_delivery_rate_percent": 81.14285714285714,
+        "success_rate": 0.0,
+        "episodes": 5,
+        "protocol": {
+          "version": 3,
+          "scenario_hash": "a81e1f48710bcaf434d659cce837840a52b06a6eb041fe3833bea9602ce69370",
+          "scenario": {
+            "world": {
+              "generation_version": 3,
+              "map_size_m": 1000.0,
+              "num_uavs": 6,
+              "num_targets": 35,
+              "num_obstacles": 25,
+              "dt_s": 1.0,
+              "max_steps": 1800,
+              "max_speed_mps": 20.0,
+              "max_accel_mps2": 2.0,
+              "safety_distance_m": 15.0,
+              "obstacle_clearance_m": 10.0,
+              "motion_safety": "dynamic_window",
+              "obstacle_radius_min_m": 30.0,
+              "obstacle_radius_max_m": 70.0,
+              "launch_radius_m": 150.0,
+              "launch_min_spacing_m": 30.0,
+              "target_exclusion_radius_m": 200.0,
+              "gcs_position_m": null,
+              "placement_attempts": 5000
+            },
+            "sensor": {
+              "altitude_m": 100.0,
+              "full_fov_deg": 90.0,
+              "obstacle_occlusion": true,
+              "visible_target_slots": 4,
+              "visible_obstacle_slots": 3
+            },
+            "network": {
+              "enabled": true,
+              "receiver_admission_mask": true,
+              "rediscovery_recovery": true,
+              "ack_uses_data_power": true,
+              "upstream_path": "third_party/UavNetSim",
+              "peer_range_m": 500.0,
+              "gcs_range_m": 500.0,
+              "tx_power_min_w": 0.001,
+              "tx_power_max_w": 0.4,
+              "tx_power_mapping": "log",
+              "pa_efficiency": 0.35,
+              "tx_circuit_power_w": 0.1,
+              "rx_circuit_power_w": 0.1,
+              "power_limited_admission": true,
+              "link_state_observation": true,
+              "report_bytes": 1024,
+              "buffer_bytes": 3072,
+              "report_ttl_s": 300.0,
+              "payload_bytes": 1024,
+              "packet_lifetime_s": 10.0,
+              "max_queue_packets": 64,
+              "queue_poll_us": 1000.0,
+              "max_retries": 5,
+              "obstacle_polygon_sides": 16,
+              "bit_rate_bps": 2000000.0,
+              "carrier_frequency_hz": 2400000000.0,
+              "bandwidth_hz": 22000000.0,
+              "sinr_threshold_db": 6.0,
+              "cca_threshold_dbm": -82.0,
+              "noise_density_dbm_hz": -174.0,
+              "noise_figure_db": 7.0,
+              "nlos_model": "urban",
+              "propagation_delay_enabled": true,
+              "obstacle_extra_loss_db": 0.0
+            },
+            "energy": {
+              "enabled": true,
+              "battery_capacity_j": 277200.0,
+              "idle_power_w": 20.0,
+              "hover_power_w": 120.0,
+              "speed_squared_coefficient": 0.5,
+              "acceleration_squared_coefficient": 2.0
+            },
+            "reward": {
+              "discovery": 10.0,
+              "delivery": 50.0,
+              "blocked_motion": 0.2,
+              "expired_report": 10.0,
+              "dropped_report": 10.0,
+              "step_cost": 0.01,
+              "communication_energy": 0.01,
+              "propulsion_energy_per_kj": 0.01,
+              "communication_efficiency": 1.0,
+              "shield_correction": 0.1
+            },
+            "environment_backend": "warp_packet",
+            "observation_version": 3
+          },
+          "seeds": [
+            1000000044,
+            1000000045,
+            1000000046,
+            1000000047,
+            1000000048
+          ],
+          "deterministic_policy": true,
+          "training_seed_interval_conservative": [
+            44,
+            12330
+          ],
+          "training_seed_overlap": false,
+          "training_seed": 44,
+          "validation_seed_interval_current": null,
+          "validation_seed_intervals_current": [],
+          "validation_seed_overlap": false,
+          "exposure_provenance": "saved_fresh_training_configuration",
+          "training_global_step": 14172160,
+          "training_episodes": 8192,
+          "timing_resolution_s": 1.0,
+          "timing_basis": "first observation at simulation step boundary; not exact packet timestamp",
+          "safety_tolerance_m": 0.001,
+          "scope": "evaluation scenarios conditional on this trained checkpoint; not training-seed robustness"
+        },
+        "metrics_file": "outputs/learned-power-best-20261030/historical-validation/hybrid-sharedboth-ep8192/evaluation/metrics.json"
+      },
+      {
+        "label": "matd3-pql-hybrid-ep12421",
+        "artifact": "truongdaoanhduy-uit/uav_search_target/uav-network-matd3-b8d0b40a:v6",
+        "sha256": "d594841181b55ba0ff963ad2f2a6c560310edfe95e879c3ee945a4eb44df9290",
+        "training_episode": 12421,
+        "training_global_step": 27914240,
+        "evaluated_at_utc": "2026-10-30T02:17:07.952770+00:00",
+        "mean_return": 634.3188012726605,
+        "mean_search_rate_percent": 71.42857142857142,
+        "mean_delivery_rate_percent": 49.714285714285715,
+        "success_rate": 0.0,
+        "episodes": 5,
+        "protocol": {
+          "version": 3,
+          "scenario_hash": "a81e1f48710bcaf434d659cce837840a52b06a6eb041fe3833bea9602ce69370",
+          "scenario": {
+            "world": {
+              "generation_version": 3,
+              "map_size_m": 1000.0,
+              "num_uavs": 6,
+              "num_targets": 35,
+              "num_obstacles": 25,
+              "dt_s": 1.0,
+              "max_steps": 1800,
+              "max_speed_mps": 20.0,
+              "max_accel_mps2": 2.0,
+              "safety_distance_m": 15.0,
+              "obstacle_clearance_m": 10.0,
+              "motion_safety": "dynamic_window",
+              "obstacle_radius_min_m": 30.0,
+              "obstacle_radius_max_m": 70.0,
+              "launch_radius_m": 150.0,
+              "launch_min_spacing_m": 30.0,
+              "target_exclusion_radius_m": 200.0,
+              "gcs_position_m": null,
+              "placement_attempts": 5000
+            },
+            "sensor": {
+              "altitude_m": 100.0,
+              "full_fov_deg": 90.0,
+              "obstacle_occlusion": true,
+              "visible_target_slots": 4,
+              "visible_obstacle_slots": 3
+            },
+            "network": {
+              "enabled": true,
+              "receiver_admission_mask": true,
+              "rediscovery_recovery": true,
+              "ack_uses_data_power": true,
+              "upstream_path": "third_party/UavNetSim",
+              "peer_range_m": 500.0,
+              "gcs_range_m": 500.0,
+              "tx_power_min_w": 0.001,
+              "tx_power_max_w": 0.4,
+              "tx_power_mapping": "log",
+              "pa_efficiency": 0.35,
+              "tx_circuit_power_w": 0.1,
+              "rx_circuit_power_w": 0.1,
+              "power_limited_admission": true,
+              "link_state_observation": true,
+              "report_bytes": 1024,
+              "buffer_bytes": 3072,
+              "report_ttl_s": 300.0,
+              "payload_bytes": 1024,
+              "packet_lifetime_s": 10.0,
+              "max_queue_packets": 64,
+              "queue_poll_us": 1000.0,
+              "max_retries": 5,
+              "obstacle_polygon_sides": 16,
+              "bit_rate_bps": 2000000.0,
+              "carrier_frequency_hz": 2400000000.0,
+              "bandwidth_hz": 22000000.0,
+              "sinr_threshold_db": 6.0,
+              "cca_threshold_dbm": -82.0,
+              "noise_density_dbm_hz": -174.0,
+              "noise_figure_db": 7.0,
+              "nlos_model": "urban",
+              "propagation_delay_enabled": true,
+              "obstacle_extra_loss_db": 0.0
+            },
+            "energy": {
+              "enabled": true,
+              "battery_capacity_j": 277200.0,
+              "idle_power_w": 20.0,
+              "hover_power_w": 120.0,
+              "speed_squared_coefficient": 0.5,
+              "acceleration_squared_coefficient": 2.0
+            },
+            "reward": {
+              "discovery": 10.0,
+              "delivery": 50.0,
+              "blocked_motion": 0.2,
+              "expired_report": 10.0,
+              "dropped_report": 10.0,
+              "step_cost": 0.01,
+              "communication_energy": 0.01,
+              "propulsion_energy_per_kj": 0.01,
+              "communication_efficiency": 1.0,
+              "shield_correction": 0.1
+            },
+            "environment_backend": "warp_packet",
+            "observation_version": 3
+          },
+          "seeds": [
+            1000000044,
+            1000000045,
+            1000000046,
+            1000000047,
+            1000000048
+          ],
+          "deterministic_policy": true,
+          "training_seed_interval_conservative": [
+            44,
+            16550
+          ],
+          "training_seed_overlap": false,
+          "training_seed": 44,
+          "validation_seed_interval_current": null,
+          "validation_seed_intervals_current": [],
+          "validation_seed_overlap": false,
+          "exposure_provenance": "saved_fresh_training_configuration",
+          "training_global_step": 27914240,
+          "training_episodes": 12421,
+          "timing_resolution_s": 1.0,
+          "timing_basis": "first observation at simulation step boundary; not exact packet timestamp",
+          "safety_tolerance_m": 0.001,
+          "scope": "evaluation scenarios conditional on this trained checkpoint; not training-seed robustness"
+        },
+        "metrics_file": "outputs/learned-power-best-20261030/historical-validation/matd3-pql-hybrid-ep12421/evaluation/metrics.json"
+      }
+    ]
+  },
+  "limitations": [
+    "seed44 observational histories, not universal ranking",
+    "five post-hoc validation layouts, not exhaustive checkpoint search",
+    "different source revisions/transition budgets disclosed",
+    "new20/15 study not production-trained in this task"
+  ]
+}

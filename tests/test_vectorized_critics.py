@@ -41,6 +41,18 @@ def check_vectorized_learners(device="cpu"):
             for name, value in reference.state_dict().items():
                 torch.testing.assert_close(actual.state_dict()[name], value, rtol=2e-5, atol=2e-5)
             for key in expected_metrics:
+                if key.startswith("layerprobe/"):
+                    # LayerwiseGradientProbe observes concrete module calls.
+                    # Vectorized torch.func/vmap executes the same critic
+                    # arithmetic without those Python forward hooks. It is
+                    # not an algorithmic metric and must not be invented.
+                    continue
+                if key == "gradprobe/action_hook_count":
+                    # One flattened shared-actor call versus six separate
+                    # per-agent hooks; both capture actual actor gradients.
+                    assert actual_metrics[key] > 0
+                    continue
+                assert key in actual_metrics, f"Missing non-diagnostic learner metric: {key}"
                 torch.testing.assert_close(torch.tensor(actual_metrics[key]),
                                            torch.tensor(expected_metrics[key]), rtol=2e-5, atol=2e-5)
 

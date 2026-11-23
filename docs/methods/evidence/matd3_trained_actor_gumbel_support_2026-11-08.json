@@ -1,0 +1,186 @@
+{
+  "sample_scope": {
+    "backend": "warp_packet",
+    "policy": "best saved evaluation Actor",
+    "policy_rollout": "deterministic",
+    "categorical_sampling": "Gumbel tau=1.0",
+    "use_random_critic": false,
+    "critic_available": false
+  },
+  "results": [
+    {
+      "run_id": "ccaadcd6",
+      "case": 1,
+      "source_commit": "a6e07a8f4b199028298b6ffd9a47f2cecd654fc9",
+      "checkpoint_sha256_verified": "155a98dac577b9b5bb2dc6285a67f678d9a07bd6b56f14a99b1c5fc01e9a2fc9",
+      "checkpoint_has_trained_critic": false,
+      "trained_q_gap_measurable": false,
+      "diagnostic_only": "observed Actor soft-Gumbel vs hard onehot on real deterministic on-policy Warp trajectories",
+      "seeds": [
+        {
+          "seed": 1000000044,
+          "steps": 995,
+          "environment_ended": true
+        },
+        {
+          "seed": 1000000045,
+          "steps": 989,
+          "environment_ended": true
+        },
+        {
+          "seed": 1000000046,
+          "steps": 1364,
+          "environment_ended": true
+        },
+        {
+          "seed": 1000000047,
+          "steps": 926,
+          "environment_ended": true
+        },
+        {
+          "seed": 1000000048,
+          "steps": 1140,
+          "environment_ended": true
+        }
+      ],
+      "stats": {
+        "total_agent_states": 32484,
+        "eligible_agent_states": 338,
+        "eligible_fraction": 0.010405122521856915,
+        "forced_silent_fraction": 0.9895948774781431,
+        "unique_valid_destination_counts": {
+          "1": 32146,
+          "2": 233,
+          "3": 70,
+          "4": 22,
+          "5": 8,
+          "6": 2,
+          "7": 3
+        },
+        "policy_max_prob": {
+          "all_mean": 0.9998213052749634,
+          "eligible_mean": 0.9828280210494995,
+          "eligible_median": 1.0,
+          "eligible_p90": 1.0,
+          "eligible_max": 1.0
+        },
+        "soft_hard_l1": {
+          "all_mean": 0.0003874925314448774,
+          "eligible_mean": 0.03724055364727974,
+          "eligible_median": 1.1980273439959888e-09,
+          "eligible_p90": 0.08394806832075119,
+          "eligible_max": 0.8605824708938599
+        },
+        "soft_hard_l2": {
+          "all_mean": 0.0002739980409387499,
+          "eligible_mean": 0.026332996785640717,
+          "eligible_median": 1.1980273439959888e-09,
+          "eligible_p90": 0.05936025083065033,
+          "eligible_max": 0.6085237264633179
+        },
+        "soft_selected_mass": {
+          "all_mean": 0.99980628490448,
+          "eligible_mean": 0.9813797473907471,
+          "eligible_median": 1.0,
+          "eligible_p90": 1.0,
+          "eligible_max": 1.0
+        },
+        "soft_entropy": {
+          "all_mean": 0.0005173078388907015,
+          "eligible_mean": 0.04971664398908615,
+          "eligible_median": 2.4605924409115687e-08,
+          "eligible_p90": 0.17409153282642365,
+          "eligible_max": 0.6833968162536621
+        }
+      },
+      "caution": "No trained critic in evaluation-only checkpoint. The measured action-vector difference cannot be translated into Q-error or evidence that changing MATD3 improves reward."
+    },
+    {
+      "run_id": "635d7134",
+      "case": 5,
+      "source_commit": "a6e07a8f4b199028298b6ffd9a47f2cecd654fc9",
+      "checkpoint_sha256_verified": "57c4a90f7dafc8673f40a7a524106ecacc4cc12fc466a605b36a3dcd7ce69320",
+      "checkpoint_has_trained_critic": false,
+      "trained_q_gap_measurable": false,
+      "diagnostic_only": "observed Actor soft-Gumbel vs hard onehot on real deterministic on-policy Warp trajectories",
+      "seeds": [
+        {
+          "seed": 1000000044,
+          "steps": 1179,
+          "environment_ended": true
+        },
+        {
+          "seed": 1000000045,
+          "steps": 1161,
+          "environment_ended": true
+        },
+        {
+          "seed": 1000000046,
+          "steps": 1052,
+          "environment_ended": true
+        },
+        {
+          "seed": 1000000047,
+          "steps": 1058,
+          "environment_ended": true
+        },
+        {
+          "seed": 1000000048,
+          "steps": 974,
+          "environment_ended": true
+        }
+      ],
+      "stats": {
+        "total_agent_states": 32544,
+        "eligible_agent_states": 348,
+        "eligible_fraction": 0.010693215339233038,
+        "forced_silent_fraction": 0.9893067846607669,
+        "unique_valid_destination_counts": {
+          "1": 32196,
+          "2": 214,
+          "3": 81,
+          "4": 34,
+          "5": 15,
+          "6": 1,
+          "7": 3
+        },
+        "policy_max_prob": {
+          "all_mean": 0.9999207258224487,
+          "eligible_mean": 0.9925879240036011,
+          "eligible_median": 1.0,
+          "eligible_p90": 1.0,
+          "eligible_max": 1.0
+        },
+        "soft_hard_l1": {
+          "all_mean": 0.00011510932381497696,
+          "eligible_mean": 0.010764705948531628,
+          "eligible_median": 1.921039577412742e-10,
+          "eligible_p90": 6.35167962173e-05,
+          "eligible_max": 0.7831532955169678
+        },
+        "soft_hard_l2": {
+          "all_mean": 8.13591104815714e-05,
+          "eligible_mean": 0.007608478888869286,
+          "eligible_median": 1.878447952741169e-10,
+          "eligible_p90": 4.491316212806851e-05,
+          "eligible_max": 0.5537729263305664
+        },
+        "soft_selected_mass": {
+          "all_mean": 0.999942421913147,
+          "eligible_mean": 0.9946177005767822,
+          "eligible_median": 1.0,
+          "eligible_p90": 1.0,
+          "eligible_max": 1.0
+        },
+        "soft_entropy": {
+          "all_mean": 0.00016229938773903996,
+          "eligible_mean": 0.015177791006863117,
+          "eligible_median": 4.301631051362165e-09,
+          "eligible_p90": 0.0003605987294577062,
+          "eligible_max": 0.669450044631958
+        }
+      },
+      "caution": "No trained critic in evaluation-only checkpoint. The measured action-vector difference cannot be translated into Q-error or evidence that changing MATD3 improves reward."
+    }
+  ]
+}

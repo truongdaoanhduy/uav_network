@@ -8,12 +8,12 @@ from .phy import latest_arrival_end
 wp.set_module_options({"enable_fp_fma": False, "enable_backward": False})
 
 @wp.func
-def window_count(p: WorldParams, start: int) -> int:
+def window_count(p: wp.ref[WorldParams], start: int) -> int:
     return wp.min(p.max_queue_packets, p.fragments-start)
 
 
 @wp.func
-def window_mask(p: WorldParams, start: int) -> wp.uint64:
+def window_mask(p: wp.ref[WorldParams], start: int) -> wp.uint64:
     count = window_count(p,start)
     mask = wp.uint64(0)
     for bit_index in range(64):
@@ -23,7 +23,7 @@ def window_mask(p: WorldParams, start: int) -> wp.uint64:
 
 
 @wp.func
-def fragment_bit(s: WorldState, e: int, session: int, fragment: int) -> wp.uint64:
+def fragment_bit(s: wp.ref[WorldState], e: int, session: int, fragment: int) -> wp.uint64:
     offset = fragment-s.session_window_start[e,session]
     if offset < 0 or offset >= 64:
         return wp.uint64(0)
@@ -31,20 +31,40 @@ def fragment_bit(s: WorldState, e: int, session: int, fragment: int) -> wp.uint6
 
 
 @wp.func
-def clear_pending(s: WorldState, p: WorldParams, e: int, now: wp.float64):
+def reset_session_pending(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, session: int):
+    """Full historical bookkeeping for one session; no changes to packet semantics."""
+    if s.session_active[e,session] != 0:
+        source = session//((p.n+1)*p.report_slots)
+        target = (session//(p.n+1))%p.report_slots
+        if (s.report_present[e,source,target] == 0
+            or s.report_created[e,source,target] != s.session_created[e,session]
+            or s.report_origin[e,source,target] != s.session_origin[e,session]
+            or s.report_hops[e,source,target] != s.session_hops[e,session]):
+            discard_sessions(s,p,e,source,target)
+        s.session_pending_mask[e,session] = wp.uint64(0)
+
+
+@wp.func
+def clear_pending(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, now: wp.float64):
     # Rebuild at policy boundaries: another streaming session may already have
     # reused a terminal packet slot. Deferring this reconciliation preserves the
     # rule that retry exhaustion needs a later policy action.
-    for session in range(p.session_capacity):
-        if s.session_active[e,session] != 0:
-            source = session//((p.n+1)*p.targets_count)
-            target = (session//(p.n+1))%p.targets_count
-            if (s.report_present[e,source,target] == 0
-                or s.report_created[e,source,target] != s.session_created[e,session]
-                or s.report_origin[e,source,target] != s.session_origin[e,session]
-                or s.report_hops[e,source,target] != s.session_hops[e,session]):
-                discard_sessions(s,p,e,source,target)
-            s.session_pending_mask[e,session] = wp.uint64(0)
+    # In cell-report mode, the slot allocator appends observed cells at the
+    # first free slot. Therefore no active session can exist for targets after
+    # the first unallocated report_cell. Preserve exact logical session order
+    # (source -> target -> destination) and keep the historical full scan for
+    # scenarios using target IDs.
+    if p.cell_reports != 0:
+        for source in range(p.n):
+            for target in range(p.report_slots):
+                if s.report_cell[e,target] < 0:
+                    break
+                for dest in range(p.n+1):
+                    session = (source*p.report_slots+target)*(p.n+1)+dest
+                    reset_session_pending(s,p,e,session)
+    else:
+        for session in range(p.session_capacity):
+            reset_session_pending(s,p,e,session)
     for packet in range(p.packet_capacity):
         if s.pkt_status[e,packet] == 1 or s.pkt_status[e,packet] == 2:
             session = int(s.pkt_session[e,packet])
@@ -60,7 +80,7 @@ def clear_pending(s: WorldState, p: WorldParams, e: int, now: wp.float64):
 
 
 @wp.func
-def fill_session(s: WorldState, p: WorldParams, e: int, session: int,
+def fill_session(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, session: int,
                  source: int, dest: int, target: int, now: wp.float64):
     start = s.session_window_start[e,session]
     count = window_count(p,start)
@@ -104,7 +124,8 @@ def fill_session(s: WorldState, p: WorldParams, e: int, session: int,
         s.pkt_backoff_version[e,slot] += 1
         s.pkt_source[e,slot] = source
         s.pkt_destination[e,slot] = dest
-        s.pkt_target[e,slot] = target
+        s.pkt_target[e,slot] = target  # local dense report slot
+        s.pkt_cell[e,slot] = s.report_cell[e,target] if p.cell_reports!=0 else target
         s.pkt_fragment[e,slot] = fragment
         s.pkt_attempt[e,slot] = 0
         s.pkt_ttl[e,slot] = 0
@@ -124,9 +145,9 @@ def fill_session(s: WorldState, p: WorldParams, e: int, session: int,
 
 
 @wp.func
-def inject(s: WorldState, p: WorldParams, e: int, source: int, dest: int,
+def inject(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, source: int, dest: int,
            target: int, power: wp.float64, now: wp.float64):
-    session = (source*p.targets_count+target)*(p.n+1)+dest
+    session = (source*p.report_slots+target)*(p.n+1)+dest
     if s.session_active[e,session] == 0:
         s.session_active[e,session] = 1
         s.session_id[e,session] += wp.int64(1)

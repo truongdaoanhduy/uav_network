@@ -1,5 +1,4 @@
 """Bounded dual-T4 MASAC BASE memory diagnostic; never a production training entrypoint.
-
 Run from the repository root. Only this process temporarily replaces MASAC's
 optimizer helpers and compiles its outer vectorized critic callable. Scientific
 loss/target/action equations are always the original MASAC methods.
@@ -15,14 +14,12 @@ import subprocess
 import time
 import traceback
 import torch
-
 def replay_bytes(capacity, observation_shape, state_dim):
     """Exact original TensorReplayBuffer FP32/int64 payload, without allocating."""
     if capacity < 1 or state_dim < 1 or any(dim < 1 for dim in observation_shape):
         raise ValueError("Replay dimensions and capacity must be positive")
     n, obs = observation_shape
     return capacity * (4 * (2 * n * obs + 2 * state_dim + 3 * n + 2) + 8 * n)
-
 def require_two_t4():
     """Fail before models, worlds, replay, or any large CPU fallback allocation."""
     message = "This diagnostic requires exactly two T4 CUDA devices; no CPU fallback"
@@ -51,7 +48,8 @@ class ProbeAMP:
         self.counts = {name: {"attempted": 0, "applied": 0, "skipped": 0}
                        for name in self.scalers}
         self.original = None
-    def _step(self, group, losses, optimizers, parameter_groups, grad_clip, check_finite=True):
+    def _step(self, group, losses, optimizers, parameter_groups, grad_clip, check_finite=True,
+              grad_clip_mode="global"):
         with torch.autocast(self.device_type, enabled=False):
             if check_finite and not torch.isfinite(torch.stack(losses)).all():
                 raise FloatingPointError("Non-finite learner loss")
@@ -64,8 +62,9 @@ class ProbeAMP:
             torch.autograd.backward([scaler.scale(loss) for loss in losses])
             for optimizer in optimizers:
                 scaler.unscale_(optimizer)
-            norms = [torch.nn.utils.clip_grad_norm_(values, grad_clip,
-                                                   error_if_nonfinite=False).detach()
+            from uav_network.algorithms.optimization import gradient_norm_and_clip
+            norms = [gradient_norm_and_clip(values, grad_clip, grad_clip_mode,
+                                            error_if_nonfinite=False)
                      for values in parameters]
             finite = bool(torch.isfinite(torch.stack(norms)).all())
             if finite:
@@ -77,19 +76,28 @@ class ProbeAMP:
                 scaler.update(new_scale=scaler.get_scale() * scaler.get_backoff_factor())
                 count["skipped"] += 1
             return norms
-    def single_step(self, loss, optimizer, parameters, grad_clip, check_finite=True):
+    def single_step(self, loss, optimizer, parameters, grad_clip, check_finite=True,
+                    grad_clip_mode="global"):
         group = "critic" if optimizer is self.learner.critic_optimizer else "alpha"
-        return self._step(group, [loss], [optimizer], [parameters], grad_clip, check_finite)[0]
-    def actor_steps(self, losses, optimizers, parameter_groups, grad_clip, check_finite=True):
-        return self._step("actor", losses, optimizers, parameter_groups, grad_clip, check_finite)
+        return self._step(group, [loss], [optimizer], [parameters], grad_clip, check_finite,
+                          grad_clip_mode)[0]
+    def actor_steps(self, losses, optimizers, parameter_groups, grad_clip, check_finite=True,
+                    grad_clip_mode="global"):
+        return self._step("actor", losses, optimizers, parameter_groups, grad_clip, check_finite,
+                          grad_clip_mode)
     def __enter__(self):
         import uav_network.algorithms.masac as module
         self.original = (module.step_optimizer, module.step_actor_optimizers)
+        from uav_network.algorithms.masac_gradient_probe import EXTERNAL_GRADIENT_SCALE
+        self._probe_scale_token = EXTERNAL_GRADIENT_SCALE.set(
+            lambda: float(self.scalers["actor"].get_scale()))
         module.step_optimizer, module.step_actor_optimizers = self.single_step, self.actor_steps
         return self
     def __exit__(self, *exc):
         import uav_network.algorithms.masac as module
         module.step_optimizer, module.step_actor_optimizers = self.original
+        from uav_network.algorithms.masac_gradient_probe import EXTERNAL_GRADIENT_SCALE
+        EXTERNAL_GRADIENT_SCALE.reset(self._probe_scale_token)
     def evidence(self):
         return {"counts": self.counts,
                 "scales": {name: scaler.get_scale() for name, scaler in self.scalers.items()},

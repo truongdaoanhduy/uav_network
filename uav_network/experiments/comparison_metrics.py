@@ -4,17 +4,22 @@ import json
 import numpy as np
 
 from ..environment.geometry import segment_distance
-from ..environment.observations import OBSERVATION_VERSION
+from ..environment.observations import OBSERVATION_VERSION, observation_version
+from ..configuration_xyz import legacy_xyz_defaults
 
 
 # Units and preferred direction are explicit; no aggregate 'best algorithm' score.
 METRICS = {
+    "mission_score": ("points", "higher"),
     "gcs_delivery_fraction": ("fraction", "higher"),
     "target_discovery_fraction": ("fraction", "higher"),
     "delivery_given_discovery_fraction": ("fraction", "higher"),
+    "map_coverage_percent": ("percent of visited map grid cells", "higher"),
+    "false_confirmation_per_1000_measurements": ("false confirmations per 1000 sensing measurements", "lower"),
     "mission_success": ("fraction", "higher"),
     "delivery_auc": ("fraction", "higher"),
     "discovery_auc": ("fraction", "higher"),
+    "target_discovery_time_capped_mean_s": ("s", "lower"),
     "target_delivery_time_capped_mean_s": ("s", "lower"),
     "mission_completion_time_capped_s": ("s", "lower"),
     "first_discovery_to_gcs_delay_delivered_mean_s": ("s", "lower"),
@@ -29,16 +34,25 @@ METRICS = {
     "swept_peer_violation_pairs": ("pair segments including reset", "lower"),
     "swept_obstacle_violation_segments": ("UAV-obstacle segments including reset", "lower"),
     "boundary_violation_samples": ("UAV samples including reset", "lower"),
+    "cbf_interventions_per_uav_step": ("interventions/UAV-step", "lower"),
     "shield_interventions_per_uav_step": ("interventions/UAV-step", "lower"),
+    "raw_unsafe_attempts_per_uav_step": ("unsafe raw commands/UAV-step", "lower"),
+    "shield_rescues_per_uav_step": ("rescued raw commands/UAV-step", "lower"),
     "blocked_moves_per_uav_step": ("blocks/UAV-step", "lower"),
     "packet_pdr_fraction": ("fraction of per-hop generated packets", "higher"),
     "data_below_required_power_fraction": ("fraction of DATA attempts", "lower"),
     "relay_toward_gcs_fraction": ("fraction of peer custody transfers", "higher"),
     "tx_power_margin_db_mean": ("dB", "descriptive"),
     "relay_gcs_distance_improvement_mean_m": ("m/peer custody transfer", "higher"),
-    "shield_correction_mean_per_step": ("normalized velocity correction/step", "lower"),
+    "cbf_correction_mean_per_step": ("normalized correction/step", "lower"),
+    "shield_correction_mean_per_step": ("normalized correction/step", "lower"),
     "return": ("configured reward units", "higher"),
 }
+
+
+def mission_score(targets_found, targets_delivered):
+    """Fixed mission outcome points independent of the configured training reward."""
+    return 10 * targets_found + 50 * targets_delivered
 
 
 def evaluation_protocol(config, seeds, progress):
@@ -48,13 +62,32 @@ def evaluation_protocol(config, seeds, progress):
     # New V3 radio fields must not relabel historical V1/V2 physics when they
     # are at their exact legacy defaults. Non-default V3 values remain hashed.
     network = scenario["network"]
+    if network.get("power_control") == "learned":
+        network.pop("power_control", None)
+        network.pop("link_budget_margin_db", None)
+    if not scenario["sensor"].get("coverage_grid_cells", 0):
+        scenario["sensor"].pop("coverage_grid_cells", None)
+    # Optional XYZ belief shaping must not relabel legacy scenario physics when disabled.
+    reward = scenario["reward"]
+    if not reward.get("information_gain", 0) and not reward.get("investigation_shaping", 0):
+        for key in ("information_gain", "investigation_shaping", "shaping_gamma",
+                    "investigation_belief_threshold"):
+            reward.pop(key, None)
+    for key in ("unsafe_action", "shield_intervention"):
+        if not reward.get(key, 0):
+            reward.pop(key, None)
     if (network.get("pa_efficiency") == 1.0
             and network.get("tx_circuit_power_w") == 0.0
             and network.get("rx_circuit_power_w") == 0.0):
         for key in ("pa_efficiency", "tx_circuit_power_w", "rx_circuit_power_w"):
             network.pop(key, None)
     scenario["environment_backend"] = config.runtime.environment_backend
-    scenario["observation_version"] = OBSERVATION_VERSION
+    if config.motion_dim == 2:
+        for group, defaults in legacy_xyz_defaults().items():
+            for key,value in defaults.items():
+                if scenario[group].get(key) == value:
+                    scenario[group].pop(key,None)
+    scenario["observation_version"] = observation_version(config)
     digest = hashlib.sha256(json.dumps(scenario, sort_keys=True, allow_nan=False).encode()).hexdigest()
     next_seed = progress.get("next_seed")
     history_seeds = [r["seed"] for r in progress.get("records", []) if type(r.get("seed")) is int]
@@ -93,10 +126,13 @@ def evaluation_protocol(config, seeds, progress):
 
 
 class MissionMetrics:
-    def __init__(self, config, positions, obstacles, found, delivered):
+    def __init__(self, config, positions, obstacles, found, delivered, obstacle_heights=None):
         self.config = config
         self.previous = np.asarray(positions, dtype=float).copy()
         self.obstacles = np.asarray(obstacles, dtype=float).copy()
+        self.obstacle_heights = None if obstacle_heights is None else np.asarray(obstacle_heights,float)
+        if config.motion_dim==3 and (self.obstacle_heights is None or self.obstacle_heights.shape!=(config.world.num_obstacles,) or not np.isfinite(self.obstacle_heights).all()):
+            raise ValueError("XYZ metrics require finite obstacle heights")
         self.discovered = np.full(config.world.num_targets, np.nan)
         self.delivered = np.full(config.world.num_targets, np.nan)
         self.step = 0
@@ -117,15 +153,21 @@ class MissionMetrics:
 
     def _safety(self, start, end):
         w = self.config.world
-        if end.shape != (w.num_uavs, 2) or not np.isfinite(end).all():
-            raise ValueError("Mission positions must be finite [num_uavs,2] coordinates")
+        if end.shape != (w.num_uavs, self.config.motion_dim) or not np.isfinite(end).all():
+            raise ValueError("Mission positions must be finite with the configured motion dimension")
         tolerance = 1e-3
-        obstacle = sum(segment_distance(a, b, o[:2]) < o[2] + w.obstacle_clearance_m - tolerance
+        obstacle = sum(segment_distance(a[:2], b[:2], o[:2]) < o[2] + w.obstacle_clearance_m - tolerance
                        for a, b in zip(start, end) for o in self.obstacles)
-        peer = sum(segment_distance(start[i] - start[j], end[i] - end[j], [0, 0]) <
+        if self.config.motion_dim==3:
+            from ..environment.xyz_geometry import cylinder_hit
+            obstacle = sum(cylinder_hit(a,b,np.r_[o,h],w.obstacle_clearance_m-tolerance)
+                           for a,b in zip(start,end) for o,h in zip(self.obstacles,self.obstacle_heights))
+        peer = sum(segment_distance(start[i] - start[j], end[i] - end[j], np.zeros(self.config.motion_dim)) <
                    w.safety_distance_m - tolerance
                    for i in range(w.num_uavs) for j in range(i))
-        boundary = int(np.any((end < -tolerance) | (end > w.map_size_m + tolerance), axis=1).sum())
+        lo=np.zeros(self.config.motion_dim);hi=np.full(self.config.motion_dim,w.map_size_m)
+        if self.config.motion_dim==3:lo[2],hi[2]=w.altitude_min_m,w.altitude_max_m
+        boundary = int(np.any((end < lo-tolerance) | (end > hi+tolerance), axis=1).sum())
         self.obstacle_violations += int(obstacle)
         self.peer_violations += int(peer)
         self.boundary_violations += boundary
@@ -161,18 +203,38 @@ class MissionMetrics:
         power_margin = diagnostics.get("data_power_margin_db") or {}
         relay_progress = diagnostics.get("relay_gcs_distance_improvement_m") or {}
         motion = info.get("motion_counts", {})
-        return {
+        sensing = info.get("sensing") or {}
+        measurements = int(sensing.get("measurements", 0))
+        false_confirmations = int(sensing.get("false_confirmation", 0))
+        if measurements < 0 or not 0 <= false_confirmations <= measurements:
+            raise ValueError("False confirmation count must not exceed sensing measurements")
+        coverage = info.get("coverage_percent")
+        if coverage is not None:
+            coverage = float(coverage)
+            if not np.isfinite(coverage) or not 0 <= coverage <= 100:
+                raise ValueError("Map coverage percent must be in [0, 100]")
+        result = {
             "targets_found": f, "targets_delivered": d, "target_discovery_fraction": f / w.num_targets,
             "gcs_delivery_fraction": d / w.num_targets,
+            "mission_score": mission_score(f, d),
             "delivery_given_discovery_fraction": d / f if f else None,
+            "map_coverage_percent": coverage,
+            # Normalized false-confirmation *incidence* per measurement, NOT
+            # false confirmations / all attempted confirmations: the existing
+            # 'confirmations' counter counts unique true discoveries only.
+            "false_confirmation_per_1000_measurements": (
+                1000. * false_confirmations / measurements if measurements else None),
             "mission_success": float(success),
             "mission_completion_time_capped_s": self.step * w.dt_s if success else horizon,
+            "target_discovery_time_capped_mean_s": float(capped_discovery.mean()),
             "target_delivery_time_capped_mean_s": float(capped_delivery.mean()),
             "delivery_auc": float(1. - capped_delivery.mean() / horizon),
             "discovery_auc": float(1. - capped_discovery.mean() / horizon),
             "first_discovery_to_gcs_delay_delivered_mean_s":
                 float((self.delivered[delivered] - self.discovered[delivered]).mean()) if d else None,
-            "report_delay_delivered_mean_s": net.get("report_e2e_delay_s") if d and net.get("enabled") else None,
+            "report_delay_delivered_mean_s": (
+                (net.get("true_report_e2e_delay_s") if info.get("report_identity")=="observed_cell_id"
+                 else net.get("report_e2e_delay_s")) if d and net.get("enabled") else None),
             "uav_energy_j": energy, "uav_j_per_gcs_delivery": energy / d if d else None,
             "uav_radio_energy_j": radio_energy,
             "uav_radio_j_per_gcs_delivery": radio_energy / d if d else None,
@@ -191,11 +253,72 @@ class MissionMetrics:
             "boundary_violation_samples": self.boundary_violations,
             "shield_interventions_per_uav_step":
                 info.get("motion_counts", {}).get("shield_interventions", 0) / max(1, self.step * w.num_uavs),
+            "raw_unsafe_attempts_per_uav_step":
+                info.get("motion_counts", {}).get("raw_unsafe_attempts", 0) / max(1, self.step * w.num_uavs),
+            "shield_rescues_per_uav_step":
+                info.get("motion_counts", {}).get("shield_rescues", 0) / max(1, self.step * w.num_uavs),
             "blocked_moves_per_uav_step": info.get("blocked_moves", 0) / max(1, self.step * w.num_uavs),
             "return": float(episode_return),
             "first_discovery_observed_s": [float(t) if np.isfinite(t) else None for t in self.discovered],
             "first_gcs_delivery_observed_s": [float(t) if np.isfinite(t) else None for t in self.delivered],
         }
+        if self.config.world.motion_safety == "cbf":
+            result["cbf_correction_mean_per_step"] = result["shield_correction_mean_per_step"]
+            result["cbf_interventions_per_uav_step"] = result["shield_interventions_per_uav_step"]
+        return result
+
+
+def core_mission_metrics(records):
+    """Five evaluation outcomes; failures are time-censored, energy is pooled.
+
+    This is evaluation-only: it cannot influence the policy or checkpoint selection.
+    None means no delivery occurred, never a misleading zero J/target.
+    """
+    if not records:
+        raise ValueError("Core mission metrics require at least one completed episode")
+    items = [record["comparison_metrics"] for record in records]
+    count = len(items)
+    delivered = sum(int(record["targets_delivered"]) for record in records)
+    return {
+        "discovery_rate_percent": 100. * sum(v["target_discovery_fraction"] for v in items) / count,
+        "gcs_delivery_rate_percent": 100. * sum(v["gcs_delivery_fraction"] for v in items) / count,
+        "discovery_time_capped_mean_s": sum(v["target_discovery_time_capped_mean_s"] for v in items) / count,
+        "gcs_delivery_time_capped_mean_s": sum(v["target_delivery_time_capped_mean_s"] for v in items) / count,
+        "energy_per_delivered_target_j": (
+            sum(v["uav_energy_j"] for v in items) / delivered if delivered else None),
+    }
+
+
+def plot_core_mission_metrics(records, path):
+    """Plot exactly five observed evaluation metrics; no synthetic history."""
+    import matplotlib
+    matplotlib.use("Agg")
+    from matplotlib import pyplot as plt
+    n = len(records)
+    if not n:
+        raise ValueError("Cannot plot an empty evaluation")
+    rows = [r["comparison_metrics"] for r in records]
+    x = np.arange(1, n+1) / 10.
+    energy = np.cumsum([r["uav_energy_j"] for r in rows])
+    delivered = np.cumsum([int(r["targets_delivered"]) for r in records])
+    pooled = np.divide(energy, delivered, out=np.full(n,np.nan), where=delivered > 0)
+    fields = [
+        ("Discovery rate", "%", [100*r["target_discovery_fraction"] for r in rows]),
+        ("GCS delivery rate", "%", [100*r["gcs_delivery_fraction"] for r in rows]),
+        ("Discovery time (capped)", "s", [r["target_discovery_time_capped_mean_s"] for r in rows]),
+        ("GCS delivery time (capped)", "s", [r["target_delivery_time_capped_mean_s"] for r in rows]),
+        ("Energy / GCS delivered target (pooled)", "J/target", pooled),
+    ]
+    fig, axes = plt.subplots(5, 1, figsize=(9, 14), sharex=True, constrained_layout=True)
+    for ax, (label, unit, values) in zip(axes, fields):
+        ax.plot(x, values, marker='o', markersize=2.5, linewidth=1)
+        ax.set(ylabel=unit, title=label)
+        ax.grid(alpha=.25)
+    axes[-1].set_xlabel("Evaluation episode (×10¹)")
+    fig.suptitle("Multi-UAV mission: held-out evaluation episodes")
+    fig.savefig(path, dpi=130)
+    plt.close(fig)
+    return str(path)
 
 
 def summarize_metrics(records, bootstrap_samples=2000, seed=44):

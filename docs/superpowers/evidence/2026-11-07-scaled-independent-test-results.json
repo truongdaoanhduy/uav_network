@@ -1,0 +1,20 @@
+{
+  "observed_utc": "2026-11-07T12:02:52.205335+00:00",
+  "source_commit": "89f3301a976d0f85478d6ce4fce8ce076e06b2ca",
+  "command": "python -m pytest -q --junitxml=outputs/scaled-independent-preflight-20261107/full-suite.xml",
+  "exit_code": 0,
+  "passed": 1361,
+  "skipped": 103,
+  "warnings": 8,
+  "subtests_passed": 1654,
+  "seconds": 293.69,
+  "focused_passed": 34,
+  "focused_subtests_passed": 582,
+  "red_boundary_failures_observed": 2,
+  "independent_review": "approved; no Critical/Important/Minor findings",
+  "gpu_training_submitted": false,
+  "limitations": [
+    "CUDA driver unavailable; CPU checks only",
+    "Full-batchT4 memory and convergence unverified"
+  ]
+}

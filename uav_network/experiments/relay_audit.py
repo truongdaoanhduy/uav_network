@@ -45,14 +45,14 @@ def communication_control(action, observation, config, mode="learned", fixed_pow
     if mode not in MODES:
         raise ValueError(f"Unknown communication control: {mode}")
     result = Action(np.array(action.continuous, copy=True), np.array(action.destination, copy=True))
-    result.validate(config.world.num_uavs)
+    result.validate(config.world.num_uavs,config.continuous_dim)
     if mode == "direct_only":
         n = config.world.num_uavs
         masks = np.asarray(observation)[:, -(n + 1):]
         peer = (result.destination > 0) & (result.destination < n)
         result.destination[peer] = np.where(masks[peer, n] > 0, n, 0)
     elif mode == "fixed_power":
-        result.continuous[:, 2] = 2.0 * power_fraction(_fixed_power(config, fixed_power_w), config.network) - 1.0
+        result.continuous[:, -1] = 2.0 * power_fraction(_fixed_power(config, fixed_power_w), config.network) - 1.0
     return result
 
 

@@ -20,23 +20,30 @@ def test_external_supervisor_workflow_is_scheduled_manual_and_nonoverlapping():
         "group": "uav-external-supervisor",
         "cancel-in-progress": False,
     }
-    assert "supervise" in data["jobs"]
+    assert set(data["jobs"]) == {"supervise", "replicate"}
     job = data["jobs"]["supervise"]
     assert job["runs-on"] == "ubuntu-24.04"
     assert job["timeout-minutes"] <= 30
+    checkout = next(step for step in job["steps"] if step.get("name") == "Checkout pinned supervisor source")
+    assert checkout["with"]["ref"] == "feat/cpu-replay-20261022"
     assert "uav_network.cloud.github_supervisor" in source
     assert "continuation-watch" not in source
 
 
+
+def test_supervisor_installs_kaggle_runtime_dependency_six():
+    data = yaml.safe_load(WORKFLOW.read_text())
+    for job_name in ("supervise", "replicate"):
+        install = next(step for step in data["jobs"][job_name]["steps"]
+                       if step.get("name", "").startswith("Install orchestration"))
+        assert '"six>=1.16,<2"' in install["run"]
+
+
 def test_external_supervisor_workflow_references_masked_secrets_not_values():
     source = WORKFLOW.read_text()
-    expected = {f"KAGGLE_API_TOKEN_ACCOUNT_{index:02d}" for index in range(1, 11)}
-    data = yaml.safe_load(source)
-    actual = {name for name in data["jobs"]["supervise"]["env"]
-              if name.startswith("KAGGLE_API_TOKEN_ACCOUNT_")}
-    assert actual == expected
-    for name in expected:
-        assert f"secrets.{name}" in source
+    active_aliases = set(range(1, 25))
+    for index in active_aliases:
+        assert f"secrets.KAGGLE_API_TOKEN_ACCOUNT_{index:02d}" in source
     for name in ("WANDB_API_KEY", "HF_TOKEN"):
         assert f"secrets.{name}" in source
     for name in ("WANDB_ENTITY", "WANDB_PROJECT", "HF_REPO_ID", "KAGGLE_ENABLED_ACCOUNTS"):
@@ -88,6 +95,40 @@ def test_secret_sync_uses_stdin_and_skips_disabled_accounts(tmp_path):
     assert enabled_call["input"] == "account_01"
     assert result["secrets"] == sorted(names)
     assert "KAGGLE_ENABLED_ACCOUNTS" in result["variables"]
+
+
+def test_secret_sync_rejects_legacy_github_account_alias(tmp_path):
+    import pytest
+    from scripts.sync_github_supervisor_secrets import sync_credentials
+
+    key = tmp_path / "key.txt"
+    key.write_text(json.dumps({
+        "kaggle": {"accounts": [
+            {"name": "account_04", "github_account": "account_07",
+             "token": "renumbered-token", "enabled": True},
+        ]},
+        "wandb": {"api_key": "wandb-secret", "entity": "owner", "project": "project"},
+        "huggingface": {"token": "hf-secret", "repo_id": "owner/checkpoints"},
+    }))
+    with pytest.raises(ValueError, match="github_account is no longer supported"):
+        sync_credentials(key, repo="owner/repo", run=lambda *args, **kwargs: None)
+
+
+def test_secret_sync_rejects_duplicate_local_account_names(tmp_path):
+    import pytest
+    from scripts.sync_github_supervisor_secrets import sync_credentials
+
+    key = tmp_path / "key.txt"
+    key.write_text(json.dumps({
+        "kaggle": {"accounts": [
+            {"name": "account_04", "token": "one", "enabled": True},
+            {"name": "account_04", "token": "two", "enabled": True},
+        ]},
+        "wandb": {"api_key": "wandb-secret", "entity": "owner", "project": "project"},
+        "huggingface": {"token": "hf-secret", "repo_id": "owner/checkpoints"},
+    }))
+    with pytest.raises(ValueError, match="duplicate Kaggle account name"):
+        sync_credentials(key, repo="owner/repo", run=lambda *args, **kwargs: None)
 
 
 def test_manual_dry_run_probes_cloud_credentials_before_reconciling():

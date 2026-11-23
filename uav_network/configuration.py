@@ -2,13 +2,16 @@
 from dataclasses import asdict, dataclass, field, fields, is_dataclass
 from pathlib import Path
 import math
+import hashlib
+import json
+from copy import deepcopy
 import re
 
 import yaml
-
+from .configuration_xyz import FlightSettings, BayesianSettings, validate_xyz, legacy_xyz_defaults
 
 @dataclass
-class WorldConfig:
+class WorldConfig(FlightSettings):
     generation_version: int = 3
     map_size_m: float = 1000.0
     num_uavs: int = 6
@@ -29,19 +32,18 @@ class WorldConfig:
     gcs_position_m: list | None = None
     placement_attempts: int = 5000
 
-
 @dataclass
-class SensorConfig:
+class SensorConfig(BayesianSettings):
     altitude_m: float = 100.0
     full_fov_deg: float = 90.0
     obstacle_occlusion: bool = True
     visible_target_slots: int = 4
     visible_obstacle_slots: int = 3
+    coverage_grid_cells: int = 0
 
     @property
     def footprint_radius_m(self):
         return self.altitude_m * math.tan(math.radians(self.full_fov_deg / 2))
-
 
 @dataclass
 class NetworkConfig:
@@ -55,6 +57,8 @@ class NetworkConfig:
     tx_power_min_w: float = 0.1
     tx_power_max_w: float = 0.4
     tx_power_mapping: str = "linear"
+    power_control: str = "learned"
+    link_budget_margin_db: float = 3.0
     # Radio hardware defaults preserve the historical RF-output-only energy model.
     pa_efficiency: float = 1.0
     tx_circuit_power_w: float = 0.0
@@ -81,7 +85,6 @@ class NetworkConfig:
     propagation_delay_enabled: bool = False  # Opt in for new studies; preserve saved legacy runs.
     obstacle_extra_loss_db: float = 0.0
 
-
 @dataclass
 class EnergyConfig:
     enabled: bool = True
@@ -90,7 +93,6 @@ class EnergyConfig:
     hover_power_w: float = 120.0
     speed_squared_coefficient: float = 0.5
     acceleration_squared_coefficient: float = 2.0
-
 
 @dataclass
 class RewardConfig:
@@ -103,12 +105,24 @@ class RewardConfig:
     communication_energy: float = 0.01
     propulsion_energy_per_kj: float = 0.01
     communication_efficiency: float = 0.0
+    # 0 = historical Pmax-based RF reward reference; >0 fixes cost across TX ablations.
+    communication_reference_tx_power_w: float = 0.0
     shield_correction: float = 0.0
-
+    shield_intervention: float = 0.0
+    unsafe_action: float = 0.0
+    information_gain: float = 0.0
+    investigation_shaping: float = 0.0
+    shaping_gamma: float = 0.99
+    investigation_belief_threshold: float = 0.8
 
 @dataclass
 class OffPolicyConfig:
     hidden_sizes: list = field(default_factory=lambda: [256, 256])
+    share_actor_parameters: bool = False
+    share_critic_parameters: bool = False
+    actor_layer_norm: bool = False
+    actor_batch_norm: bool = False
+    critic_batch_norm: bool = False
     replay_capacity: int = 50_000
     batch_size: int = 256
     learning_starts: int = 2000
@@ -117,28 +131,38 @@ class OffPolicyConfig:
     tau: float = 0.005
     learning_rate: float = 0.0003
     grad_clip_norm: float = 10.0
-
+    grad_clip_mode: str = "global"
 
 @dataclass
 class MASACConfig(OffPolicyConfig):
+    shared_critic_mode: str = "dense"
+    temperature_loss: str = "log_alpha"  # "alpha" selects the original SAC dual loss.
     initial_alpha: float = 0.2
     target_continuous_entropy: float = -3.0
     target_discrete_entropy_ratio: float = 0.9
-
+    target_discrete_entropy_final_ratio: float = 0.9
+    target_discrete_entropy_anneal_updates: int = 0
+    # Historical entropy follows mask size; the reference uses a fixed action count.
+    mask_aware_discrete_entropy_target: bool = True
 
 @dataclass
 class MATD3Config(OffPolicyConfig):
+    # Original author p_train uses 1e-3; zero preserves historical UAV runs.
+    actor_output_regularization: float = 0.0
+    # Only an explicit ablation changes PyTorch default Linear initialization.
+    initialization: str = "default"
     policy_delay: int = 2
     target_noise_std: float = 0.2
     target_noise_clip: float = 0.5
     exploration_noise_std: float = 0.1
+    output_normalization: bool = False
     initial_epsilon: float = 1.0
     final_epsilon: float = 0.05
     epsilon_decay_steps: int = 100_000
 
-
 @dataclass
 class RuntimeConfig:
+    m2_enabled: bool = False  # New M2 policy, not part of frozen legacy world scenario hash.
     algorithm: str = "masac"
     seed: int = 44
     eval_seed: int = 10044
@@ -164,7 +188,6 @@ class RuntimeConfig:
     log_interval_steps: int = 100
     warm_start_checkpoint: str = "none"
     max_train_seconds: float = 0.0
-
 
 @dataclass
 class PQLConfig:
@@ -202,6 +225,13 @@ class TrackingConfig:
     artifact_timeout_seconds: int = 120
     evaluation_interval: int = 50
     evaluation_interval_steps: int = 0  # Absolute joint transitions; zero disables.
+    periodic_evaluation_interval_episodes: int = 0  # Completed training episodes; zero disables.
+    deferred_gpu_eval_enabled: bool = False  # Capture Actor-only snapshots; evaluate after training.
+    online_gpu_eval_enabled: bool = False  # Opt-in: GPU0 Eval concurrently with GPU Training.
+    deferred_gpu_eval_collection_stride: int = 8
+    deferred_gpu_eval_candidate_limit: int = 400
+    deferred_gpu_eval_target: int = 200
+    deferred_gpu_eval_keep_all: bool = False  # Matches 2026-11-20 saved eval semantics.
     periodic_evaluation_episodes: int = 5
     periodic_evaluation_seed: int = 1000000044
     evaluation_timeout_seconds: int = 300
@@ -228,7 +258,16 @@ class Config:
     def algorithm_config(self):
         return getattr(self, self.runtime.algorithm)
 
+    @property
+    def motion_dim(self):
+        return self.world.motion_dimensions
+
+    @property
+    def continuous_dim(self):
+        return self.motion_dim + 1 + int(self.runtime.m2_enabled)
+
     def validate(self):
+        validate_xyz(self)
         defaults = Config()
         for group in fields(self):
             obj, default = getattr(self, group.name), getattr(defaults, group.name)
@@ -267,8 +306,10 @@ class Config:
         if (w.obstacle_clearance_m < 0 or w.target_exclusion_radius_m < 0
                 or w.obstacle_radius_min_m > w.obstacle_radius_max_m):
             raise ValueError("Invalid world clearances or obstacle radius range")
-        if w.motion_safety not in {"dynamic_window", "reject"}:
-            raise ValueError("motion_safety must be dynamic_window or reject")
+        if w.motion_safety not in {"cbf", "dynamic_window", "reject"}:
+            raise ValueError("motion_safety must be cbf, dynamic_window or reject")
+        if w.motion_safety == "cbf" and w.motion_dimensions != 3:
+            raise ValueError("motion_safety=cbf is supported only for XYZ motion")
         if w.launch_min_spacing_m < w.safety_distance_m:
             raise ValueError("Launch spacing must be at least the safety distance")
         if not 0 < s.full_fov_deg < 180:
@@ -280,6 +321,14 @@ class Config:
                 or not math.isfinite(n.tx_circuit_power_w) or n.tx_circuit_power_w < 0
                 or not math.isfinite(n.rx_circuit_power_w) or n.rx_circuit_power_w < 0):
             raise ValueError("Radio PA efficiency must be in (0,1] and circuit powers finite/nonnegative")
+        if s.coverage_grid_cells > 32:
+            raise ValueError("sensor.coverage_grid_cells must be in [0,32]")
+        if n.power_control not in {"learned", "link_budget"}:
+            raise ValueError("network.power_control must be learned or link_budget")
+        if not 0 <= n.link_budget_margin_db <= 30:
+            raise ValueError("network.link_budget_margin_db must be in [0,30]")
+        if self.reward.communication_reference_tx_power_w < 0:
+            raise ValueError("reward.communication_reference_tx_power_w must be nonnegative")
         if n.tx_power_mapping not in {"linear", "log"}:
             raise ValueError("network.tx_power_mapping must be linear or log")
         if type(n.power_limited_admission) is not bool or type(n.link_state_observation) is not bool:
@@ -292,10 +341,16 @@ class Config:
             raise ValueError("network.propagation_delay_enabled must be a boolean")
         if (not 0 <= a.gamma <= 1 or not 0 < a.tau <= 1
                 or not 0 <= a.target_discrete_entropy_ratio <= 1
+                or not 0 <= a.target_discrete_entropy_final_ratio <= 1
+                or a.target_discrete_entropy_anneal_updates < 0
                 or a.batch_size > a.replay_capacity):
-            raise ValueError("Invalid MASAC discount, averaging, entropy or replay capacity")
+            raise ValueError("Invalid MASAC discount, averaging, entropy schedule or replay capacity")
         if not a.hidden_sizes or any(type(x) is not int or x <= 0 for x in a.hidden_sizes):
             raise ValueError("hidden_sizes must contain positive integers")
+        for algorithm_name in ("masac", "matd3"):
+            algorithm_config = getattr(self, algorithm_name)
+            if algorithm_config.grad_clip_mode not in {"global", "per_parameter", "none"}:
+                raise ValueError(f"{algorithm_name}.grad_clip_mode must be global, per_parameter or none")
         if r.device not in {"auto", "cpu", "cuda"} or r.replay_device not in {"auto", "cpu", "cuda"}:
             raise ValueError("device and replay_device must be auto, cpu or cuda")
         if (type(r.replay_cpu_fraction) not in (int, float)
@@ -314,6 +369,44 @@ class Config:
             raise ValueError("environment_backend must be native or warp_packet")
         if r.algorithm not in {"masac", "matd3"}:
             raise ValueError("algorithm must be masac or matd3")
+        if self.masac.shared_critic_mode not in {"dense", "valid_routes", "split"}:
+            raise ValueError("masac.shared_critic_mode must be dense, valid_routes or split")
+        if self.masac.temperature_loss not in {"log_alpha", "alpha"}:
+            raise ValueError("masac.temperature_loss must be log_alpha or alpha")
+        if self.matd3.initialization not in {"default", "orthogonal", "kaiming"}:
+            raise ValueError("matd3.initialization must be default, orthogonal or kaiming")
+        if type(self.matd3.actor_batch_norm) is not bool:
+            raise ValueError("matd3.actor_batch_norm must be a bool")
+        if type(self.matd3.critic_batch_norm) is not bool:
+            raise ValueError("matd3.critic_batch_norm must be a bool")
+        if self.matd3.actor_batch_norm and not self.matd3.actor_layer_norm:
+            raise ValueError("BN ablation replaces the baseline LayerNorm; require actor_layer_norm=true")
+        coefficient = self.matd3.actor_output_regularization
+        if type(coefficient) not in (int, float) or not math.isfinite(coefficient) or coefficient < 0:
+            raise ValueError("matd3.actor_output_regularization must be finite and nonnegative")
+        t = self.tracking
+        if type(t.deferred_gpu_eval_enabled) is not bool:
+            raise ValueError("deferred_gpu_eval_enabled must be bool")
+        if type(t.deferred_gpu_eval_keep_all) is not bool:
+            raise ValueError("deferred_gpu_eval_keep_all must be bool")
+        if t.deferred_gpu_eval_keep_all and t.online_gpu_eval_enabled:
+            raise ValueError("keep_all snapshots must be post-training; live worker is bounded")
+        if type(t.online_gpu_eval_enabled) is not bool:
+            raise ValueError("online_gpu_eval_enabled must be bool")
+        if t.online_gpu_eval_enabled and not t.deferred_gpu_eval_enabled:
+            raise ValueError("online_gpu_eval_enabled requires Actor-only snapshot capture")
+        if (any(type(x) is not int for x in (t.deferred_gpu_eval_collection_stride,
+                t.deferred_gpu_eval_candidate_limit, t.deferred_gpu_eval_target))
+                or t.deferred_gpu_eval_collection_stride < 1
+                or (not t.deferred_gpu_eval_keep_all and
+                    (t.deferred_gpu_eval_target < 2 or
+                     t.deferred_gpu_eval_candidate_limit < 2 * t.deferred_gpu_eval_target))
+                or (t.deferred_gpu_eval_keep_all and
+                    (t.deferred_gpu_eval_target != 0 or t.deferred_gpu_eval_candidate_limit != 0))):
+            raise ValueError("Deferred GPU evaluation snapshot stride/capacity invalid")
+        if t.deferred_gpu_eval_enabled and (r.algorithm not in {"masac", "matd3"}
+                                            or r.environment_backend != "warp_packet"):
+            raise ValueError("Deferred GPU evaluation requires Warp MASAC or MATD3")
         if r.num_envs < 1 or r.log_interval_steps < 1:
             raise ValueError("num_envs and log_interval_steps must be positive")
         if r.critic_chunk_size < 0:
@@ -323,6 +416,7 @@ class Config:
         if r.max_train_seconds < 0:
             raise ValueError("max_train_seconds must be nonnegative; zero disables the soft deadline")
         for name, minimum in (("evaluation_interval", 0), ("evaluation_interval_steps", 0),
+                               ("periodic_evaluation_interval_episodes", 0),
                               ("periodic_evaluation_episodes", 1), ("periodic_evaluation_seed", 0),
                               ("evaluation_timeout_seconds", 1)):
             value = getattr(self.tracking, name)
@@ -364,8 +458,16 @@ class Config:
                 e.idle_power_w, e.hover_power_w, e.speed_squared_coefficient,
                 e.acceleration_squared_coefficient, n.obstacle_extra_loss_db,
                 self.reward.propulsion_energy_per_kj, self.reward.communication_efficiency,
-                self.reward.shield_correction)):
+                self.reward.shield_correction, self.reward.shield_intervention, self.reward.unsafe_action,
+                self.reward.information_gain,
+                self.reward.investigation_shaping)):
             raise ValueError("Battery capacity must be positive and energy/reward/loss coefficients nonnegative")
+        if not 0 <= self.reward.shaping_gamma <= 1:
+            raise ValueError("reward.shaping_gamma must be in [0,1]")
+        if (self.motion_dim == 3 and self.reward.investigation_shaping > 0
+                and not self.sensor.belief_prior < self.reward.investigation_belief_threshold
+                < self.sensor.confirmation_threshold):
+            raise ValueError("investigation belief threshold must lie between prior and confirmation")
         for learner in (self.masac, self.matd3):
             if (not 0 <= learner.gamma <= 1 or not 0 < learner.tau <= 1
                     or any(v <= 0 for v in (learner.replay_capacity, learner.batch_size,
@@ -416,3 +518,40 @@ def load_config(path=None, overrides=()):
             raise ValueError("Overrides use group.name=value")
         _apply(config, {parts[0]: {parts[1]: yaml.safe_load(value)}})
     return config.validate()
+
+
+def with_legacy_feature_defaults(values):
+    """Fill only newly introduced optional settings, never required science fields."""
+    if not isinstance(values, dict):
+        raise ValueError("Checkpoint configuration must be a mapping")
+    result = deepcopy(values)
+    for group, defaults in (
+        ("masac", {"actor_layer_norm": False, "temperature_loss": "log_alpha",
+                   "shared_critic_mode": "dense"}),
+        ("matd3", {"actor_layer_norm": False, "actor_output_regularization": 0.0}),
+        ("sensor", {"coverage_grid_cells": 0}),
+        ("reward", {"information_gain": 0.0, "investigation_shaping": 0.0,
+                    "shaping_gamma": 0.99, "investigation_belief_threshold": 0.8}),
+        ("network", {"power_control": "learned", "link_budget_margin_db": 3.0}),
+    ):
+        if group in result:
+            if not isinstance(result[group], dict):
+                raise ValueError(f"Checkpoint {group} must be a mapping")
+            for key, value in defaults.items():
+                result[group].setdefault(key, value)
+    for group, defaults in legacy_xyz_defaults().items():
+        if group in result:
+            for key, value in defaults.items():
+                result[group].setdefault(key, value)
+    return result
+
+
+def config_fingerprint(config):
+    """Exact resolved experiment identity, including learner/mode/runtime settings."""
+    values = config.to_dict()
+    if values["matd3"]["actor_output_regularization"] == 0:
+        del values["matd3"]["actor_output_regularization"]
+    if values["masac"]["shared_critic_mode"] == "dense":
+        # The dense path was implicit in older experiment fingerprints.
+        del values["masac"]["shared_critic_mode"]
+    return hashlib.sha256(json.dumps(values, sort_keys=True, allow_nan=False).encode()).hexdigest()

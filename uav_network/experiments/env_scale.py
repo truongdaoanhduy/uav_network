@@ -257,7 +257,7 @@ def probe(config, output, steps=16, min_seconds=0):
         publish("gpu_allocation")
         learner = make_learner(config, observation_dim(config), state_dim(config), device)
         replay = TensorReplayBuffer(settings.replay_capacity, (config.world.num_uavs, observation_dim(config)),
-                                    state_dim(config), config.runtime.seed, device)
+                                    state_dim(config), config.runtime.seed, device, continuous_dim=config.continuous_dim)
         result["replay_bytes"] = replay.allocated_bytes
         publish("vector_startup")
         vector = make_vector(config)
@@ -297,7 +297,7 @@ def probe(config, output, steps=16, min_seconds=0):
         publish("replay_warmup")
         while global_step < max(settings.learning_starts, settings.batch_size):
             collect(vector.random_actions(obs["observation"]) if device_env else
-                    random_actions(obs["observation"],rng,config.world.num_uavs+1))
+                    random_actions(obs["observation"],rng,config.world.num_uavs+1,config.continuous_dim))
         publish("learner_warmup")
         for _ in range(2):
             learner.update(replay.sample(settings.batch_size), collect_metrics=False)

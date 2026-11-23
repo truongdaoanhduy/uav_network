@@ -34,6 +34,25 @@ jobs:
       KAGGLE_API_TOKEN_ACCOUNT_03: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_03 }}
       KAGGLE_API_TOKEN_ACCOUNT_04: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_04 }}
       KAGGLE_API_TOKEN_ACCOUNT_05: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_05 }}
+      KAGGLE_API_TOKEN_ACCOUNT_06: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_06 }}
+      KAGGLE_API_TOKEN_ACCOUNT_07: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_07 }}
+      KAGGLE_API_TOKEN_ACCOUNT_08: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_08 }}
+      KAGGLE_API_TOKEN_ACCOUNT_09: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_09 }}
+      KAGGLE_API_TOKEN_ACCOUNT_10: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_10 }}
+      KAGGLE_API_TOKEN_ACCOUNT_11: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_11 }}
+      KAGGLE_API_TOKEN_ACCOUNT_12: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_12 }}
+      KAGGLE_API_TOKEN_ACCOUNT_13: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_13 }}
+      KAGGLE_API_TOKEN_ACCOUNT_14: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_14 }}
+      KAGGLE_API_TOKEN_ACCOUNT_15: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_15 }}
+      KAGGLE_API_TOKEN_ACCOUNT_16: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_16 }}
+      KAGGLE_API_TOKEN_ACCOUNT_17: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_17 }}
+      KAGGLE_API_TOKEN_ACCOUNT_18: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_18 }}
+      KAGGLE_API_TOKEN_ACCOUNT_19: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_19 }}
+      KAGGLE_API_TOKEN_ACCOUNT_20: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_20 }}
+      KAGGLE_API_TOKEN_ACCOUNT_21: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_21 }}
+      KAGGLE_API_TOKEN_ACCOUNT_22: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_22 }}
+      KAGGLE_API_TOKEN_ACCOUNT_23: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_23 }}
+      KAGGLE_API_TOKEN_ACCOUNT_24: ${{ secrets.KAGGLE_API_TOKEN_ACCOUNT_24 }}
       WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       WANDB_ENTITY: ${{ vars.WANDB_ENTITY }}
@@ -69,7 +88,7 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.dry_run }}" == "true" ]]; then
             args+=(--dry-run)
           fi
-          UAV_EVALUATOR_COMMIT="$(git rev-parse HEAD)" PYTHONPATH=. python -m uav_network.cloud.github_supervisor --report outputs/supervisor-report.json "${args[@]}"
+          PYTHONPATH=. python -m uav_network.cloud.github_supervisor --report outputs/supervisor-report.json "${args[@]}"
 
       - name: Preserve sanitized reconciliation report
         if: always()
@@ -81,8 +100,7 @@ jobs:
           retention-days: 14
 
   replicate:
-    # Legacy launcher disabled: account aliases have changed.
-    if: false
+    if: github.event_name == 'workflow_dispatch' && inputs.launch_masac_pql_replicate
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:

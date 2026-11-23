@@ -74,24 +74,47 @@ def test_workspace_run_table_is_compact_and_decision_focused():
     all_metrics = {key for panels in PANELS.values() for _, metric in panels
                    for key in (metric if isinstance(metric, tuple) else (metric,))}
     assert {
-        "train/episodes_completed", "train/joint_transitions_per_s",
-        "cohort/episodes", "storage/disk_free_bytes", "learner/critic_loss", "learner/td_error_abs_mean",
-        "cohort/network/packet_pdr_fraction", "cohort/delivery_rate_percent_mean",
-        "system/gpu.0.gpu", "system/gpu.1.gpu", "recovery/elapsed_seconds",
-    } <= all_metrics
-    assert sum(len(panels) for panels in PANELS.values()) == 27
+        "episode/return", "outcome/search_rate_percent", "outcome/delivery_rate_percent",
+        "evaluation/mean_search_rate_percent", "evaluation/mean_delivery_rate_percent",
+        "evaluation/discovery_auc", "evaluation/target_delivery_time_capped_mean_s",
+        "evaluation/pooled_uav_j_per_gcs_delivery",
+        "cohort/energy/j_per_gcs_delivery", "episode/length",
+        "learner/actor_loss", "learner/critic_loss", "learner/actor_grad_norm",
+        "learner/critic_grad_norm", "learner/td_error_abs_mean",
+        "action/movement_saturation_fraction", "safety/cbf_intervention_rate",
+        "evaluation/delivery_given_discovery_fraction",
+        "evaluation/first_discovery_to_gcs_delay_delivered_mean_s",
+        "evaluation/false_confirmation_per_1000_measurements",
+        "evaluation/map_coverage_percent",
+        "training/delivery_given_discovery_fraction",
+        "training/first_discovery_to_gcs_delay_delivered_mean_s",
+        "training/false_confirmation_per_1000_measurements",
+        "training/map_coverage_percent",
+    } == all_metrics
+    assert sum(len(panels) for panels in PANELS.values()) == 25
 
 
 def test_workspace_evaluation_panels_and_columns_show_completed_outcome_source():
-    from uav_network.experiments.dashboard import PANELS, panel_axis
+    from uav_network.experiments.dashboard import PANELS, panel_axis, panel_options
     from uav_network.experiments.dashboard_columns import VISIBLE_COLUMNS
     assert "summary:cohort/return_mean" not in VISIBLE_COLUMNS
     assert "summary:cohort/delivery_rate_percent_mean" in VISIBLE_COLUMNS
     assert "summary:cohort/success_mean" in VISIBLE_COLUMNS
+    assert panel_axis("episode/return") == "episode/index"
+    assert panel_axis("outcome/search_rate_percent") == "episode/index"
+    assert panel_axis("outcome/delivery_rate_percent") == "episode/index"
+    assert panel_axis("outcome/success") == "episode/index"
     assert panel_axis("evaluation/mean_return") == "evaluation/checkpoint_global_step"
+    assert panel_axis("evaluation/core/discovery_rate_percent") == "evaluation/checkpoint_episode"
+    assert panel_axis("evaluation/map_coverage_percent") == "evaluation/checkpoint_episode"
+    assert panel_axis("training/map_coverage_percent") == "episode/index"
+    assert panel_options("Union map coverage (training; %)", "training/map_coverage_percent")["xaxis_expression"] == "${episode/index} / 10"
+    assert panel_axis("evaluation/false_confirmation_per_1000_measurements") == "evaluation/checkpoint_episode"
+    assert panel_options("1. Target discovery rate (%)", "evaluation/core/discovery_rate_percent")["xaxis_expression"] == "${evaluation/checkpoint_episode} / 10"
+    assert panel_options("CPU evaluation delivery (%) - higher", "evaluation/delivery_rate_percent")["xaxis_expression"] == "${evaluation/episodes_completed} / 10"
     assert panel_axis("eval/mean_return") == "evaluation/checkpoint_global_step"
     assert panel_axis("evaluation_status/failed") == "global_step"
-    assert any(metric.startswith("cohort/") for panels in PANELS.values() for _, metric in panels)
+    assert any(metric.startswith("evaluation/") for panels in PANELS.values() for _, metric in panels)
 
 
 def test_cpu_episode_metrics_define_episode_axis_without_changing_periodic_axis(tmp_path):
@@ -120,7 +143,53 @@ def test_authored_cpu_episode_panels_use_episode_axis():
     assert panel_axis('eval/mean_delivery_rate_percent') == 'evaluation/checkpoint_global_step'
 
 
-def test_actor_loss_is_available_in_advanced_diagnostics_without_core_clutter():
+def test_actor_loss_is_visible_in_collapsed_training_diagnostics_and_advanced_profile():
     from uav_network.experiments.dashboard import PANELS, DIAGNOSTIC_PANELS
-    assert all(metric!='learner/actor_loss' for panels in PANELS.values() for _,metric in panels)
+    assert any(metric=='learner/actor_loss' for panels in PANELS.values() for _,metric in panels)
     assert any(metric=='learner/actor_loss' for panels in DIAGNOSTIC_PANELS.values() for _,metric in panels)
+
+
+def test_paper_and_benchmark_panels_use_scaled_axes_and_clean_rendering():
+    from uav_network.experiments.dashboard import panel_axis, panel_options
+
+    paper_title = "UAV-paper training return / reward"
+    paper = panel_options(paper_title, "episode/return")
+    assert panel_axis("episode/return", paper_title) == "episode/index"
+    assert paper["smoothing_type"] == "exponential"
+    assert paper["smoothing_factor"] == 0.99
+    assert paper["smoothing_show_original"] is False
+    assert paper["title_x"] == "Episode (×10¹)"
+    assert paper["xaxis_expression"] == "${episode/index} / 10"
+    assert paper["point_visualization_method"] == "sampling"
+
+    sample_title = "Sample-efficiency training return / reward"
+    sample = panel_options(sample_title, "episode/return")
+    assert panel_axis("episode/return", sample_title) == "global_step"
+    assert sample["title_x"] == "Environment Steps (M)"
+    assert sample["xaxis_expression"] == "${global_step} / 1000000"
+    assert sample["point_visualization_method"] == "sampling"
+
+
+    success_title = "UAV-paper mission success rate by episode"
+    success = panel_options(success_title, "outcome/success")
+    assert panel_axis("outcome/success", success_title) == "episode/index"
+    assert success["title_x"] == "Episode (×10¹)"
+    assert success["xaxis_expression"] == "${episode/index} / 10"
+    assert success["title_y"] == "Mission success rate (fraction; 1 = 100%)"
+    assert success["range_y"] == (0, 1)
+    assert success["smoothing_type"] == "average"
+    assert success["smoothing_show_original"] is True
+
+    compute_title = "Compute-efficiency training return / reward"
+    compute = panel_options(compute_title, "episode/return")
+    assert panel_axis("episode/return", compute_title) == "_runtime"
+    assert compute["title_x"] == "Wall Time (min)"
+    assert compute["xaxis_expression"] == "${_runtime} / 60"
+    assert compute["point_visualization_method"] == "sampling"
+
+    loss = panel_options("Critic loss - diagnostic only", "learner/critic_loss")
+    assert loss["smoothing_type"] == "average"
+    assert loss["smoothing_factor"] == 0.8
+    assert loss["smoothing_show_original"] is True
+    raw = panel_options("Episode return / reward (raw audit)", "episode/return")
+    assert raw == {"smoothing_type": "none"}

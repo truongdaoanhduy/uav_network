@@ -1,0 +1,623 @@
+{
+  "scope": "paired replay-only short CPU mechanistic stress-test; NOT full 35T25O train/eval",
+  "same_35t25o_environment": true,
+  "same_code": true,
+  "exact_one_variable_changed": "masac.temperature_loss",
+  "other_overrides": {
+    "num_envs": 1,
+    "batch_size": 64,
+    "hidden_sizes": [
+      64,
+      64
+    ],
+    "updates": 1200,
+    "warped_random_steps": 260,
+    "shared_actor_critic": true,
+    "actor_layer_norm": true,
+    "mask_aware_discrete_entropy_target": true
+  },
+  "limits": "policy gradient uses common random numbers per step, but actors can diverge under different alpha; offline replay does not establish deployment returns or GPU/20k training effects",
+  "real_warp_dataset": {
+    "steps": 260,
+    "eligible_agent_state_fraction": 0.012820512987673283,
+    "max_legal_destinations": 3,
+    "reward_mean": -0.2937729060649872,
+    "terminal_fraction": 0.0
+  },
+  "wall_seconds": 103.75026972100022,
+  "last_mean_action_difference_rms": 0.004292168654501438,
+  "history": [
+    {
+      "update": 1,
+      "metrics": {
+        "log_alpha": {
+          "motion_mean_abs": 0.22323918342590332,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.2539539039134979,
+          "rf_nonzero_action_fraction": 0.010416666977107525,
+          "mean_action_l2_change_from_initial": 0.07428183406591415,
+          "alpha_continuous": 0.99970007,
+          "alpha_discrete": 0.99990004,
+          "continuous_entropy": 1.40638828,
+          "discrete_entropy": 0.00739292,
+          "actor_loss": -1.40431786,
+          "critic_loss": 89.84372711,
+          "actor_grad_norm": 12.18680096,
+          "critic_grad_norm": 24.71669197,
+          "target_mean": 8.97075844
+        },
+        "alpha": {
+          "motion_mean_abs": 0.22323918342590332,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.2539539039134979,
+          "rf_nonzero_action_fraction": 0.010416666977107525,
+          "mean_action_l2_change_from_initial": 0.07428183406591415,
+          "alpha_continuous": 0.99970007,
+          "alpha_discrete": 0.99990004,
+          "continuous_entropy": 1.40638828,
+          "discrete_entropy": 0.00739292,
+          "actor_loss": -1.40431786,
+          "critic_loss": 89.84372711,
+          "actor_grad_norm": 12.18680096,
+          "critic_grad_norm": 24.71669197,
+          "target_mean": 8.97075844
+        }
+      }
+    },
+    {
+      "update": 2,
+      "metrics": {
+        "log_alpha": {
+          "motion_mean_abs": 0.1761905550956726,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.21234005689620972,
+          "rf_nonzero_action_fraction": 0.010416666977107525,
+          "mean_action_l2_change_from_initial": 0.14892032742500305,
+          "alpha_continuous": 0.99939996,
+          "alpha_discrete": 0.99980706,
+          "continuous_entropy": 1.63298464,
+          "discrete_entropy": 0.01218374,
+          "actor_loss": -1.67095613,
+          "critic_loss": 108.103302,
+          "actor_grad_norm": 8.8288517,
+          "critic_grad_norm": 26.28390121,
+          "target_mean": 10.16753387
+        },
+        "alpha": {
+          "motion_mean_abs": 0.1761905550956726,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.21234005689620972,
+          "rf_nonzero_action_fraction": 0.010416666977107525,
+          "mean_action_l2_change_from_initial": 0.14892032742500305,
+          "alpha_continuous": 0.99939996,
+          "alpha_discrete": 0.99980706,
+          "continuous_entropy": 1.63298464,
+          "discrete_entropy": 0.01218374,
+          "actor_loss": -1.67095613,
+          "critic_loss": 108.103302,
+          "actor_grad_norm": 8.8288517,
+          "critic_grad_norm": 26.28390121,
+          "target_mean": 10.16753387
+        }
+      }
+    },
+    {
+      "update": 3,
+      "metrics": {
+        "log_alpha": {
+          "motion_mean_abs": 0.14988476037979126,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.17547079920768738,
+          "rf_nonzero_action_fraction": 0.013020833022892475,
+          "mean_action_l2_change_from_initial": 0.21516020596027374,
+          "alpha_continuous": 0.99909943,
+          "alpha_discrete": 0.99968481,
+          "continuous_entropy": 1.80660474,
+          "discrete_entropy": 0.00727441,
+          "actor_loss": -1.87310505,
+          "critic_loss": 120.68199921,
+          "actor_grad_norm": 5.06402636,
+          "critic_grad_norm": 26.47632027,
+          "target_mean": 10.76213741
+        },
+        "alpha": {
+          "motion_mean_abs": 0.14988476037979126,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.17547079920768738,
+          "rf_nonzero_action_fraction": 0.013020833022892475,
+          "mean_action_l2_change_from_initial": 0.21516020596027374,
+          "alpha_continuous": 0.99909943,
+          "alpha_discrete": 0.99968481,
+          "continuous_entropy": 1.80660474,
+          "discrete_entropy": 0.00727441,
+          "actor_loss": -1.87310505,
+          "critic_loss": 120.68199921,
+          "actor_grad_norm": 5.06402636,
+          "critic_grad_norm": 26.47632027,
+          "target_mean": 10.76213741
+        }
+      }
+    },
+    {
+      "update": 4,
+      "metrics": {
+        "log_alpha": {
+          "motion_mean_abs": 0.14105795323848724,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.14846296608448029,
+          "rf_nonzero_action_fraction": 0.013020833022892475,
+          "mean_action_l2_change_from_initial": 0.2705555558204651,
+          "alpha_continuous": 0.99879867,
+          "alpha_discrete": 0.99952477,
+          "continuous_entropy": 1.87766039,
+          "discrete_entropy": 0.01502537,
+          "actor_loss": -1.98783004,
+          "critic_loss": 119.06330109,
+          "actor_grad_norm": 3.26921487,
+          "critic_grad_norm": 26.6955452,
+          "target_mean": 10.85770702
+        },
+        "alpha": {
+          "motion_mean_abs": 0.14105795323848724,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.14846296608448029,
+          "rf_nonzero_action_fraction": 0.013020833022892475,
+          "mean_action_l2_change_from_initial": 0.2705555558204651,
+          "alpha_continuous": 0.99879867,
+          "alpha_discrete": 0.99952483,
+          "continuous_entropy": 1.87766039,
+          "discrete_entropy": 0.01502537,
+          "actor_loss": -1.98783016,
+          "critic_loss": 119.06330109,
+          "actor_grad_norm": 3.26921487,
+          "critic_grad_norm": 26.6955452,
+          "target_mean": 10.85770702
+        }
+      }
+    },
+    {
+      "update": 5,
+      "metrics": {
+        "log_alpha": {
+          "motion_mean_abs": 0.14064079523086548,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.13527734577655792,
+          "rf_nonzero_action_fraction": 0.013020833022892475,
+          "mean_action_l2_change_from_initial": 0.30852293968200684,
+          "alpha_continuous": 0.99849796,
+          "alpha_discrete": 0.99944097,
+          "continuous_entropy": 1.86827099,
+          "discrete_entropy": 0.00786099,
+          "actor_loss": -2.00578904,
+          "critic_loss": 114.46162415,
+          "actor_grad_norm": 3.87612987,
+          "critic_grad_norm": 26.75894356,
+          "target_mean": 10.71935272
+        },
+        "alpha": {
+          "motion_mean_abs": 0.14064079523086548,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.13527734577655792,
+          "rf_nonzero_action_fraction": 0.013020833022892475,
+          "mean_action_l2_change_from_initial": 0.30852293968200684,
+          "alpha_continuous": 0.99849796,
+          "alpha_discrete": 0.99944097,
+          "continuous_entropy": 1.86827099,
+          "discrete_entropy": 0.00786099,
+          "actor_loss": -2.00578904,
+          "critic_loss": 114.46162415,
+          "actor_grad_norm": 3.87612987,
+          "critic_grad_norm": 26.75894356,
+          "target_mean": 10.71935272
+        }
+      }
+    },
+    {
+      "update": 10,
+      "metrics": {
+        "log_alpha": {
+          "motion_mean_abs": 0.11084806174039841,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.12756940722465515,
+          "rf_nonzero_action_fraction": 0.013020833022892475,
+          "mean_action_l2_change_from_initial": 0.32431650161743164,
+          "alpha_continuous": 0.9969933,
+          "alpha_discrete": 0.99891299,
+          "continuous_entropy": 1.92258072,
+          "discrete_entropy": 0.00537417,
+          "actor_loss": -2.22138429,
+          "critic_loss": 128.55645752,
+          "actor_grad_norm": 3.14195013,
+          "critic_grad_norm": 33.16848755,
+          "target_mean": 11.4133091
+        },
+        "alpha": {
+          "motion_mean_abs": 0.11084805428981781,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.12756939232349396,
+          "rf_nonzero_action_fraction": 0.013020833022892475,
+          "mean_action_l2_change_from_initial": 0.32431650161743164,
+          "alpha_continuous": 0.99699354,
+          "alpha_discrete": 0.99891299,
+          "continuous_entropy": 1.92258072,
+          "discrete_entropy": 0.00537417,
+          "actor_loss": -2.22138429,
+          "critic_loss": 128.55651855,
+          "actor_grad_norm": 3.14195061,
+          "critic_grad_norm": 33.16849136,
+          "target_mean": 11.41331196
+        }
+      }
+    },
+    {
+      "update": 20,
+      "metrics": {
+        "log_alpha": {
+          "motion_mean_abs": 0.08557865023612976,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.09210532158613205,
+          "rf_nonzero_action_fraction": 0.010416666977107525,
+          "mean_action_l2_change_from_initial": 0.24285489320755005,
+          "alpha_continuous": 0.99398047,
+          "alpha_discrete": 0.99780673,
+          "continuous_entropy": 1.97839701,
+          "discrete_entropy": 0.01791901,
+          "actor_loss": -2.57391286,
+          "critic_loss": 126.87268829,
+          "actor_grad_norm": 2.29576731,
+          "critic_grad_norm": 51.47649384,
+          "target_mean": 11.82492352
+        },
+        "alpha": {
+          "motion_mean_abs": 0.08557863533496857,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.09210532158613205,
+          "rf_nonzero_action_fraction": 0.010416666977107525,
+          "mean_action_l2_change_from_initial": 0.24285489320755005,
+          "alpha_continuous": 0.99398237,
+          "alpha_discrete": 0.99780703,
+          "continuous_entropy": 1.97839725,
+          "discrete_entropy": 0.01791901,
+          "actor_loss": -2.57391644,
+          "critic_loss": 126.87316895,
+          "actor_grad_norm": 2.29577112,
+          "critic_grad_norm": 51.4765892,
+          "target_mean": 11.8249445
+        }
+      }
+    },
+    {
+      "update": 30,
+      "metrics": {
+        "log_alpha": {
+          "motion_mean_abs": 0.05552339181303978,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.06685294955968857,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.27682724595069885,
+          "alpha_continuous": 0.9909696,
+          "alpha_discrete": 0.99682325,
+          "continuous_entropy": 2.02108741,
+          "discrete_entropy": 0.00709304,
+          "actor_loss": -3.02672839,
+          "critic_loss": 114.7230835,
+          "actor_grad_norm": 1.22543681,
+          "critic_grad_norm": 74.44372559,
+          "target_mean": 11.77905464
+        },
+        "alpha": {
+          "motion_mean_abs": 0.055523354560136795,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.06685291230678558,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.27682730555534363,
+          "alpha_continuous": 0.99097592,
+          "alpha_discrete": 0.99682409,
+          "continuous_entropy": 2.02108741,
+          "discrete_entropy": 0.00709304,
+          "actor_loss": -3.02674007,
+          "critic_loss": 114.72457123,
+          "actor_grad_norm": 1.22544575,
+          "critic_grad_norm": 74.44424438,
+          "target_mean": 11.77912521
+        }
+      }
+    },
+    {
+      "update": 50,
+      "metrics": {
+        "log_alpha": {
+          "motion_mean_abs": 0.0487227700650692,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.05814572423696518,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.2651893198490143,
+          "alpha_continuous": 0.98497421,
+          "alpha_discrete": 0.99519467,
+          "continuous_entropy": 2.05286169,
+          "discrete_entropy": 0.0035527,
+          "actor_loss": -4.43375731,
+          "critic_loss": 74.54053497,
+          "actor_grad_norm": 1.75660026,
+          "critic_grad_norm": 119.71019745,
+          "target_mean": 11.53892517
+        },
+        "alpha": {
+          "motion_mean_abs": 0.048722896724939346,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.05814584344625473,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.2651892900466919,
+          "alpha_continuous": 0.98500043,
+          "alpha_discrete": 0.99519873,
+          "continuous_entropy": 2.05286145,
+          "discrete_entropy": 0.0035527,
+          "actor_loss": -4.433815,
+          "critic_loss": 74.54554749,
+          "actor_grad_norm": 1.75665259,
+          "critic_grad_norm": 119.71460724,
+          "target_mean": 11.53922653
+        }
+      }
+    },
+    {
+      "update": 75,
+      "metrics": {
+        "log_alpha": {
+          "motion_mean_abs": 0.03607230260968208,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.04669998213648796,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.26525261998176575,
+          "alpha_continuous": 0.97753763,
+          "alpha_discrete": 0.99245691,
+          "continuous_entropy": 2.03256869,
+          "discrete_entropy": 0.01366911,
+          "actor_loss": -7.69057798,
+          "critic_loss": 31.51096725,
+          "actor_grad_norm": 1.33274543,
+          "critic_grad_norm": 141.00752258,
+          "target_mean": 12.17076683
+        },
+        "alpha": {
+          "motion_mean_abs": 0.03607260808348656,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.04670020192861557,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.2652508318424225,
+          "alpha_continuous": 0.97761124,
+          "alpha_discrete": 0.99246979,
+          "continuous_entropy": 2.03256869,
+          "discrete_entropy": 0.01366911,
+          "actor_loss": -7.69081116,
+          "critic_loss": 31.51893616,
+          "actor_grad_norm": 1.33282602,
+          "critic_grad_norm": 141.0295105,
+          "target_mean": 12.17163849
+        }
+      }
+    },
+    {
+      "update": 100,
+      "metrics": {
+        "log_alpha": {
+          "motion_mean_abs": 0.04046390950679779,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.04856820032000542,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.2862040400505066,
+          "alpha_continuous": 0.97017604,
+          "alpha_discrete": 0.9901647,
+          "continuous_entropy": 2.03976846,
+          "discrete_entropy": 0.00345649,
+          "actor_loss": -12.05937481,
+          "critic_loss": 5.46002293,
+          "actor_grad_norm": 1.24857426,
+          "critic_grad_norm": 61.52087402,
+          "target_mean": 12.22229576
+        },
+        "alpha": {
+          "motion_mean_abs": 0.0405149832367897,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.0486367866396904,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.28628477454185486,
+          "alpha_continuous": 0.97032291,
+          "alpha_discrete": 0.99018925,
+          "continuous_entropy": 2.03978086,
+          "discrete_entropy": 0.00345634,
+          "actor_loss": -12.06032085,
+          "critic_loss": 5.46302605,
+          "actor_grad_norm": 1.24985623,
+          "critic_grad_norm": 61.55404663,
+          "target_mean": 12.2240448
+        }
+      }
+    },
+    {
+      "update": 150,
+      "metrics": {
+        "log_alpha": {
+          "motion_mean_abs": 0.03409814089536667,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.041654832661151886,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.2946542799472809,
+          "alpha_continuous": 0.95565301,
+          "alpha_discrete": 0.98511809,
+          "continuous_entropy": 2.02982402,
+          "discrete_entropy": 0.01621054,
+          "actor_loss": -14.80115986,
+          "critic_loss": 1.3513267,
+          "actor_grad_norm": 1.15142572,
+          "critic_grad_norm": 18.47670555,
+          "target_mean": 13.31536102
+        },
+        "alpha": {
+          "motion_mean_abs": 0.03410118818283081,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.04187256470322609,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.29457131028175354,
+          "alpha_continuous": 0.9560194,
+          "alpha_discrete": 0.98518294,
+          "continuous_entropy": 2.02980709,
+          "discrete_entropy": 0.01621388,
+          "actor_loss": -14.80578613,
+          "critic_loss": 1.35668659,
+          "actor_grad_norm": 1.15576708,
+          "critic_grad_norm": 18.55112267,
+          "target_mean": 13.32080269
+        }
+      }
+    },
+    {
+      "update": 200,
+      "metrics": {
+        "log_alpha": {
+          "motion_mean_abs": 0.030934777110815048,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.037364065647125244,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.28651952743530273,
+          "alpha_continuous": 0.94135636,
+          "alpha_discrete": 0.98003966,
+          "continuous_entropy": 2.08776426,
+          "discrete_entropy": 0.01072596,
+          "actor_loss": -16.28594208,
+          "critic_loss": 1.20978153,
+          "actor_grad_norm": 1.00801384,
+          "critic_grad_norm": 4.54954529,
+          "target_mean": 14.47158337
+        },
+        "alpha": {
+          "motion_mean_abs": 0.030955297872424126,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.03748069331049919,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.2867509424686432,
+          "alpha_continuous": 0.94203407,
+          "alpha_discrete": 0.98016149,
+          "continuous_entropy": 2.08785796,
+          "discrete_entropy": 0.01072483,
+          "actor_loss": -16.29628944,
+          "critic_loss": 1.21225882,
+          "actor_grad_norm": 1.00981677,
+          "critic_grad_norm": 4.60638618,
+          "target_mean": 14.48146343
+        }
+      }
+    },
+    {
+      "update": 300,
+      "metrics": {
+        "log_alpha": {
+          "motion_mean_abs": 0.027195043861865997,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.03258063271641731,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.2668186128139496,
+          "alpha_continuous": 0.91344285,
+          "alpha_discrete": 0.96969581,
+          "continuous_entropy": 2.03248215,
+          "discrete_entropy": 0.00448785,
+          "actor_loss": -19.56907082,
+          "critic_loss": 2.77425766,
+          "actor_grad_norm": 0.89685714,
+          "critic_grad_norm": 13.34768295,
+          "target_mean": 17.9546833
+        },
+        "alpha": {
+          "motion_mean_abs": 0.02677447348833084,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.032188933342695236,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.2671321928501129,
+          "alpha_continuous": 0.91499048,
+          "alpha_discrete": 0.96998048,
+          "continuous_entropy": 2.03233457,
+          "discrete_entropy": 0.0044879,
+          "actor_loss": -19.59442329,
+          "critic_loss": 2.77361941,
+          "actor_grad_norm": 0.90790397,
+          "critic_grad_norm": 13.40205765,
+          "target_mean": 17.97771263
+        }
+      }
+    },
+    {
+      "update": 500,
+      "metrics": {
+        "log_alpha": {
+          "motion_mean_abs": 0.051056697964668274,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.05790572613477707,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.2645919620990753,
+          "alpha_continuous": 0.86015671,
+          "alpha_discrete": 0.95095497,
+          "continuous_entropy": 2.0425148,
+          "discrete_entropy": 0.01310963,
+          "actor_loss": -27.1259861,
+          "critic_loss": 3.68684411,
+          "actor_grad_norm": 1.21810675,
+          "critic_grad_norm": 24.19129944,
+          "target_mean": 25.60273933
+        },
+        "alpha": {
+          "motion_mean_abs": 0.050333160907030106,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.057301949709653854,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.2643412947654724,
+          "alpha_continuous": 0.86426193,
+          "alpha_discrete": 0.95172715,
+          "continuous_entropy": 2.04212856,
+          "discrete_entropy": 0.01310797,
+          "actor_loss": -27.20882607,
+          "critic_loss": 3.70193624,
+          "actor_grad_norm": 1.22044826,
+          "critic_grad_norm": 24.49671555,
+          "target_mean": 25.68070412
+        }
+      }
+    },
+    {
+      "update": 1200,
+      "metrics": {
+        "log_alpha": {
+          "motion_mean_abs": 0.0899033471941948,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.10300575941801071,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.2887406051158905,
+          "alpha_continuous": 0.69728112,
+          "alpha_discrete": 0.88730294,
+          "continuous_entropy": 2.03438354,
+          "discrete_entropy": 0.01354812,
+          "actor_loss": -52.95536804,
+          "critic_loss": 0.47912684,
+          "actor_grad_norm": 0.93564624,
+          "critic_grad_norm": 3.46366787,
+          "target_mean": 51.2873497
+        },
+        "alpha": {
+          "motion_mean_abs": 0.08881518989801407,
+          "motion_saturation_fraction": 0.0,
+          "motion_component_std": 0.10146602243185043,
+          "rf_nonzero_action_fraction": 0.015625,
+          "mean_action_l2_change_from_initial": 0.2895050346851349,
+          "alpha_continuous": 0.71512192,
+          "alpha_discrete": 0.89106327,
+          "continuous_entropy": 2.0357995,
+          "discrete_entropy": 0.01349692,
+          "actor_loss": -53.62054443,
+          "critic_loss": 0.49591583,
+          "actor_grad_norm": 0.92892325,
+          "critic_grad_norm": 3.19885302,
+          "target_mean": 51.91994476
+        }
+      }
+    }
+  ]
+}

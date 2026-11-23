@@ -8,9 +8,9 @@ import subprocess
 from uuid import uuid4
 
 from ..configuration import load_config
-from .client import CredentialFileSetError, account_quotas, ensure_cpu_wandb_dataset, ensure_pipeline_dataset, kernel_status, pushed_kernel_ref, resolve_username, run_kaggle, verify_credential_dataset
+from .client import CredentialFileSetError, account_quotas, ensure_cpu_wandb_dataset, ensure_pipeline_dataset, kernel_status, pushed_kernel_ref, resolve_username, run_kaggle, submit_kernel, verify_credential_dataset
 from .credentials import load_credentials, select_account
-from .kernel import kernel_metadata, kernel_script
+from .kernel import kernel_script
 from .identities import authoritative_tags, kernel_slug, run_name
 from .acceleration import apply_measured_acceleration_policy
 
@@ -42,6 +42,7 @@ def launch(args, credentials):
     config = load_config(ROOT / config_file, args.overrides)
     auto_continue = getattr(args, "auto_continue", False)
     cpu_visualize = getattr(args, "cpu_visualize", False) or auto_continue
+    training_only = getattr(args, "training_only", False)
     timeout_seconds = args.timeout_seconds
     if auto_continue:
         quota = next(row for row in quotas if row.get("name") == account.name and row.get("ok"))
@@ -72,6 +73,12 @@ def launch(args, credentials):
         raise ValueError("Matched comparison requires --stage benchmark and pql.enabled=true")
     if compare_legacy and (config.runtime.replay_cpu_fraction or config.runtime.replay_device == "cpu"):
         raise ValueError("Legacy cloud comparison requires its original same-device replay layout")
+    if training_only and (auto_continue or cpu_visualize or args.stage != "train"):
+        raise ValueError("Training-only requires a training stage without CPU visualization or GitHub continuation")
+    if training_only and (not config.tracking.enabled or not config.tracking.log_checkpoint
+                          or config.tracking.checkpoint_store != "huggingface"
+                          or config.tracking.evaluation_interval_steps <= 0):
+        raise ValueError("Training-only needs online tracking, Hugging Face checkpoints, and periodic validation")
     if auto_continue and (args.algorithm == "both" or args.stage == "benchmark"):
         raise ValueError("Automatic continuation requires one algorithm in a training/validate stage")
     if auto_continue and config.pql.enabled and not config.pql.checkpoint_replay:
@@ -82,18 +89,23 @@ def launch(args, credentials):
         raise ValueError("CPU visualization requires tracking.log_checkpoint=true for checkpoint transfer")
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-    token = uuid4().hex[:6]
+    token = uuid4().hex[:10]  # Kaggle UI-style notebook<10hex>; unique on each API launch.
     algorithms = ("masac", "matd3") if args.algorithm == "both" else (args.algorithm,)
     inputs = parse_warm_start_artifacts(args.warm_start_artifact, algorithms)
     training_mode = "pql" if diagnostic or config.pql.enabled else "base"
     slug = kernel_slug(username, config, args.algorithm, training_mode, args.stage, stamp, token,
                        external_supervisor=auto_continue)
-    runs = {a: {"id": uuid4().hex[:8],
-                "name": run_name(config, a, training_mode, args.stage, stamp + "-" + token)}
+    run_ids = {a: uuid4().hex[:8] for a in algorithms}
+    runs = {a: {"id": run_ids[a],
+                "name": run_name(config, a, training_mode, args.stage, run_ids[a])}
             for a in algorithms}
     overrides = list(effective_overrides)
     if not diagnostic:
-        config.tracking.tags = authoritative_tags(config)
+        config.tracking.tags = authoritative_tags(config, args.algorithm)
+        if training_only:
+            config.tracking.tags = [tag for tag in config.tracking.tags if tag != "cpu-visualize"]
+            config.tracking.tags += [tag for tag in ("training-only", "hf-best-only")
+                                     if tag not in config.tracking.tags]
         overrides = [item for item in overrides if not item.startswith("tracking.tags=")]
         overrides.append("tracking.tags=" + json.dumps(config.tracking.tags))
     spec = {"submitted_at_utc": datetime.now(timezone.utc).isoformat(), "commit": commit, "kernel_ref": f"{username}/{slug}", "account": account.name,
@@ -115,6 +127,8 @@ def launch(args, credentials):
         spec["diagnostic"] = diagnostic
     else:
         spec["requested_episodes"] = config.runtime.episodes
+    if training_only:
+        spec["training_only"] = True
     if auto_continue:
         spec.update({"auto_continue": True, "root_kernel_ref": spec["kernel_ref"],
                      "continuation_index": 0, "orchestration": "github_actions",
@@ -157,10 +171,8 @@ def launch(args, credentials):
     folder = ROOT / "outputs/kaggle" / slug
     folder.mkdir(parents=True, exist_ok=False)
     (folder / "kernel.py").write_text(kernel_script(spec))
-    (folder / "kernel-metadata.json").write_text(json.dumps(kernel_metadata(spec), indent=2))
-    # The timeout and accelerator are explicit CLI inputs, not assumptions about RTX naming.
-    response = run_kaggle(["kernels", "push", "-p", str(folder), "--accelerator", args.accelerator,
-                           "--timeout", str(timeout_seconds)], account, timeout=50)
+    # API request fields are assembled in memory; there is no kernel-metadata.json.
+    response = submit_kernel(spec, folder, account, timeout=50)
     actual_ref = pushed_kernel_ref(response)
     manifest = {**spec, "kernel_ref": actual_ref, "kernel_url": f"https://www.kaggle.com/code/{actual_ref}",
                 "wandb_urls": {a: f"https://wandb.ai/{spec['entity']}/{spec['project']}/runs/{r['id']}" for a, r in runs.items()},
@@ -189,6 +201,8 @@ def main(argv=None):
     submit.add_argument("--algorithm", choices=["both", "masac", "matd3"], default="both")
     submit.add_argument("--warm-start-artifact", action="append", default=[], metavar="ALGORITHM=ARTIFACT_REF")
     submit.add_argument("--config")
+    submit.add_argument("--training-only", action="store_true",
+                        help="Only train, select the validation-best policy and upload it to Hugging Face; no CPU visualization/GitHub continuation")
     submit.add_argument("--cpu-visualize", action="store_true",
                         help="After uploaded training checkpoints, submit a separate CPU-only visualization job")
     submit.add_argument("--auto-continue", action="store_true",

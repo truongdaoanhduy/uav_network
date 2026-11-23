@@ -1,5 +1,6 @@
-"""Cloud consumers must identify algorithm, replay layout and generator at a glance."""
+"""Cloud notebooks use UI-style IDs while W&B retains scientific identities."""
 import json
+import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -34,13 +35,11 @@ def test_launch_names_and_tags_are_authoritative(algorithm, pql, full_gpu):
     def script(spec):
         captured.update(spec)
         return "pass\n"
-    def kaggle(arguments, selected, timeout=45):
-        assert arguments[:2] == ["kernels", "push"]
-        metadata = json.loads((Path(arguments[arguments.index("-p") + 1]) /
-                               "kernel-metadata.json").read_text())
-        assert len(metadata["id"]) <= 50
-        assert metadata["title"] == metadata["id"].split("/")[1].replace("-", " ")
-        return "https://www.kaggle.com/code/" + metadata["id"]
+    def submit(spec, folder, selected, timeout=50):
+        assert (Path(folder) / "kernel.py").is_file()
+        assert not (Path(folder) / "kernel-metadata.json").exists()
+        assert len(spec["kernel_ref"]) <= 50
+        return "https://www.kaggle.com/code/" + spec["kernel_ref"]
     with TemporaryDirectory() as folder, \
          patch.object(cli, "ROOT", Path(folder)), \
          patch.object(cli.subprocess, "check_output", side_effect=["", "a" * 40]), \
@@ -50,14 +49,15 @@ def test_launch_names_and_tags_are_authoritative(algorithm, pql, full_gpu):
          patch.object(cli, "verify_credential_dataset"), \
          patch.object(cli, "load_config", return_value=c), \
          patch.object(cli, "kernel_script", side_effect=script), \
-         patch.object(cli, "run_kaggle", side_effect=kaggle):
+         patch.object(cli, "submit_kernel", side_effect=submit):
         cli.launch(args, credentials)
     name = captured["runs"][algorithm]["name"]
-    for required in ["TRAIN", algorithm.upper(), "PQL" if pql else "BASE",
-                     "FULLGPU" if full_gpu else "HYBRID-C75-G25",
-                     "E4096", "B8192", "R1M", "G3", "S44"]:
-        assert required in name
-    assert algorithm in captured["kernel_ref"]
+    assert name.startswith(f"{algorithm.upper()}-{'PQL' if pql else 'BASE'}-")
+    assert "-S44-" in name
+    assert "-SH-" in name if getattr(c, algorithm).share_actor_parameters and getattr(c, algorithm).share_critic_parameters else "-IND-" in name
+    assert len(name) <= 38
+    assert "HYBRID" not in name and "E4096" not in name and "B8192" not in name
+    assert re.fullmatch(r"owner/notebook[0-9a-f]{10}", captured["kernel_ref"])
     actual_tags = json.loads(next(x.split("=",1)[1] for x in captured["overrides"]
                                  if x.startswith("tracking.tags=")))
     if full_gpu:
@@ -89,8 +89,9 @@ def test_actual_benchmark_entrypoint_uses_complete_unique_identity_and_stage(tmp
     assert entry["main"]() == 0
     for name, stage in seen:
         assert stage == "benchmark"
-        for required in ["BENCH", "MASAC", "PQL", "FULLGPU", "R1M", "G3", "E4096", "B8192"]:
-            assert required in name
+        assert name.startswith("BENCH-MASAC-PQL-")
+        assert "-S44-" in name
+        assert len(name) <= 39
     assert seen[0][0] != seen[1][0]
 
 
@@ -137,6 +138,32 @@ def test_github_supervised_kernel_slug_has_reserved_marker_and_fits_limit():
                        "20261027-101530", "abcdef", external_supervisor=True)
     assert slug.startswith("gh-")
     assert len(owner + "/" + slug) <= 50
-    legacy = kernel_slug(owner, c, "masac", "base", "train",
-                         "20261027-101530", "abcdef")
-    assert not legacy.startswith("gh-")
+    ui = kernel_slug(owner, c, "masac", "base", "train",
+                     "20261027-101530", "b97fd08763")
+    assert ui == "notebookb97fd08763"
+    assert not ui.startswith("gh-")
+    assert kernel_slug(owner, c, "matd3", "pql", "train",
+                       "20261027-101531", "abc123de45") == "notebookabc123de45"
+
+@pytest.mark.parametrize(
+    "share_actor,share_critic,marker",
+    [
+        (False, False, None),
+        (True, False, "SHARED-ACTOR"),
+        (False, True, "SHARED-CRITIC"),
+        (True, True, "SHARED-ACTOR-CRITIC"),
+    ],
+)
+def test_parameter_sharing_is_visible_without_renaming_default_runs(share_actor, share_critic, marker):
+    from uav_network.cloud.identities import authoritative_tags, run_name
+    c = load_config("configs/comparison-20k-hybrid75-1kb.yaml")
+    c.runtime.algorithm = "masac"
+    c.masac.share_actor_parameters = share_actor
+    c.masac.share_critic_parameters = share_critic
+    name = run_name(c, "masac", "PQL", "train", "suffix")
+    short = {(False, False): "IND", (True, False): "AS", (False, True): "CS", (True, True): "SH"}
+    assert f"-{short[(share_actor,share_critic)]}-" in name
+    assert "SHARED" not in name
+    tags = authoritative_tags(c, "masac")
+    assert ("actor-shared" if share_actor else "actor-independent") in tags
+    assert ("critic-shared" if share_critic else "critic-independent") in tags

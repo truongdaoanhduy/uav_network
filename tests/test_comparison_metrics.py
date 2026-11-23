@@ -45,6 +45,43 @@ class ComparisonMetricsTests(unittest.TestCase):
         self.assertEqual(values["first_discovery_to_gcs_delay_delivered_mean_s"], 2.)
         self.assertEqual(values["report_delay_delivered_mean_s"], .5)
         self.assertEqual(values["first_gcs_delivery_observed_s"], [2., None])
+        self.assertEqual(values["mission_score"], 70)
+        summary = m.summarize_metrics([{"comparison_metrics": values}])
+        self.assertEqual(summary["mission_score"]["mean"], 70)
+
+    def test_supplemental_map_coverage_and_false_confirmation_incidence(self):
+        m = self.module(); c = self.config()
+        trace = m.MissionMetrics(c, np.array([[0., 0.], [10., 0.]]),
+                                 np.array([[5., 5., 1.]]), [True, False], [False, False])
+        trace.observe(np.array([[0., 0.], [10., 0.]]), [True, True], [True, False], 2)
+        info = {"success": False, "energy": {"propulsion_energy_j": 10.},
+                "network": {"enabled": False}, "blocked_moves": 0,
+                "sensing": {"measurements": 200, "false_confirmation": 3,
+                            "confirmations": 1}, "coverage_percent": 62.5}
+        result = trace.finish(info, 0.)
+        self.assertEqual(result["map_coverage_percent"], 62.5)
+        self.assertEqual(result["false_confirmation_per_1000_measurements"], 15.)
+        self.assertEqual(result["delivery_given_discovery_fraction"], .5)
+        self.assertEqual(result["first_discovery_to_gcs_delay_delivered_mean_s"], 2.)
+        summary = m.summarize_metrics([{"comparison_metrics": result}],bootstrap_samples=100)
+        self.assertEqual(summary["map_coverage_percent"]["mean"], 62.5)
+        self.assertEqual(summary["false_confirmation_per_1000_measurements"]["mean"], 15.)
+
+    def test_supplemental_undefined_metrics_are_not_reported_as_zero(self):
+        m = self.module(); c = self.config()
+        initial = np.array([[0., 0.], [10., 0.]])
+        trace = m.MissionMetrics(c, initial, np.array([[5., 5., 1.]]),
+                                 [False, False], [False, False])
+        trace.observe(initial, [False, False], [False, False], 1)
+        result = trace.finish({"success": False, "energy": {"propulsion_energy_j": 1.},
+                               "network": {"enabled": False}, "blocked_moves": 0}, 0.)
+        self.assertIsNone(result["map_coverage_percent"])
+        self.assertIsNone(result["false_confirmation_per_1000_measurements"])
+        self.assertIsNone(result["delivery_given_discovery_fraction"])
+        self.assertIsNone(result["first_discovery_to_gcs_delay_delivered_mean_s"])
+        summary = m.summarize_metrics([{"comparison_metrics": result}],bootstrap_samples=100)
+        self.assertIsNone(summary["map_coverage_percent"]["mean"])
+        self.assertEqual(summary["map_coverage_percent"]["episodes"], 0)
 
     def test_v2_comparison_metrics_expose_power_relay_and_shield_without_composite_score(self):
         m = self.module(); c = self.config()
@@ -52,7 +89,8 @@ class ComparisonMetricsTests(unittest.TestCase):
                                  [False,False],[False,False])
         trace.observe(np.array([[0.,0.],[10.,0.]]), [False,False], [False,False], 1)
         info = {"success":False,"energy":{"propulsion_energy_j":2.},"blocked_moves":0,
-                "motion_counts":{"shield_interventions":2,"shield_correction":.4},
+                "motion_counts":{"shield_interventions":2,"shield_correction":.4,
+                                 "raw_unsafe_attempts":1,"shield_rescues":1},
                 "network":{"enabled":True,"generated_packets":4,"received_packets":2,
                            "uav_communication_energy_j":1.,"report_e2e_delay_s":0.,
                            "diagnostics":{"data_attempts":4,"data_below_required_power_attempts":1,
@@ -66,6 +104,8 @@ class ComparisonMetricsTests(unittest.TestCase):
         self.assertEqual(values["tx_power_margin_db_mean"], 2.)
         self.assertEqual(values["relay_gcs_distance_improvement_mean_m"], 15.)
         self.assertEqual(values["shield_correction_mean_per_step"], .4)
+        self.assertEqual(values["raw_unsafe_attempts_per_uav_step"], .5)
+        self.assertEqual(values["shield_rescues_per_uav_step"], .5)
         self.assertNotIn("best_algorithm_score", values)
 
     def test_zero_delivery_or_generation_has_null_conditional_metrics(self):

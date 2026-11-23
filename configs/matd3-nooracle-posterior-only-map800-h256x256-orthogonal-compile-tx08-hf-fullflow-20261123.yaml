@@ -1,0 +1,294 @@
+# SELECTED TX 0.8W LEARNED-POWER EXPERIMENT. Must train a new policy from scratch.
+# Historical 18d756ef source and MAP800 0.4W/5W experiments untouched. The TX08 run keeps
+# MAP800 H256x256 orthogonal Inductor, same 6 UAVs, 35 targets and 25 obstacles.
+# Power remains Actor-selected via log mapping [0.001,0.8]W; Actor separately
+# chooses silence, peer relay, or direct GCS. No forced maximum-power TX.
+# Reward normalizes RF energy against FIXED 0.4W reference at Pmax0.8W,
+# so increasing hardware TX cap does not silently dilute energy penalties.
+# Deep journals + HF upload require the full tracked training runner and
+# UAV_DIAGNOSTIC_STORE=huggingface_public; the bounded GPU pilot disables upload.
+# New experimental MDP/architecture config. NOT source-compatible with 18d/e079
+# or earlier V10 H256x512 MAP1000. Train from scratch, do not warm-start.
+# Requested changes: 800m square; orthogonal MATD3; H256x256;
+# torch.compile Inductor; TX max 0.8W (learned), fixed RF reward reference 0.4W.
+# IMPORTANT SCIENCE/GENERATION ADJUSTMENT: obstacle radius 30-70m ->24-56m,
+# clearance 10m->8m (proportional 800/1000), while keeping 25 obstacles,
+# 35 targets, 6 UAVs. Unscaled obstacles failed 16/64 Warp scene seeds (105).
+# NEW MDP: adaptive sensor-evidence confirmation NO LR gate; do not resume historical Actors.
+# Actor chooses z within [0,150]m. Pd/Pf/FOV vary continuously with altitude.
+# A positive sensor sample and posterior >=0.99 can confirm at any active
+# camera altitude (z>0); Pd/Pf still determine Bayesian evidence quality.
+# NO independent LR threshold and NO fixed 50m confirmation altitude.
+# Ground truth is permitted only for scoring/reward and simulated camera sampling.
+# Intended full Kaggle T4x2 run: E4096 CUDA/VRAM/convergence NOT yet verified.
+world:
+  altitude_max_m: 150
+  altitude_min_m: 0
+  dt_s: 1
+  gcs_position_m: null
+  generation_version: 3
+  launch_min_spacing_m: 30
+  launch_radius_m: 150
+  map_size_m: 800
+  max_accel_mps2: 2
+  max_speed_mps: 20
+  max_steps: 1500
+  motion_dimensions: 3
+  motion_safety: reject
+  num_obstacles: 25
+  num_targets: 35
+  num_uavs: 6
+  obstacle_clearance_m: 8
+  obstacle_height_max_m: 120
+  obstacle_height_min_m: 30
+  obstacle_radius_max_m: 56
+  obstacle_radius_min_m: 24
+  placement_attempts: 5000
+  safety_distance_m: 15
+  target_exclusion_radius_m: 200
+sensor:
+  altitude_anchors:
+  - 0
+  - 50
+  - 100
+  - 150
+  altitude_m: 100
+  belief_coarse_cells: 5
+  belief_patch_cells: 5
+  belief_prior: 0.5
+  confirmation_threshold: 0.99
+  confirmation_mode: posterior_only
+  confirmation_min_likelihood_ratio: 0.0  # INACTIVE; never gate confirmation by LR
+  coverage_grid_cells: 0
+  fine_altitude_m: 50  # Legacy-only fallback; NOT a ceiling in likelihood_ratio mode
+  full_fov_deg: 90
+  grid_cell_m: 20
+  model: bayesian
+  obstacle_occlusion: true
+  pd:
+  - 0.99
+  - 0.9
+  - 0.8
+  - 0.7
+  pf:
+  - 0.01
+  - 0.1
+  - 0.2
+  - 0.3
+  verified_empty_belief: 0.0
+  visible_obstacle_slots: 3
+  visible_target_slots: 4
+  report_cell_hypotheses: true
+network:
+  ack_uses_data_power: true
+  bandwidth_hz: 22000000
+  bit_rate_bps: 2000000
+  buffer_bytes: 3072
+  carrier_frequency_hz: 2400000000
+  cca_threshold_dbm: -82
+  enabled: true
+  gcs_range_m: 500
+  link_budget_margin_db: 3
+  link_state_observation: true
+  max_queue_packets: 64
+  max_retries: 5
+  nlos_model: urban
+  noise_density_dbm_hz: -174
+  noise_figure_db: 7
+  obstacle_extra_loss_db: 0
+  obstacle_polygon_sides: 16
+  pa_efficiency: 0.35
+  packet_lifetime_s: 10
+  payload_bytes: 1024
+  peer_range_m: 500
+  power_control: learned
+  power_limited_admission: true
+  propagation_delay_enabled: true
+  queue_poll_us: 1000
+  receiver_admission_mask: true
+  rediscovery_recovery: true
+  report_bytes: 1024
+  report_ttl_s: 300
+  rx_circuit_power_w: 0.1
+  sinr_threshold_db: 6
+  tx_circuit_power_w: 0.1
+  tx_power_mapping: log
+  tx_power_max_w: 0.8
+  tx_power_min_w: 0.001
+  upstream_path: third_party/UavNetSim
+energy:
+  acceleration_squared_coefficient: 2
+  battery_capacity_j: 277200
+  enabled: true
+  hover_power_w: 120
+  idle_power_w: 20
+  speed_squared_coefficient: 0.5
+reward:
+  blocked_motion: 0.05
+  communication_efficiency: 1
+  communication_reference_tx_power_w: 0.4
+  communication_energy: 0.01
+  delivery: 50
+  discovery: 20
+  dropped_report: 10
+  expired_report: 10
+  information_gain: 10
+  investigation_belief_threshold: 0.8
+  investigation_shaping: 10
+  propulsion_energy_per_kj: 0.01
+  shaping_gamma: 0.99
+  shield_correction: 0
+  shield_intervention: 0
+  step_cost: 0.01
+  unsafe_action: 0.25
+matd3:
+  actor_batch_norm: true
+  actor_layer_norm: true
+  actor_output_regularization: 0
+  batch_size: 8192
+  critic_batch_norm: false
+  epsilon_decay_steps: 100000
+  exploration_noise_std: 0.1
+  final_epsilon: 0.05
+  gamma: 0.99
+  grad_clip_mode: per_parameter
+  grad_clip_norm: 0.5
+  hidden_sizes:
+  - 256
+  - 256
+  initial_epsilon: 1
+  initialization: orthogonal
+  learning_rate: 0.0003
+  learning_starts: 131072
+  output_normalization: false
+  policy_delay: 2
+  replay_capacity: 1000000
+  share_actor_parameters: true
+  share_critic_parameters: true
+  target_noise_clip: 0.5
+  target_noise_std: 0.2
+  tau: 0.005
+  updates_per_step: 4
+masac:
+  actor_layer_norm: true
+  batch_size: 8192
+  gamma: 0.99
+  grad_clip_mode: per_parameter
+  grad_clip_norm: 0.5
+  hidden_sizes:
+  - 256
+  - 256
+  initial_alpha: 1
+  learning_rate: 0.0003
+  learning_starts: 131072
+  mask_aware_discrete_entropy_target: true
+  replay_capacity: 1000000
+  share_actor_parameters: true
+  share_critic_parameters: true
+  shared_critic_mode: dense
+  target_continuous_entropy: -4
+  target_discrete_entropy_anneal_updates: 0
+  target_discrete_entropy_final_ratio: 0.2
+  target_discrete_entropy_ratio: 0.2
+  tau: 0.005
+  temperature_loss: log_alpha
+  updates_per_step: 4
+runtime:
+  algorithm: matd3
+  amp_mode: 'off'
+  checkpoint_interval: 256
+  coalesce_idle_polls: true
+  collector_overlap: true
+  compile_models: true
+  critic_chunk_size: 0
+  deterministic: true
+  device: cuda
+  environment_backend: warp_packet
+  episodes: 20000
+  eval_episodes: 1000
+  eval_seed: 2000000044
+  fused_optimizers: true
+  log_interval_steps: 65536
+  max_train_seconds: 0
+  num_envs: 4096
+  output_dir: /kaggle/working/train/matd3-nooracle-posterioronly-map800-tx08-fullflow-v1
+  replay_cpu_fraction: 0.75
+  replay_device: cpu
+  seed: 44
+  shared_memory: true
+  torch_threads: 1
+  vectorize_critics: false
+  warm_start_checkpoint: none
+tracking:
+  artifact_timeout_seconds: 900
+  blocked_rate_threshold: 0.3
+  checkpoint_repo: duy95/uav-search-checkpoints
+  checkpoint_repo_private: false
+  checkpoint_store: huggingface
+  checkpoint_upload_interval_seconds: 300
+  credentials_file: key.txt
+  deferred_gpu_eval_candidate_limit: 0
+  deferred_gpu_eval_collection_stride: 100
+  deferred_gpu_eval_enabled: true
+  deferred_gpu_eval_keep_all: true
+  deferred_gpu_eval_target: 0
+  delivery_gap_threshold_percent: 40
+  diagnostic_window: 20
+  enabled: true
+  entity: truongdaoanhduy-uit
+  evaluation_interval: 0
+  evaluation_interval_steps: 0
+  evaluation_timeout_seconds: 2400
+  group: MATD3-NOORACLE-MAP800-H256x256-TX08-POSTERIORONLY-20261123
+  local_checkpoints_to_keep: 2
+  log_checkpoint: true
+  online_gpu_eval_enabled: false
+  periodic_evaluation_episodes: 100
+  periodic_evaluation_interval_episodes: 0
+  periodic_evaluation_seed: 1000000044
+  project: uav_search_target
+  resumable_checkpoint_interval_seconds: 3600
+  resumable_checkpoint_max_uploads: 4
+  return_drop_threshold: 20
+  run_name: MATD3-NOORACLE-POSTERIORONLY-MAP800-H256x256-TX08-E4096-U4-B8192-S44
+  system_metrics: true
+  tags:
+  - benchmarl-style
+  - fixed-100-validation
+  - snapshot-v100
+  - actor-bn
+  - critic-plain
+  - new-hyperparameter-ablation
+  - full-train-eval-test-protocol
+  - new-science-map800
+  - adaptive-altitude-posterior-only
+  - checkpoint-schema-v11
+  - env4096
+  - h256x256
+  - map800
+  - orthogonal-init
+  - tx08-learned-power
+  - fixed-rf-energy-reference-0p4w
+  - hf-deep-forensics
+  - compile-inductor
+  - batch8192
+  - gpu-val100
+  - vector-step-1
+  - reject
+  - new-mdp
+  - cell-reports
+  - no-oracle
+  - obs-v11
+  - retrain-required
+pql:
+  checkpoint_replay: true
+  collector_device: auto
+  critic_sample_ratio: 8
+  enabled: false
+  learner_device: auto
+  max_pending_collections: 2
+  max_pending_policy_updates: 2
+  mode: async
+  policy_device: auto
+  warmup_collection_steps: 32
+  worker_timeout_s: 600

@@ -9,7 +9,8 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from uav_network.cloud.credentials import load_credentials, parse_quota, select_account
-from uav_network.cloud.kernel import kernel_metadata, kernel_script
+from uav_network.cloud.client import prepare_submit_job
+from uav_network.cloud.kernel import kernel_script
 from uav_network.cloud.remote import learner_command, wait_all
 
 
@@ -320,11 +321,10 @@ class CloudTests(unittest.TestCase):
         self.assertNotIn("secret-a", source)
         self.assertNotIn("secret-b", source)
         self.assertNotIn("secret-w", source)
-        metadata = kernel_metadata(spec)
-        self.assertTrue(metadata["is_private"])
-        self.assertTrue(metadata["enable_gpu"])
-        self.assertEqual(metadata["dataset_sources"], ["owner/private-wandb"])
-        self.assertEqual(metadata["title"].lower().replace(" ", "-"), "uav-network-test")
+        job = prepare_submit_job(spec, "/tmp")
+        self.assertTrue(job["enable_gpu"])
+        self.assertEqual(job["dataset_sources"], ["owner/private-wandb"])
+        self.assertEqual(job["kernel_ref"], "owner/uav-network-test")
 
     def test_push_uses_actual_api_url_and_rejects_cli_success_with_server_error(self):
         from uav_network.cloud.client import pushed_kernel_ref

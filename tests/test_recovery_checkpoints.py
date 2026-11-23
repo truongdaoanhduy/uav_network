@@ -367,3 +367,29 @@ def test_closed_stdout_does_not_prevent_backup_when_status_logging_fails(tmp_pat
     with patch("uav_network.experiments.recovery_checkpoints.time.perf_counter", return_value=2.), patch("sys.stdout", closed):
         recovery_class()(c, tmp_path, started=0.).maybe_save(save, Tracker())
     assert saves == [True]
+
+
+def test_canonical_first_backup_is_early_then_spread_and_capped(tmp_path):
+    c = load_config('configs/comparison-20k-hybrid75-1kb.yaml')
+    from uav_network.experiments.recovery_checkpoints import PeriodicRecovery
+    clock, saved = [0.], []
+    class Tracker:
+        def diagnostic(self, *args): pass
+        def checkpoint(self, path, progress, resumable=False):
+            saved.append(clock[0])
+            return 'owner/project/recovery:v0'
+    def save(path, *, resume_path):
+        Path(path).write_bytes(b'policy')
+        Path(resume_path).write_bytes(b'full')
+        return {'episodes': 0, 'global_step': 4096}
+    with patch('uav_network.experiments.recovery_checkpoints.time.perf_counter', side_effect=lambda: clock[0]):
+        recovery = PeriodicRecovery(c, tmp_path, started=0.)
+        clock[0] = 1799.; recovery.maybe_save(save, Tracker())
+        assert saved == []
+        clock[0] = 1800.; recovery.maybe_save(save, Tracker())
+        assert saved == [1800.]
+        clock[0] = 10799.; recovery.maybe_save(save, Tracker())
+        assert len(saved) == 1
+        for t in (10800., 19800., 28800., 37800.):
+            clock[0] = t; recovery.maybe_save(save, Tracker())
+        assert saved == [1800., 10800., 19800., 28800.]

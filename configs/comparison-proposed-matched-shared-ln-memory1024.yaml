@@ -1,0 +1,193 @@
+# PROPOSAL ONLY: matched shared actor/critic + LayerNorm + bounded MASAC critic execution.
+# critic_chunk_size is currently consumed by MASAC only; MATD3 does not implement it.
+# No current launch manifest/profile is switched by creating this file.
+world:
+  generation_version: 3
+  num_uavs: 6
+  map_size_m: 1000.0
+  num_targets: 20
+  num_obstacles: 15
+  max_steps: 1500
+  motion_safety: cbf
+  motion_dimensions: 3
+  altitude_min_m: 0
+  altitude_max_m: 150
+  obstacle_height_min_m: 30
+  obstacle_height_max_m: 120
+network:
+  propagation_delay_enabled: true
+  receiver_admission_mask: true
+  peer_range_m: 500.0
+  gcs_range_m: 500.0
+  tx_power_min_w: 0.001
+  tx_power_max_w: 0.4
+  tx_power_mapping: log
+  power_control: learned
+  link_budget_margin_db: 3.0
+  pa_efficiency: 0.35
+  tx_circuit_power_w: 0.1
+  rx_circuit_power_w: 0.1
+  power_limited_admission: true
+  link_state_observation: true
+  report_bytes: 1024
+  payload_bytes: 1024
+  buffer_bytes: 3072
+  report_ttl_s: 300.0
+  max_retries: 5
+reward:
+  information_gain: 10.0
+  investigation_shaping: 10.0
+  shaping_gamma: 0.99
+  investigation_belief_threshold: 0.8
+  communication_efficiency: 1.0
+  shield_correction: 0.1
+  shield_intervention: 0.5
+  unsafe_action: 1.0
+masac:
+  actor_layer_norm: true
+  share_actor_parameters: true
+  share_critic_parameters: true
+  hidden_sizes:
+  - 256
+  - 256
+  replay_capacity: 1000000
+  batch_size: 8192
+  learning_starts: 131072
+  updates_per_step: 8
+  grad_clip_mode: none
+  initial_alpha: 1.0
+  target_continuous_entropy: -4.0
+  target_discrete_entropy_ratio: 0.2
+  target_discrete_entropy_final_ratio: 0.2
+  target_discrete_entropy_anneal_updates: 0
+  mask_aware_discrete_entropy_target: false
+  learning_rate: 0.0003
+  gamma: 0.99
+  tau: 0.005
+matd3:
+  share_actor_parameters: true
+  share_critic_parameters: true
+  actor_layer_norm: true
+  output_normalization: false
+  grad_clip_norm: 0.5
+  grad_clip_mode: per_parameter
+  hidden_sizes:
+  - 256
+  - 256
+  replay_capacity: 1000000
+  batch_size: 8192
+  learning_starts: 131072
+  updates_per_step: 8
+  learning_rate: 0.0003
+  gamma: 0.99
+  tau: 0.005
+  policy_delay: 2
+  target_noise_std: 0.2
+  target_noise_clip: 0.5
+  exploration_noise_std: 0.1
+runtime:
+  environment_backend: warp_packet
+  seed: 44
+  eval_seed: 2000000044
+  eval_episodes: 30
+  num_envs: 4096
+  coalesce_idle_polls: true
+  vectorize_critics: false
+  critic_chunk_size: 1024
+  compile_models: false
+  amp_mode: 'off'
+  fused_optimizers: false
+  episodes: 20000
+  device: cuda
+  replay_device: cpu
+  replay_cpu_fraction: 0.75
+  deterministic: true
+  torch_threads: 1
+  log_interval_steps: 4096
+  checkpoint_interval: 128
+  max_train_seconds: 36000
+  output_dir: outputs/proposed-matched-shared-ln-memory1024
+  collector_overlap: false
+pql:
+  enabled: false
+  mode: async
+  critic_sample_ratio: 8
+  warmup_collection_steps: 32
+  max_pending_collections: 2
+  max_pending_policy_updates: 2
+  collector_device: auto
+  learner_device: auto
+  policy_device: auto
+  worker_timeout_s: 600
+  checkpoint_replay: true
+tracking:
+  resumable_checkpoint_interval_seconds: 3600.0
+  resumable_checkpoint_max_uploads: 4
+  enabled: true
+  artifact_timeout_seconds: 900
+  evaluation_interval: 0
+  evaluation_interval_steps: 3686400
+  evaluation_timeout_seconds: 900
+  periodic_evaluation_episodes: 5
+  periodic_evaluation_seed: 1000000044
+  entity: truongdaoanhduy-uit
+  project: uav_search_target
+  checkpoint_repo: duy95/uav-search-checkpoints
+  checkpoint_repo_private: false
+  group: matched-shared-ln-memory1024-seed44
+  tags:
+  - uav-network
+  - source-backed-algorithm-core
+  - amp-off
+  - fp32-eager
+  - scenario-v3
+  - controlled-20t15o
+  - targets20-obstacles15
+  - power-learned
+  - full20k
+  - replay1m
+  - cpu75-gpu25
+  - batch8192
+  - env4096
+  - steps1500
+  - seed44
+  - base-pql-comparison
+  - report1kb
+  - radio-energy
+  - xyz
+  - bayesian-sensing
+  - grid25m
+  - belief-prior-0.5
+  - proposal-only
+  - matched-shared
+  - actor-layernorm
+  - critic-chunk1024
+  log_checkpoint: true
+  checkpoint_store: huggingface
+sensor:
+  model: bayesian
+  altitude_m: 100
+  grid_cell_m: 25
+  belief_prior: 0.5
+  full_fov_deg: 90
+  altitude_anchors:
+  - 0
+  - 50
+  - 100
+  - 150
+  pd:
+  - 0.99
+  - 0.9
+  - 0.8
+  - 0.7
+  pf:
+  - 0.01
+  - 0.1
+  - 0.2
+  - 0.3
+  fine_altitude_m: 50
+  confirmation_threshold: 0.99
+  belief_patch_cells: 5
+  belief_coarse_cells: 5
+  verified_empty_belief: 0.01
+  obstacle_occlusion: true

@@ -1,0 +1,31 @@
+{
+  "upstream": "marlbenchmark/off-policy",
+  "upstream_git_commit": "41fd5eb46d12df2847e1c2e29842997ff2c24998",
+  "source": "offpolicy/algorithms/maddpg/algorithm/actor_critic.py",
+  "q_heads": 2,
+  "q_head_registered": [
+    false,
+    false
+  ],
+  "q_head_grad_exists": [
+    true,
+    true
+  ],
+  "q_head_weights_changed_after_3_adam_steps": [
+    false,
+    false
+  ],
+  "in_memory_modulelist_repair": {
+    "q_head_registered": [
+      true,
+      true
+    ],
+    "q_head_weights_changed_after_3_adam_steps": [
+      true,
+      true
+    ],
+    "scope": "temporary in-memory ModuleList replacement; upstream files unchanged"
+  },
+  "finding": "Unregistered Q output heads: upstream Python list bypasses nn.Module registration",
+  "scope": "Pinned upstream source only; not a result about the UAV user's own MATD3."
+}

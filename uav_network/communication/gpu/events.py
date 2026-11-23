@@ -4,7 +4,7 @@ from ...environment.gpu.state import WorldParams, WorldState
 
 
 @wp.func
-def earlier(s: WorldState, e: int, a: int, b: int) -> bool:
+def earlier(s: wp.ref[WorldState], e: int, a: int, b: int) -> bool:
     return (s.event_time[e,a] < s.event_time[e,b]
         or (s.event_time[e,a] == s.event_time[e,b]
             and (s.event_priority[e,a] < s.event_priority[e,b]
@@ -13,7 +13,7 @@ def earlier(s: WorldState, e: int, a: int, b: int) -> bool:
 
 
 @wp.func
-def swap(s: WorldState, e: int, a: int, b: int):
+def swap(s: wp.ref[WorldState], e: int, a: int, b: int):
     time = s.event_time[e,a]
     kind = s.event_kind[e,a]
     arg = s.event_arg[e,a]
@@ -35,7 +35,7 @@ def swap(s: WorldState, e: int, a: int, b: int):
 
 
 @wp.func
-def push(s: WorldState, p: WorldParams, e: int, time: wp.float64, kind: int,
+def push(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, time: wp.float64, kind: int,
          arg: int, generation: int, priority: int):
     i = s.event_count[e]
     if i >= p.event_capacity:
@@ -58,7 +58,7 @@ def push(s: WorldState, p: WorldParams, e: int, time: wp.float64, kind: int,
 
 
 @wp.func
-def pop(s: WorldState, e: int):
+def pop(s: wp.ref[WorldState], e: int):
     count = s.event_count[e]-1
     s.event_count[e] = count
     if count > 0:
@@ -75,7 +75,7 @@ def pop(s: WorldState, e: int):
 
 
 @wp.func
-def next_time_after_root(s: WorldState, e: int, fallback: wp.float64) -> wp.float64:
+def next_time_after_root(s: wp.ref[WorldState], e: int, fallback: wp.float64) -> wp.float64:
     result = fallback
     count = s.event_count[e]
     if count > 1:
@@ -86,7 +86,7 @@ def next_time_after_root(s: WorldState, e: int, fallback: wp.float64) -> wp.floa
     return result
 
 @wp.func
-def replace_root(s: WorldState, e: int, time: wp.float64, kind: int, arg: int,
+def replace_root(s: wp.ref[WorldState], e: int, time: wp.float64, kind: int, arg: int,
                  generation: int, priority: int):
     """Replace the current minimum with one newly inserted event.
 

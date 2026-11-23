@@ -62,6 +62,22 @@ class OnlineRun:
 
 
 class TrackingTests(unittest.TestCase):
+    def test_starting_online_tracker_leaves_project_workspace_alone(self):
+        run = OnlineRun()
+        sdk = SimpleNamespace(init=lambda **kwargs: run, Settings=lambda **kwargs: kwargs)
+        config = Config()
+        config.tracking.enabled = True
+        config.tracking.checkpoint_store = "wandb"
+        with TemporaryDirectory() as directory:
+            config.tracking.credentials_file = str(Path(directory) / "absent.txt")
+            with patch.dict(sys.modules, {"wandb": sdk}), patch.dict(os.environ, {
+                "WANDB_API_KEY": "test-key", "WANDB_ENTITY": "owner", "WANDB_PROJECT": "project",
+            }), patch("uav_network.experiments.dashboard.ensure_project_workspace") as ensure_workspace:
+                tracker = OnlineTracker(config, directory)
+                tracker.close()
+            ensure_workspace.assert_not_called()
+        self.assertTrue(run.finished)
+
     def test_online_tracker_does_not_sync_large_raw_run_files(self):
         run = OnlineRun()
         saved = []
@@ -396,19 +412,35 @@ class TrackingTests(unittest.TestCase):
         later = {**record, "return": 10, "search_rate_percent": 100,
                  "delivery_rate_percent": 100, "success": True}
         final = final_metrics([record, later])
-        self.assertEqual(final["final_mean_return"], 2.5)
-        self.assertEqual(final["final_search_rate_percent"], 75)
-        self.assertEqual(final["final_delivery_rate_percent"], 65)
-        self.assertEqual(final["final_success_rate"], .5)
+        self.assertEqual(final["training_history_mean_return"], 2.5)
+        self.assertEqual(final["training_history_mean_search_rate_percent"], 75)
+        self.assertEqual(final["training_history_mean_delivery_rate_percent"], 65)
+        self.assertEqual(final["training_history_success_rate"], .5)
+        self.assertEqual(final["training_metrics_scope"], "all_completed_training_episodes")
+        self.assertNotIn("final_mean_return", final)
+        self.assertNotIn("final_search_rate_percent", final)
 
 
 if __name__ == "__main__":
     unittest.main()
 
 
-def test_v2_reward_and_shield_metrics_are_scalar_episode_fields():
+def test_xyz_movement_saturation_uses_three_motion_axes():
     record = {"episode":1,"global_step":1,"return":0.,"episode_length":2,
               "search_rate_percent":0.,"delivery_rate_percent":0.,"success":False,
+              "blocked_moves":0,"boundary_clips":0,"expired_reports":0,"dropped_reports":0,
+              "energy":{"propulsion_energy_j":0.,"battery_fraction":[1.],"active_uavs":1},
+              "network":{},"motion_counts":{},"reward_components":{},
+              "action_counts":{"saturated":3}}
+    # Three saturated XYZ components over two UAV-steps = 50%, not 75%.
+    metrics = episode_metrics(record, 1, motion_dim=3)
+    assert metrics["action/movement_saturation_fraction"] == .5
+
+
+def test_v2_reward_shield_and_mission_score_are_separate_episode_fields():
+    record = {"episode":1,"global_step":1,"return":0.,"episode_length":2,
+              "targets_found":3,"targets_delivered":2,
+              "search_rate_percent":60.,"delivery_rate_percent":40.,"success":False,
               "blocked_moves":0,"boundary_clips":0,"expired_reports":0,"dropped_reports":0,
               "energy":{"propulsion_energy_j":1.,"battery_fraction":[1.],"battery_j":[1.],
                         "active_uavs":1,"per_uav_propulsion_energy_j":[1.],
@@ -421,3 +453,56 @@ def test_v2_reward_and_shield_metrics_are_scalar_episode_fields():
     assert metrics["motion/shield_correction"] == .125
     assert metrics["reward/communication_efficiency"] == -.25
     assert metrics["reward/shield_correction"] == -.0125
+    assert metrics["outcome/mission_score"] == 130
+    assert metrics["episode/return"] == 0.
+
+
+def test_best_publication_keeps_selected_policy_and_last_resume_separate(tmp_path):
+    run=OnlineRun();artifacts=[];aliases=[];published={}
+    def artifact(name,type,metadata):
+        a=StoredArtifact(name,type,metadata);artifacts.append(a);return a
+    def log_artifact(a,aliases):
+        a.aliases=list(aliases);return a
+    run.log_artifact=log_artifact
+    sdk=SimpleNamespace(init=lambda **kw:run,Settings=lambda **kw:kw,Artifact=artifact)
+    c=Config();c.tracking.credentials_file=str(tmp_path/"absent.txt")
+    policy=tmp_path/"best.pt";policy.write_bytes(b"selected earlier actors")
+    resume=tmp_path/"resume_latest.pt";resume.write_bytes(b"last learner replay optimizer RNG")
+    descriptor={"schema":1,"backend":"huggingface","repo_id":"owner/public","revision":"a"*40,
+                "files":{"checkpoint.pt":{"path":"run/checkpoint.pt","size":23,"sha256":"b"*64}}}
+    def upload(config,files,prefix):
+        published.update({k:Path(v).read_bytes() for k,v in files.items()});return descriptor
+    with patch.dict(sys.modules,{"wandb":sdk}), patch.dict(os.environ,{
+            "WANDB_API_KEY":"test-key","WANDB_ENTITY":"owner","WANDB_PROJECT":"project"}), \
+         patch("uav_network.experiments.checkpoint_store.upload_checkpoint_files",side_effect=upload):
+        tracker=OnlineTracker(c,tmp_path)
+        tracker.checkpoint(policy,{"episodes":20000,"global_step":35000000,
+            "resume_checkpoint":str(resume),"checkpoint_selection":{
+                "kind":"validation_best","global_step":21000000,"episode":12288}},final=True)
+        tracker.close()
+    assert published["checkpoint.pt"]==b"selected earlier actors"
+    assert published["resume.pt"]==b"last learner replay optimizer RNG"
+    assert "best" in artifacts[0].aliases and "resumable" in artifacts[0].aliases
+    assert artifacts[0].metadata["completed_episodes"]==20000
+    assert artifacts[0].metadata["checkpoint_selection"]["episode"]==12288
+
+
+def test_episode_metrics_expose_raw_policy_safety_separately_from_executed_safety():
+    record = {"episode":1,"global_step":10,"return":-3.,"episode_length":2,
+              "search_rate_percent":50.,"delivery_rate_percent":25.,"success":False,
+              "blocked_moves":0,"boundary_clips":0,"expired_reports":0,"dropped_reports":0,
+              "energy":{"propulsion_energy_j":0.,"battery_fraction":[1.,1.],"active_uavs":2},
+              "network":{"enabled":False},
+              "motion_counts":{"shield_interventions":3,"shield_infeasible":0,"commanded_stalls":0,
+                               "shield_correction":1.25,"raw_unsafe_attempts":2,
+                               "raw_boundary_attempts":1,"raw_obstacle_attempts":1,
+                               "raw_peer_attempts":2,"shield_rescues":2},
+              "reward_components":{"unsafe_action":-1.0,"shield_correction":-.125}}
+    metrics = episode_metrics(record,2,motion_dim=3,motion_safety="cbf")
+    assert metrics["safety/raw_unsafe_action_rate"] == .5
+    assert metrics["safety/raw_boundary_attempt_rate"] == .25
+    assert metrics["safety/raw_obstacle_attempt_rate"] == .25
+    assert metrics["safety/raw_peer_attempt_rate"] == .5
+    assert metrics["safety/shield_rescue_rate"] == .5
+    assert metrics["safety/policy_safe_without_shield_rate"] == .5
+    assert metrics["reward/unsafe_action"] == -1.0

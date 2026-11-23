@@ -1,0 +1,187 @@
+{
+  "status": "passed_with_behavioral_findings",
+  "purpose": "Task 4 controlled DWA-to-CBF safety micro-ablation; regression evidence only, not a 20k performance claim",
+  "protocol": {
+    "cbf_source_commit": "6450119",
+    "dwa_historical_commit": "c39a271",
+    "config": "configs/comparison-20k-hybrid75-1kb-shared-actor-critic-xyz-sensing.yaml",
+    "algorithms": [
+      "masac",
+      "matd3"
+    ],
+    "training_mode": "base",
+    "seed": 44,
+    "num_envs": 32,
+    "episodes": 128,
+    "max_steps": 80,
+    "num_uavs": 3,
+    "num_targets": 6,
+    "num_obstacles": 4,
+    "environment_backend": "warp_packet CPU",
+    "batch_size": 128,
+    "replay_capacity": 16384,
+    "learning_starts": 256,
+    "updates_per_step": 1,
+    "hidden_sizes": [
+      32,
+      32
+    ],
+    "tracking_enabled": false,
+    "note": "Same downscaled protocol executed on the final pre-CBF DWA commit and current CBF branch. Short run is a regression gate, not mission-performance evidence."
+  },
+  "stress": {
+    "cbf_hostile_obstacle": {
+      "steps": 40,
+      "minimum_clearance_margin_m": 0.6568403516423018,
+      "final_speed_mps": 0.0,
+      "boundary_clips": 0,
+      "realized_protected_cylinder_crossing": false
+    },
+    "cbf_hostile_head_on_peers": {
+      "steps": 30,
+      "minimum_peer_separation_m": 15.0,
+      "required_separation_m": 15.0,
+      "hard_blocks": 0,
+      "realized_peer_separation_violation": false
+    },
+    "cbf_hostile_boundary": {
+      "steps": 25,
+      "minimum_x_m": 0.0,
+      "boundary_clips": 0
+    },
+    "cbf_safe_parallel": {
+      "steps": 20,
+      "minimum_peer_separation_m": 20.0,
+      "cbf_interventions": 0,
+      "hard_blocks": 0,
+      "boundary_clips": 0
+    }
+  },
+  "microtraining": {
+    "masac": {
+      "dwa": {
+        "episodes": 128,
+        "global_step": 10240,
+        "updates": 313,
+        "search_mean_percent": 1.171875,
+        "search_last32_percent": 1.0416666666666667,
+        "delivery_mean_percent": 0.9114583333333334,
+        "return_mean": 1.1025846463111009,
+        "return_last32": -0.22711577759855572,
+        "safety_intervention_rate": 0.17770182291666667,
+        "commanded_stall_rate": 0.004296875,
+        "hard_obstacle_block_rate": 0.0,
+        "hard_peer_block_rate": 0.0,
+        "safety_correction_per_episode_mean": 1.5390258209457084,
+        "elapsed_s": 26.287833719001355,
+        "last32": {
+          "safety_intervention_rate": 0.16263020833333333,
+          "commanded_stall_rate": 0.003515625,
+          "movement_saturation_fraction": 0.003168402777777778,
+          "final_altitude_mean_m": 62.76019060960507,
+          "final_altitude_le_5m_fraction": 0.07291666666666667,
+          "final_altitude_ge_145m_fraction": 0.052083333333333336
+        }
+      },
+      "cbf": {
+        "episodes": 128,
+        "global_step": 10240,
+        "updates": 313,
+        "search_mean_percent": 1.0416666666666667,
+        "search_last32_percent": 1.0416666666666667,
+        "delivery_mean_percent": 0.5208333333333334,
+        "return_mean": -0.1502829610838461,
+        "return_last32": -0.1716863781612119,
+        "safety_intervention_rate": 0.24768880208333333,
+        "commanded_stall_rate": 0.0003255208333333333,
+        "hard_obstacle_block_rate": 0.0003255208333333333,
+        "hard_peer_block_rate": 0.0,
+        "safety_correction_per_episode_mean": 1.3767957220148452,
+        "elapsed_s": 25.40697672799797,
+        "last32": {
+          "safety_intervention_rate": 0.22877604166666668,
+          "commanded_stall_rate": 0.0,
+          "movement_saturation_fraction": 0.003298611111111111,
+          "final_altitude_mean_m": 60.17339880016286,
+          "final_altitude_le_5m_fraction": 0.16666666666666666,
+          "final_altitude_ge_145m_fraction": 0.13541666666666666
+        }
+      }
+    },
+    "matd3": {
+      "dwa": {
+        "episodes": 128,
+        "global_step": 10240,
+        "updates": 313,
+        "search_mean_percent": 0.0,
+        "search_last32_percent": 0.0,
+        "delivery_mean_percent": 0.0,
+        "return_mean": -2.3004273746628314,
+        "return_last32": -2.499927241347905,
+        "safety_intervention_rate": 0.8145833333333333,
+        "commanded_stall_rate": 0.42408854166666665,
+        "hard_obstacle_block_rate": 0.0,
+        "hard_peer_block_rate": 0.0,
+        "safety_correction_per_episode_mean": 5.872281035186479,
+        "elapsed_s": 24.35886274099903,
+        "last32": {
+          "safety_intervention_rate": 0.9119791666666667,
+          "commanded_stall_rate": 0.32981770833333335,
+          "movement_saturation_fraction": 0.088671875,
+          "final_altitude_mean_m": 0.0761631824807118,
+          "final_altitude_le_5m_fraction": 1.0,
+          "final_altitude_ge_145m_fraction": 0.0
+        }
+      },
+      "cbf": {
+        "episodes": 128,
+        "global_step": 10240,
+        "updates": 313,
+        "search_mean_percent": 0.0,
+        "search_last32_percent": 0.0,
+        "delivery_mean_percent": 0.0,
+        "return_mean": -2.3619890661589125,
+        "return_last32": -2.7302998533123173,
+        "safety_intervention_rate": 0.8532552083333333,
+        "commanded_stall_rate": 0.0007486979166666667,
+        "hard_obstacle_block_rate": 3.255208333333333e-05,
+        "hard_peer_block_rate": 0.0005533854166666667,
+        "safety_correction_per_episode_mean": 5.726202148851751,
+        "elapsed_s": 50.058868061001704,
+        "last32": {
+          "safety_intervention_rate": 0.925390625,
+          "commanded_stall_rate": 0.001171875,
+          "movement_saturation_fraction": 0.09587673611111111,
+          "final_altitude_mean_m": 0.0,
+          "final_altitude_le_5m_fraction": 1.0,
+          "final_altitude_ge_145m_fraction": 0.0
+        }
+      }
+    }
+  },
+  "derived": {
+    "masac": {
+      "safety_intervention_rate_delta_cbf_minus_dwa": 0.06998697916666666,
+      "commanded_stall_rate_delta_cbf_minus_dwa": -0.003971354166666667,
+      "commanded_stall_relative_reduction": 0.9242424242424243,
+      "search_mean_delta_percent_points": -0.13020833333333326,
+      "hard_block_rate_cbf": 0.0003255208333333333,
+      "hard_block_rate_dwa": 0.0
+    },
+    "matd3": {
+      "safety_intervention_rate_delta_cbf_minus_dwa": 0.03867187500000002,
+      "commanded_stall_rate_delta_cbf_minus_dwa": -0.42333984375,
+      "commanded_stall_relative_reduction": 0.9982345716917409,
+      "search_mean_delta_percent_points": 0.0,
+      "hard_block_rate_cbf": 0.0005859375,
+      "hard_block_rate_dwa": 0.0
+    }
+  },
+  "interpretation": [
+    "CBF passed deterministic protected-cylinder, peer-separation, boundary, and safe-pass-through stress cases.",
+    "MASAC: CBF increased safety interventions modestly but reduced commanded stalls; short-horizon search stayed within 0.14 percentage points of DWA.",
+    "MATD3: search stayed zero under both safety modes, so changing safety does not repair the underlying early policy behavior by itself.",
+    "MATD3: CBF reduced commanded stalls by about 99.8% versus DWA despite a modestly higher intervention rate. Last-32 CBF episodes still ended at z=0, so the remaining high boundary intervention is policy-driven rather than evidence of safe-action false intervention.",
+    "Hard block events are fail-closed fallback events, not realized collisions. Deterministic stress tests separately verified no protected-clearance violation in the tested hostile trajectories."
+  ]
+}

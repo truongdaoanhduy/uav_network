@@ -1,0 +1,536 @@
+{
+  "schema": 1,
+  "source_commit": "481f81f288d8e84a010dba52e4c8e30b5eebd391",
+  "observed_at": "2026-10-30T22:22:53.518990+00:00",
+  "purpose": "CUDA/replay readiness, not convergence",
+  "cases": {
+    "independent-h75-base": {
+      "state": "passed",
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 1000000,
+      "inserted_rows": 1048576,
+      "kernel_url": "https://www.kaggle.com/code/kesfljhk/ben-g3-both-base-h75-10302206-859ea8",
+      "algorithms": {
+        "masac": {
+          "cuda_pipeline_verified": false,
+          "devices": {
+            "collector": "cuda:0",
+            "learner": "cuda:1",
+            "replay": "cpu"
+          },
+          "actor_updates": 22,
+          "environment_bytes": 2849393696,
+          "peak_memory": [
+            {
+              "device": 0,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 43905536,
+              "peak_reserved_bytes": 62914560
+            },
+            {
+              "device": 1,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 3981969408,
+              "peak_reserved_bytes": 4276092928
+            }
+          ],
+          "measured_learner_updates": 20,
+          "warmup_updates": 2,
+          "inserted_rows": 1048576
+        },
+        "matd3": {
+          "cuda_pipeline_verified": false,
+          "devices": {
+            "collector": "cuda:0",
+            "learner": "cuda:1",
+            "replay": "cpu"
+          },
+          "actor_updates": 11,
+          "environment_bytes": 2849393696,
+          "peak_memory": [
+            {
+              "device": 0,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 43905536,
+              "peak_reserved_bytes": 62914560
+            },
+            {
+              "device": 1,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 3997425152,
+              "peak_reserved_bytes": 4051697664
+            }
+          ],
+          "measured_learner_updates": 20,
+          "warmup_updates": 2,
+          "inserted_rows": 1048576
+        }
+      },
+      "tests": {
+        "cuda-tests.log": {
+          "passed": 15,
+          "elapsed_s": 116.228
+        },
+        "scenario-v2-cuda-tests.log": {
+          "passed": 4,
+          "elapsed_s": 2.907
+        },
+        "mission-regressions.log": {
+          "passed": 8,
+          "elapsed_s": 3.372
+        }
+      }
+    },
+    "independent-h75-pql": {
+      "state": "passed",
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 1000000,
+      "inserted_rows": 1048576,
+      "kernel_url": "https://www.kaggle.com/code/kesfljhk/ben-g3-both-pql-h75-10302211-b81918",
+      "algorithms": {
+        "masac": {
+          "cuda_pipeline_verified": true,
+          "devices": {
+            "collector": "cuda:0",
+            "critic": "cuda:1",
+            "policy": "cuda:1"
+          },
+          "actor_updates": 72,
+          "environment_bytes": 2849393696,
+          "peak_memory": [
+            {
+              "device": 0,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 277128192,
+              "peak_reserved_bytes": 339738624
+            },
+            {
+              "device": 1,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 4716929536,
+              "peak_reserved_bytes": 5253365760
+            }
+          ],
+          "critic_updates": 72,
+          "replay_size": 1000000,
+          "inserted_rows": 1048576,
+          "overwritten_rows": 48576,
+          "nonfinite_flags": {},
+          "nonfinite_flags_emitted": false,
+          "learning_metrics_all_finite": true
+        },
+        "matd3": {
+          "cuda_pipeline_verified": true,
+          "devices": {
+            "collector": "cuda:0",
+            "critic": "cuda:1",
+            "policy": "cuda:1"
+          },
+          "actor_updates": 36,
+          "environment_bytes": 2849393696,
+          "peak_memory": [
+            {
+              "device": 0,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 286390784,
+              "peak_reserved_bytes": 337641472
+            },
+            {
+              "device": 1,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 4205254144,
+              "peak_reserved_bytes": 4953473024
+            }
+          ],
+          "critic_updates": 72,
+          "replay_size": 1000000,
+          "inserted_rows": 1048576,
+          "overwritten_rows": 48576,
+          "nonfinite_flags": {},
+          "nonfinite_flags_emitted": false,
+          "learning_metrics_all_finite": true
+        }
+      },
+      "tests": {
+        "cuda-tests.log": {
+          "passed": 15,
+          "elapsed_s": 104.687
+        },
+        "scenario-v2-cuda-tests.log": {
+          "passed": 4,
+          "elapsed_s": 2.546
+        },
+        "mission-regressions.log": {
+          "passed": 8,
+          "elapsed_s": 2.921
+        },
+        "pql-smoke-tests.log": {
+          "passed": 11,
+          "elapsed_s": 27.558
+        }
+      }
+    },
+    "shared-fullgpu-base": {
+      "state": "passed",
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 1000000,
+      "inserted_rows": 1048576,
+      "kernel_url": "https://www.kaggle.com/code/kesfljhk/ben-g3-both-base-fullgpu-10302153-2c31d2",
+      "algorithms": {
+        "masac": {
+          "cuda_pipeline_verified": true,
+          "devices": {
+            "collector": "cuda:0",
+            "learner": "cuda:1",
+            "replay": "cuda:1"
+          },
+          "actor_updates": 22,
+          "environment_bytes": 2849393696,
+          "peak_memory": [
+            {
+              "device": 0,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 28389376,
+              "peak_reserved_bytes": 44040192
+            },
+            {
+              "device": 1,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 13767077888,
+              "peak_reserved_bytes": 13918797824
+            }
+          ],
+          "measured_learner_updates": 20,
+          "warmup_updates": 2,
+          "inserted_rows": 1048576
+        },
+        "matd3": {
+          "cuda_pipeline_verified": true,
+          "devices": {
+            "collector": "cuda:0",
+            "learner": "cuda:1",
+            "replay": "cuda:1"
+          },
+          "actor_updates": 11,
+          "environment_bytes": 2849393696,
+          "peak_memory": [
+            {
+              "device": 0,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 28389376,
+              "peak_reserved_bytes": 44040192
+            },
+            {
+              "device": 1,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 13810963456,
+              "peak_reserved_bytes": 13830717440
+            }
+          ],
+          "measured_learner_updates": 20,
+          "warmup_updates": 2,
+          "inserted_rows": 1048576
+        }
+      },
+      "tests": {
+        "cuda-tests.log": {
+          "passed": 15,
+          "elapsed_s": 98.295
+        },
+        "scenario-v2-cuda-tests.log": {
+          "passed": 4,
+          "elapsed_s": 2.446
+        },
+        "mission-regressions.log": {
+          "passed": 8,
+          "elapsed_s": 2.898
+        }
+      }
+    },
+    "shared-fullgpu-pql": {
+      "state": "passed",
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 1000000,
+      "inserted_rows": 1048576,
+      "kernel_url": "https://www.kaggle.com/code/kesfljhk/ben-g3-both-pql-fullgpu-10302201-f6e3e1",
+      "algorithms": {
+        "masac": {
+          "cuda_pipeline_verified": true,
+          "devices": {
+            "collector": "cuda:0",
+            "critic": "cuda:1",
+            "policy": "cuda:1"
+          },
+          "actor_updates": 72,
+          "environment_bytes": 2849393696,
+          "peak_memory": [
+            {
+              "device": 0,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 289641984,
+              "peak_reserved_bytes": 385875968
+            },
+            {
+              "device": 1,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 14485451264,
+              "peak_reserved_bytes": 14730395648
+            }
+          ],
+          "critic_updates": 72,
+          "replay_size": 1000000,
+          "inserted_rows": 1048576,
+          "overwritten_rows": 48576,
+          "nonfinite_flags": {},
+          "nonfinite_flags_emitted": false,
+          "learning_metrics_all_finite": true
+        },
+        "matd3": {
+          "cuda_pipeline_verified": true,
+          "devices": {
+            "collector": "cuda:0",
+            "critic": "cuda:1",
+            "policy": "cuda:1"
+          },
+          "actor_updates": 36,
+          "environment_bytes": 2849393696,
+          "peak_memory": [
+            {
+              "device": 0,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 289997824,
+              "peak_reserved_bytes": 387973120
+            },
+            {
+              "device": 1,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 14063361024,
+              "peak_reserved_bytes": 14334033920
+            }
+          ],
+          "critic_updates": 72,
+          "replay_size": 1000000,
+          "inserted_rows": 1048576,
+          "overwritten_rows": 48576,
+          "nonfinite_flags": {},
+          "nonfinite_flags_emitted": false,
+          "learning_metrics_all_finite": true
+        }
+      },
+      "tests": {
+        "cuda-tests.log": {
+          "passed": 15,
+          "elapsed_s": 103.58
+        },
+        "scenario-v2-cuda-tests.log": {
+          "passed": 4,
+          "elapsed_s": 2.38
+        },
+        "mission-regressions.log": {
+          "passed": 8,
+          "elapsed_s": 2.788
+        },
+        "pql-smoke-tests.log": {
+          "passed": 11,
+          "elapsed_s": 25.762
+        }
+      }
+    },
+    "shared-h75-base": {
+      "state": "passed",
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 1000000,
+      "inserted_rows": 1048576,
+      "kernel_url": "https://www.kaggle.com/code/kesfljhk/ben-g3-both-base-h75-10302135-3b9432",
+      "algorithms": {
+        "masac": {
+          "cuda_pipeline_verified": false,
+          "devices": {
+            "collector": "cuda:0",
+            "learner": "cuda:1",
+            "replay": "cpu"
+          },
+          "actor_updates": 22,
+          "environment_bytes": 2849393696,
+          "peak_memory": [
+            {
+              "device": 0,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 43905536,
+              "peak_reserved_bytes": 62914560
+            },
+            {
+              "device": 1,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 4032596480,
+              "peak_reserved_bytes": 4200595456
+            }
+          ],
+          "measured_learner_updates": 20,
+          "warmup_updates": 2,
+          "inserted_rows": 1048576
+        },
+        "matd3": {
+          "cuda_pipeline_verified": false,
+          "devices": {
+            "collector": "cuda:0",
+            "learner": "cuda:1",
+            "replay": "cpu"
+          },
+          "actor_updates": 11,
+          "environment_bytes": 2849393696,
+          "peak_memory": [
+            {
+              "device": 0,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 43905536,
+              "peak_reserved_bytes": 62914560
+            },
+            {
+              "device": 1,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 4076482048,
+              "peak_reserved_bytes": 4112515072
+            }
+          ],
+          "measured_learner_updates": 20,
+          "warmup_updates": 2,
+          "inserted_rows": 1048576
+        }
+      },
+      "tests": {
+        "cuda-tests.log": {
+          "passed": 15,
+          "elapsed_s": 105.577
+        },
+        "scenario-v2-cuda-tests.log": {
+          "passed": 4,
+          "elapsed_s": 2.526
+        },
+        "mission-regressions.log": {
+          "passed": 8,
+          "elapsed_s": 3.059
+        }
+      }
+    },
+    "shared-h75-pql": {
+      "state": "passed",
+      "num_envs": 4096,
+      "batch_size": 8192,
+      "replay_capacity": 1000000,
+      "inserted_rows": 1048576,
+      "kernel_url": "https://www.kaggle.com/code/kesfljhk/ben-g3-both-pql-h75-10302143-f47eac",
+      "algorithms": {
+        "masac": {
+          "cuda_pipeline_verified": true,
+          "devices": {
+            "collector": "cuda:0",
+            "critic": "cuda:1",
+            "policy": "cuda:1"
+          },
+          "actor_updates": 72,
+          "environment_bytes": 2849393696,
+          "peak_memory": [
+            {
+              "device": 0,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 307402240,
+              "peak_reserved_bytes": 387973120
+            },
+            {
+              "device": 1,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 4743505920,
+              "peak_reserved_bytes": 5033164800
+            }
+          ],
+          "critic_updates": 72,
+          "replay_size": 1000000,
+          "inserted_rows": 1048576,
+          "overwritten_rows": 48576,
+          "nonfinite_flags": {},
+          "nonfinite_flags_emitted": false,
+          "learning_metrics_all_finite": true
+        },
+        "matd3": {
+          "cuda_pipeline_verified": true,
+          "devices": {
+            "collector": "cuda:0",
+            "critic": "cuda:1",
+            "policy": "cuda:1"
+          },
+          "actor_updates": 36,
+          "environment_bytes": 2849393696,
+          "peak_memory": [
+            {
+              "device": 0,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 307725312,
+              "peak_reserved_bytes": 385875968
+            },
+            {
+              "device": 1,
+              "name": "Tesla T4",
+              "total_bytes": 15636037632,
+              "peak_allocated_bytes": 4186126848,
+              "peak_reserved_bytes": 4620025856
+            }
+          ],
+          "critic_updates": 72,
+          "replay_size": 1000000,
+          "inserted_rows": 1048576,
+          "overwritten_rows": 48576,
+          "nonfinite_flags": {},
+          "nonfinite_flags_emitted": false,
+          "learning_metrics_all_finite": true
+        }
+      },
+      "tests": {
+        "cuda-tests.log": {
+          "passed": 15,
+          "elapsed_s": 107.181
+        },
+        "scenario-v2-cuda-tests.log": {
+          "passed": 4,
+          "elapsed_s": 2.54
+        },
+        "mission-regressions.log": {
+          "passed": 8,
+          "elapsed_s": 3.147
+        },
+        "pql-smoke-tests.log": {
+          "passed": 11,
+          "elapsed_s": 28.132
+        }
+      }
+    }
+  }
+}

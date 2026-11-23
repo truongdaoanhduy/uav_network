@@ -75,6 +75,28 @@ def json_safe(value, secrets=(), depth=0):
     return "<" + type(value).__name__ + ">"
 
 
+
+def learner_telemetry(metrics):
+    """Keep scalar charts numeric while preserving handled overflow evidence."""
+    result = dict(metrics)
+    for name, value in metrics.items():
+        if name.endswith(("_nonfinite", "_nonfinite_kind")):
+            continue
+        kind = None
+        if isinstance(value, Real) and not math.isfinite(value):
+            kind = "NaN" if math.isnan(value) else str(float(value))
+        elif isinstance(value, str) and value in {"inf", "-inf", "NaN"}:
+            kind = value  # Older evidence may already contain labeled nonfinite values.
+        if kind is not None:
+            result[name] = None
+            result[name + "_nonfinite"] = 1
+            result[name + "_nonfinite_kind"] = kind
+        elif name.endswith("_grad_norm") and value is not None:
+            result[name + "_nonfinite"] = 0
+            result[name + "_nonfinite_kind"] = None
+    return result
+
+
 def print_evidence(record):
     try:
         print(json.dumps(record, allow_nan=False), flush=True)
@@ -163,3 +185,17 @@ def exception_category(chain):
         if isinstance(error, (KeyboardInterrupt, SystemExit)):
             return "interrupted"
     return "unknown_exception"
+
+
+def publish_overflow(tracker):
+    published = getattr(tracker, "_overflow_published", set())
+    tracker._overflow_published = published
+    for path in tracker.output.glob("overflow-*"):
+        if path.suffix not in {".pt", ".json"} or path.name in published:
+            continue
+        published.add(path.name)  # Bounded attempts; uploads are diagnostic only.
+        try:
+            tracker.run.save(str(path), base_path=str(tracker.output), policy="now")
+        except Exception as error:
+            if tracker.journal is not None:
+                tracker.journal._warn(error)

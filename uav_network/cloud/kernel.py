@@ -1,29 +1,42 @@
-"""Generate a public-code-only bootstrap for an explicitly private GPU kernel."""
-import json
+"""Generate a self-contained Python bootstrap for a private Kaggle notebook."""
+import base64
+
+from .source_bundle import build_source_archive, source_sha256
 
 
-def kernel_metadata(spec):
-    datasets = [spec["credential_dataset"]]
-    if spec.get("storage_credential_dataset"):
-        datasets.append(spec["storage_credential_dataset"])
-    needs_launch_token = (spec.get("requires_kaggle_token") or
-                          (spec.get("cpu_visualize") and spec.get("orchestration") != "github_actions"))
-    if needs_launch_token:
-        datasets.append(spec["pipeline_credential_dataset"])
-    return {"id": spec["kernel_ref"], "title": spec["kernel_ref"].split("/")[-1].replace("-", " "),
-            "code_file": "kernel.py", "language": "python", "kernel_type": "script",
-            "is_private": True, "enable_gpu": spec.get("stage") not in {"visualize", "archive", "continuation-watch"}, "enable_tpu": False,
-            "enable_internet": True, "dataset_sources": datasets,
-            "competition_sources": [], "kernel_sources": [], "model_sources": []}
+KAGGLE_SECRETS_CREDENTIALS = '''# Read the current user's granted Secrets; never embed or print credentials.
+from kaggle_secrets import UserSecretsClient
+secret_client = UserSecretsClient()
+for secret_name in ("WANDB_API_KEY", "HF_TOKEN"):
+    try:
+        secret_value = secret_client.get_secret(secret_name)
+    except Exception:
+        raise RuntimeError(f"Missing or inaccessible Kaggle Secret {secret_name}") from None
+    if not isinstance(secret_value, str) or not secret_value.strip():
+        raise RuntimeError(f"Kaggle Secret {secret_name} is empty")
+    os.environ[secret_name] = secret_value.strip()
+    del secret_value
+os.environ["HF_REPO_ID"] = SPEC["checkpoint_repo"]
+
+'''
 
 
-def kernel_script(spec):
-    # Only a SHA, dataset reference and public experiment metadata are embedded.
+def kernel_script(spec, *, source_archive=None, credential_source="dataset"):
+    if credential_source not in {"dataset", "kaggle_secrets"}:
+        raise ValueError("credential_source must be dataset or kaggle_secrets")
+    # The direct Kaggle API sends one script body; embed the whole local runtime source.
+    source = (build_source_archive(__import__("pathlib").Path(__file__).resolve().parents[2])
+              if source_archive is None else source_archive)
     script = '''import json
 import os
-from pathlib import Path
+import base64
+import hashlib
+import io
+from pathlib import Path, PurePosixPath
+import shutil
 import subprocess
 import sys
+import tarfile
 import time
 
 SPEC = __SPEC__
@@ -45,6 +58,7 @@ os.environ["UAV_GIT_COMMIT"] = SPEC["commit"]
 os.environ["UAV_KAGGLE_ACCOUNT"] = SPEC["kernel_ref"].split("/", 1)[0]
 os.environ["UAV_KAGGLE_KERNEL"] = SPEC["kernel_ref"]
 os.environ["UAV_TRAINING_MODE"] = SPEC.get("training_mode", "unknown")
+os.environ["UAV_TRAINING_ONLY"] = "true" if SPEC.get("training_only") else "false"
 os.environ["UAV_AUTO_CONTINUE"] = "true" if SPEC.get("auto_continue") else "false"
 os.environ["UAV_ROOT_KAGGLE_KERNEL"] = SPEC.get("root_kernel_ref", SPEC["kernel_ref"])
 os.environ["UAV_CONTINUATION_INDEX"] = str(SPEC.get("continuation_index", 0))
@@ -52,11 +66,40 @@ if "requested_episodes" in SPEC:
     os.environ["UAV_EPISODE_BUDGET"] = str(SPEC["requested_episodes"])
 else:
     os.environ.pop("UAV_EPISODE_BUDGET", None)
+# Kaggle runs only this Python bootstrap; source is inside the payload.
+payload = base64.b85decode("__SOURCE_B85__")
+if hashlib.sha256(payload).hexdigest() != "__SOURCE_SHA256__":
+    raise RuntimeError("Bundled code checksum differs from the local build")
 root = Path("/tmp/uav_network")
-subprocess.run(["git", "clone", "--quiet", "https://github.com/truongdaoanhduy/uav_network.git", str(root)], check=True)
-subprocess.run(["git", "checkout", "--quiet", SPEC["commit"]], cwd=root, check=True)
-setup_env = dict(os.environ, PYTHON=sys.executable)
-subprocess.run(["bash", "setup.sh", "--system-site-packages", "--cloud"], cwd=root, env=setup_env, check=True)
+root.mkdir(parents=True, exist_ok=False)
+with tarfile.open(fileobj=io.BytesIO(payload), mode="r:gz") as archive:
+    total = 0
+    for entry in archive:
+        relative = PurePosixPath(entry.name)
+        if (not entry.isfile() or relative.is_absolute() or
+                any(part in {"..", ".", ""} for part in relative.parts) or
+                entry.size > 2_000_000):
+            raise RuntimeError("Unsafe bundled source entry")
+        total += entry.size
+        if total > 40_000_000:
+            raise RuntimeError("Bundled source exceeds code size budget")
+        destination = root.joinpath(*relative.parts)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        with archive.extractfile(entry) as source, destination.open("wb") as target:
+            shutil.copyfileobj(source, target)
+
+# Install package dependencies only. No git or remote source checkout.
+python = root / ".venv/bin/python"
+subprocess.run([sys.executable, "-m", "venv", "--system-site-packages",
+                "--without-pip", str(root / ".venv")], check=True)
+subprocess.run([str(python), "-m", "pip", "install", "-e", ".[cloud]",
+                "-r", "scripts/requirements-network.txt"], cwd=root, check=True)
+subprocess.run([str(python), "-c",
+                "from uav_network.configuration import load_config; "
+                "from uav_network.communication.upstream import load_upstream; "
+                "from gymnasium.vector import AutoresetMode; "
+                "load_upstream(load_config()); assert AutoresetMode.DISABLED"],
+               cwd=root, check=True)
 inputs = Path("/kaggle/input")
 candidates = list(inputs.rglob("wandb_api_key.txt")) + list(inputs.rglob("wandb_secret.json"))
 if len(candidates) != 1:
@@ -86,5 +129,23 @@ python = root / ".venv/bin/python"
 runner = {"visualize": "uav_network.cloud.visualize", "archive": "uav_network.cloud.archive"}.get(
     SPEC["stage"], "uav_network.cloud.remote")
 subprocess.run([str(python), "-m", runner, "--spec", str(spec_file)], cwd=root, check=True)
+if SPEC.get("one_session_train_eval_test"):
+    # Same semantics as the exact frozen 18d756ef Kaggle script: learner
+    # must finish, then 2-GPU deterministic Validation100 and held-out Test4000.
+    if SPEC["stage"]!="train" or not SPEC.get("training_only"):
+        raise RuntimeError("One-session fullflow requires training_only=True")
+    subprocess.run([str(python), "-m", "uav_network.experiments.one_session",
+        "--spec", str(spec_file), "--policies-per-batch", "2",
+        "--eval-world-pool-size", "0",
+        "--max-eval-worlds-per-gpu", "256",
+        "--max-test-worlds-per-gpu", "256",
+        "--test-batch-size", "0"], cwd=root, check=True)
+    print("MATD3_NO_ORACLE_TRAIN_VALIDATION100_TEST4000_COMPLETE", flush=True)
 '''
-    return script.replace("__SPEC__", repr(spec))
+    if credential_source == "kaggle_secrets":
+        begin = script.index('inputs = Path("/kaggle/input")')
+        end = script.index('spec_file = Path("/kaggle/working/job.json")', begin)
+        script = script[:begin] + KAGGLE_SECRETS_CREDENTIALS + script[end:]
+    return (script.replace("__SPEC__", repr(spec))
+            .replace("__SOURCE_B85__", base64.b85encode(source).decode("ascii"))
+            .replace("__SOURCE_SHA256__", source_sha256(source)))

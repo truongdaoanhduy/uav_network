@@ -1,6 +1,7 @@
 """Terminal-safe Warp/native collection with separate rate-controlled learners."""
 from copy import deepcopy
 import json
+import os
 from pathlib import Path
 import time
 
@@ -10,8 +11,9 @@ import yaml
 
 from ..environment.vector import make_vector, random_actions, unpack_info
 from .diagnostics import TrainingDiagnostics, failure_report
-from .evidence import print_evidence
+from .evidence import print_evidence, learner_telemetry
 from .progress_watchdog import ProgressWatchdog
+from .overflow_capture import attach_overflow_capture
 from .async_evaluation import AsyncCheckpointEvaluator
 from .recovery_checkpoints import PeriodicRecovery
 from .local_checkpoints import prune_episode_checkpoints, disk_metrics, release_staged_checkpoint
@@ -43,18 +45,24 @@ def train_pql(config):
     try:
         checkpoint = config.runtime.warm_start_checkpoint
         engine = PQLSystem(config, checkpoint=None if checkpoint == "none" else checkpoint)
+        attach_overflow_capture(engine.critic, output, "critic")
+        if engine.policy is not engine.critic:
+            attach_overflow_capture(engine.policy, output, "policy")
         initial = deepcopy(engine.initial_progress)
         completed, global_step, collection_steps = (initial[key] for key in ("episodes", "global_step", "collection_steps"))
         if completed >= config.runtime.episodes:
             raise ValueError("Requested episode budget must exceed completed checkpoint episodes")
         diagnostics.start_windows(global_step)
-        history = list(initial["records"])
+        history = [{**r, "learner": learner_telemetry(r.get("learner", {}))}
+                   for r in initial["records"]]
         resumed = checkpoint != "none"
         initial["optimizer_replay_restored"] = resumed and len(engine.replay) > 0
         initial["state_restore"] = ("training_state_exact_environment" if engine.initial_environment is not None
                                     else "training_state_environment_reset" if resumed else "fresh")
         tracker = start_tracking(config, output, initial_progress=initial)
-        evaluator = AsyncCheckpointEvaluator(config, output, tracker, diagnostics, global_step, completed)
+        evaluator = AsyncCheckpointEvaluator(config, output, tracker, diagnostics, global_step, completed,
+            selection_state=engine.initial_selection)
+        engine.initial_selection = None
         vector = make_vector(config, device=engine.collector_device)
         count = config.runtime.num_envs
         obs, returns, lengths, seeds, next_seed = initialize_environment(
@@ -96,7 +104,8 @@ def train_pql(config):
                 engine.flush()
                 environment = snapshot_environment(vector, returns, lengths, seeds, next_seed)
                 state["environment_state_saved"] = environment is not None
-                engine.save(resume_path or output / "resume_latest.pt", state, collector_rng=collector_rng, environment=environment)
+                engine.save(resume_path or output / "resume_latest.pt", state, collector_rng=collector_rng,
+                            environment=environment, selection_state=evaluator.best.state_dict())
             else:
                 # vmap temporarily swaps live critic parameters; light snapshots
                 # need the same drained boundary as a full resume checkpoint.
@@ -115,7 +124,7 @@ def train_pql(config):
                 warmup = engine.collections - engine.warmup_origin < config.pql.warmup_collection_steps
                 if warmup:
                     action = (vector.random_actions(obs["observation"]) if device_env else
-                              random_actions(obs["observation"], rng, config.world.num_uavs + 1))
+                              random_actions(obs["observation"], rng, config.world.num_uavs + 1, config.continuous_dim))
                 else:
                     action = engine.act_batch(obs["observation"], step=global_step, return_tensors=device_env)
                 following, reward, terminated, truncated, infos = vector.step({
@@ -147,8 +156,8 @@ def train_pql(config):
                     record = {"episode": completed, "worker": int(i), "seed": int(seeds[i]),
                               "global_step": global_step, "return": float(returns[i]),
                               "episode_length": int(lengths[i]), "terminated": bool(terminated[i]),
-                              "truncated": bool(truncated[i]), **info, "learner": latest,
-                              "num_uavs": config.world.num_uavs}
+                              "truncated": bool(truncated[i]), **info, "learner": learner_telemetry(latest),
+                              "num_uavs": config.world.num_uavs, "motion_dim": config.motion_dim}
                     encoded = json.dumps(record, allow_nan=False)
                     stream.write(encoded + "\n")
                     history.append(json.loads(encoded))
@@ -211,9 +220,9 @@ def train_pql(config):
                     lambda path, resume_path: save(path, resume_path=resume_path, publish=False),
                     tracker, step=global_step)
         final = output / "final.pt"
-        save(final, final=True)
         drain = min(10., max(0., config.runtime.max_train_seconds - (time.perf_counter() - started))) if config.runtime.max_train_seconds else 10.
         evaluator.close(global_step, drain_seconds=drain)
+        save(final, final=True, full_state=os.environ.get("UAV_TRAINING_ONLY") != "true")
         elapsed = time.perf_counter() - started
         result = {"checkpoint": str(final), "resume_checkpoint": str(output / "resume_latest.pt"),
                   "training_architecture": "pql-inspired", "pql_mode": config.pql.mode,
@@ -233,18 +242,19 @@ def train_pql(config):
                   "device": str(engine.critic_device), "replay_device": str(engine.replay.device),
                   "environment_backend": config.runtime.environment_backend,
                   "num_cpu_env_workers": vector.num_cpu_workers if device_env else (count if count > 1 else 0),
-                  "replay_bytes": engine.replay.allocated_bytes, "collector_overlap": engine.asynchronous,
+                  "replay_bytes": engine.replay.allocated_bytes, "collector_overlap": engine.concurrent,
                   "sample_updates_per_transition": engine.metrics()["pql/sample_uses_per_new_transition"],
                   "startup_s": startup_s, "elapsed_s": elapsed,
                   "joint_transitions_per_s": (global_step - initial["global_step"]) / max(elapsed, 1e-9),
                   "pql": engine.metrics(), "final_episode": history[-1] if history else None}
+        result.update(evaluator.best.result(final))
         result["periodic_evaluation"] = dict(evaluator.counts)
         result["storage"] = disk_metrics(output)
         result["replay"] = engine.replay.stats()
         result["reproducibility"] = reproducibility_result(engine.critic, history, warm_start_sha256=warm_start_sha256)
-        result["reproducibility"].update(scheduling_deterministic=not engine.asynchronous,
-            scope=("Synchronous schedule requires identical source/settings/platform; exact Warp state when available"
-                   if not engine.asynchronous else "Seeded algorithms/environment; asynchronous scheduling is not bitwise deterministic"))
+        result["reproducibility"].update(scheduling_deterministic=not engine.concurrent,
+            scope=("Deterministic PQL schedule requires identical source/settings/platform; exact Warp state when available"
+                   if not engine.concurrent else "Seeded algorithms/environment; concurrent scheduling is not bitwise deterministic"))
         if history:
             result.update(final_metrics(history))
         if tracker:

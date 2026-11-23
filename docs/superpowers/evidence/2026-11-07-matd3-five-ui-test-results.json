@@ -1,0 +1,21 @@
+{
+  "observed_utc": "2026-11-07T12:48:19.339070+00:00",
+  "implementation_commit": "0ca4f76837a20195b3c06f0279561aaec5ff0758",
+  "command": "python -m pytest -q --junitxml=outputs/matd3-ui-ablation-preflight-20261107/full-suite.xml",
+  "exit_code": 0,
+  "passed": 1374,
+  "skipped": 103,
+  "warnings": 8,
+  "subtests_passed": 1662,
+  "seconds": 309.13,
+  "focused_passed": 89,
+  "focused_subtests_passed": 590,
+  "red_missing_builder_failures": 8,
+  "read_only_review": "approved; no Critical/Important/Minor findings",
+  "exported_notebooks": 5,
+  "submitted_jobs": 0,
+  "limitations": [
+    "No CUDA driver available for local testing",
+    "T4 full-batch memory and convergence unverified"
+  ]
+}
