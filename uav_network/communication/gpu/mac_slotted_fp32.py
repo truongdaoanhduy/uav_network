@@ -31,6 +31,8 @@ REPORT_TTL_S = 120.0
 
 if wp is not None:
 
+    Vec6i = wp.types.vector(length=6, dtype=wp.int32)
+
     @wp.kernel
     def mac_slotted_step_fp32(
         # Inputs (static pre-allocated GPU buffers)
@@ -41,18 +43,20 @@ if wp is not None:
         step_time_s: wp.array(dtype=wp.float32),     # (1,) GPU scalar current time (CUDA-Graph safe)
         # Mutable Report Queue State (per-UAV FIFO ring/compact array of max 32 reports)
         q_count: wp.array2d(dtype=wp.int32),         # (E, 6)
-        q_target_id: wp.array3d(dtype=wp.int32),     # (E, 6, 32)
+        q_cell_id: wp.array3d(dtype=wp.int32),       # (E, 6, 32) observed hypothesis cell IDs
         q_timestamp: wp.array3d(dtype=wp.float32),   # (E, 6, 32) creation time t_s
         q_retries: wp.array3d(dtype=wp.int32),       # (E, 6, 32)
         q_hops: wp.array3d(dtype=wp.int32),          # (E, 6, 32)
         q_visited_mask: wp.array3d(dtype=wp.int32),  # (E, 6, 32) bitmask of visited UAVs (anti-loop)
-        # GCS Global First-Arrival Deduplication Table
-        gcs_delivered: wp.array2d(dtype=wp.int32),   # (E, max_targets) 0/1 first-arrival flag
+        # GCS global first-arrival deduplication by observed cell hypothesis
+        gcs_delivered: wp.array2d(dtype=wp.int32),   # (E, 400) per-cell first-arrival dedup
+        cell_has_target: wp.array2d(dtype=wp.int32), # (E, 400) simulator truth for REWARD ONLY
         # Per-env GPU RNG state (read-update-write -> CUDA-Graph safe!)
         rng_states: wp.array(dtype=wp.uint32),       # (E,)
         # Step KPI & Reward Outputs (zeroed at start of step)
         step_aoi_score: wp.array(dtype=wp.float32),  # (E,) sum exp(-eta * age) for NEW GCS deliveries
-        step_new_gcs_deliv: wp.array(dtype=wp.int32),# (E,)
+        step_new_gcs_deliv: wp.array(dtype=wp.int32),# (E,) true first arrivals
+        step_false_gcs_deliv: wp.array(dtype=wp.int32),# (E,) false hypotheses at GCS
         step_multihop_deliv: wp.array(dtype=wp.int32),# (E,)
         step_collisions: wp.array(dtype=wp.int32),   # (E,)
         step_hd_drops: wp.array(dtype=wp.int32),     # (E,) half-duplex deafness drops
@@ -68,6 +72,7 @@ if wp is not None:
         # 0) Zero per-step KPI outputs
         step_aoi_score[e] = wp.float32(0.0)
         step_new_gcs_deliv[e] = wp.int32(0)
+        step_false_gcs_deliv[e] = wp.int32(0)
         step_multihop_deliv[e] = wp.int32(0)
         step_collisions[e] = wp.int32(0)
         step_hd_drops[e] = wp.int32(0)
@@ -81,7 +86,7 @@ if wp is not None:
                 # Shift FIFO head left
                 for k in range(wp.static(MAX_QUEUE - 1)):
                     if k < cnt - wp.int32(1):
-                        q_target_id[e, u, k] = q_target_id[e, u, k + 1]
+                        q_cell_id[e, u, k] = q_cell_id[e, u, k + 1]
                         q_timestamp[e, u, k] = q_timestamp[e, u, k + 1]
                         q_retries[e, u, k] = q_retries[e, u, k + 1]
                         q_hops[e, u, k] = q_hops[e, u, k + 1]
@@ -92,8 +97,8 @@ if wp is not None:
 
         # 2) Assign each active transmitting UAV to a random backoff sub-slot in [0, M-1]
         #    (fixed vector of length 6 in registers -> zero global memory scratch!)
-        chosen_slot = wp.vec6i(-1, -1, -1, -1, -1, -1)
-        chosen_dst = wp.vec6i(-1, -1, -1, -1, -1, -1)
+        chosen_slot = Vec6i(-1, -1, -1, -1, -1, -1)
+        chosen_dst = Vec6i(-1, -1, -1, -1, -1, -1)
 
         for u in range(wp.static(NUM_UAVS)):
             d_act = dest_action[e, u]
@@ -115,14 +120,25 @@ if wp is not None:
                     chosen_slot[u] = slot
                     chosen_dst[u] = dst_node
 
-        # 3) Execute M=4 fixed contention sub-slots (synchronized across all warps -> 0% divergence)
+        # 3) Execute M=4 fixed contention sub-slots (slotted approximation of CSMA/CA)
         for m in range(wp.static(NUM_SUBSLOTS)):
             # 3a) Carrier-sense CCA deferral: if a lower-backoff/random-priority neighbor in CCA
             #     range transmits in the same sub-slot, a contending node may defer or collide.
-            tx_active = wp.vec6i(0, 0, 0, 0, 0, 0)
+            tx_active = Vec6i(0, 0, 0, 0, 0, 0)
             for u in range(wp.static(NUM_UAVS)):
                 if chosen_slot[u] == m and chosen_dst[u] >= wp.int32(0):
-                    tx_active[u] = wp.int32(1)
+                    # Same-slot contention: a lower-index transmitter already winning
+                    # carrier sense defers this UAV when its RF energy is detectable.
+                    # A hidden transmitter (CCA below threshold) still transmits.
+                    busy = wp.int32(0)
+                    for lower in range(wp.static(NUM_UAVS)):
+                        if lower < u and tx_active[lower] == wp.int32(1):
+                            if cca_hear_mat[e, lower, u] == wp.int32(1):
+                                busy = wp.int32(1)
+                    if busy == wp.int32(0):
+                        tx_active[u] = wp.int32(1)
+                    elif m < wp.int32(NUM_SUBSLOTS - 1):
+                        chosen_slot[u] = m + wp.int32(1)
 
             # 3b) Evaluate O(N^2) SINR, Half-Duplex Deafness & ACK for every active transmitter
             for u in range(wp.static(NUM_UAVS)):
@@ -140,9 +156,11 @@ if wp is not None:
                                 interf_w = interf_w + rx_pwr_mat[e, other, dst]
                         sinr = sig_w / (wp.float32(NOISE_FLOOR_W) + interf_w)
 
-                        if sinr >= wp.float32(SINR_THRESHOLD_LIN):
-                            # Packet decoded + ACK succeeded! Pop head report from u
-                            tid = q_target_id[e, u, 0]
+                        if sinr >= wp.float32(SINR_THRESHOLD_LIN) and (
+                            dst == wp.int32(GCS_IDX) or q_count[e, dst] < wp.int32(MAX_QUEUE)
+                        ):
+                            # Packet decoded + ACK succeeded! Pop head observed-cell hypothesis from u
+                            tid = q_cell_id[e, u, 0]
                             ts = q_timestamp[e, u, 0]
                             hops = q_hops[e, u, 0] + wp.int32(1)
                             vmask = q_visited_mask[e, u, 0] | (wp.int32(1) << u)
@@ -150,7 +168,7 @@ if wp is not None:
                             cnt = q_count[e, u]
                             for k in range(wp.static(MAX_QUEUE - 1)):
                                 if k < cnt - wp.int32(1):
-                                    q_target_id[e, u, k] = q_target_id[e, u, k + 1]
+                                    q_cell_id[e, u, k] = q_cell_id[e, u, k + 1]
                                     q_timestamp[e, u, k] = q_timestamp[e, u, k + 1]
                                     q_retries[e, u, k] = q_retries[e, u, k + 1]
                                     q_hops[e, u, k] = q_hops[e, u, k + 1]
@@ -159,19 +177,23 @@ if wp is not None:
 
                             if dst == wp.int32(GCS_IDX):
                                 # Global First-Arrival Deduplication at GCS (Anti-Reward-Hack Guard #1)
-                                if gcs_delivered[e, tid] == wp.int32(0):
-                                    gcs_delivered[e, tid] = wp.int32(1)
-                                    age = wp.max(wp.float32(0.0), now - ts)
-                                    freshness = wp.exp(-aoi_decay_eta * age)
-                                    step_aoi_score[e] = step_aoi_score[e] + freshness
-                                    step_new_gcs_deliv[e] = step_new_gcs_deliv[e] + wp.int32(1)
-                                    if hops >= wp.int32(2):
-                                        step_multihop_deliv[e] = step_multihop_deliv[e] + wp.int32(1)
+                                if tid >= wp.int32(0) and tid < wp.int32(400):
+                                    if gcs_delivered[e, tid] == wp.int32(0):
+                                        gcs_delivered[e, tid] = wp.int32(1)
+                                        if cell_has_target[e, tid] >= wp.int32(0):
+                                            age = wp.max(wp.float32(0.0), now - ts)
+                                            freshness = wp.exp(-aoi_decay_eta * age)
+                                            step_aoi_score[e] = step_aoi_score[e] + freshness
+                                            step_new_gcs_deliv[e] = step_new_gcs_deliv[e] + wp.int32(1)
+                                            if hops >= wp.int32(2):
+                                                step_multihop_deliv[e] = step_multihop_deliv[e] + wp.int32(1)
+                                        else:
+                                            step_false_gcs_deliv[e] = step_false_gcs_deliv[e] + wp.int32(1)
                             else:
                                 # Multi-hop relay custody transfer to peer UAV dst (NO per-hop reward!)
                                 d_cnt = q_count[e, dst]
                                 if d_cnt < wp.int32(MAX_QUEUE):
-                                    q_target_id[e, dst, d_cnt] = tid
+                                    q_cell_id[e, dst, d_cnt] = tid
                                     q_timestamp[e, dst, d_cnt] = ts
                                     q_retries[e, dst, d_cnt] = wp.int32(0)
                                     q_hops[e, dst, d_cnt] = hops
@@ -188,7 +210,7 @@ if wp is not None:
                         cnt = q_count[e, u]
                         for k in range(wp.static(MAX_QUEUE - 1)):
                             if k < cnt - wp.int32(1):
-                                q_target_id[e, u, k] = q_target_id[e, u, k + 1]
+                                q_cell_id[e, u, k] = q_cell_id[e, u, k + 1]
                                 q_timestamp[e, u, k] = q_timestamp[e, u, k + 1]
                                 q_retries[e, u, k] = q_retries[e, u, k + 1]
                                 q_hops[e, u, k] = q_hops[e, u, k + 1]

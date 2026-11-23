@@ -95,9 +95,9 @@ if wp is not None:
         ds_m_f: wp.array2d(dtype=wp.float32),         # (E, 400)
         ds_m_u: wp.array2d(dtype=wp.float32),         # (E, 400)
         cell_reported: wp.array2d(dtype=wp.int32),    # (E, 400): 1 if already confirmed & enqueued
-        # Per-UAV report queue (shared with mac_slotted_fp32.py)
+        # Per-UAV hypothesis report queue (observed cell ID, not hidden target identity)
         q_count: wp.array2d(dtype=wp.int32),          # (E, 6)
-        q_target_id: wp.array3d(dtype=wp.int32),      # (E, 6, 32)
+        q_cell_id: wp.array3d(dtype=wp.int32),      # (E, 6, 32)
         q_timestamp: wp.array3d(dtype=wp.float32),    # (E, 6, 32)
         q_retries: wp.array3d(dtype=wp.int32),        # (E, 6, 32)
         q_hops: wp.array3d(dtype=wp.int32),           # (E, 6, 32)
@@ -168,14 +168,17 @@ if wp is not None:
 
                         # Confirm target cell & enqueue report with AoI timestamp t_s
                         if (
-                            cell_reported[e, cid] == wp.int32(0)
+                            detected
+                            and cell_reported[e, cid] == wp.int32(0)
                             and belief[0] >= wp.float32(0.90)
                             and belief[2] <= wp.float32(0.15)
                         ):
-                            cell_reported[e, cid] = wp.int32(1)
                             cnt = q_count[e, u]
-                            if cnt < wp.int32(32) and tid >= wp.int32(0):
-                                q_target_id[e, u, cnt] = tid
+                            # Hypothesis reports use OBSERVED CELL ID, never hidden truth/target ID.
+                            # Retry enqueuing on later positive observations if the FIFO is full.
+                            if cnt < wp.int32(32):
+                                cell_reported[e, cid] = wp.int32(1)
+                                q_cell_id[e, u, cnt] = cid
                                 q_timestamp[e, u, cnt] = now
                                 q_retries[e, u, cnt] = wp.int32(0)
                                 q_hops[e, u, cnt] = wp.int32(0)
