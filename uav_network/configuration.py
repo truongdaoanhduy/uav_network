@@ -84,6 +84,11 @@ class NetworkConfig:
     nlos_model: str = "urban"
     propagation_delay_enabled: bool = False  # Opt in for new studies; preserve saved legacy runs.
     obstacle_extra_loss_db: float = 0.0
+    # Experimental over-the-air, contention-aware peer-state advertisements.
+    hello_enabled: bool = False
+    hello_period_s: float = 1.0
+    hello_freshness_s: float = 2.0
+    hello_bits: int = 512
 
 @dataclass
 class EnergyConfig:
@@ -300,6 +305,15 @@ class Config:
                 if not valid:
                     raise ValueError(f"Invalid {name}: {value!r}")
         w, s, n, a, r = self.world, self.sensor, self.network, self.masac, self.runtime
+        if n.hello_enabled:
+            if (self.motion_dim != 3 or not s.report_cell_hypotheses
+                    or r.environment_backend != 'warp_packet' or not n.enabled):
+                raise ValueError('network.hello_enabled requires 3D NoOracle Warp packet networking')
+            if (n.hello_period_s < 0.1 or n.hello_period_s <= n.hello_bits/n.bit_rate_bps
+                    or n.hello_freshness_s <= 0
+                    or n.hello_freshness_s < n.hello_period_s
+                    or n.hello_bits < 256):
+                raise ValueError('Invalid HELLO period/freshness/frame length')
         if w.generation_version != 3:
             raise ValueError("Unsupported scene generation version; use its pinned historical source")
         positive = [w.map_size_m, w.num_uavs, w.num_targets, w.dt_s, w.max_steps,

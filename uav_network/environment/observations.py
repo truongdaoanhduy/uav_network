@@ -8,6 +8,9 @@ from ..communication.link_budget import nominal_required_power_w, power_fraction
 OBSERVATION_VERSION = 3
 
 def observation_version(config):
+    if getattr(config.network, 'hello_enabled', False):
+        # Same observation shape, different learned peer features and route mask.
+        return 12
     if config.motion_dim == 3:
         if getattr(config.sensor, "report_cell_hypotheses", False):
             if getattr(config.sensor, "confirmation_mode", "fine_altitude") == "posterior_only":

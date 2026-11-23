@@ -2,6 +2,7 @@
 import warp as wp
 from ...environment.gpu.state import WorldParams, WorldState
 from .rng import randbelow
+from .hello import schedule_hello, emit_hello, receive_hello
 from .network_reset import reset_network
 from .reports import (active, bytes_used, can_receive, transfer, begin_step, sense_reports,
                       masked_sense_reports, end_step, reset_reward_state)
@@ -19,6 +20,7 @@ wp.set_module_options({"enable_fp_fma": False, "enable_backward": False})
 POLL, START, MAC, IDLE, IDLE_DONE, LISTEN, INTERRUPT = range(1,8)
 BACKOFF_DONE, TX_START, DATA_END, DELIVER, ACK_TIMEOUT, RELEASE = range(8,14)
 RECEIVE, ACK_START, RECEIVE_DONE = range(14,17)
+HELLO_START, HELLO_TX, HELLO_RX = range(17,20)
 
 @wp.func
 def next_receive(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, node: int, now: wp.float64):
@@ -250,6 +252,26 @@ def event(s: wp.ref[WorldState], p: wp.ref[WorldParams], e: int, kind: int, arg:
         s.tx_receive[e,frame] = 3
         s.node_receiving[e,node] = 0
         next_receive(s,p,e,node,now)
+    elif kind == 17:
+        schedule_hello(s,p,e,arg,now)
+    elif kind == 18:
+        # Bounded CCA deferral: a HELLO never locks the channel indefinitely.
+        if active(s,p,e,arg):
+            own_airtime=bool(False)
+            for k in range(s.frame_count[e]):
+                frame=s.frame_order[e,k]
+                if (s.tx_source[e,frame]==arg and s.tx_start[e,frame]<=now
+                    and now<s.tx_end[e,frame]):
+                    own_airtime=True
+            # No half-duplex self-overlap, and defer to the same CCA seen by
+            # data/ACK. HELLO broadcast intentionally has no ACK/retransmit.
+            if own_airtime or busy(s,p,e,arg,now):
+                if now < wp.float64(generation)+wp.float64(50000):
+                    push(s,p,e,now+p.slot,18,arg,generation,1)
+            else:
+                emit_hello(s,p,e,arg,now)
+    elif kind == 19:
+        receive_hello(s,p,e,arg,now)
 
 
 @wp.kernel

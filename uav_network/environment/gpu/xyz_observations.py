@@ -3,6 +3,7 @@ import warp as wp
 from .state import WorldState,WorldParams
 from .xyz_geometry import range_distance
 from .bayesian import profile
+from ...communication.gpu.hello import hello_fresh
 
 
 @wp.func
@@ -102,6 +103,9 @@ def extras(s:wp.ref[WorldState],p:wp.ref[WorldParams],e:int,i:int,offset:int):
                 # New no-beacon mission must not reveal peer private altitude/velocity.
                 s.observation[e,i,offset+2*slot]=wp.float32((s.altitudes[e,j]-s.altitudes[e,i])/p.altitude_max)
                 s.observation[e,i,offset+2*slot+1]=wp.float32(s.vertical_velocity[e,j]/p.max_speed)
+            elif p.hello_enabled!=0 and active and hello_fresh(s,p,e,i,j):
+                s.observation[e,i,offset+2*slot]=wp.float32((s.hello_altitude[e,i,j]-s.altitudes[e,i])/p.altitude_max)
+                s.observation[e,i,offset+2*slot+1]=wp.float32(s.hello_vertical_velocity[e,i,j]/p.max_speed)
             slot+=1
     offset+=2*(p.n-1)
     for cell in range(p.patch_n*p.patch_n):s.observation[e,i,offset+cell]=wp.float32(patch_value(s,p,e,i,cell))

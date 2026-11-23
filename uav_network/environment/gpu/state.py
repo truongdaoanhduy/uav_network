@@ -63,6 +63,10 @@ class WorldParams:
     guided_power: wp.int32
     power_limited_admission: wp.int32
     link_state_observation: wp.int32
+    hello_enabled: wp.int32
+    hello_bits: wp.int32
+    hello_period: wp.float64  # microseconds in the MAC event heap
+    hello_freshness: wp.float64  # seconds in actor observations
     cw_min: wp.int32
     event_capacity: wp.int32
     packet_capacity: wp.int32
@@ -224,6 +228,24 @@ class WorldState:
     packet_delay_sum: wp.array(dtype=wp.float64)
     report_delay_sum: wp.array(dtype=wp.float64)
     true_delivery_freshness: wp.array(dtype=wp.float64)
+    # Receiver-local HELLO information, filled only by a successfully decoded RF frame.
+    hello_rx_time: wp.array3d(dtype=wp.float64)
+    hello_position: wp.array3d(dtype=wp.vec2d)
+    hello_velocity: wp.array3d(dtype=wp.vec2d)
+    hello_altitude: wp.array3d(dtype=wp.float64)
+    hello_vertical_velocity: wp.array3d(dtype=wp.float64)
+    hello_battery: wp.array3d(dtype=wp.float64)
+    hello_free_buffer: wp.array3d(dtype=wp.float64)
+    # Payload sampled at transmission time (not live remote state at reception).
+    tx_hello_position: wp.array2d(dtype=wp.vec2d)
+    tx_hello_velocity: wp.array2d(dtype=wp.vec2d)
+    tx_hello_altitude: wp.array2d(dtype=wp.float64)
+    tx_hello_vertical_velocity: wp.array2d(dtype=wp.float64)
+    tx_hello_battery: wp.array2d(dtype=wp.float64)
+    tx_hello_free_buffer: wp.array2d(dtype=wp.float64)
+    hello_tx_count: wp.array(dtype=wp.int64)
+    hello_rx_count: wp.array(dtype=wp.int64)
+    hello_rx_fail_count: wp.array(dtype=wp.int64)
     before_freshness: wp.array(dtype=wp.float64)
     report_hop_sum: wp.array(dtype=wp.float64)
     true_report_delay_sum: wp.array(dtype=wp.float64)
@@ -367,7 +389,10 @@ def params_from_config(config):
                   guided_power=int(n.power_control == "link_budget"),
                   power_margin_factor=10.0 ** (n.link_budget_margin_db / 10.0),
                   power_limited_admission=int(n.power_limited_admission),
-                  link_state_observation=int(n.link_state_observation), cw_min=31,
+                  link_state_observation=int(n.link_state_observation),
+                  hello_enabled=int(n.hello_enabled), hello_bits=n.hello_bits,
+                  hello_period=n.hello_period_s*1e6, hello_freshness=n.hello_freshness_s,
+                  cw_min=31,
                   coalesce_idle_polls=int(config.runtime.coalesce_idle_polls),
                   map_size=w.map_size_m, dt=w.dt_s, max_speed=w.max_speed_mps,
                   max_vertical_speed=w.max_vertical_speed_mps,
@@ -483,6 +508,14 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False, ce
         "before": ((e,8), wp.float64), "before_false": ((e,2),wp.float64), "reward_components": ((e,14), wp.float64),
         "shield_correction_step": ((e,), wp.float64), "shield_correction": ((e,), wp.float64),
         "unsafe_action_step": ((e,), wp.float64), "shield_intervention_step": ((e,), wp.float64),
+        "hello_rx_time": ((e,n,n), wp.float64),
+        "hello_position": ((e,n,n), wp.vec2d), "hello_velocity": ((e,n,n), wp.vec2d),
+        "hello_altitude": ((e,n,n), wp.float64),
+        "hello_vertical_velocity": ((e,n,n), wp.float64),
+        "hello_battery": ((e,n,n), wp.float64),
+        "hello_free_buffer": ((e,n,n), wp.float64),
+        "hello_tx_count": ((e,), wp.int64), "hello_rx_count": ((e,), wp.int64),
+        "hello_rx_fail_count": ((e,), wp.int64),
         "packet_counts": ((e,8), wp.int32), "selection_counts": ((e,5), wp.int32),
         "action_counts": ((e,4), wp.int64), "mt": ((e,n+1,624), wp.uint32),
         "mt_index": ((e,n+1), wp.int32)}
@@ -518,6 +551,11 @@ def allocate_state(config, num_envs=1, seeds=None, device="cpu", trace=False, ce
         (n+1, wp.int32, "node_queue_count node_current node_feed_alive node_wait_finish node_wait_packet node_receiving"),
         (p.frame_capacity, wp.int32, "frame_order tx_active tx_kind tx_packet tx_generation tx_source tx_destination tx_target tx_cell tx_fragment tx_payload tx_ttl tx_origin tx_hops tx_receive"),
         (p.frame_capacity, wp.float64, "tx_start tx_end tx_power tx_created tx_report_created"),
+        # HELLO sender's payload lasts only <1ms, while period >=0.1s.
+        # Index by sender, NOT by 1,632 preallocated packet frame slots:
+        # at 4,096 worlds this saves ~428 MB of GPU memory.
+        (n, wp.float64, "tx_hello_altitude tx_hello_vertical_velocity tx_hello_battery tx_hello_free_buffer"),
+        (n, wp.vec2d, "tx_hello_position tx_hello_velocity"),
         (p.frame_capacity, wp.int64, "tx_id tx_session tx_receive_order"),
         ((n+1)*(n+1), wp.float64, "pair_gain pair_time"),
         ((n+1)*(n+1), wp.vec2d, "pair_transmitter pair_receiver"),

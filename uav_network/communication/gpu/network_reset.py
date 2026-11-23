@@ -32,6 +32,18 @@ def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32))
         s.true_report_delay_sum[e] = wp.float64(0)
         s.true_report_hop_sum[e] = wp.float64(0)
         s.report_delivery_count[e] = 0
+        s.hello_tx_count[e] = wp.int64(0)
+        s.hello_rx_count[e] = wp.int64(0)
+        s.hello_rx_fail_count[e] = wp.int64(0)
+        for receiver in range(p.n):
+            for sender in range(p.n):
+                s.hello_rx_time[e,receiver,sender] = wp.float64(-1)
+                s.hello_position[e,receiver,sender] = wp.vec2d(0,0)
+                s.hello_velocity[e,receiver,sender] = wp.vec2d(0,0)
+                s.hello_altitude[e,receiver,sender] = wp.float64(0)
+                s.hello_vertical_velocity[e,receiver,sender] = wp.float64(0)
+                s.hello_battery[e,receiver,sender] = wp.float64(0)
+                s.hello_free_buffer[e,receiver,sender] = wp.float64(0)
         s.trace_count[e] = 0
         reset_reward_state(s, e)
         for j in range(diag.COUNTER_COUNT):
@@ -64,6 +76,10 @@ def reset_network(s: WorldState, p: WorldParams, mask: wp.array(dtype=wp.int32))
             s.rx_energy[e, i] = wp.float64(0)
             if p.network_enabled != 0:
                 push(s, p, e, p.queue_poll, 1, i, 0, 1)
+                if p.hello_enabled != 0 and i < p.n:
+                    # Stagger peers deterministically, but still share actual
+                    # CCA/interference and packet heap with data transmissions.
+                    push(s,p,e,wp.float64(25000)+wp.float64(i)*wp.float64(50000),17,i,0,1)
             if i < p.n:
                 s.battery[e, i] = p.capacity
                 s.flight_energy[e, i] = wp.float64(0)

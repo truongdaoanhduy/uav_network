@@ -8,6 +8,7 @@ from .xyz_geometry import range_distance, position3, camera_sees_obstacle
 from .bayesian import profile
 from ...communication.gpu.phy import xy, nominal_required_power
 from ...communication.gpu.power import power_fraction
+from ...communication.gpu.hello import hello_fresh
 
 # Keep native NumPy operation rounding; these simulator kernels need no gradients.
 wp.set_module_options({"enable_backward": False, "fuse_fp": False})
@@ -204,6 +205,18 @@ def observe(s: WorldState, p: WorldParams):
                 if p.cell_reports==0:
                     s.observation[e, i, offset + 6 * slot + 4] = wp.float32(s.battery[e, j] / p.capacity)
                     s.observation[e, i, offset + 6 * slot + 5] = wp.float32(int(_active(s, p, e, j)))
+            elif p.hello_enabled != 0 and active and hello_fresh(s,p,e,i,j):
+                # Local cached RF payload only; no privileged peer position.
+                rel=(s.hello_position[e,i,j]-position)/p.map_size
+                vel=s.hello_velocity[e,i,j]/p.max_speed
+                for axis in range(2):
+                    s.observation[e,i,offset+6*slot+axis]=wp.float32(rel[axis])
+                    s.observation[e,i,offset+6*slot+2+axis]=wp.float32(vel[axis])
+                s.observation[e,i,offset+6*slot+4]=wp.float32(s.hello_battery[e,i,j])
+                # Encode real received-message age; never use live peer status.
+                message_age=wp.max(wp.float64(0),wp.float64(s.steps[e])*p.dt-s.hello_rx_time[e,i,j])
+                freshness=wp.clamp(wp.float64(1)-message_age/p.hello_freshness,wp.float64(0),wp.float64(1))
+                s.observation[e,i,offset+6*slot+5]=wp.float32(freshness)
             slot = slot + 1
     offset = offset + 6 * (p.n - 1)
     if p.link_state_observation != 0:
@@ -220,7 +233,13 @@ def observe(s: WorldState, p: WorldParams):
                                     /wp.float64(p.buffer_bytes),wp.float64(0),wp.float64(1))
                     s.observation[e,i,offset+3*slot] = wp.float32(power_fraction(p,required))
                     s.observation[e,i,offset+3*slot+1] = wp.float32(progress)
-                    s.observation[e,i,offset+3*slot+2] = wp.float32(wp.float64(.5) if p.cell_reports!=0 else free)
+                    s.observation[e,i,offset+3*slot+2] = wp.float32(free)
+                elif p.hello_enabled != 0 and active and hello_fresh(s,p,e,i,j):
+                    # No oracle radio gain; advertised position and buffer only.
+                    peer_gcs=wp.length(s.hello_position[e,i,j]-wp.vec2d(s.gcs[e]))
+                    progress=wp.clamp((source_gcs-peer_gcs)/diagonal,wp.float64(-1),wp.float64(1))
+                    s.observation[e,i,offset+3*slot+1]=wp.float32(progress)
+                    s.observation[e,i,offset+3*slot+2]=wp.float32(s.hello_free_buffer[e,i,j])
                 slot += 1
         if active and source_gcs <= p.gcs_range:
             if p.cell_reports==0:
@@ -250,7 +269,16 @@ def observe(s: WorldState, p: WorldParams):
             can_send=can_send and has_unexpired_report
         for j in range(p.n):
             if j!=i:
-                s.observation[e,i,offset+slot+1]=wp.float32(int(can_send))
+                allowed=can_send
+                if p.hello_enabled!=0:
+                    # Mask uses only a *received* recent payload, never actual
+                    # peer RF reachability/battery/position/hidden obstacles.
+                    known_distance=wp.length(s.hello_position[e,i,j]-position)
+                    allowed=(allowed and hello_fresh(s,p,e,i,j)
+                        and known_distance<=p.peer_range
+                        and s.hello_battery[e,i,j]>wp.float64(0)
+                        and s.hello_free_buffer[e,i,j]>wp.float64(0))
+                s.observation[e,i,offset+slot+1]=wp.float32(int(allowed))
                 slot+=1
         s.observation[e,i,offset+p.n]=wp.float32(int(can_send and range_distance(s,p,e,i,p.n)<=p.gcs_range))
     else:

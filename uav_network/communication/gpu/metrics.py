@@ -59,6 +59,14 @@ def network_info(s, p, index=0):
         "enabled": bool(p.network_enabled), "backend": "warp_packet", "upstream_revision": REVISION,
         "selection_counts": dict(zip(("selected","accepted","receiver_rejected",
                                       "out_of_range_or_inactive","no_buffer"),map(int,selection))),
+        # HELLO is a distinct RF frame class: do not inflate DATA PDR/packet counts.
+        "hello_enabled": bool(p.hello_enabled),
+        "hello_tx_frames": int(row(s.hello_tx_count,index)),
+        "hello_rx_frames": int(row(s.hello_rx_count,index)),
+        "hello_decode_failures": int(row(s.hello_rx_fail_count,index)),
+        "hello_success_percent": (100*int(row(s.hello_rx_count,index))/
+                                  max(int(row(s.hello_rx_count,index))+
+                                      int(row(s.hello_rx_fail_count,index)),1)),
         "generated_packets": int(counts[0]), "received_packets": received,
         "packet_pdr_percent": received/max(int(counts[0]),1)*100,
         "packet_e2e_delay_ms": float(row(s.packet_delay_sum,index))/max(received,1)/1000,
