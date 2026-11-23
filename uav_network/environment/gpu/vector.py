@@ -2,6 +2,7 @@
 from ...configuration import with_legacy_feature_defaults
 from contextlib import nullcontext
 from copy import deepcopy
+import os
 from types import SimpleNamespace
 
 import numpy as np
@@ -44,6 +45,16 @@ class WarpVectorEnv:
             raise ValueError("Warp environment requires a cpu or cuda device")
         if self.device.type == "cuda" and not torch.cuda.is_available():
             raise RuntimeError("CUDA environment requested without a CUDA device")
+        # Optional CUDA-only launch scheduling for the one-world-per-thread
+        # variable-length CSMA/CA event kernel; 0 keeps Warp's stock block.
+        # This changes neither action/science config nor radio event semantics.
+        raw_block_dim=os.environ.get("UAV_WARP_MAC_BLOCK_DIM", "0")
+        try:
+            self._mac_block_dim=int(raw_block_dim)
+        except (TypeError,ValueError) as exc:
+            raise ValueError("Invalid UAV_WARP_MAC_BLOCK_DIM") from exc
+        if self._mac_block_dim not in (0,1,2,4,8,16,32,64,128,256):
+            raise ValueError("Invalid UAV_WARP_MAC_BLOCK_DIM; permitted 0/1/2/4/8/16/32/64/128/256")
         self.wp_device = str(self.device)
         wp.init()
         self._torch_stream = torch.cuda.current_stream(self.device) if self.device.type == "cuda" else None
@@ -87,7 +98,12 @@ class WarpVectorEnv:
                 self.stream = wp.stream_from_torch(current)
 
     def _launch(self, kernel, dim, *args):
-        wp.launch(kernel,dim=dim,inputs=list(args),device=self.wp_device,stream=self.stream)
+        if (kernel is packet_step and self.device.type == "cuda"
+                and self.p.cell_reports != 0 and self._mac_block_dim):
+            wp.launch(kernel,dim=dim,inputs=list(args),device=self.wp_device,
+                      stream=self.stream,block_dim=self._mac_block_dim)
+        else:
+            wp.launch(kernel,dim=dim,inputs=list(args),device=self.wp_device,stream=self.stream)
 
     def _check_errors(self):
         error = wp.to_torch(self.s.errors)

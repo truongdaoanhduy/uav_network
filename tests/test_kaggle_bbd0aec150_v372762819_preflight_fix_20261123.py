@@ -30,9 +30,14 @@ def test_kaggle_bootstrap_preflight_executes_using_only_runtime_cell_globals(mon
               +preflight)
     # Let the actual subprocess run the same science imports and assertions
     # against the repo, while blocking network, pip and remote training.
-    exec(compile(isolated,'kaggle_cell3_runtime_preflight','exec'),ctx)
-    assert ctx['SPEC']['config']==CONFIG
-    assert ctx['SPEC']['kernel_ref']=='longlonthiu/notebookbbd0aec150'
+    # This generated bootstrap sets UAV_TRAINING_ONLY and other globals.
+    # Restore the complete environment for independent follow-on tests.
+    from unittest.mock import patch
+    import os
+    with patch.dict(os.environ, dict(os.environ), clear=True):
+        exec(compile(isolated,'kaggle_cell3_runtime_preflight','exec'),ctx)
+        assert ctx['SPEC']['config']==CONFIG
+        assert ctx['SPEC']['kernel_ref']=='longlonthiu/notebookbbd0aec150'
 
 
 def test_kaggle_source_cap_and_three_cell_contract_remain_valid():
@@ -111,12 +116,19 @@ def test_complete_3_cell_kaggle_bootstrap_reaches_remote_train_and_valtest_calls
         raise AssertionError('Unexpected cloud/bootstrap subprocess: '+repr(args[:6]))
     monkeypatch.setattr(subprocess,'run',local_fake_run)
 
+    # The generated Kaggle bootstrap intentionally sets UAV_TRAINING_ONLY,
+    # WANDB_*, HF_* and many other process-wide flags. Execute it in an
+    # isolated environment so a later production resume test still receives
+    # its normal full-state checkpoint. Previously this test polluted the
+    # entire pytest process and caused a false missing resume_latest.pt.
+    from unittest.mock import patch
     glob={'__name__':'__main__'}
-    exec(compile(nb.cells[1].source,'kaggle_cell1','exec'),glob)
-    exec(compile(cell,'kaggle_cell3','exec'),glob)
-    assert len(calls)>=5
-    assert rootsrc.joinpath(CONFIG).is_file()
-    assert glob['SPEC']['config']==CONFIG
-    assert glob['SPEC']['runs']['matd3']['id']!='resolved_at_runtime'
-    assert report.exists()
-    assert os.environ.get('UAV_DIAGNOSTIC_STORE')=='huggingface_public'
+    with patch.dict(os.environ, dict(os.environ), clear=True):
+        exec(compile(nb.cells[1].source,'kaggle_cell1','exec'),glob)
+        exec(compile(cell,'kaggle_cell3','exec'),glob)
+        assert len(calls)>=5
+        assert rootsrc.joinpath(CONFIG).is_file()
+        assert glob['SPEC']['config']==CONFIG
+        assert glob['SPEC']['runs']['matd3']['id']!='resolved_at_runtime'
+        assert report.exists()
+        assert os.environ.get('UAV_DIAGNOSTIC_STORE')=='huggingface_public'

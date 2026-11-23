@@ -7,8 +7,10 @@ when comparing source commits; warm-up compilations are excluded.
 from __future__ import annotations
 
 import argparse
+import hashlib
 from collections import defaultdict
 import json
+import os
 import time
 
 import torch
@@ -35,11 +37,18 @@ def main():
     p.add_argument("--steps", type=int, default=80)
     p.add_argument("--device", choices=["cuda", "cpu"], default="cuda")
     p.add_argument("--network-disabled", action="store_true")
+    p.add_argument("--state-digest", action="store_true", help="SHA256 all 167 world-state fields for <=32 envs")
+    p.add_argument("--mac-block-dim", type=int, default=0,
+                   choices=(0,1,2,4,8,16,32,64,128,256),
+                   help="CUDA only: Warp thread block size for packet_step; 0 stock")
     args = p.parse_args()
+    os.environ["UAV_WARP_MAC_BLOCK_DIM"]=str(args.mac_block_dim)
     if args.envs < 1 or args.steps < 1 or args.warmup < 1:
         raise ValueError("envs, steps and warmup must be positive")
     if args.device == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("No CUDA GPU available; use --device cpu")
+    if args.state_digest and args.envs>32:
+        raise ValueError("--state-digest limited to <=32 worlds to avoid full E4096 D2H copies")
     cfg = load_config(args.config)
     cfg.runtime.device = args.device
     cfg.runtime.num_envs = args.envs
@@ -88,6 +97,7 @@ def main():
             "steps": args.steps,
             "report_slots": int(v.p.report_slots),
             "network_enabled": bool(cfg.network.enabled),
+            "mac_block_dim": args.mac_block_dim,
             "wall_seconds": elapsed,
             "env_transitions_per_second": args.envs * args.steps / elapsed,
             "per_kernel_ms_total": timings,
@@ -96,6 +106,17 @@ def main():
                 for k, v in timings.items()
             } if total_kernel_ms else {},
         }
+        if args.state_digest:
+            # Critical: end-of-run comparison across CUDA MAC block dimensions.
+            # Do not hash ephemeral launch caches or time measurements; every
+            # legitimate simulator state array, including queues and RNG, stays.
+            h=hashlib.sha256()
+            for name,field in sorted(vars(v.s).items()):
+                if not isinstance(field,wp.array) or not field.size:continue
+                value=wp.to_torch(field).detach().cpu().contiguous()
+                h.update(name.encode());h.update(str(tuple(value.shape)).encode())
+                h.update(value.numpy().tobytes())
+            result["world_state_sha256"]=h.hexdigest()
         print("UAV_WARP_PROFILE_JSON", json.dumps(result, sort_keys=True), flush=True)
     finally:
         v.close()
