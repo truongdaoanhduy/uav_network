@@ -39,7 +39,9 @@ class MeasuredReplay(TensorReplayBuffer):
         if batch_size < 1 or batch_size > self.size:
             raise ValueError("Not enough transitions for this batch")
         indices = torch.randint(self.size, (batch_size,), device=self.device, generator=self.rng)
-        self.seen[indices.unique()] = True
+        # Idempotent marking: repeated sampled indices all write the SAME value.
+        # No sorting, allocation or device synchronization for unique().
+        self.seen[indices] = True
         born = self.born[indices]
         known = born >= 0
         age = torch.where(known, self.collections - born, 0)
@@ -48,6 +50,11 @@ class MeasuredReplay(TensorReplayBuffer):
         self.age_count += known.sum()
         self.sample_uses += batch_size
         result = {name: array[indices] for name, array in self.data.items()}
+        if self.storage_precision == 'fp16':
+            result = {
+                name: (value.long() if name == 'destination' else
+                       value.float() if value.dtype == torch.float16 else value)
+                for name, value in result.items()}
         if self.pin_memory:
             result = {name: value.pin_memory() for name, value in result.items()}
         return result
@@ -144,4 +151,5 @@ def make_replay(config, observation_shape, state_dim, learner_device, *, measure
     device = resolve_replay_device(config.runtime.replay_device, learner_device)
     cls = MeasuredReplay if measured else TensorReplayBuffer
     return cls(settings.replay_capacity, observation_shape, state_dim, config.runtime.seed, device,
-               pin_memory=device.type == "cpu" and torch.device(learner_device).type == "cuda", continuous_dim=config.continuous_dim)
+               pin_memory=device.type == "cpu" and torch.device(learner_device).type == "cuda", continuous_dim=config.continuous_dim,
+               storage_precision=config.runtime.replay_storage_precision)

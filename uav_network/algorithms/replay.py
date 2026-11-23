@@ -57,16 +57,30 @@ def resolve_replay_device(requested, learner_device):
 
 class TensorReplayBuffer:
     """Batched ring storage on CPU or CUDA; uniform samples with replacement."""
-    def __init__(self, capacity, observation_shape, state_dim, seed=44, device="cpu", pin_memory=False, continuous_dim=3):
+    def __init__(self, capacity, observation_shape, state_dim, seed=44, device="cpu", pin_memory=False, continuous_dim=3, storage_precision='fp32'):
         self.capacity = capacity
         self.device = torch.device(device)
         # Pin sampled batches only; full CPU replay stays pageable.
         self.pin_memory = pin_memory and self.device.type == "cpu"
         self.index = self.size = 0
         self.rng = torch.Generator(device=self.device).manual_seed(seed)
-        self.data = {name: torch.empty((capacity, *shape), device=self.device,
-                                     dtype=torch.long if name == "destination" else torch.float32)
-                     for name, shape in transition_shapes(observation_shape, state_dim, continuous_dim).items()}
+        if storage_precision not in ('fp16', 'fp32'):
+            raise ValueError('storage_precision must be fp32 or fp16')
+        if storage_precision == 'fp16' and observation_shape[0] > 127:
+            raise ValueError('Compact replay int8 destinations require <=127 agents')
+        self.storage_precision = storage_precision
+        shapes = transition_shapes(observation_shape, state_dim, continuous_dim)
+        def storage_dtype(name):
+            if name == 'destination':
+                return torch.int8 if storage_precision == 'fp16' else torch.long
+            if storage_precision == 'fp16' and name in (
+                    'observation', 'next_observation', 'state', 'next_state', 'continuous'):
+                return torch.float16
+            return torch.float32
+        self.data = {
+            name: torch.empty((capacity, *shape), device=self.device,
+                              dtype=storage_dtype(name))
+            for name, shape in shapes.items()}
 
     @property
     def allocated_bytes(self):
@@ -94,6 +108,12 @@ class TensorReplayBuffer:
             raise ValueError("Not enough transitions for this batch")
         indices = torch.randint(self.size, (batch_size,), device=self.device, generator=self.rng)
         result = {name: array[indices] for name, array in self.data.items()}
+        # Algorithms always consume FP32 observations/actions and long destinations.
+        if self.storage_precision == 'fp16':
+            result = {
+                name: (value.long() if name == 'destination' else
+                       value.float() if value.dtype == torch.float16 else value)
+                for name, value in result.items()}
         if self.pin_memory:
             result = {name: value.pin_memory() for name, value in result.items()}
         return result

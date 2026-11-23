@@ -178,6 +178,8 @@ class RuntimeConfig:
     collector_overlap: bool = True
     replay_device: str = "auto"
     replay_cpu_fraction: float = 0.0
+    # Opt-in lossy GPU storage; sampled minibatches are restored to FP32.
+    replay_storage_precision: str = 'fp32'
     deterministic: bool = True
     compile_models: bool = False
     amp_mode: str = "off"
@@ -357,6 +359,11 @@ class Config:
                 or not 0 <= r.replay_cpu_fraction < 1
                 or (r.replay_cpu_fraction > 0 and r.replay_device != "cpu")):
             raise ValueError("runtime.replay_cpu_fraction must be in [0, 1) and hybrid replay requires replay_device=cpu")
+        if r.replay_storage_precision not in {'fp32', 'fp16'}:
+            raise ValueError('runtime.replay_storage_precision must be fp32 or fp16')
+        if r.replay_storage_precision == 'fp16' and (
+                r.replay_device != 'cuda' or r.replay_cpu_fraction != 0):
+            raise ValueError('FP16 replay requires replay_device=cuda and no CPU hybrid')
         p = self.pql
         if (p.mode not in {"async", "synchronous"} or p.critic_sample_ratio <= 0
                 or min(p.max_pending_collections, p.max_pending_policy_updates) < 1
