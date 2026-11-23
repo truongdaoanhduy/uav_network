@@ -89,6 +89,13 @@ class WorldParams:
     hover_power: wp.float64
     speed_coefficient: wp.float64
     accel_coefficient: wp.float64
+    propulsion_model: wp.int32
+    rotor_p0: wp.float64
+    rotor_pi: wp.float64
+    rotor_u_tip: wp.float64
+    rotor_v0: wp.float64
+    rotor_parasite_coeff: wp.float64
+    rotor_weight_n: wp.float64
     launch_radius: wp.float64
     launch_spacing: wp.float64
     target_exclusion: wp.float64
@@ -371,6 +378,20 @@ def params_from_config(config):
                   idle_power=en.idle_power_w, hover_power=en.hover_power_w,
                   speed_coefficient=en.speed_squared_coefficient,
                   accel_coefficient=en.acceleration_squared_coefficient,
+                  propulsion_model=int(en.propulsion_model=='zeng2019'),
+                  rotor_p0=(en.rotor_profile_drag_coefficient/8.0 *
+                            en.rotor_air_density_kg_m3 * en.rotor_solidity *
+                            en.rotor_disc_area_m2 * en.rotor_angular_velocity_rad_s**3 *
+                            en.rotor_radius_m**3),
+                  rotor_pi=((1+en.rotor_induced_correction_factor)*en.rotor_weight_n**1.5 /
+                            np.sqrt(2*en.rotor_air_density_kg_m3*en.rotor_disc_area_m2)),
+                  rotor_u_tip=en.rotor_angular_velocity_rad_s*en.rotor_radius_m,
+                  rotor_v0=np.sqrt(en.rotor_weight_n/
+                                   (2*en.rotor_air_density_kg_m3*en.rotor_disc_area_m2)),
+                  rotor_parasite_coeff=(0.5*en.rotor_fuselage_drag_ratio *
+                                        en.rotor_air_density_kg_m3*en.rotor_solidity *
+                                        en.rotor_disc_area_m2),
+                  rotor_weight_n=en.rotor_weight_n,
                   launch_radius=w.launch_radius_m, launch_spacing=w.launch_min_spacing_m,
                   target_exclusion=w.target_exclusion_radius_m,
                   obstacle_min_radius=w.obstacle_radius_min_m, obstacle_max_radius=w.obstacle_radius_max_m,

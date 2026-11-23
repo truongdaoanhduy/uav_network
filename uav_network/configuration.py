@@ -93,6 +93,17 @@ class EnergyConfig:
     hover_power_w: float = 120.0
     speed_squared_coefficient: float = 0.5
     acceleration_squared_coefficient: float = 2.0
+    # Opt-in rotary-wing Zeng2019 model; default quadratic stays historical.
+    propulsion_model: str = 'quadratic'
+    rotor_weight_n: float = 20.0
+    rotor_air_density_kg_m3: float = 1.225
+    rotor_solidity: float = 0.05
+    rotor_disc_area_m2: float = 0.79
+    rotor_angular_velocity_rad_s: float = 220.0
+    rotor_radius_m: float = 0.5
+    rotor_profile_drag_coefficient: float = 0.012
+    rotor_induced_correction_factor: float = 0.1
+    rotor_fuselage_drag_ratio: float = 0.3
 
 @dataclass
 class RewardConfig:
@@ -331,6 +342,20 @@ class Config:
             raise ValueError("network.link_budget_margin_db must be in [0,30]")
         if not 0 <= self.reward.delivery_aoi_weight <= 1:
             raise ValueError("reward.delivery_aoi_weight must be in [0, 1]")
+        en=self.energy
+        if en.propulsion_model not in {'quadratic','zeng2019'}:
+            raise ValueError('energy.propulsion_model must be quadratic or zeng2019')
+        rotor_positive=(en.rotor_weight_n,en.rotor_air_density_kg_m3,
+                        en.rotor_solidity,en.rotor_disc_area_m2,
+                        en.rotor_angular_velocity_rad_s,en.rotor_radius_m,
+                        en.rotor_profile_drag_coefficient)
+        if any(not math.isfinite(v) or v <= 0 for v in rotor_positive):
+            raise ValueError('Rotor physical dimensions must be finite and positive')
+        if (not math.isfinite(en.rotor_induced_correction_factor) or
+                en.rotor_induced_correction_factor < 0 or
+                not math.isfinite(en.rotor_fuselage_drag_ratio) or
+                en.rotor_fuselage_drag_ratio < 0):
+            raise ValueError('Rotor induced correction/drag ratio must be nonnegative')
         if self.reward.communication_reference_tx_power_w < 0:
             raise ValueError("reward.communication_reference_tx_power_w must be nonnegative")
         if n.tx_power_mapping not in {"linear", "log"}:

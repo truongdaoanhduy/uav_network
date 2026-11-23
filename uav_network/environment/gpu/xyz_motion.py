@@ -45,6 +45,19 @@ def distance(a:wp.vec3d,b:wp.vec3d):
 
 @wp.func
 def cost(prev:wp.vec3d,actual:wp.vec3d,p:wp.ref[WorldParams]):
+    if p.propulsion_model != 0:
+        # IEEE TWC 2019 Eq. rotary-wing steady forward-flight model.
+        # Horizontal airspeed enters Zeng's forward-flight terms.
+        # Positive climb adds mechanical potential-energy rate W*vz.
+        v2=actual[0]*actual[0]+actual[1]*actual[1]
+        v=wp.sqrt(v2)
+        v02=p.rotor_v0*p.rotor_v0
+        ratio=v2/(wp.float64(2)*v02)
+        induced=wp.sqrt(wp.max(wp.sqrt(wp.float64(1)+ratio*ratio)-ratio,wp.float64(0)))
+        power=p.rotor_p0*(wp.float64(1)+wp.float64(3)*v2/(p.rotor_u_tip*p.rotor_u_tip))
+        power+=p.rotor_pi*induced + p.rotor_parasite_coeff*v2*v
+        power+=p.rotor_weight_n*wp.max(actual[2],wp.float64(0))
+        return power*p.dt
     a=(actual-prev)/p.dt
     return (p.idle_power+p.hover_power+p.speed_coefficient*wp.dot(actual,actual)+p.accel_coefficient*wp.dot(a,a))*p.dt
 
