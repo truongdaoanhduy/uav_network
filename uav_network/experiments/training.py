@@ -107,6 +107,27 @@ def refresh_base_collector(collector, learner):
     synchronize_worker(collector.device)
 
 
+def training_candidate_snapshots_enabled(config, env_step_limit=0):
+    """Maintain legacy default; FASTGRID disables only extra training candidates.
+
+    The original Actor at vector step0, each periodic snapshot and final policy
+    are still retained for the same held-out 100-seed GPU Validation procedure.
+    """
+    periodic_only = os.environ.get("UAV_PERIODIC_ACTORS_ONLY", "false").strip().lower() in {
+        "1", "true", "yes"
+    }
+    return bool(config.tracking.deferred_gpu_eval_keep_all and not env_step_limit and not periodic_only)
+
+
+def timing_unattributed_host_seconds(elapsed, startup, collector_wait, learner):
+    """Approximate nonnegative wallclock residual, not GPU critical-path time.
+
+    Asynchronous collector/learner operations overlap, so this is diagnostic
+    context, NEVER an exclusive full decomposition of elapsed runtime.
+    """
+    return max(0., float(elapsed) - float(startup) - float(collector_wait) - float(learner))
+
+
 def train(config):
     with graceful_termination():
         if config.pql.enabled:
@@ -193,8 +214,8 @@ def _train(config):
         # no training-derived checkpoint can directly become the final best.pt.
         training_candidate_selector = (
             TrainingMetricCandidates(window=256)
-            if deferred_bank is not None and config.tracking.deferred_gpu_eval_keep_all
-            and not env_step_limit else None)
+            if deferred_bank is not None and training_candidate_snapshots_enabled(
+                config, env_step_limit) else None)
         collector = learner if collector_device == learner_device else inference_copy(learner, collector_device)
         collector_version = learner.actor_updates
         vector = make_vector(config, device=collector_device)
@@ -371,6 +392,8 @@ def _train(config):
                                         **training_memory_metrics(),
                                         "timing/collector_wait_seconds": collection_wait_s,
                                         "timing/learner_seconds": update_s,
+                                        "timing/unattributed_host_seconds": timing_unattributed_host_seconds(
+                                            time.perf_counter()-start, startup_s, collection_wait_s, update_s),
                                         "timing/replay_sample_host_seconds": replay_sample_s,
                                         "timing/optimizer_update_host_seconds": optimizer_update_s,
                                         **({"timing/probe_update_cuda_ms": cuda_update_profile_ms}
