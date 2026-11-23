@@ -96,3 +96,23 @@ Existing safe FASTGRID production improvements (already in current notebook): **
 ## Final regression after audit script added
 
 `23 passed` across source-bundle Kaggle bootstrap, mandatory preflight, posterior-only MAP1000/TX0.6 science tests, FASTGRID periodic-only, real CPU bounded train/Val/Test, and fake W&B/HF logging; full detailed CI log in `/home/aduy/Downloads/MAP1000_TX06_FULLFLOW_ROOTCAUSE_REGRESSION_20261123.log`. Run environment has **no NVIDIA driver**; CUDA-only tests cannot be treated as executed.
+
+## 7. DIRECT Hugging Face forensic evidence: packet flood and channel contention
+
+Read-only script: `scripts/audit_hf_packet_congestion_20261123.py`. Data table in Downloads as `MATD3_18d_VS_602a_HF_PACKET_CONGESTION_20261123.csv` and `.json`, with full per-archive source URLs.
+
+**Data basis:** decode `episodes.jsonl` from five exact public archive parts `{25,60,80,100,120}` of both `18d756ef` and `602a1e82`; calculate episode-level statistics (N=23–238 per part, per run) directly from `episode.network.generated_packets`, `episode.network.collisions`, `episode.targets_delivered`, `episode.false_confirmed_cells`, `episode.regenerated_reports`/`dropped_reports`.
+
+| HF diagnostic part | baseline N / mean packets / mean collisions | MAP800 Posterior-only N / mean packets / mean collisions | MAP800 false-confirmed cells / episode |
+|---|---|---|---:|
+| 000025 | 180 / **25.0** / **0.50** | 225 / **1,210.5** / **1,492.1** | 20.4 |
+| 000060 | 180 / 31.6 / 0.56 | 238 / 284.8 / 91.9 | 14.7 |
+| 000080 | 133 / 37.8 / 0.93 | 225 / 101.3 / 4.8 | 19.0 |
+| 000100 | 140 / 38.6 / 0.51 | 23 / 87.6 / 0.39 | 18.3 |
+| 000120 | 142 / 46.8 / 0.81 | 235 / 88.2 / 1.90 | 18.3 |
+
+In archive25, NoOracle's mean generated packet load was **48.3 times** baseline and collisions were extremely high. New sample packet load becomes lower later in training (e.g. ~88 at archive120) but still ~1.9x baseline. Some newer-run episodes at archive25 had median1180 generated packets, 90th percentile1714, and mean ~25.7 dropped reports / 15 regenerated reports / 15.8 expired reports. Baseline corresponding mean drops/regenerations were approximately0. These patterns support **a genuine congestion/retry pressure root cause** for `packet_step` processing, in addition to merely larger report-slot buffers.
+
+**Important limitations:** Archive part numbers align neither the same actual global step nor same seed or policy and are **not paired causal comparisons**. The runs use different NoOracle/truth-indexing, report emissions, radio controls and learned policies. The packet numbers strongly indicate very different physical simulation workloads, not that changing a single variable (such as TX0.6 vs0.8) will causally deliver any particular TPS speedup. The older baseline `false_confirmed_cells` field is **absent**, not zero; data is reported as unavailable. Also this direct traffic comparison is `602a1e82` **MAP800/TX0.8** versus `18d756ef`, not completed production MAP1000/TX0.6 (which has never been trained on T4 yet).
+
+**Source scrutiny:** In `uav_network/communication/gpu/mac.py`, `packet_step` services event heap in a variable-length loop per world, with TX/ACK, backoff/listen/POLL and retransmissions. `uav_network/communication/gpu/reports.py` `sense_reports_at` can reinsert recovered local reports after TTL expiry, whereas GCS/peer receiver state is intentionally not used for local NoOracle action admission without a beacon. Dropped/expired/regenerated reports plus false-positive hypotheses are consistent with heavier network pressure. Disabling those pathways would change MAC and/or DecPOMDP semantics; optimize event queue/transfer and explicitly validate equality of report custody and packet events before promoting any change.
