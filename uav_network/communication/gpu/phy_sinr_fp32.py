@@ -34,6 +34,7 @@ CCA_THRESHOLD_W = 10.0 ** ((-82.0 - 30.0) / 10.0)  # -82 dBm carrier sense thres
 
 
 if wp is not None:
+    wp.set_module_options({"enable_backward": False})
 
     @wp.func
     def segment_hits_cylinder_2d(
@@ -103,7 +104,7 @@ if wp is not None:
     ):
         """1 thread = 1 env; unrolled 7x7 symmetric PHY precomputation with zero atomics."""
         e = wp.tid()
-        for i in range(wp.static(NUM_NODES)):
+        for i in range(NUM_NODES):
             pi = node_pos[e, i]
             dist_mat[e, i, i] = wp.float32(0.0)
             los_mat[e, i, i] = wp.int32(1)
@@ -128,6 +129,41 @@ if wp is not None:
                 cca_hear_mat[e, i, j] = hear
                 cca_hear_mat[e, j, i] = hear
 
+
+    @wp.kernel
+    def compute_phy_matrices_if_done_fp32(
+        dones: wp.array(dtype=wp.float32),
+        node_pos: wp.array2d(dtype=wp.vec3f),
+        obstacles: wp.array2d(dtype=wp.vec4f),
+        num_obstacles: wp.int32,
+        dist_mat: wp.array3d(dtype=wp.float32),
+        los_mat: wp.array3d(dtype=wp.int32),
+        rx_pwr_mat: wp.array3d(dtype=wp.float32),
+        cca_hear_mat: wp.array3d(dtype=wp.int32),
+    ):
+        e = wp.tid()
+        if dones[e] <= wp.float32(0.5):
+            return
+        for i in range(NUM_NODES):
+            dist_mat[e, i, i] = wp.float32(0.0)
+            los_mat[e, i, i] = wp.int32(1)
+            rx_pwr_mat[e, i, i] = wp.float32(TX_POWER_W)
+            cca_hear_mat[e, i, i] = wp.int32(1)
+            pi = node_pos[e, i]
+            for j in range(i + 1, NUM_NODES):
+                pj = node_pos[e, j]
+                d = wp.length(pi - pj)
+                los = check_link_los_fp32(e, pi[0], pi[1], pi[2], pj[0], pj[1], pj[2], obstacles, num_obstacles)
+                prx = rx_power_watts_fp32(d, los)
+                hear = wp.int32(1) if prx >= wp.float32(CCA_THRESHOLD_W) else wp.int32(0)
+                dist_mat[e, i, j] = d
+                dist_mat[e, j, i] = d
+                los_mat[e, i, j] = los
+                los_mat[e, j, i] = los
+                rx_pwr_mat[e, i, j] = prx
+                rx_pwr_mat[e, j, i] = prx
+                cca_hear_mat[e, i, j] = hear
+                cca_hear_mat[e, j, i] = hear
 
 def analytical_link_budget_summary() -> dict:
     """Pure-Python analytical verification of the FP32 PHY link budget constants."""

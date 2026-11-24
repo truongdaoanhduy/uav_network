@@ -30,6 +30,7 @@ REPORT_TTL_S = 120.0
 
 
 if wp is not None:
+    wp.set_module_options({"enable_backward": False})
 
     Vec6i = wp.types.vector(length=6, dtype=wp.int32)
 
@@ -69,7 +70,7 @@ if wp is not None:
     ):
         """1 thread = 1 env. Fixed M=4 contention sub-slots, zero dynamic loops, zero atomics."""
         e = wp.tid()
-        now = step_time_s[0]
+        now = step_time_s[e] if step_time_s.shape[0] > 1 else step_time_s[0]
         rng = rng_states[e]
 
         # 0) Zero per-step KPI outputs
@@ -83,11 +84,11 @@ if wp is not None:
         step_ttl_expired[e] = wp.int32(0)
 
         # 1) Expire stale reports exceeding TTL (120 s) from head of each UAV's FIFO queue
-        for u in range(wp.static(NUM_UAVS)):
+        for u in range(NUM_UAVS):
             cnt = q_count[e, u]
             while cnt > wp.int32(0) and (now - q_timestamp[e, u, 0]) > wp.float32(REPORT_TTL_S):
                 # Shift FIFO head left
-                for k in range(wp.static(MAX_QUEUE - 1)):
+                for k in range(MAX_QUEUE - 1):
                     if k < cnt - wp.int32(1):
                         q_cell_id[e, u, k] = q_cell_id[e, u, k + 1]
                         q_timestamp[e, u, k] = q_timestamp[e, u, k + 1]
@@ -103,7 +104,7 @@ if wp is not None:
         chosen_slot = Vec6i(-1, -1, -1, -1, -1, -1)
         chosen_dst = Vec6i(-1, -1, -1, -1, -1, -1)
 
-        for u in range(wp.static(NUM_UAVS)):
+        for u in range(NUM_UAVS):
             d_act = dest_action[e, u]
             if uav_alive[e, u] == wp.int32(1) and q_count[e, u] > wp.int32(0) and d_act > wp.int32(0):
                 # Map discrete action {1..5 -> peer UAV id, 6 -> GCS (6)}
@@ -124,17 +125,17 @@ if wp is not None:
                     chosen_dst[u] = dst_node
 
         # 3) Execute M=4 fixed contention sub-slots (slotted approximation of CSMA/CA)
-        for m in range(wp.static(NUM_SUBSLOTS)):
+        for m in range(NUM_SUBSLOTS):
             # 3a) Carrier-sense CCA deferral: if a lower-backoff/random-priority neighbor in CCA
             #     range transmits in the same sub-slot, a contending node may defer or collide.
             tx_active = Vec6i(0, 0, 0, 0, 0, 0)
-            for u in range(wp.static(NUM_UAVS)):
+            for u in range(NUM_UAVS):
                 if chosen_slot[u] == m and chosen_dst[u] >= wp.int32(0):
                     # Same-slot contention: a lower-index transmitter already winning
                     # carrier sense defers this UAV when its RF energy is detectable.
                     # A hidden transmitter (CCA below threshold) still transmits.
                     busy = wp.int32(0)
-                    for lower in range(wp.static(NUM_UAVS)):
+                    for lower in range(NUM_UAVS):
                         if lower < u and tx_active[lower] == wp.int32(1):
                             if cca_hear_mat[e, lower, u] == wp.int32(1):
                                 busy = wp.int32(1)
@@ -148,7 +149,7 @@ if wp is not None:
                         chosen_slot[u] = wp.int32(-1)
 
             # 3b) Evaluate O(N^2) SINR, Half-Duplex Deafness & ACK for every active transmitter
-            for u in range(wp.static(NUM_UAVS)):
+            for u in range(NUM_UAVS):
                 if tx_active[u] == wp.int32(1):
                     dst = chosen_dst[u]
                     tx_j = wp.float32((0.1 / 0.35 + 0.1) * 0.004328)
@@ -161,7 +162,7 @@ if wp is not None:
                     else:
                         sig_w = rx_pwr_mat[e, u, dst]
                         interf_w = wp.float32(0.0)
-                        for other in range(wp.static(NUM_UAVS)):
+                        for other in range(NUM_UAVS):
                             if other != u and tx_active[other] == wp.int32(1):
                                 interf_w = interf_w + rx_pwr_mat[e, other, dst]
                         sinr = sig_w / (wp.float32(NOISE_FLOOR_W) + interf_w)
@@ -176,7 +177,7 @@ if wp is not None:
                             vmask = q_visited_mask[e, u, 0] | (wp.int32(1) << u)
 
                             cnt = q_count[e, u]
-                            for k in range(wp.static(MAX_QUEUE - 1)):
+                            for k in range(MAX_QUEUE - 1):
                                 if k < cnt - wp.int32(1):
                                     q_cell_id[e, u, k] = q_cell_id[e, u, k + 1]
                                     q_timestamp[e, u, k] = q_timestamp[e, u, k + 1]
@@ -224,7 +225,7 @@ if wp is not None:
                     # Check retry exhaustion (max 5 retries -> drop head packet)
                     if q_count[e, u] > wp.int32(0) and q_retries[e, u, 0] >= wp.int32(MAX_RETRIES):
                         cnt = q_count[e, u]
-                        for k in range(wp.static(MAX_QUEUE - 1)):
+                        for k in range(MAX_QUEUE - 1):
                             if k < cnt - wp.int32(1):
                                 q_cell_id[e, u, k] = q_cell_id[e, u, k + 1]
                                 q_timestamp[e, u, k] = q_timestamp[e, u, k + 1]

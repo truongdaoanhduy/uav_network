@@ -1,16 +1,12 @@
-"""End-to-End Production & Reference Runner for Vanilla MATD3 / Vanilla MASAC (Streamfix v2 Hardened).
+"""End-to-End Production & Reference Runner for Vanilla MATD3 / Vanilla MASAC (Streamfix v3).
 
-Key production guarantees:
-1. Zero in-place replay buffer aliasing: `obs_l`, `state_l` (FP16), and `mask_l` are snapshotted on
-   `learner_dev`/`replay_dev` BEFORE `step_torch()` mutates static CUDA Graph buffers.
-2. True termination vs. time-limit truncation separation: uses `infos["terminated"]` for replay
-   buffer `dones` so 550-step timeouts never zero Bellman bootstrapping.
-3. Throttled logging (`--log-interval-steps`, default 20,480) + `return_metrics` gating eliminates
-   per-step `.item()` CUDA pipeline stalls while logging clean ~977 W&B points over 20M steps.
-4. Zero-copy GPU validation (`make_deterministic_torch_policy_fn` + reusable persistent `eval_env`).
-5. Kaggle 12h multi-session continuity: atomic checkpointing, `--resume` preserving `run_id` /
-   `wandb_run_id` / `total_updates` / `prior_wall_clock_s` / `train_history.jsonl.gz` / `marl_eval_results.json`,
-   `--max-wall-clock-s` graceful exit, and incremental Hugging Face backups on every eval & exit.
+Streamfix v3 upgrades:
+1. Accurate `config_resolved.json`: CLI overrides are written back into `cfg` BEFORE logger init.
+2. Dual-T4 async CUDA stream overlap: overlaps `cuda:0` Warp CUDA Graph rollout with `cuda:1`
+   `updates_per_step=8` learner updates (with zero policy staleness).
+3. Gated `compute_reward_info=should_log` + single batched `.cpu().tolist()` sync every log interval.
+4. Supports `--learning-starts` and `--batch-size` overrides for real mini-training / pilot checks.
+5. Rebalanced `max_accel_mps2: 4.0` validation & full 12h Kaggle auto-resume + incremental HF backups.
 """
 
 from __future__ import annotations
@@ -61,7 +57,7 @@ def validate_scenario_config(cfg: Dict[str, Any]) -> None:
         ("network", "max_queue_reports"): 32,
         ("network", "report_ttl_s"): 120.0,
         ("energy", "battery_capacity_j"): 150000.0,
-        ("world", "max_accel_mps2"): 2.0,
+        ("world", "max_accel_mps2"): 4.0,
         ("world", "max_speed_mps"): 20.0,
         ("world", "safety_distance_m"): 15.0,
     }
@@ -244,6 +240,8 @@ def run_end_to_end(
     override_max_steps: Optional[int] = None,
     override_seed: Optional[int] = None,
     override_log_interval_steps: Optional[int] = None,
+    override_learning_starts: Optional[int] = None,
+    override_batch_size: Optional[int] = None,
     max_wall_clock_s: Optional[float] = None,
     mode: str = "production",
     reference_smoke: bool = False,
@@ -270,6 +268,8 @@ def run_end_to_end(
     log_interval_steps = int(override_log_interval_steps or cfg["runtime"].get("log_interval_steps", max(num_envs * 10, 1)))
     eval_n = int(override_eval_episodes or cfg["runtime"]["eval_episodes_slotted"])
     test_n = int(override_eval_episodes or cfg["runtime"]["eval_episodes_full_uavnetsim"])
+    learning_starts = int(override_learning_starts if override_learning_starts is not None else acfg["learning_starts"])
+    batch_size = int(override_batch_size if override_batch_size is not None else acfg["batch_size"])
     belief_mode = str(cfg.get("sensor", {}).get("belief_sharing_mode", "local_decpomdp"))
     aoi_eta = float(cfg["sensor"]["aoi_decay_eta"])
     rew_weights = (
@@ -279,6 +279,17 @@ def run_end_to_end(
         float(cfg["reward"]["w4_safety_violation"]),
         float(cfg["reward"]["w5_expired_or_dropped"]),
     )
+
+    # Write ALL CLI overrides back into cfg BEFORE logging config_resolved.json!
+    cfg["runtime"]["seed"] = seed
+    cfg["runtime"]["num_envs"] = num_envs
+    cfg["runtime"]["total_env_steps"] = total_steps
+    cfg["runtime"]["log_interval_steps"] = log_interval_steps
+    cfg["runtime"]["eval_episodes_slotted"] = eval_n
+    cfg["runtime"]["eval_episodes_full_uavnetsim"] = test_n
+    cfg["world"]["max_steps"] = max_steps
+    acfg["learning_starts"] = learning_starts
+    acfg["batch_size"] = batch_size
 
     if mode == "reference-smoke":
         if not (1 <= num_envs <= 64 and 1 <= total_steps <= 5000 and 1 <= max_steps <= 550
@@ -387,7 +398,6 @@ def run_end_to_end(
         device=replay_dev,
     )
 
-    # Persistent reusable eval_env for zero CUDA-Graph churn across 20 periodic validations
     eval_env: Optional[Slotted2DUavEnv] = None
     val_seeds = [1_000_000_000 + i for i in range(eval_n)]
     test_seeds = [2_000_000_000 + i for i in range(test_n)]
@@ -395,34 +405,63 @@ def run_end_to_end(
     obs, state, mask = env.reset()
     is_gpu_env = env._gpu_backend is not None
     env_dev = env._gpu_backend.torch_device if is_gpu_env else torch.device("cpu")
+    dual_gpu_async = is_gpu_env and (env_dev != learner_dev)
 
-    # CRITICAL FIX: snapshot obs_l, state_l (FP16), mask_l BEFORE in-place GPU step_torch()!
     if is_gpu_env:
-        obs_l = obs.to(learner_dev, dtype=torch.float32, non_blocking=True).clone()
-        state_l = state.to(replay_dev, dtype=torch.float16, non_blocking=True).clone()
-        mask_l = mask.to(learner_dev, dtype=torch.uint8, non_blocking=True).clone()
+        obs_f16 = obs.to(torch.float16).to(replay_dev, non_blocking=True)
+        obs_l = obs_f16.to(learner_dev, dtype=torch.float32, non_blocking=True)
+        state_l = state.to(torch.float16).to(replay_dev, non_blocking=True)
+        mask_l = mask.to(learner_dev, dtype=torch.uint8, non_blocking=True)
+        if env_dev == learner_dev:
+            obs_f16 = obs_f16.clone()
+            state_l = state_l.clone()
+            mask_l = mask_l.clone()
 
     session_start_step = global_step
     t0 = time.perf_counter()
     next_log_step = global_step + log_interval_steps
-    paused_for_wall_clock = False
+    n_upd = int(acfg["updates_per_step"])
 
     while global_step < total_steps:
+        next_step_count = global_step + num_envs
+        should_log = (next_step_count >= next_log_step) or (next_step_count >= total_steps)
+        learner_metrics: Dict[str, float] = {}
+
         if is_gpu_env:
             act_cont_t, act_disc_oh_t = agent.act(obs_l, mask_l, explore=True)
             act_disc_t = act_disc_oh_t.argmax(dim=-1).to(torch.int32)
-            next_obs, next_state, next_mask, rewards, dones, infos = env._gpu_backend.step_torch(
-                act_cont_t.detach().to(env_dev, non_blocking=True),
-                act_disc_t.detach().to(env_dev, non_blocking=True),
-            )
-            # Cast to FP16 on env_dev BEFORE transfer to replay_dev (halves PCIe traffic & prevents aliasing)
+
+            if dual_gpu_async:
+                # Dual-T4 Async Overlap: kick off GPU0 Warp step while GPU1 runs 8 learner updates!
+                next_obs, next_state, next_mask, rewards, dones, infos = env._gpu_backend.step_torch(
+                    act_cont_t.detach().to(env_dev, non_blocking=True),
+                    act_disc_t.detach().to(env_dev, non_blocking=True),
+                    compute_reward_info=should_log,
+                )
+                if buf.size >= max(learning_starts, batch_size):
+                    for ui in range(n_upd):
+                        batch = buf.sample(batch_size)
+                        m_i = agent.update(batch, return_metrics=(should_log and ui == n_upd - 1))
+                        if m_i:
+                            learner_metrics = m_i
+            else:
+                next_obs, next_state, next_mask, rewards, dones, infos = env._gpu_backend.step_torch(
+                    act_cont_t.detach().to(env_dev, non_blocking=True),
+                    act_disc_t.detach().to(env_dev, non_blocking=True),
+                    compute_reward_info=should_log,
+                )
+
             next_obs_f16 = next_obs.to(torch.float16).to(replay_dev, non_blocking=True)
             next_state_f16 = next_state.to(torch.float16).to(replay_dev, non_blocking=True)
-            next_mask_l = next_mask.to(learner_dev, dtype=torch.uint8, non_blocking=True).clone()
+            next_mask_l = next_mask.to(learner_dev, dtype=torch.uint8, non_blocking=True)
+            if env_dev == learner_dev:
+                next_obs_f16 = next_obs_f16.clone()
+                next_state_f16 = next_state_f16.clone()
+                next_mask_l = next_mask_l.clone()
             term_dones = infos.get("terminated", dones)
 
             buf.add_batch(
-                obs=obs_l.to(torch.float16),
+                obs=obs_f16,
                 state=state_l,
                 act_cont=act_cont_t,
                 act_disc_onehot=act_disc_oh_t,
@@ -433,9 +472,17 @@ def run_end_to_end(
                 mask=mask_l,
                 next_mask=next_mask_l,
             )
+            obs_f16 = next_obs_f16
             obs_l = next_obs_f16.to(learner_dev, dtype=torch.float32, non_blocking=True)
             state_l = next_state_f16
             mask_l = next_mask_l
+
+            if not dual_gpu_async and buf.size >= max(learning_starts, batch_size):
+                for ui in range(n_upd):
+                    batch = buf.sample(batch_size)
+                    m_i = agent.update(batch, return_metrics=(should_log and ui == n_upd - 1))
+                    if m_i:
+                        learner_metrics = m_i
         else:
             obs_t = torch.from_numpy(obs).to(learner_dev, dtype=torch.float32)
             mask_t = torch.from_numpy(mask).to(learner_dev, dtype=torch.uint8)
@@ -460,26 +507,21 @@ def run_end_to_end(
             if (dones > 0.5).any():
                 done_indices = np.flatnonzero(dones > 0.5).tolist()
                 obs, state, mask = env.reset_indices(
-                    done_indices, seeds=[seed + global_step + num_envs + i for i in done_indices]
+                    done_indices, seeds=[seed + next_step_count + i for i in done_indices]
                 )
+            if buf.size >= max(learning_starts, batch_size):
+                for ui in range(n_upd):
+                    batch = buf.sample(batch_size)
+                    m_i = agent.update(batch, return_metrics=(should_log and ui == n_upd - 1))
+                    if m_i:
+                        learner_metrics = m_i
 
-        global_step += num_envs
-        should_log = (global_step >= next_log_step) or (global_step >= total_steps)
-
-        learner_metrics: Dict[str, float] = {}
-        if buf.size >= max(int(acfg["learning_starts"]), int(acfg["batch_size"])):
-            n_upd = int(acfg["updates_per_step"])
-            for ui in range(n_upd):
-                batch = buf.sample(int(acfg["batch_size"]))
-                m_i = agent.update(batch, return_metrics=(should_log and ui == n_upd - 1))
-                if m_i:
-                    learner_metrics = m_i
+        global_step = next_step_count
 
         if should_log:
             session_elapsed = max(time.perf_counter() - t0, 1e-6)
             total_elapsed = prior_wall_clock_s + session_elapsed
             if is_gpu_env:
-                # Single batched GPU->CPU transfer for all reward scalars
                 r_vec = torch.stack([
                     rewards.float().mean(),
                     infos["r_ds"].float().mean(),
@@ -488,9 +530,11 @@ def run_end_to_end(
                     infos["r_safety"].float().mean(),
                     infos["r_drop_ttl"].float().mean(),
                 ]).detach().cpu().tolist()
-                sat_frac = float((act_cont_t.abs() > 0.99).float().mean().item())
-                silent_frac = float((act_disc_t == 0).float().mean().item())
-                mask_sil_frac = float((mask_l.sum(dim=-1) == 1).float().mean().item())
+                a_vec = torch.stack([
+                    (act_cont_t.abs() > 0.99).float().mean(),
+                    (act_disc_t == 0).float().mean(),
+                    (mask_l.sum(dim=-1) == 1).float().mean(),
+                ]).detach().cpu().tolist()
             else:
                 r_vec = [
                     float(rewards.mean()),
@@ -500,9 +544,11 @@ def run_end_to_end(
                     float(infos["r_safety"].mean()),
                     float(infos["r_drop_ttl"].mean()),
                 ]
-                sat_frac = float((np.abs(act_cont_np) > 0.99).mean())
-                silent_frac = float((act_disc_idx == 0).mean())
-                mask_sil_frac = float((mask.sum(axis=-1) == 1).mean())
+                a_vec = [
+                    float((np.abs(act_cont_np) > 0.99).mean()),
+                    float((act_disc_idx == 0).mean()),
+                    float((mask.sum(axis=-1) == 1).mean()),
+                ]
 
             train_scalars = {
                 "train/step_reward_mean": r_vec[0],
@@ -511,9 +557,9 @@ def run_end_to_end(
                 "reward/r_propulsion": r_vec[3],
                 "reward/r_safety": r_vec[4],
                 "reward/r_drop_ttl": r_vec[5],
-                "learner/tanh_sat_frac": sat_frac,
-                "learner/silent_frac": silent_frac,
-                "learner/mask_silent_only_frac": mask_sil_frac,
+                "learner/tanh_sat_frac": a_vec[0],
+                "learner/silent_frac": a_vec[1],
+                "learner/mask_silent_only_frac": a_vec[2],
                 "sys/env_steps_per_sec": float((global_step - session_start_step) / session_elapsed),
                 "sys/wall_clock_s": total_elapsed,
             }
@@ -522,7 +568,7 @@ def run_end_to_end(
             logger.log_train_step(global_step, train_scalars)
             next_log_step = global_step + log_interval_steps
 
-        # Phase 2: Periodic Validation on fixed held-out val_seeds (zero-copy GPU when on CUDA)
+        # Phase 2: Periodic Validation on fixed held-out val_seeds
         if global_step >= next_eval_step:
             policy_fn = make_deterministic_policy_fn(agent, learner_dev)
             gpu_pfn = make_deterministic_torch_policy_fn(agent, learner_dev, env_dev) if is_gpu_env else None
@@ -557,8 +603,9 @@ def run_end_to_end(
             )
             eval_sum = logger.log_periodic_eval(global_step, eval_eps)
             _atomic_torch_save(agent.actor.state_dict(), ckpt_dir / f"actor_step_{global_step:012d}.pt")
-            if eval_sum["return_iqm"] >= best_eval_score:
-                best_eval_score = eval_sum["return_iqm"]
+            ret_iqm = eval_sum.get("return_iqm")
+            if ret_iqm is not None and float(ret_iqm) >= best_eval_score:
+                best_eval_score = float(ret_iqm)
                 _atomic_torch_save(agent.actor.state_dict(), best_ckpt_path)
             next_eval_step = min(((global_step // eval_interval) + 1) * eval_interval, total_steps + eval_interval)
             total_elapsed = prior_wall_clock_s + (time.perf_counter() - t0)
@@ -566,10 +613,8 @@ def run_end_to_end(
                 latest_ckpt, agent, global_step, best_eval_score, next_eval_step,
                 total_elapsed, logger.run_id, logger.wandb_run_id,
             )
-            # Incremental HF backup after every eval so Kaggle 12h sessions never lose progress
             logger.upload_checkpoint_snapshot()
 
-        # Kaggle 12h Wall-Clock Safety Guard: exit cleanly & push checkpoint before hard kill
         if max_wall_clock_s is not None and (time.perf_counter() - t0) >= float(max_wall_clock_s):
             total_elapsed = prior_wall_clock_s + (time.perf_counter() - t0)
             _save_resume_checkpoint(
@@ -578,7 +623,6 @@ def run_end_to_end(
             )
             hf_snap = logger.upload_checkpoint_snapshot()
             logger.close()
-            paused_for_wall_clock = True
             return {
                 "mode": mode,
                 "status": "paused_for_wall_clock",
@@ -587,7 +631,6 @@ def run_end_to_end(
                 "hf_snapshot": hf_snap,
             }
 
-    # Save final actor & reload Best Actor for Phase 3 Final Dual-Fidelity Test
     total_elapsed = prior_wall_clock_s + (time.perf_counter() - t0)
     _atomic_torch_save(agent.actor.state_dict(), ckpt_dir / "final_actor.pt")
     _save_resume_checkpoint(
@@ -639,6 +682,7 @@ def run_end_to_end(
         "mode": mode,
         "status": "completed",
         "global_step": global_step,
+        "total_updates": int(getattr(agent, "total_updates", 0)),
         "best_eval_return_iqm": best_eval_score,
         "gpu_warp_verified": gpu_warp_verified,
         "vendor_uavnetsim_verified": vendor_uavnetsim_verified,
@@ -648,7 +692,7 @@ def run_end_to_end(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="End-to-End Slotted Vanilla MATD3/MASAC Trainer")
+    parser = argparse.ArgumentParser(description="End-to-End Slotted Vanilla MATD3/MASAC Trainer (Streamfix v3)")
     parser.add_argument("--config", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--mode", default="production", choices=["production", "reference-smoke"])
@@ -664,7 +708,9 @@ def main() -> None:
     parser.add_argument("--max-steps", type=int, default=None)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--log-interval-steps", type=int, default=None)
-    parser.add_argument("--max-wall-clock-s", type=float, default=None, help="Graceful exit budget for Kaggle 12h sessions (e.g. 37800)")
+    parser.add_argument("--learning-starts", type=int, default=None)
+    parser.add_argument("--batch-size", type=int, default=None)
+    parser.add_argument("--max-wall-clock-s", type=float, default=None)
     args = parser.parse_args()
 
     res = run_end_to_end(
@@ -680,12 +726,14 @@ def main() -> None:
         override_max_steps=args.max_steps,
         override_seed=args.seed,
         override_log_interval_steps=args.log_interval_steps,
+        override_learning_starts=args.learning_starts,
+        override_batch_size=args.batch_size,
         max_wall_clock_s=args.max_wall_clock_s,
         mode=args.mode,
         reference_smoke=args.reference_smoke,
         resume=args.resume,
     )
-    print(f"RUN STATUS ({res['mode']} -> {res['status']}):", res.get("hf_receipt") or res.get("hf_snapshot"))
+    print(f"RUN STATUS ({res['mode']} -> {res['status']}, updates={res.get('total_updates', 0)}):", res.get("hf_receipt") or res.get("hf_snapshot"))
 
 
 if __name__ == "__main__":

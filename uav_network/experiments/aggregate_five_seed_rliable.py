@@ -43,7 +43,7 @@ def probability_of_improvement(
 
 def aggregate_runs(run_dirs: List[Path], output_path: Path) -> Dict[str, Any]:
     merged_marl_eval: Dict[str, Any] = {}
-    seed_means: Dict[str, Dict[str, Dict[str, List[float]]]] = {}
+    seed_means: Dict[str, Dict[str, Dict[str, Dict[str, float]]]] = {}
 
     for rdir in run_dirs:
         me_file = rdir / "marl_eval_results.json"
@@ -59,10 +59,9 @@ def aggregate_runs(run_dirs: List[Path], output_path: Path) -> Dict[str, Any]:
                         if not abs_m:
                             continue
                         for m_name, ep_vals in abs_m.items():
-                            if ep_vals:
-                                seed_means.setdefault(env_key, {}).setdefault(algo_key, {}).setdefault(m_name, []).append(
-                                    float(np.mean(ep_vals))
-                                )
+                            valid_vals = [float(v) for v in ep_vals if v is not None]
+                            if valid_vals:
+                                seed_means.setdefault(env_key, {}).setdefault(algo_key, {}).setdefault(m_name, {})[seed_key] = float(np.mean(valid_vals))
 
     summary: Dict[str, Any] = {"seed_level_metrics": {}, "comparisons": {}, "sim_to_net_gap_5seed": {}}
 
@@ -71,7 +70,7 @@ def aggregate_runs(run_dirs: List[Path], output_path: Path) -> Dict[str, Any]:
         for algo_key, metrics in algos.items():
             summary["seed_level_metrics"][env_key][algo_key] = {}
             for m_name, vals in metrics.items():
-                arr = np.asarray(vals, dtype=np.float64)
+                arr = np.asarray(list(vals.values()), dtype=np.float64)
                 iqm, lo, hi = iqm_stratified_bootstrap_ci(arr.reshape(1, -1))
                 summary["seed_level_metrics"][env_key][algo_key][m_name] = {
                     "n_seeds": int(len(arr)),
@@ -87,8 +86,8 @@ def aggregate_runs(run_dirs: List[Path], output_path: Path) -> Dict[str, Any]:
             for m_name in ("episode_return", "delivery_ratio_pct", "multihop_ratio_pct", "mean_aoi_s"):
                 if m_name in algos["vanilla_matd3"] and m_name in algos["vanilla_masac"]:
                     p, lo, hi = probability_of_improvement(
-                        np.asarray(algos["vanilla_matd3"][m_name]),
-                        np.asarray(algos["vanilla_masac"][m_name]),
+                        np.asarray(list(algos["vanilla_matd3"][m_name].values())),
+                        np.asarray(list(algos["vanilla_masac"][m_name].values())),
                     )
                     summary["comparisons"][env_key][f"P_MATD3_gt_MASAC_{m_name}"] = {
                         "point": p, "ci_low": lo, "ci_high": hi,
@@ -100,11 +99,12 @@ def aggregate_runs(run_dirs: List[Path], output_path: Path) -> Dict[str, Any]:
             for algo_key in set(seed_means[slot_k]).intersection(seed_means[csma_k]):
                 summary["sim_to_net_gap_5seed"][f"{algo_key}_{slot_k}_vs_{csma_k}"] = {}
                 for m_name in ("episode_return", "delivery_ratio_pct", "mean_aoi_s"):
-                    a = np.asarray(seed_means[slot_k][algo_key].get(m_name, []), dtype=np.float64)
-                    b = np.asarray(seed_means[csma_k][algo_key].get(m_name, []), dtype=np.float64)
-                    n = min(len(a), len(b))
-                    if n > 0:
-                        delta = b[:n] - a[:n]
+                    a_map = seed_means[slot_k][algo_key].get(m_name, {})
+                    b_map = seed_means[csma_k][algo_key].get(m_name, {})
+                    common_seeds = sorted(set(a_map).intersection(b_map))
+                    if common_seeds:
+                        delta = np.asarray([b_map[sk] - a_map[sk] for sk in common_seeds], dtype=np.float64)
+                        n = len(common_seeds)
                         iqm, lo, hi = iqm_stratified_bootstrap_ci(delta.reshape(1, -1))
                         summary["sim_to_net_gap_5seed"][f"{algo_key}_{slot_k}_vs_{csma_k}"][m_name] = {
                             "n_paired_seeds": int(n),

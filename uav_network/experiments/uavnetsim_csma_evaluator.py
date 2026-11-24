@@ -72,8 +72,9 @@ def _segment_hits_cyl_2d(
 def _extract_episode_kpi(env: Slotted2DUavEnv, e: int) -> EpisodeKPI:
     snap = env.snapshots[e]
     aois = env.ep_aoi_samples[e]
-    mean_aoi = float(np.mean(aois)) if aois else float(REPORT_TTL_S)
-    p95_aoi = float(np.percentile(aois, 95)) if aois else float(REPORT_TTL_S)
+    mean_aoi = float(np.mean(aois)) if aois else None
+    p95_aoi = float(np.percentile(aois, 95)) if aois else None
+    censored_aoi = float(np.mean(aois)) if aois else float(REPORT_TTL_S)
     disc_true = int(sum(1 for cid in snap.target_cells if env.cell_reported[e, int(cid)] == 1))
     return EpisodeKPI(
         episode_return=float(env.ep_return[e]),
@@ -95,6 +96,8 @@ def _extract_episode_kpi(env: Slotted2DUavEnv, e: int) -> EpisodeKPI:
         observed_cells=int(np.count_nonzero(env.ds_pos_cnt[e] + env.ds_neg_cnt[e])),
         total_cells=int(len(snap.cell_has_target)),
         radio_energy_j=float(env.ep_network_j[e]),
+        censored_mean_aoi_s=censored_aoi,
+        aoi_samples_s=[float(x) for x in aois],
     )
 
 

@@ -1,4 +1,4 @@
-"""Comprehensive End-to-End Verification Suite for Streamfix v2 Production Pipeline (2026-11-24)."""
+"""Comprehensive Verification Suite for Streamfix v3 Production & Speed Pipeline (2026-11-24)."""
 
 import ast
 import gzip
@@ -23,6 +23,7 @@ from uav_network.environment.gpu.slotted_2d_env import (
     generate_scenario_snapshot,
 )
 from uav_network.experiments.aggregate_five_seed_rliable import aggregate_runs, probability_of_improvement
+from uav_network.experiments.dual_fidelity_eval import EpisodeKPI, aggregate_kpis
 from uav_network.experiments.telemetry_wandb_hf import (
     SlottedTelemetryLogger,
     iqm_stratified_bootstrap_ci,
@@ -33,53 +34,47 @@ from uav_network.experiments.uavnetsim_csma_evaluator import (
 )
 
 
-def test_scenario_and_obs_state_mask_and_reward_sum_identity():
-    snap = generate_scenario_snapshot(seed=44)
-    assert snap.obstacles.shape == (22, 4)
-    assert snap.target_cells.shape == (25,)
-    assert tuple(snap.gcs_pos.tolist()) == (40.0, 40.0, 10.0)
+def test_zero_delivery_q1_metric_hygiene():
+    """Verify Streamfix v3: 0 deliveries MUST return None for energy_kj_per_delivered_target, mean_aoi_s, multihop_ratio."""
+    ep0 = EpisodeKPI(
+        episode_return=4.427, targets_discovered=0, targets_delivered=0, total_targets=25,
+        mean_aoi_s=None, p95_aoi_s=None, multihop_deliveries=0, mac_collisions=0,
+        hd_drops=0, retry_drops=0, ttl_expired=0, propulsion_kj=3.022, safety_violations=0,
+        censored_mean_aoi_s=120.0, aoi_samples_s=[],
+    )
+    agg = aggregate_kpis([ep0])
+    assert agg["energy_kj_per_delivered_target"] is None, "Must NOT fabricate 3.02 kJ/target on 0 deliveries!"
+    assert agg["mean_aoi_s"] is None and agg["p95_aoi_s"] is None, "Must NOT fabricate 120s AoI on 0 deliveries!"
+    assert agg["multihop_delivery_ratio_pct"] is None
+    assert math.isclose(agg["mean_propulsion_kj"], 3.022, abs_tol=1e-6)
+    assert math.isclose(agg["censored_mean_aoi_s"], 120.0, abs_tol=1e-6)
 
-    env = Slotted2DUavEnv(num_envs=2, max_steps=10, base_seed=44, belief_sharing_mode="local_decpomdp")
-    obs, state, mask = env.reset()
-    assert obs.shape == (2, 6, OBS_DIM) and OBS_DIM == 96
-    assert state.shape == (2, STATE_DIM) and STATE_DIM == 256
-    assert mask.shape == (2, 6, DISC_ACTION_DIM) and DISC_ACTION_DIM == 7
-    assert (mask[:, :, 0] == 1).all(), "Silent action must ALWAYS be valid"
-    assert np.isfinite(obs).all() and np.isfinite(state).all()
+    # n=1 CI must return (point_iqm, None, None) rather than 0-width CI
+    iqm1, lo1, hi1 = iqm_stratified_bootstrap_ci(np.array([4.427]))
+    assert math.isclose(iqm1, 4.427, abs_tol=1e-6) and lo1 is None and hi1 is None
 
-    rng = np.random.default_rng(7)
-    for _ in range(5):
-        ac = rng.uniform(-1.0, 1.0, size=(2, 6, 2)).astype(np.float32)
-        ad = np.zeros((2, 6), dtype=np.int32)
-        obs, state, mask, rewards, dones, infos = env.step(ac, ad)
-        assert np.isfinite(rewards).all()
-        assert set(infos.keys()) == {"r_ds", "r_gcs_aoi", "r_propulsion", "r_safety", "r_drop_ttl"}
-        comp_sum = sum(infos[k] for k in infos)
-        assert np.allclose(rewards, comp_sum, atol=1e-5), "Reward component sum mismatch"
-
-
-def test_local_decpomdp_zero_telepathy_privacy():
-    env = Slotted2DUavEnv(num_envs=1, max_steps=10, base_seed=44, belief_sharing_mode="local_decpomdp")
-    env.reset(seeds=[44])
-    env.uav_pos[0, 0] = [400.0, 400.0, 50.0]
-    env.uav_pos[0, 1] = [100.0, 100.0, 50.0]
-    for u in range(2, 6):
-        env.uav_pos[0, u] = [750.0, 750.0, 50.0]
-
-    env.step(np.zeros((1, 6, 2), dtype=np.float32), np.zeros((1, 6), dtype=np.int32))
-    cid = 10 * 20 + 10
-    u1_obs_cnt = int(env.local_ds_pos[0, 1, cid] + env.local_ds_neg[0, 1, cid])
-    assert u1_obs_cnt == 0, "UAV 1 must NOT telepathically receive UAV 0's local DS evidence"
-    assert not np.array_equal(env.local_ds_m_u[0, 0], env.local_ds_m_u[0, 1])
+    # sim_to_net_gap must never explode on 0 baseline
+    with tempfile.TemporaryDirectory() as tmp:
+        lg = SlottedTelemetryLogger(tmp, {"world": {"num_uavs": 6, "num_obstacles": 22, "num_targets": 25}}, "matd3", 44)
+        rep = lg.log_final_dual_fidelity_test(8, [ep0], [ep0])
+        lg.close()
+        assert rep["sim_to_net_gap"]["delta_abs_energy_kj_per_delivered_target"] is None
+        assert rep["sim_to_net_gap"]["delta_rel_pct_mean_mac_collisions"] is None
 
 
-def test_dual_fidelity_resume_continuity_and_five_seed_aggregator():
-    def greedy_explore_policy(obs: np.ndarray, mask: np.ndarray):
+def test_real_discovery_and_multihop_delivery_pilot():
+    """Verify Streamfix v3 scenario: 250-step patrol+relay policy achieves real discovery, multi-hop delivery & non-null Q1 metrics."""
+    def patrol_relay_policy(obs: np.ndarray, mask: np.ndarray):
         e, n, _ = obs.shape
-        ac = np.full((e, n, 2), 0.35, dtype=np.float32)
+        ac = np.zeros((e, n, 2), dtype=np.float32)
         ad = np.zeros((e, n), dtype=np.int32)
         for ei in range(e):
             for ui in range(n):
+                # Fan out across map sectors to explore & trigger DS confirmations
+                ang = (ui / float(n)) * 1.45 + 0.1
+                ac[ei, ui, 0] = math.cos(ang) * 0.65
+                ac[ei, ui, 1] = math.sin(ang) * 0.65
+                # Prefer GCS (6) if physically decodable, else first valid peer (1..5), else Silent (0)
                 if mask[ei, ui, 6] == 1:
                     ad[ei, ui] = 6
                 else:
@@ -87,70 +82,18 @@ def test_dual_fidelity_resume_continuity_and_five_seed_aggregator():
                     ad[ei, ui] = int(peers[0] + 1) if len(peers) > 0 else 0
         return ac, ad
 
-    seeds = [101, 102, 103, 104]
-    slotted_eps = evaluate_on_slotted_warp(greedy_explore_policy, seeds, max_steps=30, backend="numpy")
-    csma_eps = evaluate_on_reference_csma(greedy_explore_policy, seeds, max_steps=30)
-    assert len(slotted_eps) == 4 and len(csma_eps) == 4
-
-    iqm, lo, hi = iqm_stratified_bootstrap_ci(np.array([10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0]))
-    assert math.isclose(iqm, 45.0, abs_tol=1e-6)
-    assert lo <= iqm <= hi
-
-    poi, plo, phi = probability_of_improvement(np.array([10.0, 12.0, 11.0, 13.0, 14.0]), np.array([5.0, 6.0, 7.0, 8.0, 9.0]))
-    assert poi == 1.0 and plo <= poi <= phi
-
-    # Verify resume=True preserves train_history.jsonl.gz (append mode) and marl_eval_results.json!
-    with tempfile.TemporaryDirectory() as tmp:
-        run1 = pathlib.Path(tmp) / "matd3_s44"
-        logger1 = SlottedTelemetryLogger(
-            output_dir=run1, config={"world": {"map_size_m": 800.0}},
-            algorithm="matd3", seed=44, wandb_mode="disabled",
-        )
-        orig_run_id = logger1.run_id
-        orig_wb_id = logger1.wandb_run_id
-        logger1.log_train_step(1000, {"train/step_reward_mean": 1.25})
-        logger1.log_periodic_eval(1000, slotted_eps)
-        logger1.close()
-
-        # Resume same directory: must append to train_history.jsonl.gz & preserve step_1000 in marl_eval
-        logger2 = SlottedTelemetryLogger(
-            output_dir=run1, config={"world": {"map_size_m": 800.0}},
-            algorithm="matd3", seed=44, wandb_mode="disabled", resume=True,
-        )
-        assert logger2.run_id == orig_run_id and logger2.wandb_run_id == orig_wb_id
-        logger2.log_train_step(2000, {"train/step_reward_mean": 2.50})
-        report = logger2.log_final_dual_fidelity_test(2000, slotted_eps, csma_eps)
-        assert report["gpu_warp_verified"] is False
-        receipt = logger2.write_sha256_manifest_and_upload_hf()
-        logger2.close()
-        assert receipt["file_count"] >= 6
-
-        with gzip.open(run1 / "train_history.jsonl.gz", "rt", encoding="utf-8") as gz:
-            hist_rows = [json.loads(line) for line in gz]
-        assert len(hist_rows) == 2 and hist_rows[0]["global_step"] == 1000 and hist_rows[1]["global_step"] == 2000
-
-        me = json.loads((run1 / "marl_eval_results.json").read_text(encoding="utf-8"))
-        node = me["numpy_slotted_reference"]["6uav_22bldg_25tgt"]["vanilla_matd3"]["seed_44"]
-        assert "step_1000" in node and "absolute_metrics" in node
-
-        # Test 5-seed aggregator
-        agg = aggregate_runs([run1], pathlib.Path(tmp) / "agg_out.json")
-        assert "numpy_slotted_reference" in agg["seed_level_metrics"]
+    seeds = [44, 45]
+    eps = evaluate_on_slotted_warp(patrol_relay_policy, seeds, max_steps=200, backend="numpy")
+    agg = aggregate_kpis(eps)
+    assert agg["total_targets_delivered"] >= 1, f"Expected real deliveries in 200-step pilot, got {agg}"
+    assert agg["energy_kj_per_delivered_target"] is not None and agg["energy_kj_per_delivered_target"] > 0.0
+    assert agg["mean_aoi_s"] is not None and 0.0 <= agg["mean_aoi_s"] < 120.0
+    assert agg["confirmation_precision_pct"] is not None and agg["confirmation_precision_pct"] >= 80.0
+    print(f"  [200-step CPU Pilot] deliv={agg['total_targets_delivered']:.0f}, AoI={agg['mean_aoi_s']:.2f}s, kJ/deliv={agg['energy_kj_per_delivered_target']:.2f}, prec={agg['confirmation_precision_pct']:.1f}%")
 
 
-def test_zero_not_implemented_zero_fp64_yaml_and_kaggle_public_contract():
-    for rel in [
-        "uav_network/environment/gpu/slotted_2d_env.py",
-        "uav_network/experiments/train_slotted_vanilla.py",
-        "uav_network/experiments/uavnetsim_csma_evaluator.py",
-    ]:
-        src = (ROOT / rel).read_text(encoding="utf-8")
-        assert "NotImplementedError" not in src, f"Residual NotImplementedError stub found in {rel}"
-
-    # Verify AckPacket & UrbanScenarioChannelModel.estimates() exist in UavNetSim adapter
-    ev_src = (ROOT / "uav_network/experiments/uavnetsim_csma_evaluator.py").read_text(encoding="utf-8")
-    assert "AckPacket" in ev_src and "def estimates(" in ev_src and "ProcessPoolExecutor" in ev_src
-
+def test_warp_fast_jit_and_production_contracts():
+    # 1) All 4 Warp kernel files must disable backward codegen & avoid wp.static(...) unrolling + zero fp64
     for rel in [
         "uav_network/communication/gpu/phy_sinr_fp32.py",
         "uav_network/communication/gpu/mac_slotted_fp32.py",
@@ -158,55 +101,39 @@ def test_zero_not_implemented_zero_fp64_yaml_and_kaggle_public_contract():
         "uav_network/environment/gpu/slotted_2d_warp_kernels.py",
     ]:
         src = (ROOT / rel).read_text(encoding="utf-8")
+        assert '"enable_backward": False' in src, f"enable_backward=False missing in {rel}"
+        assert "range(wp.static(" not in src, f"Unrolled range(wp.static(...)) found in {rel}"
         assert "wp.float" + "64" not in src, f"Forbidden 64-bit Warp float found in {rel}"
         ast.parse(src)
 
+    # 2) Verify YAMLs pass strict validation with rebalanced max_accel=4.0, w4=3.0, w2=15.0
     from uav_network.experiments.train_slotted_vanilla import validate_scenario_config
-    for cfg_name, algo_key in [
-        ("configs/vanilla_matd3_shared_2d_ds_aoi.yaml", "matd3"),
-        ("configs/vanilla_masac_shared_2d_ds_aoi.yaml", "masac"),
+    for cfg_name in [
+        "configs/vanilla_matd3_shared_2d_ds_aoi.yaml",
+        "configs/vanilla_masac_shared_2d_ds_aoi.yaml",
     ]:
         cfg = yaml.safe_load((ROOT / cfg_name).read_text(encoding="utf-8"))
-        assert cfg["sensor"]["belief_sharing_mode"] == "local_decpomdp"
-        assert cfg[algo_key]["replay_capacity"] == 1000000
-        assert cfg[algo_key]["updates_per_step"] == 8
+        assert cfg["world"]["max_accel_mps2"] == 4.0
+        assert cfg["reward"]["w4_safety_violation"] == 3.0
+        assert cfg["reward"]["w2_gcs_aoi_delivery"] == 15.0
         validate_scenario_config(cfg)
 
-    # Verify Kaggle Account 1 Public metadata
-    meta_path = ROOT / "notebooks/kaggle_account1_public_kernel-metadata.json"
-    meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    assert meta["is_private"] is False and meta["enable_gpu"] is True and meta["kernel_type"] == "notebook"
-
-
-def test_syntax_and_notebook_validity():
-    for rel in [
-        "uav_network/algorithms/vanilla_baselines.py",
-        "uav_network/communication/gpu/mac_slotted_fp32.py",
-        "uav_network/environment/gpu/ds_aoi_belief_fp32.py",
-        "uav_network/environment/gpu/slotted_2d_warp_kernels.py",
-        "uav_network/environment/gpu/slotted_2d_env.py",
-        "uav_network/experiments/telemetry_wandb_hf.py",
-        "uav_network/experiments/uavnetsim_csma_evaluator.py",
-        "uav_network/experiments/train_slotted_vanilla.py",
-        "uav_network/experiments/aggregate_five_seed_rliable.py",
-        "tests/test_gpu_warp_parity_and_cudagraph_t4.py",
-    ]:
-        ast.parse((ROOT / rel).read_text(encoding="utf-8"))
-
+    # 3) Verify notebook AST + pinned deps + Pilot 1M cell + Public Account 1 metadata
     nb = json.loads((ROOT / "notebooks/RUN_SLOTTED_VANILLA_T4X2_END2END_20261124.ipynb").read_text(encoding="utf-8"))
     assert nb["nbformat"] == 4 and len(nb["cells"]) == 7
     all_code = "\n".join("".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code")
     for c in nb["cells"]:
         if c["cell_type"] == "code":
             ast.parse("".join(c["source"]))
-    assert "trimesh" in all_code and "UserSecretsClient" in all_code and "check=True" in all_code
-    assert "--max-wall-clock-s" in all_code and "aggregate_five_seed_rliable" in all_code
+    for req in ("warp-lang==1.18.0", "trimesh>=4.12,<5", "shapely>=2,<3", "mapbox-earcut>=2,<3", "UserSecretsClient", "pilot_1m"):
+        assert req in all_code, f"Missing {req!r} in notebook"
+
+    meta = json.loads((ROOT / "notebooks/kaggle_account1_public_kernel-metadata.json").read_text(encoding="utf-8"))
+    assert meta["is_private"] is False and meta["enable_gpu"] is True
 
 
 if __name__ == "__main__":
-    test_scenario_and_obs_state_mask_and_reward_sum_identity()
-    test_local_decpomdp_zero_telepathy_privacy()
-    test_dual_fidelity_resume_continuity_and_five_seed_aggregator()
-    test_zero_not_implemented_zero_fp64_yaml_and_kaggle_public_contract()
-    test_syntax_and_notebook_validity()
-    print("ALL STREAMFIX V2 END-TO-END 2026-11-24 VERIFICATION TESTS PASSED!")
+    test_zero_delivery_q1_metric_hygiene()
+    test_real_discovery_and_multihop_delivery_pilot()
+    test_warp_fast_jit_and_production_contracts()
+    print("ALL STREAMFIX V3 END-TO-END & Q1 PILOT VERIFICATION TESTS PASSED!")

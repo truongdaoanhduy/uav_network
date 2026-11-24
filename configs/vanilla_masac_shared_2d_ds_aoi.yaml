@@ -1,7 +1,6 @@
 # Vanilla MASAC Baseline (Canonical Haarnoja SAC v2 2018 / BenchMARL CTDE MASAC JMLR 2024)
-# Scenario: 2.5D Fixed-Altitude Urban NLOS Cooperative Target Search & Multi-Hop Relay
+# Scenario: 2.5D Fixed-Altitude Urban NLOS Cooperative Target Search & Multi-Hop Relay (Streamfix v3)
 # Hardware Target: Kaggle Tesla T4x2 (SM 7.5, 14.56 GiB VRAM each) — 100% GPU-resident FP16 Replay Buffer
-# Note: PQL removed, continuous tx_power action removed (fixed 0.1 W IEEE 802.11b).
 
 world:
   map_size_m: 800.0
@@ -22,7 +21,7 @@ world:
   launch_min_spacing_m: 25.0
   target_exclusion_radius_m: 160.0
   max_speed_mps: 20.0
-  max_accel_mps2: 2.0
+  max_accel_mps2: 4.0
   safety_distance_m: 15.0
   motion_safety: "project_penalize"
 
@@ -83,9 +82,9 @@ energy:
 
 reward:
   w1_global_ds_uncertainty: 0.25
-  w2_gcs_aoi_delivery: 10.0
+  w2_gcs_aoi_delivery: 15.0
   w3_propulsion_per_kj: 0.03
-  w4_safety_violation: 20.0
+  w4_safety_violation: 3.0
   w5_expired_or_dropped: 1.0
   per_hop_relay_reward: 0.0
   rf_efficiency_penalty: 0.0
@@ -108,9 +107,9 @@ masac:
   target_entropy_disc_ratio: 0.5
   gumbel_tau: 1.0
   batch_size: 1024
-  replay_capacity: 1000000             # ~3.4 GiB VRAM in FP16 on cuda:1 (covers ~1.8 full 550-step episodes)
+  replay_capacity: 1000000
   learning_starts: 20000
-  updates_per_step: 8                  # ~78k updates across 20M transitions
+  updates_per_step: 8
   grad_clip_norm: 0.5
 
 runtime:
@@ -122,8 +121,6 @@ runtime:
   num_envs: 2048
   use_cuda_graph: true
   seed: 44
-  # Training Budget Note:
-  # 20,000,000 env-transitions @ num_envs=2048 -> ~9,766 vectorized steps (~36,363 episodes total).
   total_env_steps: 20000000
   log_interval_steps: 20480
   eval_interval_steps: 1000000

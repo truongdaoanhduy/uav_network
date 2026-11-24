@@ -24,6 +24,7 @@ except ImportError:  # pragma: no cover
 
 from uav_network.communication.gpu.phy_sinr_fp32 import NUM_UAVS
 if wp is not None:
+    wp.set_module_options({"enable_backward": False})
     from uav_network.communication.gpu.phy_sinr_fp32 import segment_hits_cylinder_2d
 
 GRID_W = 20
@@ -137,14 +138,14 @@ if wp is not None:
     ):
         """1 thread = 1 env. Building-occluded DS sensing (local + team) & Zeng rotary-wing energy."""
         e = wp.tid()
-        now = step_time_s[0]
+        now = step_time_s[e] if step_time_s.shape[0] > 1 else step_time_s[0]
         rng = rng_states[e]
 
         delta_u_sum = wp.float32(0.0)
         prop_j_sum = wp.float32(0.0)
         r_s2 = sensing_radius_m * sensing_radius_m
 
-        for u in range(wp.static(NUM_UAVS)):
+        for u in range(NUM_UAVS):
             if uav_alive[e, u] == wp.int32(0):
                 continue
             vel = uav_vel[e, u]

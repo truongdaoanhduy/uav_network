@@ -272,8 +272,9 @@ class VanillaMATD3:
         for p in self.target_critic.parameters():
             p.requires_grad_(False)
 
-        self.actor_opt = torch.optim.Adam(self.actor.parameters(), lr=lr)
-        self.critic_opt = torch.optim.Adam(self.critic.parameters(), lr=lr)
+        use_fused = self.device.type == 'cuda'
+        self.actor_opt = torch.optim.Adam(self.actor.parameters(), lr=lr, fused=use_fused)
+        self.critic_opt = torch.optim.Adam(self.critic.parameters(), lr=lr, fused=use_fused)
 
     @torch.no_grad()
     def act(
@@ -342,8 +343,13 @@ class VanillaMATD3:
 
     @torch.no_grad()
     def _soft_update(self, src: nn.Module, dst: nn.Module) -> None:
-        for p_src, p_dst in zip(src.parameters(), dst.parameters()):
-            p_dst.data.mul_(1.0 - self.tau).add_(p_src.data, alpha=self.tau)
+        src_p = [p.data for p in src.parameters()]
+        dst_p = [p.data for p in dst.parameters()]
+        if hasattr(torch, "_foreach_lerp_"):
+            torch._foreach_lerp_(dst_p, src_p, self.tau)
+        else:
+            for ps, pd in zip(src_p, dst_p):
+                pd.mul_(1.0 - self.tau).add_(ps, alpha=self.tau)
 
 
 class VanillaStochasticHybridActor(nn.Module):
@@ -446,9 +452,10 @@ class VanillaMASAC:
         self.log_alpha_c = nn.Parameter(torch.tensor(math.log(initial_alpha_cont), device=self.device))
         self.log_alpha_d = nn.Parameter(torch.tensor(math.log(initial_alpha_disc), device=self.device))
 
-        self.actor_opt = torch.optim.Adam(self.actor.parameters(), lr=lr)
-        self.critic_opt = torch.optim.Adam(self.critic.parameters(), lr=lr)
-        self.alpha_opt = torch.optim.Adam([self.log_alpha_c, self.log_alpha_d], lr=lr)
+        use_fused = self.device.type == 'cuda'
+        self.actor_opt = torch.optim.Adam(self.actor.parameters(), lr=lr, fused=use_fused)
+        self.critic_opt = torch.optim.Adam(self.critic.parameters(), lr=lr, fused=use_fused)
+        self.alpha_opt = torch.optim.Adam([self.log_alpha_c, self.log_alpha_d], lr=lr, fused=use_fused)
 
     @torch.no_grad()
     def act(
@@ -512,8 +519,13 @@ class VanillaMASAC:
         with torch.no_grad():
             self.log_alpha_c.clamp_(LOG_ALPHA_MIN, LOG_ALPHA_MAX)
             self.log_alpha_d.clamp_(LOG_ALPHA_MIN, LOG_ALPHA_MAX)
-            for p_src, p_dst in zip(self.critic.parameters(), self.target_critic.parameters()):
-                p_dst.data.mul_(1.0 - self.tau).add_(p_src.data, alpha=self.tau)
+            src_p = [p.data for p in self.critic.parameters()]
+            dst_p = [p.data for p in self.target_critic.parameters()]
+            if hasattr(torch, "_foreach_lerp_"):
+                torch._foreach_lerp_(dst_p, src_p, self.tau)
+            else:
+                for ps, pd in zip(src_p, dst_p):
+                    pd.mul_(1.0 - self.tau).add_(ps, alpha=self.tau)
 
         if not return_metrics:
             return {}

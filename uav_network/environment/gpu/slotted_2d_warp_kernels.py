@@ -35,12 +35,13 @@ CRUISE_Z_M = 50.0
 NOMINAL_RANGE_M = 480.0
 SAFETY_DIST_M = 15.0
 MAX_SPEED_MPS = 20.0
-MAX_ACCEL_MPS2 = 2.0
+MAX_ACCEL_MPS2 = 4.0
 REPORT_TTL_S = 120.0
 BATTERY_CAPACITY_J = 150000.0
 
 
 if wp is not None:
+    wp.set_module_options({"enable_backward": False})
 
     @wp.kernel
     def motion_2d_safety_fp32(
@@ -60,7 +61,7 @@ if wp is not None:
         e = wp.tid()
         viol = wp.int32(0)
 
-        for u in range(wp.static(NUM_UAVS)):
+        for u in range(NUM_UAVS):
             if uav_alive[e, u] == wp.int32(0):
                 node_pos[e, u] = uav_pos[e, u]
                 continue
@@ -113,7 +114,7 @@ if wp is not None:
 
         # Pairwise UAV-UAV safety check (< 15 m)
         s2 = wp.float32(SAFETY_DIST_M * SAFETY_DIST_M)
-        for i in range(wp.static(NUM_UAVS)):
+        for i in range(NUM_UAVS):
             if uav_alive[e, i] == wp.int32(0):
                 continue
             pi = uav_pos[e, i]
@@ -204,17 +205,16 @@ if wp is not None:
         sc = env_step_count[e] + wp.int32(1)
         env_step_count[e] = sc
         alive_sum = wp.int32(0)
-        for u in range(wp.static(NUM_UAVS)):
+        for u in range(NUM_UAVS):
             alive_sum = alive_sum + uav_alive[e, u]
 
         terminated_out[e] = wp.float32(1.0) if alive_sum == wp.int32(0) else wp.float32(0.0)
         if sc >= max_steps or alive_sum == wp.int32(0):
             dones_out[e] = wp.float32(1.0)
+            step_time_s[e] = wp.float32(0.0)
         else:
             dones_out[e] = wp.float32(0.0)
-
-        if e == wp.int32(0):
-            step_time_s[0] = step_time_s[0] + wp.float32(1.0)
+            step_time_s[e] = wp.float32(sc)
 
     @wp.kernel
     def selective_auto_reset_fp32(
@@ -270,7 +270,7 @@ if wp is not None:
         ep_safety_viol[e] = wp.int32(0)
         ep_radio_energy_j[e] = wp.float32(0.0)
 
-        for u in range(wp.static(NUM_UAVS)):
+        for u in range(NUM_UAVS):
             uav_pos[e, u] = init_uav_pos[e, u]
             node_pos[e, u] = init_uav_pos[e, u]
             uav_vel[e, u] = wp.vec3f(wp.float32(0.0), wp.float32(0.0), wp.float32(0.0))
@@ -279,7 +279,7 @@ if wp is not None:
             uav_alive[e, u] = wp.int32(1)
             q_count[e, u] = wp.int32(0)
 
-        for c in range(wp.static(NUM_CELLS)):
+        for c in range(NUM_CELLS):
             ds_pos_cnt[e, c] = wp.int32(0)
             ds_neg_cnt[e, c] = wp.int32(0)
             ds_m_f[e, c] = wp.float32(0.0)
@@ -287,7 +287,7 @@ if wp is not None:
             cell_reported[e, c] = wp.int32(0)
             gcs_delivered[e, c] = wp.int32(0)
             gcs_true_aoi_s[e, c] = wp.float32(-1.0)
-            for u in range(wp.static(NUM_UAVS)):
+            for u in range(NUM_UAVS):
                 local_ds_pos[e, u, c] = wp.int32(0)
                 local_ds_neg[e, u, c] = wp.int32(0)
                 local_ds_m_f[e, u, c] = wp.float32(0.0)
@@ -333,10 +333,10 @@ if wp is not None:
         gp = gcs_pos[e]
 
         # --- A. 96D Local Observation & 7D Adaptive Action Mask per UAV ---
-        for u in range(wp.static(NUM_UAVS)):
-            for f_i in range(wp.static(OBS_DIM)):
+        for u in range(NUM_UAVS):
+            for f_i in range(OBS_DIM):
                 obs_out[e, u, f_i] = wp.float32(0.0)
-            for m_i in range(wp.static(DISC_ACTION_DIM)):
+            for m_i in range(DISC_ACTION_DIM):
                 mask_out[e, u, m_i] = wp.uint8(0)
             mask_out[e, u, 0] = wp.uint8(1)  # Silent always valid
 
@@ -374,7 +374,7 @@ if wp is not None:
             obs_out[e, u, 14] = wp.min(wp.float32(1.0), hol_age / wp.float32(wp.max(max_steps, wp.int32(1))))
             obs_out[e, u, 15] = hol_ttl / wp.float32(REPORT_TTL_S)
             obs_out[e, u, 16] = wp.min(wp.float32(1.0), hol_hop)
-            for b_i in range(wp.static(NUM_UAVS)):
+            for b_i in range(NUM_UAVS):
                 obs_out[e, u, 17 + b_i] = wp.float32(1.0) if ((vmask >> b_i) & wp.int32(1)) != wp.int32(0) else wp.float32(0.0)
 
             # 4) 8-ray building/boundary LiDAR (8, indices 23..30)
@@ -407,7 +407,7 @@ if wp is not None:
 
             # 5) 5 Peers telemetry (40, indices 31..70) + Peer Action Masks
             peer_slot = wp.int32(0)
-            for p in range(wp.static(NUM_UAVS)):
+            for p in range(NUM_UAVS):
                 if p == u:
                     continue
                 d_up = dist_mat[e, u, p]
@@ -424,11 +424,14 @@ if wp is not None:
                     obs_out[e, u, base_p + 5] = wp.float32(q_count[e, p]) / wp.float32(MAX_QUEUE)
                     obs_out[e, u, base_p + 6] = dist_mat[e, p, wp.static(GCS_IDX)] / wp.float32(MAP_SIZE_M)
                     obs_out[e, u, base_p + 7] = wp.float32(vis_p)
-                if uav_alive[e, u] == wp.int32(1) and has_pkt == wp.int32(1) and in_rng and vis_p == wp.int32(0):
+                peer_link_ok = ((los_mat[e, u, p] == wp.int32(1)) and (d_up <= wp.float32(NOMINAL_RANGE_M))) or (d_up <= wp.float32(75.0))
+                if uav_alive[e, u] == wp.int32(1) and has_pkt == wp.int32(1) and (uav_alive[e, p] == wp.int32(1)) and peer_link_ok and vis_p == wp.int32(0) and q_count[e, p] < wp.int32(MAX_QUEUE):
                     mask_out[e, u, wp.int32(1) + peer_slot] = wp.uint8(1)
                 peer_slot = peer_slot + wp.int32(1)
 
-            if uav_alive[e, u] == wp.int32(1) and has_pkt == wp.int32(1) and dist_mat[e, u, wp.static(GCS_IDX)] <= wp.float32(NOMINAL_RANGE_M):
+            d_ug = dist_mat[e, u, GCS_IDX]
+            gcs_link_ok = ((los_mat[e, u, GCS_IDX] == wp.int32(1)) and (d_ug <= wp.float32(NOMINAL_RANGE_M))) or (d_ug <= wp.float32(75.0))
+            if uav_alive[e, u] == wp.int32(1) and has_pkt == wp.int32(1) and gcs_link_ok:
                 mask_out[e, u, wp.static(GCS_IDX)] = wp.uint8(1)
 
             # 6) Local DS Belief 3x3 patch (18, indices 71..88) + 4 quadrant m_U (4, indices 89..92)
@@ -452,8 +455,8 @@ if wp is not None:
             q1 = wp.float32(0.0); c1 = wp.float32(0.0)
             q2 = wp.float32(0.0); c2 = wp.float32(0.0)
             q3 = wp.float32(0.0); c3 = wp.float32(0.0)
-            for cy in range(wp.static(GRID_H)):
-                for cx in range(wp.static(GRID_W)):
+            for cy in range(GRID_H):
+                for cx in range(GRID_W):
                     cid = cy * wp.int32(GRID_W) + cx
                     mu_v = local_ds_m_u[e, u, cid] if belief_sharing_mode == wp.int32(1) else ds_m_u[e, cid]
                     if cy <= gy and cx <= gx:
@@ -475,7 +478,7 @@ if wp is not None:
             obs_out[e, u, 95] = t_norm
 
         # --- B. 256D Centralized Critic Global State (CTDE) ---
-        for u in range(wp.static(NUM_UAVS)):
+        for u in range(NUM_UAVS):
             base_u = u * wp.int32(16)
             pu = uav_pos[e, u]
             vu = uav_vel[e, u]
@@ -505,7 +508,7 @@ if wp is not None:
 
         # Pairwise link matrix (15 x 2 = 30, indices 96..125)
         pair_idx = wp.int32(96)
-        for i in range(wp.static(NUM_UAVS)):
+        for i in range(NUM_UAVS):
             for j in range(i + 1, wp.static(NUM_UAVS)):
                 d_ij = dist_mat[e, i, j]
                 state_out[e, pair_idx] = d_ij / wp.float32(MAP_SIZE_M)
@@ -547,7 +550,7 @@ if wp is not None:
 
         # Global scalars (5, indices 251..255)
         alive_cnt = wp.float32(0.0)
-        for u in range(wp.static(NUM_UAVS)):
+        for u in range(NUM_UAVS):
             alive_cnt = alive_cnt + wp.float32(uav_alive[e, u])
         state_out[e, 251] = t_norm
         state_out[e, 252] = wp.float32(0.0)

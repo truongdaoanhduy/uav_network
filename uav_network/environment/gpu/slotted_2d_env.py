@@ -255,12 +255,15 @@ def build_local_obs_and_mask(
                     d_up / MAP_SIZE_M, 1.0, float(los_mat[u, p]),
                     float(q_count[p]) / float(MAX_QUEUE), float(dist_mat[p, GCS_IDX]) / MAP_SIZE_M, float(visited_p),
                 ]
-            if int(uav_alive[u]) == 1 and has_pkt == 1 and in_range and visited_p == 0:
+            peer_link_ok = (int(los_mat[u, p]) == 1 and d_up <= NOMINAL_RANGE_M) or (d_up <= 75.0)
+            if int(uav_alive[u]) == 1 and has_pkt == 1 and int(uav_alive[p]) == 1 and peer_link_ok and visited_p == 0 and int(q_count[p]) < MAX_QUEUE:
                 mask[u, 1 + peer_slot] = 1
             idx += 8
             peer_slot += 1
 
-        if int(uav_alive[u]) == 1 and has_pkt == 1 and float(dist_mat[u, GCS_IDX]) <= NOMINAL_RANGE_M:
+        d_ug = float(dist_mat[u, GCS_IDX])
+        gcs_link_ok = (int(los_mat[u, GCS_IDX]) == 1 and d_ug <= NOMINAL_RANGE_M) or (d_ug <= 75.0)
+        if int(uav_alive[u]) == 1 and has_pkt == 1 and gcs_link_ok:
             mask[u, GCS_IDX] = 1
 
         gx = max(0, min(GRID_W - 1, int(ux / CELL_SIZE_M)))
@@ -371,7 +374,7 @@ class WarpSlotted2DBackend:
             raise RuntimeError("nvidia-warp (`warp-lang`) is required for backend='warp_slotted_fp32'.")
         import torch
         from uav_network.communication.gpu.mac_slotted_fp32 import mac_slotted_step_fp32
-        from uav_network.communication.gpu.phy_sinr_fp32 import compute_phy_matrices_fp32
+        from uav_network.communication.gpu.phy_sinr_fp32 import compute_phy_matrices_fp32, compute_phy_matrices_if_done_fp32
         from uav_network.environment.gpu.ds_aoi_belief_fp32 import ds_sense_and_energy_step_fp32
         from uav_network.environment.gpu.slotted_2d_warp_kernels import (
             assemble_reward_and_done_fp32,
@@ -394,6 +397,7 @@ class WarpSlotted2DBackend:
 
         self._k_motion = motion_2d_safety_fp32
         self._k_phy = compute_phy_matrices_fp32
+        self._k_phy_if_done = compute_phy_matrices_if_done_fp32
         self._k_ds = ds_sense_and_energy_step_fp32
         self._k_mac = mac_slotted_step_fp32
         self._k_rew = assemble_reward_and_done_fp32
@@ -442,7 +446,7 @@ class WarpSlotted2DBackend:
         self.uav_alive = wp.ones((e, NUM_UAVS), dtype=wp.int32, device=wd)
         self.last_act_norm = wp.zeros((e, NUM_UAVS), dtype=wp.float32, device=wd)
         self.env_step_count = wp.zeros((e,), dtype=wp.int32, device=wd)
-        self.step_time_s = wp.zeros((1,), dtype=wp.float32, device=wd)
+        self.step_time_s = wp.zeros((e,), dtype=wp.float32, device=wd)
 
         self.dist_mat = wp.zeros((e, NUM_NODES, NUM_NODES), dtype=wp.float32, device=wd)
         self.los_mat = wp.ones((e, NUM_NODES, NUM_NODES), dtype=wp.int32, device=wd)
@@ -560,8 +564,8 @@ class WarpSlotted2DBackend:
             ],
         )
             wp.launch(
-                self._k_phy, dim=e, device=wd,
-                inputs=[self.node_pos, self.obstacles, 22, self.dist_mat, self.los_mat, self.rx_pwr_mat, self.cca_hear_mat],
+                self._k_phy_if_done, dim=e, device=wd,
+                inputs=[self.dones_wp, self.node_pos, self.obstacles, 22, self.dist_mat, self.los_mat, self.rx_pwr_mat, self.cca_hear_mat],
             )
         wp.launch(
             self._k_obs, dim=e, device=wd,
@@ -637,7 +641,7 @@ class WarpSlotted2DBackend:
             return self.reset(seeds=seeds, _reuse_snapshots=True)
         return self.obs_t, self.state_t, self.mask_t
 
-    def step_torch(self, act_cont_t, act_disc_t):
+    def step_torch(self, act_cont_t, act_disc_t, compute_reward_info: bool = True):
         """Zero-copy GPU step accepting PyTorch CUDA tensors and returning PyTorch CUDA tensors."""
         self.act_cont_t.copy_(act_cont_t, non_blocking=True)
         self.act_disc_t.copy_(act_disc_t, non_blocking=True)
@@ -645,9 +649,8 @@ class WarpSlotted2DBackend:
             self._graph_runner.launch()
         else:
             self._launch_step_pipeline()
-        # The five reward components mirror the NumPy reference API. Never
-        # cast GPU tensors through NumPy within the rollout.
-        import torch
+        if not compute_reward_info:
+            return self.obs_t, self.state_t, self.mask_t, self.rewards_t, self.dones_t, {"terminated": self.terminated_t}
         w1, w2, w3, w4, w5 = self.weights
         to_t = wp.to_torch
         drop_events = to_t(self.step_retry_drops) + to_t(self.step_ttl_expired)
