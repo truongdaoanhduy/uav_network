@@ -32,6 +32,13 @@ class EpisodeKPI:
     ttl_expired: int
     propulsion_kj: float
     safety_violations: int
+    # Additional Q1 quality/coverage data; defaults keep older archives readable.
+    false_reports_delivered: int = 0
+    false_confirmed_cells: int = 0
+    total_reported_cells: int = 0
+    observed_cells: int = 0
+    total_cells: int = 400
+    radio_energy_j: float = 0.0
 
 
 def aggregate_kpis(episodes: Iterable[EpisodeKPI]) -> Dict[str, float]:
@@ -44,12 +51,24 @@ def aggregate_kpis(episodes: Iterable[EpisodeKPI]) -> Dict[str, float]:
     tot_deliv = sum(e.targets_delivered for e in eps)
     tot_multihop = sum(e.multihop_deliveries for e in eps)
     tot_prop_kj = sum(e.propulsion_kj for e in eps)
+    total_false_gcs = sum(e.false_reports_delivered for e in eps)
+    total_false_confirm = sum(e.false_confirmed_cells for e in eps)
+    total_reported = sum(e.total_reported_cells for e in eps)
+    total_observed = sum(e.observed_cells for e in eps)
+    total_cells = sum(e.total_cells for e in eps)
 
     return {
         "episodes": float(n),
         "mean_return": sum(e.episode_return for e in eps) / n,
         "target_discovery_rate_pct": 100.0 * tot_disc / max(tot_targets, 1),
         "target_delivery_ratio_pct": 100.0 * tot_deliv / max(tot_targets, 1),
+        "map_coverage_pct": 100.0 * total_observed / max(total_cells, 1),
+        # Empty denominator is 0% precision, not the misleading 100%.
+        "confirmation_precision_pct": 100.0 * tot_disc / max(total_reported, 1),
+        "gcs_report_precision_pct": 100.0 * tot_deliv / max(tot_deliv + total_false_gcs, 1),
+        "false_confirmed_cells": float(total_false_confirm),
+        "false_reports_delivered": float(total_false_gcs),
+        "mission_success_rate_pct": 100.0 * sum(e.targets_delivered >= e.total_targets for e in eps) / n,
         "multihop_delivery_ratio_pct": 100.0 * tot_multihop / max(tot_deliv, 1),
         "mean_aoi_s": sum(e.mean_aoi_s for e in eps) / n,
         "p95_aoi_s": sum(e.p95_aoi_s for e in eps) / n,
@@ -58,6 +77,7 @@ def aggregate_kpis(episodes: Iterable[EpisodeKPI]) -> Dict[str, float]:
         "mean_retry_drops": sum(e.retry_drops for e in eps) / n,
         "mean_ttl_expired": sum(e.ttl_expired for e in eps) / n,
         "energy_kj_per_delivered_target": tot_prop_kj / max(tot_deliv, 1),
+        "mean_radio_energy_j": sum(e.radio_energy_j for e in eps) / n,
         "mean_safety_violations": sum(e.safety_violations for e in eps) / n,
     }
 

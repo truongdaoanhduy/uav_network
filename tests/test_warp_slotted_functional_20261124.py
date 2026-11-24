@@ -50,7 +50,11 @@ def test_phy_ds_kernel_executes_on_cpu():
     for _ in range(30):
         wp.launch(ds_sense_and_energy_step_fp32, dim=E, inputs=[
             uav_pos, wp.zeros((E, 6), wp.vec3f, device="cpu"), battery, alive,
-            truth, dpos, dneg, dmf, dmu, reported, qcount, q_cell_id, q_ts,
+            wp.zeros((E, 22), wp.vec4f, device="cpu"), 0,
+            truth, dpos, dneg, dmf, dmu, reported,
+            zeros_i((E, 6, 400)), zeros_i((E, 6, 400)), zeros_f((E, 6, 400)),
+            zeros_f((E, 6, 400)), zeros_i((E, 6, 400)), 0,
+            qcount, q_cell_id, q_ts,
             q_retry, q_hops, q_visit, t, rand, zeros_f(E), zeros_f(E), 60.0, 1.0,
         ], device="cpu")
     # Even though ALL cells are empty, false-positive sensor readings can create
@@ -94,7 +98,9 @@ def test_mac_gcs_scores_truth_only_after_first_arrival():
     def step():
         wp.launch(mac_slotted_step_fp32, dim=E, inputs=[
             act, rx, cca, alive, tm, qcount, q_cell_id, q_ts, q_retry, q_hops,
-            q_visit, delivered, truth, rand, aoi, new_true, new_false, multi,
+            q_visit, delivered, floats((E, 400)),
+            _a(np.full((E, 6), 150000.0, np.float32), wp.float32), floats(E),
+            truth, rand, aoi, new_true, new_false, multi,
             collision, deaf, drop, ttl, 0.02,
         ], device="cpu")
 
@@ -142,6 +148,7 @@ def test_slotted_cca_deferral_improves_two_sender_collision_case():
             _a(np.ones((E, 6), np.int32), wp.int32), f(1),
             _a(q_init, wp.int32), _a(base_ids, wp.int32), f((E, 6, 32)),
             i((E, 6, 32)), i((E, 6, 32)), i((E, 6, 32)), delivered,
+            f((E, 400)), _a(np.full((E, 6), 150000.0, np.float32), wp.float32), f(E),
             _a(truths, wp.int32), _a(np.arange(1, E + 1, dtype=np.uint32), wp.uint32),
             f(E), new_true, i(E), i(E), i(E), i(E), i(E), i(E), 0.02,
         ], device="cpu")

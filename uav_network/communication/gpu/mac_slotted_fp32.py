@@ -50,6 +50,9 @@ if wp is not None:
         q_visited_mask: wp.array3d(dtype=wp.int32),  # (E, 6, 32) bitmask of visited UAVs (anti-loop)
         # GCS global first-arrival deduplication by observed cell hypothesis
         gcs_delivered: wp.array2d(dtype=wp.int32),   # (E, 400) per-cell first-arrival dedup
+        gcs_true_aoi_s: wp.array2d(dtype=wp.float32),
+        uav_battery_j: wp.array2d(dtype=wp.float32),
+        ep_radio_energy_j: wp.array(dtype=wp.float32),
         cell_has_target: wp.array2d(dtype=wp.int32), # (E, 400) simulator truth for REWARD ONLY
         # Per-env GPU RNG state (read-update-write -> CUDA-Graph safe!)
         rng_states: wp.array(dtype=wp.uint32),       # (E,)
@@ -139,11 +142,18 @@ if wp is not None:
                         tx_active[u] = wp.int32(1)
                     elif m < wp.int32(NUM_SUBSLOTS - 1):
                         chosen_slot[u] = m + wp.int32(1)
+                    else:
+                        # CCA-blocked at final slot: defer to next RL tick.
+                        # Do not force a transmission just because this is slot M-1.
+                        chosen_slot[u] = wp.int32(-1)
 
             # 3b) Evaluate O(N^2) SINR, Half-Duplex Deafness & ACK for every active transmitter
             for u in range(wp.static(NUM_UAVS)):
                 if tx_active[u] == wp.int32(1):
                     dst = chosen_dst[u]
+                    tx_j = wp.float32((0.1 / 0.35 + 0.1) * 0.004328)
+                    ep_radio_energy_j[e] = ep_radio_energy_j[e] + tx_j
+                    uav_battery_j[e, u] = wp.max(wp.float32(0.0), uav_battery_j[e, u] - tx_j)
                     # Half-duplex check: if destination is a UAV currently transmitting in sub-slot m
                     if dst < wp.int32(GCS_IDX) and tx_active[dst] == wp.int32(1):
                         step_hd_drops[e] = step_hd_drops[e] + wp.int32(1)
@@ -175,6 +185,10 @@ if wp is not None:
                                     q_visited_mask[e, u, k] = q_visited_mask[e, u, k + 1]
                             q_count[e, u] = cnt - wp.int32(1)
 
+                            if dst < wp.int32(GCS_IDX):
+                                rx_j = wp.float32(0.1 * 0.004328)
+                                ep_radio_energy_j[e] = ep_radio_energy_j[e] + rx_j
+                                uav_battery_j[e, dst] = wp.max(wp.float32(0.0), uav_battery_j[e, dst] - rx_j)
                             if dst == wp.int32(GCS_IDX):
                                 # Global First-Arrival Deduplication at GCS (Anti-Reward-Hack Guard #1)
                                 if tid >= wp.int32(0) and tid < wp.int32(400):
@@ -182,6 +196,7 @@ if wp is not None:
                                         gcs_delivered[e, tid] = wp.int32(1)
                                         if cell_has_target[e, tid] >= wp.int32(0):
                                             age = wp.max(wp.float32(0.0), now - ts)
+                                            gcs_true_aoi_s[e, tid] = age
                                             freshness = wp.exp(-aoi_decay_eta * age)
                                             step_aoi_score[e] = step_aoi_score[e] + freshness
                                             step_new_gcs_deliv[e] = step_new_gcs_deliv[e] + wp.int32(1)
@@ -200,8 +215,9 @@ if wp is not None:
                                     q_visited_mask[e, dst, d_cnt] = vmask | (wp.int32(1) << dst)
                                     q_count[e, dst] = d_cnt + wp.int32(1)
                         else:
-                            # Decoding failure (interference collision or NLOS/range loss)
-                            if interf_w > wp.float32(0.0):
+                            # Decoding failure (interference collision or NLOS/range loss);
+                            # do NOT count queue-full rejections (sinr >= threshold) as collisions.
+                            if sinr < wp.float32(SINR_THRESHOLD_LIN) and interf_w > wp.float32(0.0):
                                 step_collisions[e] = step_collisions[e] + wp.int32(1)
                             q_retries[e, u, 0] = q_retries[e, u, 0] + wp.int32(1)
 

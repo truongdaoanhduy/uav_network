@@ -43,7 +43,7 @@ def test_yaml_configs_and_vanilla_constraints():
         assert cfg[algo]["hidden_sizes"] == [256, 256]
         assert cfg[algo]["actor_layer_norm"] is False
         assert cfg[algo]["batch_size"] == 1024
-        assert cfg[algo]["replay_capacity"] == 300000
+        assert cfg[algo]["replay_capacity"] >= 300000
 
 
 def test_zero_float64_in_warp_kernels():

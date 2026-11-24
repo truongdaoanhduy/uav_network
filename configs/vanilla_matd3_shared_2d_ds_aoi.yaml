@@ -1,75 +1,76 @@
 # Vanilla MATD3 Baseline (Canonical Ackermann 2019 / Fujimoto TD3 2018 / Lowe MADDPG 2017)
 # Scenario: 2.5D Fixed-Altitude Urban NLOS Cooperative Target Search & Multi-Hop Relay
-# Hardware Target: Kaggle Tesla T4 (SM 7.5, 16 GB VRAM) — 100% GPU-resident FP16 Replay Buffer
+# Hardware Target: Kaggle Tesla T4x2 (SM 7.5, 14.56 GiB VRAM each) — 100% GPU-resident FP16 Replay Buffer
 # Note: PQL removed, continuous tx_power action removed (fixed 0.1 W IEEE 802.11b).
 
 world:
   map_size_m: 800.0
-  motion_dimensions: 2              # 2D horizontal control at fixed cruise altitude z=50m
-  cruise_altitude_m: 50.0           # Fixed altitude below tall urban buildings (60-120m)
+  motion_dimensions: 2
+  cruise_altitude_m: 50.0
   dt_s: 1.0
-  max_steps: 550                    # T = 550s horizon (2.7x faster rollout than 1500s)
+  max_steps: 550
   num_uavs: 6
-  num_targets: 25                   # Static hidden targets, max 1 target per grid cell
-  num_obstacles: 22                 # Urban cylindrical buildings (12-20% map footprint)
+  num_targets: 25
+  num_obstacles: 22
   obstacle_radius_min_m: 25.0
   obstacle_radius_max_m: 45.0
-  obstacle_height_min_m: 60.0       # All buildings taller than z=50m -> real NLOS & flight obstacles
+  obstacle_height_min_m: 60.0
   obstacle_height_max_m: 120.0
-  obstacle_clearance_m: 35.0        # >= 2 * safety_distance_m + margin for flyable corridors
-  gcs_position_m: [40.0, 40.0, 10.0] # Corner GCS -> opposite corner ~1075m > 2*R_c (forces 2-3 hops)
+  obstacle_clearance_m: 35.0
+  gcs_position_m: [40.0, 40.0, 10.0]
   launch_radius_m: 100.0
   launch_min_spacing_m: 25.0
-  target_exclusion_radius_m: 160.0  # Keep targets outside immediate GCS 1-hop launch zone
+  target_exclusion_radius_m: 160.0
   max_speed_mps: 20.0
   max_accel_mps2: 2.0
   safety_distance_m: 15.0
-  motion_safety: "project_penalize" # Non-terminal velocity projection + w_4 penalty (prevents suicide exploit)
+  motion_safety: "project_penalize"
 
 sensor:
-  model: "dempster_shafer"          # Timing-independent DS belief map (Zhang et al., IEEE TIV 2024)
+  model: "dempster_shafer"
+  belief_sharing_mode: "local_decpomdp"
   grid_cells_x: 20
   grid_cells_y: 20
-  grid_cell_m: 40.0                 # 20 x 20 = 400 cells covering 800 x 800 m
-  sensing_radius_m: 60.0            # Covers ~7 cells/step; requires 4-6 observations to confirm
-  obstacle_occlusion: true          # Buildings block optical line-of-sight
-  ds_mf_base: 0.55                  # Base positive evidence mass at nadir (decays with slant range)
-  ds_me_base: 0.55                  # Base negative evidence mass at nadir
-  confirm_mf_threshold: 0.90        # Confirmation threshold m_F >= 0.90
-  confirm_mu_ceiling: 0.15          # Uncertainty ceiling m_U <= 0.15
-  aoi_decay_eta: 0.02               # Exponential AoI freshness decay exp(-0.02 * age_s) (Xue et al., 2026)
+  grid_cell_m: 40.0
+  sensing_radius_m: 60.0
+  obstacle_occlusion: true
+  ds_mf_base: 0.55
+  ds_me_base: 0.55
+  confirm_mf_threshold: 0.90
+  confirm_mu_ceiling: 0.15
+  aoi_decay_eta: 0.02
 
 network:
   enabled: true
-  train_backend: "warp_slotted_fp32"   # Cách B: Fast slotted vectorized PHY/MAC in wp.float32
-  eval_backend: "uavnetsim_full_csma"  # Dual-fidelity: exact CSMA/CA UavNetSim for final paper eval
-  slotted_subslots: 4                  # M=4 fixed contention sub-slots per 1.0s RL step
-  power_control: "fixed"               # REMOVED continuous tx_power from RL action space
-  tx_power_w: 0.1                      # Fixed 0.1 W (20 dBm) standard IEEE 802.11b
+  train_backend: "warp_slotted_fp32"
+  eval_backend: "uavnetsim_full_csma"
+  slotted_subslots: 4
+  power_control: "fixed"
+  tx_power_w: 0.1
   carrier_frequency_hz: 2400000000.0
   bandwidth_hz: 22000000.0
   bit_rate_bps: 2000000.0
   noise_density_dbm_hz: -174.0
   noise_figure_db: 7.0
-  sinr_threshold_db: 6.0               # Min Rx sensitivity ~ -87.6 dBm -> MAPL = 107.6 dB
-  cca_threshold_dbm: -82.0             # Carrier sense threshold (creates realistic hidden terminals)
+  sinr_threshold_db: 6.0
+  cca_threshold_dbm: -82.0
   path_loss_model: "log_distance_urban"
-  los_exponent: 2.5                    # Natural d_LOS ~ 503 m at 0.1 W (prevents 1-hop across whole map)
-  nlos_extra_loss_db: 20.0             # Urban building shadowing -> d_NLOS ~ 80 m (forces multi-hop relay)
-  nominal_comm_range_m: 480.0          # Action-mask range derived from natural LOS link budget
+  los_exponent: 2.5
+  nlos_extra_loss_db: 20.0
+  nominal_comm_range_m: 480.0
   max_retries: 5
   report_bytes: 1024
   max_queue_reports: 32
   report_ttl_s: 120.0
-  receiver_admission_mask: true        # Adaptive Action Masking (locks out-of-range/empty-buffer/visited)
-  visited_bitmask_loop_guard: true     # Prevents UAV-to-UAV relay ping-pong loops
+  receiver_admission_mask: true
+  visited_bitmask_loop_guard: true
 
 energy:
   enabled: true
-  model: "zeng_rotary_wing_2kg"        # Hover power > cruise power (prevents hover-camping reward hack)
-  battery_capacity_j: 150000.0         # Binding budget for 550s mission (~42 Wh class tactical drone)
+  model: "zeng_rotary_wing_2kg"
+  battery_capacity_j: 150000.0
   p0_blade_profile_w: 80.0
-  pi_induced_hover_w: 88.0             # Hover P(0) = 168 W; optimal cruise P(11 m/s) ~ 132 W
+  pi_induced_hover_w: 88.0
   u_tip_mps: 120.0
   v0_mean_rotor_mps: 4.03
   d0_fuselage_drag: 0.6
@@ -81,18 +82,17 @@ energy:
   pa_efficiency: 0.35
 
 reward:
-  w1_global_ds_uncertainty: 0.25       # Global marginal uncertainty reduction (anti-desync farming)
-  w2_gcs_aoi_delivery: 10.0            # First-arrival deduplicated GCS delivery * exp(-eta * age)
-  w3_propulsion_per_kj: 0.03           # Physical rotary-wing flight energy cost (kJ)
-  w4_safety_violation: 20.0            # Non-terminal collision/building/boundary violation penalty
-  w5_expired_or_dropped: 1.0           # Mild drop/TTL expiry penalty
-  per_hop_relay_reward: 0.0            # STRICTLY ZERO to prevent relay ping-pong reward hacking
-  rf_efficiency_penalty: 0.0           # REMOVED artificial RF reward scaling
+  w1_global_ds_uncertainty: 0.25
+  w2_gcs_aoi_delivery: 10.0
+  w3_propulsion_per_kj: 0.03
+  w4_safety_violation: 20.0
+  w5_expired_or_dropped: 1.0
+  per_hop_relay_reward: 0.0
+  rf_efficiency_penalty: 0.0
 
 matd3:
-  # Canonical Vanilla MATD3 (Plain MLP [256, 256] ReLU, NO BatchNorm, NO LayerNorm, NO output_norm)
-  share_actor_parameters: true         # Shared Actor + 6-dim One-Hot Agent ID (BenchMARL / EPyMARL)
-  share_critic_parameters: true        # Shared Twin Centralized Critic (team reward)
+  share_actor_parameters: true
+  share_critic_parameters: true
   hidden_sizes: [256, 256]
   activation: "relu"
   actor_batch_norm: false
@@ -104,26 +104,29 @@ matd3:
   gamma: 0.99
   tau: 0.005
   policy_delay: 2
-  exploration_noise_std: 0.1           # Gaussian noise on continuous (a_x, a_y) only
-  target_noise_std: 0.2                # Target policy smoothing on continuous (a_x, a_y) only
+  exploration_noise_std: 0.1
+  target_noise_std: 0.2
   target_noise_clip: 0.5
-  gumbel_tau: 1.0                      # Straight-Through Gumbel-Softmax temperature (Lowe 2017)
-  batch_size: 1024                     # Optimal for T4 40 SMs (6,144 actor samples/step with N=6)
-  replay_capacity: 300000              # ~1.03 GiB VRAM in FP16 -> 100% GPU-resident on T4
+  gumbel_tau: 1.0
+  batch_size: 1024
+  replay_capacity: 1000000             # ~3.4 GiB VRAM in FP16 on cuda:1 (covers ~1.8 full 550-step episodes)
   learning_starts: 20000
-  updates_per_step: 2
+  updates_per_step: 8                  # ~78k critic updates / ~39k actor updates across 20M transitions
   grad_clip_norm: 0.5
 
 runtime:
   algorithm: "matd3"
   device: "cuda:0"
-  learner_device: "cuda:1"             # On Kaggle T4x2 (falls back cleanly to cuda:0 on single T4)
-  replay_device: "cuda:1"              # 100% GPU-resident VRAM (eliminates 65.8% CPU PCIe bottleneck)
+  learner_device: "cuda:1"
+  replay_device: "cuda:1"
   replay_obs_dtype: "float16"
-  num_envs: 2048                       # Multiple of 64, saturates T4 SM 7.5 with zero warp divergence
-  use_cuda_graph: true                 # wp.capture_begin() on non-default stream
-  seed: 44                             # 1-seed fast prototyping (expand to [44, 45, 46, 47, 48] for paper)
+  num_envs: 2048
+  use_cuda_graph: true
+  seed: 44
+  # Training Budget Note:
+  # 20,000,000 env-transitions @ num_envs=2048 -> ~9,766 vectorized steps (~36,363 episodes total).
   total_env_steps: 20000000
+  log_interval_steps: 20480            # Log every 10 vectorized steps (~977 W&B points, zero step-level sync stall)
   eval_interval_steps: 1000000
   eval_episodes_slotted: 100
-  eval_episodes_full_uavnetsim: 100    # Final Dual-Fidelity Sim-to-Net verification
+  eval_episodes_full_uavnetsim: 100

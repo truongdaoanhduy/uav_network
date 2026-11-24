@@ -1,6 +1,6 @@
 # Vanilla MASAC Baseline (Canonical Haarnoja SAC v2 2018 / BenchMARL CTDE MASAC JMLR 2024)
 # Scenario: 2.5D Fixed-Altitude Urban NLOS Cooperative Target Search & Multi-Hop Relay
-# Hardware Target: Kaggle Tesla T4 (SM 7.5, 16 GB VRAM) — 100% GPU-resident FP16 Replay Buffer
+# Hardware Target: Kaggle Tesla T4x2 (SM 7.5, 14.56 GiB VRAM each) — 100% GPU-resident FP16 Replay Buffer
 # Note: PQL removed, continuous tx_power action removed (fixed 0.1 W IEEE 802.11b).
 
 world:
@@ -28,6 +28,7 @@ world:
 
 sensor:
   model: "dempster_shafer"
+  belief_sharing_mode: "local_decpomdp"
   grid_cells_x: 20
   grid_cells_y: 20
   grid_cell_m: 40.0
@@ -90,27 +91,26 @@ reward:
   rf_efficiency_penalty: 0.0
 
 masac:
-  # Canonical Vanilla CTDE MASAC (Plain MLP [256, 256] ReLU, NO LayerNorm/BatchNorm/custom annealing)
-  share_actor_parameters: true         # Shared Stochastic Actor + 6-dim One-Hot Agent ID
-  share_critic_parameters: true        # Shared Twin Centralized Soft Critic (team reward)
+  share_actor_parameters: true
+  share_critic_parameters: true
   hidden_sizes: [256, 256]
   activation: "relu"
   actor_layer_norm: false
   critic_layer_norm: false
-  log_std_min: -5.0                    # Stable TanhNormal bounds for plain MLP without LayerNorm
+  log_std_min: -5.0
   log_std_max: 2.0
   learning_rate: 0.0003
   gamma: 0.99
   tau: 0.005
   initial_alpha_cont: 0.2
   initial_alpha_disc: 0.2
-  target_entropy_cont: -2.0            # Canonical SAC: -dim(A_cont) = -2
-  target_entropy_disc_ratio: 0.5       # Dynamic: 0.5 * ln(max(valid_actions, 1)) prevents alpha_d blowup
-  gumbel_tau: 1.0                      # ST-Gumbel-Softmax for Q-gradient through discrete branch
+  target_entropy_cont: -2.0
+  target_entropy_disc_ratio: 0.5
+  gumbel_tau: 1.0
   batch_size: 1024
-  replay_capacity: 300000              # ~1.03 GiB VRAM in FP16 -> 100% GPU-resident on T4
+  replay_capacity: 1000000             # ~3.4 GiB VRAM in FP16 on cuda:1 (covers ~1.8 full 550-step episodes)
   learning_starts: 20000
-  updates_per_step: 2
+  updates_per_step: 8                  # ~78k updates across 20M transitions
   grad_clip_norm: 0.5
 
 runtime:
@@ -122,7 +122,10 @@ runtime:
   num_envs: 2048
   use_cuda_graph: true
   seed: 44
+  # Training Budget Note:
+  # 20,000,000 env-transitions @ num_envs=2048 -> ~9,766 vectorized steps (~36,363 episodes total).
   total_env_steps: 20000000
+  log_interval_steps: 20480
   eval_interval_steps: 1000000
   eval_episodes_slotted: 100
   eval_episodes_full_uavnetsim: 100

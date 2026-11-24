@@ -7,7 +7,8 @@ Paper & Library Provenance:
   masked Straight-Through Gumbel-Softmax on discrete destination head.
 - Vanilla MASAC: Haarnoja et al. (SAC v2, arXiv:1812.05905), Bettini et al. (BenchMARL, JMLR 2024).
   Plain MLP [256, 256] ReLU, TanhNormal (stable log-prob) + MaskedCategorical, dual alpha_c/alpha_d
-  with dynamic discrete target entropy 0.5 * ln(max(K_valid, 1)), ST-Gumbel-Softmax for discrete Q-grad.
+  with dynamic discrete target entropy 0.5 * ln(max(K_valid, 1)), masked alpha_d loss over
+  multi-option states (valid_counts > 1), clamped log_alpha [-10, 2], ST-Gumbel-Softmax.
 - Parameter Sharing: Homogeneous Shared Actor + One-Hot Agent ID (BenchMARL / EPyMARL / Terry 2020)
   and Shared Twin Centralized Critic for team-reward 6-UAV cooperative search & relay.
 """
@@ -23,6 +24,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 MASK_FILL_VALUE = -1e9
+LOG_ALPHA_MIN = -10.0
+LOG_ALPHA_MAX = 2.0
 
 
 def build_plain_mlp(input_dim: int, hidden_sizes: Tuple[int, ...], output_dim: int) -> nn.Sequential:
@@ -67,7 +70,7 @@ def masked_st_gumbel_softmax(
 
 
 class GPUHybridReplayBuffer:
-    """100% GPU-resident FP16/FP32 Replay Buffer sized for Tesla T4 (~1.03 GiB at 300k steps)."""
+    """100% GPU-resident FP16/FP32 Replay Buffer (~3.4 GiB at 1M steps on Tesla T4)."""
 
     def __init__(
         self,
@@ -110,19 +113,46 @@ class GPUHybridReplayBuffer:
         mask: torch.Tensor,
         next_mask: torch.Tensor,
     ) -> None:
-        batch = obs.shape[0]
-        idx = (torch.arange(batch, device=self.device) + self.ptr) % self.capacity
-        self.obs[idx] = obs.to(self.device, dtype=torch.float16, non_blocking=True)
-        self.next_obs[idx] = next_obs.to(self.device, dtype=torch.float16, non_blocking=True)
-        self.state[idx] = state.to(self.device, dtype=torch.float16, non_blocking=True)
-        self.next_state[idx] = next_state.to(self.device, dtype=torch.float16, non_blocking=True)
-        self.act_cont[idx] = act_cont.to(self.device, dtype=torch.float32, non_blocking=True)
-        self.act_disc[idx] = act_disc_onehot.to(self.device, dtype=torch.float32, non_blocking=True)
-        self.rewards[idx] = rewards.view(batch, 1).to(self.device, dtype=torch.float32, non_blocking=True)
-        self.dones[idx] = dones.view(batch, 1).to(self.device, dtype=torch.float32, non_blocking=True)
-        self.mask[idx] = mask.to(self.device, dtype=torch.uint8, non_blocking=True)
-        self.next_mask[idx] = next_mask.to(self.device, dtype=torch.uint8, non_blocking=True)
-        self.ptr = (self.ptr + batch) % self.capacity
+        """Contiguous slice-copy insertion (zero scatter-index allocation)."""
+        batch = int(obs.shape[0])
+        if batch <= 0:
+            return
+        obs_d = obs.to(self.device, dtype=torch.float16, non_blocking=True)
+        next_obs_d = next_obs.to(self.device, dtype=torch.float16, non_blocking=True)
+        state_d = state.to(self.device, dtype=torch.float16, non_blocking=True)
+        next_state_d = next_state.to(self.device, dtype=torch.float16, non_blocking=True)
+        ac_d = act_cont.to(self.device, dtype=torch.float32, non_blocking=True)
+        ad_d = act_disc_onehot.to(self.device, dtype=torch.float32, non_blocking=True)
+        rew_d = rewards.view(batch, 1).to(self.device, dtype=torch.float32, non_blocking=True)
+        done_d = dones.view(batch, 1).to(self.device, dtype=torch.float32, non_blocking=True)
+        mask_d = mask.to(self.device, dtype=torch.uint8, non_blocking=True)
+        next_mask_d = next_mask.to(self.device, dtype=torch.uint8, non_blocking=True)
+
+        end = self.ptr + batch
+        pairs = (
+            (self.obs, obs_d),
+            (self.next_obs, next_obs_d),
+            (self.state, state_d),
+            (self.next_state, next_state_d),
+            (self.act_cont, ac_d),
+            (self.act_disc, ad_d),
+            (self.rewards, rew_d),
+            (self.dones, done_d),
+            (self.mask, mask_d),
+            (self.next_mask, next_mask_d),
+        )
+        if end <= self.capacity:
+            s = slice(self.ptr, end)
+            for dst, src in pairs:
+                dst[s].copy_(src, non_blocking=True)
+        else:
+            n1 = self.capacity - self.ptr
+            n2 = batch - n1
+            for dst, src in pairs:
+                dst[self.ptr :].copy_(src[:n1], non_blocking=True)
+                dst[:n2].copy_(src[n1:], non_blocking=True)
+
+        self.ptr = end % self.capacity
         self.size = min(self.size + batch, self.capacity)
 
     def sample(self, batch_size: int) -> Dict[str, torch.Tensor]:
@@ -237,6 +267,10 @@ class VanillaMATD3:
         self.target_actor = copy.deepcopy(self.actor).to(self.device)
         self.critic = SharedTwinCentralizedCritic(state_dim, num_agents, cont_dim, disc_dim, hidden_sizes).to(self.device)
         self.target_critic = copy.deepcopy(self.critic).to(self.device)
+        for p in self.target_actor.parameters():
+            p.requires_grad_(False)
+        for p in self.target_critic.parameters():
+            p.requires_grad_(False)
 
         self.actor_opt = torch.optim.Adam(self.actor.parameters(), lr=lr)
         self.critic_opt = torch.optim.Adam(self.critic.parameters(), lr=lr)
@@ -254,7 +288,7 @@ class VanillaMATD3:
             disc_oh = F.one_hot(masked_logits.argmax(dim=-1), num_classes=logits_disc.shape[-1]).float()
         return mu_cont, disc_oh
 
-    def update(self, batch: Dict[str, torch.Tensor]) -> Dict[str, float]:
+    def update(self, batch: Dict[str, torch.Tensor], return_metrics: bool = True) -> Dict[str, float]:
         self.total_updates += 1
         obs, next_obs = batch["obs"], batch["next_obs"]
         state, next_state = batch["state"], batch["next_state"]
@@ -281,16 +315,15 @@ class VanillaMATD3:
             nn.utils.clip_grad_norm_(self.critic.parameters(), self.grad_clip_norm)
         self.critic_opt.step()
 
-        metrics = {"critic_loss": float(critic_loss.item()), "q1_mean": float(q1.mean().item())}
-
+        actor_loss_t = None
         if self.total_updates % self.policy_delay == 0:
             for p in self.critic.parameters():
                 p.requires_grad_(False)
             pred_cont, pred_logits = self.actor(obs)
             pred_disc = masked_st_gumbel_softmax(pred_logits, mask, tau=self.gumbel_tau, add_gumbel_noise=True)
-            actor_loss = -self.critic.q1_only(state, pred_cont, pred_disc).mean()
+            actor_loss_t = -self.critic.q1_only(state, pred_cont, pred_disc).mean()
             self.actor_opt.zero_grad(set_to_none=True)
-            actor_loss.backward()
+            actor_loss_t.backward()
             if self.grad_clip_norm > 0:
                 nn.utils.clip_grad_norm_(self.actor.parameters(), self.grad_clip_norm)
             self.actor_opt.step()
@@ -299,8 +332,12 @@ class VanillaMATD3:
 
             self._soft_update(self.actor, self.target_actor)
             self._soft_update(self.critic, self.target_critic)
-            metrics["actor_loss"] = float(actor_loss.item())
 
+        if not return_metrics:
+            return {}
+        metrics = {"critic_loss": float(critic_loss.item()), "q1_mean": float(q1.mean().item())}
+        if actor_loss_t is not None:
+            metrics["actor_loss"] = float(actor_loss_t.item())
         return metrics
 
     @torch.no_grad()
@@ -323,8 +360,8 @@ class VanillaStochasticHybridActor(nn.Module):
         log_std_max: float = 2.0,
     ) -> None:
         super().__init__()
-        self.log_std_min = log_std_min
-        self.log_std_max = log_std_max
+        self.log_std_min = float(log_std_min)
+        self.log_std_max = float(log_std_max)
         self.backbone = build_plain_mlp(obs_dim + num_agents, hidden_sizes[:-1], hidden_sizes[-1])
         self.mean_head = nn.Linear(hidden_sizes[-1], cont_dim)
         self.log_std_head = nn.Linear(hidden_sizes[-1], cont_dim)
@@ -349,9 +386,10 @@ class VanillaStochasticHybridActor(nn.Module):
             return act_cont, act_disc, log_pi_cont, entropy_disc
 
         # Reparameterized TanhNormal with numerically stable Jacobian correction
-        u = mean + std * torch.randn_like(mean)
+        eps = torch.randn_like(mean)
+        u = mean + std * eps
         act_cont = torch.tanh(u)
-        log_prob_gauss = -0.5 * (((u - mean) / (std + 1e-8)) ** 2 + 2.0 * log_std + math.log(2.0 * math.pi))
+        log_prob_gauss = -0.5 * (eps.pow(2) + 2.0 * log_std + math.log(2.0 * math.pi))
         squash_corr = 2.0 * (math.log(2.0) - u - F.softplus(-2.0 * u))
         log_pi_cont = (log_prob_gauss - squash_corr).sum(dim=-1)
 
@@ -381,6 +419,8 @@ class VanillaMASAC:
         initial_alpha_disc: float = 0.2,
         target_entropy_cont: float | None = None,
         target_entropy_disc_ratio: float = 0.5,
+        log_std_min: float = -5.0,
+        log_std_max: float = 2.0,
         gumbel_tau: float = 1.0,
         grad_clip_norm: float = 0.5,
         device: torch.device | str = "cpu",
@@ -392,10 +432,16 @@ class VanillaMASAC:
         self.grad_clip_norm = grad_clip_norm
         self.target_entropy_cont = float(-cont_dim if target_entropy_cont is None else target_entropy_cont)
         self.target_entropy_disc_ratio = float(target_entropy_disc_ratio)
+        self.total_updates = 0
 
-        self.actor = VanillaStochasticHybridActor(obs_dim, num_agents, cont_dim, disc_dim, hidden_sizes).to(self.device)
+        self.actor = VanillaStochasticHybridActor(
+            obs_dim, num_agents, cont_dim, disc_dim, hidden_sizes,
+            log_std_min=log_std_min, log_std_max=log_std_max,
+        ).to(self.device)
         self.critic = SharedTwinCentralizedCritic(state_dim, num_agents, cont_dim, disc_dim, hidden_sizes).to(self.device)
         self.target_critic = copy.deepcopy(self.critic).to(self.device)
+        for p in self.target_critic.parameters():
+            p.requires_grad_(False)
 
         self.log_alpha_c = nn.Parameter(torch.tensor(math.log(initial_alpha_cont), device=self.device))
         self.log_alpha_d = nn.Parameter(torch.tensor(math.log(initial_alpha_disc), device=self.device))
@@ -411,7 +457,8 @@ class VanillaMASAC:
         act_cont, act_disc, _, _ = self.actor(obs, action_mask, gumbel_tau=self.gumbel_tau, deterministic=not explore)
         return act_cont, act_disc
 
-    def update(self, batch: Dict[str, torch.Tensor]) -> Dict[str, float]:
+    def update(self, batch: Dict[str, torch.Tensor], return_metrics: bool = True) -> Dict[str, float]:
+        self.total_updates += 1
         obs, next_obs = batch["obs"], batch["next_obs"]
         state, next_state = batch["state"], batch["next_state"]
         act_cont, act_disc = batch["act_cont"], batch["act_disc"]
@@ -424,7 +471,6 @@ class VanillaMASAC:
         with torch.no_grad():
             n_cont, n_disc, n_log_pi_c, n_ent_d = self.actor(next_obs, next_mask, gumbel_tau=self.gumbel_tau)
             tq1, tq2 = self.target_critic(next_state, n_cont, n_disc)
-            # Soft Bellman backup normalized by 1/N to match team reward scale
             entropy_term = (alpha_c * n_log_pi_c - alpha_d * n_ent_d).mean(dim=-1, keepdim=True)
             target_q = rewards + self.gamma * (1.0 - dones) * (torch.minimum(tq1, tq2) - entropy_term)
 
@@ -436,7 +482,6 @@ class VanillaMASAC:
             nn.utils.clip_grad_norm_(self.critic.parameters(), self.grad_clip_norm)
         self.critic_opt.step()
 
-        # Actor update
         for p in self.critic.parameters():
             p.requires_grad_(False)
         p_cont, p_disc, log_pi_c, ent_d = self.actor(obs, mask, gumbel_tau=self.gumbel_tau)
@@ -453,21 +498,25 @@ class VanillaMASAC:
         for p in self.critic.parameters():
             p.requires_grad_(True)
 
-        # Dual alpha update with dynamic valid-support discrete target entropy
+        # Dual alpha update: mask discrete alpha loss strictly over multi-option states (valid_counts > 1)
         valid_counts = mask.float().sum(dim=-1).clamp_min(1.0)
         target_h_d = self.target_entropy_disc_ratio * torch.log(valid_counts)
         alpha_c_loss = -(self.log_alpha_c * (log_pi_c.detach() + self.target_entropy_cont)).mean()
-        alpha_d_loss = -(self.log_alpha_d * (target_h_d - ent_d.detach())).mean()
+        multi_opt = (valid_counts > 1.0).float()
+        alpha_d_loss = -(self.log_alpha_d * (target_h_d - ent_d.detach()) * multi_opt).sum() / multi_opt.sum().clamp_min(1.0)
         alpha_loss = alpha_c_loss + alpha_d_loss
 
         self.alpha_opt.zero_grad(set_to_none=True)
         alpha_loss.backward()
         self.alpha_opt.step()
-
         with torch.no_grad():
+            self.log_alpha_c.clamp_(LOG_ALPHA_MIN, LOG_ALPHA_MAX)
+            self.log_alpha_d.clamp_(LOG_ALPHA_MIN, LOG_ALPHA_MAX)
             for p_src, p_dst in zip(self.critic.parameters(), self.target_critic.parameters()):
                 p_dst.data.mul_(1.0 - self.tau).add_(p_src.data, alpha=self.tau)
 
+        if not return_metrics:
+            return {}
         return {
             "critic_loss": float(critic_loss.item()),
             "actor_loss": float(actor_loss.item()),
