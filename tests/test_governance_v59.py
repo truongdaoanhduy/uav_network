@@ -39,7 +39,7 @@ class ProjectPolicyTests(unittest.TestCase):
     def test_disallowed_flat_new_research_code(self):
         with TemporaryDirectory() as td:
             root = Path(td)
-            name = "research/zhang_xue_v58_20261125/src/monster.py"
+            name = "research/zhang_xue/src/monster.py"
             file = root / name
             file.parent.mkdir(parents=True)
             file.write_text("pass\n")

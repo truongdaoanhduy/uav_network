@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zhang-xue-seven-radio-scenario"
+version = "0.60.0"
+description = "Six UAV target search and 7-radio packet-network research scenario"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24,<3", "PyYAML>=6,<7"]
+
+[project.optional-dependencies]
+gpu = ["warp-lang==1.18.0"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = [
+  "train_v55_packet_cpu",
+  "uav_v54_7node_env",
+  "uav_v54_7radio_csmaca_sim",
+  "uav_v54_ds_and_battery",
+  "v55_state_derived_replay",
+  "v55_warp_actor_maps",
+  "v56_warp_7radio_mac",
+  "v56_warp_event_kernels",
+  "v56_warp_injection_kernels",
+  "v56_warp_reset_kernels",
+  "v57_warp_phy_kernels",
+  "zhang_xue_v54_7node_warp"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["zhang_xue*"]

@@ -1,39 +1,41 @@
 #!/usr/bin/env bash
-# Fetch only UavNetSim runtime folders; synthesize scenarios at env.reset().
 set -euo pipefail
-project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-cd "$project_root"
-python_bin="${PYTHON:-python3}"
-venv_flags=()
-package_spec='.'
-for option in "$@"; do
-  case "$option" in
-    # Kaggle's Python image lacks a working ensurepip; inherit its existing pip.
-    --system-site-packages) venv_flags+=(--system-site-packages --without-pip) ;;
-    --cloud) package_spec='.[cloud]' ;;
-    *) echo 'Usage: bash setup.sh [--system-site-packages] [--cloud]' >&2; exit 2 ;;
+root="$(cd "$(dirname "$0")" && pwd)"
+dry_run=false
+check_only=false
+gpu=false
+while (( $# )); do
+  case "$1" in
+    --dry-run) dry_run=true ;;
+    --check-only) check_only=true ;;
+    --gpu) gpu=true ;;
+    *) echo "Usage: bash setup.sh [--dry-run] [--check-only] [--gpu]" >&2; exit 2 ;;
   esac
+  shift
 done
-"$python_bin" -c 'import sys; assert sys.version_info >= (3,11), "Python >=3.11 required"'
-if [[ ! -x .venv/bin/python ]]; then
-  "$python_bin" -m venv "${venv_flags[@]}" .venv
+if "$dry_run"; then
+  echo "Create local .venv and install algorithm core plus seven-radio scenario"
+  echo "Map and target generation use deterministic seeded sampling (no external dataset)"
+  if "$gpu"; then echo "Install optional Warp 1.18.0; NVIDIA driver required separately"; fi
+  exit 0
 fi
-.venv/bin/python -m pip --version
-.venv/bin/python -m pip install --upgrade pip
-.venv/bin/python -m pip install -e "$package_spec" -r scripts/requirements-network.txt
-upstream_dir="$project_root/third_party/UavNetSim"
-revision="$(tr -d '\r\n' < scripts/upstream-revision.txt)"
-mkdir -p third_party outputs
-if [[ ! -d "$upstream_dir/.git" ]]; then
-  git init -q "$upstream_dir"
-  git -C "$upstream_dir" remote add origin https://github.com/Zihao-Felix-Zhou/UavNetSim.git
+python_bin="python3"
+if [[ -n "${PYTHON:-}" ]]; then
+  python_bin="$PYTHON"
 fi
-git -C "$upstream_dir" sparse-checkout init --cone
-git -C "$upstream_dir" sparse-checkout set allocation energy entities mac mobility \
-  path_planning phy routing scene simulator telemetry topology utils
-if ! git -C "$upstream_dir" cat-file -e "$revision^{commit}" 2>/dev/null; then
-  git -C "$upstream_dir" fetch --depth=1 --filter=blob:none origin "$revision"
+if ! "$check_only"; then
+  "$python_bin" -m venv "$root/.venv"
+  python_bin="$root/.venv/bin/python"
+  "$python_bin" -m pip install -e "$root[dev]"
+  "$python_bin" -m pip install -e "$root/research/zhang_xue"
+  if "$gpu"; then "$python_bin" -m pip install warp-lang==1.18.0; fi
+elif [[ -x "$root/.venv/bin/python" ]]; then
+  python_bin="$root/.venv/bin/python"
 fi
-git -C "$upstream_dir" checkout --detach "$revision"
-.venv/bin/python -c 'from uav_network.configuration import load_config; from uav_network.communication.upstream import load_upstream; from gymnasium.vector import AutoresetMode; load_upstream(load_config()); assert AutoresetMode.DISABLED; print("UavNetSim and Gymnasium process runtime ready")'
-echo 'Ready. Run: .venv/bin/python -m uav_network --help'
+PYTHONPATH="$root:$root/research/zhang_xue/src" "$python_bin" -c '
+import torch,numpy,yaml
+from uav_network.algorithms.matd3 import MATD3
+from uav_network.algorithms.masac import MASAC
+from zhang_xue.environment.core import ZhangXue7NodePacketEnv
+print("Imports OK; no training or CUDA execution claimed")
+'

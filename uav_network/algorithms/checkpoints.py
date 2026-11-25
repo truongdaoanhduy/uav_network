@@ -1,85 +1,59 @@
-"""Versioned policies and optional progress; Adam/replay are not serialized."""
+"""Checkpoint version 4: algorithm-specific, no previous UAV world config."""
 from contextlib import suppress
 from pathlib import Path
 import torch
+from .configuration import LearnerConfig
 
-from ..configuration import Config, WorldConfig, _apply
-from ..environment.observations import OBSERVATION_VERSION, observation_version, observation_dim, state_dim
+CHECKPOINT_VERSION=4
+SCENARIO="zhang-xue-7radio-v60"
 
-
-def make_learner(config, obs_dim, critic_dim, device="cpu"):
-    from .masac import MASAC
+def make_learner(config, observation_dim, state_dim, device="cpu"):
     from .matd3 import MATD3
-    cls = {"masac": MASAC, "matd3": MATD3}[config.runtime.algorithm]
-    return cls(config, obs_dim, critic_dim, device)
-
+    from .masac import MASAC
+    return {"matd3":MATD3,"masac":MASAC}[config.runtime.algorithm](
+        config, observation_dim, state_dim, device
+    )
 
 def validate_observation_version(saved):
-    """Guard observation and seeded scene-generator semantics at every load path."""
-    version = saved.get("observation_version")
-    config = Config()
-    _apply(config, saved.get("config", {}))
-    expected = observation_version(config)
-    if type(version) is not int or version != expected:
-        raise ValueError("Checkpoint observation semantics differ; use its pinned historical source "
-                         "or retrain from episode 0")
-    generation = saved.get("config", {}).get("world", {}).get("generation_version")
-    if type(generation) is not int or generation != WorldConfig().generation_version:
-        raise ValueError("Checkpoint scenario generation semantics differ; use its pinned historical source "
-                         "or retrain from episode 0")
-
+    if saved.get("version") != CHECKPOINT_VERSION or saved.get("scenario_id")!=SCENARIO:
+        raise ValueError("Historical checkpoint belongs to a different scenario: restore its pinned Git version")
 
 def save_policy(learner, path, progress=None, *, training=None):
-    checks = [torch.isfinite(value).all() for value in learner.state_dict().values() if value.is_floating_point()]
-    if not torch.stack(checks).all():
-        raise FloatingPointError("Cannot save a policy with non-finite parameters")
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    saved = {"version": 3 if training is not None else 2, "algorithm": learner.algorithm,
-                "config": learner.config.to_dict(), "observation_dim": learner.observation_dim,
-                "state_dim": learner.state_dim, "observation_version": observation_version(learner.config),
-                "model": learner.state_dict(),
-                "updates": learner.updates}
-    if training is not None:
-        saved["training"] = training
-        saved["actor_updates"] = learner.actor_updates
-    if progress is not None:
-        saved["progress"] = progress
+    floating=[v for v in learner.state_dict().values() if v.is_floating_point()]
+    if any(not torch.isfinite(v).all() for v in floating):
+        raise FloatingPointError("Cannot save nonfinite model weights")
+    path=Path(path)
+    path.parent.mkdir(parents=True,exist_ok=True)
+    temp=path.with_suffix(path.suffix+".tmp")
+    state={
+        "version":CHECKPOINT_VERSION,
+        "scenario_id":SCENARIO,
+        "algorithm":learner.algorithm,
+        "config":learner.config.to_dict(),
+        "observation_dim":learner.observation_dim,
+        "state_dim":learner.state_dim,
+        "model":learner.state_dict(),
+        "updates":learner.updates,
+        "actor_updates":learner.actor_updates
+    }
+    if progress is not None:state["progress"]=progress
+    if training is not None:state["training"]=training
     try:
-        torch.save(saved, temporary)
-        temporary.replace(path)
+        torch.save(state,temp)
+        temp.replace(path)
     finally:
-        with suppress(OSError):
-            temporary.unlink(missing_ok=True)
-
+        with suppress(OSError):temp.unlink(missing_ok=True)
 
 def load_policy(path, device="cpu", expected_algorithm=None, *, payload=None):
-    saved = payload if payload is not None else torch.load(path, map_location=device, weights_only=True)
-    if saved.get("version") not in {2, 3}:
-        raise ValueError("Battery/mask observations require a version-2 checkpoint; retrain old policies")
+    saved=payload if payload is not None else torch.load(path,map_location=device,weights_only=True)
     validate_observation_version(saved)
-    algorithm = saved.get("algorithm")
-    if algorithm not in {"masac", "matd3"} or (expected_algorithm and algorithm != expected_algorithm):
-        raise ValueError(f"Checkpoint algorithm {algorithm!r} does not match {expected_algorithm!r}")
-    config = Config()
-    _apply(config, saved["config"])
-    # Legacy v2 policies must keep their original range-only mask when evaluated.
-    if "receiver_admission_mask" not in saved["config"].get("network", {}):
-        config.network.receiver_admission_mask = False
-    if "motion_safety" not in saved["config"].get("world", {}):
-        config.world.motion_safety = "reject"
-    if "rediscovery_recovery" not in saved["config"].get("network", {}):
-        config.network.rediscovery_recovery = False
-    if "ack_uses_data_power" not in saved["config"].get("network", {}):
-        config.network.ack_uses_data_power = False
-    config.runtime.algorithm = algorithm
-    config.validate()
-    if saved["observation_dim"] != observation_dim(config) or saved["state_dim"] != state_dim(config):
-        raise ValueError("Checkpoint observation/state dimensions do not match its configuration")
-    learner = make_learner(config, saved["observation_dim"], saved["state_dim"], device)
+    algorithm=saved.get("algorithm")
+    if algorithm not in ("matd3","masac") or (expected_algorithm and algorithm!=expected_algorithm):
+        raise ValueError(f"Checkpoint algorithm mismatch: {algorithm!r}, expected {expected_algorithm!r}")
+    config=LearnerConfig.from_dict(saved["config"])
+    config.runtime.algorithm=algorithm
+    learner=make_learner(config,saved["observation_dim"],saved["state_dim"],device)
     learner.load_state_dict(saved["model"])
-    learner.updates = saved["updates"]
-    learner.actor_updates = saved.get("actor_updates", learner.updates if algorithm == "masac"
-                                              else learner.updates // config.matd3.policy_delay)
+    learner.updates=saved["updates"]
+    learner.actor_updates=saved.get("actor_updates",0)
     return learner

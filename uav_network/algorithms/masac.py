@@ -9,7 +9,7 @@ from torch import nn
 from torch.distributions import Categorical
 from torch.nn import functional as F
 
-from ..environment.env import Action
+from .action_types import Action
 from .action_utils import canonical_continuous, joint_action, valid_destinations
 from .checkpoints import load_policy, save_policy
 from .models import HybridActor, TwinCritic

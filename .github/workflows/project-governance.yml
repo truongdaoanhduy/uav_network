@@ -1,4 +1,4 @@
-name: Project source governance and Zhang-Xue CPU regression
+name: Current seven-radio scenario and retained algorithm regressions
 
 on:
   push:
@@ -39,12 +39,12 @@ jobs:
       - name: Shell syntax
         run: |
           bash -n setup.sh
-          bash -n research/zhang_xue_v58_20261125/setup.sh
+          bash -n research/zhang_xue/setup.sh
       - name: Verify source length in modular Zhang-Xue package
         run: |
           python - <<'PY'
           from pathlib import Path
-          root=Path('research/zhang_xue_v58_20261125/src')
+          root=Path('research/zhang_xue/src')
           sources=list(root.rglob('*.py'))
           offenders=[str(p) for p in sources if len(p.read_text().splitlines())>500]
           assert not offenders, offenders
@@ -65,11 +65,11 @@ jobs:
           python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.5,<3"
       - name: Run standalone regression suite (not full-repo gate)
         env:
-          PYTHONPATH: research/zhang_xue_v58_20261125/src
-        run: python -m pytest -q research/zhang_xue_v58_20261125/tests/
+          PYTHONPATH: .:research/zhang_xue/src
+        run: python -m pytest -q tests/ research/zhang_xue/tests/
       - name: Validate scenario CLI configuration
         env:
-          PYTHONPATH: research/zhang_xue_v58_20261125/src
+          PYTHONPATH: .:research/zhang_xue/src
         run: |
-          cd research/zhang_xue_v58_20261125
+          cd research/zhang_xue
           python scripts/run_scenario.py --config configs/cpu_smoke.yaml --dry-run

@@ -24,7 +24,7 @@ BLOCKED_COMPONENTS = {
 }
 BLOCKED_FILENAMES = {"key.txt", "kaggle.json", ".env", "id_rsa", "id_ed25519"}
 TOKEN = re.compile(r"(?:gh[pousr]_|github_pat_|hf_)[A-Za-z0-9_-]{24,}")
-RESEARCH_ROOT = "research/zhang_xue_v58_20261125/"
+RESEARCH_ROOT = "research/zhang_xue/"
 LEGACY_ADAPTERS = {
     "uav_v54_7node_env.py",
     "uav_v54_7radio_csmaca_sim.py",
