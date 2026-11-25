@@ -47,10 +47,8 @@ def test_actor_has_local_nfz_geometry_but_not_unseen_distant_nfz():
     env.positions[0] = [200.0, 200.0]
     env.no_fly_zones = [(260.0, 280.0, 50.0), (900.0, 900.0, 50.0)]
     obs, _, _ = env._build_outputs()
-    assert np.isclose(obs[0, -6], 0.06, atol=1e-6)
-    assert np.isclose(obs[0, -5], 0.08, atol=1e-6)
-    assert np.isclose(obs[0, -4], 0.1, atol=1e-6)
-    assert np.array_equal(obs[0, -3:], np.zeros(3, np.float32))
+    np.testing.assert_allclose(obs[0, -8:-4], [.06, .08, .1, 1.], atol=1e-6)
+    np.testing.assert_allclose(obs[0, -4:], [0., 0., .3, 0.], atol=1e-6)
     env.no_fly_zones[1] = (850.0, 850.0, 50.0)  # still beyond local view
     obs2, _, _ = env._build_outputs()
     np.testing.assert_array_equal(obs, obs2)

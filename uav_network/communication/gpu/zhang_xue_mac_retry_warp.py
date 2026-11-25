@@ -186,7 +186,19 @@ def _retry_one_hop(
                 db = wp.float32(4.3429448190325175)*wp.log(
                     sig/(noise+interference)
                 )
-                if db < threshold_db or phase[e,rx] == 1 or (physical_carrier_sense != 0 and phase[e,rx] == 4):
+                # phase[rx]==4 means rx is RECEIVING its own MAC ACK:
+                # keep that receive-busy guard. The actual ACK transmitter
+                # for a different sender k is dest[k], not sender k.
+                ack_tx_at_rx = wp.int32(0)
+                if physical_carrier_sense != 0:
+                    for k in range(6):
+                        if phase[e,k] == 4 and dest[e,k] == rx:
+                            ack_start = data_end[e,k] + 10.0
+                            if ack_start < data_end[e,j] and ack_until[e,k] > latest_start[e,j]:
+                                ack_tx_at_rx = 1
+                if (db < threshold_db or phase[e,rx] == 1
+                    or (physical_carrier_sense != 0 and phase[e,rx] == 4)
+                    or ack_tx_at_rx != 0):
                     collided[e,j] = 1
                     collision_trace[e,j,attempts[e,j]-1] = 1
             # Newly-started DATA can jam already airborne reverse ACKs.
@@ -223,6 +235,19 @@ def _retry_one_hop(
                 ack_failed[e,chosen] = 0
                 ack_until[e,chosen] = data_end[e,chosen] + 130.0
                 phase[e,chosen] = 4
+                if physical_carrier_sense != 0:
+                    ack_tx = dest[e,chosen]
+                    ack_rx = chosen
+                    ack_start = data_end[e,chosen] + 10.0
+                    for other in range(6):
+                        if other == chosen or phase[e,other] != 1:
+                            continue
+                        # A one-radio node cannot receive another DATA
+                        # while it is transmitting or receiving MAC ACK.
+                        if (dest[e,other] == ack_tx or dest[e,other] == ack_rx):
+                            if latest_start[e,other] < ack_until[e,chosen] and data_end[e,other] > ack_start:
+                                collided[e,other] = 1
+                                collision_trace[e,other,attempts[e,other]-1] = 1
                 for k in range(6):
                     if k == chosen or phase[e,k] != 1:
                         continue

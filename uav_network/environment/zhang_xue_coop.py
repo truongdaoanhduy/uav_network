@@ -121,7 +121,7 @@ class ZhangXueCooperativeEnv:
         self.num_agents = self.config.uav_count
         self.cont_dim = 2
         self.disc_dim = self.num_agents
-        self.obs_dim = 9 + (self.num_agents-1)*4 + 2*25 + 2*16 + 2 + 6
+        self.obs_dim = 9 + (self.num_agents-1)*4 + 2*25 + 2*16 + 2 + 8
         self.state_dim = self.num_agents * self.obs_dim
         self.rng = None
         self.t = 0
@@ -179,9 +179,17 @@ class ZhangXueCooperativeEnv:
         self.blackout_zones=blackout
 
     def reset(self, seed: int | None = None):
-        if seed is None:
-            seed=self.base_seed
-        self.rng=np.random.default_rng(int(seed))
+        # A None seed continues the existing episode RNG stream (Gymnasium
+        # convention), instead of replaying the same training map forever.
+        # Explicit reset(seed=...) still reproduces a scene exactly.
+        if seed is not None:
+            self.rng=np.random.default_rng(int(seed))
+            network_seed=int(seed)
+        elif self.rng is None:
+            self.rng=np.random.default_rng(self.base_seed)
+            network_seed=self.base_seed
+        else:
+            network_seed=int(self.rng.integers(0, 2**31-1))
         self.t=0
         self.done=False
         self._generate_scenario()
@@ -196,7 +204,7 @@ class ZhangXueCooperativeEnv:
             # intended for one evaluation episode at a time, never E4096.
             from uav_network.communication.classic_v1_simpy import ClassicV1SimPyNetwork
             self.net=ClassicV1SimPyNetwork(
-                network_positions,self.belief,seed=int(seed),
+                network_positions,self.belief,seed=network_seed,
             )
         else:
             self.net=MiniDiscreteEventNet(
@@ -265,9 +273,16 @@ class ZhangXueCooperativeEnv:
             for idx in range(2):
                 if idx<len(nfz_near):
                     dist,dx,dy=nfz_near[idx]
-                    nfz_local.extend([dx/c.map_size_meter,dy/c.map_size_meter,dist/c.map_size_meter])
+                    nfz_local.extend([
+                        dx/c.map_size_meter, dy/c.map_size_meter,
+                        dist/c.map_size_meter, 1.,
+                    ])
                 else:
-                    nfz_local.extend([0.,0.,0.])
+                    # Explicit absent bit eliminates collision-at-center alias;
+                    # radius-valued padding follows Zhang 2024 Eq.(26).
+                    nfz_local.extend([
+                        0., 0., c.nfz_observation_radius_meter/c.map_size_meter, 0.,
+                    ])
             base=[
                 x/c.map_size_meter,y/c.map_size_meter,
                 float(self.velocity[u,0])/c.v_max_mps,float(self.velocity[u,1])/c.v_max_mps,

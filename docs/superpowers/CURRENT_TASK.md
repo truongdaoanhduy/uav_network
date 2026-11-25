@@ -1,3 +1,9 @@
+# 2026-11-25 — v4.11 v4.10→v5.0 independent source re-audit
+
+New independent branch experiment/zhang-xue-v411-reverified-halfduplex-nfz-20261125 from 7f03e9b. TDD against actual CPU/Warp modules: half-duplex MAC ACK transmitter correctly blocks concurrent DATA, NFZ padding uses observed bit + range (actor obs119→121), CPU reset(None) RNG advances while reset(seed) remains reproducible. Source-compatible MAC default stays unchanged. No false claim that float32 microsecond one-hop-local timing corrupted 200s; unified scheduler requires int32 per-episode microseconds. Legacy spec800m/GCS/25T and active1km/10T/200s are different scenarios. Audit file: docs/superpowers/NETWORK_V411_V410_TO_V50_REAUDIT_20261125.md. Full Gate5/CUDA/production training not complete.
+
+---
+
 # 2026-11-25 — v4.10 external audit claims reviewed
 
 Branch experiment/zhang-xue-v410-reviewed-audit-fixes-20261125, parent v4.9 b2d211b. Independently checked user ZIP claims against local code, official 2024–26 papers, Farama, Warp API and pinned native classic UavNetSim-v1 SimPy; fixes: true map-wide information reward while blocking newly confirmed FP-cell reward exploitation, 300m local NFZ features, alternating ID motion arbitration CPU+Warp, physical ACK CCA opt-in with native-source parity preserved default, configurable HELLO periodicity/TTL in moving v4.5 diagnostic. Retained correct finite-horizon terminal semantics; did NOT add oracle global Phi/AoI. Source-level audit table: docs/superpowers/NETWORK_V410_INDEPENDENT_AUDIT_20261125.md. GPU/CUDA and full integrated Gate5 remain blocked; NO training/eval/test launched.
