@@ -1,3 +1,7 @@
+> **Engineering contract:** [Original repository rules and active governance](docs/PROJECT_ENGINEERING_CONTRACT_20261125.md). V5.9 experimental package and scenario runner live under [`research/zhang_xue_v58_20261125/`](research/zhang_xue_v58_20261125/). Legacy files over 500 lines remain tracked as documented debt; see the changed-file gate and full-tree audit.
+
+Historical `.ipynb` files were removed from **v5.9 HEAD only**; see [archived SHA-256 manifest](docs/benchmarks/NOTEBOOK_ARCHIVE_V59_20261125.md) to recover from v5.8 Git history. They were not current reference training notebooks.
+
 # UAV network: tìm kiếm target, pin và truyền report
 
 Khi tiếp tục công việc W&B/Kaggle hoặc CPU replay, đọc [trạng thái và bước kế tiếp](docs/superpowers/CURRENT_TASK.md).

@@ -1,0 +1,5 @@
+# Fast CPU benchmark for CI; not a training result.
+num_targets: 3
+safety_horizon_s: 12
+safety_mode: kinematic_shield
+obs_pool_mode: semantic

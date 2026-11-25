@@ -17,7 +17,8 @@ def make_worlds(envs,seed=44,device='cpu'):
     s=NetworkBuffers()
     for name,(shape,dtype) in SHAPES.items():
         typ={np.dtype(np.int32):wp.int32,np.dtype(np.uint32):wp.uint32,
-             np.dtype(np.uint16):wp.uint16,np.dtype(np.float32):wp.float32}[np.dtype(dtype)]
+             np.dtype(np.uint16):wp.uint16,np.dtype(np.uint8):wp.uint8,
+             np.dtype(np.float32):wp.float32}[np.dtype(dtype)]
         setattr(s,name,wp.zeros((envs,*shape) if shape!=(1,) else (envs,),dtype=typ,device=device))
     reset_all(s,np.ones(envs,dtype=np.uint8),envs,seed,device)
     return s

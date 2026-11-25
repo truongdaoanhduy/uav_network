@@ -61,8 +61,8 @@ def _step(
                     s.state[e, r] = SIFS
                     s.deadline[e, r] = wp.min(NEVER, t + 10)
                 else:
-                    slot = -1
-                    hop = -1
+                    slot = wp.int32(-1)
+                    hop = wp.int32(-1)
                     if s.hello_pending[e, r] != 0:
                         slot = -2
                     elif s.q_count[e, r] > 0:
@@ -78,8 +78,8 @@ def _step(
                         # B3-Warp fix: scan ALL queued entries, ACK first, then
                         # route-ready DATA. Unroutable head must not stall the radio.
                         # This is bounded by Q=64, not the number of MAC events.
-                        chosen_offset = -1
-                        chosen_hop = -1
+                        chosen_offset = wp.int32(-1)
+                        chosen_hop = wp.int32(-1)
                         for want_ack in range(2):
                             for offset in range(64):
                                 if offset >= s.q_count[e, r]:

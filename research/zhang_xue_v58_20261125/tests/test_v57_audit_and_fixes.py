@@ -236,7 +236,8 @@ class TestV57AuditFixes(unittest.TestCase):
     def test_v57_warp_static_ast_contracts(self):
         # Verify enable_backward=False is set in event, injection, reset, mac, phy modules
         for fname in (
-            "v56_warp_7radio_mac.py",
+            "zhang_xue/gpu/state.py",
+            "zhang_xue/gpu/mac_functions.py",
             "v56_warp_event_kernels.py",
             "v56_warp_injection_kernels.py",
             "v56_warp_reset_kernels.py",
@@ -246,11 +247,12 @@ class TestV57AuditFixes(unittest.TestCase):
             ast.parse(text)  # Valid Python syntax
             self.assertIn("enable_backward", text, f"{fname} missing enable_backward=False")
         # Verify dead duplicate _reset/_step removed from v56_warp_7radio_mac.py
-        mac_text = (SRC / "v56_warp_7radio_mac.py").read_text(encoding="utf-8")
+        mac_text = (SRC / "zhang_xue/gpu/mac_functions.py").read_text(encoding="utf-8")
+        state_text = (SRC / "zhang_xue/gpu/state.py").read_text(encoding="utf-8")
         self.assertNotIn("def _step(", mac_text)
         self.assertNotIn("def _reset(", mac_text)
         self.assertIn("_sum_interference_at", mac_text)
-        self.assertIn("hello_dv_dist", mac_text)
+        self.assertIn("hello_dv_dist", state_text)
         self.assertIn("wp.atomic_add(s.stats_drop", mac_text)
 
 

@@ -58,7 +58,7 @@ def test_actual_warp_memory_budget_and_projection_are_not_confused():
 def test_warp_queue_priority_fix_copies_payload_and_scans_64_slots_statically():
     """Static source contract only: full Warp compilation/running still required."""
     evt = (SRC / "v56_warp_event_kernels.py").read_text()
-    mac = (SRC / "v56_warp_7radio_mac.py").read_text()
+    mac = (SRC / "zhang_xue/gpu/mac_functions.py").read_text()
     assert "for offset in range(64):" in evt
     assert "_promote_queued_slot(s, e, r, chosen_offset)" in evt
     assert "s.q_word0[e, r, head, k] = s.q_word0[e, r, chosen, k]" in mac
@@ -68,8 +68,8 @@ def test_warp_queue_priority_fix_copies_payload_and_scans_64_slots_statically():
 
 
 def test_effective_ewma_math_not_yet_wired_to_env_packet_ledger():
-    env_code = (SRC / "uav_v54_7node_env.py").read_text()
-    network_code = (SRC / "uav_v54_7radio_csmaca_sim.py").read_text()
+    env_code = (SRC / "zhang_xue/environment/observations.py").read_text()
+    network_code = (SRC / "zhang_xue/communication/lifecycle.py").read_text()
     # This is a progress assertion, not a claim of equivalence with Xue.
     assert "fuse_provenance_counts(" in env_code
     assert "ewma_effective_counts_update(" not in network_code

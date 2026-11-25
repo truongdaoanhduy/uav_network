@@ -1,0 +1,18 @@
+# Explicit v5.8 research benchmark; NOT the historical 3 km, 35-target experiment.
+map_size_m: 1000.0
+num_targets: 15
+safety_horizon_s: 1500
+v_max_mps: 25.0
+a_max_mps2: 5.0
+pd: 0.85
+pf: 0.03
+confirm_th: 0.90
+tx_power_w: 0.5
+e_max_j: 270000.0
+safety_mode: kinematic_shield
+enable_3d_sensing_occlusion: true
+enable_accel_energy: true
+obs_pool_mode: semantic
+peer_reward_mode: info_gain
+aoi_reward_mode: exponential
+safety_failure_terminate: true

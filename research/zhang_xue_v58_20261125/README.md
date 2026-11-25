@@ -1,3 +1,34 @@
+# v5.9 modular research refactor — source contract and configuration
+
+The v5.8 CPU packet model is now split into **named modules at most 500 lines**:
+`src/zhang_xue/{communication,environment,belief,mobility,gpu,configuration}/`.
+The v54/v56 top-level filenames are compatibility import aliases, not a second
+implementation. The original v5.8 code still exists at its immutable Git commit.
+The **500-line source rule is enforceable on changes**, but the historical
+whole-repository rule still fails on inherited source and notebooks.
+
+The canonical 1 km, 15-target research configuration is in
+`configs/benchmark_1km_v58.yaml`; `configs/cpu_smoke.yaml` is for fast tests.
+The 3 km, 35-target study is **not** silently supported by this 20×20 simulator.
+
+```bash
+# dry run shows pinned UavNetSim checkout, does not download anything
+bash setup.sh --dry-run
+# full setup invokes the root venv + pinned sparse UavNetSim checkout
+bash setup.sh --system-site-packages
+# environment validation without installation (choose Python with dependencies)
+PYTHON=/path/to/python bash setup.sh --check-only
+PYTHONPATH=src python -m pytest -q tests/
+PYTHONPATH=src python scripts/run_scenario.py --config configs/cpu_smoke.yaml --steps 4 \
+  --set num_targets=4 --output outputs/cpu-smoke.json
+```
+
+**Not a GPU trainer:** no E4096 T4 or CPU–CUDA event parity is claimed.
+Do not run the obsolete `stage_in_repo.sh` on this already-published branch.
+Project-wide rules: `../../docs/PROJECT_ENGINEERING_CONTRACT_20261125.md` at repo root.
+
+---
+
 # v5.8 independent audit & targeted source corrections (2026-11-25)
 
 **Status: research candidate, NOT a completed Warp-GPU 4096-env training system.**

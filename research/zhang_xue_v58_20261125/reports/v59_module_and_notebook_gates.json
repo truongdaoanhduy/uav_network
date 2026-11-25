@@ -1,0 +1,40 @@
+{
+  "baseline_commit": "7d7ab1ccea3d31a121f9708e428bbf96c3c529a6",
+  "branch": "experiment/zhang-xue-v59-architecture-gates-20261125",
+  "changed_file_governance_status": "PASS",
+  "cpu_80step_parity_v58_v59": true,
+  "cpu_80step_reference_returns": {
+    "all_gcs": -16.83318,
+    "no_communications": -77.65551
+  },
+  "cpu_regression_tests_passed": 69,
+  "cuda_t4_event_parity_verified": false,
+  "full_tree_governance_status": "FAIL_LEGACY_DEBT",
+  "gpu_training_4096_env_verified": false,
+  "historical_notebook_blobs_retained_in_baseline": true,
+  "notebook_bytes_retired_from_head": 20457614,
+  "notebooks_retired_from_head": 25,
+  "notes": "The 1km/15-target research package is not the legacy 3km/35-target benchmark. No active Kaggle training is claimed.",
+  "policy_unit_tests_passed": 5,
+  "version": "v5.9",
+  "warp_cpu_2hop": {
+    "e2e_ack": [
+      1,
+      0
+    ],
+    "gcs_data": [
+      1,
+      0
+    ],
+    "mac_ack": [
+      4,
+      0
+    ],
+    "overflows": [
+      0,
+      0
+    ],
+    "route_0_to_gcs_next_hop": 1
+  },
+  "warp_cpu_2hop_verified": true
+}

@@ -118,15 +118,14 @@ def test_warp_fast_jit_and_production_contracts():
         assert cfg["reward"]["w2_gcs_aoi_delivery"] == 15.0
         validate_scenario_config(cfg)
 
-    # 3) Verify notebook AST + pinned deps + Pilot 1M cell + Public Account 1 metadata
-    nb = json.loads((ROOT / "notebooks/RUN_SLOTTED_VANILLA_T4X2_END2END_20261124.ipynb").read_text(encoding="utf-8"))
-    assert nb["nbformat"] == 4 and len(nb["cells"]) == 7
-    all_code = "\n".join("".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code")
-    for c in nb["cells"]:
-        if c["cell_type"] == "code":
-            ast.parse("".join(c["source"]))
-    for req in ("warp-lang==1.18.0", "trimesh>=4.12,<5", "shapely>=2,<3", "mapbox-earcut>=2,<3", "UserSecretsClient", "pilot_1m"):
-        assert req in all_code, f"Missing {req!r} in notebook"
+    # 3) Historical Kaggle notebook was explicitly retired from v5.9 HEAD.
+    # Its old cell AST and dependencies belong to v5.8, not the active CPU/GPU
+    # scenario under test. Preserve traceability in the immutable Git manifest.
+    retired_name = "RUN_SLOTTED_VANILLA_T4X2_END2END_20261124.ipynb"
+    assert not (ROOT / "notebooks" / retired_name).exists()
+    archive = (ROOT / "docs/benchmarks/NOTEBOOK_ARCHIVE_V59_20261125.md").read_text(encoding="utf-8")
+    assert retired_name in archive
+    assert "7d7ab1ccea3d31a121f9708e428bbf96c3c529a6" in archive
 
     meta = json.loads((ROOT / "notebooks/kaggle_account1_public_kernel-metadata.json").read_text(encoding="utf-8"))
     assert meta["is_private"] is False and meta["enable_gpu"] is True
