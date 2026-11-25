@@ -283,7 +283,15 @@ class ClassicV1SimPyNetwork:
     """Actual classic UavNetSim SimPy CSMA/CA, not the reference mininet."""
 
     def __init__(self,positions:dict[int,tuple[float,float]],belief:BeliefTable,
-                 seed:int=44,v1_root:str|Path|None=None):
+                 seed:int=44,v1_root:str|Path|None=None,*,tx_power_w:float=0.5):
+        # The pinned PHY reads a process-global power constant. Arbitrary
+        # per-network overrides would mutate the radio of an existing native
+        # network, so reject unsupported settings before loading upstream.
+        if not math.isfinite(tx_power_w) or tx_power_w != 0.5:
+            raise ValueError(
+                "classic_simpy_v1 requires tx_power_w=0.5 W; arbitrary "
+                "per-network power is unsupported by the process-global PHY"
+            )
         imp=_load_upstream(v1_root)
         simpy=imp["simpy"]
         Channel=imp["Channel"]

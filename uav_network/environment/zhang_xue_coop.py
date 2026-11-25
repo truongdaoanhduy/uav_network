@@ -10,7 +10,8 @@ No network performance or convergence claim should rely on this pilot alone.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
+from pathlib import Path
 from typing import Dict, List, Tuple
 import math
 
@@ -25,6 +26,10 @@ from uav_network.communication.zhang_xue_ref.packets_and_queues import (
 from uav_network.communication.zhang_xue_ref.reward_engine import RewardEngine
 from uav_network.communication.zhang_xue_ref.phy_patch import sinr_db_patched
 from uav_network.environment.zhang_xue_map_geometry import sample_scene
+from uav_network.environment.zhang_xue_battery import (
+    ZengPropulsionParameters,
+    steady_level_propulsion_power_w,
+)
 
 
 @dataclass(frozen=True)
@@ -55,8 +60,106 @@ class ZhangXueConfig:
     packet_ttl_seconds: float = 10.0
     packet_entries_limit: int = 62
     fusion_mode: str = "MAX_PLUS_SUM"
+    # Explicit CPU six-radio adaptation; legacy finite-horizon behavior is default.
+    termination_regime: str = "finite_horizon"
+    usable_battery_e_max_j: float = 180000.0
+    avionics_baseline_w: float = 15.0
+    # Per-node on-air TX durations are unavailable in these pilot backends.
+    rf_tx_pa_baseband_w: float = 0.0
+    p0_blade_hover_w: float = 79.86
+    pi_induced_hover_w: float = 88.63
+    u_tip_mps: float = 120.0
+    v0_hover_mps: float = 4.03
+    fuselage_drag_d0: float = 0.6
+    air_density_rho: float = 1.225
+    rotor_solidity_s: float = 0.05
+    rotor_disc_area_m2: float = 0.503
+
+    @classmethod
+    def from_yaml(cls, path: str | Path) -> "ZhangXueConfig":
+        """Load a flat CPU pilot profile; the nested seven-node v5.2 is separate."""
+        import yaml
+
+        class UniqueKeyLoader(yaml.SafeLoader):
+            pass
+
+        def unique_mapping(loader, node):
+            result = {}
+            for key_node, value_node in node.value:
+                key = loader.construct_object(key_node)
+                if not isinstance(key, str):
+                    raise ValueError("CPU pilot YAML keys must be field names")
+                if key in result:
+                    raise ValueError(f"Duplicate CPU pilot YAML field: {key}")
+                result[key] = loader.construct_object(value_node)
+            return result
+
+        UniqueKeyLoader.add_constructor(
+            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, unique_mapping,
+        )
+        try:
+            with Path(path).open(encoding="utf-8") as stream:
+                data = yaml.load(stream, Loader=UniqueKeyLoader)
+        except yaml.YAMLError as error:
+            raise ValueError("Invalid CPU pilot YAML") from error
+        if not isinstance(data, dict):
+            raise ValueError("CPU pilot YAML must be a flat field mapping")
+        unknown = set(data) - {field.name for field in fields(cls)}
+        if unknown or any(isinstance(v, (dict, list)) for v in data.values()):
+            raise ValueError(
+                "Expected a flat CPU six-radio pilot profile; nested seven-node "
+                f"v5.2 candidates are unsupported. Unknown fields: {sorted(unknown)}"
+            )
+        return cls(**data)
 
     def __post_init__(self):
+        integer_fields = {
+            "grid_width", "grid_height", "uav_count", "target_count", "horizon_steps",
+            "no_fly_zone_count", "blackout_zone_count", "blackout_radius_cells",
+            "packet_entries_limit",
+        }
+        for field in fields(self):
+            value = getattr(self, field.name)
+            if field.name in ("fusion_mode", "termination_regime"):
+                if not isinstance(value, str):
+                    raise ValueError(f"{field.name} must be a string")
+                continue
+            if (isinstance(value, (bool, str)) or
+                    not isinstance(value, (int, float, np.integer, np.floating)) or
+                    not math.isfinite(value)):
+                raise ValueError(f"{field.name} must be numeric and finite")
+            if field.name in integer_fields and not isinstance(value, (int, np.integer)):
+                raise ValueError(f"{field.name} must be an integer")
+        if self.termination_regime not in ("finite_horizon", "physical_battery"):
+            raise ValueError("termination_regime must be finite_horizon or physical_battery")
+        if self.fusion_mode not in ("MAX_PLUS_SUM", "MAX"):
+            raise ValueError("Unsupported fusion_mode")
+        for name in (
+            "cell_size_meter", "map_size_meter", "v_max_mps", "safe_distance_meter",
+            "no_fly_radius_meter", "tx_power_w", "usable_battery_e_max_j",
+        ):
+            if getattr(self, name) <= 0:
+                raise ValueError(f"{name} must be positive")
+        for name in (
+            "no_fly_zone_count", "blackout_zone_count", "blackout_radius_cells",
+            "avionics_baseline_w", "rf_tx_pa_baseband_w",
+        ):
+            if getattr(self, name) < 0:
+                raise ValueError(f"{name} must be nonnegative")
+        if self.rf_tx_pa_baseband_w != 0:
+            raise ValueError(
+                "RF battery energy unavailable: pilot backends do not expose actual "
+                "per-node TX airtime; rf_tx_pa_baseband_w must be zero"
+            )
+        propulsion = self.propulsion_parameters()
+        if self.termination_regime == "physical_battery":
+            if self.v_max_mps >= self.u_tip_mps:
+                raise ValueError("physical_battery requires v_max_mps < u_tip_mps")
+            max_power = max(steady_level_propulsion_power_w(
+                np.array([0.0, self.v_max_mps]), propulsion,
+            )) + self.avionics_baseline_w
+            if not math.isfinite(max_power * self.dt_seconds):
+                raise ValueError("Physical battery step energy must be finite")
         if self.grid_width != 20 or self.grid_height != 20:
             raise ValueError("Pilot state encoder requires exactly 20×20 cells")
         if self.cell_size_meter * self.grid_width != self.map_size_meter:
@@ -71,6 +174,8 @@ class ZhangXueConfig:
             raise ValueError("Invalid target_count")
         if self.horizon_steps < 1 or self.dt_seconds <= 0:
             raise ValueError("Time horizon and dt must be positive")
+        if not math.isfinite(self.horizon_steps * self.dt_seconds):
+            raise ValueError("Time horizon in seconds must be finite")
         if not (0. < self.camera_fov_degrees < 180.):
             raise ValueError("Camera field of view must lie in (0,180) degrees")
         if not (self.fixed_altitude_meter > 0. and math.isfinite(self.fixed_altitude_meter)):
@@ -85,6 +190,12 @@ class ZhangXueConfig:
             raise ValueError("packet_entries_limit exceeds MTU")
         if self.packet_ttl_seconds <= 0:
             raise ValueError("Packet TTL must be positive")
+
+    def propulsion_parameters(self) -> ZengPropulsionParameters:
+        return ZengPropulsionParameters(**{
+            field.name: getattr(self, field.name)
+            for field in fields(ZengPropulsionParameters)
+        })
 
 
 def _segment_min_distance(
@@ -109,6 +220,8 @@ class ZhangXueCooperativeEnv:
     ascending UAV-ID order excluding the acting UAV. Routes can use relays.
     All observations and centralized critic state are built from agent-local
     observations, not target truth or another UAV's undisclosed evidence.
+    physical_battery is a speed-only steady-flight energy adaptation of this
+    six-radio CPU pilot, with no acceleration model or seventh GCS node.
     """
 
     def __init__(self, config: ZhangXueConfig | None = None, seed: int = 44,
@@ -128,6 +241,10 @@ class ZhangXueCooperativeEnv:
         self.done = False
         self.positions = np.zeros((self.num_agents, 2), np.float32)
         self.velocity = np.zeros((self.num_agents, 2), np.float32)
+        self.battery_remaining_j = np.full(
+            self.num_agents, self.config.usable_battery_e_max_j, dtype=np.float64,
+        )
+        self._propulsion_parameters = self.config.propulsion_parameters()
         self.target_mask = np.zeros((400,), bool)
         self.no_fly_zones: List[Tuple[float, float, float]] = []
         self.blackout_zones: List[Tuple[int, int]] = []
@@ -192,6 +309,7 @@ class ZhangXueCooperativeEnv:
             network_seed=int(self.rng.integers(0, 2**31-1))
         self.t=0
         self.done=False
+        self.battery_remaining_j.fill(self.config.usable_battery_e_max_j)
         self._generate_scenario()
         c=self.config
         self.belief=BeliefTable(c.uav_count,400,c.fusion_mode,c.ds_mf,c.ds_me)
@@ -205,6 +323,7 @@ class ZhangXueCooperativeEnv:
             from uav_network.communication.classic_v1_simpy import ClassicV1SimPyNetwork
             self.net=ClassicV1SimPyNetwork(
                 network_positions,self.belief,seed=network_seed,
+                tx_power_w=c.tx_power_w,
             )
         else:
             self.net=MiniDiscreteEventNet(
@@ -286,7 +405,9 @@ class ZhangXueCooperativeEnv:
             base=[
                 x/c.map_size_meter,y/c.map_size_meter,
                 float(self.velocity[u,0])/c.v_max_mps,float(self.velocity[u,1])/c.v_max_mps,
-                (c.horizon_steps-self.t)/c.horizon_steps,
+                (float(self.battery_remaining_j[u])/c.usable_battery_e_max_j
+                 if c.termination_regime == "physical_battery"
+                 else (c.horizon_steps-self.t)/c.horizon_steps),
                 min(len(nfz_near)/max(c.no_fly_zone_count,1),1.),
                 float(own_radio),queue_len/q.max_size,
                 min(ack_count/10.,1.),
@@ -470,6 +591,16 @@ class ZhangXueCooperativeEnv:
 
         # t_{k+1}: motion then independent sensing, with no same-step transmission
         safety,boundary=self._move(a)
+        if c.termination_regime == "physical_battery":
+            accepted_speed = np.linalg.norm(self.velocity.astype(np.float64), axis=1)
+            battery_requested_j = (
+                steady_level_propulsion_power_w(accepted_speed, self._propulsion_parameters)
+                + c.avionics_baseline_w
+            ) * c.dt_seconds
+            battery_used_j = np.minimum(self.battery_remaining_j, battery_requested_j)
+            self.battery_remaining_j = np.maximum(
+                0.0, self.battery_remaining_j - battery_used_j,
+            )
         own_mu_before=self.belief.get_team_own_belief()[2]
         for u in range(self.num_agents):
             for cell in self._visible_cells(self.positions[u]):
@@ -485,14 +616,33 @@ class ZhangXueCooperativeEnv:
             safety_penalty=30.*safety,boundary_penalty=20.*boundary,
         )
         self.t+=1
-        self.done=bool(
-            self.t>=c.horizon_steps or
-            np.all(self.reward_engine.team_tp_latch[self.target_mask])
+        mission_success = bool(np.all(self.reward_engine.team_tp_latch[self.target_mask]))
+        horizon_reached = self.t >= c.horizon_steps
+        battery_exhausted = bool(
+            c.termination_regime == "physical_battery"
+            and np.any(self.battery_remaining_j <= 0.0)
         )
+        # First depleted UAV ends this cooperative sortie. Energy is integrated
+        # over accepted full steps; depletion time is resolved to dt, not substeps.
+        terminated = bool(mission_success or battery_exhausted or (
+            c.termination_regime == "finite_horizon" and horizon_reached
+        ))
+        truncated = bool(horizon_reached and not terminated)
+        self.done = terminated or truncated
         info={
             "step":self.t,
-            "terminated":self.done,
-            "truncated":False,
+            "terminated":terminated,
+            "truncated":truncated,
+            "bootstrap_allowed":not terminated,
+            "termination_regime":c.termination_regime,
+            "battery_exhausted":battery_exhausted,
+            "mission_success":mission_success,
+            "termination_reason":(
+                "battery_exhaustion" if battery_exhausted else
+                "team_target_confirmation" if mission_success else
+                "finite_horizon" if terminated else
+                "safety_horizon" if truncated else None
+            ),
             "data_generated":self.net.metrics.data_generated,
             "data_pdr":float(self.net.metrics.data_pdr),
             "ack_delivered":self.net.metrics.e2e_ack_delivered,
@@ -502,5 +652,15 @@ class ZhangXueCooperativeEnv:
             "tp_confirmed":int(self.reward_engine.team_tp_latch[self.target_mask].sum()),
             "fp_latched":int(self.reward_engine.team_fp_latch.sum()),
         }
+        if c.termination_regime == "physical_battery":
+            info.update({
+                "battery_model": "zeng_eq12_steady_level_speed_only",
+                "battery_remaining_j": self.battery_remaining_j.tolist(),
+                "battery_soc": (self.battery_remaining_j/c.usable_battery_e_max_j).tolist(),
+                "battery_energy_used_j": battery_used_j.tolist(),
+                "battery_requested_energy_j": battery_requested_j.tolist(),
+                "battery_accepted_speed_mps": accepted_speed.tolist(),
+                "battery_rf_energy_status": "unavailable_no_per_node_tx_airtime",
+            })
         obs,state,mask=self._build_outputs()
         return obs,state,mask,float(reward),bool(self.done),info

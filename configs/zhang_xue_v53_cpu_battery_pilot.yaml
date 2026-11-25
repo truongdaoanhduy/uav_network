@@ -1,0 +1,42 @@
+# Executable CPU SIX-RADIO pilot profile; this is not the nested v5.2 seven-node design.
+# Scene: sampled 2 NFZ disks + 2 blackout diamonds; no 3D buildings or GCS.
+# Energy: steady level flight + avionics; per-node radio energy unavailable.
+# Select explicitly with train_zhang_xue_pilot --config PATH. No default migration.
+termination_regime: physical_battery
+grid_width: 20
+grid_height: 20
+cell_size_meter: 50.0
+map_size_meter: 1000.0
+uav_count: 6
+target_count: 15
+fixed_altitude_meter: 50.0
+camera_fov_degrees: 90.0
+dt_seconds: 1.0
+horizon_steps: 1500
+v_max_mps: 25.0
+safe_distance_meter: 50.0
+no_fly_zone_count: 2
+no_fly_radius_meter: 50.0
+nfz_observation_radius_meter: 300.0
+blackout_zone_count: 2
+blackout_radius_cells: 3
+pd: 0.85
+pf: 0.03
+ds_mf: 0.8
+ds_me: 0.8
+confirm_threshold: 0.95
+tx_power_w: 0.5
+packet_ttl_seconds: 10.0
+packet_entries_limit: 62
+fusion_mode: MAX_PLUS_SUM
+usable_battery_e_max_j: 180000.0
+avionics_baseline_w: 15.0
+rf_tx_pa_baseband_w: 0.0
+p0_blade_hover_w: 79.86
+pi_induced_hover_w: 88.63
+u_tip_mps: 120.0
+v0_hover_mps: 4.03
+fuselage_drag_d0: 0.6
+air_density_rho: 1.225
+rotor_solidity_s: 0.05
+rotor_disc_area_m2: 0.503

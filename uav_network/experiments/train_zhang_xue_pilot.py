@@ -36,6 +36,7 @@ def run_cpu_pilot(
     hidden_sizes: Tuple[int,...] = (64,64),
     eval_episodes: int = 2,
     network_backend: str = "reference",
+    config_path: str | Path | None = None,
 ) -> dict:
     """Run a bounded CPU experiment and return metrics, without remote side effects.
 
@@ -52,8 +53,11 @@ def run_cpu_pilot(
             raise ValueError(f"{name} must be >=1")
     torch.manual_seed(int(seed))
     np.random.seed(int(seed))
+    config=(ZhangXueConfig.from_yaml(config_path) if config_path is not None
+            else ZhangXueConfig(horizon_steps=int(horizon_steps)))
+    horizon_steps=config.horizon_steps
     env=ZhangXueCooperativeEnv(
-        ZhangXueConfig(horizon_steps=int(horizon_steps)),
+        config,
         seed=seed,network_backend=network_backend,
     )
     learner_kw=dict(
@@ -76,6 +80,8 @@ def run_cpu_pilot(
     all_pdr=[]
     updates=0
     steps=0
+    replay_terminal_rows=0
+    truncated_train_episodes=0
     last_metrics={}
     for episode in range(episodes):
         obs,state,mask=env.reset(seed=seed + episode*7919)
@@ -89,13 +95,18 @@ def run_cpu_pilot(
             next_obs,next_state,next_mask,reward,done,info=env.step(
                 cont[0].numpy(),disc[0].argmax(dim=-1).numpy(),
             )
+            # Reset at either boundary, but only an MDP terminal removes the
+            # bootstrap term. Store the final pre-reset observation on truncation.
+            replay_terminal=bool(info["terminated"])
+            replay_terminal_rows+=int(replay_terminal)
+            truncated_train_episodes+=int(info["truncated"])
             with torch.no_grad():
                 buffer.add_batch(
                     obs=o,state=s,act_cont=cont,act_disc_onehot=disc,
                     rewards=torch.tensor([float(reward)]),
                     next_obs=torch.from_numpy(next_obs).unsqueeze(0),
                     next_state=torch.from_numpy(next_state).unsqueeze(0),
-                    dones=torch.tensor([float(done)]),
+                    dones=torch.tensor([float(replay_terminal)]),
                     mask=m,next_mask=torch.from_numpy(next_mask).unsqueeze(0),
                 )
             steps+=1
@@ -143,7 +154,12 @@ def run_cpu_pilot(
         "algorithm":algorithm,
         "target_entropy_disc_ratio":entropy_ratio,
         "seed":int(seed),
-        "scenario":"zhang_xue_1000m_20x20_6uav_10target",
+        "scenario":f"zhang_xue_{config.map_size_meter:g}m_20x20_{config.uav_count}uav_{config.target_count}target",
+        "termination_regime":config.termination_regime,
+        "replay_terminal_rows":replay_terminal_rows,
+        "truncated_train_episodes":truncated_train_episodes,
+        "horizon_steps":horizon_steps,
+        "config_path":str(config_path) if config_path is not None else None,
         "obs_dim":env.obs_dim,
         "state_dim":env.state_dim,
         "disc_dim":env.disc_dim,
@@ -174,9 +190,10 @@ def main():
     parser.add_argument("--hidden-size",type=int,default=64)
     parser.add_argument("--eval-episodes",type=int,default=2)
     parser.add_argument("--output-json",type=Path)
+    parser.add_argument("--config",type=Path,help="Strict flat CPU-pilot YAML; nested v5.2 is unsupported")
     args=parser.parse_args()
     result=run_cpu_pilot(
-        algorithm=args.algorithm,seed=args.seed,episodes=args.episodes,
+        algorithm=args.algorithm,seed=args.seed,episodes=args.episodes,config_path=args.config,
         horizon_steps=args.horizon_steps,learning_starts=args.learning_starts,
         batch_size=args.batch_size,hidden_sizes=(args.hidden_size,args.hidden_size),
         eval_episodes=args.eval_episodes,
