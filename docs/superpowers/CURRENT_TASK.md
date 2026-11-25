@@ -1,3 +1,19 @@
+# 2026-11-25 — Zhang–Xue v3.9 network-after-map checkpoint
+
+User-approved order: map -> full UavNetSim/Warp network/Gate5 -> only
+then MATD3/MASAC training/evaluation/test. Separate branches and
+commit history preserve map v3.7 SHA82edcde and MAC v3.8 SHA4a461f6.
+
+v3.9 Warp one-hop bounded retry/partial MAC ACK and E4096 CPU
+one-step map->packet->receiver-origin DS smoke created on branch
+experiment/zhang-xue-v39-warp-mac-retry-20261125.
+Native-vs-Warp PDR mismatches 2/6 nominal seeds; no matched native
+HELLO/RNG and no persistent queues/multi-hop/E2E app ACK.
+**Gate5 FAILED and training NOT LAUNCHED.** See
+docs/superpowers/NETWORK_V39_BOUNDED_RETRY_BEFORE_FULL_GATE5_20261125.md.
+
+---
+
 # 2026-11-25 — v3.8 NETWORK AFTER MAP, STILL BLOCKING TRAINING
 
 Order confirmed by user: MAP -> NETWORK and full Gate5 -> MATD3/MASAC
