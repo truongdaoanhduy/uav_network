@@ -1,3 +1,11 @@
+# 2026-11-25 — v4.1 Warp persistent queue and app E2E ACK preflight
+
+Branch `experiment/zhang-xue-v41-persistent-warp-queue-20261125`, parent v4.0 `169348f`. Implemented source-owned packet **metadata** queue on actual Warp tensors (6 UAVs/E worlds; bounded capacity; FIFO; duplicate/full detection; one outstanding transmission per source; exact integer-microsecond TTL; blackout retention/recovery; stale-completion rejection; epoch reset). One-hop MAC + app E2E ACK synthetic 7-step 4096-world CPU smoke: 4096 DATA generated, 3072 DATA and 3072 app E2E ACK received, 1024 expired, zero blackout sends, queue empty. 12 new focused tests passed. See `docs/superpowers/NETWORK_V41_PERSISTENT_QUEUE_AND_APP_ACK_20261125.md` and evidence JSON.
+
+**Full Gate5 NOT PASSED.** Metadata only, no persistent Warp evidence payload/DS receiver fusion/watermark, no-oracle multihop routing, HELLO, native CSMA event parity, or real CUDA. No training/eval/test launched. Next priority is full network before training.
+
+---
+
 # 2026-11-25 -- v4.0 native DATA PDR fix and MAC trace replay
 
 Branch: experiment/zhang-xue-v40-native-mac-trace-parity-20261125;
