@@ -1,3 +1,11 @@
+# 2026-11-25 — v4.7 Warp path-vector 3-node loop prevention
+
+Branch experiment/zhang-xue-v47-pathvector-loop-guard-20261125 from v4.6 commit307e785. TDD RED reproduces 3-UAV loop 0→2→1→0 after link0↔3 expires, even after v4.6 poisoned reverse. New Warp six-bit path masks per destination and per physically received DV advertisement reject routes containing recipient anywhere, preserve source/peer/destination paths, and retain HELLO/DV TTL reception barriers. E4096 CPU and valid 2hop tests pass. See docs/superpowers/NETWORK_V47_DISTRIBUTED_PATH_MASK_20261125.md.
+
+Full Gate5 still blocked: only controlled DV metadata packet, no native source-exact CSMA, fully fused six-agent dynamic multihop control, actual CUDA, production reward/energy/actor. Training NOT launched.
+
+---
+
 # 2026-11-25 -- v4.6 poisoned reverse prevents stale distributed route loops
 
 Branch experiment/zhang-xue-v46-dv-poisoned-reverse-20261125, parent v4.5 commit1020f2d. New TDD RED regression proved Warp DV could create loop 1→0→1 after 1↔2 HELLO expiry because 0 re-advertised a stale route to 1 that depended on 1. Implemented source-neighbor split horizon with poisoned reverse on physically received DV only (unreachable INF when sender next-hop equals DV receiver). 3 new tests including E4096 and old static multi-hop tests pass. See docs/superpowers/NETWORK_V46_DV_POISONED_REVERSE_20261125.md.

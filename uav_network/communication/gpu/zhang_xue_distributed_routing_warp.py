@@ -6,6 +6,9 @@ HELLO packets on both directions, followed by an actual successfully
 received advertised distance vector. Stale HELLO and DV advertisements expire. A source advertises unreachable
 for a destination if its next hop is the very peer receiving the distance
 vector, which prevents two-node count-to-infinity after a link failure.
+For larger loops the sender also advertises a six-bit visited-node path
+mask, and recipients reject any path already containing themselves. This
+is still a protocol model, not a source-exact on-wire DV packet.
 
 The link-layer simulator is responsible for determining HELLO/DV successes.
 The route module never assumes a neighbor can be heard from its coordinates.
@@ -25,14 +28,18 @@ def _reset(
     adv:wp.array(dtype=wp.int32,ndim=4),
     hop:wp.array(dtype=wp.int32,ndim=3),
     next_hop:wp.array(dtype=wp.int32,ndim=3),
+    adv_path:wp.array(dtype=wp.int32,ndim=4),
+    path_mask:wp.array(dtype=wp.int32,ndim=3),
 ):
     e,u,d=wp.tid()
+    path_mask[e,u,d]=(wp.int32(1)<<u) if u==d else wp.int32(0)
     heard[e,u,d]=wp.int64(-1)
     adv_stamp[e,u,d]=wp.int64(-1)
     hop[e,u,d]=0 if u==d else INF
     next_hop[e,u,d]=u if u==d else -1
     for dst in range(N):
         adv[e,u,d,dst]=INF
+        adv_path[e,u,d,dst]=0
 
 
 @wp.kernel
@@ -56,7 +63,9 @@ def _receive_distance_vector(
     heard:wp.array(dtype=wp.int64,ndim=3),
     sender_hop:wp.array(dtype=wp.int32,ndim=3),
     sender_next_hop:wp.array(dtype=wp.int32,ndim=3),
+    sender_path:wp.array(dtype=wp.int32,ndim=3),
     adv:wp.array(dtype=wp.int32,ndim=4),
+    adv_path:wp.array(dtype=wp.int32,ndim=4),
     adv_stamp:wp.array(dtype=wp.int64,ndim=3),
     hello_ttl:int,
 ):
@@ -74,9 +83,17 @@ def _receive_distance_vector(
     # otherwise two nodes can route to each other after a link expires.
     # The physical DV frame's success is still the entry barrier.
     advertised=sender_hop[e,sender,dst]
-    if sender_next_hop[e,sender,dst]==rx:
+    advertised_path=sender_path[e,sender,dst]
+    # Path-vector loop guard: even a longer (3+ UAV) route cannot be
+    # advertised to an existing node in the path. Retain poisoned
+    # reverse for the immediate-neighbor case.
+    if (sender_next_hop[e,sender,dst]==rx or
+        (advertised_path & (wp.int32(1)<<rx))!=0 or
+        advertised>=wp.int32(INF)):
         advertised=wp.int32(INF)
+        advertised_path=0
     adv[e,rx,sender,dst]=advertised
+    adv_path[e,rx,sender,dst]=advertised_path
     adv_stamp[e,rx,sender]=now[e]
 
 
@@ -85,9 +102,11 @@ def _compute_routes(
     heard:wp.array(dtype=wp.int64,ndim=3),
     adv_stamp:wp.array(dtype=wp.int64,ndim=3),
     adv:wp.array(dtype=wp.int32,ndim=4),
+    adv_path:wp.array(dtype=wp.int32,ndim=4),
     now:wp.array(dtype=wp.int64,ndim=1),
     hop:wp.array(dtype=wp.int32,ndim=3),
     next_hop:wp.array(dtype=wp.int32,ndim=3),
+    path_mask:wp.array(dtype=wp.int32,ndim=3),
     links:wp.array(dtype=wp.int32,ndim=3),
     hello_ttl:int,
 ):
@@ -95,9 +114,11 @@ def _compute_routes(
     if u==dst:
         hop[e,u,dst]=0
         next_hop[e,u,dst]=u
+        path_mask[e,u,dst]=wp.int32(1)<<u
     else:
         best=wp.int32(INF)
         via=wp.int32(-1)
+        chosen_mask=wp.int32(0)
         for peer in range(N):
             if peer==u:
                 continue
@@ -110,15 +131,23 @@ def _compute_routes(
                 if peer==dst and 1<best:
                     best=1
                     via=peer
+                    chosen_mask=(wp.int32(1)<<u)|(wp.int32(1)<<dst)
                 elif adv_stamp[e,u,peer]>=0 and (
                     now[e]-adv_stamp[e,u,peer]<=wp.int64(hello_ttl)
                 ):
                     candidate=adv[e,u,peer,dst]+1
-                    if candidate<best and candidate<N:
+                    advertised_mask=adv_path[e,u,peer,dst]
+                    has_self=(advertised_mask & (wp.int32(1)<<u))!=0
+                    has_peer=(advertised_mask & (wp.int32(1)<<peer))!=0
+                    has_destination=(advertised_mask & (wp.int32(1)<<dst))!=0
+                    if (candidate<best and candidate<N and
+                        not has_self and has_peer and has_destination):
                         best=candidate
                         via=peer
+                        chosen_mask=advertised_mask|(wp.int32(1)<<u)
         hop[e,u,dst]=best
         next_hop[e,u,dst]=via
+        path_mask[e,u,dst]=chosen_mask
     h=heard[e,u,dst]
     rev=heard[e,dst,u]
     links[e,u,dst]=0
@@ -145,6 +174,8 @@ class ZhangXueWarpDistanceVector:
         self.heard=wp.zeros(three,dtype=wp.int64,device=device)
         self.adv_stamp=wp.zeros(three,dtype=wp.int64,device=device)
         self.adv=wp.zeros(four,dtype=wp.int32,device=device)
+        self.adv_path=wp.zeros(four,dtype=wp.int32,device=device)
+        self.path_mask=wp.zeros(three,dtype=wp.int32,device=device)
         self.hop=wp.zeros(three,dtype=wp.int32,device=device)
         self.next_hop=wp.zeros(three,dtype=wp.int32,device=device)
         self.links=wp.zeros(three,dtype=wp.int32,device=device)
@@ -153,6 +184,7 @@ class ZhangXueWarpDistanceVector:
     def reset(self):
         wp.launch(_reset,dim=(self.num_envs,N,N),inputs=[
             self.heard,self.adv_stamp,self.adv,self.hop,self.next_hop,
+            self.adv_path,self.path_mask,
         ],device=self.device)
         self.now_us=0
         self._compute()
@@ -190,8 +222,8 @@ class ZhangXueWarpDistanceVector:
         t=wp.array(np.full(self.num_envs,self.now_us,np.int64),
                    dtype=wp.int64,device=self.device)
         wp.launch(_compute_routes,dim=(self.num_envs,N,N),inputs=[
-            self.heard,self.adv_stamp,self.adv,t,self.hop,
-            self.next_hop,self.links,self.hello_ttl_us,
+            self.heard,self.adv_stamp,self.adv,self.adv_path,t,self.hop,
+            self.next_hop,self.path_mask,self.links,self.hello_ttl_us,
         ],device=self.device)
 
     def receive_hello(self,receivers,successful,*,now_us):
@@ -207,7 +239,8 @@ class ZhangXueWarpDistanceVector:
         time=self._stamp(now_us)
         wp.launch(_receive_distance_vector,dim=(self.num_envs,N,N),inputs=[
             dst,good,time,self.heard,self.hop,self.next_hop,
-            self.adv,self.adv_stamp,self.hello_ttl_us,
+            self.path_mask,self.adv,self.adv_path,
+            self.adv_stamp,self.hello_ttl_us,
         ],device=self.device)
         self._compute()
 
@@ -219,5 +252,6 @@ class ZhangXueWarpDistanceVector:
         return {
             "next_hop":self.next_hop.numpy(),
             "hop_count":self.hop.numpy(),
+            "path_mask":self.path_mask.numpy(),
             "bidirectional_links":self.links.numpy(),
         }
