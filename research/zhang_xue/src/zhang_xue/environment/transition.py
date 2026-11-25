@@ -74,7 +74,7 @@ class _TransitionMixin:
                 self.mapwide_age_sum_s += float(t_step_s)
             self.mapwide_age_samples += 1
 
-        # 4. Motion update: v5.7 Kinematic Safety Shield (strict a_max) or legacy hard_veto
+        # 4. Motion update: v5.7 Acceleration-constrained shield with post-step swept collision detection
         old_xy_all = self.positions[:ACTOR_N, :2].copy()
         old_vel_all = self.velocities.copy()
         alive_mask = self.battery_j > 0.0
@@ -82,97 +82,33 @@ class _TransitionMixin:
         safety_violations = {"boundary": [], "building": [], "pairwise": []}
         safety_violation = False
 
-        if c.safety_mode == 'kinematic_shield':
-            v_safe_all, shield_intervention = kinematic_safety_shield(
-                old_xy_all, old_vel_all, act_vel_cmd, alive_mask,
-                CANONICAL_BUILDINGS_5, c.map_size_m, c.dt_s,
-                c.v_max_mps, c.a_max_mps2, c.uav_safe_distance_m,
-            )
-            rejected_motion_count = int(np.count_nonzero((shield_intervention > 1e-6) & alive_mask))
-            safety_violations = trajectory_safety_violations(
-                old_xy_all, v_safe_all, alive_mask, CANONICAL_BUILDINGS_5,
-                map_size_m=c.map_size_m, dt_s=c.dt_s,
-                uav_safe_distance_m=c.uav_safe_distance_m,
-            )
-            safety_violation = any(safety_violations.values())
-            for u in range(ACTOR_N):
-                if alive_mask[u]:
-                    self.velocities[u] = v_safe_all[u]
-                    self.positions[u, :2] = old_xy_all[u] + v_safe_all[u] * c.dt_s
-                else:
-                    self.velocities[u] = np.zeros(2, dtype=np.float64)
-                actual_speed = float(np.linalg.norm(self.velocities[u]))
-                own_airtime_s = float(self.net.step_tx_airtime_us[u]) / 1e6
-                self.battery_j[u] = max(0.0, self.battery_j[u] - uav_step_energy_j(
-                    actual_speed, own_airtime_s, c.dt_s, self.batt_cfg,
-                    v_prev_xy=old_vel_all[u] if c.enable_accel_energy else None,
-                    v_new_xy=self.velocities[u] if c.enable_accel_energy else None,
-                ))
-                if self.battery_j[u] <= 0.0:
-                    self.net.set_radio_alive(u, False)
-        else:
-            disp = np.zeros((ACTOR_N, 2), dtype=np.float64)
-            accepted = np.ones(ACTOR_N, dtype=bool)
-            for u in range(ACTOR_N):
-                if not alive_mask[u]:
-                    accepted[u] = False
-                    disp[u] = 0.0
-                    continue
-                v_new = clamp_velocity_with_accel(
-                    self.velocities[u], act_vel_cmd[u], c.dt_s, c.v_max_mps, c.a_max_mps2
-                )
-                candidate = old_xy_all[u] + v_new * c.dt_s
-                geometry_blocked = (
-                    candidate[0] < 10.0 or candidate[0] > c.map_size_m - 10.0
-                    or candidate[1] < 10.0 or candidate[1] > c.map_size_m - 10.0
-                )
-                for bx, by, br, _ in CANONICAL_BUILDINGS_5:
-                    if geometry_blocked:
-                        break
-                    delta = candidate - old_xy_all[u]
-                    t_closest = float(np.clip(np.dot(np.array([bx, by]) - old_xy_all[u], delta)
-                                              / max(1e-12, float(np.dot(delta, delta))), 0.0, 1.0))
-                    closest = old_xy_all[u] + t_closest * delta
-                    if float(np.linalg.norm(closest - np.array([bx, by]))) <= br + 2.0:
-                        geometry_blocked = True
-                accepted[u] = not geometry_blocked
-                disp[u] = v_new * c.dt_s
-
-            for _ in range(ACTOR_N):
-                changed = False
-                actual_disp = disp * accepted[:, None]
-                for i in range(ACTOR_N):
-                    for j in range(i + 1, ACTOR_N):
-                        rel0 = old_xy_all[i] - old_xy_all[j]
-                        reld = actual_disp[i] - actual_disp[j]
-                        tau = float(np.clip(-np.dot(rel0, reld) /
-                                            max(1e-12, float(np.dot(reld, reld))), 0.0, 1.0))
-                        min_sep = float(np.linalg.norm(rel0 + tau * reld))
-                        if min_sep < c.uav_safe_distance_m - 1e-6:
-                            if accepted[i] or accepted[j]:
-                                changed = True
-                                accepted[i] = False
-                                accepted[j] = False
-                if not changed:
-                    break
-
-            rejected_motion_count = int(np.count_nonzero((~accepted) & alive_mask))
-            for u in range(ACTOR_N):
-                if accepted[u]:
-                    self.positions[u, :2] = old_xy_all[u] + disp[u]
-                    self.velocities[u] = disp[u] / c.dt_s
-                    actual_speed = float(np.linalg.norm(self.velocities[u]))
-                else:
-                    self.velocities[u] = np.zeros(2, dtype=np.float64)
-                    actual_speed = 0.0
-                own_airtime_s = float(self.net.step_tx_airtime_us[u]) / 1e6
-                self.battery_j[u] = max(0.0, self.battery_j[u] - uav_step_energy_j(
-                    actual_speed, own_airtime_s, c.dt_s, self.batt_cfg,
-                    v_prev_xy=old_vel_all[u] if c.enable_accel_energy else None,
-                    v_new_xy=self.velocities[u] if c.enable_accel_energy else None,
-                ))
-                if self.battery_j[u] <= 0.0:
-                    self.net.set_radio_alive(u, False)
+        v_safe_all, shield_intervention = kinematic_safety_shield(
+            old_xy_all, old_vel_all, act_vel_cmd, alive_mask,
+            CANONICAL_BUILDINGS_5, c.map_size_m, c.dt_s,
+            c.v_max_mps, c.a_max_mps2, c.uav_safe_distance_m,
+        )
+        rejected_motion_count = int(np.count_nonzero((shield_intervention > 1e-6) & alive_mask))
+        safety_violations = trajectory_safety_violations(
+            old_xy_all, v_safe_all, alive_mask, CANONICAL_BUILDINGS_5,
+            map_size_m=c.map_size_m, dt_s=c.dt_s,
+            uav_safe_distance_m=c.uav_safe_distance_m,
+        )
+        safety_violation = any(safety_violations.values())
+        for u in range(ACTOR_N):
+            if alive_mask[u]:
+                self.velocities[u] = v_safe_all[u]
+                self.positions[u, :2] = old_xy_all[u] + v_safe_all[u] * c.dt_s
+            else:
+                self.velocities[u] = np.zeros(2, dtype=np.float64)
+            actual_speed = float(np.linalg.norm(self.velocities[u]))
+            own_airtime_s = float(self.net.step_tx_airtime_us[u]) / 1e6
+            self.battery_j[u] = max(0.0, self.battery_j[u] - uav_step_energy_j(
+                actual_speed, own_airtime_s, c.dt_s, self.batt_cfg,
+                v_prev_xy=old_vel_all[u] if c.enable_accel_energy else None,
+                v_new_xy=self.velocities[u] if c.enable_accel_energy else None,
+            ))
+            if self.battery_j[u] <= 0.0:
+                self.net.set_radio_alive(u, False)
 
         self.net.update_positions(self.positions)
 
@@ -233,10 +169,7 @@ class _TransitionMixin:
             r_peer_information = c.w_p2p * min(c.reward_peer_cap_per_step, self.net.step_new_peer_cells)
         r_fp_hold = -c.fp_hold * float(self.gcs_fp_latch.sum())
 
-        if c.safety_mode == 'kinematic_shield':
-            r_blocked_motion = -c.w_blocked_motion * float(shield_intervention.sum())
-        else:
-            r_blocked_motion = -c.w_blocked_motion * rejected_motion_count
+        r_blocked_motion = -c.w_blocked_motion * float(shield_intervention.sum())
         r_safety_failure = -c.safety_failure_penalty if safety_violation else 0.0
         reward = (r_loc_team + r_gcs_tp + r_gcs_aoi + r_gcs_fp + r_fp_hold
                   + r_airtime + r_blocked_motion + r_peer_information + r_safety_failure)

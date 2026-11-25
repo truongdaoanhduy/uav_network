@@ -46,11 +46,11 @@ def load_scenario(
     path: str | Path | None = None,
     overrides: tuple[str, ...] = (),
     *,
-    preset: str = "v57",
+    preset: str = "current",
 ) -> EnvConfigV54:
-    if preset not in ("v54", "v57"):
-        raise ValueError("preset must be v54 or v57")
-    reference = EnvConfigV54() if preset == "v54" else make_v57_config()
+    if preset != "current":
+        raise ValueError("preset must be current")
+    reference = make_v57_config()
     values = asdict(reference)
     data = {}
     if path is not None:
@@ -75,7 +75,7 @@ def load_scenario(
 def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Pinned 7-radio CPU scenario research runner")
     parser.add_argument("--config", type=Path, default=None)
-    parser.add_argument("--preset", choices=("v54", "v57"), default="v57")
+    parser.add_argument("--preset", choices=("current",), default="current")
     parser.add_argument("--set", action="append", default=[], metavar="KEY=VALUE")
     parser.add_argument("--seed", type=int, default=44)
     parser.add_argument("--steps", type=int, default=8)

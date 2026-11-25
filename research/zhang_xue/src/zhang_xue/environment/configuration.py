@@ -38,7 +38,7 @@ class EnvConfigV54:
     # 5 x 10 x 10: target mass, empty mass, unknown mass, AoI, own location.
     obs_map_side: int = 10
     # v5.7 scientific & physics upgrades (backward-compatible flags)
-    safety_mode: str = 'hard_veto'          # 'hard_veto' (v5.4 legacy) | 'kinematic_shield' (v5.7 default in EnvConfigV57)
+    safety_mode: str = 'kinematic_shield'  # only physically constrained policy supported
     enable_3d_sensing_occlusion: bool = True  # C2 fix: block ground sensing through 70-80m buildings
     enable_accel_energy: bool = False       # v5.7 Zeng 2019 acceleration thrust-tilt + kinetic delta
     enable_fp_unlatch: bool = False         # v5.7 allow FP correction when negative evidence lowers m_T < confirm_th
@@ -64,6 +64,45 @@ class EnvConfigV54:
     mac_cca_threshold_dbm: float = -82.0
 
     def __post_init__(self):
+        # Scientific knobs must fail closed; otherwise a typo silently picks
+        # the obsolete motion/reward branch and corrupts comparison runs.
+        modes={
+            "safety_mode": ("kinematic_shield",),
+            "obs_pool_mode": ("mean", "semantic"),
+            "peer_reward_mode": ("cell_count", "info_gain"),
+            "aoi_reward_mode": ("linear", "exponential"),
+        }
+        for key, legal in modes.items():
+            if getattr(self,key) not in legal:
+                raise ValueError(f"{key} must be one of {legal}")
+        strictly_positive=(
+            "map_size_m", "uav_alt_m", "v_max_mps", "a_max_mps2",
+            "fov_radius_m", "uav_safe_distance_m", "dt_s", "tx_power_w",
+            "e_max_j", "t_ref_s", "lambda_b",
+        )
+        for key in strictly_positive:
+            value=getattr(self,key)
+            if type(value) not in (float,int) or not math.isfinite(value) or value<=0:
+                raise ValueError(f"{key} must be finite and positive")
+        if type(self.safety_horizon_s) is not int or self.safety_horizon_s<1:
+            raise ValueError("safety_horizon_s must be a positive integer")
+        optional_mass=self.bba_reliability_cap
+        if optional_mass is not None and (type(optional_mass) not in (int,float)
+                or not math.isfinite(optional_mass) or not 0<optional_mass<1):
+            raise ValueError("bba_reliability_cap must lie strictly inside (0, 1)")
+        for key in (
+            "w_loc_team", "w_p2p", "r_tp", "r_fp", "fp_hold", "w_aoi",
+            "w_blocked_motion", "ds_mf", "ds_me", "ds_uncertainty_ceiling",
+        ):
+            value=getattr(self,key)
+            if type(value) not in (int,float) or not math.isfinite(value):
+                raise ValueError(f"{key} must be finite")
+        for key in (
+            "enable_3d_sensing_occlusion", "enable_accel_energy", "enable_fp_unlatch",
+            "safety_failure_terminate",
+        ):
+            if type(getattr(self,key)) is not bool:
+                raise ValueError(f"{key} must be a boolean")
         CsmaProtocolConfig(
             difs_us=self.mac_difs_us, sifs_us=self.mac_sifs_us,
             slot_us=self.mac_slot_us, cw_min=self.mac_cw_min,

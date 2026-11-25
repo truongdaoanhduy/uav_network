@@ -138,7 +138,7 @@ class MotionSafetyRegressions(unittest.TestCase):
                     np.linalg.norm(env.positions[i,:2]-env.positions[j,:2]),
                     env.cfg.uav_safe_distance_m)
 
-    def test_20_simultaneous_headon_motion_is_vetoed(self):
+    def test_20_simultaneous_headon_motion_respects_accel_and_separation(self):
         env=ZhangXue7NodePacketEnv(seed=123)
         env.reset(seed=123)
         # Only first pair: use a safe free-space region and close at 5 m/s each.
@@ -151,5 +151,10 @@ class MotionSafetyRegressions(unittest.TestCase):
         cmds=np.zeros((6,2))
         cmds[0]=[25,0];cmds[1]=[-25,0]
         _,_,_,_,_,_,info=env.step(cmds,np.zeros(6,dtype=np.int32))
-        np.testing.assert_array_equal(env.positions[:2,:2],before)
-        self.assertGreaterEqual(info['rejected_motion_count'],2)
+        # An instantaneous stop/reject from 25 m/s is not physically valid.
+        # The shield must satisfy acceleration and the *swept* pairwise safety.
+        displacement = env.positions[:2,:2] - before
+        self.assertTrue(np.all(np.linalg.norm(displacement, axis=1) <= env.cfg.a_max_mps2 * env.cfg.dt_s + 1e-6))
+        self.assertGreaterEqual(float(np.linalg.norm(env.positions[0,:2]-env.positions[1,:2])),
+                                env.cfg.uav_safe_distance_m - 1e-6)
+        self.assertGreaterEqual(info['rejected_motion_count'],1)
