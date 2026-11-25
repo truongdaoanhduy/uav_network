@@ -1,0 +1,443 @@
+"""Zhang–Xue 1-km cooperative *CPU integration pilot*.
+
+Exercises the real package's MATD3/MASAC actor/action/replay interface with
+the v3.4 reference data protocol, per-UAV Dempster–Shafer belief, agent-chosen
+application destination and E2E acknowledgements.
+
+Not the production Warp backend and not the vendored UavNetSim SimPy PHY/MAC.
+No network performance or convergence claim should rely on this pilot alone.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Dict, List, Tuple
+import math
+
+import numpy as np
+
+from uav_network.communication.zhang_xue_ref.ds_belief import BeliefTable
+from uav_network.communication.zhang_xue_ref.packets_and_queues import (
+    MAX_ENTRIES_PER_PACKET,
+    MiniDiscreteEventNet,
+    SearchDataPacket,
+)
+from uav_network.communication.zhang_xue_ref.reward_engine import RewardEngine
+from uav_network.communication.zhang_xue_ref.phy_patch import sinr_db_patched
+
+
+@dataclass(frozen=True)
+class ZhangXueConfig:
+    grid_width: int = 20
+    grid_height: int = 20
+    cell_size_meter: float = 50.0
+    map_size_meter: float = 1000.0
+    uav_count: int = 6
+    target_count: int = 10
+    fixed_altitude_meter: float = 100.0
+    dt_seconds: float = 1.0
+    horizon_steps: int = 200
+    v_max_mps: float = 50.0
+    safe_distance_meter: float = 50.0
+    no_fly_zone_count: int = 2
+    no_fly_radius_meter: float = 50.0
+    blackout_zone_count: int = 2
+    blackout_radius_cells: int = 3
+    pd: float = 0.85
+    pf: float = 0.03
+    ds_mf: float = 0.8
+    ds_me: float = 0.8
+    confirm_threshold: float = 0.95
+    tx_power_w: float = 0.5
+    packet_ttl_seconds: float = 10.0
+    packet_entries_limit: int = 62
+    fusion_mode: str = "MAX_PLUS_SUM"
+
+    def __post_init__(self):
+        if self.grid_width != 20 or self.grid_height != 20:
+            raise ValueError("Pilot state encoder requires exactly 20×20 cells")
+        if self.cell_size_meter * self.grid_width != self.map_size_meter:
+            raise ValueError("grid width must match map size")
+        if self.cell_size_meter * self.grid_height != self.map_size_meter:
+            raise ValueError("grid height must match map size")
+        if self.uav_count != 6:
+            raise ValueError("This fixed pilot actor mask requires six UAVs")
+        if not (1 <= self.target_count < 400):
+            raise ValueError("Invalid target_count")
+        if self.horizon_steps < 1 or self.dt_seconds <= 0:
+            raise ValueError("Time horizon and dt must be positive")
+        if not (0 <= self.pf < self.pd <= 1):
+            raise ValueError("Require 0 <= Pf < Pd <= 1")
+        if not (0 < self.ds_mf < 1 and 0 < self.ds_me < 1):
+            raise ValueError("DS masses must lie within (0,1)")
+        if not (0 < self.confirm_threshold <= 1):
+            raise ValueError("Threshold must be in (0,1]")
+        if not (0 < self.packet_entries_limit <= MAX_ENTRIES_PER_PACKET):
+            raise ValueError("packet_entries_limit exceeds MTU")
+        if self.packet_ttl_seconds <= 0:
+            raise ValueError("Packet TTL must be positive")
+
+
+def _segment_min_distance(
+    ax: float, ay: float, bx: float, by: float, cx: float, cy: float
+) -> float:
+    vx, vy = bx - ax, by - ay
+    l2 = vx * vx + vy * vy
+    if l2 < 1e-12:
+        return math.hypot(ax - cx, ay - cy)
+    r = max(0.0, min(1.0, ((cx - ax)*vx + (cy - ay)*vy)/l2))
+    return math.hypot(ax + r*vx - cx, ay + r*vy - cy)
+
+
+class ZhangXueCooperativeEnv:
+    """Single-episode, six-UAV CTDE environment with own-source network fusion.
+
+    reset -> (obs[6,D], centralized_state[6*D], action_mask[6,6])
+    step(act_cont[6,2], act_disc_idx[6])
+      -> (next_obs, next_state, next_mask, reward:float, done:bool, info:dict)
+
+    Discrete action index 0 means NO_SEND; indices 1..5 select a peer in
+    ascending UAV-ID order excluding the acting UAV. Routes can use relays.
+    All observations and centralized critic state are built from agent-local
+    observations, not target truth or another UAV's undisclosed evidence.
+    """
+
+    def __init__(self, config: ZhangXueConfig | None = None, seed: int = 44):
+        self.config = config or ZhangXueConfig()
+        self.base_seed = int(seed)
+        self.num_agents = self.config.uav_count
+        self.cont_dim = 2
+        self.disc_dim = self.num_agents
+        self.obs_dim = 9 + (self.num_agents-1)*4 + 2*25 + 2*16 + 2
+        self.state_dim = self.num_agents * self.obs_dim
+        self.rng = None
+        self.t = 0
+        self.done = False
+        self.positions = np.zeros((self.num_agents, 2), np.float32)
+        self.velocity = np.zeros((self.num_agents, 2), np.float32)
+        self.target_mask = np.zeros((400,), bool)
+        self.no_fly_zones: List[Tuple[float, float, float]] = []
+        self.blackout_zones: List[Tuple[int, int]] = []
+        self.net = None
+        self.belief = None
+        self.reward_engine = None
+        self._acked_counts = np.zeros((self.num_agents,self.num_agents,400,2),np.uint16)
+        self._pending: Dict[int, tuple] = {}
+        self._seq = 0
+        self.last_sent_packets: List[SearchDataPacket] = []
+        self.reset(seed=seed)
+
+    def _cell(self, xy) -> int:
+        w = self.config.grid_width
+        cx = max(0,min(w-1,int(float(xy[0]) // self.config.cell_size_meter)))
+        cy = max(0,min(self.config.grid_height-1,int(float(xy[1]) // self.config.cell_size_meter)))
+        return cy*w + cx
+
+    def _generate_scenario(self):
+        c = self.config
+        center = np.array([c.map_size_meter/2]*2)
+        self.positions[:] = 0
+        self.velocity[:] = 0
+        for u in range(c.uav_count):
+            angle = 2*math.pi*u/c.uav_count
+            self.positions[u] = center + 110.*np.array([math.cos(angle),math.sin(angle)])
+        # Place no-fly disks and blackout diamonds away from initial UAVs
+        # and from each other, using a reproducible scene-specific RNG.
+        forbidden: List[Tuple[float,float,float]] = []
+        self.no_fly_zones.clear()
+        self.blackout_zones.clear()
+        for r, count, is_blackout in (
+            (c.no_fly_radius_meter, c.no_fly_zone_count, False),
+            ((c.blackout_radius_cells+0.5)*c.cell_size_meter,
+             c.blackout_zone_count, True),
+        ):
+            for _ in range(count):
+                for _attempt in range(5000):
+                    if is_blackout:
+                        gx,gy=(int(q) for q in self.rng.integers(4,16,size=2))
+                        x,y=(gx+.5)*c.cell_size_meter,(gy+.5)*c.cell_size_meter
+                    else:
+                        x,y=(float(q) for q in self.rng.uniform(100,900,size=2))
+                    if math.hypot(x-center[0],y-center[1]) < r+180:
+                        continue
+                    if any(math.hypot(x-ox,y-oy) < r+orr+20 for ox,oy,orr in forbidden):
+                        continue
+                    forbidden.append((x,y,r))
+                    if is_blackout:
+                        self.blackout_zones.append((gx,gy))
+                    else:
+                        self.no_fly_zones.append((x,y,r))
+                    break
+                else:
+                    raise RuntimeError("Unable to sample nonoverlapping pilot zones")
+        eligible=[]
+        for cell in range(400):
+            gx,gy=cell%c.grid_width,cell//c.grid_width
+            x,y=(gx+.5)*c.cell_size_meter,(gy+.5)*c.cell_size_meter
+            if all(math.hypot(x-ox,y-oy)>r for ox,oy,r in self.no_fly_zones):
+                eligible.append(cell)
+        self.target_mask[:]=False
+        chosen=self.rng.choice(eligible,size=c.target_count,replace=False)
+        self.target_mask[chosen]=True
+
+    def reset(self, seed: int | None = None):
+        if seed is None:
+            seed=self.base_seed
+        self.rng=np.random.default_rng(int(seed))
+        self.t=0
+        self.done=False
+        self._generate_scenario()
+        c=self.config
+        self.belief=BeliefTable(c.uav_count,400,c.fusion_mode,c.ds_mf,c.ds_me)
+        self.net=MiniDiscreteEventNet(
+            {i:tuple(float(v) for v in self.positions[i]) for i in range(c.uav_count)},
+            self.belief,tx_power_w=c.tx_power_w,
+        )
+        self.reward_engine=RewardEngine(
+            c.uav_count,400,self.target_mask,tau=c.confirm_threshold,
+            omega_s=30.,omega_c=15.,omega_target=10.,omega_fp=5.,
+            omega_fp_hold=.1,lambda_b=30.,
+        )
+        self._acked_counts.fill(0)
+        self._pending.clear()
+        self._seq=0
+        self.last_sent_packets.clear()
+        self._sync_physics()
+        return self._build_outputs()
+
+    def _blackout(self, xy) -> bool:
+        gx=int(float(xy[0])//self.config.cell_size_meter)
+        gy=int(float(xy[1])//self.config.cell_size_meter)
+        return any(
+            abs(gx-zx)+abs(gy-zy)<=self.config.blackout_radius_cells
+            for zx,zy in self.blackout_zones
+        )
+
+    def _sync_physics(self):
+        for u in range(self.num_agents):
+            self.net.positions[u]=tuple(float(v) for v in self.positions[u])
+            self.net.radio_enabled[u]=not self._blackout(self.positions[u])
+
+    def _peer_order(self,u:int):
+        return [p for p in range(self.num_agents) if p!=u]
+
+    def _dirty_cell_ids(self,u:int,p:int):
+        own_p=self.belief.pos[u,u]
+        own_n=self.belief.neg[u,u]
+        a=self._acked_counts[u,p]
+        return np.flatnonzero((own_p>a[:,0]) | (own_n>a[:,1]))
+
+    def _build_outputs(self):
+        obs=np.zeros((self.num_agents,self.obs_dim),np.float32)
+        mask=np.zeros((self.num_agents,self.disc_dim),np.uint8)
+        mask[:,0]=1
+        c=self.config
+        for u in range(self.num_agents):
+            x,y=self.positions[u]
+            f,e,m=self.belief.get_belief(u)
+            f=f.reshape(20,20)
+            m=m.reshape(20,20)
+            own_radio=not self._blackout(self.positions[u])
+            q=self.net.queues[u]
+            queue_len=len(q.transmitting_queue)+len(q.waiting_list)
+            ack_count=sum(len(self.net.acked_sequences.get((u,p),set())) for p in self._peer_order(u))
+            dirty_counts={p:len(self._dirty_cell_ids(u,p)) for p in self._peer_order(u)}
+            base=[
+                x/c.map_size_meter,y/c.map_size_meter,
+                float(self.velocity[u,0])/c.v_max_mps,float(self.velocity[u,1])/c.v_max_mps,
+                (c.horizon_steps-self.t)/c.horizon_steps,
+                1.,float(own_radio),queue_len/q.max_size,
+                min(ack_count/10.,1.),
+            ]
+            peers=[]
+            for j,p in enumerate(self._peer_order(u),start=1):
+                dx,dy=self.positions[p]-self.positions[u]
+                dist=math.hypot(float(dx),float(dy))
+                # Local one-hop radio sighting only. The destination ID stays
+                # selectable for multihop routing, but an out-of-range remote
+                # peer's exact coordinates are not given to the actor.
+                seen=bool(
+                    own_radio and not self._blackout(self.positions[p])
+                    and sinr_db_patched(c.tx_power_w,dist,[],
+                                       tx_radio_enabled=True)
+                    >=self.net.sinr_threshold_db
+                )
+                peers.extend([
+                    float(dx)/c.map_size_meter if seen else 0.,
+                    float(dy)/c.map_size_meter if seen else 0.,
+                    dist/c.map_size_meter if seen else 0.,
+                    min(1.,dirty_counts[p]/400.),
+                ])
+                if own_radio and dirty_counts[p]>0:
+                    mask[u,j]=1
+            cy,cx=divmod(self._cell(self.positions[u]),20)
+            patch=[]
+            for dy in (-2,-1,0,1,2):
+                for dx in (-2,-1,0,1,2):
+                    yy,xx=cy+dy,cx+dx
+                    if 0<=yy<20 and 0<=xx<20:
+                        patch.extend((float(f[yy,xx]),float(m[yy,xx])))
+                    else:
+                        patch.extend((0.,1.))
+            pooled=[]
+            for yy in range(0,20,5):
+                for xx in range(0,20,5):
+                    pooled.extend((float(f[yy:yy+5,xx:xx+5].mean()),
+                                   float(m[yy:yy+5,xx:xx+5].mean())))
+            cid=self._cell(self.positions[u])
+            own=[float(self.belief.pos[u,u,cid])/c.horizon_steps,
+                 float(self.belief.neg[u,u,cid])/c.horizon_steps]
+            encoded=np.asarray(base+peers+patch+pooled+own,dtype=np.float32)
+            if encoded.shape!=(self.obs_dim,):
+                raise AssertionError((encoded.shape,self.obs_dim))
+            obs[u]=encoded
+        state=obs.reshape(-1).copy()  # centralized CTDE contains local observations only
+        return obs,state,mask
+
+    def _process_delivered_ack(self):
+        # E2E sequence acknowledgement is exact, never infer that skipped seq IDs
+        # were successfully delivered from a later max/high watermark.
+        for (sender,peer),acked_ids in self.net.acked_sequences.items():
+            for seq in acked_ids:
+                pending=self._pending.pop(seq,None)
+                if pending is None:
+                    continue
+                src,dst,entries,_created_at=pending
+                if src!=sender or dst!=peer:
+                    raise AssertionError("ACK peer mismatch")
+                for origin,cell,n_pos,n_neg in entries:
+                    if origin!=src:
+                        raise AssertionError("Own-source-only payload contract violated")
+                    self._acked_counts[src,dst,cell,0]=max(
+                        self._acked_counts[src,dst,cell,0],n_pos)
+                    self._acked_counts[src,dst,cell,1]=max(
+                        self._acked_counts[src,dst,cell,1],n_neg)
+        # Unacknowledged application packets cannot be useful forever:
+        # data TTL + independently routed application ACK TTL are bounded.
+        cutoff=self.net.now - 2*self.config.packet_ttl_seconds
+        for seq,(_src,_dst,_entries,created) in tuple(self._pending.items()):
+            if created<=cutoff:
+                del self._pending[seq]
+
+    def _schedule_actions(self,action_disc,mask):
+        c=self.config
+        self.last_sent_packets=[]
+        for u in range(self.num_agents):
+            idx=int(action_disc[u])
+            if idx<0 or idx>=c.uav_count:
+                raise ValueError("Invalid discrete action index")
+            if not mask[u,idx] or idx==0:
+                continue
+            peer=self._peer_order(u)[idx-1]
+            cells=self._dirty_cell_ids(u,peer)[:c.packet_entries_limit]
+            entries=tuple((u,int(cell),int(self.belief.pos[u,u,cell]),
+                           int(self.belief.neg[u,u,cell])) for cell in cells)
+            if not entries:
+                continue
+            self._seq+=1
+            p=SearchDataPacket(
+                packet_id=self._seq, episode_id=1, src_id=u,dst_id=peer,
+                seq_id=self._seq,creation_time=float(self.t)*c.dt_seconds,
+                deadline=c.packet_ttl_seconds,entries=entries,
+            )
+            if self.net.send_data(float(self.t)*c.dt_seconds,p):
+                self._pending[self._seq]=(u,peer,entries,float(self.t)*c.dt_seconds)
+                self.last_sent_packets.append(p)
+
+    def _move(self,action_cont):
+        c=self.config
+        safety=0
+        boundary=0
+        old=self.positions.copy()
+        proposed=old.copy()
+        for u in range(self.num_agents):
+            vec=np.asarray(action_cont[u],np.float64)
+            speed=np.linalg.norm(vec)
+            if speed>1.:
+                vec/=speed
+            new=old[u]+vec*c.v_max_mps*c.dt_seconds
+            if np.any(new<0) or np.any(new>=c.map_size_meter):
+                boundary+=1
+                continue
+            if any(
+                _segment_min_distance(float(old[u,0]),float(old[u,1]),
+                                      float(new[0]),float(new[1]),cx,cy)<radius
+                for cx,cy,radius in self.no_fly_zones
+            ):
+                safety+=1
+                continue
+            # Conservative planning against each other UAV's *old* position and
+            # moves already accepted. Opposite simultaneous crossings are blocked.
+            if any(
+                p!=u and (
+                    _segment_min_distance(float(old[u,0]),float(old[u,1]),
+                                          float(new[0]),float(new[1]),
+                                          float(old[p,0]),float(old[p,1]))
+                    < c.safe_distance_meter
+                    or math.hypot(float(new[0]-proposed[p,0]),
+                                  float(new[1]-proposed[p,1]))<c.safe_distance_meter
+                ) for p in range(self.num_agents)
+            ):
+                safety+=1
+                continue
+            proposed[u]=new.astype(np.float32)
+        self.velocity=(proposed-old)/c.dt_seconds
+        self.positions=proposed
+        self._sync_physics()
+        return safety,boundary
+
+    def step(self,action_cont,action_disc_idx):
+        if self.done:
+            raise RuntimeError("Episode ended; call reset()")
+        c=self.config
+        a=np.asarray(action_cont,dtype=np.float32)
+        d=np.asarray(action_disc_idx)
+        if a.shape!=(self.num_agents,2) or d.shape!=(self.num_agents,):
+            raise ValueError("Expected continuous [6,2] and discrete [6]")
+        if not np.isfinite(a).all() or not np.issubdtype(d.dtype,np.integer):
+            raise ValueError("Actions must be finite and discrete indices integers")
+        _,_,mask=self._build_outputs()
+        # t_k: send only the evidence available before this step's sensing
+        self._schedule_actions(d,mask)
+        before_mu=np.stack([self.belief.get_belief(u)[2] for u in range(self.num_agents)])
+        airtime_prev=self.net.metrics.total_airtime_s
+        self.net.run_until((self.t+1)*c.dt_seconds)
+        self._process_delivered_ack()
+        after_mu=np.stack([self.belief.get_belief(u)[2] for u in range(self.num_agents)])
+        shared_delta=np.maximum(0.,before_mu-after_mu).sum(axis=0)
+        airtime_used=self.net.metrics.total_airtime_s-airtime_prev
+
+        # t_{k+1}: motion then independent sensing, with no same-step transmission
+        safety,boundary=self._move(a)
+        own_mu_before=self.belief.get_team_own_belief()[2]
+        for u in range(self.num_agents):
+            cell=self._cell(self.positions[u])
+            detected=bool(self.rng.random() < (c.pd if self.target_mask[cell] else c.pf))
+            self.belief.record_own_observation(u,cell,detected)
+        own_mu_after=self.belief.get_team_own_belief()[2]
+        search_delta=np.maximum(0.,own_mu_before-own_mu_after)
+        team_mf=self.belief.get_team_own_belief()[0]
+        reward=self.reward_engine.compute_unified_step_reward(
+            search_delta,shared_delta,team_mf,airtime_used/c.dt_seconds,
+            safety_penalty=30.*safety,boundary_penalty=20.*boundary,
+        )
+        self.t+=1
+        self.done=bool(
+            self.t>=c.horizon_steps or
+            np.all(self.reward_engine.team_tp_latch[self.target_mask])
+        )
+        info={
+            "step":self.t,
+            "terminated":self.done,
+            "truncated":False,
+            "data_generated":self.net.metrics.data_generated,
+            "data_pdr":float(self.net.metrics.data_pdr),
+            "ack_delivered":self.net.metrics.e2e_ack_delivered,
+            "safety_violations":safety,
+            "boundary_violations":boundary,
+            "airtime_this_step_s":float(airtime_used),
+            "tp_confirmed":int(self.reward_engine.team_tp_latch[self.target_mask].sum()),
+            "fp_latched":int(self.reward_engine.team_fp_latch.sum()),
+        }
+        obs,state,mask=self._build_outputs()
+        return obs,state,mask,float(reward),bool(self.done),info

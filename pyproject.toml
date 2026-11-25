@@ -19,3 +19,7 @@ uav-network = "uav_network.experiments.cli:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["uav_network*"]
+
+[tool.pytest.ini_options]
+# Expose the preserved standalone v3.4 reference tests in root-level pytest.
+pythonpath = [".", "research/zhang_xue_v34_reference"]

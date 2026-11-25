@@ -1,3 +1,28 @@
+# 2026-11-25 — Zhang–Xue v3.5 CPU production-package integration
+
+**Active branch:** experiment/zhang-xue-v35-cpu-integration-20261125
+**Worktree:** /home/aduy/Documents/NCKH/uav_network_zhang_xue_v34_research_20261125
+**Base commit:** 320bc5b (preserved v3.4 reference)
+**Files:** uav_network/environment/zhang_xue_coop.py;
+uav_network/communication/zhang_xue_ref/;
+uav_network/experiments/train_zhang_xue_pilot.py
+**Scope:** CPU 1000m 6UAV 10T local DS pilot with own-source packet transport,
+E2E ACK, blackout, hybrid peer action, reward-only oracle, real
+Vanilla MATD3 and MASAC updates using GPUHybridReplayBuffer on CPU.
+**Tested:** new 16/16, original v3.4 reference 14/14, scoped
+2D/M2/slotted/vanilla 159 passed/1 skipped excluding pre-existing SHA.
+Random stress 60 seeds × 40 steps: 11,139 send attempts, 10,929 ACKs;
+Matd3/Masac each 21 learner updates in 24 environment steps.
+**Unresolved:** Full 1974-test suite is not green. Old 3D camera
+FoV marginal-probability test fails on unchanged Streamfix v3 base,
+as does exact old SHA fingerprint test. Existing Warp 800m/25T stays
+unchanged. No true UavNetSim-v1 SimPy CSMA, GPU Warp parity, real
+multi-GPU training or Kaggle/W&B/HF/GitHub push. Gate 5 deferred.
+Read docs/superpowers/specs/2026-11-25-zhang-xue-v35-cpu-integration.md
+before new changes. Preserve existing dirty source worktrees.
+
+---
+
 # 2026-11-25 — Isolated Zhang–Xue v3.4 reference fixes (NOT production)
 
 Local worktree branch: `experiment/zhang-xue-v34-reference-fixes-20261125`, inherited from clean Streamfix v3 commit `d3e08b1`.
