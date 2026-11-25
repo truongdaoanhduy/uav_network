@@ -1,0 +1,31 @@
+{
+  "gate3_ready": false,
+  "reason": "80-array SoA is only a declared schema, not a full CPU-equivalent Warp MAC environment",
+  "warp_installed_locally": false,
+  "existing_declared_arrays": 80,
+  "declared_bytes_per_env": 490001,
+  "minimum_missing_fields_bytes_per_env": {
+    "ack_wm_ts": 67200,
+    "gcs_last_rx_us": 3200,
+    "uav_velocities_xy": 48
+  },
+  "minimum_additional_bytes_per_env": 70448,
+  "minimum_known_bytes_per_env": 560449,
+  "minimum_known_gib_per_2048_envs": 1.069,
+  "unquantified_extra_state": [
+    "pending_hello_control_slot",
+    "application_dedup_and_pending_expiry",
+    "full_reset_of_ledgers_counters_routes_timers",
+    "episode_sensor_rng",
+    "safe_collision_trajectory_state",
+    "actor_critic_runtime_buffers"
+  ],
+  "missing_executable_stages": [
+    "CPU-parity sensor/dynamics/reward kernel",
+    "7-node MAC/PHY event kernel",
+    "receiver/relay/routing/ACK kernel",
+    "bounded event-overflow contract",
+    "atomic full-episode reset kernel",
+    "NVIDIA CUDA T4 numeric parity tests"
+  ]
+}

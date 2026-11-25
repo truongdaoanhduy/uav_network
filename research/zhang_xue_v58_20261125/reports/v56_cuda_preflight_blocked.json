@@ -1,0 +1,9 @@
+{
+  "stage": "experimental_v56_cuda_gate3",
+  "device": "cuda:0",
+  "num_envs": 32,
+  "soa_bytes_per_env": 563200,
+  "cpu_warp_parity": "NOT_VERIFIED",
+  "status": "GATE_BLOCKED",
+  "reason": "No module named 'warp'"
+}

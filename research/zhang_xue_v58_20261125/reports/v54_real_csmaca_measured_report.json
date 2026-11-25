@@ -1,0 +1,59 @@
+{
+  "tests_passed": "9/9",
+  "real_csmaca_80step_zero_comm": {
+    "step": 80,
+    "terminated": false,
+    "truncated": false,
+    "gcs_tp_confirmed": 0,
+    "gcs_fp_latched": 0,
+    "r_loc_team": 0.0,
+    "r_gcs_tp": 0.0,
+    "r_gcs_aoi": 0.0,
+    "r_airtime": -0.0216,
+    "mean_first_tp_confirm_latency_s": -1.0,
+    "mean_gcs_aoi_delivered_cells_s": -1.0,
+    "delivered_cell_coverage_pct": 0.0,
+    "mean_gcs_aoi_mapwide_unbiased_s": 40.5,
+    "min_battery_pct": 92.03,
+    "data_delivered_gcs": 0,
+    "mac_ack_ok": 0,
+    "e2e_ack_rx": 0,
+    "total_return": 46.97
+  },
+  "real_csmaca_80step_full_comm": {
+    "step": 80,
+    "terminated": false,
+    "truncated": false,
+    "gcs_tp_confirmed": 4,
+    "gcs_fp_latched": 0,
+    "r_loc_team": 0.0,
+    "r_gcs_tp": 0.0,
+    "r_gcs_aoi": 0.0,
+    "r_airtime": -0.0264,
+    "mean_first_tp_confirm_latency_s": 0.0065,
+    "mean_gcs_aoi_delivered_cells_s": 23.814,
+    "delivered_cell_coverage_pct": 15.75,
+    "mean_gcs_aoi_mapwide_unbiased_s": 37.534,
+    "min_battery_pct": 92.03,
+    "data_delivered_gcs": 332,
+    "mac_ack_ok": 706,
+    "e2e_ack_rx": 332,
+    "total_return": 169.41
+  },
+  "warp_80array_soa_e2048_per_t4": {
+    "array_count": 80,
+    "bytes_per_env": 490001,
+    "num_envs": 2048,
+    "total_bytes": 1003522048,
+    "total_mib": 957.033,
+    "total_gib": 0.9346
+  },
+  "warp_80array_soa_e4096_total": {
+    "array_count": 80,
+    "bytes_per_env": 490001,
+    "num_envs": 4096,
+    "total_bytes": 2007044096,
+    "total_mib": 1914.066,
+    "total_gib": 1.8692
+  }
+}

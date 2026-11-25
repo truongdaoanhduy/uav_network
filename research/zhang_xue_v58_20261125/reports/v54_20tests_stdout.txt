@@ -1,0 +1,25 @@
+test_01_ds_stable_large_counts_and_total_conflict (test_v54_7radio_csmaca_and_warp.TestV54SevenRadioAndWarp.test_01_ds_stable_large_counts_and_total_conflict) ... ok
+test_02_per_uav_battery_accel_clamp_and_hover (test_v54_7radio_csmaca_and_warp.TestV54SevenRadioAndWarp.test_02_per_uav_battery_accel_clamp_and_hover) ... ok
+test_03_1hop_uav_to_gcs_data_mac_ack_and_e2e_ack (test_v54_7radio_csmaca_and_warp.TestV54SevenRadioAndWarp.test_03_1hop_uav_to_gcs_data_mac_ack_and_e2e_ack) ... ok
+test_04_2hop_relay_does_not_prematurely_fuse_and_preserves_gen_ts (test_v54_7radio_csmaca_and_warp.TestV54SevenRadioAndWarp.test_04_2hop_relay_does_not_prematurely_fuse_and_preserves_gen_ts) ... ok
+test_05_data_received_mac_ack_lost_deduplicates_retry (test_v54_7radio_csmaca_and_warp.TestV54SevenRadioAndWarp.test_05_data_received_mac_ack_lost_deduplicates_retry) ... ok
+test_06_queue_full_drop_and_ttl_expiry (test_v54_7radio_csmaca_and_warp.TestV54SevenRadioAndWarp.test_06_queue_full_drop_and_ttl_expiry) ... ok
+test_07_blackout_store_carry_forward_recovery (test_v54_7radio_csmaca_and_warp.TestV54SevenRadioAndWarp.test_07_blackout_store_carry_forward_recovery) ... ok
+test_08_full_7node_env_csmaca_full_comm_beats_zero_comm (test_v54_7radio_csmaca_and_warp.TestV54SevenRadioAndWarp.test_08_full_7node_env_csmaca_full_comm_beats_zero_comm) ... ok
+test_09_warp_80array_soa_vram_exact_and_syntax_valid (test_v54_7radio_csmaca_and_warp.TestV54SevenRadioAndWarp.test_09_warp_80array_soa_vram_exact_and_syntax_valid) ... ok
+test_17_hello_not_blocked_by_no_route_data_head (test_v54_gate2_regressions.ControlPlaneRegressions.test_17_hello_not_blocked_by_no_route_data_head) ... ok
+test_10_monotonic_hello_warmup_and_1s_step (test_v54_gate2_regressions.Gate2Regressions.test_10_monotonic_hello_warmup_and_1s_step) ... ok
+test_11_invalid_comm_action_rejected_not_silently_mapped (test_v54_gate2_regressions.Gate2Regressions.test_11_invalid_comm_action_rejected_not_silently_mapped) ... ok
+test_12_pending_e2e_expiry_is_bounded (test_v54_gate2_regressions.Gate2Regressions.test_12_pending_e2e_expiry_is_bounded) ... ok
+test_13_final_receiver_app_dedup_across_hop_local_ids (test_v54_gate2_regressions.Gate2Regressions.test_13_final_receiver_app_dedup_across_hop_local_ids) ... ok
+test_14_stale_reception_does_not_refresh_freshness_time (test_v54_gate2_regressions.Gate2Regressions.test_14_stale_reception_does_not_refresh_freshness_time) ... ok
+test_15_global_stats_not_in_decentralized_actor_obs (test_v54_gate2_regressions.Gate2Regressions.test_15_global_stats_not_in_decentralized_actor_obs) ... ok
+test_16_incomplete_event_window_must_not_mutate_rl_step (test_v54_gate2_regressions.Gate2Regressions.test_16_incomplete_event_window_must_not_mutate_rl_step) ... ok
+test_19_initial_uavs_have_minimum_separation (test_v54_gate2_regressions.MotionSafetyRegressions.test_19_initial_uavs_have_minimum_separation) ... ok
+test_20_simultaneous_headon_motion_is_vetoed (test_v54_gate2_regressions.MotionSafetyRegressions.test_20_simultaneous_headon_motion_is_vetoed) ... ok
+test_18_incomplete_schema_fails_closed (test_v54_gate3_preflight.Gate3Readiness.test_18_incomplete_schema_fails_closed) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 0.868s
+
+OK
