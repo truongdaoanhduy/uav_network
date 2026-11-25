@@ -1,3 +1,9 @@
+# 2026-11-25 — v4.3 private account2 CUDA preflight
+
+Branch experiment/zhang-xue-v43-kaggle-cuda-preflight-20261125, parent v4.2 SHA ee58650. Fixed source allowlist ZIP embedded in private Kaggle script from immutable SHA, no API token in source, CUDA E16/E1024/E4096 smoke and CPU parity, T4x2 target. Test covers generator. Kaggle CLI v1.7.4 fails KGAT; isolated venv CLI v2.2.5 authenticates account2 and confirmed GPU quota 29.53h remaining. See docs/superpowers/NETWORK_V43_PRIVATE_KAGGLE_CUDA_PREFLIGHT_20261125.md. **Not training or Gate5 completion.**
+
+---
+
 # 2026-11-25 — v4.2 Warp receiver evidence / immutable queued payload / no-oracle routing
 
 Branch experiment/zhang-xue-v42-warp-evidence-routing-20261125, from v4.1 commit 555f2a8. Tests 82/82 focused regressions passed including pinned SimPy. E4096 Warp CPU controlled 3-node 2-hop experiment: real 90B MAC HELLO and DV packets establish 0→1→2 path without physical oracle; DATA from source camera counts uses queued immutable provenance payload; recipient-local origin MAX-plus-SUM DS updated only on DATA success; 3072/4096 DATA final deliveries, 3072 two-hop E2E ACK, 1024 DATA TTL expirations; queues empty, no blackout sends, no evidence leak. See docs/superpowers/NETWORK_V42_WARP_RECEIVER_PAYLOAD_DISTRIBUTED_ROUTING_20261125.md and evidence JSON.
