@@ -358,6 +358,55 @@ class ClassicV1SimPyNetwork:
 
 
 def run_smoke(case:str,v1_root=None):
+    if case=="collision":
+        # Hidden terminal: UAV0 and UAV2 are 800m apart so neither senses
+        # the other's CCA carrier (v1 range 750m), but both can reach UAV1.
+        # Two 62-entry data payloads are offered simultaneously on a shared
+        # channel. The reference mini-simulator does not model collisions.
+        positions={0:(0.,0.),1:(400.,0.),2:(800.,0.)}
+        native_pdr=[]
+        reference_pdr=[]
+        collision_counts=[]
+        attempts=[]
+        for seed in range(44,50):
+            real=ClassicV1SimPyNetwork(
+                positions,BeliefTable(3,400),seed=seed,v1_root=v1_root,
+            )
+            ref=MiniDiscreteEventNet(
+                positions,BeliefTable(3,400),tx_power_w=.5,
+            )
+            real.run_until(.025)
+            ref.run_until(.025)
+            for index,src in enumerate((0,2),start=1):
+                pkt=SearchDataPacket(
+                    packet_id=index,episode_id=1,src_id=src,dst_id=1,
+                    seq_id=index,creation_time=.025,deadline=.5,
+                    entries=tuple((src,c,1,0) for c in range(62)),
+                )
+                real.send_data(.025,pkt)
+                ref.send_data(.025,pkt)
+            real.run_until(.10)
+            ref.run_until(.10)
+            native_pdr.append(float(real.metrics.data_pdr))
+            reference_pdr.append(float(ref.metrics.data_pdr))
+            collision_counts.append(int(real.simulator.metrics.collision_num))
+            attempts.append(sum(
+                sum(pkt.number_retransmission_attempt.values())
+                for pkt in real._tx_packets.values()
+            ))
+        return {
+            "source_sha":PINNED_V1_SHA,
+            "engine":"uavnetsim_v1_real_simpy_csma",
+            "num_seeds":len(native_pdr),
+            "seeds":list(range(44,50)),
+            "native_pdr_by_seed":native_pdr,
+            "reference_pdr_by_seed":reference_pdr,
+            "native_collision_by_seed":collision_counts,
+            "native_total_collisions":sum(collision_counts),
+            "native_tx_attempts_by_seed":attempts,
+            "full_warp_mac_parity_status":"NOT_TESTED",
+            "contention_case":"two hidden terminals simultaneous 62-entry packets to one relay",
+        }
     if case=="warp_phy":
         imp=_load_upstream(v1_root)
         from phy.large_scale_fading import general_path_loss
@@ -513,7 +562,7 @@ def run_smoke(case:str,v1_root=None):
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument("--case",choices=("line","blackout","gate5","observations","warp_phy"),default="line")
+    parser.add_argument("--case",choices=("line","blackout","gate5","observations","warp_phy","collision"),default="line")
     parser.add_argument("--json",action="store_true")
     parser.add_argument("--root")
     args=parser.parse_args()

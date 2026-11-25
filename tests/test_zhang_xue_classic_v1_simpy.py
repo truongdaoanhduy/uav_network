@@ -123,3 +123,15 @@ def test_real_v1_friis_snr_matches_new_warp_pairwise_cpu_kernel():
     assert got["max_abs_snr_error_db"]<0.001
     assert got["connectivity_mismatch_count"]==0
     assert got["full_warp_mac_parity_status"]=="NOT_TESTED"
+
+
+def test_real_v1_hidden_terminal_contention_exposes_reference_limitations():
+    got=run_case("collision")
+    assert got["source_sha"]=="64bc3a2424f2976418731ee94f9a8fd3e8810b22"
+    assert got["num_seeds"]>=5
+    assert len(got["native_pdr_by_seed"])==got["num_seeds"]
+    assert len(got["reference_pdr_by_seed"])==got["num_seeds"]
+    assert all(0.<=v<=1. for v in got["native_pdr_by_seed"])
+    assert all(abs(v-1.0)<1e-12 for v in got["reference_pdr_by_seed"])
+    assert got["native_total_collisions"]>0
+    assert got["full_warp_mac_parity_status"]=="NOT_TESTED"

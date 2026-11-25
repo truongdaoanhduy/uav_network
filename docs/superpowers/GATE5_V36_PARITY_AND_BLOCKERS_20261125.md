@@ -1,0 +1,33 @@
+# Zhang–Xue v3.6 — Gate 5 evidence and blockers (2026-11-25)
+
+## Source
+Classic UavNetSim-v1 (Python SimPy 802.11b), pinned commit `64bc3a2424f2976418731ee94f9a8fd3e8810b22`: https://github.com/EdwardS201/UavNetSim-v1. Different from the newer Sionna UavNetSim project.
+
+## Reproducible measured outcomes
+
+| Controlled test | Real classic v1 SimPy | Reference / Warp | Decision |
+|---|---|---|---|
+| Gate 5A, 0–400–800 m line, one small DATA | DATA1/1, E2E ACK1/1, 2 hops, latency **1.635 ms** | MiniDiscreteEventNet DATA1/1, 2 hops, **1.604 ms** | Partial PASS: difference 31 µs under 0.5 ms threshold |
+| Gate 5B, 6 UAV free-space SNR, 0.5W, 2.4GHz, N=4e-11W, 6dB | Original v1 `general_path_loss` double precision | Real Warp FP32 **CPU** kernel; max error **6.8073e-6 dB** and 0/36 link status differences | PHY-only PASS, not MAC or CUDA parity |
+| Gate 5C, 2 hidden senders at x0/800 simultaneously send 62-entry packets to relay x400, 6 seeds44–49 | DATA **0/2 per seed**, **56** interference/collision events in total, 10 TX attempts per seed | MiniDiscreteEventNet DATA **2/2 per seed** | **Critical FAIL**: reference ignores collisions and MAC retransmissions |
+| Real 6-UAV learner integration | MATD3 and MASAC real SimPy CPU pilot with replay and gradient updates | Three-step training and three-step evaluation per algorithm | Plumbing PASS, not convergence |
+
+Sources for recorded numbers: `docs/superpowers/evidence/zhang_xue_gate5a_real_simpy_vs_reference_20261125.json`, `zhang_xue_gate5b_warp_friis_cpu_20261125.json`, `zhang_xue_gate5c_hidden_terminal_20261125.json` and algorithm-specific CPU smoke JSON.
+
+### Mechanism of failure
+
+Classic source `phy/large_scale_fading.py::sinr_calculator` includes overlapping-channel transmitters as interference. Sources 800m apart cannot hear each other's carrier under v1's 750m sensing range but both reach the intermediate node 400m away; their same-channel long DATA transmissions collide. The original `CsmaCa` at `mac/csma_ca.py` attempts stop-and-wait retransmission up to five times per sender. The simplified MiniDiscreteEventNet schedules packets individually, lacks concurrent interferers/backoff and therefore predicts ideal PDR. The six-seed test is a **counterexample**, not a population estimate of learned policy PDR.
+
+### Explicit deviations and risks
+
+- `MarlSearchDrone` uses dependency injection instead of `Drone.__init__` to prevent unwanted Poisson traffic, GaussMarkov motion and hard-coded DSDV. It retains upstream real `Greedy`, `CsmaCa`, `Phy`, `Channel`, per-hop ACK.
+- Adapter deliberately staggers first HELLO by **1.5 ms × UAV ID** to avoid deterministic initial hidden-terminal HELLO losses; original periodic HELLO thereafter unchanged. Cite this modification in any paper.
+- The actor receives peer poses only through **received local HELLO neighbor table**, but upstream Greedy routing still reads the true destination coordinates to choose a next hop. This limits strict Dec-POMDP claims.
+- UavNetSim-v1 uses process-global `utils.config` and SimPy polling at 5/10µs; cannot be substituted for 4,096 parallel Warp rollouts.
+- Warp tested on **CPU** because local CUDA driver unavailable. Pairwise Friis parity does NOT prove PHY SINR under interferers or MAC/queue/retry/TTL parity.
+
+### Required next action
+
+Implement a collision-aware, vectorized Warp network surrogate with receiver SINR from simultaneous senders, channel overlap, carrier sensing and hidden-terminal behavior, queue/TTL/retries and separate MAC ACK vs application E2E ACK. Compare matched seeds, packet sizes, routes, PDR, latency, hops, airtime and ACK across benign and collision stress tests before E4096 GPU training. Do not silently replace failure with an easier metric. Gate 5 **full SimPy↔Warp parity remains failed/not ready** despite passing subgates 5A and 5B.
+
+No change to `main`, historical W&B/HF runs or old 800m Warp scenario.

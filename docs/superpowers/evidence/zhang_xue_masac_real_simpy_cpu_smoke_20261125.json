@@ -1,0 +1,26 @@
+{
+  "actor_parameter_delta_norm": 0.009640917776353628,
+  "algorithm": "masac",
+  "backend": "cpu_uavnetsim_v1_simpy_csma",
+  "disc_dim": 6,
+  "episodes": 1,
+  "learner_metrics": {
+    "actor_loss": -0.4614960551261902,
+    "alpha_c": 0.19988000392913818,
+    "alpha_d": 0.19995534420013428,
+    "critic_loss": 0.3605027198791504,
+    "q1_mean": -0.0034293122589588165
+  },
+  "mean_eval_pdr": 0.0,
+  "mean_eval_return": -0.26064,
+  "mean_train_pdr": 0.0,
+  "mean_train_return": -0.2208,
+  "obs_dim": 113,
+  "replay_size": 3,
+  "scenario": "zhang_xue_1000m_20x20_6uav_10target",
+  "seed": 44,
+  "state_dim": 678,
+  "target_entropy_disc_ratio": 0.6,
+  "total_steps": 3,
+  "updates": 2
+}

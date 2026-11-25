@@ -1,3 +1,23 @@
+# 2026-11-25 — Gate 5C collision stress demonstrates critical parity failure
+
+6 deterministic seeds 44–49, 2 hidden senders x0/800m -> receiver x400m,
+simultaneous 62-cell DATA packets: native V1 CSMA/CA data PDR was 0.0
+for every seed (56 interference/collision log events total; 10 data TX
+attempts per seed), but simplified MiniDiscreteEventNet predicted PDR1.0.
+This is a genuine counterexample, not an estimate of normal policy PDR.
+Source evidence docs/superpowers/evidence/zhang_xue_gate5c_hidden_terminal_20261125.json
+and detailed explanation docs/superpowers/GATE5_V36_PARITY_AND_BLOCKERS_20261125.md.
+Real classic V1 six-UAV MATD3 and MASAC CPU smoke both ran 3 steps,
+2 real learner updates; actor weights changed; short evaluations had
+zero data PDR and do NOT indicate convergence.
+Do not train E4096 using collision-free mini as if verified UavNetSim.
+Next: collision-aware Warp MAC surrogate, then controlled SimPy-vs-Warp
+PDR/hops/latency/TTL/retry comparisons; restore failure test as regression.
+Previous v3.4/v3.5/v3.6 and Gate5B commits remain on independent
+remote GitHub branches; current branch experiment/zhang-xue-v36-gate5b-20261125.
+
+---
+
 # 2026-11-25 — Gate 5B partial Warp PHY alignment
 
 Pinned UavNetSim-v1 upstream 64bc3a24, actual native general_path_loss compared
