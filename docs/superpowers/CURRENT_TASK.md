@@ -1,3 +1,15 @@
+# 2026-11-25 — Isolated Zhang–Xue v3.4 reference fixes (NOT production)
+
+Local worktree branch: `experiment/zhang-xue-v34-reference-fixes-20261125`, inherited from clean Streamfix v3 commit `d3e08b1`.
+User deferred Gate 5 (SimPy↔Warp parity). Original dirty study/main worktrees remain untouched.
+Original downloadable spec ZIP `zhang_xue_uavnetsim_v3_2_verified_20261125.zip` preserved.
+Research adapter at `research/zhang_xue_v34_reference` corrects queue-full sends, packet retry after radio recovery, occupied queue never freed, safety/boundary bonus sign, FP info credit, immutable wire fields, and invalid destination admission.
+Test-first red: original 7 new tests failed (5 failures, 2 errors); 2 extra packet validations failed; after code change 14/14 standalone reference tests passed. CPU PyTorch Gate4 tiny hybrid gradient smoke PASS, selected existing slotted/M2 tests 30/30 PASS, random 20 seeds × 100 packets invariant PASS. Local CUDA unavailable; training not run.
+This is a **reference mini-simulator**, not installed in the production env/learner or real SimPy UavNetSim. `config_v3.2.yaml` is only the preserved reference config. Local branch not pushed to GitHub; connector write still 403.
+Next: audit real actor + receiver-local belief + packet transport integration against reference; implement production tests before code; keep Gate5 deferred and no training until complete.
+
+---
+
 # 2026-11-21 — Paper-grounded DS threshold replaces M2 default SPRT verification
 
 User requires reference-paper-faithful M2 detection and full algorithm flow. Primary source is user-provided Zhang et al., IEEE T-IV 2024 DOI 10.1109/TIV.2024.3352581, PDF pages 4–6 and Table III: fixed evidence mf=me=.8, per-source max positive/negative detection counts, and m(F)>=.95 target decision. Full implementation document: `docs/methods/M2_ZHANG_2024_DS_THRESHOLD_FLOW_20261121.md`.

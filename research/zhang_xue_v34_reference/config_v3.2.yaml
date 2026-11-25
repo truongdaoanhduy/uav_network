@@ -1,0 +1,63 @@
+status: SPEC_V3_2_CODE_PATCHED_GATE1_TO_GATE3_VERIFIED
+version: 3.2.0
+date: '2026-11-25'
+source_pinning:
+  uavnetsim_target_branch: classic_v1_802_11b_los
+  uavnetsim_reference_url: https://github.com/EdwardS201/UavNetSim-v1
+  uavnetsim_upstream_new_url: https://github.com/Zihao-Felix-Zhou/UavNetSim
+  config_py_payload_var: AVERAGE_PAYLOAD_LENGTH
+  require_local_commit_sha_pin: true
+packet_serialization:
+  app_header_bytes: 12
+  entry_bytes: 8
+  net_headers_bytes: 58
+  max_payload_bytes: 512
+  max_entries_per_packet: 62
+  strict_mtu_raise_value_error: true
+  e2e_ack_payload_bytes: 32
+  e2e_ack_full_frame_bytes: 90
+scenario_pilot:
+  grid_width: 20
+  grid_height: 20
+  cell_size_meter: 50.0
+  map_size_meter: 1000.0
+  fixed_altitude_meter: 100.0
+  uav_count: 6
+  target_count: 10
+  dt_seconds: 1.0
+  horizon_steps: 200
+  v_max_mps: 50.0
+  safe_distance_meter: 50.0
+  no_fly_zone_count: 2
+  no_fly_radius_meter: 50.0
+  blackout_zone_count: 2
+  blackout_radius_cells: 3
+  zones_nonoverlapping: true
+  phy_tx_power_watt: 0.5
+  phy_antenna_gain_dbi: 0.0
+rl_and_reward:
+  algorithms:
+  - MASAC
+  - MATD3
+  include_remaining_time_in_obs: true
+  dynamic_target_entropy_formula: 0.6 * log(K_valid)
+  target_latch_scope: TEAM_LEVEL_TP_ONLY_DISJOINT_FROM_FP
+  reward_mode_main: R1_UNIFIED_SEARCH_SHARE
+  reward_weights:
+    omega_search_uncertainty: 30.0
+    omega_shared_uncertainty: 15.0
+    omega_target_confirm: 10.0
+    omega_safety: 30.0
+    omega_boundary: 20.0
+    omega_false_positive_latch: 5.0
+    omega_false_positive_hold: 0.1
+    lambda_network_airtime_main: 30.0
+    lambda_network_airtime_curriculum:
+    - 10.0
+    - 30.0
+    lambda_network_airtime_safe_range:
+    - 20.0
+    - 40.0
+  terminated_rule: all_true_targets_confirmed_OR_step_eq_horizon
+  truncated_rule: external_interrupt_only
+  mission_success_eval_only: tp_ratio_ge_0.80_and_fp_le_1
