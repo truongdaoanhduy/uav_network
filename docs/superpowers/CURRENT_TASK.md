@@ -1,3 +1,22 @@
+# 2026-11-25 — Gate 5D scheduled-interference PHY on actual Warp CPU
+
+Actual NVIDIA Warp FP32 kernel for per-receiver interference when multiple
+on-air frames share/overlap channels and times, at
+uav_network/communication/gpu/classic_v1_interference_warp.py.
+Controlled tests: hidden overlapping co-channel SINR -0.5283353dB fail both;
+non-overlapping same-channel and time-overlapping orthogonal channels 1/6
+SINR 8.8819027dB pass both. Independent NumPy FP64 check of 128 random
+worlds x 4 scheduled frames (512 link evaluations) within .002dB.
+Test and JSON evidence: tests/test_zhang_xue_v36_warp_interference.py and
+docs/superpowers/evidence/zhang_xue_gate5d_warp_interference_cpu_20261125.json.
+This is NOT a full MAC or full Gate5: no CSMA backoff/CCA scheduling,
+link ACK, retry/TTL, packet queue state, or E4096 GPU training.
+The old mini reference still fails parity under Gate5C hidden terminals.
+Keep all earlier GitHub rollback points; next implement vectorized Warp MAC
+event scheduler with matched SimPy evidence. No local CUDA driver.
+
+---
+
 # 2026-11-25 — Gate 5C collision stress demonstrates critical parity failure
 
 6 deterministic seeds 44–49, 2 hidden senders x0/800m -> receiver x400m,

@@ -36,6 +36,8 @@ Construct reproducible 3-node 0–400–800m test topology to demand a **real 2-
 - [x] Gate 5A: real V1 SimPy vs simplified reference on fixed 2-hop (PDR1 vs1, hops2 vs2, DATA delay1.635ms vs1.604ms, mismatch31us). Not full Warp parity.
 - [x] Gate 5B-PHY only: actual NVIDIA Warp FP32 CPU kernel vs pinned classic V1 Friis native, 6 UAV, max 6.81e-6 dB, zero connectivity mask mismatch at 6dB. Not MAC parity.
 - [x] Gate 5C hidden-terminal PDR stress across 6 seeds: real V1 SimPy PDR0.0, Mini reference PDR1.0; 56 collision events; parity FAIL. Full packet-size/TTL/queue sweep still open.
+- [x] Gate 5D: actual Warp FP32 CPU scheduled frame interference; three controlled cases and 128 random worlds x 4 transmissions validated.
+- [ ] Gate 5E: vectorized Warp CSMA/CA event scheduling, CCA, per-hop ACK, retry and TTL, tested on matched real SimPy seeds.
 - [ ] Gate 5 full end-to-end SimPy-Warp parity on same 1km scenario: BLOCKED by missing collision-aware Warp MAC/retransmission surrogate.
 - [x] Pushed three incremental tested v3.6 commits: pin, SimPy networking, six-UAV integration.
 - [ ] Publish final Gate5 evidence and limitations.

@@ -26,7 +26,30 @@ Classic source `phy/large_scale_fading.py::sinr_calculator` includes overlapping
 - UavNetSim-v1 uses process-global `utils.config` and SimPy polling at 5/10µs; cannot be substituted for 4,096 parallel Warp rollouts.
 - Warp tested on **CPU** because local CUDA driver unavailable. Pairwise Friis parity does NOT prove PHY SINR under interferers or MAC/queue/retry/TTL parity.
 
-### Required next action
+### Gate 5D: scheduled multi-transmitter SINR (new Warp CPU kernel)
+
+A new NVIDIA Warp FP32 CPU kernel at
+uav_network/communication/gpu/classic_v1_interference_warp.py
+calculates receiver SINR using simultaneous on-air frames on co-channel or
+adjacent IEEE 802.11b channels. The source condition is absolute channel-ID
+difference less than 5. This is a fixed-schedule PHY evaluator, NOT a MAC.
+
+- Hidden terminals with two 400m links overlapping on channel 1:
+  -0.5283353 dB on each frame, 0/2 successful.
+- Same channel with no transmission-time overlap: 8.8819027 dB, 2/2 pass.
+- Channels 1 and 6 with overlapping frames: 8.8819027 dB, 2/2 pass.
+- A separate NumPy FP64 PHY implementation agreed for 128 random worlds
+  x 4 scheduled transmissions (512 evaluated frames), absolute tolerance
+  .002dB. The action remains valid only for a *given* frame schedule.
+
+Evidence: docs/superpowers/evidence/zhang_xue_gate5d_warp_interference_cpu_20261125.json
+
+Still missing: a vectorized Warp MAC that generates schedules with CCA,
+backoff, ACKs, retries, TTL and buffers; integration into 1km/6UAV GPU
+training; multi-seed SimPy vs Warp parity across topology and traffic.
+The actual Warp kernel ran on CPU due missing local NVIDIA driver.
+
+## Required next action
 
 Implement a collision-aware, vectorized Warp network surrogate with receiver SINR from simultaneous senders, channel overlap, carrier sensing and hidden-terminal behavior, queue/TTL/retries and separate MAC ACK vs application E2E ACK. Compare matched seeds, packet sizes, routes, PDR, latency, hops, airtime and ACK across benign and collision stress tests before E4096 GPU training. Do not silently replace failure with an easier metric. Gate 5 **full SimPy↔Warp parity remains failed/not ready** despite passing subgates 5A and 5B.
 

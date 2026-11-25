@@ -1,0 +1,46 @@
+{
+  "date": "2026-11-25",
+  "pinned_upstream_classic_v1_sha": "64bc3a2424f2976418731ee94f9a8fd3e8810b22",
+  "engine": "NVIDIA Warp 1.18.0 FP32 CPU compile",
+  "scope": "scheduled frames receiver-SINR only, NOT CSMA/CA scheduling or retry or MAC ACK",
+  "number_of_worlds": 3,
+  "num_frames_per_world": 2,
+  "worlds": [
+    "hidden terminal same channel overlap",
+    "same channel time-disjoint",
+    "overlap orthogonal 1/6 channels"
+  ],
+  "sinr_db": [
+    [
+      -0.528335273,
+      -0.528335273
+    ],
+    [
+      8.881902695,
+      8.881902695
+    ],
+    [
+      8.881902695,
+      8.881902695
+    ]
+  ],
+  "success": [
+    [
+      0,
+      0
+    ],
+    [
+      1,
+      1
+    ],
+    [
+      1,
+      1
+    ]
+  ],
+  "randomized_phy_verification": "128 worlds × 4 packet transmissions=512 links compared to independent NumPy FP64 SINR with 0.002dB tolerance; test PASS",
+  "exact_phy_reference": "classic UavNetSim-v1 large_scale_fading.py free space path loss, same 2.4GHz 0.5W 4e-11W 6dB, channel adjacency gap < 5",
+  "mac_retry_queue_parity": "NOT_TESTED",
+  "warp_cuda_execution": "NOT_TESTED, no local GPU",
+  "end_to_end_gate5": "FAIL/INCOMPLETE; Gate5C collision-free Mini PDR mismatch remains"
+}
