@@ -1,0 +1,105 @@
+{
+  "stage": "controlled_six_uav_five_hop_warp_packet_envelope",
+  "worlds": 4096,
+  "uavs": 6,
+  "hello_frames_physically_received": 40960,
+  "route_advertisements_received": 32768,
+  "source_route_only_after_dv": true,
+  "app_data_generated": 4096,
+  "app_data_received_at_ultimate": 3072,
+  "data_hop_receipts": 17408,
+  "data_forwarded_hops": 14336,
+  "ack_hop_receipts": 15360,
+  "ack_forwarded_hops": 12288,
+  "application_ack_returned": 3072,
+  "e2e_watermark_updated": 3072,
+  "radio_blackout_holds_no_send": true,
+  "data_ttl_expired_in_relay": 1024,
+  "receiver_DS_only_after_data": true,
+  "source_provenance_and_original_ttl_preserved": true,
+  "no_packet_forwarding_loops": true,
+  "no_duplicate_app_reward": true,
+  "queues_empty_at_end": true,
+  "stage_events": [
+    {
+      "step": 0,
+      "active": 4096,
+      "data_receipts": 4096,
+      "ack_receipts": 0
+    },
+    {
+      "step": 1,
+      "active": 4096,
+      "data_receipts": 4096,
+      "ack_receipts": 0
+    },
+    {
+      "step": 2,
+      "active": 3072,
+      "data_receipts": 3072,
+      "ack_receipts": 0
+    },
+    {
+      "step": 3,
+      "active": 3072,
+      "data_receipts": 3072,
+      "ack_receipts": 0
+    },
+    {
+      "step": 4,
+      "active": 3072,
+      "data_receipts": 3072,
+      "ack_receipts": 0
+    },
+    {
+      "step": 5,
+      "active": 3072,
+      "data_receipts": 0,
+      "ack_receipts": 3072
+    },
+    {
+      "step": 6,
+      "active": 3072,
+      "data_receipts": 0,
+      "ack_receipts": 3072
+    },
+    {
+      "step": 7,
+      "active": 3072,
+      "data_receipts": 0,
+      "ack_receipts": 3072
+    },
+    {
+      "step": 8,
+      "active": 3072,
+      "data_receipts": 0,
+      "ack_receipts": 3072
+    },
+    {
+      "step": 9,
+      "active": 3072,
+      "data_receipts": 0,
+      "ack_receipts": 3072
+    },
+    {
+      "step": 10,
+      "active": 0,
+      "received": 0
+    },
+    {
+      "step": 11,
+      "active": 0,
+      "received": 0
+    }
+  ],
+  "elapsed_seconds": 4.305083503997594,
+  "device": "cpu",
+  "training_launched": false,
+  "gate5": "BLOCKED",
+  "limitations": [
+    "Static six-UAV folded chain, isolated one-APP-message/world",
+    "HELLO/DV transmissions are MAC successes but not fully serialized upstream UavNetSim protocol packets",
+    "Host Python relays packet metadata between Warp kernels per step",
+    "No learned actor/motion, dynamic target distribution, production reward or actual GPU CUDA verification"
+  ]
+}

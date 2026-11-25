@@ -1,3 +1,11 @@
+# 2026-11-25 — v4.8 Warp application envelope + six-UAV five-hop DATA and E2E ACK
+
+Branch experiment/zhang-xue-v48-hop-envelope-six-uav-20261125, from v4.7 commit f302638. Actual Warp queue-side immutable app envelope (original origin, ultimate destination, six-bit visited, hop count), loop/hop budget checks and frozen source evidence through every relay. Physically received 90B HELLO+DV discover 5-hop static folded chain, source camera DATA transfers UAV0→1→2→3→4→5, then real 90B app E2E ACK returns UAV5→4→3→2→1→0. E4096 controlled CPU: 4096 original DATA, 3072 final DATA/3072 matching E2E ACK source watermarks, 1024 original DATA TTL expirations while relay2 permanently in blackout; 17,408 DATA/15,360 ACK hop receipts, zero loops/duplicate ACK or premature DS. Evidence docs/superpowers/evidence/zhang_xue_v48_4096_fivehop_e2e_blackout_cpu_20261125.json and detailed report docs/superpowers/NETWORK_V48_SIX_UAV_FIVE_HOP_ENVELOPE_20261125.md.
+
+Full Gate5 still BLOCKED, no production actor, dynamic multi-hop under concurrent load, source-exact SimPy MAC, CUDA, training/eval/test. Keep main untouched.
+
+---
+
 # 2026-11-25 — v4.7 Warp path-vector 3-node loop prevention
 
 Branch experiment/zhang-xue-v47-pathvector-loop-guard-20261125 from v4.6 commit307e785. TDD RED reproduces 3-UAV loop 0→2→1→0 after link0↔3 expires, even after v4.6 poisoned reverse. New Warp six-bit path masks per destination and per physically received DV advertisement reject routes containing recipient anywhere, preserve source/peer/destination paths, and retain HELLO/DV TTL reception barriers. E4096 CPU and valid 2hop tests pass. See docs/superpowers/NETWORK_V47_DISTRIBUTED_PATH_MASK_20261125.md.
