@@ -96,7 +96,7 @@ def run_map_network_probe(envs=128, seed=44, device="cpu"):
     ids=np.arange(6)
     r_pos[:,ids,ids,:]=state["pos"]
     r_neg[:,ids,ids,:]=state["neg"]
-    for e,u in zip(*np.nonzero(net["delivered"])):
+    for e,u in zip(*np.nonzero(net["data_received"])):
         rx=int(destination[e,u])
         selected=index[e,u,:entries[e,u]]
         if rx<0:
@@ -113,7 +113,7 @@ def run_map_network_probe(envs=128, seed=44, device="cpu"):
         r_neg[e,rx,u,selected]=np.maximum(
             r_neg[e,rx,u,selected],n_data,
         )
-    assert len(receiver_events)==int(net["delivered"].sum())
+    assert len(receiver_events)==int(net["data_received"].sum())
     assert np.array_equal(r_pos[:,ids,ids,:],state["pos"])
     assert np.array_equal(r_neg[:,ids,ids,:],state["neg"])
     # Max-merge is idempotent even if duplicate frames arrive: no
@@ -146,7 +146,7 @@ def run_map_network_probe(envs=128, seed=44, device="cpu"):
     remote_entries=int(np.count_nonzero(
         (r_pos+r_neg)[:,~np.eye(6,dtype=bool),:]
     ))
-    assert np.all(net["delivered"][destination<0]==0)
+    assert np.all(net["data_received"][destination<0]==0)
     assert np.all(net["attempts"][blackout!=0]==0)
     assert np.all(index[entries==0]==-1)
     elapsed=time.perf_counter()-t0
@@ -159,7 +159,8 @@ def run_map_network_probe(envs=128, seed=44, device="cpu"):
         "application_entries_total":int(entries.sum()),
         "frame_max_bytes":int(frame_bytes.max()),
         "blackout_uav_count":int(blackout.sum()),
-        "first_network_data_delivered":int(net["delivered"].sum()),
+        "first_network_data_delivered":int(net["data_received"].sum()),
+        "first_network_mac_acked":int(net["mac_acked"].sum()),
         "first_network_data_expired":int(net["expired"].sum()),
         "first_network_mac_dropped":int(net["dropped"].sum()),
         "source_owned_receiver_events":len(receiver_events),

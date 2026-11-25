@@ -155,7 +155,11 @@ def _make_types(imported: dict):
                 at_destination=packet.dst_drone.identifier==self.my_drone.identifier
                 if at_destination and packet.packet_id not in self.network.metrics.data_delivered_ids:
                     self.network.belief.merge_packet(self.my_drone.identifier,packet.app_entries)
-                    self.network.metrics.on_deliver(packet)
+                    # ApplicationDataPacket subclasses upstream DataPacket,
+                    # not local SearchDataPacket: NetworkMetricsFilter.on_deliver
+                    # would silently ignore it, making genuine deliveries
+                    # report PDR=0. Record the DATA id explicitly once.
+                    self.network.metrics.data_delivered_ids.add(packet.packet_id)
                     self.network.delivered_packets[packet.packet_id]=(
                         packet.get_current_ttl(),
                         self.simulator.env.now-packet.creation_time,
@@ -357,7 +361,7 @@ class ClassicV1SimPyNetwork:
         return 0.
 
 
-def run_smoke(case:str,v1_root=None):
+def run_smoke(case:str,v1_root=None,*,trace_start_seed=44,trace_num_seeds=6):
     if case=="warp_backoff":
         # Execute the REAL source CsmaCa.mac_send Python generator up to
         # its first timed wait; instrument randint bounds and timeout.
@@ -497,6 +501,129 @@ def run_smoke(case:str,v1_root=None):
             "free_checks":int(np.count_nonzero(source==1)),
             "full_warp_mac_parity_status":"NOT_TESTED",
             "limitations":"snapshot CCA only; no backoff, random scheduling, ACK or retransmissions",
+        }
+    if case=="collision_trace":
+        # Capture the real upstream LOGGER (rather than recomputing MAC
+        # event times from approximate PHY equations). Native classes and
+        # CSMA/CA generators are unchanged. Filter by app packet IDs 1/2.
+        import logging
+        import re
+
+        class PacketTraceHandler(logging.Handler):
+            TX=re.compile(r"At time: ([0-9.]+).*?UAV: ([0-9]+) can send packet \(pkd id: ([0-9]+)\)")
+            TIMEOUT=re.compile(r"At time: ([0-9.]+).*?ACK timeout of packet: ([0-9]+)")
+            DROP=re.compile(r"At time: ([0-9.]+).*?Packet: ([0-9]+) is dropped!")
+            ACK=re.compile(r"At time: ([0-9.]+).*?UAV: ([0-9]+) receives the ACK for data packet: ([0-9]+)")
+            COLLISION=re.compile(r"At time: ([0-9.]+).*?Packets collision: Main node is: ([0-9]+)")
+            def __init__(self):
+                super().__init__(logging.INFO)
+                self.events=[]
+            def emit(self,record):
+                msg=record.getMessage()
+                for name,pattern in (
+                    ("data_tx",self.TX),
+                    ("data_ack_timeout",self.TIMEOUT),
+                    ("data_drop",self.DROP),
+                    ("data_ack_rx",self.ACK),
+                    ("data_collision",self.COLLISION),
+                ):
+                    match=pattern.search(msg)
+                    if match is None:
+                        continue
+                    values=match.groups()
+                    at=float(values[0])
+                    if at < 25000.:
+                        return
+                    if name in ("data_tx","data_ack_rx"):
+                        u,pk=int(values[1]),int(values[2])
+                    elif name=="data_collision":
+                        u,pk=int(values[1]),0
+                    else:
+                        pk=int(values[1])
+                        u={1:0,2:2}.get(pk,-1)
+                    if name=="data_collision":
+                        if u not in (0,2):
+                            return
+                    elif pk not in (1,2):
+                        return
+                    self.events.append(dict(type=name,time_us=at,uav_id=u,packet_id=pk))
+                    return
+
+        if trace_num_seeds<1 or trace_num_seeds>128 or trace_start_seed<0:
+            raise ValueError("Invalid trace seed range")
+        seeds=list(range(trace_start_seed,trace_start_seed+trace_num_seeds))
+        events_by_seed=[]
+        pdr=[]
+        native_attempts=[]
+        native_delivered_ids_by_seed=[]
+        mac_draws_by_seed=[]
+        source_metric_ids_by_seed=[]
+        collision_counts=[]
+        for seed in seeds:
+            real=ClassicV1SimPyNetwork(
+                {0:(0.,0.),1:(400.,0.),2:(800.,0.)},
+                BeliefTable(3,400),seed=seed,v1_root=v1_root,
+            )
+            real.run_until(.025)
+            # Wrap each upstream per-drone RNG after native HELLO startup.
+            # Preserve *exact* random.Random state, draws and generator
+            # semantics; only add a reproducible trace of numbers used.
+            mac_draws=[]
+            for drone in real.simulator.drones:
+                original_rng=drone.mac_protocol.rng_mac
+                uid=drone.identifier
+
+                class TracedRng:
+                    def __init__(self,upstream,uav_id):
+                        self.upstream=upstream
+                        self.uav_id=uav_id
+                    def randint(self,lo,hi):
+                        selected=self.upstream.randint(lo,hi)
+                        mac_draws.append({
+                            "time_us":float(real.simulator.env.now),
+                            "uav_id":self.uav_id,"lo":lo,"hi":hi,
+                            "slot":selected,
+                        })
+                        return selected
+
+                drone.mac_protocol.rng_mac=TracedRng(original_rng,uid)
+            handler=PacketTraceHandler()
+            root_logger=logging.getLogger()
+            root_logger.addHandler(handler)
+            try:
+                for index,src in enumerate((0,2),start=1):
+                    pkt=SearchDataPacket(
+                        packet_id=index,episode_id=1,src_id=src,dst_id=1,
+                        seq_id=index,creation_time=.025,deadline=.5,
+                        entries=tuple((src,c,1,0) for c in range(62)),
+                    )
+                    real.send_data(.025,pkt)
+                real.run_until(.10)
+            finally:
+                root_logger.removeHandler(handler)
+            events_by_seed.append(handler.events)
+            mac_draws_by_seed.append(mac_draws)
+            pdr.append(float(real.metrics.data_pdr))
+            native_delivered_ids_by_seed.append(sorted(real.delivered_packets))
+            source_metric_ids_by_seed.append(sorted(real.metrics.data_delivered_ids))
+            collision_counts.append(int(real.simulator.metrics.collision_num))
+            native_attempts.append(sum(
+                sum(pkt.number_retransmission_attempt.values())
+                for pkt in real._tx_packets.values()
+            ))
+        return {
+            "source_sha":PINNED_V1_SHA,
+            "scope":"actual_upstream_mac_events",
+            "engine":"uavnetsim_v1_real_simpy_csma",
+            "seeds":seeds,
+            "native_pdr_by_seed":pdr,
+            "native_delivered_ids_by_seed":native_delivered_ids_by_seed,
+            "metric_delivered_ids_by_seed":source_metric_ids_by_seed,
+            "native_attempts_by_seed":native_attempts,
+            "native_collisions_by_seed":collision_counts,
+            "events_by_seed":events_by_seed,
+            "mac_draws_by_seed":mac_draws_by_seed,
+            "notes":"Only 1/2 application DATA packets; logged native TX, ACK timeout, ACK reception, drops and same-source collision events after t=25ms. No HELLO/ACK reverse trace or RNG capture.",
         }
     if case=="collision":
         # Hidden terminal: UAV0 and UAV2 are 800m apart so neither senses
@@ -702,11 +829,17 @@ def run_smoke(case:str,v1_root=None):
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument("--case",choices=("line","blackout","gate5","observations","warp_phy","collision","warp_cca","warp_backoff"),default="line")
+    parser.add_argument("--case",choices=("line","blackout","gate5","observations","warp_phy","collision","collision_trace","warp_cca","warp_backoff"),default="line")
     parser.add_argument("--json",action="store_true")
     parser.add_argument("--root")
+    parser.add_argument("--trace-start-seed",type=int,default=44)
+    parser.add_argument("--trace-num-seeds",type=int,default=6)
     args=parser.parse_args()
-    result=run_smoke(args.case,v1_root=args.root)
+    result=run_smoke(
+        args.case,v1_root=args.root,
+        trace_start_seed=args.trace_start_seed,
+        trace_num_seeds=args.trace_num_seeds,
+    )
     if args.json:print(json.dumps(result,sort_keys=True))
     else:print(json.dumps(result,indent=2,sort_keys=True))
 

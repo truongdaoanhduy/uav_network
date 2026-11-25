@@ -1,3 +1,22 @@
+# 2026-11-25 -- v4.0 native DATA PDR fix and MAC trace replay
+
+Branch: experiment/zhang-xue-v40-native-mac-trace-parity-20261125;
+parent v3.9 commit 5cf397c. Ordered scope stays map -> full
+network -> training/eval/test. Native ApplicationDataPacket was
+previously NOT counted by NetworkMetricsFilter.on_deliver, so
+v3.9 native PDR was wrong. Correct native seeds44-49:
+[0,1,1,0,0,0]. Warp now differentiates app data_received
+from mac_acked/delivered legacy flag. Replay genuine UavNetSim-v1
+random streams: seeds44-107 show 64/64 DATA PDR match, 601 DATA
+attempts and zero first-attempt timing error; 35 later starts
+differ up to 550us due in part to relay app E2E ACK traffic.
+
+Read docs/superpowers/NETWORK_V40_NATIVE_TRACE_AND_PDR_CORRECTION_20261125.md
+and associated JSON evidence. **Gate5 still NOT PASSED.
+Training NOT LAUNCHED**; no main branch modifications.
+
+---
+
 # 2026-11-25 — Zhang–Xue v3.9 network-after-map checkpoint
 
 User-approved order: map -> full UavNetSim/Warp network/Gate5 -> only

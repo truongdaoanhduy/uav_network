@@ -36,6 +36,7 @@ def _retry_one_hop(
     ack_failed: wp.array(dtype=wp.int32, ndim=2),
     attempts: wp.array(dtype=wp.int32, ndim=2),
     delivered: wp.array(dtype=wp.int32, ndim=2),
+    data_received: wp.array(dtype=wp.int32, ndim=2),
     expired: wp.array(dtype=wp.int32, ndim=2),
     dropped: wp.array(dtype=wp.int32, ndim=2),
     deferred: wp.array(dtype=wp.int32, ndim=2),
@@ -59,6 +60,7 @@ def _retry_one_hop(
         ack_failed[e,u] = 0
         attempts[e,u] = 0
         delivered[e,u] = 0
+        data_received[e,u] = 0
         expired[e,u] = 0
         dropped[e,u] = 0
         deferred[e,u] = 0
@@ -188,6 +190,11 @@ def _retry_one_hop(
             reverse_snr_db = wp.float32(4.3429448190325175)*wp.log(
                 reverse_snr
             )
+            # Application DATA is received at DATA completion even when
+            # the reverse per-hop MAC ACK is later corrupted. Retransmitted
+            # duplicates must not increase application PDR a second time.
+            if (collided[e,chosen] == 0 and blackout[e,rx] == 0):
+                data_received[e,chosen] = 1
             if data_end[e,chosen] + 130.0 > deadline_us[e,chosen]:
                 expired[e,chosen] = 1
                 phase[e,chosen] = 3
@@ -249,6 +256,11 @@ def simulate_one_hop_retry_batch(
 ):
     """Simulate independent worlds with one pending unicast packet/UAV.
 
+    'data_received': unique DATA arrivals, including lost MAC ACK.
+    'mac_acked'/'delivered': sender received the MAC ACK (legacy).
+    Per-hop drops may coexist with DATA received; only MAC ACK,
+    dropped and TTL expiry are mutually exclusive terminal states.
+
     Supplied backoff draws have shape [E,6,5]; for attempt k=1..5,
     the source's randint range is [0, (32*2**(k-1)-1)-1].
     All outputs are [E,6] except per-attempt traces [E,6,5].
@@ -296,8 +308,8 @@ def simulate_one_hop_retry_batch(
     ttl_w = arr(expiry,wp.float32)
     black_w = arr(blackout,wp.int32)
     floats = [wp.zeros((e,6),dtype=wp.float32,device=device) for _ in range(4)]
-    phase_w, collided_w, ack_failed_w, attempts_w, delivered_w, expired_w, dropped_w, deferred_w = [
-        wp.zeros((e,6),dtype=wp.int32,device=device) for _ in range(8)
+    phase_w, collided_w, ack_failed_w, attempts_w, delivered_w, data_received_w, expired_w, dropped_w, deferred_w = [
+        wp.zeros((e,6),dtype=wp.int32,device=device) for _ in range(9)
     ]
     trace_start = wp.zeros((e,6,5),dtype=wp.float32,device=device)
     trace_end = wp.zeros((e,6,5),dtype=wp.float32,device=device)
@@ -307,12 +319,16 @@ def simulate_one_hop_retry_batch(
     wp.launch(_retry_one_hop,dim=e,inputs=[
         pos_w,dst_w,size_w,ch_w,slots_w,ttl_w,black_w,
         phase_w,floats[0],floats[1],floats[2],start_latest,collided_w,
-        floats[3],ack_failed_w,attempts_w,delivered_w,expired_w,dropped_w,deferred_w,
+        floats[3],ack_failed_w,attempts_w,delivered_w,data_received_w,expired_w,dropped_w,deferred_w,
         trace_start,trace_end,trace_collision,trace_ack_collision,
         float(tx_power_w),4e-11,6.0,
     ],device=device)
     return {
-        "attempts":attempts_w.numpy(),"delivered":delivered_w.numpy(),
+        "attempts":attempts_w.numpy(),
+        # Legacy key 'delivered' is MAC-ACK confirmed, not APP DATA PDR.
+        "delivered":delivered_w.numpy(),
+        "mac_acked":delivered_w.numpy(),
+        "data_received":data_received_w.numpy(),
         "expired":expired_w.numpy(),"dropped":dropped_w.numpy(),
         "cca_deferrals":deferred_w.numpy(),
         "start_us":trace_start.numpy(),"end_us":trace_end.numpy(),
