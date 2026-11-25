@@ -1,3 +1,31 @@
+# 2026-11-25 — v5.3 independent v5.2 audit and explicit CPU battery profile
+
+Branch: experiment/zhang-xue-v53-audited-battery-contract-20261125.
+Base f664e7e570c951cd069d12faa9c3be0cd913d930; implementation commit
+71f07d0f896c294cdfe6e4db0d9d0d8ce36f10a5. New opt-in steady-level battery
+mode and strict flat YAML loader in actual six-radio CPU pilot; local SOC,
+per-UAV accepted-motion energy, terminated vs truncated and replay bootstrap.
+Native requested TX power now forwarded and unsupported values fail closed,
+preventing silent .02W -> .5W experiments. Legacy finite-horizon defaults kept.
+RF battery energy explicitly unavailable; no equal allocation workaround.
+
+Verification: original Zhang-Xue suite145 passed; patched focused suite163
+passed plus47subtests; corrected standalone graph reference21 passed. Bare
+whole-repo pytest interrupted490.55s:70failed/1363passed/99skipped, not full
+suite completion or a clean whole-repo claim. See audit for exact limits.
+
+Corrected graph reference in research/zhang_xue_v53_reference fixes unstable
+DS, per-UAV energy and misleading AoI naming; it is still an ORACLE GRAPH
+DIAGNOSTIC, not packet CSMA/CA. Full seven-radio GCS CPU network, integrated
+ZhangXueWarpEnv, CUDA/T4 fit and new-scenario training are NOT completed.
+Next: freeze scientific scene/packet/reward contract, build full seven-radio
+CPU event flow, then Warp parity/actual T4 profiling before MARL training.
+Read NETWORK_V53_INDEPENDENT_AUDIT_AND_BATTERY_PATCH_20261125.md and linked
+paper/next-gate reports. Main and historical branches must stay unchanged.
+No Kaggle job, W&B/HF side effect or long training launched for this audit.
+
+---
+
 # 2026-11-25 — v4.11 v4.10→v5.0 independent source re-audit
 
 New independent branch experiment/zhang-xue-v411-reverified-halfduplex-nfz-20261125 from 7f03e9b. TDD against actual CPU/Warp modules: half-duplex MAC ACK transmitter correctly blocks concurrent DATA, NFZ padding uses observed bit + range (actor obs119→121), CPU reset(None) RNG advances while reset(seed) remains reproducible. Source-compatible MAC default stays unchanged. No false claim that float32 microsecond one-hop-local timing corrupted 200s; unified scheduler requires int32 per-episode microseconds. Legacy spec800m/GCS/25T and active1km/10T/200s are different scenarios. Audit file: docs/superpowers/NETWORK_V411_V410_TO_V50_REAUDIT_20261125.md. Full Gate5/CUDA/production training not complete.
