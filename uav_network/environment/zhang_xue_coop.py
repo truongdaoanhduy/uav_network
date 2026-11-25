@@ -24,6 +24,7 @@ from uav_network.communication.zhang_xue_ref.packets_and_queues import (
 )
 from uav_network.communication.zhang_xue_ref.reward_engine import RewardEngine
 from uav_network.communication.zhang_xue_ref.phy_patch import sinr_db_patched
+from uav_network.environment.zhang_xue_map_geometry import sample_scene
 
 
 @dataclass(frozen=True)
@@ -35,6 +36,7 @@ class ZhangXueConfig:
     uav_count: int = 6
     target_count: int = 10
     fixed_altitude_meter: float = 100.0
+    camera_fov_degrees: float = 90.0
     dt_seconds: float = 1.0
     horizon_steps: int = 200
     v_max_mps: float = 50.0
@@ -66,6 +68,10 @@ class ZhangXueConfig:
             raise ValueError("Invalid target_count")
         if self.horizon_steps < 1 or self.dt_seconds <= 0:
             raise ValueError("Time horizon and dt must be positive")
+        if not (0. < self.camera_fov_degrees < 180.):
+            raise ValueError("Camera field of view must lie in (0,180) degrees")
+        if not (self.fixed_altitude_meter > 0. and math.isfinite(self.fixed_altitude_meter)):
+            raise ValueError("Camera altitude must be finite and positive")
         if not (0 <= self.pf < self.pd <= 1):
             raise ValueError("Require 0 <= Pf < Pd <= 1")
         if not (0 < self.ds_mf < 1 and 0 < self.ds_me < 1):
@@ -137,52 +143,37 @@ class ZhangXueCooperativeEnv:
         cy = max(0,min(self.config.grid_height-1,int(float(xy[1]) // self.config.cell_size_meter)))
         return cy*w + cx
 
+    def _visible_cells(self, xy):
+        """Ground-cell centers inside nadir camera footprint, independent of truth.
+
+        The idealized nadir-camera circular footprint has ground radius
+        altitude * tan(FOV / 2). No occlusion is modeled by this 2D pilot;
+        no-fly disks restrict motion, not camera rays.
+        """
+        c=self.config
+        radius=c.fixed_altitude_meter*math.tan(math.radians(c.camera_fov_degrees/2))
+        x,y=float(xy[0]),float(xy[1])
+        lo_x=max(0,int(math.floor((x-radius)/c.cell_size_meter)))
+        hi_x=min(c.grid_width-1,int(math.floor((x+radius)/c.cell_size_meter)))
+        lo_y=max(0,int(math.floor((y-radius)/c.cell_size_meter)))
+        hi_y=min(c.grid_height-1,int(math.floor((y+radius)/c.cell_size_meter)))
+        visible=[]
+        rr=radius*radius
+        for cy in range(lo_y,hi_y+1):
+            py=(cy+.5)*c.cell_size_meter
+            for cx in range(lo_x,hi_x+1):
+                px=(cx+.5)*c.cell_size_meter
+                if (px-x)**2+(py-y)**2<=rr+1e-7:
+                    visible.append(cy*c.grid_width+cx)
+        return visible
+
     def _generate_scenario(self):
-        c = self.config
-        center = np.array([c.map_size_meter/2]*2)
-        self.positions[:] = 0
-        self.velocity[:] = 0
-        for u in range(c.uav_count):
-            angle = 2*math.pi*u/c.uav_count
-            self.positions[u] = center + 110.*np.array([math.cos(angle),math.sin(angle)])
-        # Place no-fly disks and blackout diamonds away from initial UAVs
-        # and from each other, using a reproducible scene-specific RNG.
-        forbidden: List[Tuple[float,float,float]] = []
-        self.no_fly_zones.clear()
-        self.blackout_zones.clear()
-        for r, count, is_blackout in (
-            (c.no_fly_radius_meter, c.no_fly_zone_count, False),
-            ((c.blackout_radius_cells+0.5)*c.cell_size_meter,
-             c.blackout_zone_count, True),
-        ):
-            for _ in range(count):
-                for _attempt in range(5000):
-                    if is_blackout:
-                        gx,gy=(int(q) for q in self.rng.integers(4,16,size=2))
-                        x,y=(gx+.5)*c.cell_size_meter,(gy+.5)*c.cell_size_meter
-                    else:
-                        x,y=(float(q) for q in self.rng.uniform(100,900,size=2))
-                    if math.hypot(x-center[0],y-center[1]) < r+180:
-                        continue
-                    if any(math.hypot(x-ox,y-oy) < r+orr+20 for ox,oy,orr in forbidden):
-                        continue
-                    forbidden.append((x,y,r))
-                    if is_blackout:
-                        self.blackout_zones.append((gx,gy))
-                    else:
-                        self.no_fly_zones.append((x,y,r))
-                    break
-                else:
-                    raise RuntimeError("Unable to sample nonoverlapping pilot zones")
-        eligible=[]
-        for cell in range(400):
-            gx,gy=cell%c.grid_width,cell//c.grid_width
-            x,y=(gx+.5)*c.cell_size_meter,(gy+.5)*c.cell_size_meter
-            if all(math.hypot(x-ox,y-oy)>r for ox,oy,r in self.no_fly_zones):
-                eligible.append(cell)
-        self.target_mask[:]=False
-        chosen=self.rng.choice(eligible,size=c.target_count,replace=False)
-        self.target_mask[chosen]=True
+        (positions,targets,no_fly,blackout)=sample_scene(self.config,self.rng)
+        self.positions[:]=positions
+        self.velocity[:]=0.
+        self.target_mask[:]=targets
+        self.no_fly_zones=no_fly
+        self.blackout_zones=blackout
 
     def reset(self, seed: int | None = None):
         if seed is None:
@@ -441,9 +432,11 @@ class ZhangXueCooperativeEnv:
         safety,boundary=self._move(a)
         own_mu_before=self.belief.get_team_own_belief()[2]
         for u in range(self.num_agents):
-            cell=self._cell(self.positions[u])
-            detected=bool(self.rng.random() < (c.pd if self.target_mask[cell] else c.pf))
-            self.belief.record_own_observation(u,cell,detected)
+            for cell in self._visible_cells(self.positions[u]):
+                detected=bool(self.rng.random() < (
+                    c.pd if self.target_mask[cell] else c.pf
+                ))
+                self.belief.record_own_observation(u,cell,detected)
         own_mu_after=self.belief.get_team_own_belief()[2]
         search_delta=np.maximum(0.,own_mu_before-own_mu_after)
         team_mf=self.belief.get_team_own_belief()[0]

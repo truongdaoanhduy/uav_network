@@ -48,17 +48,23 @@ class TestProductionZhangXue(unittest.TestCase):
 
     def test_no_instant_fusion_and_communication_through_action(self):
         env, _, _, _ = self.fresh()
-        env.step(still(), no_send())  # own sensing of one cell at t=1
+        env.step(still(), no_send())  # nadir camera senses all visible cells at t=1
         sender_pos = env.belief.pos[0, 0].copy()
         sender_neg = env.belief.neg[0, 0].copy()
-        self.assertEqual(int(sender_pos.sum() + sender_neg.sum()), 1)
+        self.assertEqual(
+            int(sender_pos.sum() + sender_neg.sum()),
+            len(env._visible_cells(env.positions[0])),
+        )
         self.assertEqual(int(env.belief.pos[1, 0].sum()+env.belief.neg[1, 0].sum()), 0)
         obs, state, mask = env._build_outputs()
         self.assertEqual(int(mask[0, 1]), 1)  # peer-slot 1 is UAV 1
         actions = no_send()
         actions[0] = 1
         _, _, _, _, _, info = env.step(still(), actions)
-        self.assertEqual(int(env.belief.pos[1, 0].sum()+env.belief.neg[1, 0].sum()), 1)
+        self.assertEqual(
+            int(env.belief.pos[1, 0].sum()+env.belief.neg[1, 0].sum()),
+            int(sender_pos.sum()+sender_neg.sum()),
+        )
         self.assertTrue((0, 1) in env.net.acked_sequences)
         self.assertGreaterEqual(info["data_generated"], 1)
         self.assertGreater(info["data_pdr"], 0.)

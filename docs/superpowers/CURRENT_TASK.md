@@ -1,3 +1,34 @@
+# 2026-11-25 — Corrected priority MAP then NETWORK then TRAINING
+
+User clarified: first finish scientific map geometry, camera, DS and
+Warp parallel consistency; next finish original UavNetSim-v1 vs Warp
+network and Gate5 (including interference/retries/ACK/TTL); ONLY then
+train MATD3/MASAC and run evaluation/remote logging. Do NOT start
+Kaggle/W&B/HF or training before the map AND network are verified.
+
+Active isolated branch experiment/zhang-xue-v37-warp-map-first-20261125
+based on v3.6 Gate5F SHA 89c8e938db53806ef714acffccc9bd050dc6f944.
+Map audit docs/superpowers/MAP_V37_BEFORE_NETWORK_20261125.md.
+The prior one-cell sensor was inconsistent with a 100m-altitude,
+90-degree nadir camera. It now senses every 50m cell center within
+100m footprint. This adds an explicit scientific FoV assumption not
+stated as a config field in v3.2 original YAML.
+Shared CPU/ Warp deterministic scene sampling now generates identical
+10 targets, 2 no-fly circles, 2 radio-blackout diamonds per scene.
+Warp sensor/DS updates use separate private per-UAV counts and team
+reward-only belief; movement kernel checks boundaries, no-fly segments
+and separation. CPU/Warp parity tests and 200-seed map checks passed.
+Ran map-only E4096 x 5 steps =20,480 env steps, 1,543,223 evidence
+readings, 17.79565% mean coverage, all map invariants pass on
+Warp CPU (no CUDA driver). Evidence JSON in
+docs/superpowers/evidence/zhang_xue_v37_4096_map_fullflow_cpu_20261125.json.
+No actors/replay/training or network code exercised in that E4096 run.
+Next: integrate and verify Warp MAC incl. hidden-terminal collisions;
+do not claim full Gate5 or GPU throughput yet. Preserve all original
+source branches and do not merge into main.
+
+---
+
 # 2026-11-25 — Gate 5F source-executed DIFS/backoff parity
 
 New Warp INT32 kernel at
