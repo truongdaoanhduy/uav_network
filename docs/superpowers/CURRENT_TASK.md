@@ -1,3 +1,34 @@
+# 2026-11-25 — v3.8 NETWORK AFTER MAP, STILL BLOCKING TRAINING
+
+Order confirmed by user: MAP -> NETWORK and full Gate5 -> MATD3/MASAC
+TRAINING -> EVAL/W&B/HF. Map v3.7 committed/pushed at 82edcde14fb83447ac1de3df66942af669b6136f,
+separate remote branch experiment/zhang-xue-v37-warp-map-first-20261125.
+Current isolated working branch experiment/zhang-xue-v38-warp-network-after-map-20261125.
+Map changes are frozen on v37 snapshot and NOT modified here.
+
+Network baseline rerun against pinned native classic v1:
+6 hidden-terminal seeds, native PDR0.0 each vs collision-free Mini
+reference PDR1.0 each, 56 V1 collisions. Evidence:
+docs/superpowers/evidence/zhang_xue_v38_network_hidden_terminal_baseline_20261125.json.
+Thus FULL Gate5 FAILS; do not run any training.
+
+New Warp six-agent first-attempt one-hop MAC scheduler:
+uav_network/communication/gpu/zhang_xue_mac_first_attempt_warp.py
+combines previously independently tested DIFS/CW initial backoff,
+750m CCA, data airtime, overlapping-channel SINR.
+Tests/test_zhang_xue_v38_mac_first_attempt.py verify hidden same-channel
+collision, channels1/6 success, near-source CCA deferral, E4096
+first-attempt throughput and invalid args. E4096 x 2 DATA frames:
+same-channel hidden PDR0, orthogonal PDR1, Warp CPU (no CUDA driver).
+Evidence JSON in docs/superpowers/evidence/zhang_xue_v38_first_attempt_4096_cpu_20261125.json.
+This is NOT a full MAC: needs frozen-backoff/retries, real MAC ACK,
+queues, TTL, E2E ACK and multi-hop routing, measured parity vs SimPy.
+Network gap document docs/superpowers/NETWORK_V38_AFTER_MAP_BEFORE_TRAIN_20261125.md.
+Never state full network is done or allow E4096 training until gates pass.
+Keep all historical branches and main untouched.
+
+---
+
 # 2026-11-25 — Corrected priority MAP then NETWORK then TRAINING
 
 User clarified: first finish scientific map geometry, camera, DS and
