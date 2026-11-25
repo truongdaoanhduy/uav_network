@@ -49,6 +49,27 @@ backoff, ACKs, retries, TTL and buffers; integration into 1km/6UAV GPU
 training; multi-seed SimPy vs Warp parity across topology and traffic.
 The actual Warp kernel ran on CPU due missing local NVIDIA driver.
 
+## Gate 5E: exact pinned-source CCA occupancy parity
+
+Classic UavNetSim-v1 uses check_channel_availability in
+utils/util_function.py: a node finds the channel busy iff another node
+currently holds any channel_state resource within strictly less than
+750m (v1 default SENSING_RANGE). The classic function does not filter
+channel number at this CCA step; receiver interference SINR does
+filter channel overlaps separately. A new Warp FP32 CPU kernel
+uav_network/communication/gpu/classic_v1_cca_warp.py reproduces this
+snapshot rule. The source-comparator subprocess executed the actual
+pinned upstream function on 128 seeded random worlds with six nodes
+per world: 768 comparisons, 707 busy and 61 free, zero mismatches.
+Boundary tests confirm exactly 750m is permitted, while 749.9m is
+blocked, and two hidden terminals 800m apart cannot sense one another.
+Source: docs/superpowers/evidence/zhang_xue_gate5e_warp_cca_cpu_20261125.json.
+
+This does not yet schedule DIFS, contention window, repeated busy
+listens, per-hop MAC ACKs, application E2E ACKs or packet TTL. It is
+an independently verified ingredient of the remaining vectorized MAC
+implementation, NOT a full Gate5 pass.
+
 ## Required next action
 
 Implement a collision-aware, vectorized Warp network surrogate with receiver SINR from simultaneous senders, channel overlap, carrier sensing and hidden-terminal behavior, queue/TTL/retries and separate MAC ACK vs application E2E ACK. Compare matched seeds, packet sizes, routes, PDR, latency, hops, airtime and ACK across benign and collision stress tests before E4096 GPU training. Do not silently replace failure with an easier metric. Gate 5 **full SimPy↔Warp parity remains failed/not ready** despite passing subgates 5A and 5B.

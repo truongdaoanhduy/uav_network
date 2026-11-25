@@ -358,6 +358,50 @@ class ClassicV1SimPyNetwork:
 
 
 def run_smoke(case:str,v1_root=None):
+    if case=="warp_cca":
+        # Compare with ACTUAL classic v1 CCA function, not an independently
+        # reconstructed rule. The original reads occupied_resource.users and
+        # ignores channel-number for carrier-state testing.
+        imported=_load_upstream(v1_root)
+        from utils.util_function import check_channel_availability
+        from uav_network.communication.gpu.classic_v1_cca_warp import compute_cca_free
+        rng=np.random.default_rng(20261125)
+        worlds,nodes=128,6
+        xyz=rng.uniform(0,1000,size=(worlds,nodes,3)).astype(np.float32)
+        xyz[:,:,2]=100.
+        active=rng.integers(0,2,size=(worlds,nodes),dtype=np.int32)
+        warped=compute_cca_free(
+            xyz,active,sensing_range_m=imported["config"].SENSING_RANGE,
+            device="cpu",
+        )
+        source=np.empty((worlds,nodes),dtype=np.int32)
+        for e in range(worlds):
+            drones=[
+                types.SimpleNamespace(identifier=i,coords=xyz[e,i])
+                for i in range(nodes)
+            ]
+            states={
+                i:types.SimpleNamespace(users=[object()] if active[e,i] else [])
+                for i in range(nodes)
+            }
+            for u in range(nodes):
+                source[e,u]=int(
+                    check_channel_availability(states,drones[u],drones)
+                )
+        mismatches=np.count_nonzero(source!=warped)
+        return {
+            "engine":"warp_cpu_fp32_snapshot_carrier_sense",
+            "source_sha":PINNED_V1_SHA,
+            "original_source_function":"utils.util_function.check_channel_availability",
+            "worlds":worlds,"nodes_per_world":nodes,
+            "num_receiver_checks":worlds*nodes,
+            "cca_mismatch_count":int(mismatches),
+            "sensing_range_m":float(imported["config"].SENSING_RANGE),
+            "blocked_checks":int(np.count_nonzero(source==0)),
+            "free_checks":int(np.count_nonzero(source==1)),
+            "full_warp_mac_parity_status":"NOT_TESTED",
+            "limitations":"snapshot CCA only; no backoff, random scheduling, ACK or retransmissions",
+        }
     if case=="collision":
         # Hidden terminal: UAV0 and UAV2 are 800m apart so neither senses
         # the other's CCA carrier (v1 range 750m), but both can reach UAV1.
@@ -562,7 +606,7 @@ def run_smoke(case:str,v1_root=None):
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument("--case",choices=("line","blackout","gate5","observations","warp_phy","collision"),default="line")
+    parser.add_argument("--case",choices=("line","blackout","gate5","observations","warp_phy","collision","warp_cca"),default="line")
     parser.add_argument("--json",action="store_true")
     parser.add_argument("--root")
     args=parser.parse_args()

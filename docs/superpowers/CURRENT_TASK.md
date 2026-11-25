@@ -1,3 +1,21 @@
+# 2026-11-25 — Gate 5E actual-source CCA matching
+
+New Warp FP32 CPU carrier sensing kernel at
+uav_network/communication/gpu/classic_v1_cca_warp.py.
+Directly compared to the pinned v1 original
+utils.util_function.check_channel_availability (not a rewrite) across
+128 random worlds x 6 nodes: 768 checks, zero mismatches; 707 busy,
+61 free. Original source uses strictly < 750m and does not inspect
+channel ID during CCA; hidden terminals 800m apart do not detect each
+other. See evidence JSON gate5e_warp_cca_cpu_20261125.json and
+tests/test_zhang_xue_v36_warp_cca.py.
+Still NO dynamic CSMA scheduling, DIFS/backoff, ACK/retry, TTL or
+full Warp-SimPy parity, no CUDA device. Next: source-matched
+backoff scheduling and per-hop MAC retry state with corresponding
+event validation. Preserve remote rollback commits and main.
+
+---
+
 # 2026-11-25 — Gate 5D scheduled-interference PHY on actual Warp CPU
 
 Actual NVIDIA Warp FP32 kernel for per-receiver interference when multiple
