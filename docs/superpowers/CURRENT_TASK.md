@@ -1,3 +1,11 @@
+# 2026-11-25 — v4.5 sampled real 1km moving network, truth-only diagnostic reward
+
+Branch experiment/zhang-xue-v45-sampled-moving-network-20261125, parent v4.4 SHA a180130. New pilot uses existing 6 UAV/10 target/2 no-fly/2 blackout Zhang-Xue scenario sampler, Warp safe movement and 200-step horizon, per-radio MAC HELLO discovery refreshed every four steps, actor-local source evidence and receiver-origin DS, persistent queues and true reverse E2E APP ACK watermark, with correct accounting for multiple DATA arriving at one receiver or multiple ACKs to one source. E128x200 seed44: mean coverage79.207%, true confirmation964/1280, false36, DATA admitted66416, received57287, ACK attempted57287 with 1341 queue-full rejections and 50723 valid E2E watermark updates, 16212 radio blackout UAV-steps, no unsafe final positions/receiver-leak. E4096x4 seed53 also ran. See docs/superpowers/NETWORK_V45_SAMPLED_1KM_MOVING_MAC_DS_ACK_20261125.md and evidence JSON.
+
+Gate5 still BLOCKED: full production reward/energy/actor missing, six-UAV learned multi-hop incomplete, source-exact SimPy MAC event parity and CUDA not verified. Training still NOT LAUNCHED.
+
+---
+
 # 2026-11-25 — v4.4 real E2E ACK watermarks and six-sender contended CPU smoke
 
 Branch experiment/zhang-xue-v44-e2e-watermarks-concurrent-20261125, derived from v4.3 6c2ada5. Warp source-peer persistent 400-cell ACK watermarks advance ONLY from physically received matching application E2E ACK, never MAC ACK. Stale/duplicate ACK ignored; select dirty cells up to62 per snapshot; resend after application timeout. Six UAVs learn a static ring from MAC HELLO, then concurrently generate MAP-origin evidence packets, contend using Warp CCA/SINR/retry, and exchange DATA and APP E2E ACK; receiver DS updates only on DATA. CPU E256x200 seed44: 126091 DATA generated, 119974 physically received, 119215 APP ACK/watermark updates, 6385 timed-out sends released for resend, zero remote belief leakage/blackout sends; E4096x4: 45622 DATA, 42186 received, 40922 APP ACK. Evidence at docs/superpowers/NETWORK_V44_WARP_E2E_WATERMARKS_SIX_UAV_CONTENDED_20261125.md.
