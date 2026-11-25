@@ -1,3 +1,11 @@
+# 2026-11-25 — v4.2 Warp receiver evidence / immutable queued payload / no-oracle routing
+
+Branch experiment/zhang-xue-v42-warp-evidence-routing-20261125, from v4.1 commit 555f2a8. Tests 82/82 focused regressions passed including pinned SimPy. E4096 Warp CPU controlled 3-node 2-hop experiment: real 90B MAC HELLO and DV packets establish 0→1→2 path without physical oracle; DATA from source camera counts uses queued immutable provenance payload; recipient-local origin MAX-plus-SUM DS updated only on DATA success; 3072/4096 DATA final deliveries, 3072 two-hop E2E ACK, 1024 DATA TTL expirations; queues empty, no blackout sends, no evidence leak. See docs/superpowers/NETWORK_V42_WARP_RECEIVER_PAYLOAD_DISTRIBUTED_ROUTING_20261125.md and evidence JSON.
+
+**Gate 5 is NOT PASSED. No training.** Missing real concurrent multiagent load, fully fused GPU queue/MAC/routing, exact native CSMA freeze/backoff, full 200-step actor/reward scenarios and CUDA run. Keep all previous branches unchanged.
+
+---
+
 # 2026-11-25 — v4.1 Warp persistent queue and app E2E ACK preflight
 
 Branch `experiment/zhang-xue-v41-persistent-warp-queue-20261125`, parent v4.0 `169348f`. Implemented source-owned packet **metadata** queue on actual Warp tensors (6 UAVs/E worlds; bounded capacity; FIFO; duplicate/full detection; one outstanding transmission per source; exact integer-microsecond TTL; blackout retention/recovery; stale-completion rejection; epoch reset). One-hop MAC + app E2E ACK synthetic 7-step 4096-world CPU smoke: 4096 DATA generated, 3072 DATA and 3072 app E2E ACK received, 1024 expired, zero blackout sends, queue empty. 12 new focused tests passed. See `docs/superpowers/NETWORK_V41_PERSISTENT_QUEUE_AND_APP_ACK_20261125.md` and evidence JSON.
