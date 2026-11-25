@@ -1,3 +1,11 @@
+# 2026-11-25 — v4.9 source-backed Warp CSMA busy-carrier freeze component
+
+Branch experiment/zhang-xue-v49-native-csma-freeze-20261125 from v4.8 d12895b. Actual pinned upstream UavNetSim-v1 CsmaCa.mac_send SimPy generator with external occupied channel validated against new Warp kernel for source-exact DIFS restart, frozen remaining backoff, 20us carrier poll and attempts1-5 CW doubling. Nine directly measured first-TX scenarios all match source at zero microsecond error; seed45 fifth retry sends DATA at absolute 49756us after relay E2E ACK occupies 48530..49020us. E4096 world and mixed attempt-window tests also PASS. Evidence docs/superpowers/evidence/zhang_xue_v49_native_csma_freeze_cpu_20261125.json; docs docs/superpowers/NETWORK_V49_SOURCE_PINNED_WARP_CSMA_FREEZE_20261125.md.
+
+Gate5 NOT PASSED: helper models ONE sender with EXTERNAL busy intervals, not integrated continuous multi-UAV PHY/MAC; real CUDA and training/eval/test NOT launched.
+
+---
+
 # 2026-11-25 — v4.8 Warp application envelope + six-UAV five-hop DATA and E2E ACK
 
 Branch experiment/zhang-xue-v48-hop-envelope-six-uav-20261125, from v4.7 commit f302638. Actual Warp queue-side immutable app envelope (original origin, ultimate destination, six-bit visited, hop count), loop/hop budget checks and frozen source evidence through every relay. Physically received 90B HELLO+DV discover 5-hop static folded chain, source camera DATA transfers UAV0→1→2→3→4→5, then real 90B app E2E ACK returns UAV5→4→3→2→1→0. E4096 controlled CPU: 4096 original DATA, 3072 final DATA/3072 matching E2E ACK source watermarks, 1024 original DATA TTL expirations while relay2 permanently in blackout; 17,408 DATA/15,360 ACK hop receipts, zero loops/duplicate ACK or premature DS. Evidence docs/superpowers/evidence/zhang_xue_v48_4096_fivehop_e2e_blackout_cpu_20261125.json and detailed report docs/superpowers/NETWORK_V48_SIX_UAV_FIVE_HOP_ENVELOPE_20261125.md.
