@@ -1,0 +1,68 @@
+{
+  "stage": "six_uav_simultaneous_source_packets_warp_cpu_pilot",
+  "worlds": 4096,
+  "step_count": 4,
+  "source_uavs": 6,
+  "hello_receipts": 49152,
+  "initial_routes_local_hello_only": true,
+  "app_data_generated": 45622,
+  "app_data_received": 42186,
+  "app_ack_packets_generated": 42186,
+  "app_ack_physical_receipts": 40922,
+  "real_e2e_ack_received": 40922,
+  "e2e_watermarks_advanced": 40922,
+  "stale_e2e_acks": 0,
+  "unexpected_reward_count": 0,
+  "remote_evidence_before_data_count": 0,
+  "remote_evidence_leak_count": 0,
+  "blackout_transmission_count": 0,
+  "queue_inflight_beyond_one_count": 0,
+  "max_queued_per_uav": 1,
+  "queue_drop_full_count": 0,
+  "app_ack_timeout_resend_released": 0,
+  "MAC_cca_deferrals": 334601,
+  "MAC_collision_attempts": 218818,
+  "no_false_mac_ack_as_e2e_ack": true,
+  "multiuser_contention_exercised": true,
+  "device": "cpu",
+  "elapsed_seconds": 5.79536998399999,
+  "step_events": [
+    {
+      "step": 0,
+      "active": 23552,
+      "real_data_received": 21175,
+      "real_app_ack_received": 0,
+      "cca_deferrals": 116530
+    },
+    {
+      "step": 1,
+      "active": 21175,
+      "real_data_received": 0,
+      "real_app_ack_received": 21046,
+      "cca_deferrals": 64944
+    },
+    {
+      "step": 2,
+      "active": 21046,
+      "real_data_received": 19994,
+      "real_app_ack_received": 0,
+      "cca_deferrals": 89809
+    },
+    {
+      "step": 3,
+      "active": 21018,
+      "real_data_received": 1017,
+      "real_app_ack_received": 19876,
+      "cca_deferrals": 63318
+    }
+  ],
+  "training_launched": false,
+  "gate5_status": "NOT_PASSED",
+  "limitations": [
+    "Controlled six-UAV static ring and fixed neighbor actions",
+    "Native Warp MAC partial ACK/backoff parity, not exact SimPy",
+    "Python orchestrates per-step packet admissions, receiver ACK and reward watermarks",
+    "No full 200-step motion/energy/reward learning environment",
+    "No real CUDA run; Kaggle private GPU submission unavailable"
+  ]
+}

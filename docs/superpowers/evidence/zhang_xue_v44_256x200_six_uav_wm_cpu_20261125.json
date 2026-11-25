@@ -1,0 +1,1440 @@
+{
+  "stage": "six_uav_simultaneous_source_packets_warp_cpu_pilot",
+  "worlds": 256,
+  "step_count": 200,
+  "source_uavs": 6,
+  "hello_receipts": 3072,
+  "initial_routes_local_hello_only": true,
+  "app_data_generated": 126091,
+  "app_data_received": 119974,
+  "app_ack_packets_generated": 119974,
+  "app_ack_physical_receipts": 119215,
+  "real_e2e_ack_received": 119215,
+  "e2e_watermarks_advanced": 119215,
+  "stale_e2e_acks": 0,
+  "unexpected_reward_count": 0,
+  "remote_evidence_before_data_count": 0,
+  "remote_evidence_leak_count": 0,
+  "blackout_transmission_count": 0,
+  "queue_inflight_beyond_one_count": 0,
+  "max_queued_per_uav": 2,
+  "queue_drop_full_count": 0,
+  "app_ack_timeout_resend_released": 6385,
+  "MAC_cca_deferrals": 830738,
+  "MAC_collision_attempts": 606787,
+  "no_false_mac_ack_as_e2e_ack": true,
+  "multiuser_contention_exercised": true,
+  "device": "cpu",
+  "elapsed_seconds": 16.76911335299519,
+  "step_events": [
+    {
+      "step": 0,
+      "active": 1472,
+      "real_data_received": 1341,
+      "real_app_ack_received": 0,
+      "cca_deferrals": 7354
+    },
+    {
+      "step": 1,
+      "active": 1341,
+      "real_data_received": 0,
+      "real_app_ack_received": 1329,
+      "cca_deferrals": 4030
+    },
+    {
+      "step": 2,
+      "active": 1329,
+      "real_data_received": 1261,
+      "real_app_ack_received": 0,
+      "cca_deferrals": 5696
+    },
+    {
+      "step": 3,
+      "active": 1325,
+      "real_data_received": 64,
+      "real_app_ack_received": 1256,
+      "cca_deferrals": 4018
+    },
+    {
+      "step": 4,
+      "active": 1259,
+      "real_data_received": 1125,
+      "real_app_ack_received": 63,
+      "cca_deferrals": 4956
+    },
+    {
+      "step": 5,
+      "active": 1249,
+      "real_data_received": 122,
+      "real_app_ack_received": 1117,
+      "cca_deferrals": 3560
+    },
+    {
+      "step": 6,
+      "active": 1182,
+      "real_data_received": 1014,
+      "real_app_ack_received": 120,
+      "cca_deferrals": 4121
+    },
+    {
+      "step": 7,
+      "active": 1191,
+      "real_data_received": 176,
+      "real_app_ack_received": 1011,
+      "cca_deferrals": 3194
+    },
+    {
+      "step": 8,
+      "active": 1131,
+      "real_data_received": 918,
+      "real_app_ack_received": 176,
+      "cca_deferrals": 3634
+    },
+    {
+      "step": 9,
+      "active": 1150,
+      "real_data_received": 227,
+      "real_app_ack_received": 915,
+      "cca_deferrals": 2938
+    },
+    {
+      "step": 10,
+      "active": 1235,
+      "real_data_received": 951,
+      "real_app_ack_received": 226,
+      "cca_deferrals": 4575
+    },
+    {
+      "step": 11,
+      "active": 1170,
+      "real_data_received": 218,
+      "real_app_ack_received": 946,
+      "cca_deferrals": 3267
+    },
+    {
+      "step": 12,
+      "active": 1245,
+      "real_data_received": 984,
+      "real_app_ack_received": 217,
+      "cca_deferrals": 4725
+    },
+    {
+      "step": 13,
+      "active": 1199,
+      "real_data_received": 212,
+      "real_app_ack_received": 979,
+      "cca_deferrals": 3357
+    },
+    {
+      "step": 14,
+      "active": 1276,
+      "real_data_received": 1028,
+      "real_app_ack_received": 210,
+      "cca_deferrals": 4921
+    },
+    {
+      "step": 15,
+      "active": 1240,
+      "real_data_received": 208,
+      "real_app_ack_received": 1025,
+      "cca_deferrals": 3599
+    },
+    {
+      "step": 16,
+      "active": 1285,
+      "real_data_received": 1024,
+      "real_app_ack_received": 208,
+      "cca_deferrals": 4908
+    },
+    {
+      "step": 17,
+      "active": 1234,
+      "real_data_received": 207,
+      "real_app_ack_received": 1022,
+      "cca_deferrals": 3447
+    },
+    {
+      "step": 18,
+      "active": 1273,
+      "real_data_received": 1014,
+      "real_app_ack_received": 207,
+      "cca_deferrals": 5017
+    },
+    {
+      "step": 19,
+      "active": 1225,
+      "real_data_received": 205,
+      "real_app_ack_received": 1004,
+      "cca_deferrals": 3385
+    },
+    {
+      "step": 20,
+      "active": 1274,
+      "real_data_received": 1016,
+      "real_app_ack_received": 205,
+      "cca_deferrals": 4957
+    },
+    {
+      "step": 21,
+      "active": 1224,
+      "real_data_received": 198,
+      "real_app_ack_received": 1016,
+      "cca_deferrals": 3390
+    },
+    {
+      "step": 22,
+      "active": 1264,
+      "real_data_received": 993,
+      "real_app_ack_received": 196,
+      "cca_deferrals": 4808
+    },
+    {
+      "step": 23,
+      "active": 1196,
+      "real_data_received": 197,
+      "real_app_ack_received": 990,
+      "cca_deferrals": 3233
+    },
+    {
+      "step": 24,
+      "active": 1225,
+      "real_data_received": 988,
+      "real_app_ack_received": 195,
+      "cca_deferrals": 4476
+    },
+    {
+      "step": 25,
+      "active": 1187,
+      "real_data_received": 195,
+      "real_app_ack_received": 976,
+      "cca_deferrals": 3225
+    },
+    {
+      "step": 26,
+      "active": 1229,
+      "real_data_received": 1002,
+      "real_app_ack_received": 195,
+      "cca_deferrals": 4383
+    },
+    {
+      "step": 27,
+      "active": 1198,
+      "real_data_received": 192,
+      "real_app_ack_received": 994,
+      "cca_deferrals": 3386
+    },
+    {
+      "step": 28,
+      "active": 1253,
+      "real_data_received": 1010,
+      "real_app_ack_received": 190,
+      "cca_deferrals": 4697
+    },
+    {
+      "step": 29,
+      "active": 1202,
+      "real_data_received": 190,
+      "real_app_ack_received": 1008,
+      "cca_deferrals": 3355
+    },
+    {
+      "step": 30,
+      "active": 1255,
+      "real_data_received": 1021,
+      "real_app_ack_received": 190,
+      "cca_deferrals": 4837
+    },
+    {
+      "step": 31,
+      "active": 1220,
+      "real_data_received": 197,
+      "real_app_ack_received": 1018,
+      "cca_deferrals": 3414
+    },
+    {
+      "step": 32,
+      "active": 1290,
+      "real_data_received": 1044,
+      "real_app_ack_received": 195,
+      "cca_deferrals": 5108
+    },
+    {
+      "step": 33,
+      "active": 1247,
+      "real_data_received": 185,
+      "real_app_ack_received": 1040,
+      "cca_deferrals": 3489
+    },
+    {
+      "step": 34,
+      "active": 1279,
+      "real_data_received": 1034,
+      "real_app_ack_received": 183,
+      "cca_deferrals": 5000
+    },
+    {
+      "step": 35,
+      "active": 1221,
+      "real_data_received": 181,
+      "real_app_ack_received": 1028,
+      "cca_deferrals": 3440
+    },
+    {
+      "step": 36,
+      "active": 1249,
+      "real_data_received": 1027,
+      "real_app_ack_received": 179,
+      "cca_deferrals": 4761
+    },
+    {
+      "step": 37,
+      "active": 1213,
+      "real_data_received": 184,
+      "real_app_ack_received": 1016,
+      "cca_deferrals": 3425
+    },
+    {
+      "step": 38,
+      "active": 1255,
+      "real_data_received": 1026,
+      "real_app_ack_received": 183,
+      "cca_deferrals": 4913
+    },
+    {
+      "step": 39,
+      "active": 1209,
+      "real_data_received": 178,
+      "real_app_ack_received": 1025,
+      "cca_deferrals": 3510
+    },
+    {
+      "step": 40,
+      "active": 1252,
+      "real_data_received": 1001,
+      "real_app_ack_received": 176,
+      "cca_deferrals": 4790
+    },
+    {
+      "step": 41,
+      "active": 1181,
+      "real_data_received": 180,
+      "real_app_ack_received": 1000,
+      "cca_deferrals": 3215
+    },
+    {
+      "step": 42,
+      "active": 1235,
+      "real_data_received": 993,
+      "real_app_ack_received": 177,
+      "cca_deferrals": 4637
+    },
+    {
+      "step": 43,
+      "active": 1187,
+      "real_data_received": 188,
+      "real_app_ack_received": 989,
+      "cca_deferrals": 3296
+    },
+    {
+      "step": 44,
+      "active": 1245,
+      "real_data_received": 1009,
+      "real_app_ack_received": 188,
+      "cca_deferrals": 4725
+    },
+    {
+      "step": 45,
+      "active": 1204,
+      "real_data_received": 185,
+      "real_app_ack_received": 1000,
+      "cca_deferrals": 3315
+    },
+    {
+      "step": 46,
+      "active": 1240,
+      "real_data_received": 996,
+      "real_app_ack_received": 184,
+      "cca_deferrals": 4792
+    },
+    {
+      "step": 47,
+      "active": 1182,
+      "real_data_received": 178,
+      "real_app_ack_received": 994,
+      "cca_deferrals": 3151
+    },
+    {
+      "step": 48,
+      "active": 1221,
+      "real_data_received": 992,
+      "real_app_ack_received": 178,
+      "cca_deferrals": 4560
+    },
+    {
+      "step": 49,
+      "active": 1173,
+      "real_data_received": 169,
+      "real_app_ack_received": 987,
+      "cca_deferrals": 3266
+    },
+    {
+      "step": 50,
+      "active": 1234,
+      "real_data_received": 1014,
+      "real_app_ack_received": 167,
+      "cca_deferrals": 4602
+    },
+    {
+      "step": 51,
+      "active": 1182,
+      "real_data_received": 158,
+      "real_app_ack_received": 1009,
+      "cca_deferrals": 3294
+    },
+    {
+      "step": 52,
+      "active": 1234,
+      "real_data_received": 1047,
+      "real_app_ack_received": 158,
+      "cca_deferrals": 4699
+    },
+    {
+      "step": 53,
+      "active": 1210,
+      "real_data_received": 155,
+      "real_app_ack_received": 1046,
+      "cca_deferrals": 3403
+    },
+    {
+      "step": 54,
+      "active": 1260,
+      "real_data_received": 1054,
+      "real_app_ack_received": 152,
+      "cca_deferrals": 4900
+    },
+    {
+      "step": 55,
+      "active": 1215,
+      "real_data_received": 160,
+      "real_app_ack_received": 1051,
+      "cca_deferrals": 3432
+    },
+    {
+      "step": 56,
+      "active": 1274,
+      "real_data_received": 1068,
+      "real_app_ack_received": 158,
+      "cca_deferrals": 5064
+    },
+    {
+      "step": 57,
+      "active": 1233,
+      "real_data_received": 156,
+      "real_app_ack_received": 1059,
+      "cca_deferrals": 3597
+    },
+    {
+      "step": 58,
+      "active": 1273,
+      "real_data_received": 1068,
+      "real_app_ack_received": 156,
+      "cca_deferrals": 5102
+    },
+    {
+      "step": 59,
+      "active": 1234,
+      "real_data_received": 160,
+      "real_app_ack_received": 1058,
+      "cca_deferrals": 3537
+    },
+    {
+      "step": 60,
+      "active": 1278,
+      "real_data_received": 1080,
+      "real_app_ack_received": 156,
+      "cca_deferrals": 5202
+    },
+    {
+      "step": 61,
+      "active": 1242,
+      "real_data_received": 154,
+      "real_app_ack_received": 1074,
+      "cca_deferrals": 3604
+    },
+    {
+      "step": 62,
+      "active": 1263,
+      "real_data_received": 1061,
+      "real_app_ack_received": 152,
+      "cca_deferrals": 5046
+    },
+    {
+      "step": 63,
+      "active": 1220,
+      "real_data_received": 153,
+      "real_app_ack_received": 1057,
+      "cca_deferrals": 3464
+    },
+    {
+      "step": 64,
+      "active": 1268,
+      "real_data_received": 1055,
+      "real_app_ack_received": 152,
+      "cca_deferrals": 5082
+    },
+    {
+      "step": 65,
+      "active": 1210,
+      "real_data_received": 147,
+      "real_app_ack_received": 1049,
+      "cca_deferrals": 3472
+    },
+    {
+      "step": 66,
+      "active": 1252,
+      "real_data_received": 1043,
+      "real_app_ack_received": 147,
+      "cca_deferrals": 4877
+    },
+    {
+      "step": 67,
+      "active": 1197,
+      "real_data_received": 152,
+      "real_app_ack_received": 1039,
+      "cca_deferrals": 3196
+    },
+    {
+      "step": 68,
+      "active": 1254,
+      "real_data_received": 1060,
+      "real_app_ack_received": 152,
+      "cca_deferrals": 4763
+    },
+    {
+      "step": 69,
+      "active": 1220,
+      "real_data_received": 151,
+      "real_app_ack_received": 1051,
+      "cca_deferrals": 3549
+    },
+    {
+      "step": 70,
+      "active": 1249,
+      "real_data_received": 1033,
+      "real_app_ack_received": 150,
+      "cca_deferrals": 4861
+    },
+    {
+      "step": 71,
+      "active": 1192,
+      "real_data_received": 149,
+      "real_app_ack_received": 1029,
+      "cca_deferrals": 3350
+    },
+    {
+      "step": 72,
+      "active": 1231,
+      "real_data_received": 1030,
+      "real_app_ack_received": 147,
+      "cca_deferrals": 4727
+    },
+    {
+      "step": 73,
+      "active": 1184,
+      "real_data_received": 140,
+      "real_app_ack_received": 1024,
+      "cca_deferrals": 3398
+    },
+    {
+      "step": 74,
+      "active": 1230,
+      "real_data_received": 1028,
+      "real_app_ack_received": 139,
+      "cca_deferrals": 4779
+    },
+    {
+      "step": 75,
+      "active": 1174,
+      "real_data_received": 143,
+      "real_app_ack_received": 1026,
+      "cca_deferrals": 3244
+    },
+    {
+      "step": 76,
+      "active": 1235,
+      "real_data_received": 1044,
+      "real_app_ack_received": 142,
+      "cca_deferrals": 4686
+    },
+    {
+      "step": 77,
+      "active": 1190,
+      "real_data_received": 143,
+      "real_app_ack_received": 1041,
+      "cca_deferrals": 3197
+    },
+    {
+      "step": 78,
+      "active": 1233,
+      "real_data_received": 1040,
+      "real_app_ack_received": 140,
+      "cca_deferrals": 4751
+    },
+    {
+      "step": 79,
+      "active": 1192,
+      "real_data_received": 147,
+      "real_app_ack_received": 1034,
+      "cca_deferrals": 3324
+    },
+    {
+      "step": 80,
+      "active": 1247,
+      "real_data_received": 1036,
+      "real_app_ack_received": 146,
+      "cca_deferrals": 4813
+    },
+    {
+      "step": 81,
+      "active": 1196,
+      "real_data_received": 154,
+      "real_app_ack_received": 1032,
+      "cca_deferrals": 3375
+    },
+    {
+      "step": 82,
+      "active": 1244,
+      "real_data_received": 1026,
+      "real_app_ack_received": 153,
+      "cca_deferrals": 4869
+    },
+    {
+      "step": 83,
+      "active": 1195,
+      "real_data_received": 158,
+      "real_app_ack_received": 1020,
+      "cca_deferrals": 3454
+    },
+    {
+      "step": 84,
+      "active": 1241,
+      "real_data_received": 1037,
+      "real_app_ack_received": 158,
+      "cca_deferrals": 4863
+    },
+    {
+      "step": 85,
+      "active": 1199,
+      "real_data_received": 155,
+      "real_app_ack_received": 1032,
+      "cca_deferrals": 3425
+    },
+    {
+      "step": 86,
+      "active": 1241,
+      "real_data_received": 1027,
+      "real_app_ack_received": 154,
+      "cca_deferrals": 4684
+    },
+    {
+      "step": 87,
+      "active": 1187,
+      "real_data_received": 153,
+      "real_app_ack_received": 1018,
+      "cca_deferrals": 3260
+    },
+    {
+      "step": 88,
+      "active": 1229,
+      "real_data_received": 1015,
+      "real_app_ack_received": 152,
+      "cca_deferrals": 4613
+    },
+    {
+      "step": 89,
+      "active": 1173,
+      "real_data_received": 153,
+      "real_app_ack_received": 1011,
+      "cca_deferrals": 3155
+    },
+    {
+      "step": 90,
+      "active": 1233,
+      "real_data_received": 1039,
+      "real_app_ack_received": 153,
+      "cca_deferrals": 4821
+    },
+    {
+      "step": 91,
+      "active": 1197,
+      "real_data_received": 150,
+      "real_app_ack_received": 1030,
+      "cca_deferrals": 3296
+    },
+    {
+      "step": 92,
+      "active": 1254,
+      "real_data_received": 1049,
+      "real_app_ack_received": 150,
+      "cca_deferrals": 4898
+    },
+    {
+      "step": 93,
+      "active": 1208,
+      "real_data_received": 152,
+      "real_app_ack_received": 1046,
+      "cca_deferrals": 3346
+    },
+    {
+      "step": 94,
+      "active": 1252,
+      "real_data_received": 1053,
+      "real_app_ack_received": 152,
+      "cca_deferrals": 4887
+    },
+    {
+      "step": 95,
+      "active": 1209,
+      "real_data_received": 155,
+      "real_app_ack_received": 1049,
+      "cca_deferrals": 3487
+    },
+    {
+      "step": 96,
+      "active": 1274,
+      "real_data_received": 1062,
+      "real_app_ack_received": 153,
+      "cca_deferrals": 5066
+    },
+    {
+      "step": 97,
+      "active": 1223,
+      "real_data_received": 149,
+      "real_app_ack_received": 1055,
+      "cca_deferrals": 3534
+    },
+    {
+      "step": 98,
+      "active": 1272,
+      "real_data_received": 1061,
+      "real_app_ack_received": 149,
+      "cca_deferrals": 5150
+    },
+    {
+      "step": 99,
+      "active": 1213,
+      "real_data_received": 141,
+      "real_app_ack_received": 1057,
+      "cca_deferrals": 3500
+    },
+    {
+      "step": 100,
+      "active": 1251,
+      "real_data_received": 1055,
+      "real_app_ack_received": 141,
+      "cca_deferrals": 4877
+    },
+    {
+      "step": 101,
+      "active": 1203,
+      "real_data_received": 139,
+      "real_app_ack_received": 1048,
+      "cca_deferrals": 3401
+    },
+    {
+      "step": 102,
+      "active": 1247,
+      "real_data_received": 1059,
+      "real_app_ack_received": 134,
+      "cca_deferrals": 4896
+    },
+    {
+      "step": 103,
+      "active": 1198,
+      "real_data_received": 132,
+      "real_app_ack_received": 1051,
+      "cca_deferrals": 3361
+    },
+    {
+      "step": 104,
+      "active": 1237,
+      "real_data_received": 1050,
+      "real_app_ack_received": 130,
+      "cca_deferrals": 4800
+    },
+    {
+      "step": 105,
+      "active": 1182,
+      "real_data_received": 127,
+      "real_app_ack_received": 1045,
+      "cca_deferrals": 3267
+    },
+    {
+      "step": 106,
+      "active": 1237,
+      "real_data_received": 1053,
+      "real_app_ack_received": 127,
+      "cca_deferrals": 4927
+    },
+    {
+      "step": 107,
+      "active": 1192,
+      "real_data_received": 132,
+      "real_app_ack_received": 1048,
+      "cca_deferrals": 3288
+    },
+    {
+      "step": 108,
+      "active": 1245,
+      "real_data_received": 1060,
+      "real_app_ack_received": 132,
+      "cca_deferrals": 4941
+    },
+    {
+      "step": 109,
+      "active": 1202,
+      "real_data_received": 137,
+      "real_app_ack_received": 1050,
+      "cca_deferrals": 3415
+    },
+    {
+      "step": 110,
+      "active": 1249,
+      "real_data_received": 1034,
+      "real_app_ack_received": 136,
+      "cca_deferrals": 4912
+    },
+    {
+      "step": 111,
+      "active": 1184,
+      "real_data_received": 140,
+      "real_app_ack_received": 1030,
+      "cca_deferrals": 3409
+    },
+    {
+      "step": 112,
+      "active": 1227,
+      "real_data_received": 1035,
+      "real_app_ack_received": 140,
+      "cca_deferrals": 4762
+    },
+    {
+      "step": 113,
+      "active": 1184,
+      "real_data_received": 140,
+      "real_app_ack_received": 1032,
+      "cca_deferrals": 3223
+    },
+    {
+      "step": 114,
+      "active": 1232,
+      "real_data_received": 1037,
+      "real_app_ack_received": 138,
+      "cca_deferrals": 4736
+    },
+    {
+      "step": 115,
+      "active": 1179,
+      "real_data_received": 140,
+      "real_app_ack_received": 1032,
+      "cca_deferrals": 3352
+    },
+    {
+      "step": 116,
+      "active": 1234,
+      "real_data_received": 1043,
+      "real_app_ack_received": 140,
+      "cca_deferrals": 4766
+    },
+    {
+      "step": 117,
+      "active": 1190,
+      "real_data_received": 140,
+      "real_app_ack_received": 1040,
+      "cca_deferrals": 3297
+    },
+    {
+      "step": 118,
+      "active": 1243,
+      "real_data_received": 1057,
+      "real_app_ack_received": 139,
+      "cca_deferrals": 4918
+    },
+    {
+      "step": 119,
+      "active": 1203,
+      "real_data_received": 141,
+      "real_app_ack_received": 1054,
+      "cca_deferrals": 3365
+    },
+    {
+      "step": 120,
+      "active": 1276,
+      "real_data_received": 1069,
+      "real_app_ack_received": 141,
+      "cca_deferrals": 5292
+    },
+    {
+      "step": 121,
+      "active": 1221,
+      "real_data_received": 145,
+      "real_app_ack_received": 1066,
+      "cca_deferrals": 3545
+    },
+    {
+      "step": 122,
+      "active": 1266,
+      "real_data_received": 1050,
+      "real_app_ack_received": 144,
+      "cca_deferrals": 4966
+    },
+    {
+      "step": 123,
+      "active": 1206,
+      "real_data_received": 154,
+      "real_app_ack_received": 1039,
+      "cca_deferrals": 3398
+    },
+    {
+      "step": 124,
+      "active": 1252,
+      "real_data_received": 1040,
+      "real_app_ack_received": 154,
+      "cca_deferrals": 4758
+    },
+    {
+      "step": 125,
+      "active": 1197,
+      "real_data_received": 146,
+      "real_app_ack_received": 1032,
+      "cca_deferrals": 3391
+    },
+    {
+      "step": 126,
+      "active": 1232,
+      "real_data_received": 1031,
+      "real_app_ack_received": 145,
+      "cca_deferrals": 4621
+    },
+    {
+      "step": 127,
+      "active": 1184,
+      "real_data_received": 151,
+      "real_app_ack_received": 1025,
+      "cca_deferrals": 3202
+    },
+    {
+      "step": 128,
+      "active": 1224,
+      "real_data_received": 1023,
+      "real_app_ack_received": 151,
+      "cca_deferrals": 4556
+    },
+    {
+      "step": 129,
+      "active": 1180,
+      "real_data_received": 150,
+      "real_app_ack_received": 1020,
+      "cca_deferrals": 3198
+    },
+    {
+      "step": 130,
+      "active": 1238,
+      "real_data_received": 1038,
+      "real_app_ack_received": 150,
+      "cca_deferrals": 4765
+    },
+    {
+      "step": 131,
+      "active": 1198,
+      "real_data_received": 152,
+      "real_app_ack_received": 1035,
+      "cca_deferrals": 3462
+    },
+    {
+      "step": 132,
+      "active": 1268,
+      "real_data_received": 1061,
+      "real_app_ack_received": 152,
+      "cca_deferrals": 5066
+    },
+    {
+      "step": 133,
+      "active": 1215,
+      "real_data_received": 146,
+      "real_app_ack_received": 1060,
+      "cca_deferrals": 3584
+    },
+    {
+      "step": 134,
+      "active": 1272,
+      "real_data_received": 1055,
+      "real_app_ack_received": 142,
+      "cca_deferrals": 5157
+    },
+    {
+      "step": 135,
+      "active": 1211,
+      "real_data_received": 146,
+      "real_app_ack_received": 1043,
+      "cca_deferrals": 3400
+    },
+    {
+      "step": 136,
+      "active": 1249,
+      "real_data_received": 1050,
+      "real_app_ack_received": 146,
+      "cca_deferrals": 4926
+    },
+    {
+      "step": 137,
+      "active": 1198,
+      "real_data_received": 144,
+      "real_app_ack_received": 1048,
+      "cca_deferrals": 3269
+    },
+    {
+      "step": 138,
+      "active": 1245,
+      "real_data_received": 1048,
+      "real_app_ack_received": 144,
+      "cca_deferrals": 4874
+    },
+    {
+      "step": 139,
+      "active": 1199,
+      "real_data_received": 146,
+      "real_app_ack_received": 1043,
+      "cca_deferrals": 3362
+    },
+    {
+      "step": 140,
+      "active": 1242,
+      "real_data_received": 1061,
+      "real_app_ack_received": 145,
+      "cca_deferrals": 4794
+    },
+    {
+      "step": 141,
+      "active": 1214,
+      "real_data_received": 142,
+      "real_app_ack_received": 1059,
+      "cca_deferrals": 3509
+    },
+    {
+      "step": 142,
+      "active": 1257,
+      "real_data_received": 1047,
+      "real_app_ack_received": 141,
+      "cca_deferrals": 4890
+    },
+    {
+      "step": 143,
+      "active": 1200,
+      "real_data_received": 149,
+      "real_app_ack_received": 1042,
+      "cca_deferrals": 3395
+    },
+    {
+      "step": 144,
+      "active": 1273,
+      "real_data_received": 1067,
+      "real_app_ack_received": 149,
+      "cca_deferrals": 5177
+    },
+    {
+      "step": 145,
+      "active": 1227,
+      "real_data_received": 158,
+      "real_app_ack_received": 1062,
+      "cca_deferrals": 3682
+    },
+    {
+      "step": 146,
+      "active": 1274,
+      "real_data_received": 1032,
+      "real_app_ack_received": 158,
+      "cca_deferrals": 5139
+    },
+    {
+      "step": 147,
+      "active": 1195,
+      "real_data_received": 152,
+      "real_app_ack_received": 1029,
+      "cca_deferrals": 3383
+    },
+    {
+      "step": 148,
+      "active": 1239,
+      "real_data_received": 1045,
+      "real_app_ack_received": 151,
+      "cca_deferrals": 4739
+    },
+    {
+      "step": 149,
+      "active": 1203,
+      "real_data_received": 154,
+      "real_app_ack_received": 1045,
+      "cca_deferrals": 3474
+    },
+    {
+      "step": 150,
+      "active": 1235,
+      "real_data_received": 1033,
+      "real_app_ack_received": 152,
+      "cca_deferrals": 4748
+    },
+    {
+      "step": 151,
+      "active": 1199,
+      "real_data_received": 155,
+      "real_app_ack_received": 1023,
+      "cca_deferrals": 3521
+    },
+    {
+      "step": 152,
+      "active": 1250,
+      "real_data_received": 1033,
+      "real_app_ack_received": 155,
+      "cca_deferrals": 4987
+    },
+    {
+      "step": 153,
+      "active": 1192,
+      "real_data_received": 150,
+      "real_app_ack_received": 1031,
+      "cca_deferrals": 3467
+    },
+    {
+      "step": 154,
+      "active": 1244,
+      "real_data_received": 1031,
+      "real_app_ack_received": 148,
+      "cca_deferrals": 4968
+    },
+    {
+      "step": 155,
+      "active": 1181,
+      "real_data_received": 146,
+      "real_app_ack_received": 1029,
+      "cca_deferrals": 3483
+    },
+    {
+      "step": 156,
+      "active": 1262,
+      "real_data_received": 1060,
+      "real_app_ack_received": 146,
+      "cca_deferrals": 5100
+    },
+    {
+      "step": 157,
+      "active": 1219,
+      "real_data_received": 152,
+      "real_app_ack_received": 1058,
+      "cca_deferrals": 3600
+    },
+    {
+      "step": 158,
+      "active": 1251,
+      "real_data_received": 1051,
+      "real_app_ack_received": 150,
+      "cca_deferrals": 4916
+    },
+    {
+      "step": 159,
+      "active": 1207,
+      "real_data_received": 152,
+      "real_app_ack_received": 1045,
+      "cca_deferrals": 3502
+    },
+    {
+      "step": 160,
+      "active": 1254,
+      "real_data_received": 1042,
+      "real_app_ack_received": 152,
+      "cca_deferrals": 4960
+    },
+    {
+      "step": 161,
+      "active": 1205,
+      "real_data_received": 150,
+      "real_app_ack_received": 1038,
+      "cca_deferrals": 3369
+    },
+    {
+      "step": 162,
+      "active": 1252,
+      "real_data_received": 1043,
+      "real_app_ack_received": 148,
+      "cca_deferrals": 4906
+    },
+    {
+      "step": 163,
+      "active": 1202,
+      "real_data_received": 151,
+      "real_app_ack_received": 1036,
+      "cca_deferrals": 3525
+    },
+    {
+      "step": 164,
+      "active": 1252,
+      "real_data_received": 1055,
+      "real_app_ack_received": 149,
+      "cca_deferrals": 5002
+    },
+    {
+      "step": 165,
+      "active": 1209,
+      "real_data_received": 144,
+      "real_app_ack_received": 1050,
+      "cca_deferrals": 3405
+    },
+    {
+      "step": 166,
+      "active": 1251,
+      "real_data_received": 1053,
+      "real_app_ack_received": 143,
+      "cca_deferrals": 4869
+    },
+    {
+      "step": 167,
+      "active": 1206,
+      "real_data_received": 145,
+      "real_app_ack_received": 1049,
+      "cca_deferrals": 3338
+    },
+    {
+      "step": 168,
+      "active": 1247,
+      "real_data_received": 1050,
+      "real_app_ack_received": 145,
+      "cca_deferrals": 4906
+    },
+    {
+      "step": 169,
+      "active": 1200,
+      "real_data_received": 140,
+      "real_app_ack_received": 1039,
+      "cca_deferrals": 3442
+    },
+    {
+      "step": 170,
+      "active": 1243,
+      "real_data_received": 1053,
+      "real_app_ack_received": 140,
+      "cca_deferrals": 4832
+    },
+    {
+      "step": 171,
+      "active": 1207,
+      "real_data_received": 149,
+      "real_app_ack_received": 1046,
+      "cca_deferrals": 3410
+    },
+    {
+      "step": 172,
+      "active": 1261,
+      "real_data_received": 1057,
+      "real_app_ack_received": 147,
+      "cca_deferrals": 5129
+    },
+    {
+      "step": 173,
+      "active": 1214,
+      "real_data_received": 148,
+      "real_app_ack_received": 1055,
+      "cca_deferrals": 3474
+    },
+    {
+      "step": 174,
+      "active": 1254,
+      "real_data_received": 1059,
+      "real_app_ack_received": 148,
+      "cca_deferrals": 5087
+    },
+    {
+      "step": 175,
+      "active": 1218,
+      "real_data_received": 157,
+      "real_app_ack_received": 1051,
+      "cca_deferrals": 3530
+    },
+    {
+      "step": 176,
+      "active": 1266,
+      "real_data_received": 1060,
+      "real_app_ack_received": 157,
+      "cca_deferrals": 5033
+    },
+    {
+      "step": 177,
+      "active": 1225,
+      "real_data_received": 156,
+      "real_app_ack_received": 1052,
+      "cca_deferrals": 3637
+    },
+    {
+      "step": 178,
+      "active": 1271,
+      "real_data_received": 1064,
+      "real_app_ack_received": 156,
+      "cca_deferrals": 5023
+    },
+    {
+      "step": 179,
+      "active": 1230,
+      "real_data_received": 162,
+      "real_app_ack_received": 1064,
+      "cca_deferrals": 3638
+    },
+    {
+      "step": 180,
+      "active": 1283,
+      "real_data_received": 1062,
+      "real_app_ack_received": 162,
+      "cca_deferrals": 5177
+    },
+    {
+      "step": 181,
+      "active": 1231,
+      "real_data_received": 164,
+      "real_app_ack_received": 1054,
+      "cca_deferrals": 3621
+    },
+    {
+      "step": 182,
+      "active": 1275,
+      "real_data_received": 1045,
+      "real_app_ack_received": 164,
+      "cca_deferrals": 5091
+    },
+    {
+      "step": 183,
+      "active": 1218,
+      "real_data_received": 166,
+      "real_app_ack_received": 1037,
+      "cca_deferrals": 3615
+    },
+    {
+      "step": 184,
+      "active": 1258,
+      "real_data_received": 1047,
+      "real_app_ack_received": 165,
+      "cca_deferrals": 4879
+    },
+    {
+      "step": 185,
+      "active": 1214,
+      "real_data_received": 159,
+      "real_app_ack_received": 1044,
+      "cca_deferrals": 3463
+    },
+    {
+      "step": 186,
+      "active": 1260,
+      "real_data_received": 1045,
+      "real_app_ack_received": 159,
+      "cca_deferrals": 4946
+    },
+    {
+      "step": 187,
+      "active": 1213,
+      "real_data_received": 157,
+      "real_app_ack_received": 1042,
+      "cca_deferrals": 3468
+    },
+    {
+      "step": 188,
+      "active": 1250,
+      "real_data_received": 1027,
+      "real_app_ack_received": 157,
+      "cca_deferrals": 4989
+    },
+    {
+      "step": 189,
+      "active": 1188,
+      "real_data_received": 154,
+      "real_app_ack_received": 1018,
+      "cca_deferrals": 3203
+    },
+    {
+      "step": 190,
+      "active": 1239,
+      "real_data_received": 1035,
+      "real_app_ack_received": 152,
+      "cca_deferrals": 4748
+    },
+    {
+      "step": 191,
+      "active": 1192,
+      "real_data_received": 151,
+      "real_app_ack_received": 1031,
+      "cca_deferrals": 3364
+    },
+    {
+      "step": 192,
+      "active": 1256,
+      "real_data_received": 1051,
+      "real_app_ack_received": 151,
+      "cca_deferrals": 4926
+    },
+    {
+      "step": 193,
+      "active": 1210,
+      "real_data_received": 147,
+      "real_app_ack_received": 1047,
+      "cca_deferrals": 3567
+    },
+    {
+      "step": 194,
+      "active": 1242,
+      "real_data_received": 1039,
+      "real_app_ack_received": 147,
+      "cca_deferrals": 4873
+    },
+    {
+      "step": 195,
+      "active": 1194,
+      "real_data_received": 151,
+      "real_app_ack_received": 1035,
+      "cca_deferrals": 3317
+    },
+    {
+      "step": 196,
+      "active": 1245,
+      "real_data_received": 1043,
+      "real_app_ack_received": 149,
+      "cca_deferrals": 4895
+    },
+    {
+      "step": 197,
+      "active": 1203,
+      "real_data_received": 157,
+      "real_app_ack_received": 1039,
+      "cca_deferrals": 3373
+    },
+    {
+      "step": 198,
+      "active": 1271,
+      "real_data_received": 1050,
+      "real_app_ack_received": 156,
+      "cca_deferrals": 5074
+    },
+    {
+      "step": 199,
+      "active": 1215,
+      "real_data_received": 154,
+      "real_app_ack_received": 1045,
+      "cca_deferrals": 3501
+    }
+  ],
+  "training_launched": false,
+  "gate5_status": "NOT_PASSED",
+  "limitations": [
+    "Controlled six-UAV static ring and fixed neighbor actions",
+    "Native Warp MAC partial ACK/backoff parity, not exact SimPy",
+    "Python orchestrates per-step packet admissions, receiver ACK and reward watermarks",
+    "No full 200-step motion/energy/reward learning environment",
+    "No real CUDA run; Kaggle private GPU submission unavailable"
+  ]
+}

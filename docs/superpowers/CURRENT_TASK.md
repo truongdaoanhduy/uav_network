@@ -1,3 +1,11 @@
+# 2026-11-25 — v4.4 real E2E ACK watermarks and six-sender contended CPU smoke
+
+Branch experiment/zhang-xue-v44-e2e-watermarks-concurrent-20261125, derived from v4.3 6c2ada5. Warp source-peer persistent 400-cell ACK watermarks advance ONLY from physically received matching application E2E ACK, never MAC ACK. Stale/duplicate ACK ignored; select dirty cells up to62 per snapshot; resend after application timeout. Six UAVs learn a static ring from MAC HELLO, then concurrently generate MAP-origin evidence packets, contend using Warp CCA/SINR/retry, and exchange DATA and APP E2E ACK; receiver DS updates only on DATA. CPU E256x200 seed44: 126091 DATA generated, 119974 physically received, 119215 APP ACK/watermark updates, 6385 timed-out sends released for resend, zero remote belief leakage/blackout sends; E4096x4: 45622 DATA, 42186 received, 40922 APP ACK. Evidence at docs/superpowers/NETWORK_V44_WARP_E2E_WATERMARKS_SIX_UAV_CONTENDED_20261125.md.
+
+Gate5 still NOT PASSED: ring not dynamic real multi-hop, no full source-exact SimPy MAC parity, full actor/motion/reward/energy or CUDA. Training remains blocked.
+
+---
+
 # 2026-11-25 — v4.3 private account2 CUDA preflight
 
 Branch experiment/zhang-xue-v43-kaggle-cuda-preflight-20261125, parent v4.2 SHA ee58650. Fixed source allowlist ZIP embedded in private Kaggle script from immutable SHA, no API token in source, CUDA E16/E1024/E4096 smoke and CPU parity, T4x2 target. Test covers generator. Kaggle CLI v1.7.4 fails KGAT; isolated venv CLI v2.2.5 authenticates account2 and confirmed GPU quota 29.53h remaining. See docs/superpowers/NETWORK_V43_PRIVATE_KAGGLE_CUDA_PREFLIGHT_20261125.md. **Not training or Gate5 completion.**
