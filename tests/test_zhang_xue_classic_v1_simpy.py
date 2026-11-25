@@ -1,0 +1,72 @@
+"""Isolated process tests for real pinned classic UavNetSim-v1 SimPy PHY/MAC.
+
+Requires UAV_CLASSIC_V1_ROOT or the fetched vendor checkout.
+Cannot run in same interpreter as new Sionna UavNetSim due global utils/phy imports.
+"""
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import pytest
+
+
+ROOT=Path(__file__).resolve().parents[1]
+V1_PATH=Path(os.environ.get(
+    "UAV_CLASSIC_V1_ROOT",
+    ROOT/"outputs/reference_sources/UavNetSim-v1-classic",
+))
+
+
+def run_case(name):
+    if not (V1_PATH/"entities/drone.py").is_file():
+        pytest.skip("Classic UavNetSim-v1 source not fetched; run scripts/fetch_uavnetsim_v1_classic.sh")
+    env={**os.environ, "UAV_CLASSIC_V1_ROOT":str(V1_PATH)}
+    env["PYTHONPATH"]=str(ROOT)+os.pathsep+env.get("PYTHONPATH","")
+    with tempfile.TemporaryDirectory(prefix="uav_classic_v1_test_") as tmp:
+        proc=subprocess.run(
+            [sys.executable,"-m","uav_network.communication.classic_v1_simpy",
+             "--case",name,"--json"],
+            cwd=tmp,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+            timeout=50,
+        )
+    assert proc.returncode==0, (
+        f"simpy case {name} exited {proc.returncode}\n"
+        f"stdout tail:{proc.stdout[-1800:]}\nstderr tail:{proc.stderr[-1800:]}"
+    )
+    return json.loads(proc.stdout.strip().splitlines()[-1])
+
+
+def test_real_v1_phy_mac_two_hop_application_and_e2e_ack():
+    got=run_case("line")
+    assert got["engine"]=="uavnetsim_v1_real_simpy_csma"
+    assert got["v1_commit"]=="64bc3a2424f2976418731ee94f9a8fd3e8810b22"
+    assert got["app_data_delivered"]==1
+    assert got["app_e2e_ack_delivered"]>=1
+    assert got["hop_count"]==2
+    assert got["receiver_own_origin_count"]>=1
+    assert got["native_data_pdr"]<=1.0
+    assert got["default_poisson_process_count"]==0
+    assert got["default_mobility_process_count"]==0
+
+
+def test_real_v1_radio_blackout_recovers_and_keeps_receive_alive():
+    got=run_case("blackout")
+    assert got["engine"]=="uavnetsim_v1_real_simpy_csma"
+    assert got["blackout_data_delivered"]==0
+    assert got["post_restore_data_delivered"]>=1
+    assert got["radio_receive_process_alive"] is True
+
+
+def test_real_v1_gate5_comparison_reports_nonidentical_mac_times():
+    got=run_case("gate5")
+    assert got["engine"]=="uavnetsim_v1_real_simpy_csma"
+    assert got["reference_engine"]=="mini_discrete_event"
+    assert 0 <= got["simpy_pdr"] <= 1
+    assert 0 <= got["reference_pdr"] <= 1
+    assert got["simpy_mac_real"] is True
+    assert got["gate5_status"] in ("PARITY_PASS","PARITY_FAIL")
+    assert isinstance(got["latency_difference_ms"],float)
