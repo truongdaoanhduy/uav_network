@@ -358,6 +358,102 @@ class ClassicV1SimPyNetwork:
 
 
 def run_smoke(case:str,v1_root=None):
+    if case=="warp_backoff":
+        # Execute the REAL source CsmaCa.mac_send Python generator up to
+        # its first timed wait; instrument randint bounds and timeout.
+        # This verifies the actual (CW, DIFS+slots*slot_duration) path,
+        # without simulating subsequent busy-channel freezes or ACK.
+        imp=_load_upstream(v1_root)
+        from uav_network.communication.gpu.classic_v1_backoff_warp import (
+            compute_backoff_windows,
+        )
+        simpy=imp["simpy"]
+        config=imp["config"]
+        rng=np.random.default_rng(20261125)
+        worlds,agents=128,6
+        attempts=rng.integers(1,6,size=(worlds,agents),dtype=np.int32)
+        backoff_draws=np.zeros((worlds,agents),dtype=np.int32)
+        native_cw=np.zeros_like(backoff_draws)
+        native_backoff_us=np.zeros_like(backoff_draws)
+        native_wait_us=np.zeros_like(backoff_draws)
+        for e in range(worlds):
+            for u in range(agents):
+                # Draw from same independently seeded Python.Random family
+                # used by original CsmaCa constructor; then pass it through
+                # a spy so that native generator remains the source of truth.
+                seed=44+e
+                attempt=int(attempts[e,u])
+                cw_formula=(config.CW_MIN+1)*(2**(attempt-1))-1
+                draw=random.Random(u+seed+5).randint(0,cw_formula-1)
+                backoff_draws[e,u]=draw
+                env=simpy.Environment()
+                simulator=types.SimpleNamespace(
+                    seed=seed,env=env,
+                    channel_states={u:simpy.Resource(env,capacity=1)},
+                    drones=[],
+                )
+                drone=types.SimpleNamespace(
+                    identifier=u,env=env,simulator=simulator,
+                    mac_process_finish={},
+                )
+                simulator.drones=[drone]
+                mac=imp["CsmaCa"](drone)
+                drone.mac_protocol=mac
+                bounds=[]
+                timeouts=[]
+                class SpyRandom:
+                    def randint(self,lo,hi):
+                        bounds.append((lo,hi))
+                        if not lo<=draw<=hi:
+                            raise AssertionError("Random draw out of native bounds")
+                        return draw
+                mac.rng_mac=SpyRandom()
+                timeout_original=env.timeout
+                def capture(duration):
+                    timeouts.append(duration)
+                    return timeout_original(duration)
+                env.timeout=capture
+                pkd=types.SimpleNamespace(
+                    packet_id=101,
+                    number_retransmission_attempt={u:attempt},
+                )
+                gen=mac.mac_send(pkd)
+                next(gen)       # invokes original randint and wait_idle
+                gen.send(None)  # invokes original DIFS+backoff timeout
+                if len(bounds)!=1 or len(timeouts)!=1:
+                    raise AssertionError("Unexpected upstream CsmaCa.mac_send behavior")
+                lo,hi=bounds[0]
+                native_cw[e,u]=hi+1
+                native_wait_us[e,u]=int(timeouts[0])
+                native_backoff_us[e,u]=int(timeouts[0]-config.DIFS_DURATION)
+        warped=compute_backoff_windows(
+            attempts,backoff_draws,
+            cw_min=config.CW_MIN,
+            slot_duration_us=config.SLOT_DURATION,
+            difs_duration_us=config.DIFS_DURATION,
+            max_attempts=config.MAX_RETRANSMISSION_ATTEMPT,
+            device="cpu",
+        )
+        mismatch=sum(int(np.count_nonzero(warped[name]!=native))
+                     for name,native in (
+                         ("contention_window",native_cw),
+                         ("backoff_us",native_backoff_us),
+                         ("wait_difs_plus_backoff_us",native_wait_us),
+                     ))
+        return {
+            "source_sha":PINNED_V1_SHA,
+            "mac_source":"mac.csma_ca.CsmaCa.mac_send",
+            "engine":"warp_fp32_int32_cpu_backoff_vs_native_mac_generator",
+            "worlds":worlds,"agents_per_world":agents,
+            "backoff_mismatch_count":int(mismatch),
+            "cw_min":config.CW_MIN,
+            "slot_duration_us":config.SLOT_DURATION,
+            "difs_duration_us":config.DIFS_DURATION,
+            "max_retries":config.MAX_RETRANSMISSION_ATTEMPT,
+            "max_native_wait_us":int(native_wait_us.max()),
+            "full_mac_backoff_freeze_and_ack_parity":"NOT_TESTED",
+            "limit":"RNG draw supplied; dynamic CCA/busy channel freeze/retry not executed",
+        }
     if case=="warp_cca":
         # Compare with ACTUAL classic v1 CCA function, not an independently
         # reconstructed rule. The original reads occupied_resource.users and
@@ -606,7 +702,7 @@ def run_smoke(case:str,v1_root=None):
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument("--case",choices=("line","blackout","gate5","observations","warp_phy","collision","warp_cca"),default="line")
+    parser.add_argument("--case",choices=("line","blackout","gate5","observations","warp_phy","collision","warp_cca","warp_backoff"),default="line")
     parser.add_argument("--json",action="store_true")
     parser.add_argument("--root")
     args=parser.parse_args()

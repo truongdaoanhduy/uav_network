@@ -1,3 +1,24 @@
+# 2026-11-25 — Gate 5F source-executed DIFS/backoff parity
+
+New Warp INT32 kernel at
+uav_network/communication/gpu/classic_v1_backoff_warp.py
+computes CW, backoff_slots * SLOT_DURATION, DIFS + backoff.
+Direct source verification executed actual pinned classic V1
+CsmaCa.mac_send Python generator in isolated subprocess for 128
+worlds x 6 agents = 768 cases. Zero CW/window/duration mismatches.
+Original V1 constants CW_MIN31, SLOT_DURATION20us, DIFS50us,
+MAX_RETRANSMISSION_ATTEMPT5. Evidence:
+docs/superpowers/evidence/zhang_xue_gate5f_warp_backoff_cpu_20261125.json.
+Still only arithmetic with *supplied* RNG draws, NOT full
+time-ordered MAC scheduler or dynamic channel-busy freeze, per-hop ACK,
+retry, TTL, network queue, or Warp-GPU execution. Gate5 full end-to-end
+still NOT PASSED; Gate5C hidden-terminal PDR0 vs Mini reference PDR1
+remains a serious discrepancy. Next build Warp MAC event scheduler
+with source-matched pending queues and random stream handling.
+All earlier branch snapshots are pushed and remain rollback points.
+
+---
+
 # 2026-11-25 — Gate 5E actual-source CCA matching
 
 New Warp FP32 CPU carrier sensing kernel at

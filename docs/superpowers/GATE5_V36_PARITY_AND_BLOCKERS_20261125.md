@@ -70,6 +70,31 @@ listens, per-hop MAC ACKs, application E2E ACKs or packet TTL. It is
 an independently verified ingredient of the remaining vectorized MAC
 implementation, NOT a full Gate5 pass.
 
+## Gate 5F: initial DIFS/backoff arithmetic verified with live v1 generator
+
+Warp INT32 kernel uav_network/communication/gpu/classic_v1_backoff_warp.py
+calculates the contention window and initial wait for separately supplied
+random integer draws using upstream CsmaCa.mac_send rules:
+
+  CW = (CW_MIN+1) * 2**(attempt-1) - 1
+  backoff_us = randint(0,CW-1) * SLOT_DURATION
+  initial_wait_us = DIFS_DURATION + backoff_us
+
+At V1 defaults, CW_MIN31, slot20 microseconds, DIFS50 microseconds,
+maximum attempts5. The comparison does not rely only on a manually
+rewritten reference formula: a subprocess advanced the actual pinned
+CsmaCa.mac_send generator twice to capture its randint boundaries
+and first SimPy timeout. 128 independent worlds x 6 agents = 768
+cases, zero CW, random-backoff, or initial-DIFS wait mismatches.
+Source: docs/superpowers/evidence/zhang_xue_gate5f_warp_backoff_cpu_20261125.json.
+
+**Important:** Warp receives the random draw as an input. Its random
+state and sample ordering are NOT yet proven equal to the original MAC's
+Python.Random stream. The full simulator must also account for frozen
+backoff when channel becomes occupied, SIFS, MAC ACK, retransmission,
+packet deadline, queue capacity, and routing. Gate 5 overall still
+NOT PASSED despite this subgate.
+
 ## Required next action
 
 Implement a collision-aware, vectorized Warp network surrogate with receiver SINR from simultaneous senders, channel overlap, carrier sensing and hidden-terminal behavior, queue/TTL/retries and separate MAC ACK vs application E2E ACK. Compare matched seeds, packet sizes, routes, PDR, latency, hops, airtime and ACK across benign and collision stress tests before E4096 GPU training. Do not silently replace failure with an easier metric. Gate 5 **full SimPy↔Warp parity remains failed/not ready** despite passing subgates 5A and 5B.
