@@ -70,3 +70,36 @@ def test_real_v1_gate5_comparison_reports_nonidentical_mac_times():
     assert got["simpy_mac_real"] is True
     assert got["gate5_status"] in ("PARITY_PASS","PARITY_FAIL")
     assert isinstance(got["latency_difference_ms"],float)
+
+def test_real_classic_v1_backend_runs_actor_env_replay_update():
+    """End-to-end real SimPy backend through vanilla MATD3 on CPU only."""
+    if not (V1_PATH/"entities/drone.py").is_file():
+        pytest.skip("Pinned classic v1 checkout unavailable")
+    env={**os.environ,"UAV_CLASSIC_V1_ROOT":str(V1_PATH)}
+    env["PYTHONPATH"]=str(ROOT)+os.pathsep+env.get("PYTHONPATH","")
+    with tempfile.TemporaryDirectory(prefix="uav_real_v1_training_smoke_") as tmp:
+        proc=subprocess.run(
+            [
+                sys.executable,"-m","uav_network.experiments.train_zhang_xue_pilot",
+                "--network-backend","classic_simpy_v1",
+                "--algorithm","matd3",
+                "--episodes","1","--horizon-steps","3",
+                "--learning-starts","2","--batch-size","2",
+                "--eval-episodes","1","--hidden-size","16","--seed","44",
+            ],
+            cwd=tmp,env=env,text=True,stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,timeout=95,
+        )
+    assert proc.returncode==0, proc.stderr[-2400:]
+    data=json.loads(proc.stdout[proc.stdout.find("{"):])
+    assert data["backend"]=="cpu_uavnetsim_v1_simpy_csma"
+    assert data["updates"]>0
+    assert data["total_steps"]==3
+    assert 0<=data["mean_eval_pdr"]<=1
+    assert data["actor_parameter_delta_norm"]>0
+
+def test_real_v1_actor_neighbours_require_received_hello_not_global_position():
+    obs=run_case("observations")
+    assert obs["local_peer_offset_before_hello"]==[0.,0.,0.]
+    assert any(abs(v)>0 for v in obs["local_peer_offset_after_hello"])
+    assert obs["received_hello_from_peer"] is True

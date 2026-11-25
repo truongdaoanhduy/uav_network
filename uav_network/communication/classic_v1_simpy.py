@@ -255,6 +255,26 @@ def _make_types(imported: dict):
     return MarlSearchDrone,ApplicationDataPacket,RoutedE2EAckPacket
 
 
+
+
+class _QueueView:
+    """Read-only compatibility view of a native UavNetSim drone packet queue."""
+    def __init__(self, drone):
+        self.drone=drone
+
+    @property
+    def max_size(self):
+        return self.drone.max_queue_size
+
+    @property
+    def transmitting_queue(self):
+        return tuple(self.drone.transmitting_queue.queue)
+
+    @property
+    def waiting_list(self):
+        return tuple(self.drone.waiting_list)
+
+
 class ClassicV1SimPyNetwork:
     """Actual classic UavNetSim SimPy CSMA/CA, not the reference mininet."""
 
@@ -267,6 +287,8 @@ class ClassicV1SimPyNetwork:
         if sorted(positions)!=list(range(len(positions))):
             raise ValueError("UAV IDs must be contiguous from 0")
         self.belief=belief
+        self.sinr_threshold_db=float(imp["config"].SNR_THRESHOLD)
+        self.tx_power_w=float(imp["config"].TRANSMITTING_POWER)
         self.positions=dict(positions)
         self.radio_enabled={u:True for u in positions}
         self.acked_sequences={}
@@ -295,13 +317,7 @@ class ClassicV1SimPyNetwork:
             drone=drone_class(env,u,xyz,simulator,self)
             simulator.drones.append(drone)
         # HELLO coroutines start only after the full drone list is built.
-        self.queues={
-            u:types.SimpleNamespace(
-                max_size=simulator.drones[u].max_queue_size,
-                transmitting_queue=simulator.drones[u].transmitting_queue,
-                waiting_list=simulator.drones[u].waiting_list,
-            ) for u in positions
-        }
+        self.queues={u:_QueueView(simulator.drones[u]) for u in positions}
         self.default_poisson_process_count=0
         self.default_mobility_process_count=0
 
@@ -342,6 +358,24 @@ class ClassicV1SimPyNetwork:
 
 
 def run_smoke(case:str,v1_root=None):
+    if case=="observations":
+        from uav_network.environment.zhang_xue_coop import (
+            ZhangXueCooperativeEnv,ZhangXueConfig,
+        )
+        env=ZhangXueCooperativeEnv(
+            ZhangXueConfig(horizon_steps=3),seed=44,
+            network_backend="classic_simpy_v1",
+        )
+        initial=env._build_outputs()[0][0,9:12].tolist()
+        env.net.run_until(.025)
+        after=env._build_outputs()[0][0,9:12].tolist()
+        table=env.net.simulator.drones[0].routing_protocol.neighbor_table.neighbor_table
+        return {
+            "engine":"uavnetsim_v1_real_simpy_csma",
+            "local_peer_offset_before_hello":initial,
+            "local_peer_offset_after_hello":after,
+            "received_hello_from_peer":bool(1 in table),
+        }
     positions={0:(0.,0.),1:(400.,0.),2:(800.,0.)}
     belieF=BeliefTable(3,400)
     native=ClassicV1SimPyNetwork(positions,belieF,seed=44,v1_root=v1_root)
@@ -412,7 +446,7 @@ def run_smoke(case:str,v1_root=None):
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument("--case",choices=("line","blackout","gate5"),default="line")
+    parser.add_argument("--case",choices=("line","blackout","gate5","observations"),default="line")
     parser.add_argument("--json",action="store_true")
     parser.add_argument("--root")
     args=parser.parse_args()

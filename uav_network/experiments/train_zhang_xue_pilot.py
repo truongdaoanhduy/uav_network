@@ -35,6 +35,7 @@ def run_cpu_pilot(
     batch_size: int = 8,
     hidden_sizes: Tuple[int,...] = (64,64),
     eval_episodes: int = 2,
+    network_backend: str = "reference",
 ) -> dict:
     """Run a bounded CPU experiment and return metrics, without remote side effects.
 
@@ -51,7 +52,10 @@ def run_cpu_pilot(
             raise ValueError(f"{name} must be >=1")
     torch.manual_seed(int(seed))
     np.random.seed(int(seed))
-    env=ZhangXueCooperativeEnv(ZhangXueConfig(horizon_steps=int(horizon_steps)),seed=seed)
+    env=ZhangXueCooperativeEnv(
+        ZhangXueConfig(horizon_steps=int(horizon_steps)),
+        seed=seed,network_backend=network_backend,
+    )
     learner_kw=dict(
         obs_dim=env.obs_dim,state_dim=env.state_dim,num_agents=env.num_agents,
         cont_dim=env.cont_dim,disc_dim=env.disc_dim,
@@ -131,7 +135,11 @@ def run_cpu_pilot(
         if isinstance(v,(float,int)) and not math.isfinite(float(v)):
             raise FloatingPointError(f"Non-finite learner metric: {name}")
     return {
-        "backend":"cpu_reference_not_uavnetsim",
+        "backend":(
+            "cpu_uavnetsim_v1_simpy_csma"
+            if network_backend=="classic_simpy_v1"
+            else "cpu_reference_not_uavnetsim"
+        ),
         "algorithm":algorithm,
         "target_entropy_disc_ratio":entropy_ratio,
         "seed":int(seed),
@@ -156,6 +164,8 @@ def run_cpu_pilot(
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--algorithm",choices=("masac","matd3"),default="matd3")
+    parser.add_argument("--network-backend",choices=("reference","classic_simpy_v1"),
+                        default="reference")
     parser.add_argument("--episodes",type=int,default=2)
     parser.add_argument("--horizon-steps",type=int,default=16)
     parser.add_argument("--seed",type=int,default=44)
@@ -170,6 +180,7 @@ def main():
         horizon_steps=args.horizon_steps,learning_starts=args.learning_starts,
         batch_size=args.batch_size,hidden_sizes=(args.hidden_size,args.hidden_size),
         eval_episodes=args.eval_episodes,
+        network_backend=args.network_backend,
     )
     report=json.dumps(result,indent=2,sort_keys=True)
     if args.output_json is not None:

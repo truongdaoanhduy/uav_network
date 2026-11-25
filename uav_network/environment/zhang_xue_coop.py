@@ -102,8 +102,12 @@ class ZhangXueCooperativeEnv:
     observations, not target truth or another UAV's undisclosed evidence.
     """
 
-    def __init__(self, config: ZhangXueConfig | None = None, seed: int = 44):
+    def __init__(self, config: ZhangXueConfig | None = None, seed: int = 44,
+                 network_backend: str = "reference"):
         self.config = config or ZhangXueConfig()
+        if network_backend not in ("reference", "classic_simpy_v1"):
+            raise ValueError("network_backend must be reference or classic_simpy_v1")
+        self.network_backend=network_backend
         self.base_seed = int(seed)
         self.num_agents = self.config.uav_count
         self.cont_dim = 2
@@ -189,10 +193,21 @@ class ZhangXueCooperativeEnv:
         self._generate_scenario()
         c=self.config
         self.belief=BeliefTable(c.uav_count,400,c.fusion_mode,c.ds_mf,c.ds_me)
-        self.net=MiniDiscreteEventNet(
-            {i:tuple(float(v) for v in self.positions[i]) for i in range(c.uav_count)},
-            self.belief,tx_power_w=c.tx_power_w,
-        )
+        network_positions={
+            i:tuple(float(v) for v in self.positions[i])
+            for i in range(c.uav_count)
+        }
+        if self.network_backend=="classic_simpy_v1":
+            # This path is actual upstream classic v1 SimPy/CSMA. It is
+            # intended for one evaluation episode at a time, never E4096.
+            from uav_network.communication.classic_v1_simpy import ClassicV1SimPyNetwork
+            self.net=ClassicV1SimPyNetwork(
+                network_positions,self.belief,seed=int(seed),
+            )
+        else:
+            self.net=MiniDiscreteEventNet(
+                network_positions,self.belief,tx_power_w=c.tx_power_w,
+            )
         self.reward_engine=RewardEngine(
             c.uav_count,400,self.target_mask,tau=c.confirm_threshold,
             omega_s=30.,omega_c=15.,omega_target=10.,omega_fp=5.,
@@ -251,17 +266,32 @@ class ZhangXueCooperativeEnv:
             ]
             peers=[]
             for j,p in enumerate(self._peer_order(u),start=1):
-                dx,dy=self.positions[p]-self.positions[u]
-                dist=math.hypot(float(dx),float(dy))
-                # Local one-hop radio sighting only. The destination ID stays
-                # selectable for multihop routing, but an out-of-range remote
-                # peer's exact coordinates are not given to the actor.
-                seen=bool(
-                    own_radio and not self._blackout(self.positions[p])
-                    and sinr_db_patched(c.tx_power_w,dist,[],
-                                       tx_radio_enabled=True)
-                    >=self.net.sinr_threshold_db
-                )
+                if self.network_backend=="classic_simpy_v1":
+                    # The real classic Greedy HELLO process populates this
+                    # receiver-local cache by on-air packets. Do NOT use true
+                    # current remote positions as actor observations.
+                    tbl=self.net.simulator.drones[u].routing_protocol.neighbor_table
+                    entry=tbl.neighbor_table.get(p)
+                    seen=bool(
+                        own_radio and entry is not None
+                        and self.net.simulator.env.now-entry[1]<=tbl.entry_life_time
+                    )
+                    if seen:
+                        dx,dy=np.asarray(entry[0][:2],np.float32)-self.positions[u]
+                        dist=math.hypot(float(dx),float(dy))
+                    else:
+                        dx=dy=dist=0.
+                else:
+                    # Reference-only ideal one-hop sighting; not a real
+                    # HELLO process. Never conflate it with the SimPy path.
+                    dx,dy=self.positions[p]-self.positions[u]
+                    dist=math.hypot(float(dx),float(dy))
+                    seen=bool(
+                        own_radio and not self._blackout(self.positions[p])
+                        and sinr_db_patched(c.tx_power_w,dist,[],
+                                           tx_radio_enabled=True)
+                        >=self.net.sinr_threshold_db
+                    )
                 peers.extend([
                     float(dx)/c.map_size_meter if seen else 0.,
                     float(dy)/c.map_size_meter if seen else 0.,
