@@ -43,6 +43,7 @@ class ZhangXueConfig:
     safe_distance_meter: float = 50.0
     no_fly_zone_count: int = 2
     no_fly_radius_meter: float = 50.0
+    nfz_observation_radius_meter: float = 300.0
     blackout_zone_count: int = 2
     blackout_radius_cells: int = 3
     pd: float = 0.85
@@ -62,6 +63,8 @@ class ZhangXueConfig:
             raise ValueError("grid width must match map size")
         if self.cell_size_meter * self.grid_height != self.map_size_meter:
             raise ValueError("grid height must match map size")
+        if self.nfz_observation_radius_meter <= 0 or not math.isfinite(self.nfz_observation_radius_meter):
+            raise ValueError("NFZ observation radius must be positive and finite")
         if self.uav_count != 6:
             raise ValueError("This fixed pilot actor mask requires six UAVs")
         if not (1 <= self.target_count < 400):
@@ -118,7 +121,7 @@ class ZhangXueCooperativeEnv:
         self.num_agents = self.config.uav_count
         self.cont_dim = 2
         self.disc_dim = self.num_agents
-        self.obs_dim = 9 + (self.num_agents-1)*4 + 2*25 + 2*16 + 2
+        self.obs_dim = 9 + (self.num_agents-1)*4 + 2*25 + 2*16 + 2 + 6
         self.state_dim = self.num_agents * self.obs_dim
         self.rng = None
         self.t = 0
@@ -248,11 +251,29 @@ class ZhangXueCooperativeEnv:
             queue_len=len(q.transmitting_queue)+len(q.waiting_list)
             ack_count=sum(len(self.net.acked_sequences.get((u,p),set())) for p in self._peer_order(u))
             dirty_counts={p:len(self._dirty_cell_ids(u,p)) for p in self._peer_order(u)}
+            # Idealized *local* NFZ sensor: only hazards within perception
+            # range are exposed. No globally omniscient NFZ/blackout map.
+            nfz_near=[]
+            for fx,fy,fr in self.no_fly_zones:
+                dx=float(fx-x)
+                dy=float(fy-y)
+                dist=math.hypot(dx,dy)
+                if dist <= c.nfz_observation_radius_meter:
+                    nfz_near.append((dist,dx,dy))
+            nfz_near.sort(key=lambda z:z[0])
+            nfz_local=[]
+            for idx in range(2):
+                if idx<len(nfz_near):
+                    dist,dx,dy=nfz_near[idx]
+                    nfz_local.extend([dx/c.map_size_meter,dy/c.map_size_meter,dist/c.map_size_meter])
+                else:
+                    nfz_local.extend([0.,0.,0.])
             base=[
                 x/c.map_size_meter,y/c.map_size_meter,
                 float(self.velocity[u,0])/c.v_max_mps,float(self.velocity[u,1])/c.v_max_mps,
                 (c.horizon_steps-self.t)/c.horizon_steps,
-                1.,float(own_radio),queue_len/q.max_size,
+                min(len(nfz_near)/max(c.no_fly_zone_count,1),1.),
+                float(own_radio),queue_len/q.max_size,
                 min(ack_count/10.,1.),
             ]
             peers=[]
@@ -308,7 +329,7 @@ class ZhangXueCooperativeEnv:
             cid=self._cell(self.positions[u])
             own=[float(self.belief.pos[u,u,cid])/c.horizon_steps,
                  float(self.belief.neg[u,u,cid])/c.horizon_steps]
-            encoded=np.asarray(base+peers+patch+pooled+own,dtype=np.float32)
+            encoded=np.asarray(base+peers+patch+pooled+own+nfz_local,dtype=np.float32)
             if encoded.shape!=(self.obs_dim,):
                 raise AssertionError((encoded.shape,self.obs_dim))
             obs[u]=encoded
@@ -371,7 +392,11 @@ class ZhangXueCooperativeEnv:
         boundary=0
         old=self.positions.copy()
         proposed=old.copy()
-        for u in range(self.num_agents):
+        # Alternate ID processing order every step; priority is deterministic
+        # but no UAV consistently wins close-motion conflicts.
+        ordering = (range(self.num_agents) if self.t % 2 == 0
+                    else range(self.num_agents - 1, -1, -1))
+        for u in ordering:
             vec=np.asarray(action_cont[u],np.float64)
             speed=np.linalg.norm(vec)
             if speed>1.:

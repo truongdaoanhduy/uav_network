@@ -1,3 +1,9 @@
+# 2026-11-25 — v4.10 external audit claims reviewed
+
+Branch experiment/zhang-xue-v410-reviewed-audit-fixes-20261125, parent v4.9 b2d211b. Independently checked user ZIP claims against local code, official 2024–26 papers, Farama, Warp API and pinned native classic UavNetSim-v1 SimPy; fixes: true map-wide information reward while blocking newly confirmed FP-cell reward exploitation, 300m local NFZ features, alternating ID motion arbitration CPU+Warp, physical ACK CCA opt-in with native-source parity preserved default, configurable HELLO periodicity/TTL in moving v4.5 diagnostic. Retained correct finite-horizon terminal semantics; did NOT add oracle global Phi/AoI. Source-level audit table: docs/superpowers/NETWORK_V410_INDEPENDENT_AUDIT_20261125.md. GPU/CUDA and full integrated Gate5 remain blocked; NO training/eval/test launched.
+
+---
+
 # 2026-11-25 — v4.9 source-backed Warp CSMA busy-carrier freeze component
 
 Branch experiment/zhang-xue-v49-native-csma-freeze-20261125 from v4.8 d12895b. Actual pinned upstream UavNetSim-v1 CsmaCa.mac_send SimPy generator with external occupied channel validated against new Warp kernel for source-exact DIFS restart, frozen remaining backoff, 20us carrier poll and attempts1-5 CW doubling. Nine directly measured first-TX scenarios all match source at zero microsecond error; seed45 fifth retry sends DATA at absolute 49756us after relay E2E ACK occupies 48530..49020us. E4096 world and mixed attempt-window tests also PASS. Evidence docs/superpowers/evidence/zhang_xue_v49_native_csma_freeze_cpu_20261125.json; docs docs/superpowers/NETWORK_V49_SOURCE_PINNED_WARP_CSMA_FREEZE_20261125.md.

@@ -46,11 +46,18 @@ ACK_BASE=10_000_000_000
 DATA_TTL_US=10_000_000
 
 
-def run_sampled_scenario_network_probe(*,envs=128,steps=20,seed=44,device="cpu"):
+def run_sampled_scenario_network_probe(
+    *, envs=128, steps=20, seed=44, device="cpu",
+    hello_period_steps=4, hello_ttl_us=12_000_000,
+):
     if not isinstance(envs,int) or envs<1:
         raise ValueError("positive E")
     if not isinstance(steps,int) or steps<2:
         raise ValueError("at least two network steps")
+    if not isinstance(hello_period_steps,int) or hello_period_steps<1:
+        raise ValueError("HELLO period must be at least one environment step")
+    if not isinstance(hello_ttl_us,int) or hello_ttl_us<=0:
+        raise ValueError("HELLO TTL must be positive integer microseconds")
     started=time.perf_counter()
     config=ZhangXueConfig()
     scenes=sample_scenario_batch(
@@ -79,14 +86,15 @@ def run_sampled_scenario_network_probe(*,envs=128,steps=20,seed=44,device="cpu")
             blocked|=distance<=config.blackout_radius_cells
         return (~blocked).astype(np.int32)
 
-    def _move():
+    def _move(step_index):
         nonlocal safety_rejections,boundary_rejections
         nonlocal all_positions_in_bounds,never_entered_nofly,safe_separation
         actions=rng.uniform(-1,1,size=(envs,N,2)).astype(np.float32)
         moved,velocity,ns,nb=warp_move_batch(
             xyz[:,:,:2],scenes["no_fly_zones"],actions,
             dt=config.dt_seconds,max_speed=config.v_max_mps,
-            safe_distance=config.safe_distance_meter,device=device,
+            safe_distance=config.safe_distance_meter,step_index=step_index,
+            device=device,
         )
         safety_rejections+=int(ns.sum())
         boundary_rejections+=int(nb.sum())
@@ -122,7 +130,7 @@ def run_sampled_scenario_network_probe(*,envs=128,steps=20,seed=44,device="cpu")
         )
 
     router=ZhangXueWarpDistanceVector(
-        envs,device=device,hello_ttl_us=12_000_000,
+        envs,device=device,hello_ttl_us=hello_ttl_us,
     )
     before=router.read_routes()["next_hop"]
     local_only=bool(np.all(
@@ -215,7 +223,7 @@ def run_sampled_scenario_network_probe(*,envs=128,steps=20,seed=44,device="cpu")
     for step in range(steps):
         now=20_000+step*1_000_000
         router.tick(now)
-        if step and step%4==0:
+        if step and step % hello_period_steps == 0:
             # Refresh all peer routes using only actual HELLO receptions
             # at current UAV poses. No global-position-based route choice.
             _discover(now)
@@ -306,7 +314,7 @@ def run_sampled_scenario_network_probe(*,envs=128,steps=20,seed=44,device="cpu")
         max_queue_seen=max(max_queue_seen,int(state["queue_length"].max()))
         if not np.any(active):
             _truth_reward()
-            _move()
+            _move(step)
             stage.append({"step":step,"active":0})
             continue
         remain=np.where(
@@ -405,7 +413,7 @@ def run_sampled_scenario_network_probe(*,envs=128,steps=20,seed=44,device="cpu")
                     duplicate_reward+=1
                 matched_data_by_id.add(key)
         _truth_reward()
-        _move()
+        _move(step)
         stage.append({
             "step":step,
             "active":int(active.sum()),

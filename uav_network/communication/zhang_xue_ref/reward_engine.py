@@ -57,11 +57,13 @@ class RewardEngine:
         self.prev_team_mf = team_mf.astype(np.float32, copy=True)
         return r_target, r_fp_penalty
 
-    def _target_only_information_gain(self, delta_by_cell, name: str) -> float:
-        """Reward-only truth projection; never include this mask in actor observations.
+    def _map_wide_information_gain(self, delta_by_cell, name: str, excluded_cells=None) -> float:
+        """Credit positive reductions of unknown mass in ALL map cells.
 
-        A non-zero aggregate scalar is unsafe: it cannot distinguish useful
-        evidence from false-positive evidence, so it is rejected by design.
+        Do not mask by ground truth: confirming an empty cell is real search
+        progress. False target confirmations are handled by the disjoint FP
+        latch, not by withholding all empty-cell information rewards.
+        Scalars are rejected because evidence accounting requires cell detail.
         """
         delta = np.asarray(delta_by_cell, dtype=np.float64)
         if delta.ndim == 0:
@@ -74,7 +76,10 @@ class RewardEngine:
             raise ValueError(f"{name} must have shape ({self.n_cells},)")
         if not np.all(np.isfinite(delta)):
             raise ValueError(f"{name} contains non-finite values")
-        return float(np.sum(delta[self.true_target_mask]))
+        positive = np.maximum(delta, 0.0)
+        if excluded_cells is not None:
+            positive = np.where(excluded_cells, 0.0, positive)
+        return float(np.sum(positive))
 
     def compute_unified_step_reward(
         self,
@@ -87,9 +92,8 @@ class RewardEngine:
     ) -> float:
         """R1 network-aware reward.
 
-        Per-cell gains are credited only for true target cells to prevent a
-        false-positive posterior from earning positive information reward.
-        The simulator truth mask is restricted to this reward calculation.
+        Uncertainty reductions from both searched empty and target cells count.
+        Ground truth is used only for TP/FP confirmation rewards and penalties.
         Penalties use positive cost magnitudes and are always subtracted.
         """
         mf = np.asarray(team_mf, dtype=np.float32)
@@ -102,8 +106,16 @@ class RewardEngine:
         ):
             if not np.isfinite(cost) or cost < 0:
                 raise ValueError(f"{name} must be a finite nonnegative cost")
-        info_search = self._target_only_information_gain(delta_i_search, "delta_i_search")
-        info_shared = self._target_only_information_gain(raw_delta_i_shared, "raw_delta_i_shared")
+        # Empty-cell evidence is useful, but do not reward *confirmed* false
+        # targets for shrinking uncertainty in the very same cell. Only the
+        # reward boundary sees ground truth; observations never do.
+        confirmed_fp = (mf >= self.tau) & (~self.true_target_mask)
+        info_search = self._map_wide_information_gain(
+            delta_i_search, "delta_i_search", confirmed_fp
+        )
+        info_shared = self._map_wide_information_gain(
+            raw_delta_i_shared, "raw_delta_i_shared", confirmed_fp
+        )
         norm_shared = info_shared / float(max(self.n_uavs - 1, 1))
         r_target, r_fp_penalty = self.step_target_and_fp_reward(mf, mode="LATCHED")
         return float(

@@ -47,6 +47,7 @@ def _retry_one_hop(
     tx_power: float,
     noise: float,
     threshold_db: float,
+    physical_carrier_sense: wp.int32,
 ):
     e = wp.tid()
     for u in range(6):
@@ -120,8 +121,25 @@ def _retry_one_hop(
             for j in range(6):
                 if j == chosen or latest_start[e,j] < 0.0:
                     continue
-                if latest_start[e,j] <= event_t and event_t < busy_end[e,j]:
-                    d = positions[e,chosen] - positions[e,j]
+                # Physical CCA senses the actual on-air node. The MAC ACK
+                # comes from DATA's receiver after SIFS, not its sender.
+                actual_tx = j
+                on_air = wp.int32(0)
+                if phase[e,j] == 1 and latest_start[e,j] <= event_t and event_t < data_end[e,j]:
+                    on_air = 1
+                elif phase[e,j] == 4 and event_t >= data_end[e,j] + 10.0 and event_t < ack_until[e,j]:
+                    actual_tx = dest[e,j]
+                    on_air = 1
+                if physical_carrier_sense == 0:
+                    # v1 SimPy keeps the sender's channel-state resource busy
+                    # through its ACK wait; the receiver ACK does not occupy
+                    # that resource. Preserve this source-compatible behavior.
+                    if latest_start[e,j] <= event_t and event_t < busy_end[e,j]:
+                        d = positions[e,chosen] - positions[e,j]
+                        if wp.dot(d,d) < wp.float32(750.0*750.0):
+                            occupied_until = wp.max(occupied_until, busy_end[e,j])
+                elif on_air != 0 and blackout[e,actual_tx] == 0:
+                    d = positions[e,chosen] - positions[e,actual_tx]
                     if wp.dot(d,d) < wp.float32(750.0*750.0):
                         occupied_until = wp.max(occupied_until, busy_end[e,j])
             if occupied_until >= 0.0:
@@ -168,7 +186,7 @@ def _retry_one_hop(
                 db = wp.float32(4.3429448190325175)*wp.log(
                     sig/(noise+interference)
                 )
-                if db < threshold_db or (phase[e,rx] == 1):
+                if db < threshold_db or phase[e,rx] == 1 or (physical_carrier_sense != 0 and phase[e,rx] == 4):
                     collided[e,j] = 1
                     collision_trace[e,j,attempts[e,j]-1] = 1
             # Newly-started DATA can jam already airborne reverse ACKs.
@@ -252,7 +270,8 @@ def _retry_one_hop(
 
 def simulate_one_hop_retry_batch(
     positions_xyz, destinations, frame_bytes, channels, backoff_draw_slots,
-    deadline_us, *, blackout=None, tx_power_w=0.5, device="cpu",
+    deadline_us, *, blackout=None, tx_power_w=0.5,
+    physical_carrier_sense=False, device="cpu",
 ):
     """Simulate independent worlds with one pending unicast packet/UAV.
 
@@ -260,6 +279,12 @@ def simulate_one_hop_retry_batch(
     'mac_acked'/'delivered': sender received the MAC ACK (legacy).
     Per-hop drops may coexist with DATA received; only MAC ACK,
     dropped and TTL expiry are mutually exclusive terminal states.
+
+    physical_carrier_sense=False (default) preserves pinned classic-v1
+    SimPy channel-resource semantics and seed-matched replay parity; the
+    optional True mode uses the physical MAC ACK transmitter location for
+    CCA and explicit receiver half-duplex in ACK phase. Neither mode is
+    the full multi-frame/event-source faithful simulator.
 
     Supplied backoff draws have shape [E,6,5]; for attempt k=1..5,
     the source's randint range is [0, (32*2**(k-1)-1)-1].
@@ -321,7 +346,7 @@ def simulate_one_hop_retry_batch(
         phase_w,floats[0],floats[1],floats[2],start_latest,collided_w,
         floats[3],ack_failed_w,attempts_w,delivered_w,data_received_w,expired_w,dropped_w,deferred_w,
         trace_start,trace_end,trace_collision,trace_ack_collision,
-        float(tx_power_w),4e-11,6.0,
+        float(tx_power_w),4e-11,6.0,int(bool(physical_carrier_sense)),
     ],device=device)
     return {
         "attempts":attempts_w.numpy(),

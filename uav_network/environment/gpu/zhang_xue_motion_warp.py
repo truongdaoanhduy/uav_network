@@ -39,13 +39,18 @@ def _move_six(
     dt:wp.float32,
     speed:wp.float32,
     separation:wp.float32,
+    step_index:wp.int32,
 ):
     e=wp.tid()
     for u in range(6):
         new_positions[e,u]=old[e,u]
     count_s=wp.int32(0)
     count_b=wp.int32(0)
-    for u in range(6):
+    # Mirror CPU's alternating priority without per-world host intervention.
+    for order in range(6):
+        u = order
+        if step_index % 2 != 0:
+            u = 5 - order
         ax=old[e,u][0]
         ay=old[e,u][1]
         dx=actions[e,u][0]
@@ -92,7 +97,7 @@ def _move_six(
 def warp_move_batch(
     positions_xy,no_fly_zones,actions_xy,
     *,
-    dt=1.,max_speed=50.,safe_distance=50.,device="cpu",
+    dt=1.,max_speed=50.,safe_distance=50.,step_index=0,device="cpu",
 ):
     """Vectorized E×6 motion with CPU-equivalent sequential collision resolution.
 
@@ -124,7 +129,7 @@ def warp_move_batch(
     wp.launch(
         _move_six,dim=e,
         inputs=[pos_w,zones_w,action_w,new_w,vel_w,
-                safety_w,boundary_w,zones.shape[1],dt,max_speed,safe_distance],
+                safety_w,boundary_w,zones.shape[1],dt,max_speed,safe_distance,int(step_index)],
         device=device,
     )
     return new_w.numpy(),vel_w.numpy(),safety_w.numpy(),boundary_w.numpy()
