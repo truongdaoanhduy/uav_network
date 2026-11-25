@@ -113,3 +113,13 @@ def test_real_v1_actor_neighbours_require_received_hello_not_global_position():
     assert obs["local_peer_offset_before_hello"]==[0.,0.,0.]
     assert any(abs(v)>0 for v in obs["local_peer_offset_after_hello"])
     assert obs["received_hello_from_peer"] is True
+
+
+def test_real_v1_friis_snr_matches_new_warp_pairwise_cpu_kernel():
+    got=run_case("warp_phy")
+    assert got["source_sha"]=="64bc3a2424f2976418731ee94f9a8fd3e8810b22"
+    assert got["device"]=="cpu"
+    assert got["num_nodes"]==6
+    assert got["max_abs_snr_error_db"]<0.001
+    assert got["connectivity_mismatch_count"]==0
+    assert got["full_warp_mac_parity_status"]=="NOT_TESTED"

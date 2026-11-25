@@ -1,3 +1,18 @@
+# 2026-11-25 — Gate 5B partial Warp PHY alignment
+
+Pinned UavNetSim-v1 upstream 64bc3a24, actual native general_path_loss compared
+against new Warp FP32 CPU Friis kernel on six nodes with equal Pt=0.5W,
+fc=2.4GHz, N=4e-11W and SNR threshold6dB.
+Measured max SNR difference 6.8073e-6 dB, mean1.3870e-6 dB, 0/36
+connectivity mismatches. 400m sample8.88190269dB, 800m2.86130285dB.
+Evidence docs/superpowers/evidence/zhang_xue_gate5b_warp_friis_cpu_20261125.json.
+Only no-interference links on Warp CPU were tested (local CUDA unavailable).
+NOT validation of MAC, interference, queues, battery, sensor, or full E4096 Warp.
+Next: real collision/multi-seed vs mini and accurate discrepancy, then GitHub
+incremental commit. Do not reset old branches.
+
+---
+
 # 2026-11-25 — Zhang–Xue v3.6 pinned classic V1 SimPy, GitHub backups
 
 Remote branch: experiment/zhang-xue-v36-uavnetsim-simpy-20261125

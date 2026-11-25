@@ -358,6 +358,46 @@ class ClassicV1SimPyNetwork:
 
 
 def run_smoke(case:str,v1_root=None):
+    if case=="warp_phy":
+        imp=_load_upstream(v1_root)
+        from phy.large_scale_fading import general_path_loss
+        from uav_network.communication.gpu.classic_v1_friis_warp import (
+            compute_classic_v1_friis_snr,
+        )
+        xyz=np.array([
+            (0.,0.,100.),(400.,0.,100.),(800.,0.,100.),
+            (250.,350.,100.),(700.,200.,100.),(100.,600.,100.),
+        ],dtype=np.float32)
+        c=imp["config"]
+        native=np.zeros((len(xyz),len(xyz)),dtype=np.float64)
+        for i in range(len(xyz)):
+            for j in range(len(xyz)):
+                rcv=types.SimpleNamespace(coords=xyz[i])
+                tx=types.SimpleNamespace(coords=xyz[j])
+                gain=general_path_loss(rcv,tx)
+                native[i,j]=10*math.log10(c.TRANSMITTING_POWER*gain/c.NOISE_POWER)
+        warped=compute_classic_v1_friis_snr(
+            xyz,tx_power_w=c.TRANSMITTING_POWER,
+            carrier_frequency_hz=c.CARRIER_FREQUENCY,
+            noise_w=c.NOISE_POWER,device="cpu",
+        )
+        difference=np.abs(warped.astype(np.float64)-native)
+        return {
+            "engine":"warp_cpu_fp32_link_kernel",
+            "source_sha":PINNED_V1_SHA,
+            "device":"cpu","num_nodes":len(xyz),
+            "max_abs_snr_error_db":float(difference.max()),
+            "mean_abs_snr_error_db":float(difference.mean()),
+            "connectivity_mismatch_count":int(
+                np.count_nonzero(
+                    (warped>=c.SNR_THRESHOLD)!=(native>=c.SNR_THRESHOLD)
+                )
+            ),
+            "example_link_400m_snr_db":float(warped[0,1]),
+            "example_link_800m_snr_db":float(warped[0,2]),
+            "full_warp_mac_parity_status":"NOT_TESTED",
+            "comparison_scope":"no interferers, line-of-sight Friis only",
+        }
     if case=="observations":
         from uav_network.environment.zhang_xue_coop import (
             ZhangXueCooperativeEnv,ZhangXueConfig,
@@ -473,7 +513,7 @@ def run_smoke(case:str,v1_root=None):
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument("--case",choices=("line","blackout","gate5","observations"),default="line")
+    parser.add_argument("--case",choices=("line","blackout","gate5","observations","warp_phy"),default="line")
     parser.add_argument("--json",action="store_true")
     parser.add_argument("--root")
     args=parser.parse_args()
