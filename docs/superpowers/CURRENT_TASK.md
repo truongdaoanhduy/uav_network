@@ -1,3 +1,17 @@
+# 2026-11-25 — Zhang–Xue v3.6 pinned classic V1 SimPy, GitHub backups
+
+Remote branch: experiment/zhang-xue-v36-uavnetsim-simpy-20261125
+Pinned upstream: EdwardS201/UavNetSim-v1 SHA 64bc3a2424f2976418731ee94f9a8fd3e8810b22, NOT newer Sionna.
+Rollback: independent remote v3.4 commit 320bc5b, v3.5 commit 0803334.
+Incremental v3.6 remote commits: 1ea7e1b source bootstrap, fcc3acf native SimPy real MAC/PHY, f92b863 opt-in six-agent MATD3 and HELLO-based actor peer observations.
+Real native test: U0->U1->U2 DATA two hops, reverse E2E ACK, blackout recovery, no ghost Poisson or GaussMarkov jobs; MAC uses original CSMA/CA and original Greedy except staggered initial HELLO (1.5ms per ID).
+Gate5A: real SimPy packet latency 1.635ms vs simplified CPU reference 1.604ms, 2hops in both, PDR 1 in both, delta31us within a 0.5ms exploratory threshold. Native Data PDR counts 1/1 even with E2E ACK. Evidence: docs/superpowers/evidence/zhang_xue_gate5a_real_simpy_vs_reference_20261125.json.
+Six-agent CPU smoke: 1 train episode horizon3 and 1 eval, actor through native SimPy and real MATD3 update; ~27s runtime. No actual E4096 Warp/GPU.
+Critical limits: full Warp-SimPy Gate5 still untested; native Greedy uses global destination coordinates (routing oracle) although actor peer positions are obtained from real HELLO cache; global source config not multi-env safe. Realistic collisions/TTL/retransmission across seeds to be tested and differences reported.
+Next: Warp pairwise Friis parity and multi-seed network Gate5; versioned commits and remote push; no main merge and no GPU training until appropriate gate.
+
+---
+
 # 2026-11-25 — Zhang–Xue v3.5 CPU production-package integration
 
 **Active branch:** experiment/zhang-xue-v35-cpu-integration-20261125

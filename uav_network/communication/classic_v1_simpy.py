@@ -414,7 +414,12 @@ def run_smoke(case:str,v1_root=None):
         "hop_count":native.delivered_packets.get(1,(0,0))[0],
         "receiver_own_origin_count":int(
             belieF.pos[2,0,7]+belieF.neg[2,0,7]),
-        "native_data_pdr":pdr,
+        "native_data_pdr":(
+            len(native.simulator.metrics.datapacket_arrived)/
+            max(native.simulator.metrics.datapacket_generated_num,1)
+        ),
+        "simpy_native_data_generated":native.simulator.metrics.datapacket_generated_num,
+        "simpy_native_data_arrived":len(native.simulator.metrics.datapacket_arrived),
         "native_collision_count":native.simulator.metrics.collision_num,
         "native_sim_time_s":native.now,
         "native_latency_ms":float(native.delivered_packets.get(1,(0,0))[1])/1e3,
@@ -429,17 +434,39 @@ def run_smoke(case:str,v1_root=None):
         reference.run_until(.025)
         reference.send_data(.025,app)
         reference.run_until(.150)
+        ref_at=reference.data_delivery_times_s.get(app.packet_id)
+        ref_latency_ms=(
+            float((ref_at-app.creation_time)*1000)
+            if ref_at is not None else float("nan")
+        )
+        simpy_latency_ms=float(result["native_latency_ms"])
+        delta_ms=(
+            simpy_latency_ms-ref_latency_ms
+            if math.isfinite(ref_latency_ms) else float("nan")
+        )
+        ref_hops=int(reference.data_delivered_hops.get(app.packet_id,0))
+        same_delivery=(len(native.delivered_packets)==len(reference.metrics.data_delivered_ids))
+        same_hops=(int(result["hop_count"])==ref_hops)
+        same_pdr=(abs(pdr-reference.metrics.data_pdr)<1e-12)
+        latency_close=(math.isfinite(delta_ms) and abs(delta_ms)<=0.5)
         result.update({
             "reference_engine":"mini_discrete_event",
-            "reference_pdr":reference.metrics.data_pdr,
-            "simpy_pdr":pdr,
+            "reference_pdr":float(reference.metrics.data_pdr),
+            "simpy_pdr":float(pdr),
+            "simpy_hops":int(result["hop_count"]),
+            "reference_hops":ref_hops,
             "simpy_mac_real":True,
-            "latency_difference_ms":round(
-                (result["native_latency_ms"]-
-                float(reference.metrics.total_airtime_s)*1000),6),
-            "gate5_status":"PARITY_PASS" if
-                (pdr==reference.metrics.data_pdr and len(native.delivered_packets)==1)
-                else "PARITY_FAIL",
+            "simpy_data_latency_ms":simpy_latency_ms,
+            "reference_data_latency_ms":ref_latency_ms,
+            "latency_difference_ms":round(delta_ms,6),
+            "latency_absolute_tolerance_ms":0.5,
+            "full_warp_parity_status":"NOT_TESTED",
+            "gate5_status":(
+                "PARTIAL_SIMPY_REFERENCE_PASS"
+                if same_delivery and same_hops and same_pdr and latency_close
+                else "PARTIAL_SIMPY_REFERENCE_FAIL"
+            ),
+            "gate5_scope":"single fixed 3-node 2-hop, CPU reference vs real v1 SimPy; NOT Warp",
         })
     return result
 

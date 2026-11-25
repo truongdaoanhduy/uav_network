@@ -32,6 +32,9 @@ Construct reproducible 3-node 0–400–800m test topology to demand a **real 2-
 - [x] v3.4 and v3.5 branches individually on GitHub, SHA verified.
 - [x] new v3.6 branch local and classic upstream pinned in separate clean checkout.
 - [x] bootstrap script to retrieve unchanged upstream with exact SHA.
-- [ ] Real SimPy packet tests (actual CSMA/CA + E2E ACK and blackout).
-- [ ] Gate 5 actual comparison vs reference network, with mismatch report.
-- [ ] Push incremental tested commits to v3.6 on GitHub.
+- [x] Real SimPy packet tests (actual CSMA/CA + E2E ACK and blackout), including 2-hop U0 to U1 to U2 and E2E ACK reversed.
+- [x] Gate 5A: real V1 SimPy vs simplified reference on fixed 2-hop (PDR1 vs1, hops2 vs2, DATA delay1.635ms vs1.604ms, mismatch31us). Not full Warp parity.
+- [ ] Gate 5B: Warp PHY matching and multi-topology/multi-seed contention.
+- [ ] Gate 5 full end-to-end SimPy-Warp parity on same 1km scenario.
+- [x] Pushed three incremental tested v3.6 commits: pin, SimPy networking, six-UAV integration.
+- [ ] Publish final Gate5 evidence and limitations.

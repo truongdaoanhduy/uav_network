@@ -68,8 +68,18 @@ def test_real_v1_gate5_comparison_reports_nonidentical_mac_times():
     assert 0 <= got["simpy_pdr"] <= 1
     assert 0 <= got["reference_pdr"] <= 1
     assert got["simpy_mac_real"] is True
-    assert got["gate5_status"] in ("PARITY_PASS","PARITY_FAIL")
+    assert got["gate5_status"] in (
+        "PARTIAL_SIMPY_REFERENCE_PASS","PARTIAL_SIMPY_REFERENCE_FAIL",
+    )
+    assert got["full_warp_parity_status"]=="NOT_TESTED"
+    assert got["simpy_native_data_generated"]==1
+    assert got["simpy_native_data_arrived"]==1
+    assert got["simpy_hops"]==2
+    assert got["reference_hops"]==2
+    assert isinstance(got["reference_data_latency_ms"],float)
+    assert isinstance(got["simpy_data_latency_ms"],float)
     assert isinstance(got["latency_difference_ms"],float)
+    assert abs(got["latency_difference_ms"]) < 0.5
 
 def test_real_classic_v1_backend_runs_actor_env_replay_update():
     """End-to-end real SimPy backend through vanilla MATD3 on CPU only."""

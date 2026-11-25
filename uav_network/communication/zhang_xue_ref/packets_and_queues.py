@@ -204,6 +204,9 @@ class MiniDiscreteEventNet:
         self.tx_power_w = tx_power_w
         self.sinr_threshold_db = sinr_threshold_db
         self.metrics = NetworkMetricsFilter()
+        self.data_delivery_times_s: Dict[int, float] = {}
+        self.data_delivered_hops: Dict[int, int] = {}
+        self._successful_data_hops: Dict[int, int] = {}
         self.watermarks: Dict[Tuple[int, int], int] = {}  # diagnostics, NOT gap-free cumulative ACK
         self.acked_sequences: Dict[Tuple[int, int], set[int]] = {}
         self._seq_counter = 1000
@@ -288,8 +291,17 @@ class MiniDiscreteEventNet:
                     if prev is not None:
                         self.queues[prev].park_for_retry(pkt)
                     continue
+                if isinstance(pkt, SearchDataPacket):
+                    self._successful_data_hops[pkt.packet_id]=(
+                        self._successful_data_hops.get(pkt.packet_id,0)+1
+                    )
                 if node == pkt.dst_id:
                     self.metrics.on_deliver(pkt)
+                    if isinstance(pkt, SearchDataPacket):
+                        self.data_delivery_times_s.setdefault(pkt.packet_id,now)
+                        self.data_delivered_hops.setdefault(
+                            pkt.packet_id,self._successful_data_hops[pkt.packet_id]
+                        )
                     if isinstance(pkt, SearchDataPacket):
                         shared_gain += self.belief.merge_packet(node, pkt.entries)
                         self._seq_counter += 1
