@@ -1,3 +1,11 @@
+# 2026-11-25 -- v4.6 poisoned reverse prevents stale distributed route loops
+
+Branch experiment/zhang-xue-v46-dv-poisoned-reverse-20261125, parent v4.5 commit1020f2d. New TDD RED regression proved Warp DV could create loop 1→0→1 after 1↔2 HELLO expiry because 0 re-advertised a stale route to 1 that depended on 1. Implemented source-neighbor split horizon with poisoned reverse on physically received DV only (unreachable INF when sender next-hop equals DV receiver). 3 new tests including E4096 and old static multi-hop tests pass. See docs/superpowers/NETWORK_V46_DV_POISONED_REVERSE_20261125.md.
+
+Still not full UavNetSim/CUDA Gate5, no MATD3/MASAC training launched. Keep main untouched.
+
+---
+
 # 2026-11-25 — v4.5 sampled real 1km moving network, truth-only diagnostic reward
 
 Branch experiment/zhang-xue-v45-sampled-moving-network-20261125, parent v4.4 SHA a180130. New pilot uses existing 6 UAV/10 target/2 no-fly/2 blackout Zhang-Xue scenario sampler, Warp safe movement and 200-step horizon, per-radio MAC HELLO discovery refreshed every four steps, actor-local source evidence and receiver-origin DS, persistent queues and true reverse E2E APP ACK watermark, with correct accounting for multiple DATA arriving at one receiver or multiple ACKs to one source. E128x200 seed44: mean coverage79.207%, true confirmation964/1280, false36, DATA admitted66416, received57287, ACK attempted57287 with 1341 queue-full rejections and 50723 valid E2E watermark updates, 16212 radio blackout UAV-steps, no unsafe final positions/receiver-leak. E4096x4 seed53 also ran. See docs/superpowers/NETWORK_V45_SAMPLED_1KM_MOVING_MAC_DS_ACK_20261125.md and evidence JSON.

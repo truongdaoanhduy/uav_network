@@ -3,7 +3,9 @@
 This module has no access to UAV ground truth, map obstacles, coordinates or
 global active PHY links. A path can only be learned after actual received
 HELLO packets on both directions, followed by an actual successfully
-received advertised distance vector. Stale HELLO and DV advertisements expire.
+received advertised distance vector. Stale HELLO and DV advertisements expire. A source advertises unreachable
+for a destination if its next hop is the very peer receiving the distance
+vector, which prevents two-node count-to-infinity after a link failure.
 
 The link-layer simulator is responsible for determining HELLO/DV successes.
 The route module never assumes a neighbor can be heard from its coordinates.
@@ -53,6 +55,7 @@ def _receive_distance_vector(
     now:wp.array(dtype=wp.int64,ndim=1),
     heard:wp.array(dtype=wp.int64,ndim=3),
     sender_hop:wp.array(dtype=wp.int32,ndim=3),
+    sender_next_hop:wp.array(dtype=wp.int32,ndim=3),
     adv:wp.array(dtype=wp.int32,ndim=4),
     adv_stamp:wp.array(dtype=wp.int64,ndim=3),
     hello_ttl:int,
@@ -66,7 +69,14 @@ def _receive_distance_vector(
     if (now[e]-heard[e,rx,sender]>wp.int64(hello_ttl) or
         now[e]-heard[e,sender,rx]>wp.int64(hello_ttl)):
         return
-    adv[e,rx,sender,dst]=sender_hop[e,sender,dst]
+    # Split horizon with poisoned reverse. Source cannot advertise
+    # a path to a neighbor if that path already relies on the neighbor:
+    # otherwise two nodes can route to each other after a link expires.
+    # The physical DV frame's success is still the entry barrier.
+    advertised=sender_hop[e,sender,dst]
+    if sender_next_hop[e,sender,dst]==rx:
+        advertised=wp.int32(INF)
+    adv[e,rx,sender,dst]=advertised
     adv_stamp[e,rx,sender]=now[e]
 
 
@@ -196,7 +206,7 @@ class ZhangXueWarpDistanceVector:
         dst,good=self._fields(receivers,successful)
         time=self._stamp(now_us)
         wp.launch(_receive_distance_vector,dim=(self.num_envs,N,N),inputs=[
-            dst,good,time,self.heard,self.hop,
+            dst,good,time,self.heard,self.hop,self.next_hop,
             self.adv,self.adv_stamp,self.hello_ttl_us,
         ],device=self.device)
         self._compute()
