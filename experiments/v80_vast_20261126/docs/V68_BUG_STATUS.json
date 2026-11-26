@@ -1,0 +1,140 @@
+{
+  "version": "6.8",
+  "source": "docs/V68_AUDIT_VI.md",
+  "total_findings": 16,
+  "definitions": {
+    "FIXED_CPU_TESTED": "Source patched with local CPU regression; not GPU validation",
+    "OPEN_BLOCKER": "Prevents 4096-env Warp training/paper claims",
+    "OPEN_RESEARCH_VALIDATION": "Requires evidence or matched ablation before publication"
+  },
+  "issues": [
+    {
+      "id": "B01",
+      "priority": "P0",
+      "status": "OPEN_BLOCKER",
+      "component": "NVIDIA Warp",
+      "cause_and_evidence": "`gpu/runtime_v65.py`: `WarpCompressedRadioNetwork` mới cấp phát array; không có `step()` xử lý packet/ACK/TTL. SoA bytes/env là schema, không phải simulator hoạt động.",
+      "resolution_or_next_gate": "BLOCKED ở `q1_gpu_preflight.py`; viết Warp packet-event kernel end-to-end, đối chiếu trace CPU→GPU mới được train."
+    },
+    {
+      "id": "B02",
+      "priority": "P0",
+      "status": "OPEN_BLOCKER",
+      "component": "Warp data-mule VRAM",
+      "cause_and_evidence": "Compressed SoA không chứa `ack_wm_origin_pos/neg/ts` [src,dst,origin,cell]. CPU dùng 2×uint16+int32 = 8 byte/phần tử. Với 6 UAV/400 cell: 6×7×6×400×8=806.400 B/env thiếu.",
+      "resolution_or_next_gate": "Chưa sửa GPU; cần thiết kế lại state sparse/per-origin, kiểm thử no-double-count và đo `torch.cuda.max_memory_allocated`, `nvidia-smi`, Warp allocation thật."
+    },
+    {
+      "id": "B03",
+      "priority": "P0",
+      "status": "OPEN_BLOCKER",
+      "component": "UavNetSim event parity",
+      "cause_and_evidence": "CPU dùng queue64, Warp 32, UavNetSim gốc queue200; CPU đánh giá interference khác time-overlap-weighting của upstream; Sionna RT không được port.",
+      "resolution_or_next_gate": "Không tuyên bố \"khớp hoàn toàn\". Replay cùng packet seed, channel, CCA, backoff, ACK, retry, TTL; so traces, PDR, E2E-delay, collision/queue."
+    },
+    {
+      "id": "B04",
+      "priority": "P1",
+      "status": "FIXED_CPU_TESTED",
+      "component": "Scaling path-vector",
+      "cause_and_evidence": "`communication/delivery.py` dùng `MAX_HOPS=6` ngay cả khi N=8..30; hợp lệ 7-hop bị drop.",
+      "resolution_or_next_gate": "Thay bằng `self.radio_n - 1`, giữ N=6 bitwise; test v6.8 bao gồm 8 UAV và 6 UAV. Chỉ xác minh route logic, chưa xác minh 7-hop full packet path."
+    },
+    {
+      "id": "B05",
+      "priority": "P1",
+      "status": "FIXED_CPU_TESTED",
+      "component": "AoI time units",
+      "cause_and_evidence": "`dt_s` có thể là 0.5 nhưng `t_step_s=self.t+1`, generation timestamp và mission age vẫn là số bước như giây.",
+      "resolution_or_next_gate": "Config chỉ chấp nhận 1.0s tới khi thuật toán đổi toàn bộ clock/AoI sang seconds; test nhận diện sai đơn vị."
+    },
+    {
+      "id": "B06",
+      "priority": "P1",
+      "status": "FIXED_CPU_TESTED",
+      "component": "AoI UQ8.8",
+      "cause_and_evidence": "`encode_uq88` clamp ở ~255.996 evidence counts, trong khi config cho phép `eta=0` hoặc quá nhỏ suốt 900 step.",
+      "resolution_or_next_gate": "Kiểm tra bound \\(\\sum_{j=0}^{H-1}e^{-\\eta j}\\le 65535/256\\); báo lỗi sớm thay vì im lặng mất bằng chứng."
+    },
+    {
+      "id": "B07",
+      "priority": "P1",
+      "status": "OPEN_RESEARCH_VALIDATION",
+      "component": "Reward & mission",
+      "cause_and_evidence": "`r_gcs_aoi` thưởng *một lần lúc xác nhận TP* ở `environment/transition.py`; metric mean GCS mapwide AoI là censored convention, không phản ánh refresh dài hạn.",
+      "resolution_or_next_gate": "Giữ baseline làm freshness-at-confirmation, không viết luận văn là continuous AoI minimization. Nếu muốn long-term AoI, cần đổi objective riêng + matched ablation."
+    },
+    {
+      "id": "B08",
+      "priority": "P1",
+      "status": "OPEN_RESEARCH_VALIDATION",
+      "component": "Belief DS / false positives",
+      "cause_and_evidence": "`ds_mf=ds_me=0.80`, `confirm_th=0.90`, `pd=0.85`, `pf=0.03` là các giả định khác mô hình sensor mà paper khác có thể dùng. `ds_fusion_mode=sum`+AoI UQ8.8 không phải tái lập y hệt Zhang 2024.",
+      "resolution_or_next_gate": "Thử ROC/precision–recall và false confirmation với threshold 0.90/0.99, fixed/calibrated DS; báo rõ mới là proposed extension."
+    },
+    {
+      "id": "B09",
+      "priority": "P1",
+      "status": "OPEN_RESEARCH_VALIDATION",
+      "component": "Metrics",
+      "cause_and_evidence": "Runner `run_scenario.py` CPU chỉ báo `gcs_tp_confirmed`, `delivered_cell_coverage_pct` (ô có dữ liệu ở GCS), năng lượng/AoI; không có full per-episode discovery%, true area coverage, discovery AUC cho kịch bản mới.",
+      "resolution_or_next_gate": "Cần định nghĩa riêng target discovery (local DS), area observed, GCS delivery, time-to-confirm, AoI/PDR; xuất per-episode + bootstrap CI trước paper. Không dùng delivered-cell coverage thay map coverage."
+    },
+    {
+      "id": "B10",
+      "priority": "P1",
+      "status": "OPEN_RESEARCH_VALIDATION",
+      "component": "Benchmark map 1/2/3km",
+      "cause_and_evidence": "Hình học 2/3km tỷ lệ XY nhưng chiều cao tòa nhà, altitude và RF distance chưa tỷ lệ; không phải những benchmark \"cùng độ khó\".",
+      "resolution_or_next_gate": "So nhóm geometry-similar và mission-realistic riêng, kiểm soát mật độ target, FoV/altitude, seed, số UAV. Quét link SINR không phải PDR."
+    },
+    {
+      "id": "B11",
+      "priority": "P1",
+      "status": "OPEN_RESEARCH_VALIDATION",
+      "component": "No-send/peer trade-off",
+      "cause_and_evidence": "`lambda_b=0`, `w_p2p=0` có thể khiến `NO_SEND` ít hữu dụng ở low traffic; `SHARE_PEERS` truyền multi-origin nhưng policy RL chưa chứng minh gain.",
+      "resolution_or_next_gate": "Giữ ON/OFF và learned-vs-always-send baselines; đo offered traffic, collision, PDR, queue, delivered AoI; bỏ action nếu ablation không có gain có ý nghĩa."
+    },
+    {
+      "id": "B12",
+      "priority": "P1",
+      "status": "OPEN_RESEARCH_VALIDATION",
+      "component": "RL convergence/validity",
+      "cause_and_evidence": "Gate MATD3/MASAC chỉ 4 transitions + 1 optimizer update, không có 4096 env GPU hay checkpoint hội tụ. `uav_network/experiments` có metric helper nhưng chưa nối đầy đủ vào scenario.",
+      "resolution_or_next_gate": "Cần train nhiều seed, eval 30–100 ep/seed, phương pháp kiểm định thống kê, baseline đối chứng, kiểm tra mask và action saturation."
+    },
+    {
+      "id": "B13",
+      "priority": "P1",
+      "status": "OPEN_RESEARCH_VALIDATION",
+      "component": "Energy/safety",
+      "cause_and_evidence": "UAV động học 2D ở altitude cố định, mô hình pin Zeng steady-level, braking shield xấp xỉ; `battery_termination_mode=all_depleted` thay nghĩa mission so với `any_depleted`.",
+      "resolution_or_next_gate": "Đánh giá safety violation, interventions, endurance theo tốc độ; không trộn termination modes giữa algorithms."
+    },
+    {
+      "id": "B14",
+      "priority": "P2",
+      "status": "OPEN_RESEARCH_VALIDATION",
+      "component": "Communication snapshot AoI",
+      "cause_and_evidence": "UQ8.8 fixed-point và gen timestamp theo giây có lượng tử hóa, chưa chứng minh tương đương toàn bộ phép đo Xue 2026/packet AoI trong trường hợp collision/out-of-order/TTL.",
+      "resolution_or_next_gate": "So reference offline per-measurement theo seed; event trace cho stale/duplicate/retries before claiming exact Eq.9–10."
+    },
+    {
+      "id": "B15",
+      "priority": "P2",
+      "status": "OPEN_RESEARCH_VALIDATION",
+      "component": "CPU↔Warp step clock",
+      "cause_and_evidence": "`network_substeps` mặc định 1: MAC mô phỏng một giây khi vị trí không đổi, sau đó UAV mới di chuyển. Substeps=2 cập nhật midpoint nhưng chưa có GPU parity.",
+      "resolution_or_next_gate": "Ablation 1 vs 2 vs finer substeps ở tốc độ cao; đo ảnh hưởng route/PDR/safety; không tự nâng fidelity mà thiếu benchmark."
+    },
+    {
+      "id": "B16",
+      "priority": "P2",
+      "status": "OPEN_RESEARCH_VALIDATION",
+      "component": "Source/package hygiene",
+      "cause_and_evidence": "ZIP v6.7 có source + reports, không có full raw pytest/JUnit logs.",
+      "resolution_or_next_gate": "Thêm `scripts/maintenance/run_qa_bundle.py`, `setup.sh --qa`, `outputs/qa_evidence/` vào ZIP này; SHA manifest giữ source-only."
+    }
+  ]
+}

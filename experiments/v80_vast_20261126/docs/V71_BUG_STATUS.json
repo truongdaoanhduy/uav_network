@@ -1,0 +1,37 @@
+{
+  "version": "v7.1",
+  "overall_status": "CPU_VERIFIED_GPU_BLOCKED",
+  "cuda_executed": false,
+  "full_rl_warp_integrated": false,
+  "v70_fix_verdicts": {
+    "V70-01_warp_rx_tx_node": "CORRECT_SOURCE_CUDA_UNVERIFIED",
+    "V70-02_phy_cca_default": "CORRECT",
+    "V70-03_e2e_ack_pending_slot": "PARTIAL_FIXED_IN_V71",
+    "V70-04_warp_event_overflow": "PARTIAL_FIXED_IN_V71",
+    "V70-05_06_warp_reset_numpy": "PARTIAL_FIXED_IN_V71",
+    "V70-07_input_validation": "PARTIAL_FIXED_IN_V71",
+    "V70-08_gpu_memory_guard": "PARTIAL_FIXED_IN_V71",
+    "V70-09_cuda_smoke_6uav": "PARTIAL_FIXED_IN_V71"
+  },
+  "v71_new_fixes_implemented": [
+    "V71-01_warp_store_carry_forward_ttl_e2e_priority",
+    "V71-02_warp_exponential_backoff_and_max_retx_parity",
+    "V71-03_warp_half_duplex_rx_corrupt_and_hello_revoke",
+    "V71-04_warp_uint32_bitshift_ub_and_pending_dirty_mask",
+    "V71-05_warp_phy_row_ownership_race_free",
+    "V71-06_warp_runtime_cuda_mem_guard_bool_and_host_sync_flag",
+    "V71-07_cuda_gate_delivery_assertions_and_t4_15gib_budget",
+    "V71-08_cpu_aggregate_cca_and_route_revocation",
+    "V71-09_cpu_queue_coalescing_and_datamule_origin_fairness",
+    "V71-10_gcs_fusion_clock_alignment_fp_single_penalty_q1_metrics",
+    "V71-11_ewma_nonnegative_r_loc_team_reward_scale_and_cont_aoi_flags",
+    "V71-12_decentralized_compact3_peer_select_option",
+    "V71-13_safety_shield_1m_braking_pa_power_and_scalable_tx_decoder"
+  ],
+  "remaining_blockers": [
+    "BLOCKED_NO_CUDA_HOST: Requires PyTorch + warp-lang + NVIDIA T4 CUDA host",
+    "gpu_cpu_packet_event_parity_unverified",
+    "full_rl_warp_env_step_belief_obs_not_yet_fused_on_gpu",
+    "uavnetsim_simpy_statistical_trace_parity_not_run"
+  ]
+}
