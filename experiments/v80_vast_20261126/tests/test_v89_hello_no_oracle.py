@@ -36,8 +36,9 @@ def test_hello_provenance_and_peer_oracle_leakage(device):
     received=wp.to_torch(w.network.data["hello_rx_at_us"])
     received[0,rx,:]=-1
     w._observe()
-    missing=w.buffers["obs"].numpy()[0,rx,514:549]
-    assert (missing==0.0).all()
+    missing=w.buffers["obs"].numpy()[0,rx,514:549].reshape(5,7)
+    assert (missing[:,:5]==0.0).all()
+    assert (missing[:,5:]==1.0).all()
 
 def test_hello_blackout_does_not_create_oracle_peer_state():
     p=GPUWorldV80Params.from_yaml(CONFIG,envs=1,device="cpu",seed=11)

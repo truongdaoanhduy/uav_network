@@ -129,6 +129,23 @@ if HAS_WARP:
         return m2
 
     @wp.func
+    def _cand_phys_peers_v90(
+        e: int, u: int, vx: float, vy: float,
+        pos: wp.array3d(dtype=wp.float32), v_safe: wp.array3d(dtype=wp.float32),
+        battery: wp.array2d(dtype=wp.float32), safe_d: float, dt_s: float,
+    ) -> int:
+        px = pos[e, u, 0]
+        py = pos[e, u, 1]
+        for j in range(N_UAV):
+            if j == u:
+                continue
+            ux = 0.0 if battery[e, j] <= 0.0 else v_safe[e, j, 0]
+            uy = 0.0 if battery[e, j] <= 0.0 else v_safe[e, j, 1]
+            if _pair_physical_safe_v80(px, py, vx, vy, pos[e, j, 0], pos[e, j, 1], ux, uy, safe_d, dt_s) == 0:
+                return 0
+        return 1
+
+    @wp.func
     def _cand_feasible_v80(
         e: int, u: int, vx: float, vy: float, check_peers: int,
         pos: wp.array3d(dtype=wp.float32), v_safe: wp.array3d(dtype=wp.float32),
@@ -166,6 +183,9 @@ if HAS_WARP:
         best_cost = float(1.0e30)
         best_vx = v_brk[0]
         best_vy = v_brk[1]
+        pfb_cost = float(1.0e30)
+        pfb_vx = v_brk[0]
+        pfb_vy = v_brk[1]
         gfb_cost = float(1.0e30)
         gfb_vx = v_brk[0]
         gfb_vy = v_brk[1]
@@ -180,6 +200,10 @@ if HAS_WARP:
             gfb_cost = gbx * gbx + gby * gby
             gfb_vx = c0x
             gfb_vy = c0y
+            if _cand_phys_peers_v90(e, u, c0x, c0y, pos, v_safe, battery, safe_d, dt_s) != 0:
+                pfb_cost = gfb_cost
+                pfb_vx = c0x
+                pfb_vy = c0y
         if _cand_feasible_v80(e, u, c0x, c0y, check_peers, pos, v_safe, battery, b, n_b, safe_d, a_max) != 0:
             dx = c0x - vnx
             dy = c0y - vny
@@ -191,6 +215,10 @@ if HAS_WARP:
             gfb_cost = 0.0
             gfb_vx = v_brk[0]
             gfb_vy = v_brk[1]
+            if _cand_phys_peers_v90(e, u, v_brk[0], v_brk[1], pos, v_safe, battery, safe_d, dt_s) != 0:
+                pfb_cost = 0.0
+                pfb_vx = v_brk[0]
+                pfb_vy = v_brk[1]
         if _cand_feasible_v80(e, u, v_brk[0], v_brk[1], check_peers, pos, v_safe, battery, b, n_b, safe_d, a_max) != 0:
             dx = v_brk[0] - vnx
             dy = v_brk[1] - vny
@@ -214,6 +242,10 @@ if HAS_WARP:
                         gfb_cost = gc
                         gfb_vx = vc[0]
                         gfb_vy = vc[1]
+                    if gc < pfb_cost and _cand_phys_peers_v90(e, u, vc[0], vc[1], pos, v_safe, battery, safe_d, dt_s) != 0:
+                        pfb_cost = gc
+                        pfb_vx = vc[0]
+                        pfb_vy = vc[1]
                 if _cand_feasible_v80(e, u, vc[0], vc[1], check_peers, pos, v_safe, battery, b, n_b, safe_d, a_max) != 0:
                     dx = vc[0] - vnx
                     dy = vc[1] - vny
@@ -222,8 +254,11 @@ if HAS_WARP:
                         best_cost = cost
                         best_vx = vc[0]
                         best_vy = vc[1]
-        if best_cost >= 1.0e29 and check_peers != 0 and gfb_cost < 1.0e29:
-            return wp.vec2(gfb_vx, gfb_vy)
+        if best_cost >= 1.0e29 and check_peers != 0:
+            if pfb_cost < 1.0e29:
+                return wp.vec2(pfb_vx, pfb_vy)
+            if gfb_cost < 1.0e29:
+                return wp.vec2(gfb_vx, gfb_vy)
         return wp.vec2(best_vx, best_vy)
 
     @wp.kernel

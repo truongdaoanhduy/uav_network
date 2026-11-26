@@ -218,6 +218,8 @@ def kinematic_safety_shield(
                 cands.append(vc)
         # Sort by distance to desired v_nom[u]
         cands.sort(key=lambda vc: float(np.dot(vc - v_nom[u], vc - v_nom[u])))
+        phys_fallback = None
+        phys_fb_dist2 = float("inf")
         geom_fallback = None
         geom_fb_dist2 = float("inf")
         for vc in cands:
@@ -228,17 +230,26 @@ def kinematic_safety_shield(
                 if d_brk < geom_fb_dist2:
                     geom_fb_dist2 = d_brk
                     geom_fallback = vc
+                ok_phys = True
                 ok_peers = True
                 for j in range(n_uav):
                     if j == u:
                         continue
-                    if not _pair_safe_with_braking(u, j, vc, v_safe[j]):
+                    if _pair_min_sep(u, j, vc, v_safe[j]) < uav_safe_distance_m - 1e-6:
+                        ok_phys = False
                         ok_peers = False
                         break
+                    if not _pair_safe_with_braking(u, j, vc, v_safe[j]):
+                        ok_peers = False
+                if ok_phys and d_brk < phys_fb_dist2:
+                    phys_fb_dist2 = d_brk
+                    phys_fallback = vc
                 if not ok_peers:
                     continue
             return vc
-        # V83: preserve geometry-safe braking fallback (closest to v_brake) before raw v_brake.
+        # V90 Tier-2A: geom-safe + physically pair-safe closest to v_brake before Tier-2B.
+        if phys_fallback is not None:
+            return phys_fallback
         return geom_fallback if geom_fallback is not None else v_brake
 
     # Pass 1: Geometry safety per UAV

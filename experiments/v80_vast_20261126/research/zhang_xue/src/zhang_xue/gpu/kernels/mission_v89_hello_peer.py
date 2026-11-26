@@ -56,8 +56,12 @@ if HAS_WARP:
                     best = peer
                     best_d2 = d2
             offset = 514 + rank * 7
-            for k in range(7):
+            for k in range(5):
                 obs[e, u, offset + k] = 0.0
+            # V90: missing/expired peer has max staleness (age=1.0) and max distance (1.0),
+            # never 0.0 which mimics a 0-second, 0-meter collision in plain MLP actors.
+            obs[e, u, offset + 5] = 1.0
+            obs[e, u, offset + 6] = 1.0
             if best >= 0:
                 used = used | (1 << best)
                 obs[e, u, offset + 0] = (state.hello_rx_pose[e, u, best, 0] - x) / 1000.0
