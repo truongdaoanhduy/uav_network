@@ -81,12 +81,12 @@ class TestV75AuditFixes(unittest.TestCase):
     def test_v75_3_dynamic_q_cap_and_int8_ceiling_guard(self):
         b32 = backing_bytes_per_environment_v67(6, 20, q_cap=32)
         b64 = backing_bytes_per_environment_v67(6, 20, q_cap=64)
-        self.assertEqual(b32, 481_141)
+        self.assertEqual(b32, 482_373)
         self.assertEqual(b64 - b32, 116_256)
-        self.assertEqual(b64, 597_397)
+        self.assertEqual(b64, 598_629)
         # Preflight accounts for q_cap=64
         fit = assert_network_allocation_fits(4096, 6, 20, free_bytes=16 * 1024**3, q_cap=64)
-        self.assertEqual(fit["estimated_network_bytes"], 4096 * 597_397)
+        self.assertEqual(fit["estimated_network_bytes"], 4096 * 598_629)
         # Ceiling guard protects int8 active_slot
         with self.assertRaises(ValueError):
             backing_bytes_per_environment_v67(6, 20, q_cap=Q_V67_MAX + 1)

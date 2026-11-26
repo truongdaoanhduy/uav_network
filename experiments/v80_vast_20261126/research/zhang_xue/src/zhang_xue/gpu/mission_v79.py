@@ -45,6 +45,8 @@ class GPUWorldV79Params:
     ds_mf: float = 0.80
     ds_me: float = 0.80
     ds_aoi_eta: float = 0.02
+    static_raw_count: bool = False
+    obs_schema_v2: bool = False
     confirm_th: float = 0.90
     ds_uncertainty_ceiling: float = 0.20
     r_tp: float = 25.0
@@ -86,6 +88,12 @@ class GPUWorldV79Params:
             raise ValueError("max_events must lie within [1, 1000000]")
         if not math.isfinite(self.ds_aoi_eta) or self.ds_aoi_eta < 0.0:
             raise ValueError("ds_aoi_eta must be finite and nonnegative")
+        if type(self.obs_schema_v2) is not bool:
+            raise ValueError("obs_schema_v2 must be boolean")
+        if type(self.static_raw_count) is not bool:
+            raise ValueError("static_raw_count must be boolean")
+        if self.static_raw_count and self.ds_aoi_eta != 0.0:
+            raise ValueError("raw uint16 counts cannot be decayed; AoI uses timestamps")
 
     @classmethod
     def from_scenario(cls, scenario, *, envs: int = 4, device: str = "cpu", seed: int = 44, **overrides) -> "GPUWorldV79Params":
@@ -138,6 +146,8 @@ class GPUWorldV79Params:
             pd=float(scenario.pd), pf=float(scenario.pf),
             ds_mf=float(scenario.ds_mf), ds_me=float(scenario.ds_me),
             ds_aoi_eta=eta,
+            static_raw_count=(scenario.static_evidence_mode == "raw_u16_count"),
+            obs_schema_v2=bool(scenario.obs_schema_v2),
             confirm_th=float(scenario.confirm_th),
             ds_uncertainty_ceiling=float(scenario.ds_uncertainty_ceiling),
             r_tp=float(scenario.r_tp), r_fp=float(scenario.r_fp),
@@ -186,6 +196,7 @@ class WarpParallelMissionV79:
             enable_data_mule=params.enable_data_mule,
             decentralized_peer_select=params.decentralized_peer_select,
             aoi_ewma=True, aoi_eta=params.ds_aoi_eta,
+            enable_peer_telemetry=params.obs_schema_v2,
         )
         specs = {
             "positions": ((params.envs, 7, 3), wp.float32),
@@ -209,8 +220,9 @@ class WarpParallelMissionV79:
             "safety_reason": ((params.envs,), wp.uint8),
             "unsafe_mask": ((params.envs, 6), wp.uint8),
             "reward": ((params.envs,), wp.float32),
+            "reward_components": ((params.envs, 8), wp.float32),
             "intervention": ((params.envs,), wp.float32),
-            "obs": ((params.envs, 6, 514), wp.float32),
+            "obs": ((params.envs, 6, 514 + (35 if params.obs_schema_v2 else 0)), wp.float32),
             "mask": ((params.envs, 6, 3), wp.uint8),
         }
         self.buffers = {k: wp.zeros(sh, dtype=dt, device=params.device) for k, (sh, dt) in specs.items()}
@@ -249,9 +261,10 @@ class WarpParallelMissionV79:
             15, float(self.params.e_max_j), float(self.params.uav_alt_m), int(self.params.seed),
         ])
         self._launch(_clear_masked_diagnostics_v79, self.envs, [
-            done_wp, w["termination_reason"], w["safety_reason"],
+            done_wp, w["termination_reason"], w["safety_reason"], w["reward_components"],
         ])
         self._update_phy()
+        self._capture_hello_offers()
         # Masked HELLO warmup: ONLY reset worlds advance 600ms; running worlds stay frozen!
         self._launch(step_v67_masked, self.envs, [
             n.state, n.dims, done_wp, 600_000, int(self.params.max_events),
@@ -272,6 +285,14 @@ class WarpParallelMissionV79:
     def auto_reset_gpu(self):
         """Zero host-sync selective reset using the on-device `done` buffer."""
         return self._reset_with_device_mask(self.buffers["done"])
+
+    def _capture_hello_offers(self):
+        if not self.params.obs_schema_v2:
+            return
+        from zhang_xue.gpu.kernels.mission_v89_hello_peer import capture_hello_offer_v89
+        self._launch(capture_hello_offer_v89, (self.envs, 7), [
+            self.network.state, self.buffers["positions"], self.buffers["velocities"],
+        ])
 
     def _update_phy(self):
         from zhang_xue.gpu.kernels.phy_v67 import compute_channel_gain_v67
@@ -297,7 +318,13 @@ class WarpParallelMissionV79:
         self._launch(_observe_map_v79, (self.envs, 6, 100), [
             n.state, w["positions"], w["episode_step"], w["obs"],
             self.logmf, self.logme, float(p.ds_aoi_eta), float(p.t_ref_s),
+            int(p.static_raw_count),
         ])
+        if p.obs_schema_v2:
+            from zhang_xue.gpu.kernels.mission_v89_hello_peer import observe_hello_peers_v89
+            self._launch(observe_hello_peers_v89, (self.envs, 6), [
+                n.state, w["positions"], w["velocities"], w["obs"], float(p.v_max_mps),
+            ])
 
     def step(self, continuous, discrete):
         from zhang_xue.gpu.kernels.inject_v67 import resolve_compact3_v67, inject_v67
@@ -310,6 +337,7 @@ class WarpParallelMissionV79:
             raise ValueError("act shape should be (E,6,2) and (E,6)")
         self._launch(resolve_compact3_v67, (self.envs, 6), [n.state, n.dims, discrete, w["pos_xy"], n._dest_buf])
         self._launch(inject_v67, (self.envs, 6), [n.state, n.dims, n._dest_buf])
+        self._capture_hello_offers()
         n.step(duration_us=1_000_000, max_events=p.max_events, tx_power_w=p.tx_power_w,
                cca_threshold_w=self.cca_w, noise_w=p.noise_power_w, snr_threshold=self.snr_lin,
                check_host_guards=False)
@@ -325,12 +353,14 @@ class WarpParallelMissionV79:
             n.state, w["positions"], w["truth"], w["episode_step"], w["episode_id"],
             w["battery"], w["unsafe_mask"], w["failed"], self.build_wp, len(self.buildings),
             int(p.seed), float(p.pd), float(p.pf), float(p.ds_aoi_eta),
+            int(p.static_raw_count),
         ])
         self._launch(_reward_v79, self.envs, [
             n.state, w["truth"], w["team_u_prev"], w["gcs_tp"], w["gcs_fp"], w["gcs_fp_ever"],
             w["battery"], w["episode_step"], w["failed"], w["intervention"], w["reward"],
-            w["terminated"], w["truncated"], w["done"], w["termination_reason"], self.logmf, self.logme,
-            float(p.ds_aoi_eta), float(p.confirm_th), float(p.ds_uncertainty_ceiling),
+            w["reward_components"], w["terminated"], w["truncated"], w["done"], w["termination_reason"], self.logmf, self.logme,
+            float(p.ds_aoi_eta), int(p.static_raw_count),
+            float(p.confirm_th), float(p.ds_uncertainty_ceiling),
             float(p.r_tp), float(p.r_fp), float(p.fp_hold), int(p.enable_fp_unlatch),
             float(p.safety_failure_penalty), float(p.w_aoi), float(p.w_loc_team),
             float(p.w_blocked_motion), float(p.lambda_b), float(p.continuous_aoi_penalty_w),

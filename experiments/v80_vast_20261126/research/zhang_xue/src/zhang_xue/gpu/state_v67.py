@@ -40,6 +40,7 @@ CW_MIN: int = 31
 MAX_RETX: int = 5
 PKT_TTL_US: int = 10_000_000
 HELLO_INT_US: int = 500_000
+HELLO_V89_TX_US: int = 440  # 360us legacy + 20B telemetry at 2Mbps = 80us
 ROUTE_TTL_US: int = 2_000_000
 
 if HAS_WARP:
@@ -59,6 +60,7 @@ if HAS_WARP:
         scalable_wire: wp.int32
         enable_data_mule: wp.int32
         enable_peer: wp.int32
+        enable_peer_telemetry: wp.int32
         decentralized_peer_select: wp.int32
         aoi_ewma: wp.int32
         aoi_eta: wp.float32
@@ -90,6 +92,11 @@ if HAS_WARP:
         hello_dv_hop: wp.array3d(dtype=wp.int8)
         hello_dv_dist: wp.array3d(dtype=wp.int8)
         hello_dv_mask: wp.array3d(dtype=wp.uint32)
+        hello_offer_pose: wp.array3d(dtype=wp.float32)
+        hello_active_pose: wp.array3d(dtype=wp.float32)
+        hello_active_at_us: wp.array2d(dtype=wp.int32)
+        hello_rx_pose: wp.array4d(dtype=wp.float32)
+        hello_rx_at_us: wp.array3d(dtype=wp.int32)
         active_slot: wp.array2d(dtype=wp.int8)
         next_hop: wp.array2d(dtype=wp.int8)
         tx_pkt_id: wp.array2d(dtype=wp.int32)

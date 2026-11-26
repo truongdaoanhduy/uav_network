@@ -47,6 +47,10 @@ if HAS_WARP:
             s.deadline[e, r] = NEVER_US
             s.hello_due[e, r] = int((rng >> wp.uint32(16)) % wp.uint32(20000))
             s.hello_pending[e, r] = wp.uint8(0)
+            s.hello_active_at_us[e, r] = -1
+            for k in range(4):
+                s.hello_offer_pose[e, r, k] = 0.0
+                s.hello_active_pose[e, r, k] = 0.0
             s.active_slot[e, r] = wp.int8(-1)
             s.next_hop[e, r] = wp.int8(-1)
             s.tx_pkt_id[e, r] = -1
@@ -76,6 +80,9 @@ if HAS_WARP:
                 s.hello_dv_hop[e, r, d] = wp.int8(-1)
                 s.hello_dv_dist[e, r, d] = wp.int8(127)
                 s.hello_dv_mask[e, r, d] = wp.uint32(0)
+                s.hello_rx_at_us[e, r, d] = -1
+                for k in range(4):
+                    s.hello_rx_pose[e, r, d, k] = 0.0
                 s.delivered_ptr[e, r, d] = wp.uint8(0)
                 s.delivered_ack_ptr[e, r, d] = wp.uint8(0)
                 for k in range(16):

@@ -69,7 +69,7 @@ class TestV69CpuLogicAndB09Metrics(unittest.TestCase):
 
 class TestV69WarpModulesAndParity(unittest.TestCase):
     def test_v67_warp_memory_and_executable_methods(self):
-        self.assertEqual(backing_bytes_per_environment_v67(6, 20), 481_141)
+        self.assertEqual(backing_bytes_per_environment_v67(6, 20), 482_373)
         self.assertEqual(WarpCompressedRadioNetworkV67.active_layout_id(), "v67_datamule_compressed")
         for m in ("reset", "update_phy_from_positions", "sense_batch", "inject_compact3", "step", "snapshot"):
             self.assertTrue(callable(getattr(WarpCompressedRadioNetworkV67, m, None)))

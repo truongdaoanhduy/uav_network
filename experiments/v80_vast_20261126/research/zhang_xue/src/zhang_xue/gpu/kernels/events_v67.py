@@ -15,6 +15,7 @@ from zhang_xue.gpu.kernels.mac_v67 import (
 from zhang_xue.gpu.state_v67 import (
     HAS_WARP,
     HELLO_INT_US,
+    HELLO_V89_TX_US,
     NEVER_US,
     PKT_DATA,
     PKT_E2E_ACK,
@@ -117,7 +118,7 @@ if HAS_WARP:
         slot = int(s.active_slot[e, tx])
         is_hello = 1 if slot < 0 else 0
         nh = int(s.next_hop[e, tx])
-        dur = 360 if is_hello == 1 else (360 if int(s.q_type[e, tx, slot]) == PKT_E2E_ACK else (280 + 32 * int(s.q_entries[e, tx, slot])))
+        dur = (HELLO_V89_TX_US if dims.enable_peer_telemetry != 0 else 360) if is_hello == 1 else (360 if int(s.q_type[e, tx, slot]) == PKT_E2E_ACK else (280 + 32 * int(s.q_entries[e, tx, slot])))
         s.tx_airtime[e, tx] = s.tx_airtime[e, tx] + dur
 
         for rx in range(dims.n_radio):
@@ -275,7 +276,7 @@ if HAS_WARP:
                         s.active_slot[e, r] = wp.int8(-1)
                         pid = s.next_pid[e]
                         s.next_pid[e] = pid + 1
-                        _start_v67(s, dims, e, r, 360, -1, 0, pid, tx_p, cca_th, noise_w, snr_th)
+                        _start_v67(s, dims, e, r, HELLO_V89_TX_US if dims.enable_peer_telemetry != 0 else 360, -1, 0, pid, tx_p, cca_th, noise_w, snr_th)
                     elif int(s.q_count[e, r]) > 0:
                         phys0 = _select_routable_slot_v67(s, e, r, t_min)
                         if phys0 < 0:

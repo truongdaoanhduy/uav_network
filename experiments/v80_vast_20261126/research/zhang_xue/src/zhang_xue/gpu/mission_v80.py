@@ -43,6 +43,7 @@ class WarpParallelMissionV80(WarpParallelMissionV79):
             raise ValueError("act shape should be (E,6,2) and (E,6)")
         self._launch(resolve_compact3_v67, (self.envs, 6), [n.state, n.dims, discrete, w["pos_xy"], n._dest_buf])
         self._launch(inject_v67, (self.envs, 6), [n.state, n.dims, n._dest_buf])
+        self._capture_hello_offers()
         n.step(
             duration_us=1_000_000, max_events=p.max_events, tx_power_w=p.tx_power_w,
             cca_threshold_w=self.cca_w, noise_w=p.noise_power_w, snr_threshold=self.snr_lin,
@@ -65,12 +66,14 @@ class WarpParallelMissionV80(WarpParallelMissionV79):
             n.state, w["positions"], w["truth"], w["episode_step"], w["episode_id"],
             w["battery"], w["unsafe_mask"], w["failed"], self.build_wp, len(self.buildings),
             int(p.seed), float(p.pd), float(p.pf), float(p.ds_aoi_eta),
+            int(p.static_raw_count),
         ])
         self._launch(_reward_v79, self.envs, [
             n.state, w["truth"], w["team_u_prev"], w["gcs_tp"], w["gcs_fp"], w["gcs_fp_ever"],
             w["battery"], w["episode_step"], w["failed"], w["intervention"], w["reward"],
-            w["terminated"], w["truncated"], w["done"], w["termination_reason"],
-            self.logmf, self.logme, float(p.ds_aoi_eta), float(p.confirm_th),
+            w["reward_components"], w["terminated"], w["truncated"], w["done"], w["termination_reason"],
+            self.logmf, self.logme, float(p.ds_aoi_eta), int(p.static_raw_count),
+            float(p.confirm_th),
             float(p.ds_uncertainty_ceiling), float(p.r_tp), float(p.r_fp), float(p.fp_hold),
             int(p.enable_fp_unlatch), float(p.safety_failure_penalty), float(p.w_aoi),
             float(p.w_loc_team), float(p.w_blocked_motion), float(p.lambda_b),

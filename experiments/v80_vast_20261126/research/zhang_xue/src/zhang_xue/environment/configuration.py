@@ -34,6 +34,8 @@ class EnvConfigV54:
     # provenance-safe novel packet-network extension.
     ds_fusion_mode: str = 'sum'  # sum | zhang_max
     ds_aoi_eta: float = 0.02  # 1/s; frozen discount at actual packet reception
+    static_evidence_mode: str = 'ewma_uq88'  # ewma_uq88 | raw_u16_count (persistent static-target cumulative evidence)
+    obs_schema_v2: bool = False  # 5-peer RF-received HELLO telemetry (35 dims); no oracle positions
     evidence_calibration: str = 'paper_fixed' # paper_fixed | sensor_likelihood_ratio
     ds_uncertainty_ceiling: float = 0.20
     # Team coverage reward/peer reward computed from local evidence/actual packet events.
@@ -92,6 +94,7 @@ class EnvConfigV54:
             "aoi_reward_mode": ("linear", "exponential"),
             "battery_termination_mode": ("any_depleted", "all_depleted"),
             "reward_scale_mode": ("raw", "per_target_norm"),
+            "static_evidence_mode": ("ewma_uq88", "raw_u16_count"),
             "rf_obstacle_model": ("binary_nlos", "multi_obstacle", "rf_opaque"),
         }
         for key, legal in modes.items():
@@ -123,7 +126,7 @@ class EnvConfigV54:
             "enable_3d_sensing_occlusion", "enable_accel_energy", "enable_fp_unlatch",
             "safety_failure_terminate", "enable_peer_dissemination",
             "enable_data_mule_forwarding", "coalesce_duplicate_queue",
-            "scale_obstacles_with_map", "compact3_decentralized_peer_select",
+            "scale_obstacles_with_map", "compact3_decentralized_peer_select", "obs_schema_v2",
         ):
             if type(getattr(self,key)) is not bool:
                 raise ValueError(f"{key} must be a boolean")
@@ -185,7 +188,10 @@ class EnvConfigV54:
         # accept a different dt_s as if seconds were still tracked correctly.
         if self.dt_s != 1.0:
             raise ValueError('Current packet/AoI clock requires dt_s=1.0 second')
-        if self.aoi_ewma_end_to_end:
+        if self.static_evidence_mode == 'raw_u16_count':
+            if self.ds_aoi_eta != 0.0 or self.safety_horizon_s > 32767:
+                raise ValueError('raw_u16_count requires eta=0 and int16 generation-safe horizon <=32767')
+        if self.aoi_ewma_end_to_end and self.static_evidence_mode == 'ewma_uq88':
             # One source can observe the same cell once per step. With an N-step
             # mission, sum(exp(-eta*j)) is the maximum effective count per cell.
             # Above UQ8.8's range, transport clips evidence silently.

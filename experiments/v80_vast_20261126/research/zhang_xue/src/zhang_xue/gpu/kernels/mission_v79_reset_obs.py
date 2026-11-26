@@ -6,7 +6,7 @@ from zhang_xue.gpu.kernels.mac_v67 import _busy_v67, _qpop_pos_v67, _rand_slot_v
 from zhang_xue.gpu.kernels.mission_v79_kernels import GRID, N_UAV, NUM_CELLS, _fuse_uq88_v79
 from zhang_xue.gpu.kernels.phy_v67 import _in_blackout_v67
 from zhang_xue.gpu.state_v67 import (
-    HAS_WARP, HELLO_INT_US, NEVER_US, PKT_E2E_ACK,
+    HAS_WARP, HELLO_INT_US, HELLO_V89_TX_US, NEVER_US, PKT_E2E_ACK,
     ST_BACKOFF, ST_DIFS, ST_IDLE, ST_SIFS, ST_TX, ST_TX_ACK, ST_WAIT_ACK, TX_MAC_ACK_US,
     NetworkBuffersV67, SimDimsV67, wp,
 )
@@ -84,7 +84,7 @@ if HAS_WARP:
                         s.active_slot[e, r] = wp.int8(-1)
                         pid = s.next_pid[e]
                         s.next_pid[e] = pid + 1
-                        _start_v67(s, dims, e, r, 360, -1, 0, pid, tx_p, cca_th, noise_w, snr_th)
+                        _start_v67(s, dims, e, r, HELLO_V89_TX_US if dims.enable_peer_telemetry != 0 else 360, -1, 0, pid, tx_p, cca_th, noise_w, snr_th)
                     elif int(s.q_count[e, r]) > 0:
                         phys0 = _select_routable_slot_v67(s, e, r, t_min)
                         if phys0 < 0:
@@ -160,7 +160,7 @@ if HAS_WARP:
             gcs_fp[e, c] = wp.uint8(0)
             gcs_fp_ever[e, c] = wp.uint8(0)
         for u in range(N_UAV):
-            pos[e, u, 0] = 90.0 + 65.0 * float(u)
+            pos[e, u, 0] = 90.0 + 120.0 * float(u)
             pos[e, u, 1] = 110.0 + 30.0 * float(u % 2)
             pos[e, u, 2] = uav_alt
             pos_xy[e, u, 0] = pos[e, u, 0]
@@ -252,7 +252,7 @@ if HAS_WARP:
                 rcount += 1
         obs[e, u, 13] = float(rcount) / 7.0
         mask[e, u, 0] = wp.uint8(1)
-        mask[e, u, 1] = wp.uint8(1) if (own_radio != 0 and net.dirty_dest[e, u, N_UAV] != wp.uint8(0)) else wp.uint8(0)
+        mask[e, u, 1] = wp.uint8(1) if (own_radio != 0 and valid_gcs and net.dirty_dest[e, u, N_UAV] != wp.uint8(0)) else wp.uint8(0)
         allowed = wp.uint8(0)
         if own_radio != 0 and dims.enable_peer != 0:
             for peer in range(N_UAV):
@@ -269,6 +269,7 @@ if HAS_WARP:
         net: NetworkBuffersV67, pos: wp.array3d(dtype=wp.float32),
         ep_step: wp.array(dtype=wp.int32), obs: wp.array3d(dtype=wp.float32),
         logmf: float, logme: float, eta: float, ref_age: float,
+        static_raw_count: int,
     ):
         e, u, bid = wp.tid()
         cy = bid // 10
@@ -281,7 +282,7 @@ if HAS_WARP:
         for yy in range(2):
             for xx in range(2):
                 cid = (2 * cy + yy) * 20 + 2 * cx + xx
-                ds = _fuse_uq88_v79(net, e, u, cid, now, logmf, logme, eta)
+                ds = _fuse_uq88_v79(net, e, u, cid, now, logmf, logme, eta, static_raw_count)
                 t_max = wp.max(t_max, ds[0])
                 f_min = wp.min(f_min, ds[1])
                 u_avg += 0.25 * ds[2]
@@ -304,9 +305,12 @@ if HAS_WARP:
         mask: wp.array(dtype=wp.uint8),
         terminal_reason: wp.array(dtype=wp.uint8),
         safety_reason: wp.array(dtype=wp.uint8),
+        reward_components: wp.array2d(dtype=wp.float32),
     ):
-        """Reset only selected worlds; keep diagnostics on unaffected worlds."""
+        """Reset selected-world diagnostics and reward decomposition atomically."""
         e=wp.tid()
         if mask[e] != wp.uint8(0):
             terminal_reason[e]=wp.uint8(0)
             safety_reason[e]=wp.uint8(0)
+            for k in range(8):
+                reward_components[e, k] = 0.0

@@ -157,6 +157,7 @@ class WarpCompressedRadioNetworkV67:
         device: str = "cpu",
         seed: int = 20261125,
         decentralized_peer_select: bool = True,
+        enable_peer_telemetry: bool = False,
         q_cap: int = Q_V67,
         protocol: CsmaProtocolConfig | None = None,
     ):
@@ -215,6 +216,7 @@ class WarpCompressedRadioNetworkV67:
         self.dims.scalable_wire = 1 if (self.num_uavs > 8 or self.num_cells > 512) else 0
         self.dims.enable_data_mule = 1 if enable_data_mule else 0
         self.dims.enable_peer = 1 if enable_peer else 0
+        self.dims.enable_peer_telemetry = 1 if enable_peer_telemetry else 0
         self.dims.decentralized_peer_select = 1 if decentralized_peer_select else 0
         self.dims.aoi_ewma = 1 if aoi_ewma else 0
         self.dims.aoi_eta = float(aoi_eta)

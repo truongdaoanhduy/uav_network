@@ -129,7 +129,7 @@ if HAS_WARP:
             dest_out[e, u] = -1
             return
         if act == 1:
-            dest_out[e, u] = dims.gcs_id if s.dirty_dest[e, u, dims.gcs_id] != wp.uint8(0) else -1
+            dest_out[e, u] = dims.gcs_id if (s.dirty_dest[e, u, dims.gcs_id] != wp.uint8(0) and s.route_hop[e, u, dims.gcs_id] >= 0 and s.route_expiry[e, u, dims.gcs_id] > s.now[e]) else -1
             return
         if dims.enable_peer == 0:
             dest_out[e, u] = -1

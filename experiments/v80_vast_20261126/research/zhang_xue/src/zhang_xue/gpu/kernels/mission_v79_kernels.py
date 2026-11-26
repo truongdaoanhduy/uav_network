@@ -238,6 +238,7 @@ if HAS_WARP:
         ep_id: wp.array(dtype=wp.int32), battery: wp.array2d(dtype=wp.float32),
         unsafe_mask: wp.array2d(dtype=wp.uint8), failed: wp.array(dtype=wp.uint8),
         b: wp.array2d(dtype=wp.float32), n_b: int, seed: int, pd: float, pf: float, eta: float,
+        static_raw_count: int,
     ):
         e, u = wp.tid()
         if (failed[e] != wp.uint8(0) or battery[e, u] <= 0.0
@@ -279,6 +280,19 @@ if HAS_WARP:
                 cid = iy * GRID + ix
                 q = wp.float32(pd) if truth[e, cid] != wp.uint8(0) else wp.float32(pf)
                 detected = wp.randf(rng) < q
+                if static_raw_count != 0:
+                    # One sample per visible cell per 1s step. 900 < uint16 capacity.
+                    # Do not forget static-target evidence merely due to blackout.
+                    np_v = int(net.ledger_pos[e, u, u, cid])
+                    nn_v = int(net.ledger_neg[e, u, u, cid])
+                    if detected:
+                        np_v = wp.min(65535, np_v + 1)
+                    else:
+                        nn_v = wp.min(65535, nn_v + 1)
+                    net.ledger_pos[e, u, u, cid] = wp.uint16(np_v)
+                    net.ledger_neg[e, u, u, cid] = wp.uint16(nn_v)
+                    net.ledger_gen[e, u, u, cid] = wp.int16(t)
+                    continue
                 old_t = int(net.ledger_gen[e, u, u, cid])
                 p = float(net.ledger_pos[e, u, u, cid]) / 256.0
                 n = float(net.ledger_neg[e, u, u, cid]) / 256.0
@@ -297,7 +311,7 @@ if HAS_WARP:
     @wp.func
     def _fuse_uq88_v79(
         net: NetworkBuffersV67, e: int, receiver: int, cid: int, t: int,
-        logmf: float, logme: float, eta: float,
+        logmf: float, logme: float, eta: float, static_raw_count: int,
     ) -> wp.vec3:
         p = float(0.0)
         n = float(0.0)
@@ -305,7 +319,7 @@ if HAS_WARP:
             if net.ledger_gen[e, receiver, org, cid] < 0:
                 continue
             age = wp.max(0.0, float(t - int(net.ledger_gen[e, receiver, org, cid])))
-            weight = wp.exp(-eta * age) * (1.0 / 256.0)
+            weight = 1.0 if static_raw_count != 0 else wp.exp(-eta * age) * (1.0 / 256.0)
             p += float(net.ledger_pos[e, receiver, org, cid]) * weight
             n += float(net.ledger_neg[e, receiver, org, cid]) * weight
         return _ds_v79(p, n, logmf, logme)
@@ -317,10 +331,12 @@ if HAS_WARP:
         fp: wp.array2d(dtype=wp.uint8), fp_ever: wp.array2d(dtype=wp.uint8),
         battery: wp.array2d(dtype=wp.float32), ep_step: wp.array(dtype=wp.int32),
         failed: wp.array(dtype=wp.uint8), intervention: wp.array(dtype=wp.float32),
-        reward: wp.array(dtype=wp.float32), terminated: wp.array(dtype=wp.uint8),
+        reward: wp.array(dtype=wp.float32), components: wp.array2d(dtype=wp.float32),
+        terminated: wp.array(dtype=wp.uint8),
         truncated: wp.array(dtype=wp.uint8), done: wp.array(dtype=wp.uint8),
         terminal_reason: wp.array(dtype=wp.uint8),
-        logmf: float, logme: float, eta: float, confirm: float, uncert_ceiling: float,
+        logmf: float, logme: float, eta: float, static_raw_count: int,
+        confirm: float, uncert_ceiling: float,
         r_tp: float, r_fp: float, fp_hold: float, enable_fp_unlatch: int,
         safety_pen: float, w_aoi: float, w_loc: float, w_block: float,
         lambda_b: float, aoi_penalty: float, ref_age: float, horizon: int,
@@ -340,7 +356,7 @@ if HAS_WARP:
                 if net.ledger_gen[e, u, u, cid] < 0:
                     continue
                 age = wp.max(0.0, float(t - int(net.ledger_gen[e, u, u, cid])))
-                discount = wp.exp(-eta * age) * (1.0 / 256.0)
+                discount = 1.0 if static_raw_count != 0 else wp.exp(-eta * age) * (1.0 / 256.0)
                 p += float(net.ledger_pos[e, u, u, cid]) * discount
                 n += float(net.ledger_neg[e, u, u, cid]) * discount
             if p + n > 0.0:
@@ -348,7 +364,7 @@ if HAS_WARP:
                 if ds[2] < prev_u[e, cid]:
                     loc += w_loc * (prev_u[e, cid] - ds[2])
                     prev_u[e, cid] = ds[2]
-            m = _fuse_uq88_v79(net, e, N_UAV, cid, t, logmf, logme, eta)
+            m = _fuse_uq88_v79(net, e, N_UAV, cid, t, logmf, logme, eta, static_raw_count)
             if m[0] >= confirm and m[2] <= uncert_ceiling:
                 if truth[e, cid] != wp.uint8(0) and tp[e, cid] == wp.uint8(0):
                     tp[e, cid] = wp.uint8(1)
@@ -376,6 +392,16 @@ if HAS_WARP:
                 energy_alive += 1
             air += float(net.tx_airtime[e, u]) / 1.0e6
         fail_pen = safety_pen if failed[e] != wp.uint8(0) else 0.0
+        # V89 evidence ledger: preserve exactly the preexisting scalar reward
+        # while logging each term on-device (no CPU synchronize per step).
+        components[e, 0] = loc
+        components[e, 1] = delivered
+        components[e, 2] = -fp_pen
+        components[e, 3] = -fp_hold * float(fp_active)
+        components[e, 4] = -fail_pen
+        components[e, 5] = -w_block * intervention[e]
+        components[e, 6] = -lambda_b * air
+        components[e, 7] = -aoi_penalty * aoi / (float(NUM_CELLS) * ref_age)
         reward[e] = (
             loc + delivered - fp_pen - fp_hold * float(fp_active) - fail_pen
             - w_block * intervention[e] - lambda_b * air

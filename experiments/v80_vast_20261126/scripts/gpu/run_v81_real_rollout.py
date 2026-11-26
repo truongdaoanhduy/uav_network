@@ -138,7 +138,7 @@ def main() -> int:
         world = WarpParallelMissionV80(params)
         result["initial_world_invariants"] = world.guard()
 
-        obs_dim = 518
+        obs_dim = int(world.buffers["obs"].shape[-1]) + 4
         state_dim = 6 * obs_dim
         if args.baseline_mode == "canonical_continuous":
             from uav_network.algorithms.baselines.canonical_continuous import (

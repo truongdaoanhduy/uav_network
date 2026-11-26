@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from zhang_xue.gpu.state_v67 import (
     HAS_WARP,
+    HELLO_V89_TX_US,
     NEVER_US,
     PKT_DATA,
     PKT_E2E_ACK,
@@ -128,6 +129,12 @@ if HAS_WARP:
         s: NetworkBuffersV67, dims: SimDimsV67, e: int, tx: int, dur: int,
         nh: int, is_ack: int, pid: int, tx_p: float, cca_th: float, noise_w: float, snr_th: float,
     ):
+        # Snapshot broadcast telemetry when the frame actually starts.
+        # The active frame keeps these bytes even if flight advances next tick.
+        if nh < 0 and is_ack == 0 and dims.enable_peer_telemetry != 0:
+            s.hello_active_at_us[e, tx] = s.now[e]
+            for k in range(4):
+                s.hello_active_pose[e, tx, k] = s.hello_offer_pose[e, tx, k]
         # Half-duplex: starting TX corrupts any frame currently locked on this radio.
         if int(s.rx_lock[e, tx]) >= 0:
             s.rx_corrupt[e, tx] = wp.uint8(1)
@@ -167,6 +174,12 @@ if HAS_WARP:
     @wp.func
     def _handle_hello_v67(s: NetworkBuffersV67, dims: SimDimsV67, e: int, rx: int, tx: int):
         exp = s.now[e] + ROUTE_TTL_US
+        # Receiver sees only telemetry decoded in this successful RF HELLO.
+        # Do not read global peer truth from position buffers.
+        if dims.enable_peer_telemetry != 0 and s.hello_active_at_us[e, tx] >= 0:
+            s.hello_rx_at_us[e, rx, tx] = s.hello_active_at_us[e, tx]
+            for k in range(4):
+                s.hello_rx_pose[e, rx, tx, k] = s.hello_active_pose[e, tx, k]
         s.route_hop[e, rx, tx] = wp.int8(tx)
         s.route_dist[e, rx, tx] = wp.int8(1)
         s.route_mask[e, rx, tx] = (wp.uint32(1) << wp.uint32(rx)) | (wp.uint32(1) << wp.uint32(tx))
