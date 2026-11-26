@@ -73,6 +73,7 @@ class WarpParallelMissionV80(WarpParallelMissionV79):
             w["battery"], w["episode_step"], w["failed"], w["intervention"], w["reward"],
             w["reward_components"], w["terminated"], w["truncated"], w["done"], w["termination_reason"],
             self.logmf, self.logme, float(p.ds_aoi_eta), int(p.static_raw_count),
+            int(p.bayesian_count_mode), self.bayes_log_prior, self.bayes_llr_pos, self.bayes_llr_neg,
             float(p.confirm_th),
             float(p.ds_uncertainty_ceiling), float(p.r_tp), float(p.r_fp), float(p.fp_hold),
             int(p.enable_fp_unlatch), float(p.safety_failure_penalty), float(p.w_aoi),

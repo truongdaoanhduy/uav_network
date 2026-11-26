@@ -36,7 +36,9 @@ class EnvConfigV54:
     ds_aoi_eta: float = 0.02  # 1/s; frozen discount at actual packet reception
     static_evidence_mode: str = 'ewma_uq88'  # ewma_uq88 | raw_u16_count (persistent static-target cumulative evidence)
     obs_schema_v2: bool = False  # 5-peer RF-received HELLO telemetry (35 dims); no oracle positions
-    evidence_calibration: str = 'paper_fixed' # paper_fixed | sensor_likelihood_ratio
+    evidence_calibration: str = 'paper_fixed' # DS masses, independent of Bayesian backend
+    belief_inference_mode: str = 'dempster_shafer'  # dempster_shafer | bayesian_logodds
+    bayes_prior_occupancy: float = 15.0 / 392.0  # fixed independent-cell marginal prior
     ds_uncertainty_ceiling: float = 0.20
     # Team coverage reward/peer reward computed from local evidence/actual packet events.
     reward_peer_cap_per_step: int = 12
@@ -95,6 +97,7 @@ class EnvConfigV54:
             "battery_termination_mode": ("any_depleted", "all_depleted"),
             "reward_scale_mode": ("raw", "per_target_norm"),
             "static_evidence_mode": ("ewma_uq88", "raw_u16_count"),
+            "belief_inference_mode": ("dempster_shafer", "bayesian_logodds"),
             "rf_obstacle_model": ("binary_nlos", "multi_obstacle", "rf_opaque"),
         }
         for key, legal in modes.items():
@@ -174,6 +177,10 @@ class EnvConfigV54:
             raise ValueError('invalid number of targets')
         if self.ds_fusion_mode not in ('sum','zhang_max'):
             raise ValueError('ds_fusion_mode must be sum or zhang_max')
+        if not isinstance(self.bayes_prior_occupancy, (float, int)) or not math.isfinite(self.bayes_prior_occupancy) or not 0.0 < self.bayes_prior_occupancy < 1.0:
+            raise ValueError("bayes_prior_occupancy must lie strictly inside (0,1)")
+        if self.belief_inference_mode == "bayesian_logodds" and self.static_evidence_mode != "raw_u16_count":
+            raise ValueError("Bayesian log-odds requires raw independent sensor counts")
         if self.evidence_calibration not in ('paper_fixed','sensor_likelihood_ratio'):
             raise ValueError('unknown evidence_calibration')
         if not (0 < self.pf < self.pd < 1):

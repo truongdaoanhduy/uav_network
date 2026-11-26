@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from zhang_xue.gpu.state_v67 import HAS_WARP, NetworkBuffersV67, wp
+from zhang_xue.gpu.kernels.mission_v91_bayesian import _bayes_from_counts_v91
 
 N_UAV = 6
 GRID = 20
@@ -324,6 +325,23 @@ if HAS_WARP:
             n += float(net.ledger_neg[e, receiver, org, cid]) * weight
         return _ds_v79(p, n, logmf, logme)
 
+    @wp.func
+    def _fuse_belief_v91(
+        net: NetworkBuffersV67, e: int, receiver: int, cid: int, t: int,
+        logmf: float, logme: float, eta: float, static_raw_count: int,
+        bayesian: int, log_prior: float, llr_pos: float, llr_neg: float,
+    ) -> wp.vec3:
+        if bayesian == 0:
+            return _fuse_uq88_v79(net, e, receiver, cid, t, logmf, logme, eta, static_raw_count)
+        p = float(0.0)
+        n = float(0.0)
+        for org in range(N_UAV):
+            if net.ledger_gen[e, receiver, org, cid] < 0:
+                continue
+            p += float(net.ledger_pos[e, receiver, org, cid])
+            n += float(net.ledger_neg[e, receiver, org, cid])
+        return _bayes_from_counts_v91(p, n, log_prior, llr_pos, llr_neg)
+
     @wp.kernel
     def _reward_v79(
         net: NetworkBuffersV67, truth: wp.array2d(dtype=wp.uint8),
@@ -336,6 +354,7 @@ if HAS_WARP:
         truncated: wp.array(dtype=wp.uint8), done: wp.array(dtype=wp.uint8),
         terminal_reason: wp.array(dtype=wp.uint8),
         logmf: float, logme: float, eta: float, static_raw_count: int,
+        bayesian: int, log_prior: float, llr_pos: float, llr_neg: float,
         confirm: float, uncert_ceiling: float,
         r_tp: float, r_fp: float, fp_hold: float, enable_fp_unlatch: int,
         safety_pen: float, w_aoi: float, w_loc: float, w_block: float,
@@ -360,12 +379,12 @@ if HAS_WARP:
                 p += float(net.ledger_pos[e, u, u, cid]) * discount
                 n += float(net.ledger_neg[e, u, u, cid]) * discount
             if p + n > 0.0:
-                ds = _ds_v79(p, n, logmf, logme)
+                ds = _bayes_from_counts_v91(p, n, log_prior, llr_pos, llr_neg) if bayesian != 0 else _ds_v79(p, n, logmf, logme)
                 if ds[2] < prev_u[e, cid]:
                     loc += w_loc * (prev_u[e, cid] - ds[2])
                     prev_u[e, cid] = ds[2]
-            m = _fuse_uq88_v79(net, e, N_UAV, cid, t, logmf, logme, eta, static_raw_count)
-            if m[0] >= confirm and m[2] <= uncert_ceiling:
+            m = _fuse_belief_v91(net, e, N_UAV, cid, t, logmf, logme, eta, static_raw_count, bayesian, log_prior, llr_pos, llr_neg)
+            if m[0] >= confirm and (bayesian != 0 or m[2] <= uncert_ceiling):
                 if truth[e, cid] != wp.uint8(0) and tp[e, cid] == wp.uint8(0):
                     tp[e, cid] = wp.uint8(1)
                     rx_t = float(net.gcs_last_rx_us[e, cid] - net.mission_epoch_us[e]) / 1.0e6

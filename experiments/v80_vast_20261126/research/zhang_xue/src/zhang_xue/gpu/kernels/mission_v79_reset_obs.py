@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from zhang_xue.gpu.kernels.events_v67 import _arm_idle_v67, _finish_tx_v67, _select_routable_slot_v67
 from zhang_xue.gpu.kernels.mac_v67 import _busy_v67, _qpop_pos_v67, _rand_slot_v67, _start_v67
-from zhang_xue.gpu.kernels.mission_v79_kernels import GRID, N_UAV, NUM_CELLS, _fuse_uq88_v79
+from zhang_xue.gpu.kernels.mission_v79_kernels import GRID, N_UAV, NUM_CELLS, _fuse_belief_v91
 from zhang_xue.gpu.kernels.phy_v67 import _in_blackout_v67
 from zhang_xue.gpu.state_v67 import (
     HAS_WARP, HELLO_INT_US, HELLO_V89_TX_US, NEVER_US, PKT_E2E_ACK,
@@ -269,7 +269,8 @@ if HAS_WARP:
         net: NetworkBuffersV67, pos: wp.array3d(dtype=wp.float32),
         ep_step: wp.array(dtype=wp.int32), obs: wp.array3d(dtype=wp.float32),
         logmf: float, logme: float, eta: float, ref_age: float,
-        static_raw_count: int,
+        static_raw_count: int, bayesian: int,
+        log_prior: float, llr_pos: float, llr_neg: float,
     ):
         e, u, bid = wp.tid()
         cy = bid // 10
@@ -282,7 +283,7 @@ if HAS_WARP:
         for yy in range(2):
             for xx in range(2):
                 cid = (2 * cy + yy) * 20 + 2 * cx + xx
-                ds = _fuse_uq88_v79(net, e, u, cid, now, logmf, logme, eta, static_raw_count)
+                ds = _fuse_belief_v91(net, e, u, cid, now, logmf, logme, eta, static_raw_count, bayesian, log_prior, llr_pos, llr_neg)
                 t_max = wp.max(t_max, ds[0])
                 f_min = wp.min(f_min, ds[1])
                 u_avg += 0.25 * ds[2]

@@ -47,6 +47,8 @@ class GPUWorldV79Params:
     ds_aoi_eta: float = 0.02
     static_raw_count: bool = False
     obs_schema_v2: bool = False
+    bayesian_count_mode: bool = False
+    bayes_prior_occupancy: float = 15.0 / 392.0
     confirm_th: float = 0.90
     ds_uncertainty_ceiling: float = 0.20
     r_tp: float = 25.0
@@ -88,6 +90,10 @@ class GPUWorldV79Params:
             raise ValueError("max_events must lie within [1, 1000000]")
         if not math.isfinite(self.ds_aoi_eta) or self.ds_aoi_eta < 0.0:
             raise ValueError("ds_aoi_eta must be finite and nonnegative")
+        if type(self.bayesian_count_mode) is not bool or not math.isfinite(self.bayes_prior_occupancy) or not 0.0 < self.bayes_prior_occupancy < 1.0:
+            raise ValueError("invalid Bayesian posterior configuration")
+        if self.bayesian_count_mode and (not self.static_raw_count or self.ds_aoi_eta != 0.0):
+            raise ValueError("Bayes mode requires persistent nondecayed raw counts")
         if type(self.obs_schema_v2) is not bool:
             raise ValueError("obs_schema_v2 must be boolean")
         if type(self.static_raw_count) is not bool:
@@ -148,6 +154,8 @@ class GPUWorldV79Params:
             ds_aoi_eta=eta,
             static_raw_count=(scenario.static_evidence_mode == "raw_u16_count"),
             obs_schema_v2=bool(scenario.obs_schema_v2),
+            bayesian_count_mode=(scenario.belief_inference_mode == "bayesian_logodds"),
+            bayes_prior_occupancy=float(scenario.bayes_prior_occupancy),
             confirm_th=float(scenario.confirm_th),
             ds_uncertainty_ceiling=float(scenario.ds_uncertainty_ceiling),
             r_tp=float(scenario.r_tp), r_fp=float(scenario.r_fp),
@@ -239,6 +247,9 @@ class WarpParallelMissionV79:
         self.obstacle_model_id = ("binary_nlos", "multi_obstacle", "rf_opaque").index(params.obstacle_model)
         self.logmf = math.log1p(-params.ds_mf)
         self.logme = math.log1p(-params.ds_me)
+        self.bayes_log_prior = math.log(params.bayes_prior_occupancy / (1.0 - params.bayes_prior_occupancy))
+        self.bayes_llr_pos = math.log(params.pd / params.pf)
+        self.bayes_llr_neg = math.log((1.0 - params.pd) / (1.0 - params.pf))
         self.reset()
 
     def _launch(self, kernel, dim, inputs):
@@ -318,7 +329,8 @@ class WarpParallelMissionV79:
         self._launch(_observe_map_v79, (self.envs, 6, 100), [
             n.state, w["positions"], w["episode_step"], w["obs"],
             self.logmf, self.logme, float(p.ds_aoi_eta), float(p.t_ref_s),
-            int(p.static_raw_count),
+            int(p.static_raw_count), int(p.bayesian_count_mode),
+            self.bayes_log_prior, self.bayes_llr_pos, self.bayes_llr_neg,
         ])
         if p.obs_schema_v2:
             from zhang_xue.gpu.kernels.mission_v89_hello_peer import observe_hello_peers_v89
@@ -359,7 +371,8 @@ class WarpParallelMissionV79:
             n.state, w["truth"], w["team_u_prev"], w["gcs_tp"], w["gcs_fp"], w["gcs_fp_ever"],
             w["battery"], w["episode_step"], w["failed"], w["intervention"], w["reward"],
             w["reward_components"], w["terminated"], w["truncated"], w["done"], w["termination_reason"], self.logmf, self.logme,
-            float(p.ds_aoi_eta), int(p.static_raw_count),
+            float(p.ds_aoi_eta), int(p.static_raw_count), int(p.bayesian_count_mode),
+            self.bayes_log_prior, self.bayes_llr_pos, self.bayes_llr_neg,
             float(p.confirm_th), float(p.ds_uncertainty_ceiling),
             float(p.r_tp), float(p.r_fp), float(p.fp_hold), int(p.enable_fp_unlatch),
             float(p.safety_failure_penalty), float(p.w_aoi), float(p.w_loc_team),
