@@ -58,6 +58,7 @@ def main() -> int:
     parser.add_argument("--learning-starts", type=int, default=4096)
     parser.add_argument("--replay-capacity", type=int, default=65536)
     parser.add_argument("--replay-action-mode", choices=["raw", "raw_penalized", "executed", "dual"], default="raw")
+    parser.add_argument("--baseline-mode", choices=["hybrid", "canonical_continuous"], default="hybrid")
     parser.add_argument("--shield-penalty-lambda", type=float, default=1.0)
     parser.add_argument("--hidden", type=int, default=None)
     parser.add_argument("--allow-no-updates", action="store_true")
@@ -71,12 +72,14 @@ def main() -> int:
     if args.output.exists() or args.output.with_suffix(".progress.jsonl").exists():
         parser.error("output or progress already exists; choose a fresh output path")
     result = {
-        "status": "RUNNING", "version": "V84", "envs": args.envs, "steps": args.steps,
+        "status": "RUNNING", "version": ("V86-CANONICAL" if args.baseline_mode == "canonical_continuous" else "V84"), "envs": args.envs, "steps": args.steps,
         "algorithm": args.algorithm, "batch_size": args.batch_size,
         "learner_config": str(args.learner_config),
         "learning_starts": int(args.learning_starts), "log_interval": args.log_interval,
         "replay_capacity_requested": int(args.replay_capacity),
         "replay_action_mode": args.replay_action_mode,
+        "baseline_mode": args.baseline_mode,
+        "comm_policy": ("event_driven_zero_oracle" if args.baseline_mode == "canonical_continuous" else "learned_compact_3"),
         "shield_penalty_lambda": float(args.shield_penalty_lambda),
         "dual_penalty_transitions_added": 0,
         "world_device": args.world_device, "learner_device": args.learner_device,
@@ -134,7 +137,14 @@ def main() -> int:
 
         obs_dim = 518
         state_dim = 6 * obs_dim
-        learner = (MATD3 if args.algorithm == "matd3" else MASAC)(
+        if args.baseline_mode == "canonical_continuous":
+            from uav_network.algorithms.baselines.canonical_continuous import (
+                CanonicalContinuousMASAC, CanonicalContinuousMATD3,
+            )
+            learner_cls = CanonicalContinuousMATD3 if args.algorithm == "matd3" else CanonicalContinuousMASAC
+        else:
+            learner_cls = MATD3 if args.algorithm == "matd3" else MASAC
+        learner = learner_cls(
             cfg, observation_dim=obs_dim, state_dim=state_dim, device=args.learner_device,
         )
         replay = TensorReplayBuffer(

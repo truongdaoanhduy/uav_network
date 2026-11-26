@@ -7,6 +7,7 @@ import subprocess
 import numpy as np
 
 REPLAY_ACTION_MODES = ("raw", "raw_penalized", "executed", "dual")
+BASELINE_MODES = ("hybrid", "canonical_continuous")
 
 
 def configure_learner(cfg, args):
@@ -33,7 +34,15 @@ def configure_learner(cfg, args):
     hp.learning_starts, hp.updates_per_step = args.learning_starts, args.updates_per_step
     if args.hidden is not None:
         hp.hidden_sizes = [args.hidden, args.hidden]
+    baseline_mode = getattr(args, "baseline_mode", "hybrid")
+    if baseline_mode not in BASELINE_MODES:
+        raise ValueError(f"baseline_mode must be one of {BASELINE_MODES}")
     cfg.validate()
+    if baseline_mode == "canonical_continuous":
+        from uav_network.algorithms.baselines.canonical_continuous import _assert_canonical_config
+        if replay_mode != "raw":
+            raise ValueError("canonical_continuous baseline requires --replay-action-mode raw (standard single-tuple replay)")
+        _assert_canonical_config(cfg, args.algorithm)
     return hp
 
 

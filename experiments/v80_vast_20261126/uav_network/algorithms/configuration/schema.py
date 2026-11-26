@@ -115,8 +115,10 @@ class LearnerConfig:
                     raise ValueError(f"{name}.{field_name} must be a positive integer")
             for field_name in ("learning_rate", "grad_clip_norm", "gamma", "tau"):
                 val = getattr(c, field_name)
-                if not isinstance(val, (float, int)) or isinstance(val, bool) or not math.isfinite(val) or val <= 0:
-                    raise ValueError(f"{name}.{field_name} must be finite and positive")
+                # Zero disables gradient clipping for vanilla TD3/SAC baselines.
+                min_ok = val >= 0 if field_name == "grad_clip_norm" else val > 0
+                if not isinstance(val, (float, int)) or isinstance(val, bool) or not math.isfinite(val) or not min_ok:
+                    raise ValueError(f"{name}.{field_name} must be finite and non-negative for grad_clip_norm, positive otherwise")
             if c.gamma > 1 or c.tau > 1:
                 raise ValueError(f"{name} gamma/tau must not exceed one")
             if c.grad_clip_mode not in ("global", "per_parameter", "none"):
