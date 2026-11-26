@@ -59,6 +59,9 @@ def main() -> int:
     parser.add_argument("--replay-capacity", type=int, default=65536)
     parser.add_argument("--replay-action-mode", choices=["raw", "raw_penalized", "executed", "dual"], default="raw")
     parser.add_argument("--baseline-mode", choices=["hybrid", "canonical_continuous"], default="hybrid")
+    parser.add_argument("--save-checkpoint", type=Path, default=None)
+    parser.add_argument("--eval-episodes", type=int, default=0)
+    parser.add_argument("--eval-seed", type=int, default=10044)
     parser.add_argument("--shield-penalty-lambda", type=float, default=1.0)
     parser.add_argument("--hidden", type=int, default=None)
     parser.add_argument("--allow-no-updates", action="store_true")
@@ -72,7 +75,7 @@ def main() -> int:
     if args.output.exists() or args.output.with_suffix(".progress.jsonl").exists():
         parser.error("output or progress already exists; choose a fresh output path")
     result = {
-        "status": "RUNNING", "version": ("V86-CANONICAL" if args.baseline_mode == "canonical_continuous" else "V84"), "envs": args.envs, "steps": args.steps,
+        "status": "RUNNING", "version": "V87", "envs": args.envs, "steps": args.steps,
         "algorithm": args.algorithm, "batch_size": args.batch_size,
         "learner_config": str(args.learner_config),
         "learning_starts": int(args.learning_starts), "log_interval": args.log_interval,
@@ -161,6 +164,8 @@ def main() -> int:
             return torch.cat([raw, dist, masks], dim=-1)
 
         min_update_size = max(args.batch_size, int(args.learning_starts))
+        from episode_metrics_v87 import CompletedEpisodeTracker, evaluate_policy_heldout
+        ep_tracker = CompletedEpisodeTracker(args.envs, e_max_j=float(params.e_max_j), num_targets=15)
         gpu_totals = torch.zeros(9, dtype=torch.int64, device=args.learner_device)
         last_record = None
         previous_logged_totals = [0] * 9
@@ -201,6 +206,7 @@ def main() -> int:
             result["dual_penalty_transitions_added"] += stored["extra_rows"]
             result["true_transition_count"] = (i + 1) * args.envs
             result["replay_rows_inserted"] = result.get("replay_rows_inserted", 0) + args.envs + stored["extra_rows"]
+            ep_tracker.record_step_world(world, rew, (term + trunc).clamp(max=1.0), t_reason)
             world.auto_reset_gpu()
 
             step_vec = torch.stack((
@@ -268,6 +274,19 @@ def main() -> int:
         if any(not torch.isfinite(p).all() for p in learner.parameters()):
             raise FloatingPointError("non-finite final model parameters")
         result["mission_snapshot"] = mission_snapshot(world)
+        result["completed_episodes_summary"] = ep_tracker.summary()
+        if args.save_checkpoint is not None:
+            args.save_checkpoint.parent.mkdir(parents=True, exist_ok=True)
+            learner.save(args.save_checkpoint)
+            result["saved_checkpoint"] = str(args.save_checkpoint)
+        if args.eval_episodes > 0:
+            result["heldout_evaluation"] = evaluate_policy_heldout(
+                learner, args.scenario, args.scenario_set,
+                episodes=int(args.eval_episodes), eval_seed=int(args.eval_seed),
+                horizon=int(params.horizon), world_device=args.world_device,
+                learner_device=args.learner_device,
+                strict_braking_terminate=bool(args.strict_braking_terminate),
+            )
         result["integration_pass"] = True
         result["safety_gate_pass"] = result["termination_reason_counts"]["safety_failed"] == 0
         result["learning_updates_executed"] = result["updates"] > 0

@@ -31,7 +31,6 @@ matd3:
   actor_output_regularization: 0.0
   initialization: default
   critic_huber_delta: 0.0
-  grad_clip_norm: 0.0
   sync_critic_loss_scale: false
   policy_delay: 2
   target_noise_std: 0.2
@@ -40,6 +39,7 @@ matd3:
   gamma: 0.99
   tau: 0.005
   learning_rate: 0.0003
+  grad_clip_norm: 0.0
 masac:
   hidden_sizes: [256, 256]
   batch_size: 256
@@ -51,10 +51,10 @@ masac:
   critic_batch_norm: false
   activation: relu
   critic_huber_delta: 0.0
-  grad_clip_norm: 0.0
   sync_critic_loss_scale: false
   initial_alpha: 0.2
   target_continuous_entropy: -2.0
   gamma: 0.99
   tau: 0.005
   learning_rate: 0.0003
+  grad_clip_norm: 0.0

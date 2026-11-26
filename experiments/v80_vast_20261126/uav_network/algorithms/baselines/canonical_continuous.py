@@ -11,8 +11,7 @@ hybrid-action modifications:
   log-prob Jacobian), twin soft critics, pure MSE Bellman loss, single automatic entropy
   temperature alpha per agent targeting -dim(A_i) = -2.0. No discrete-SAC / dual-alpha hack.
 - event_driven_comm_action_*: Zero-oracle rule-based MAC trigger using only the local
-  local observation tail mask [silent, gcs_dirty, peer_dirty] and GCS route-valid
-  bit at index 10 (1=GCS > 2=PEER > 0=SILENT).
+  observation tail mask [silent, gcs_dirty, peer_dirty] (1=GCS > 2=PEER > 0=SILENT).
 """
 from __future__ import annotations
 
@@ -28,9 +27,7 @@ def event_driven_comm_action_np(obs_or_mask) -> np.ndarray:
     """Zero-oracle event-driven compact_3 trigger from local mask [..., (silent, gcs, peer)].
 
     Priority: 1 (GCS) if dirty & radio alive, else 2 (PEER) if valid peer route & dirty,
-    else 0 (SILENT). Full observations also verify route flag at index 10;
-    no oracle state is accessed. For a standalone three-bit mask, its caller
-    is responsible for providing a route-feasible GCS bit.
+    else 0 (SILENT). Uses strictly local observation tail; never accesses oracle state.
     """
     arr = np.asarray(obs_or_mask)
     mask = arr[..., -3:] if arr.shape[-1] > 3 else arr
@@ -140,6 +137,38 @@ class CanonicalContinuousMATD3:
             for i in range(n)
         ]
         self.updates = 0
+
+    def save(self, path) -> None:
+        import torch
+        torch.save({
+            "format": "v87_canonical_continuous_matd3",
+            "config": self.config.to_dict(),
+            "obs_dim": self.obs_dim, "state_dim": self.state_dim, "updates": self.updates,
+            "actors": self.actors.state_dict(), "target_actors": self.target_actors.state_dict(),
+            "critics_q1": self.critics_q1.state_dict(), "critics_q2": self.critics_q2.state_dict(),
+            "target_q1": self.target_q1.state_dict(), "target_q2": self.target_q2.state_dict(),
+            "actor_opts": [o.state_dict() for o in self.actor_opts],
+            "critic_opts": [o.state_dict() for o in self.critic_opts],
+        }, path)
+
+    @classmethod
+    def load(cls, path, device: str = "cpu") -> "CanonicalContinuousMATD3":
+        import torch
+        from uav_network.algorithms.configuration.schema import LearnerConfig
+        ckpt = torch.load(path, map_location=device, weights_only=True)
+        obj = cls(LearnerConfig.from_dict(ckpt["config"]), ckpt["obs_dim"], ckpt["state_dim"], device=device)
+        obj.updates = int(ckpt["updates"])
+        obj.actors.load_state_dict(ckpt["actors"])
+        obj.target_actors.load_state_dict(ckpt["target_actors"])
+        obj.critics_q1.load_state_dict(ckpt["critics_q1"])
+        obj.critics_q2.load_state_dict(ckpt["critics_q2"])
+        obj.target_q1.load_state_dict(ckpt["target_q1"])
+        obj.target_q2.load_state_dict(ckpt["target_q2"])
+        for o, sd in zip(obj.actor_opts, ckpt["actor_opts"]):
+            o.load_state_dict(sd)
+        for o, sd in zip(obj.critic_opts, ckpt["critic_opts"]):
+            o.load_state_dict(sd)
+        return obj
 
     def parameters(self):
         for group in (self.actors, self.critics_q1, self.critics_q2):
@@ -277,6 +306,42 @@ class CanonicalContinuousMASAC:
         for group in (self.actors, self.critics_q1, self.critics_q2):
             yield from group.parameters()
         yield self.log_alpha
+
+    def save(self, path) -> None:
+        import torch
+        torch.save({
+            "format": "v87_canonical_continuous_masac",
+            "config": self.config.to_dict(),
+            "obs_dim": self.obs_dim, "state_dim": self.state_dim, "updates": self.updates,
+            "actors": self.actors.state_dict(),
+            "critics_q1": self.critics_q1.state_dict(), "critics_q2": self.critics_q2.state_dict(),
+            "target_q1": self.target_q1.state_dict(), "target_q2": self.target_q2.state_dict(),
+            "log_alpha": self.log_alpha.detach().cpu(),
+            "actor_opts": [o.state_dict() for o in self.actor_opts],
+            "critic_opts": [o.state_dict() for o in self.critic_opts],
+            "alpha_opt": self.alpha_opt.state_dict(),
+        }, path)
+
+    @classmethod
+    def load(cls, path, device: str = "cpu") -> "CanonicalContinuousMASAC":
+        import torch
+        from uav_network.algorithms.configuration.schema import LearnerConfig
+        ckpt = torch.load(path, map_location=device, weights_only=True)
+        obj = cls(LearnerConfig.from_dict(ckpt["config"]), ckpt["obs_dim"], ckpt["state_dim"], device=device)
+        obj.updates = int(ckpt["updates"])
+        obj.actors.load_state_dict(ckpt["actors"])
+        obj.critics_q1.load_state_dict(ckpt["critics_q1"])
+        obj.critics_q2.load_state_dict(ckpt["critics_q2"])
+        obj.target_q1.load_state_dict(ckpt["target_q1"])
+        obj.target_q2.load_state_dict(ckpt["target_q2"])
+        with torch.no_grad():
+            obj.log_alpha.copy_(ckpt["log_alpha"].to(obj.device))
+        for o, sd in zip(obj.actor_opts, ckpt["actor_opts"]):
+            o.load_state_dict(sd)
+        for o, sd in zip(obj.critic_opts, ckpt["critic_opts"]):
+            o.load_state_dict(sd)
+        obj.alpha_opt.load_state_dict(ckpt["alpha_opt"])
+        return obj
 
     def _sample_agent(self, i: int, obs_i, deterministic: bool = False):
         import torch

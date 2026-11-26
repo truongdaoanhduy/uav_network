@@ -1,3 +1,11 @@
+# ACTIVE V88 SCIENTIFIC SCOPE — READ FIRST
+
+**Active and reproducible scenario:** 1,000 × 1,000 m, 6 UAVs, 15 static targets, 20 × 20 belief grid, fixed 50 m altitude and 900-step horizon. The active source of truth is `research/zhang_xue/configs/scenario_v77_nfz_multi_1km.yaml` together with `scripts/gpu/run_v81_real_rollout.py`; see [`docs/ACTIVE_SCENARIO_V88.md`](docs/ACTIVE_SCENARIO_V88.md).
+
+All experiment descriptions below are historical reference material only; none overrides this active scenario, and no historical GPU notebook defines the current run. New GPU work is on Vast.ai only.
+
+---
+
 # V73 — Direct 4096-env / batch-8192 capacity diagnostics
 
 The current target is `configs/learners/e4096_b8192.yaml`. There is no required

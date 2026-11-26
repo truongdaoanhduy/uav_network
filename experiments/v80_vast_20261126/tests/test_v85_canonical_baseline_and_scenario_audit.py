@@ -47,7 +47,7 @@ class TestV85CanonicalBaselineAndScenarioAudit(unittest.TestCase):
         # Also works when passed full 518-dim observation whose last 3 dims are the mask
         obs = np.zeros((1, 4, 518), dtype=np.float32)
         obs[..., -3:] = masks
-        obs[..., 10] = 1.0  # GCS route valid in fixture
+        obs[..., 10] = 1.0  # GCS route genuinely available in this fixture
         np.testing.assert_array_equal(event_driven_comm_action_np(obs), np.array([[1, 1, 2, 0]], dtype=np.int64))
 
     def test_v85_canonical_yaml_disables_all_custom_modifications(self):
