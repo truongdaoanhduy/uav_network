@@ -29,7 +29,8 @@ YAML V88 cũ được giữ nguyên làm đối chứng; nhánh riêng `experime
 | DS m_f=m_e=.80 có calibration đúng với Pd=.85/Pf=.03 | OPEN | Test độ tin cậy, false confirmation, độ nhạy m_f/m_e, xác suất sau hợp nhất |
 | HELLO và DS delivery trong blackout đa hop, tốc độ cao, tất cả 6 UAV | OPEN STRESS | Packet trace và movement policy ngẫu nhiên, coverage không oracle |
 | Pairwise physical safety và shield feasibility trong mọi trạng thái hợp lệ | OPEN | Stress trajectories / formal viability; shield fallback rollback có thể vi phạm a_max |
-| GPU 4096 × 900 bước và multi seed, peak memory/time | OPEN | smoke 3 bước không đủ |
+| GPU 4096 world × 900 bước, zero-learner, hành động đứng yên | PASS 8/8 | /workspace/v89_scenario_env4096_s900.json; 61,2783 s, 4096/4096 horizon, 0 overflow, 0 safety failure |
+| Stress chuyển động ngẫu nhiên 3 seed, 192 world-episode × 900 bước | PASS fail-closed, liveness OPEN | 2 lần action pair bị từ chối; trace world55 bước800 khẳng định Δpos=Δvel=Δpin=0 |
 
 **Nguyên tắc:** Không thể coi môi trường khoa học hoàn chỉnh chỉ từ pytest PASS hoặc stationary-action rollout. GCS packet delivery >0 không chứng minh đầy đủ tính trung thực MAC/PHY. Những thay đổi quan trọng (spawn, chứng cứ, quan sát) làm bài toán khác V88; số liệu các run trước đây KHÔNG so sánh trực tiếp.
 
@@ -49,7 +50,7 @@ YAML V88 cũ được giữ nguyên làm đối chứng; nhánh riêng `experime
 1. Xác nhận tiêu chuẩn peer safety ở đầu vào/đầu ra (safety rejection có được xem là episode failure hay vẫn tiếp tục?) và kiểm thực nghiệm stress.
 2. So sánh Warp surrogate với UavNetSim-v1 theo cùng topology, packet trace/CSMA, retry, TTL, AoI, interference, ACK, PDR/delay, blackout.
 3. Chốt mô hình chứng cứ: phân biệt target confidence với freshness của dữ liệu; kiểm định hiệu chuẩn Pd/Pf và sự hợp nhất không đếm trùng theo origin/generation.
-4. Kiểm đa seed, edge cases geometry, network partitions và selective reset 900 bước; kiểm E4096×900 dưới ràng buộc bộ nhớ.
+4. E4096×900 stationary đã đạt; vẫn cần network partitions, chuyển động động ở 4096 env, multi-seed stress và đo peak memory lúc training.
 5. Chỉ sau đó đóng băng YAML, schema observation/action, reward contract, test & SHA256, đặt **SCENARIO_FROZEN**; sau đó mới triển khai baseline.
 
 ## Đối chiếu học thuật
@@ -60,3 +61,7 @@ YAML V88 cũ được giữ nguyên làm đối chứng; nhánh riêng `experime
 - TD3/SAC chỉ là tài liệu baseline dùng SAU freeze: https://proceedings.mlr.press/v80/fujimoto18a.html; https://proceedings.mlr.press/v80/haarnoja18b.html
 
 **Kết luận:** Giai đoạn này vẫn ưu tiên giải quyết các gate mở; KHÔNG được đánh dấu hoàn tất, KHÔNG chạy training/tuning MATD3 hoặc MASAC.
+
+## Bổ sung bằng chứng cuối (không thay source physics)
+
+E4096×900 (seed44, policy đứng yên) đạt 8/8 gate, 3.686.400 world transitions trong 61,2783 s; 4.096/4.096 kết thúc horizon, 0 overflow, 0 safety failure, 0 reward mismatch; gói tới GCS 22.093.824 và HELLO nhận 122.880 bản ghi. Đây không phải training, không chứng minh chất lượng tìm kiếm. Random motion E64×900×3 seed sinh 2 safety-failed proposal/192 episode; firmware shield fail-closed, không commit chuyển động nguy hiểm như trace đã kiểm. Dù vậy vẫn OPEN điều kiện mạng upstream-parity và DS Pd/Pf calibration, nên NOT FROZEN.
