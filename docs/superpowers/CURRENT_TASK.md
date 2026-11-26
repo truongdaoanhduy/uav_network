@@ -1,23 +1,35 @@
-# Current task — V82 validation of V81 (26 November 2026)
+# Current task — V84 independent validation of V83 (26 November 2026)
 
-Active branch: experiment/v82-evidence-audit-20261126.
-Implementation commit: e81bab955cde37c87addeca606906040fa4e93fd.
-Active source: experiments/v80_vast_20261126. Its runner filename remains run_v81_real_rollout.py, reporting version V82.
-The V81 ZIP supplied by the user is preserved immutably outside Git; input SHA256 024a9db5af8b04c945bd6e1b5a9b4542cb6af630bcee4b0bdaa994ef5b6dd2b5.
+Active branch: experiment/v84-v83-independent-validation-20261126.
+Active source: experiments/v80_vast_20261126.
+Runner filename remains run_v81_real_rollout.py; version V84.
+Final implementation:13b6cc499883853f1178b5833c8492c23db534e9.
+Earlier replay/geometry implementation:093d304434381c62df1e693152179fa737decbfe.
+Base V82:22fa5c2115fd57185f395a27bdf9f62bdab60d3a.
+User V83 ZIP SHA256:d14f42fcff542bf0a5ea3594212375383d56e0c77d938ce44c8c05ad1a2dfc33.
 
-Read docs/methods/v82_20261126/01_AUDIT_VI.md and its 24-issue CSV before changing science.
-CPU:424 passed,5 skipped,100 subtests. CUDA isolated physical GPU1:425 passed,4 skipped,100 subtests.
-Active source manifests296+122; policy298 files/0violations; all owned files<=500 lines.
-Verified dead/live pair detector with V80 RED and V82 GREEN; strict bool/norm/warmup runner contracts; real numerical controls and legacy checkpoint migration.
-DS400-cell same-ledger reference errors<=3.1e-6. This does not prove paper max-count/aging or upstream SimPy mission parity.
-V81 original E64/H64/B128/s300: MATD3 safety66, MASAC5 (V80 history38/3; budgets/configs differ).
-V82 policy E64/H64/B128/s900: MATD3 safety210/horizon45, MASAC safety5/horizon59;837 updates each; zero all15-target success.
-Final E4096/B8192/H64/horizon900 smoke:3steps/two updates each algorithm, not a900-step training run.
-All run seeds44; no claim of multi-seed confidence, convergence, full upstream parity, T4 V82,2GPU or formal viability.
-Do not re-label candidate safety flags as committed physical crashes; fail-closed prevents the bad move.
-No CBF was reintroduced, no physics threshold weakened, no Actor truth input added, no Kaggle job submitted.
+Read docs/methods/v84_20261126/01_V83_AUDIT_V84_FIXES_VI.md and the8-claim/24-issue CSVs.
+V83 L2 wall braking is correct within a sufficient collinear wall-backup set;2/300 old failures→0/300.
+CPU/WarpCUDA each10000 state checks passed; not a proof of joint viability.
+Raw replay is valid when shield is part of environment; dual is an experimental formulation.
+Six V83 replay/warmup/logging bugs were reproduced RED and fixed.
+A seventh inherited diagnostic bug used ReLU for SiLU Actor probes; corrected and4 activation/shared cases pass.
+Actual Actor output, learner state and RNG were checked; old SiLU pre_tanh probe values must not be treated as actual Actor measurements.
 
-External evidence directory on Vast: /workspace/uav_v82_verified_audit_20261126.
-Final deliverable: UAV_V82_V81_REVIEW_CODE_LOG_KAGGLE_EVIDENCE_20261126.zip.
-Next: physical viability/peer observation gates, pinned upstream event comparison, one-factor learner/reward ablations and held-out evaluation before full-budget training.
-Maintain prior experiment history in Git. Never push main or force-push. Never include key.txt or credentials.
+CPU439 passed/5skipped; gatedCUDA440 passed/4skipped;100subtests each.
+Active manifests301+122, policy303files/0violations; source<=500 lines.
+30 current cohorts:6 immutable V83,12 V84 pre-diagnostic fix,12 final V84.
+Final source frozen and clean for all12 final runs; counters/window sums and real-update budgets verified.
+E64/300 final MATD3 raw21/dual2/raw_penalized11 safety failures; MASAC3/3/3; all boundary0.
+E64/900 dual:MATD3 safety5/full15success4/horizon56; MASAC safety3/full15success0/horizon62.
+All safety failures above are pair flags. Detector prevents unsafe physical commit.
+E4096/B8192/3steps raw/dual both algorithms:2 real learner updates each, no safety flags.
+No held-out evaluation, multi-seed confidence, full SimPy event parity,2GPU,T4V84 or fullE4096×900 proof.
+Historical64 Kaggle archive/member records contain32 distinct payload hashes, not64 independent runs.
+No new Kaggle job or credential access.
+
+External evidence:/workspace/uav_v84_v83_verified_20261126.
+ZIP:UAV_V84_V83_VERIFIED_CODE_LOG_KAGGLE_EVIDENCE_20261126.zip.
+Next gates:joint safety state bank, HELLO observation schema, chosen replay MDP,
+controlled reward/belief/RF ablations, upstream packet traces, held-out multi-seed evaluation.
+Preserve prior history. Dedicated branch only, never main or force push. Never include credentials.
