@@ -6,6 +6,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from uav_network.algorithms.core.action_utils import valid_destinations
+from uav_network.algorithms.core.models import _apply_activation
 
 class MATD3DiagnosticsMixin:
     @torch.no_grad()
@@ -23,14 +24,14 @@ class MATD3DiagnosticsMixin:
             flat = probe.reshape(batch * n, -1)
             ids = torch.arange(n, device=probe.device).expand(batch, n).reshape(-1)
             actor = self.actors[0]
-            hidden = F.relu(actor.encoder(self._actor_input(flat, ids)))
+            hidden = _apply_activation(actor.encoder(self._actor_input(flat, ids)), actor.activation)
             raw = actor.continuous(hidden).reshape(batch, n, self.continuous_dim)
             pretanh = actor.normalize_pretanh(raw)
             logits = actor.destination(hidden).reshape(batch, n, self.destinations)
             hidden = hidden.reshape(batch, n, -1)
         else:
             hidden = torch.stack([
-                F.relu(actor.encoder(probe[:, i]))
+                _apply_activation(actor.encoder(probe[:, i]), actor.activation)
                 for i, actor in enumerate(self.actors)
             ], dim=1)
             raw = torch.stack([
@@ -71,6 +72,8 @@ class MATD3DiagnosticsMixin:
             "actor_mask_eligible_fraction": (valid_count > 1).float().mean(),
             "actor_destination_entropy_mean": entropy.mean(),
             "actor_destination_max_probability_mean": probabilities.max(-1).values.mean(),
+            "actor_hidden_activation_zero_fraction": (hidden == 0).float().mean(),
+            # Historical field retained as an alias; not a dormant-neuron rate.
             "actor_hidden_relu_zero_fraction": (hidden == 0).float().mean(),
             "actor_hidden_activation_abs_mean": hidden.abs().mean(),
         }
