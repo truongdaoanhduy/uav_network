@@ -1,0 +1,48 @@
+# Deliberately NON-upstream PHY/CCA ablation; compare with reference using SAME seeds.
+# v6.3 Q1-Clean & Scalable Scenario Configuration (UavNetSim-v1 PHY aligned)
+# Change num_uavs (e.g., 4, 6, 8, 10, 12), grid_w (20 or 40), map_size_m, num_targets freely!
+num_uavs: 6
+grid_w: 20
+comm_action_mode: compact_3
+enable_peer_dissemination: true
+map_size_m: 1000.0
+uav_alt_m: 50.0
+v_max_mps: 15.0
+a_max_mps2: 5.0
+fov_radius_m: 50.0
+uav_safe_distance_m: 50.0
+safety_horizon_s: 900
+num_targets: 15
+pd: 0.85
+pf: 0.03
+ds_mf: 0.80
+ds_me: 0.80
+confirm_th: 0.90
+ds_uncertainty_ceiling: 0.20
+ds_fusion_mode: sum
+ds_aoi_eta: 0.02
+aoi_ewma_end_to_end: true
+evidence_calibration: paper_fixed
+tx_power_w: 0.1
+mac_cca_threshold_dbm: -70.0
+mac_noise_power_w: 4.0e-11  # RESEARCH ablation: not upstream 802.11b thermal noise
+enable_tx_power_control: false
+enable_3d_sensing_occlusion: true
+enable_accel_energy: false
+enable_fp_unlatch: true
+obs_pool_mode: semantic
+peer_reward_mode: info_gain
+aoi_reward_mode: exponential
+e_max_j: 180000.0
+w_p2p: 0.10
+lambda_b: 0.0
+
+# Selected upstream 802.11b PHY/MAC timing; NOT SimPy packet-event equivalence.
+# Upstream: https://github.com/Zihao-Felix-Zhou/UavNetSim/blob/master/utils/config.py
+mac_snr_threshold_db: 6.0
+mac_slot_us: 20
+mac_sifs_us: 10
+mac_difs_us: 50
+mac_cw_min: 31
+mac_max_retries: 5
+mac_ack_timeout_us: 180

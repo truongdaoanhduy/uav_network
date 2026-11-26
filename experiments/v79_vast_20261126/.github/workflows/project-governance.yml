@@ -1,0 +1,75 @@
+name: Current seven-radio scenario and retained algorithm regressions
+
+on:
+  push:
+    branches:
+      - "experiment/**"
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  source-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Enforce changed-file source and Git artifact contract
+        shell: bash
+        env:
+          PULL_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            base="$PULL_BASE"
+          elif [[ -n "$PUSH_BEFORE" && ! "$PUSH_BEFORE" =~ ^0+$ ]] && git cat-file -e "$PUSH_BEFORE^{commit}" 2>/dev/null; then
+            base="$PUSH_BEFORE"
+          else
+            base="$(git rev-list --max-parents=0 HEAD | tail -1)"
+          fi
+          python scripts/check_project_policy.py --scope changed --base "$base"
+      - name: Shell syntax
+        run: |
+          bash -n setup.sh
+          bash -n research/zhang_xue/setup.sh
+      - name: Verify source length in modular Zhang-Xue package
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('research/zhang_xue/src')
+          sources=list(root.rglob('*.py'))
+          offenders=[str(p) for p in sources if len(p.read_text().splitlines())>500]
+          assert not offenders, offenders
+          print(f"{len(sources)} Python modules pass 500-line constraint")
+          PY
+
+  cpu-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install research-only CPU test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "numpy>=2.2,<3" "PyYAML>=6,<7" "pytest>=8,<10"
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.5,<3"
+      - name: Run standalone regression suite (not full-repo gate)
+        env:
+          PYTHONPATH: .:research/zhang_xue/src
+        run: python -m pytest -q tests/ research/zhang_xue/tests/
+      - name: Validate scenario CLI configuration
+        env:
+          PYTHONPATH: .:research/zhang_xue/src
+        run: |
+          cd research/zhang_xue
+          python scripts/run_scenario.py --config configs/cpu_smoke.yaml --dry-run

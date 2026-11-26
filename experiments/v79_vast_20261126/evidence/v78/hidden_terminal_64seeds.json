@@ -1,0 +1,62 @@
+{
+  "status": "PASS",
+  "seeds": 64,
+  "offset": 100,
+  "geometry": {
+    "cca_threshold_w": 6.309573444801943e-12,
+    "cross_blocked_w": 4.509885016040475e-14,
+    "cross_clear_w": 1.7154446545691828e-10,
+    "toward_gcs_w": [
+      9.354756175449461e-11,
+      9.354756175449461e-11
+    ],
+    "physical_hidden_terminal_verified": true
+  },
+  "clear_los": {
+    "sinr_drops": {
+      "mean": 0.0,
+      "min": 0,
+      "max": 0
+    },
+    "mac_ack_timeout": {
+      "mean": 0.0,
+      "min": 0,
+      "max": 0
+    },
+    "mac_ack_ok": {
+      "mean": 4.0,
+      "min": 4,
+      "max": 4
+    },
+    "gcs_packets": {
+      "mean": 2.0,
+      "min": 2,
+      "max": 2
+    }
+  },
+  "rf_obstacle_nfz": {
+    "sinr_drops": {
+      "mean": 1.515625,
+      "min": 0,
+      "max": 5
+    },
+    "mac_ack_timeout": {
+      "mean": 2.640625,
+      "min": 0,
+      "max": 8
+    },
+    "mac_ack_ok": {
+      "mean": 3.96875,
+      "min": 2,
+      "max": 4
+    },
+    "gcs_packets": {
+      "mean": 2.0,
+      "min": 2,
+      "max": 2
+    }
+  },
+  "paired_mean_excess_sinr_drops": 1.515625,
+  "paired_mean_excess_mac_ack_timeout": 2.640625,
+  "warning": "CPU randomized CSMA microbenchmark; not a CPU-Warp MAC event parity proof or all-load PDR claim"
+}

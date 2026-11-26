@@ -1,0 +1,188 @@
+{
+  "version": "7.0",
+  "base_upload_sha256": "458c0b7bf1f1cb61df20e33104461e230c4877d485e00f81ab27ea6f3e56b1e3",
+  "evidence_scope": "CPU tests + source inspection; NO NVIDIA CUDA execution",
+  "findings_total": 20,
+  "findings": [
+    {
+      "id": "V70-01",
+      "priority": "P0",
+      "component": "Warp packet RX",
+      "status": "SOURCE_FIXED_AWAITING_CUDA",
+      "finding": "rx_lock cleared before delivery, causing old sender lookup -1",
+      "files": "mac_v67.py;events_v67.py",
+      "decision": "Pass tx_node explicitly; CPU static regression; CUDA real packet required"
+    },
+    {
+      "id": "V70-02",
+      "priority": "P0",
+      "component": "PHY CCA vs SNR",
+      "status": "SOURCE_FIXED_AWAITING_CUDA",
+      "finding": "GPU default rx_lock_on_cca=True disagrees with CPU SNR decode",
+      "files": "runtime_v67.py",
+      "decision": "Set False by default, preserve optional sensitivity experiment"
+    },
+    {
+      "id": "V70-03",
+      "priority": "P0",
+      "component": "E2E ACK pending",
+      "status": "SOURCE_FIXED_AWAITING_CUDA",
+      "finding": "Repeated SEND to same destination overwrites previous pending_seq/words",
+      "files": "inject_v67.py",
+      "decision": "Keep one outstanding request/destination until ACK or expiry; trace on CUDA required"
+    },
+    {
+      "id": "V70-04",
+      "priority": "P0",
+      "component": "Warp event cap",
+      "status": "SOURCE_FIXED_AWAITING_CUDA",
+      "finding": "Kernel sets overflow then advances now, host previously ignored flag",
+      "files": "runtime_v67.py",
+      "decision": "Raise RuntimeError on overflow and reject stale transitions"
+    },
+    {
+      "id": "V70-05",
+      "priority": "P1",
+      "component": "Warp reset",
+      "status": "SOURCE_FIXED_AWAITING_CUDA",
+      "finding": "reset_v67.py used np.asarray without importing numpy",
+      "files": "kernels/reset_v67.py",
+      "decision": "Add missing import; CUDA compilation still unverified"
+    },
+    {
+      "id": "V70-06",
+      "priority": "P1",
+      "component": "NumPy parity reset",
+      "status": "FIXED_CPU_TESTED",
+      "finding": "Reset retained old ledger_pos, counters and pending payload arrays",
+      "files": "parity_v67_ref.py",
+      "decision": "Clear all SoA arrays then initialize canonical sentinels"
+    },
+    {
+      "id": "V70-07",
+      "priority": "P1",
+      "component": "Warp input validation",
+      "status": "FIXED_CPU_TESTED_CUDA_UNVERIFIED",
+      "finding": "GPU input casts allowed silent invalid shapes/NaN/out-of-bounds cell IDs",
+      "files": "runtime_v67.py",
+      "decision": "Validate sensing/action/PHY values before GPU upload"
+    },
+    {
+      "id": "V70-08",
+      "priority": "P1",
+      "component": "VRAM scalability",
+      "status": "FIXED_CPU_PREFLIGHT_CUDA_UNVERIFIED",
+      "finding": "Parameterized 30-UAV/40x40 requests can exceed 195GiB network-only @2048 env",
+      "files": "layout_v67.py;scripts/gpu/warp_packet_cuda_gate.py",
+      "decision": "Block over-budget allocations; verify free VRAM device-wide"
+    },
+    {
+      "id": "V70-09",
+      "priority": "P2",
+      "component": "Ablation YAML",
+      "status": "FIXED_CPU_TESTED",
+      "finding": "Cross-version v66/v67 comparisons mix termination; 1 vs2km change UAV density",
+      "files": "paired_scenario_gate.py",
+      "decision": "Compare effective config, inventory densities, matched peer/no-peer pairs"
+    },
+    {
+      "id": "V70-10",
+      "priority": "P2",
+      "component": "3km workload",
+      "status": "FIXED_CPU_SMOKE_ONLY",
+      "finding": "No named matched 3km stress profiles although grid60 supported",
+      "files": "scenario_v70_*_3km.yaml",
+      "decision": "Two config profiles added at 135 targets, 6 UAV; no convergence claims"
+    },
+    {
+      "id": "V70-11",
+      "priority": "P0",
+      "component": "Full Warp RL training",
+      "status": "OPEN_BLOCKER",
+      "finding": "WarpCompressedRadioNetworkV67 is not used in actor->rollout->reward->replay->gradient->eval",
+      "files": "scripts/maintenance/q1_gpu_preflight.py",
+      "decision": "Integrate whole environment and learner, test 32 then256 then2048/4096 env"
+    },
+    {
+      "id": "V70-12",
+      "priority": "P0",
+      "component": "CPU/Warp packet-event parity",
+      "status": "OPEN_BLOCKER",
+      "finding": "NumPySoARefV67 uses ideal single-hop delivery; no CCA/collision/backoff/ACK parity",
+      "files": "parity_v67_ref.py",
+      "decision": "Build timestamped trace comparison against CPU 7-radio and upstream UavNetSim"
+    },
+    {
+      "id": "V70-13",
+      "priority": "P1",
+      "component": "UavNetSim config parity",
+      "status": "OPEN_RESEARCH_VALIDATION",
+      "finding": "Warp queue cap32 vs CPU configurable max200, learned per-radio TX absent",
+      "files": "layout_v67.py;runtime_v67.py",
+      "decision": "Align or label performance ablation as custom protocol; measure PDR/delay/queues"
+    },
+    {
+      "id": "V70-14",
+      "priority": "P1",
+      "component": "AoI definition",
+      "status": "OPEN_RESEARCH_VALIDATION",
+      "finding": "r_gcs_aoi is freshness-at-first-confirmation, not continuous AoI penalty",
+      "files": "environment/transition.py",
+      "decision": "Preregister separate continuous-AoI ablation with equivalent scales"
+    },
+    {
+      "id": "V70-15",
+      "priority": "P1",
+      "component": "DS threshold calibration",
+      "status": "OPEN_RESEARCH_VALIDATION",
+      "finding": "Main profiles use mf=me=.80 fixed and confirm=.90; false alarms need calibration",
+      "files": "scenario_v67_*.yaml",
+      "decision": "Compare 0.90 vs0.99 and likelihood-ratio BBAs by precision/recall"
+    },
+    {
+      "id": "V70-16",
+      "priority": "P1",
+      "component": "2D/3D and flight safety",
+      "status": "OPEN_RESEARCH_VALIDATION",
+      "finding": "Actor XY at fixed 50m; obstacles affect 3D LOS, not full 3D flight policy",
+      "files": "environment/transition.py;mobility/flight_safety_energy.py",
+      "decision": "Define as planar search at fixed altitude; validate swept collisions and battery before conclusions"
+    },
+    {
+      "id": "V70-17",
+      "priority": "P1",
+      "component": "Watermark equivalence",
+      "status": "OPEN_RESEARCH_VALIDATION",
+      "finding": "gen-only watermark loses same-timestamp count changes; equivalence requires strict 1 observation/cell/time",
+      "files": "gpu/layout_v67.py;gpu/parity_v67_ref.py",
+      "decision": "Enforce measurement generation version or narrow scope of claim and test duplicate timestamps"
+    },
+    {
+      "id": "V70-18",
+      "priority": "P1",
+      "component": "GPU event timing/cost",
+      "status": "OPEN_BLOCKER",
+      "finding": "Single TX scalar, network-only mode; no mobility midpoint or per-UAV flight+TX energy",
+      "files": "runtime_v67.py",
+      "decision": "Port full physics, network substeps and energy/reward on GPU with parity tests"
+    },
+    {
+      "id": "V70-19",
+      "priority": "P2",
+      "component": "Metrics interpretation",
+      "status": "OPEN_RESEARCH_VALIDATION",
+      "finding": "PDR packet denominator differs from discovery/coverage and does not prove target correctness",
+      "files": "environment/transition.py",
+      "decision": "Plot distinct PDR/latency/accuracy/coverage/energy versus environment steps"
+    },
+    {
+      "id": "V70-20",
+      "priority": "P2",
+      "component": "Paper quality claims",
+      "status": "OPEN_RESEARCH_VALIDATION",
+      "finding": "Venue Q1/A* not a theorem about this code; publications use different objective/methods",
+      "files": "docs/V70_INDEPENDENT_AUDIT_VI.md",
+      "decision": "Label Zhang/Xue/UavNetSim as inspirations; report ablations and reproducible environment"
+    }
+  ]
+}

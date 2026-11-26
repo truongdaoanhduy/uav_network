@@ -1,0 +1,378 @@
+{
+  "version": "0.72.0",
+  "user_facing_date": "2026-11-26 Asia/Saigon",
+  "input_zip_sha256": "9725e8b50c2b9dba9aeda951737acb34ad1a406d4fdb1c48764c15e098972f42",
+  "baseline_commit_local": "913fb69",
+  "github_push_performed": false,
+  "cuda_executed": false,
+  "full_rl_warp_integrated": false,
+  "upstream_simpy_run": false,
+  "evidence_scope": "CPU NumPy/PyTorch tests and actual Warp1.18 CPU kernel execution; no CUDA claim",
+  "baseline_tests": {
+    "pytest_passed": 242,
+    "unittest_subtests_passed": 64
+  },
+  "final_test_authority": "outputs/qa_evidence_v72/results.json and pytest_junit.xml",
+  "findings_total": 39,
+  "findings": [
+    {
+      "id": "E01",
+      "priority": "P0",
+      "component": "Actor execution",
+      "issue": "Hidden peer position/battery changed default mask/action",
+      "decision": "Default HELLO-local peer selection; explicit legacy mode retained",
+      "test": "tests/test_v72_environment_regressions.py",
+      "status": "FIXED_CPU"
+    },
+    {
+      "id": "E02",
+      "priority": "P1",
+      "component": "Observation",
+      "issue": "Observation preview changed next packet payload",
+      "decision": "Read-only preview and masks",
+      "test": "tests/test_v72_environment_regressions.py",
+      "status": "FIXED_CPU"
+    },
+    {
+      "id": "E03",
+      "priority": "P1",
+      "component": "DS reward",
+      "issue": "Team EWMA snapshots fused without current-age discount",
+      "decision": "Age each source on end-step clock",
+      "test": "tests/test_v72_environment_regressions.py",
+      "status": "FIXED_CPU"
+    },
+    {
+      "id": "E04",
+      "priority": "P1",
+      "component": "Spawn safety",
+      "issue": "Scaled/sizable fleets began inside unsafe separation or buildings",
+      "decision": "Preserve valid spawn; validated bounded fallback",
+      "test": "tests/test_v72_environment_regressions.py",
+      "status": "FIXED_CPU"
+    },
+    {
+      "id": "E05",
+      "priority": "P1",
+      "component": "Action adapter",
+      "issue": "Full RF bridge still required six UAVs and seven destinations",
+      "decision": "Use actual fleet and mask dimensions",
+      "test": "tests/test_v72_environment_regressions.py",
+      "status": "FIXED_CPU"
+    },
+    {
+      "id": "E06",
+      "priority": "P1",
+      "component": "Optional AoI reward",
+      "issue": "Instantaneous penalty used running mean",
+      "decision": "Use current censored map age, keep time-average metric",
+      "test": "tests/test_v72_environment_regressions.py",
+      "status": "FIXED_CPU"
+    },
+    {
+      "id": "E07",
+      "priority": "P1",
+      "component": "Confirmation freshness",
+      "issue": "Older novel support caused confirmation but latency stayed zero",
+      "decision": "Track novel receipt independently of newest generation receipt",
+      "test": "tests/test_v72_environment_regressions.py",
+      "status": "FIXED_CPU"
+    },
+    {
+      "id": "E08",
+      "priority": "P1",
+      "component": "Local routes",
+      "issue": "Expired/zero-hop HELLO entries selected by new local default",
+      "decision": "Consistent read-only active-route filter for action/mask/telemetry",
+      "test": "tests/test_v72_environment_regressions.py",
+      "status": "FIXED_CPU"
+    },
+    {
+      "id": "E09",
+      "priority": "P2",
+      "component": "Optional config",
+      "issue": "CPU coalescing could not be selected via EnvConfig",
+      "decision": "Expose validated False-default protocol option",
+      "test": "tests/test_v72_environment_regressions.py",
+      "status": "FIXED_CPU"
+    },
+    {
+      "id": "N01",
+      "priority": "P0",
+      "component": "TTL TX",
+      "issue": "Packet could expire in DIFS/backoff then transmit",
+      "decision": "Recheck lifetime at actual TX start",
+      "test": "tests/test_v72_network_regressions.py",
+      "status": "FIXED_CPU"
+    },
+    {
+      "id": "N02",
+      "priority": "P0",
+      "component": "TTL RX",
+      "issue": "In-flight expired packet delivered at destination",
+      "decision": "Physical ACK preserved; expired app payload rejected",
+      "test": "tests/test_v72_network_regressions.py",
+      "status": "FIXED_CPU"
+    },
+    {
+      "id": "N03",
+      "priority": "P1",
+      "component": "Relay custody",
+      "issue": "Full relay marked packet dedup before admission",
+      "decision": "Commit dedup only after enqueue",
+      "test": "tests/test_v72_network_regressions.py",
+      "status": "FIXED_CPU"
+    },
+    {
+      "id": "N04",
+      "priority": "P1",
+      "component": "Coalescing",
+      "issue": "Renewed old identity could lose E2E pending lifecycle",
+      "decision": "Preserve live expiry, prune expired identities, restore live pending",
+      "test": "tests/test_v72_network_regressions.py",
+      "status": "FIXED_CPU"
+    },
+    {
+      "id": "N05",
+      "priority": "P1",
+      "component": "Origin fairness",
+      "issue": "Own 62 entries could starve relay origins; preview advanced cursor",
+      "decision": "Rotate all origins only on new admitted packet",
+      "test": "tests/test_v72_network_regressions.py",
+      "status": "FIXED_CPU"
+    },
+    {
+      "id": "W01",
+      "priority": "P1",
+      "component": "Buffer rank",
+      "issue": "Accepted grid1 collapsed cell buffers to scalar",
+      "decision": "Collapse only named environment scalar fields",
+      "test": "tests/test_v72_warp_execution.py",
+      "status": "FIXED_WARP_CPU_CUDA_UNVERIFIED"
+    },
+    {
+      "id": "W02",
+      "priority": "P0",
+      "component": "Event budget",
+      "issue": "Exactly enough events incorrectly overflowed",
+      "decision": "Inspect remaining due events and preserve sticky fault",
+      "test": "tests/test_v72_warp_execution.py",
+      "status": "FIXED_WARP_CPU_CUDA_UNVERIFIED"
+    },
+    {
+      "id": "W03",
+      "priority": "P0",
+      "component": "Device fault",
+      "issue": "Disabling host checks could permit invalid state progression",
+      "decision": "Device blocks overflow/clock/generation faults until reset",
+      "test": "tests/test_v72_warp_execution.py",
+      "status": "FIXED_WARP_CPU_CUDA_UNVERIFIED"
+    },
+    {
+      "id": "W04",
+      "priority": "P0",
+      "component": "ACK locks",
+      "issue": "Non-target ACK overhearers kept RX locks",
+      "decision": "Release all locks belonging to finishing ACK TX",
+      "test": "tests/test_v72_warp_execution.py",
+      "status": "FIXED_WARP_CPU_CUDA_UNVERIFIED"
+    },
+    {
+      "id": "W05",
+      "priority": "P1",
+      "component": "HELLO expiry",
+      "issue": "Expired routes entered advertised DV",
+      "decision": "Prune before HELLO snapshot",
+      "test": "tests/test_v72_warp_execution.py",
+      "status": "FIXED_WARP_CPU_CUDA_UNVERIFIED"
+    },
+    {
+      "id": "W06",
+      "priority": "P1",
+      "component": "Scheduling",
+      "issue": "Injected queue waited for next HELLO",
+      "decision": "Arm idle work at step start",
+      "test": "tests/test_v72_warp_execution.py",
+      "status": "FIXED_WARP_CPU_CUDA_UNVERIFIED"
+    },
+    {
+      "id": "W07",
+      "priority": "P1",
+      "component": "Relay retries",
+      "issue": "Lost ACK duplicated relay custody; retry drops uncounted",
+      "decision": "Hop-ID ring after admission and drop counter",
+      "test": "tests/test_v72_warp_execution.py",
+      "status": "FIXED_WARP_CPU_CUDA_UNVERIFIED"
+    },
+    {
+      "id": "W08",
+      "priority": "P0",
+      "component": "TTL RX",
+      "issue": "Expired data assimilated on final Warp delivery",
+      "decision": "No expired application delivery; physical ACK preserved",
+      "test": "tests/test_v72_warp_execution.py",
+      "status": "FIXED_WARP_CPU_CUDA_UNVERIFIED"
+    },
+    {
+      "id": "W09",
+      "priority": "P1",
+      "component": "GCS receipt",
+      "issue": "Same evidence with new app sequence renewed freshness",
+      "decision": "Update evidence receipt only for novel snapshot",
+      "test": "tests/test_v72_warp_execution.py",
+      "status": "FIXED_WARP_CPU_CUDA_UNVERIFIED"
+    },
+    {
+      "id": "W10",
+      "priority": "P0",
+      "component": "Peer selection",
+      "issue": "Warp nearest selector read hidden peer truth",
+      "decision": "Default unexpired local HELLO route-distance choice",
+      "test": "tests/test_v72_warp_execution.py",
+      "status": "FIXED_WARP_CPU_CUDA_UNVERIFIED"
+    },
+    {
+      "id": "W11",
+      "priority": "P1",
+      "component": "Input contract",
+      "issue": "Bool/fraction dimensions, invalid eta and unsupported raw mode accepted",
+      "decision": "Validate before allocation; reject raw mode",
+      "test": "tests/test_v72_warp_execution.py",
+      "status": "FIXED_WARP_CPU_CUDA_UNVERIFIED"
+    },
+    {
+      "id": "W12",
+      "priority": "P1",
+      "component": "Memory guard",
+      "issue": "Missing torch could bypass CUDA allocation guard",
+      "decision": "Query free memory through Warp directly",
+      "test": "tests/test_v72_warp_execution.py",
+      "status": "FIXED_WARP_CPU_CUDA_UNVERIFIED"
+    },
+    {
+      "id": "W13",
+      "priority": "P1",
+      "component": "EWMA generation",
+      "issue": "Same source/cell timestamp could silently lose new counts in watermark",
+      "decision": "Prevalidate per env, fault3 before mutation, guarded ValueError and reset recovery",
+      "test": "tests/test_v72_warp_execution.py",
+      "status": "FIXED_WARP_CPU_CUDA_UNVERIFIED"
+    },
+    {
+      "id": "Q01",
+      "priority": "P1",
+      "component": "Release policy",
+      "issue": "Kaggle token prefix was not recognized",
+      "decision": "Synthetic regression and Kaggle token pattern",
+      "test": "tests/test_v72_release_policy.py",
+      "status": "FIXED_CPU"
+    },
+    {
+      "id": "Q02",
+      "priority": "P2",
+      "component": "Execution evidence",
+      "issue": "Old smoke/source strings did not prove payload delivery",
+      "decision": "Shared real CPU/CUDA workload plus endpoint consistency fixture",
+      "test": "tests/test_v72_packet_gate.py;tests/test_v72_packet_contract.py",
+      "status": "IMPLEMENTED_CPU_VERIFIED_CUDA_UNVERIFIED"
+    },
+    {
+      "id": "Q03",
+      "priority": "P1",
+      "component": "Scientific claims",
+      "issue": "Count-weight DS was described as identical per-sample mass discount",
+      "decision": "Correct claims; include numeric counterexample; retain main algorithm",
+      "test": "outputs/qa_evidence_v72/scientific_inventory.json",
+      "status": "CLAIM_CORRECTED_NO_OBJECTIVE_CHANGE"
+    },
+    {
+      "id": "Q04",
+      "priority": "P2",
+      "component": "Installed environment QA",
+      "issue": "Legacy folder test scanned third-party .venv packages after documented install",
+      "decision": "Use canonical source inventory, as full policy checker already does",
+      "test": "tests/test_v63_folder_architecture.py::test_folder_policy_all_source_files_at_most_500_lines",
+      "status": "FIXED_CPU"
+    },
+    {
+      "id": "B01",
+      "priority": "P0",
+      "component": "Full GPU RL",
+      "issue": "Motion/sensing/belief/reward/obs/replay/update/eval not integrated",
+      "decision": "Implement and field-compare full device environment after packet gates",
+      "test": "Not executed",
+      "status": "OPEN"
+    },
+    {
+      "id": "B02",
+      "priority": "P0",
+      "component": "Packet parity",
+      "issue": "No exact CPU-Warp event trace parity",
+      "decision": "Define trace schema, deterministic controlled collisions/loss/reset cases and tolerances",
+      "test": "Not executed",
+      "status": "OPEN"
+    },
+    {
+      "id": "B03",
+      "priority": "P0",
+      "component": "CUDA host",
+      "issue": "No local CUDA; authorized account02 token inactive",
+      "decision": "Refresh account2 token then bounded T4x2 CUDA gates",
+      "test": "Not executed",
+      "status": "BLOCKED_AUTH_AND_NO_CUDA"
+    },
+    {
+      "id": "B04",
+      "priority": "P1",
+      "component": "Upstream validation",
+      "issue": "No SimPy/UavNetSim distribution experiment",
+      "decision": "PDR/delay/retry/queue comparisons against pinned upstream",
+      "test": "Not executed",
+      "status": "OPEN"
+    },
+    {
+      "id": "B05",
+      "priority": "P1",
+      "component": "Protocol differences",
+      "issue": "Queues/pending/RNG/dedup/fairness/RF configuration differ across implementations",
+      "decision": "Align scope before scientific runtime or policy comparison",
+      "test": "Not executed",
+      "status": "OPEN"
+    },
+    {
+      "id": "B06",
+      "priority": "P1",
+      "component": "Calibration",
+      "issue": "BBA threshold and sensor assumptions not empirically calibrated",
+      "decision": "Matched mass/threshold variants and precision/recall/false confirms",
+      "test": "Not executed",
+      "status": "OPEN"
+    },
+    {
+      "id": "B07",
+      "priority": "P1",
+      "component": "Deployment fidelity",
+      "issue": "Perfect-state shield and airframe/RF power model are assumptions",
+      "decision": "Report assumptions and validate local sensing / hardware parameters",
+      "test": "Not executed",
+      "status": "OPEN"
+    },
+    {
+      "id": "B08",
+      "priority": "P2",
+      "component": "Research evaluation",
+      "issue": "No converged multi-seed training or live tracking integration",
+      "decision": "Communication controls, paired eval seeds, confidence intervals, explicit logger pipeline",
+      "test": "Not executed",
+      "status": "OPEN"
+    }
+  ],
+  "final_tests": {
+    "pytest_passed": 311,
+    "unittest_subtests_passed": 64,
+    "warnings": 1,
+    "gate_passed": 13,
+    "gate_blocked": 2,
+    "gate_failed": 0
+  }
+}

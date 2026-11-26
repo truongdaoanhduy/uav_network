@@ -1,0 +1,22 @@
+...............................s....s.......................................... [ 22%]
+............................................................F
+=================================== FAILURES ===================================
+_______ test_source_manifests_cover_entire_git_tree_and_research_subset ________
+
+    def test_source_manifests_cover_entire_git_tree_and_research_subset():
+        result=subprocess.run([sys.executable,str(CHECKER),'--check'],cwd=ROOT,
+                              capture_output=True,text=True)
+>       assert result.returncode==0, result.stdout+result.stderr
+E       AssertionError: FAIL SOURCE_SHA256_MANIFEST.json: missing, stale or incomplete source manifest
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/opt/pyvenv/bin/python3', '/mnt/data/uav_v78_work/source_v77/scripts/maintenance/verify_source...'], returncode=1, stdout='FAIL SOURCE_SHA256_MANIFEST.json: missing, stale or incomplete source manifest\n', stderr='').returncode
+
+tests/test_v63_source_integrity.py:14: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_v63_source_integrity.py::test_source_manifests_cover_entire_git_tree_and_research_subset - AssertionError: FAIL SOURCE_SHA256_MANIFEST.json: missing, stale or incomplete source manifest
+  
+assert 1 == 0
+ +  where 1 = CompletedProcess(args=['/opt/pyvenv/bin/python3', '/mnt/data/uav_v78_work/source_v77/scripts/maintenance/verify_source...'], returncode=1, stdout='FAIL SOURCE_SHA256_MANIFEST.json: missing, stale or incomplete source manifest\n', stderr='').returncode
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 137 passed, 3 skipped, 65 subtests passed in 14.67s

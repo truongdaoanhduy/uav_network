@@ -1,0 +1,20 @@
+{
+  "version": "6.9",
+  "base_version": "6.8",
+  "source": "docs/V69_UNIFIED_AUDIT_AND_FIXES_VI.md",
+  "total_findings": 18,
+  "summary": {
+    "FIXED_CPU_TESTED": 8,
+    "IMPLEMENTED_AWAITING_CUDA_HOST": 2,
+    "OPEN_BLOCKER": 1,
+    "OPEN_RESEARCH_VALIDATION": 7
+  },
+  "updates_over_v68": [
+    {"id": "B01", "priority": "P0", "status": "IMPLEMENTED_AWAITING_CUDA_HOST", "note": "Implemented WarpCompressedRadioNetworkV67 + 5 parameterized Warp kernels + NumPySoARefV67 CPU parity; CUDA T4 trace benchmark still required."},
+    {"id": "B02", "priority": "P0", "status": "IMPLEMENTED_AWAITING_CUDA_HOST", "note": "Replaced naive 806,400 B/env 4D watermark with EWMA-equivalent int16 ack_origin_gen (201,600 B/env, -75%; total SoA 480,686 B/env = 0.917 GiB @ 2048 envs)."},
+    {"id": "B09", "priority": "P1", "status": "FIXED_CPU_TESTED", "note": "Added local_tp_discovered, true_area_observed_pct, pdr_gcs (separate data_enqueued_gcs), mean_queue_len, discovery_auc."},
+    {"id": "B16", "priority": "P2", "status": "FIXED_CPU_TESTED", "note": "Updated QA evidence logs, memory_estimates.json, and SHA-256 manifests for v6.9."},
+    {"id": "B17", "priority": "P0", "status": "FIXED_CPU_TESTED", "note": "Fixed r_loc_team UQ8.8 x256 instant-saturation bug in environment/transition.py using decode_uq88 + counts_to_canonical_ds_effective."},
+    {"id": "B18", "priority": "P1", "status": "FIXED_CPU_TESTED", "note": "Fixed observations.py (pooled[4]*factor^2, dirty_gcs<=1.0, ack_wm_origin_ts) and configuration.py (grid_w^2<=4096, make_uavnetsim_reference_config Q=200)."}
+  ]
+}

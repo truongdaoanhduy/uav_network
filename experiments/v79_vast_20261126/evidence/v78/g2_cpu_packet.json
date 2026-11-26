@@ -1,0 +1,104 @@
+{
+  "gate": "G2_PACKET_NFZ_ROUTE_ACTUAL_EVENTS",
+  "mode_results": {
+    "binary_nlos": {
+      "phy": {
+        "direct_u0_gcs_rx_power_w": 2.2627073434887472e-14,
+        "u0_peer_rx_power_w": 4.750462120345429e-10,
+        "peer_gcs_rx_power_w": 2.4686973667254194e-10,
+        "loss_db": 20.0,
+        "reference_max_abs_difference": 1.2544957683867204e-17
+      },
+      "cpu": {
+        "endpoint": "PASS",
+        "gcs_evidence_count_uq88": 256,
+        "gcs_generation_s": 1,
+        "network_stats": {
+          "data_enqueued": 2,
+          "data_enqueued_gcs": 1,
+          "data_delivered_dst": 2,
+          "data_delivered_gcs": 1,
+          "mac_ack_ok": 4,
+          "mac_ack_timeout": 0,
+          "e2e_ack_rx": 2,
+          "drop_qfull": 0,
+          "drop_ttl": 0,
+          "drop_retx": 0,
+          "drop_noroute": 0,
+          "drop_loop": 0,
+          "dedup_hits": 0,
+          "half_duplex_drops": 0,
+          "sinr_drops": 0,
+          "events_processed": 67
+        }
+      }
+    },
+    "multi_obstacle": {
+      "phy": {
+        "direct_u0_gcs_rx_power_w": 1.0831418153267735e-14,
+        "u0_peer_rx_power_w": 4.750462120345429e-10,
+        "peer_gcs_rx_power_w": 2.4686973667254194e-10,
+        "loss_db": 20.0,
+        "reference_max_abs_difference": 1.2544957683867204e-17
+      },
+      "cpu": {
+        "endpoint": "PASS",
+        "gcs_evidence_count_uq88": 256,
+        "gcs_generation_s": 1,
+        "network_stats": {
+          "data_enqueued": 2,
+          "data_enqueued_gcs": 1,
+          "data_delivered_dst": 2,
+          "data_delivered_gcs": 1,
+          "mac_ack_ok": 4,
+          "mac_ack_timeout": 0,
+          "e2e_ack_rx": 2,
+          "drop_qfull": 0,
+          "drop_ttl": 0,
+          "drop_retx": 0,
+          "drop_noroute": 0,
+          "drop_loop": 0,
+          "dedup_hits": 0,
+          "half_duplex_drops": 0,
+          "sinr_drops": 0,
+          "events_processed": 67
+        }
+      }
+    },
+    "rf_opaque": {
+      "phy": {
+        "direct_u0_gcs_rx_power_w": 0.0,
+        "u0_peer_rx_power_w": 4.750462120345429e-10,
+        "peer_gcs_rx_power_w": 2.4686973667254194e-10,
+        "loss_db": 20.0,
+        "reference_max_abs_difference": 1.2544957683867204e-17
+      },
+      "cpu": {
+        "endpoint": "PASS",
+        "gcs_evidence_count_uq88": 256,
+        "gcs_generation_s": 1,
+        "network_stats": {
+          "data_enqueued": 2,
+          "data_enqueued_gcs": 1,
+          "data_delivered_dst": 2,
+          "data_delivered_gcs": 1,
+          "mac_ack_ok": 4,
+          "mac_ack_timeout": 0,
+          "e2e_ack_rx": 2,
+          "drop_qfull": 0,
+          "drop_ttl": 0,
+          "drop_retx": 0,
+          "drop_noroute": 0,
+          "drop_loop": 0,
+          "dedup_hits": 0,
+          "half_duplex_drops": 0,
+          "sinr_drops": 0,
+          "events_processed": 67
+        }
+      }
+    }
+  },
+  "seed": 44,
+  "warning": "Endpoints/PHY, not statistically verified MAC-event parity",
+  "status": "PASS"
+}
