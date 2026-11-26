@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""V82 audited GPU-vectorized Warp worlds -> MATD3/MASAC rollout with stability controls.
+"""V84 verified GPU-vectorized Warp worlds -> MATD3/MASAC rollout with shield-aware replay.
 
-Extends V80 (`run_v80_real_rollout.py`) without altering V80 contracts:
-- Adds `--learner-config` (defaults to `configs/learners/v81_matd3_masac_stable.yaml`).
-- Adds `--learning-starts` (off-policy warmup transitions before first gradient update).
-- Adds `--replay-capacity` (prevents tiny 512-transition circular overwrite at E64).
-- Retains every-step `require_no_warp_overflow` before `auto_reset_gpu()`,
-  `world.guard()` invariants, and 4-bit termination / safety reason accounting.
+Extends V82 without breaking V80/V82 contracts:
+- Adds `--replay-action-mode {raw,executed,dual}` and `--shield-penalty-lambda` as experimental learning-tuple variants.
+  Raw replay is a valid shielded-environment formulation; variants require ablations.
+- Accumulates episode/termination/safety counters on-device and syncs only on `--log-interval`
+  or final step (Issue #24), while retaining every-step `require_no_warp_overflow` before
+  `world.auto_reset_gpu()` and fail-closed physical commit.
 """
 from __future__ import annotations
 
@@ -34,6 +34,14 @@ def require_no_warp_overflow(world, vector_step: int) -> None:
         )
 
 
+def _store_transitions(replay, old, state, action, rew, nextobs, nextstate, term,
+                       world, params, learner_device, mode, lam, *, return_details=False):
+    from replay_v84 import store_transitions
+    return store_transitions(replay, old, state, action, rew, nextobs, nextstate, term,
+                             world, params, learner_device, mode, lam,
+                             return_details=return_details)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--algorithm", choices=["matd3", "masac"], required=True)
@@ -49,6 +57,8 @@ def main() -> int:
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--learning-starts", type=int, default=4096)
     parser.add_argument("--replay-capacity", type=int, default=65536)
+    parser.add_argument("--replay-action-mode", choices=["raw", "raw_penalized", "executed", "dual"], default="raw")
+    parser.add_argument("--shield-penalty-lambda", type=float, default=1.0)
     parser.add_argument("--hidden", type=int, default=None)
     parser.add_argument("--allow-no-updates", action="store_true")
     parser.add_argument("--world-device", default="cuda:0")
@@ -61,13 +71,17 @@ def main() -> int:
     if args.output.exists() or args.output.with_suffix(".progress.jsonl").exists():
         parser.error("output or progress already exists; choose a fresh output path")
     result = {
-        "status": "RUNNING", "version": "V82", "envs": args.envs, "steps": args.steps,
+        "status": "RUNNING", "version": "V84", "envs": args.envs, "steps": args.steps,
         "algorithm": args.algorithm, "batch_size": args.batch_size,
         "learner_config": str(args.learner_config),
         "learning_starts": int(args.learning_starts), "log_interval": args.log_interval,
         "replay_capacity_requested": int(args.replay_capacity),
+        "replay_action_mode": args.replay_action_mode,
+        "shield_penalty_lambda": float(args.shield_penalty_lambda),
+        "dual_penalty_transitions_added": 0,
         "world_device": args.world_device, "learner_device": args.learner_device,
-        "feasible_66cand_shield": True, "strict_braking_terminate": bool(args.strict_braking_terminate),
+        "feasible_66cand_shield": True, "l2_corner_braking_fix": True,
+        "strict_braking_terminate": bool(args.strict_braking_terminate),
         "updates": 0, "world_steps": 0, "episodes_ended_total": 0,
         "termination_reason_counts": {
             "safety_failed": 0, "all_uavs_depleted": 0,
@@ -78,11 +92,12 @@ def main() -> int:
             "uav_pair_collision": 0, "braking_margin_warning": 0,
         },
     }
+    gpu_totals = None
     start = time.time()
     try:
         if not args.allow_experimental_physics:
             result["status"] = "BLOCKED_EXPERIMENTAL_PHYSICS_REQUIRES_ACK"
-            raise RuntimeError("add --allow-experimental-physics after reviewing V81 scope")
+            raise RuntimeError("add --allow-experimental-physics after reviewing V83 scope")
         import torch
         import warp as wp
         from zhang_xue.gpu.mission_v80 import GPUWorldV80Params, WarpParallelMissionV80
@@ -136,7 +151,22 @@ def main() -> int:
             return torch.cat([raw, dist, masks], dim=-1)
 
         min_update_size = max(args.batch_size, int(args.learning_starts))
+        gpu_totals = torch.zeros(9, dtype=torch.int64, device=args.learner_device)
         last_record = None
+        previous_logged_totals = [0] * 9
+        previous_logged_step = 0
+
+        def sync_totals():
+            if gpu_totals is None:
+                return
+            tot = gpu_totals.cpu().tolist()
+            result["episodes_ended_total"] = tot[0]
+            result["termination_reason_counts"] = dict(zip(
+                ("safety_failed", "all_uavs_depleted", "all_targets_confirmed_at_gcs", "horizon_truncated"), tot[1:5]))
+            result["safety_failure_type_counts"] = dict(zip(
+                ("boundary_collision", "building_collision", "uav_pair_collision", "braking_margin_warning"), tot[5:9]))
+            result["counts_complete_for_recorded_world_steps"] = True
+
         for i in range(args.steps):
             old = encoded_obs()
             state = old.reshape(args.envs, -1)
@@ -153,46 +183,69 @@ def main() -> int:
             s_reason = wp.to_torch(world.buffers["safety_reason"]).to(args.learner_device).clone()
             require_no_warp_overflow(world, i + 1)
             result["overflow_checked_steps"] = i + 1
-            replay.add_batch(old, state, action, rew, nextobs, nextstate, term)
+            stored = _store_transitions(
+                replay, old, state, action, rew, nextobs, nextstate, term,
+                world, params, args.learner_device,
+                args.replay_action_mode, float(args.shield_penalty_lambda), return_details=True,
+            )
+            result["dual_penalty_transitions_added"] += stored["extra_rows"]
+            result["true_transition_count"] = (i + 1) * args.envs
+            result["replay_rows_inserted"] = result.get("replay_rows_inserted", 0) + args.envs + stored["extra_rows"]
             world.auto_reset_gpu()
 
-            ep_done = int((term + trunc).clamp(max=1.0).sum().item())
-            result["episodes_ended_total"] += ep_done
-            step_tr = {
-                "safety_failed": int(((t_reason & 1) != 0).sum().item()),
-                "all_uavs_depleted": int(((t_reason & 2) != 0).sum().item()),
-                "all_targets_confirmed_at_gcs": int(((t_reason & 4) != 0).sum().item()),
-                "horizon_truncated": int(((t_reason & 8) != 0).sum().item()),
-            }
-            step_sr = {
-                "boundary_collision": int(((s_reason & 1) != 0).sum().item()),
-                "building_collision": int(((s_reason & 2) != 0).sum().item()),
-                "uav_pair_collision": int(((s_reason & 4) != 0).sum().item()),
-                "braking_margin_warning": int(((s_reason & 8) != 0).sum().item()),
-            }
-            for k, v in step_tr.items():
-                result["termination_reason_counts"][k] += v
-            for k, v in step_sr.items():
-                result["safety_failure_type_counts"][k] += v
-            step_result = {
-                "vector_step": i + 1, "true_transition_count": (i + 1) * args.envs,
-                "mean_reward": float(rew.mean().item()), "episodes_ended": ep_done,
-                "termination_reason_counts": step_tr, "safety_failure_type_counts": step_sr,
-            }
-            if len(replay) >= min_update_size:
-                step_result["updates"] = []
+            step_vec = torch.stack((
+                (term + trunc).clamp(max=1.0).to(torch.int64).sum(),
+                ((t_reason & 1) != 0).to(torch.int64).sum(),
+                ((t_reason & 2) != 0).to(torch.int64).sum(),
+                ((t_reason & 4) != 0).to(torch.int64).sum(),
+                ((t_reason & 8) != 0).to(torch.int64).sum(),
+                ((s_reason & 1) != 0).to(torch.int64).sum(),
+                ((s_reason & 2) != 0).to(torch.int64).sum(),
+                ((s_reason & 4) != 0).to(torch.int64).sum(),
+                ((s_reason & 8) != 0).to(torch.int64).sum(),
+            ))
+            gpu_totals += step_vec
+            should_log = ((i + 1) % args.log_interval == 0 or i + 1 == args.steps)
+            step_updates = []
+            result["world_steps"] = i + 1
+            if result["true_transition_count"] >= min_update_size and len(replay) >= args.batch_size:
                 for _ in range(args.updates_per_step):
                     metrics = {k: float(v) for k, v in learner.update(replay.sample(args.batch_size)).items()}
                     if not all(math.isfinite(v) for v in metrics.values()):
                         raise FloatingPointError("non-finite learner metrics")
-                    step_result["updates"].append(metrics)
+                    step_updates.append(metrics)
                     result["updates"] += 1
-            last_record = step_result
             result["world_steps"] = i + 1
-            if (i + 1) % args.log_interval == 0 or i + 1 == args.steps:
+            if should_log:
+                cumulative = gpu_totals.cpu().tolist()
+                sv = [x - y for x, y in zip(cumulative, previous_logged_totals)]
+                window_start = previous_logged_step + 1
+                previous_logged_totals, previous_logged_step = cumulative, i + 1
+                step_tr = {
+                    "safety_failed": sv[1], "all_uavs_depleted": sv[2],
+                    "all_targets_confirmed_at_gcs": sv[3], "horizon_truncated": sv[4],
+                }
+                step_sr = {
+                    "boundary_collision": sv[5], "building_collision": sv[6],
+                    "uav_pair_collision": sv[7], "braking_margin_warning": sv[8],
+                }
+                step_result = {
+                    "vector_step": i + 1, "true_transition_count": (i + 1) * args.envs,
+                    "counts_scope": "since_previous_progress_record",
+                    "window_start_vector_step": window_start,
+                    "cumulative_episode_count": cumulative[0],
+                    "training_reward_mean": float(stored["training_reward"].mean().item()),
+                    "shield_cost_mean": float(stored["shield_cost"].mean().item()),
+                    "mean_reward": float(rew.mean().item()), "episodes_ended": sv[0],
+                    "termination_reason_counts": step_tr, "safety_failure_type_counts": step_sr,
+                }
+                if step_updates:
+                    step_result["updates"] = step_updates
+                last_record = step_result
                 with args.output.with_suffix(".progress.jsonl").open("a") as progress:
                     progress.write(json.dumps(step_result, allow_nan=False) + "\n")
 
+        sync_totals()
         result["final_world_invariants"] = world.guard()
         result["cuda_peak_memory_bytes"] = {
             dev: {
@@ -209,7 +262,12 @@ def main() -> int:
         result["safety_gate_pass"] = result["termination_reason_counts"]["safety_failed"] == 0
         result["learning_updates_executed"] = result["updates"] > 0
         result["scientific_status"] = "CONVERGENCE_AND_MISSION_SUCCESS_UNPROVEN"
-        result["status"] = "V82_ROLLOUT_COMPLETED"
+        result["replay_formulation"] = (
+            "SHIELDED_ENVIRONMENT_MDP" if args.replay_action_mode == "raw" else
+            "ADAPTION_PENALTY_OBJECTIVE" if args.replay_action_mode == "raw_penalized" else
+            "EXPERIMENTAL_RELABELLED_SAFE_ACTION_TUPLES")
+        result["safe_action_relabelling_idempotence_certified"] = False
+        result["status"] = "V84_ROLLOUT_COMPLETED"
         result["final_record"] = last_record
     except Exception as exc:
         if result["status"] == "RUNNING":
@@ -217,11 +275,17 @@ def main() -> int:
         result["error_type"] = type(exc).__name__
         result["error"] = str(exc)
         result["traceback"] = traceback.format_exc()
+        if gpu_totals is not None:
+            try:
+                sync_totals()
+            except Exception as counter_error:
+                result["counts_complete_for_recorded_world_steps"] = False
+                result["counter_readback_error"] = str(counter_error)
     finally:
         result["elapsed_s"] = round(time.time() - start, 3)
         args.output.write_text(json.dumps(result, indent=2, allow_nan=False) + "\n")
         print(json.dumps(result, indent=2, allow_nan=False))
-    return 0 if result["status"] == "V82_ROLLOUT_COMPLETED" else (3 if result["status"].startswith("BLOCKED") else 1)
+    return 0 if result["status"] == "V84_ROLLOUT_COMPLETED" else (3 if result["status"].startswith("BLOCKED") else 1)
 
 
 if __name__ == "__main__":

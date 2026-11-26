@@ -79,13 +79,14 @@ if HAS_WARP:
         nx = x + vx
         ny = y + vy
         inv2a = 0.5 / wp.max(1.0e-6, a_max)
-        if nx - wp.max(0.0, -vx) * wp.max(0.0, -vx) * inv2a < 10.0:
+        v_norm = wp.sqrt(vx * vx + vy * vy)
+        if nx - wp.max(0.0, -vx) * v_norm * inv2a < 10.0:
             return 0
-        if nx + wp.max(0.0, vx) * wp.max(0.0, vx) * inv2a > 990.0:
+        if nx + wp.max(0.0, vx) * v_norm * inv2a > 990.0:
             return 0
-        if ny - wp.max(0.0, -vy) * wp.max(0.0, -vy) * inv2a < 10.0:
+        if ny - wp.max(0.0, -vy) * v_norm * inv2a < 10.0:
             return 0
-        if ny + wp.max(0.0, vy) * wp.max(0.0, vy) * inv2a > 990.0:
+        if ny + wp.max(0.0, vy) * v_norm * inv2a > 990.0:
             return 0
         for k in range(n_b):
             bx = b[k, 0]

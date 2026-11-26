@@ -151,9 +151,12 @@ def kinematic_safety_shield(
     def _is_geom_safe(u: int, v_cand: np.ndarray) -> bool:
         p0 = positions_xy[u]
         p1 = p0 + v_cand * dt_s
-        # v6.2: Braking-invariant clearance on ALL 4 map walls (fixes v6.1 dead code)
-        brk_x = (v_cand[0] * v_cand[0]) / (2.0 * a_max_mps2) if a_max_mps2 > 0 else 0.0
-        brk_y = (v_cand[1] * v_cand[1]) / (2.0 * a_max_mps2) if a_max_mps2 > 0 else 0.0
+        # v83: L2-coupled collinear braking envelope (|v_x|*||v||/(2*a_max)) for all 4 walls.
+        # Under ||a||_2 <= a_max, braking along -v/||v|| yields a_x = a_max*|v_x|/||v||,
+        # eliminating corner inevitable-collision states caused by decoupled L_inf braking.
+        v_norm = float(math.hypot(v_cand[0], v_cand[1]))
+        brk_x = (abs(v_cand[0]) * v_norm) / (2.0 * a_max_mps2) if a_max_mps2 > 0 else 0.0
+        brk_y = (abs(v_cand[1]) * v_norm) / (2.0 * a_max_mps2) if a_max_mps2 > 0 else 0.0
         if p1[0] - (brk_x if v_cand[0] < 0.0 else 0.0) < wall_margin_m - 1e-6:
             return False
         if p1[0] + (brk_x if v_cand[0] > 0.0 else 0.0) > map_size_m - wall_margin_m + 1e-6:
@@ -215,10 +218,16 @@ def kinematic_safety_shield(
                 cands.append(vc)
         # Sort by distance to desired v_nom[u]
         cands.sort(key=lambda vc: float(np.dot(vc - v_nom[u], vc - v_nom[u])))
+        geom_fallback = None
+        geom_fb_dist2 = float("inf")
         for vc in cands:
             if not _is_geom_safe(u, vc):
                 continue
             if check_peers:
+                d_brk = float(np.dot(vc - v_brake, vc - v_brake))
+                if d_brk < geom_fb_dist2:
+                    geom_fb_dist2 = d_brk
+                    geom_fallback = vc
                 ok_peers = True
                 for j in range(n_uav):
                     if j == u:
@@ -229,8 +238,8 @@ def kinematic_safety_shield(
                 if not ok_peers:
                     continue
             return vc
-        # Worst-case fallback: maximum kinematic braking (strictly respects a_max!)
-        return v_brake
+        # V83: preserve geometry-safe braking fallback (closest to v_brake) before raw v_brake.
+        return geom_fallback if geom_fallback is not None else v_brake
 
     # Pass 1: Geometry safety per UAV
     for u in range(n_uav):

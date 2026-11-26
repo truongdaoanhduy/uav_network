@@ -85,12 +85,10 @@ if HAS_WARP:
         return flags
 
     @wp.func
-    def _pair_physical_safe_v80(
+    def _pair_min_sep2_v80(
         px: float, py: float, vx: float, vy: float,
-        qx: float, qy: float, ux: float, uy: float,
-        safe_d: float, dt_s: float,
-    ) -> int:
-        """Exact swept-segment pairwise separation detector (CPU trajectory_safety_violations)."""
+        qx: float, qy: float, ux: float, uy: float, dt_s: float,
+    ) -> float:
         rx = px - qx
         ry = py - qy
         dx = (vx - ux) * dt_s
@@ -99,8 +97,36 @@ if HAS_WARP:
         tau = wp.clamp(-(rx * dx + ry * dy) / denom, 0.0, 1.0)
         mx = rx + tau * dx
         my = ry + tau * dy
+        return mx * mx + my * my
+
+    @wp.func
+    def _pair_physical_safe_v80(
+        px: float, py: float, vx: float, vy: float,
+        qx: float, qy: float, ux: float, uy: float,
+        safe_d: float, dt_s: float,
+    ) -> int:
+        """Exact swept-segment pairwise separation detector (CPU trajectory_safety_violations)."""
         thr = safe_d - 1.0e-6
-        return 0 if (mx * mx + my * my < thr * thr) else 1
+        return 0 if (_pair_min_sep2_v80(px, py, vx, vy, qx, qy, ux, uy, dt_s) < thr * thr) else 1
+
+    @wp.func
+    def _min_peer_sep2_v80(
+        e: int, u: int, vx: float, vy: float,
+        pos: wp.array3d(dtype=wp.float32), v_safe: wp.array3d(dtype=wp.float32),
+        battery: wp.array2d(dtype=wp.float32), dt_s: float,
+    ) -> float:
+        px = pos[e, u, 0]
+        py = pos[e, u, 1]
+        m2 = float(1.0e30)
+        for j in range(N_UAV):
+            if j == u:
+                continue
+            ux = 0.0 if battery[e, j] <= 0.0 else v_safe[e, j, 0]
+            uy = 0.0 if battery[e, j] <= 0.0 else v_safe[e, j, 1]
+            d2 = _pair_min_sep2_v80(px, py, vx, vy, pos[e, j, 0], pos[e, j, 1], ux, uy, dt_s)
+            if d2 < m2:
+                m2 = d2
+        return m2
 
     @wp.func
     def _cand_feasible_v80(
@@ -140,9 +166,20 @@ if HAS_WARP:
         best_cost = float(1.0e30)
         best_vx = v_brk[0]
         best_vy = v_brk[1]
+        gfb_cost = float(1.0e30)
+        gfb_vx = v_brk[0]
+        gfb_vy = v_brk[1]
+        px = pos[e, u, 0]
+        py = pos[e, u, 1]
         # Candidate 0: current v_safe[e, u]
         c0x = v_safe[e, u, 0]
         c0y = v_safe[e, u, 1]
+        if check_peers != 0 and _safe_xy_v79(px, py, c0x, c0y, b, n_b, a_max) != 0:
+            gbx = c0x - v_brk[0]
+            gby = c0y - v_brk[1]
+            gfb_cost = gbx * gbx + gby * gby
+            gfb_vx = c0x
+            gfb_vy = c0y
         if _cand_feasible_v80(e, u, c0x, c0y, check_peers, pos, v_safe, battery, b, n_b, safe_d, a_max) != 0:
             dx = c0x - vnx
             dy = c0y - vny
@@ -150,6 +187,10 @@ if HAS_WARP:
             best_vx = c0x
             best_vy = c0y
         # Candidate 1: maximum kinematic braking
+        if check_peers != 0 and _safe_xy_v79(px, py, v_brk[0], v_brk[1], b, n_b, a_max) != 0:
+            gfb_cost = 0.0
+            gfb_vx = v_brk[0]
+            gfb_vy = v_brk[1]
         if _cand_feasible_v80(e, u, v_brk[0], v_brk[1], check_peers, pos, v_safe, battery, b, n_b, safe_d, a_max) != 0:
             dx = v_brk[0] - vnx
             dy = v_brk[1] - vny
@@ -165,6 +206,14 @@ if HAS_WARP:
             for ai in range(16):
                 ang = float(ai) * (6.283185307179586 / 16.0)
                 vc = _clamp_vel_v80(vpx, vpy, vpx + r * wp.cos(ang), vpy + r * wp.sin(ang), dt_s, v_max, a_max)
+                if check_peers != 0 and _safe_xy_v79(px, py, vc[0], vc[1], b, n_b, a_max) != 0:
+                    gbx = vc[0] - v_brk[0]
+                    gby = vc[1] - v_brk[1]
+                    gc = gbx * gbx + gby * gby
+                    if gc < gfb_cost:
+                        gfb_cost = gc
+                        gfb_vx = vc[0]
+                        gfb_vy = vc[1]
                 if _cand_feasible_v80(e, u, vc[0], vc[1], check_peers, pos, v_safe, battery, b, n_b, safe_d, a_max) != 0:
                     dx = vc[0] - vnx
                     dy = vc[1] - vny
@@ -173,6 +222,8 @@ if HAS_WARP:
                         best_cost = cost
                         best_vx = vc[0]
                         best_vy = vc[1]
+        if best_cost >= 1.0e29 and check_peers != 0 and gfb_cost < 1.0e29:
+            return wp.vec2(gfb_vx, gfb_vy)
         return wp.vec2(best_vx, best_vy)
 
     @wp.kernel
