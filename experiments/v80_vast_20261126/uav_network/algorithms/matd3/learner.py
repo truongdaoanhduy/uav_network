@@ -49,10 +49,13 @@ class MATD3(MATD3DiagnosticsMixin, nn.Module):
         self.actors = nn.ModuleList(DeterministicActor(actor_input_dim, k, a.hidden_sizes, config.continuous_dim,
                                                        a.output_normalization, config.motion_dim,
                                                        layer_norm=a.actor_layer_norm,
-                                                       batch_norm=a.actor_batch_norm)
+                                                       batch_norm=a.actor_batch_norm,
+                                                       activation=a.activation)
                                     for _ in range(actor_count))
         self.critics = nn.ModuleList(TwinCritic(state_dim, n, k, a.hidden_sizes, config.continuous_dim,
-                                                       batch_norm=a.critic_batch_norm) for _ in range(critic_count))
+                                                       batch_norm=a.critic_batch_norm,
+                                                       layer_norm=a.critic_layer_norm,
+                                                       activation=a.activation) for _ in range(critic_count))
         if a.initialization in {"orthogonal", "kaiming"}:
             # Preserve the CPU RNG state after the standard Module creation so
             # the ablation does not shift subsequent exploration/replay draws.
@@ -259,10 +262,17 @@ class MATD3(MATD3DiagnosticsMixin, nn.Module):
             replay_actions = joint_action(data["continuous"], data["destination"], self.destinations,
                                           learn_power=self.learn_power)
             q1, q2 = self._critic_values(self.critics, data["state"], replay_actions, vectorized)
-            loss = F.mse_loss(q1, target) + F.mse_loss(q2, target)
-            if a.grad_clip_mode == "per_parameter":
-                # Preserve the baseline loss scale and update semantics.
-                loss = loss * len(self.critics)
+            if a.critic_huber_delta > 0:
+                l1 = F.huber_loss(q1, target, delta=a.critic_huber_delta)
+                l2 = F.huber_loss(q2, target, delta=a.critic_huber_delta)
+            else:
+                l1, l2 = F.mse_loss(q1, target), F.mse_loss(q2, target)
+            if a.sync_critic_loss_scale:
+                loss = 0.5 * (l1 + l2) * (1 if self.share_critic_parameters else len(self.critics))
+            else:
+                loss = l1 + l2
+                if a.grad_clip_mode == "per_parameter":
+                    loss = loss * len(self.critics)
             critic_step = (lambda *args: self.precision.step("critic", *args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_optimizer(*args, grad_clip_mode=a.grad_clip_mode))
             critic_grad = critic_step(loss, self.critic_optimizer,
                                       self.critics.parameters(), a.grad_clip_norm, collect_metrics)
@@ -323,6 +333,8 @@ class MATD3(MATD3DiagnosticsMixin, nn.Module):
             layer_probe.__enter__()
             regularization = (self._actor_output_regularization(data["observation"])
                               if a.actor_output_regularization > 0 else None)
+            pre_tanh_pen = ([self._actor_at(i).pre_tanh_penalty(self._actor_input(data["observation"][:, i], i)).mean()
+                             for i in range(self.num_uavs)] if a.pre_tanh_reg > 0 else None)
             batched_q = None
             candidate_actions = None
             if vectorized or self.share_critic_parameters or self.share_actor_parameters:
@@ -358,6 +370,8 @@ class MATD3(MATD3DiagnosticsMixin, nn.Module):
                 actor_loss = -q1.mean()
                 if regularization is not None:
                     actor_loss = actor_loss + a.actor_output_regularization * regularization[i]
+                if pre_tanh_pen is not None:
+                    actor_loss = actor_loss + a.pre_tanh_reg * pre_tanh_pen[i]
                 actor_losses.append(actor_loss)
             actor_step = (lambda *args: self.precision.step_actors(*args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_actor_optimizers(*args, grad_clip_mode=a.grad_clip_mode))
             if self.share_actor_parameters:

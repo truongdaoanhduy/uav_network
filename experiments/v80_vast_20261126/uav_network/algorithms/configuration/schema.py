@@ -10,7 +10,11 @@ class OffPolicyConfig:
     share_critic_parameters: bool = False
     actor_layer_norm: bool = False
     actor_batch_norm: bool = False
+    critic_layer_norm: bool = False
     critic_batch_norm: bool = False
+    activation: str = "relu"
+    sync_critic_loss_scale: bool = False
+    critic_huber_delta: float = 0.0
     replay_capacity: int = 50_000
     batch_size: int = 256
     learning_starts: int = 2000
@@ -39,6 +43,7 @@ class MASACConfig(OffPolicyConfig):
 class MATD3Config(OffPolicyConfig):
     # Original author p_train uses 1e-3; zero preserves historical UAV runs.
     actor_output_regularization: float = 0.0
+    pre_tanh_reg: float = 0.0
     # Only an explicit ablation changes PyTorch default Linear initialization.
     initialization: str = "default"
     policy_delay: int = 2
@@ -116,10 +121,21 @@ class LearnerConfig:
                 raise ValueError(f"{name} gamma/tau must not exceed one")
             if c.grad_clip_mode not in ("global", "per_parameter", "none"):
                 raise ValueError(f"{name}.grad_clip_mode is unsupported")
+            for key in ("critic_layer_norm", "critic_batch_norm", "sync_critic_loss_scale"):
+                if type(getattr(c, key)) is not bool:
+                    raise ValueError(f"{name}.{key} requires a boolean")
+            if c.critic_layer_norm and c.critic_batch_norm:
+                raise ValueError(f"{name}: select one critic normalization")
+            if c.activation not in ("relu", "silu"):
+                raise ValueError(f"{name}.activation must be 'relu' or 'silu'")
+            if not isinstance(c.critic_huber_delta, (int, float)) or isinstance(c.critic_huber_delta, bool) or not math.isfinite(c.critic_huber_delta) or c.critic_huber_delta < 0:
+                raise ValueError(f"{name}.critic_huber_delta must be finite and nonnegative")
         if self.masac.initial_alpha <= 0 or not math.isfinite(self.masac.initial_alpha):
             raise ValueError("MASAC alpha must be positive and finite")
         if self.matd3.initial_epsilon < 0 or self.matd3.final_epsilon < 0:
             raise ValueError("MATD3 epsilon must be nonnegative")
+        if not isinstance(self.matd3.pre_tanh_reg, (int, float)) or isinstance(self.matd3.pre_tanh_reg, bool) or not math.isfinite(self.matd3.pre_tanh_reg) or self.matd3.pre_tanh_reg < 0:
+            raise ValueError("MATD3 pre_tanh_reg must be finite and nonnegative")
         return self
 
     def to_dict(self):
@@ -138,6 +154,13 @@ class LearnerConfig:
                 if (name == "runtime" and isinstance(value, dict) and
                         set(value) == set(asdict(target)) - {"num_envs"}):
                     value = {**value, "num_envs": 1}
+                if name in ("matd3", "masac") and isinstance(value, dict):
+                    defaults = asdict(target)
+                    v81_opt = {"critic_layer_norm", "activation", "sync_critic_loss_scale",
+                               "critic_huber_delta", "pre_tanh_reg"}
+                    missing = set(defaults) - set(value)
+                    if missing and missing <= v81_opt:
+                        value = {**{k: defaults[k] for k in missing}, **value}
                 if set(value)!=set(asdict(target)):
                     raise ValueError("Unexpected learner field: "+name)
                 setattr(obj,name,type(target)(**value))

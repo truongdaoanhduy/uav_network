@@ -240,16 +240,22 @@ if HAS_WARP:
                 if strict_braking_terminate != 0:
                     phys_fail = 1
                     unsafe_mask[e, u] = wp.uint8(1)
+        # V81 fix: check all (u, peer) pairs symmetrically even when u is battery-depleted
+        for u in range(N_UAV):
             for peer in range(u + 1, N_UAV):
+                if battery[e, u] <= 0.0 and battery[e, peer] <= 0.0:
+                    continue
+                vx_u = 0.0 if battery[e, u] <= 0.0 else v_safe[e, u, 0]
+                vy_u = 0.0 if battery[e, u] <= 0.0 else v_safe[e, u, 1]
                 ux = 0.0 if battery[e, peer] <= 0.0 else v_safe[e, peer, 0]
                 uy = 0.0 if battery[e, peer] <= 0.0 else v_safe[e, peer, 1]
-                if _pair_physical_safe_v80(pos[e, u, 0], pos[e, u, 1], v_safe[e, u, 0], v_safe[e, u, 1],
+                if _pair_physical_safe_v80(pos[e, u, 0], pos[e, u, 1], vx_u, vy_u,
                                            pos[e, peer, 0], pos[e, peer, 1], ux, uy, safe_d, dt_s) == 0:
                     s_flags = s_flags | 4
                     phys_fail = 1
                     unsafe_mask[e, u] = wp.uint8(1)
                     unsafe_mask[e, peer] = wp.uint8(1)
-                elif _pair_safe_v79(pos[e, u, 0], pos[e, u, 1], v_safe[e, u, 0], v_safe[e, u, 1],
+                elif _pair_safe_v79(pos[e, u, 0], pos[e, u, 1], vx_u, vy_u,
                                     pos[e, peer, 0], pos[e, peer, 1], ux, uy, safe_d, a_max) == 0:
                     s_flags = s_flags | 8
                     if strict_braking_terminate != 0:

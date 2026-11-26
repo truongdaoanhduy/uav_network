@@ -27,10 +27,23 @@ class RolloutBatchNorm1d(nn.BatchNorm1d):
         return super().forward(input)
 
 
-def mlp(input_dim, hidden_sizes, output_dim, layer_norm=False, batch_norm=False, norm_last_linear=True):
+def _make_activation(name="relu"):
+    if name == "relu":
+        return nn.ReLU()
+    if name == "silu":
+        return nn.SiLU()
+    raise ValueError(f"Unsupported activation: {name!r}")
+
+
+def _apply_activation(x, name="relu"):
+    return F.silu(x) if name == "silu" else F.relu(x)
+
+
+def mlp(input_dim, hidden_sizes, output_dim, layer_norm=False, batch_norm=False,
+        norm_last_linear=True, activation="relu"):
     layers = []
     for width in hidden_sizes:
-        layers.extend([nn.Linear(input_dim, width), nn.ReLU()])
+        layers.extend([nn.Linear(input_dim, width), _make_activation(activation)])
         input_dim = width
     layers.append(nn.Linear(input_dim, output_dim))
     if layer_norm or batch_norm:
@@ -45,15 +58,18 @@ def mlp(input_dim, hidden_sizes, output_dim, layer_norm=False, batch_norm=False,
 
 
 class HybridActor(nn.Module):
-    def __init__(self, observation_dim, destinations, hidden_sizes, continuous_dim=3, layer_norm=False):
+    def __init__(self, observation_dim, destinations, hidden_sizes, continuous_dim=3,
+                 layer_norm=False, activation="relu"):
         super().__init__()
-        self.encoder = mlp(observation_dim, hidden_sizes[:-1], hidden_sizes[-1], layer_norm=layer_norm)
+        self.activation = activation
+        self.encoder = mlp(observation_dim, hidden_sizes[:-1], hidden_sizes[-1],
+                           layer_norm=layer_norm, activation=activation)
         self.mean = nn.Linear(hidden_sizes[-1], continuous_dim)
         self.log_std = nn.Linear(hidden_sizes[-1], continuous_dim)
         self.destination = nn.Linear(hidden_sizes[-1], destinations)
 
     def sample(self, observations, deterministic=False, mask=None, return_parts=False):
-        hidden = F.relu(self.encoder(observations))
+        hidden = _apply_activation(self.encoder(observations), self.activation)
         mean = self.mean(hidden)
         std = self.log_std(hidden).clamp(LOG_STD_MIN, LOG_STD_MAX).exp()
         distribution = Normal(mean, std, validate_args=False)
@@ -80,26 +96,26 @@ class HybridActor(nn.Module):
 class DeterministicActor(nn.Module):
     def __init__(self, observation_dim, destinations, hidden_sizes, continuous_dim=3,
                  output_normalization=False, normalization_dims=None, layer_norm=False,
-                 batch_norm=False):
+                 batch_norm=False, activation="relu"):
         super().__init__()
+        self.activation = activation
         self.encoder = mlp(observation_dim, hidden_sizes[:-1], hidden_sizes[-1],
-                           layer_norm=layer_norm, batch_norm=batch_norm)
+                           layer_norm=layer_norm, batch_norm=batch_norm, activation=activation)
         self.continuous = nn.Linear(hidden_sizes[-1], continuous_dim)
         self.destination = nn.Linear(hidden_sizes[-1], destinations)
         self.output_normalization = output_normalization
         self.normalization_dims = continuous_dim if normalization_dims is None else normalization_dims
 
     def output_regularization(self, observations):
-        """Squared raw policy parameters, before tanh or destination masking.
-
-        Ackermann's original MATD3 p_train uses mean(flatparam**2). For the
-        UAV hybrid adapter, flat parameters are XYZ/RF and receiver logits.
-        This path retains a gradient when float32 tanh has saturated.
-        """
-        hidden = F.relu(self.encoder(observations))
+        """Squared raw policy parameters, before tanh or destination masking."""
+        hidden = _apply_activation(self.encoder(observations), self.activation)
         parameters = torch.cat((self.continuous(hidden), self.destination(hidden)), -1)
         return parameters.float().square().mean(-1)
 
+    def pre_tanh_penalty(self, observations):
+        """V81: penalize only continuous pre-tanh motion logits without flattening routing."""
+        hidden = _apply_activation(self.encoder(observations), self.activation)
+        return self.continuous(hidden).float().square().mean(-1)
 
     def normalize_pretanh(self, raw):
         if not self.output_normalization:
@@ -110,21 +126,22 @@ class DeterministicActor(nn.Module):
         return torch.cat((motion / scale, raw[..., self.normalization_dims:]), -1)
 
     def forward(self, observations, mask):
-        hidden = F.relu(self.encoder(observations))
+        hidden = _apply_activation(self.encoder(observations), self.activation)
         raw = self.normalize_pretanh(self.continuous(hidden))
         return raw.tanh(), masked_log_probabilities(self.destination(hidden), mask).exp()
 
 
 class TwinCritic(nn.Module):
     def __init__(self, state_dim, num_uavs, destinations, hidden_sizes, continuous_dim=3,
-                 batch_norm=False):
+                 batch_norm=False, layer_norm=False, activation="relu"):
         super().__init__()
         input_dim = state_dim + num_uavs * (continuous_dim + destinations)
-        # Never normalize scalar Q outputs: BN belongs to hidden feature layers.
-        self.q1 = mlp(input_dim, hidden_sizes, 1, batch_norm=batch_norm,
-                      norm_last_linear=False)
-        self.q2 = mlp(input_dim, hidden_sizes, 1, batch_norm=batch_norm,
-                      norm_last_linear=False)
+        # Never normalize scalar Q outputs: LayerNorm/BN belongs to hidden layers only.
+        self.q1 = mlp(input_dim, hidden_sizes, 1, layer_norm=layer_norm,
+                      batch_norm=batch_norm, norm_last_linear=False, activation=activation)
+        self.q2 = mlp(input_dim, hidden_sizes, 1, layer_norm=layer_norm,
+                      batch_norm=batch_norm, norm_last_linear=False, activation=activation)
+        self.layer_norm = bool(layer_norm)
         self.batch_norm = bool(batch_norm)
         self.state_dim = state_dim
 

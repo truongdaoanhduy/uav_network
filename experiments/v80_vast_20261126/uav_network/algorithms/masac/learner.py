@@ -45,8 +45,9 @@ class MASAC(nn.Module):
         actor_count = 1 if self.share_actor_parameters else n
         critic_count = 1 if self.share_critic_parameters else n
         self.actors = nn.ModuleList(HybridActor(actor_input_dim, k, a.hidden_sizes, config.continuous_dim,
-                                               layer_norm=a.actor_layer_norm) for _ in range(actor_count))
-        self.critics = nn.ModuleList(TwinCritic(state_dim, n, k, a.hidden_sizes, config.continuous_dim) for _ in range(critic_count))
+                                               layer_norm=a.actor_layer_norm, activation=a.activation) for _ in range(actor_count))
+        self.critics = nn.ModuleList(TwinCritic(state_dim, n, k, a.hidden_sizes, config.continuous_dim,
+                                                layer_norm=a.critic_layer_norm, activation=a.activation) for _ in range(critic_count))
         self.target_critics = deepcopy(self.critics)
         self.target_critics.requires_grad_(False)
         self.log_alpha_continuous = nn.Parameter(torch.full((n,), math.log(a.initial_alpha)))
@@ -296,7 +297,11 @@ class MASAC(nn.Module):
                       lambda s, j: self._critic_values(self.critics, s, j, vectorized))
         q1, q2 = chunked_critic_values(regression, data["state"], replay_joint,
                                        self.config.runtime.critic_chunk_size)
-        critic_loss = 0.5 * (F.mse_loss(q1, target) + F.mse_loss(q2, target))
+        if a.critic_huber_delta > 0:
+            critic_loss = 0.5 * (F.huber_loss(q1, target, delta=a.critic_huber_delta)
+                                 + F.huber_loss(q2, target, delta=a.critic_huber_delta))
+        else:
+            critic_loss = 0.5 * (F.mse_loss(q1, target) + F.mse_loss(q2, target))
         if not self.share_critic_parameters:
             # Hybrid-MASAC defines one batch-mean critic objective J_Q(theta_i)
             # per agent. A single optimizer over independent modules must sum
