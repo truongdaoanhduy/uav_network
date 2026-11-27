@@ -274,6 +274,11 @@ if HAS_WARP:
     ):
         """2-pass 66-candidate feasible shield + 3-sweep coordinate descent + physical detector."""
         e = wp.tid()
+        # Invalid actions and prior terminal failures cannot commit new physics.
+        # Bit 16 is reserved for an invalid action, separate from geometry flags.
+        if failed[e] != wp.uint8(0):
+            intervention[e] = 0.0
+            return
         # Init v_safe from nominal candidates; dead UAVs stay stationary obstacles
         for u in range(N_UAV):
             unsafe_mask[e, u] = wp.uint8(0)
@@ -345,6 +350,25 @@ if HAS_WARP:
                                     pos[e, peer, 0], pos[e, peer, 1], ux, uy, safe_d, a_max) == 0:
                     s_flags = s_flags | 8
                     if strict_braking_terminate != 0:
+                        phys_fail = 1
+                        unsafe_mask[e, u] = wp.uint8(1)
+                        unsafe_mask[e, peer] = wp.uint8(1)
+        # V93 necessary viability guard. After committing velocity v, the next
+        # tick's relative endpoint is r + 2*v_rel*dt + delta, where
+        # ||delta|| <= (a_i+a_j)*dt^2. If even this optimistic upper bound is
+        # below safe_d, a collision next tick is unavoidable under a_max.
+        # Reject before entering that state; this is not a sufficient recursive
+        # feasibility certificate. Keep the existing 50m physical detector.
+        if phys_fail == 0:
+            for u in range(N_UAV):
+                for peer in range(u + 1, N_UAV):
+                    ax_budget = 0.0 if battery[e, u] <= 0.0 else a_max
+                    ax_budget += 0.0 if battery[e, peer] <= 0.0 else a_max
+                    fx = pos[e, u, 0] - pos[e, peer, 0] + 2.0 * dt_s * (v_safe[e, u, 0] - v_safe[e, peer, 0])
+                    fy = pos[e, u, 1] - pos[e, peer, 1] + 2.0 * dt_s * (v_safe[e, u, 1] - v_safe[e, peer, 1])
+                    optimistic_sep = wp.sqrt(fx * fx + fy * fy) + ax_budget * dt_s * dt_s
+                    if optimistic_sep + 1.0e-3 < safe_d:
+                        s_flags = s_flags | 32
                         phys_fail = 1
                         unsafe_mask[e, u] = wp.uint8(1)
                         unsafe_mask[e, peer] = wp.uint8(1)

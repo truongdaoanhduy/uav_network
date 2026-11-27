@@ -1,24 +1,19 @@
-# Current task — seven-radio environment only
+# Current task — V93 scenario audit, not frozen
 
-Current verified branch: experiment/zhang-xue-v61-full-gates-20261125.
-Baseline: experiment/zhang-xue-v60-newscenario-only-matd3-masac-20261125.
-Parent reference commit: 82512e827b5a4c9f5c6fda1283a628967d0bbf3c.
+Working branch: experiment/v93-scenario-audit-20261127.
+Parent verified GitHub/Sandbox commit: f0433d51b5de1cf90b5b265221c5e9ad606f47b9 (V91).
+V92 attached package was compared: 331 files identical to V91; three added probes/tests and one changed manifest.
 
-- Canonical scenario config is research/zhang_xue/configs/scenario_7radio.yaml.
-- Old root configs/environment/trainers/async pipelines are retired from HEAD.
-- MATD3/MASAC learner code and generic offline evaluation/telemetry are retained.
-- No full training loop connects the algorithm to the new observed belief maps and route-action mask.
-- No new online W&B/HF connector or live GPU/T4 benchmark is claimed.
-- Preserve tests and enforce current source rules from AGENTS.md.
+- Active candidate YAML: research/zhang_xue/configs/scenario_v91_bayes_1km.yaml.
+- Historical DS comparison: scenario_v89_static_1km.yaml. These are not reward-matched.
+- Source changes are scenario MAC, validation, fail-closed safety and audit tooling only.
+- MATD3/MASAC learner, loss, optimizer, actor and critic source are unchanged.
+- Main report: docs/V93_SCENARIO_AUDIT_VI.md.
+- Reproduction: scripts/gpu/v93_mission_audit.py, v93_network_microbench.py, v92_network_and_peer_probe.py.
+- Current machine: Vast RTX3060 12GiB, one logical cuda:0; Warp1.18+cu12 and torch2.7.1+cu128.
+- State remains CANDIDATE_NOT_FROZEN / NO_GO_BASELINE / NO_TUNING.
+- Do not equate Warp CPU/CUDA event parity with UavNetSim macro equivalence or field RF calibration.
+- Fail-closed rejections are reported separately from a committed collision. A necessary pair viability guard is not a complete motion planner.
+- Preserve all failed probe logs and first-terminal snapshots in the delivered evidence package.
 
-Only operate on this isolated branch. Verify remote SHA after push.
-
-## v6.1 result (source/CPU only)
-
-- Full suite: 112 PASS, 50 additional unittest subtests PASS.
-- Warp 1.18.0 CPU 2-hop DATA/E2E ACK and reset isolation PASS.
-- CPU MATD3/MASAC: each consumed 4 real scenario transitions and executed
-  one optimizer update using the corrected actor 522d / joint state 3132d.
-- Source governance and setup validation PASS.
-- GPU CUDA/T4, end-to-end per-observation AoI and UavNetSim exact parity
-  remain unverified or unimplemented; consult docs/V61_STEP_BY_STEP_QA_REPORT.md.
+Next: resolve the remaining scope-specific validation and coordinated safety limitations using the evidence matrix before tagging SCENARIO_FROZEN.

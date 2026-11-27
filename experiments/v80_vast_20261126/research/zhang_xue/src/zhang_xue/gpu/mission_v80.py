@@ -35,12 +35,16 @@ class WarpParallelMissionV80(WarpParallelMissionV79):
         from zhang_xue.gpu.kernels.inject_v67 import inject_v67, resolve_compact3_v67
         from zhang_xue.gpu.kernels.mission_v79_kernels import _reward_v79, _sense_visible_v79
         from zhang_xue.gpu.kernels.mission_v80_shield import _candidate_v80, _move_v80
+        from zhang_xue.gpu.kernels.mission_v93_validation import validate_actions_v93
 
         w = self.buffers
         n = self.network
         p = self.params
         if tuple(continuous.shape) != (self.envs, 6, 2) or tuple(discrete.shape) != (self.envs, 6):
             raise ValueError("act shape should be (E,6,2) and (E,6)")
+        self._launch(validate_actions_v93, self.envs, [
+            continuous, discrete, w["failed"], w["safety_reason"],
+        ])
         self._launch(resolve_compact3_v67, (self.envs, 6), [n.state, n.dims, discrete, w["pos_xy"], n._dest_buf])
         self._launch(inject_v67, (self.envs, 6), [n.state, n.dims, n._dest_buf])
         self._capture_hello_offers()

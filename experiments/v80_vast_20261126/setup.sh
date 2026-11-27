@@ -44,7 +44,7 @@ if "$install"; then
   python_bin="$root/.venv/bin/python"
   "$python_bin" -m pip install -e '.[dev]'
   "$python_bin" -m pip install -e './research/zhang_xue'
-  if "$gpu"; then "$python_bin" -m pip install 'warp-lang==1.18.0'; fi
+  if "$gpu"; then "$python_bin" scripts/maintenance/install_warp_compat.py; fi
 elif [[ -x "$root/.venv/bin/python" ]] && [[ -z "${PYTHON:-}" ]]; then
   python_bin="$root/.venv/bin/python"
 fi

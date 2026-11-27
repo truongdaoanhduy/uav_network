@@ -128,6 +128,7 @@ if HAS_WARP:
     def _start_v67(
         s: NetworkBuffersV67, dims: SimDimsV67, e: int, tx: int, dur: int,
         nh: int, is_ack: int, pid: int, tx_p: float, cca_th: float, noise_w: float, snr_th: float,
+        ready_mask: wp.uint32,
     ):
         # Snapshot broadcast telemetry when the frame actually starts.
         # The active frame keeps these bytes even if flight advances next tick.
@@ -147,7 +148,10 @@ if HAS_WARP:
             if rx == tx or s.radio_alive[e, rx] == wp.uint8(0):
                 continue
             p_rx = tx_p * s.gain[e, tx, rx]
-            if _busy_v67(s, dims, e, rx, tx_p, cca_th) != 0:
+            # All contenders were selected from the same pre-start channel.
+            # A same-slot contender cannot hear a frame that starts with it.
+            same_slot = (ready_mask & (wp.uint32(1) << wp.uint32(rx))) != wp.uint32(0)
+            if not same_slot and _busy_v67(s, dims, e, rx, tx_p, cca_th) != 0:
                 rst = int(s.state[e, rx])
                 if rst == ST_DIFS:
                     s.state[e, rx] = wp.int8(ST_IDLE)

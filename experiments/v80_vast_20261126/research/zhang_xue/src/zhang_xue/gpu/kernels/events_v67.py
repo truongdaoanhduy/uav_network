@@ -197,6 +197,36 @@ if HAS_WARP:
             s.state[e, tx] = wp.int8(ST_WAIT_ACK)
             s.deadline[e, tx] = s.now[e] + dims.ack_timeout_us
 
+    @wp.func
+    def _prepare_starts_v93(
+        s: NetworkBuffersV67, dims: SimDimsV67, e: int, t: int,
+        tx_p: float, cca_th: float,
+    ) -> wp.uint32:
+        """Two phases: finish every DIFS, then select starts before any TX."""
+        for r in range(dims.n_radio):
+            if s.radio_alive[e, r] == wp.uint8(0):
+                continue
+            if int(s.state[e, r]) == ST_DIFS and s.deadline[e, r] == t:
+                if _busy_v67(s, dims, e, r, tx_p, cca_th) != 0:
+                    s.state[e, r] = wp.int8(ST_IDLE)
+                    s.deadline[e, r] = NEVER_US
+                else:
+                    rem = s.backoff_rem[e, r] if s.frozen[e, r] != wp.uint8(0) else (_rand_slot_v67(s, dims, e, r, int(s.retries[e, r])) * dims.slot_us)
+                    s.frozen[e, r] = wp.uint8(0)
+                    s.state[e, r] = wp.int8(ST_BACKOFF)
+                    s.deadline[e, r] = t + rem
+        ready = wp.uint32(0)
+        for r in range(dims.n_radio):
+            if s.radio_alive[e, r] == wp.uint8(0) or s.deadline[e, r] != t:
+                continue
+            st = int(s.state[e, r])
+            if st == ST_SIFS:
+                ready = ready | (wp.uint32(1) << wp.uint32(r))
+            elif st == ST_BACKOFF and _busy_v67(s, dims, e, r, tx_p, cca_th) == 0:
+                if s.hello_pending[e, r] != wp.uint8(0) or _select_routable_slot_v67(s, e, r, t) >= 0:
+                    ready = ready | (wp.uint32(1) << wp.uint32(r))
+        return ready
+
     @wp.kernel
     def step_v67(
         s: NetworkBuffersV67,
@@ -254,21 +284,13 @@ if HAS_WARP:
                     s.hello_due[e, r] = t_min + HELLO_INT_US
                 if s.deadline[e, r] == t_min and (int(s.state[e, r]) == ST_TX or int(s.state[e, r]) == ST_TX_ACK):
                     _finish_tx_v67(s, dims, e, r, noise_w, snr_th)
+            ready_mask = _prepare_starts_v93(s, dims, e, t_min, tx_p, cca_th)
             for r in range(dims.n_radio):
                 if s.radio_alive[e, r] == wp.uint8(0):
                     continue
                 st = int(s.state[e, r])
-                if st == ST_DIFS and s.deadline[e, r] == t_min:
-                    if _busy_v67(s, dims, e, r, tx_p, cca_th) != 0:
-                        s.state[e, r] = wp.int8(ST_IDLE)
-                        s.deadline[e, r] = NEVER_US
-                    else:
-                        rem = s.backoff_rem[e, r] if s.frozen[e, r] != wp.uint8(0) else (_rand_slot_v67(s, dims, e, r, int(s.retries[e, r])) * dims.slot_us)
-                        s.frozen[e, r] = wp.uint8(0)
-                        s.state[e, r] = wp.int8(ST_BACKOFF)
-                        s.deadline[e, r] = t_min + rem
-                elif st == ST_BACKOFF and s.deadline[e, r] == t_min:
-                    if _busy_v67(s, dims, e, r, tx_p, cca_th) != 0:
+                if st == ST_BACKOFF and s.deadline[e, r] == t_min:
+                    if (ready_mask & (wp.uint32(1) << wp.uint32(r))) == wp.uint32(0):
                         s.state[e, r] = wp.int8(ST_IDLE)
                         s.deadline[e, r] = NEVER_US
                     elif s.hello_pending[e, r] != wp.uint8(0):
@@ -276,7 +298,7 @@ if HAS_WARP:
                         s.active_slot[e, r] = wp.int8(-1)
                         pid = s.next_pid[e]
                         s.next_pid[e] = pid + 1
-                        _start_v67(s, dims, e, r, HELLO_V89_TX_US if dims.enable_peer_telemetry != 0 else 360, -1, 0, pid, tx_p, cca_th, noise_w, snr_th)
+                        _start_v67(s, dims, e, r, HELLO_V89_TX_US if dims.enable_peer_telemetry != 0 else 360, -1, 0, pid, tx_p, cca_th, noise_w, snr_th, ready_mask)
                     elif int(s.q_count[e, r]) > 0:
                         phys0 = _select_routable_slot_v67(s, e, r, t_min)
                         if phys0 < 0:
@@ -287,12 +309,12 @@ if HAS_WARP:
                             nh = int(s.route_hop[e, r, dst])
                             s.active_slot[e, r] = wp.int8(phys0)
                             dur = 360 if int(s.q_type[e, r, phys0]) == PKT_E2E_ACK else (280 + 32 * int(s.q_entries[e, r, phys0]))
-                            _start_v67(s, dims, e, r, dur, nh, 0, int(s.q_pid[e, r, phys0]), tx_p, cca_th, noise_w, snr_th)
+                            _start_v67(s, dims, e, r, dur, nh, 0, int(s.q_pid[e, r, phys0]), tx_p, cca_th, noise_w, snr_th, ready_mask)
                     else:
                         s.state[e, r] = wp.int8(ST_IDLE)
                         s.deadline[e, r] = NEVER_US
                 elif st == ST_SIFS and s.deadline[e, r] == t_min:
-                    _start_v67(s, dims, e, r, TX_MAC_ACK_US, int(s.ack_dst[e, r]), 1, int(s.ack_pid[e, r]), tx_p, cca_th, noise_w, snr_th)
+                    _start_v67(s, dims, e, r, TX_MAC_ACK_US, int(s.ack_dst[e, r]), 1, int(s.ack_pid[e, r]), tx_p, cca_th, noise_w, snr_th, ready_mask)
                 elif st == ST_WAIT_ACK and s.deadline[e, r] == t_min:
                     ret = int(s.retries[e, r]) + 1
                     s.retries[e, r] = wp.uint8(ret)
