@@ -1,0 +1,46 @@
+# v6.7: team-level mission does not abort when one UAV depletes battery.
+# v6.6 deterministic peer-vs-no-peer ablation. Packet-level, NOT trained policy.
+# Adjust num_uavs (4, 6, 8, 10, 12), grid_w (20, 40, 60), and map_size_m (1000, 2000, 3000) freely.
+num_uavs: 6
+grid_w: 20
+comm_action_mode: compact_3
+enable_peer_dissemination: true
+enable_data_mule_forwarding: true
+scale_obstacles_with_map: true
+map_size_m: 1000.0
+uav_alt_m: 50.0
+v_max_mps: 15.0
+a_max_mps2: 5.0
+fov_radius_m: 50.0
+uav_safe_distance_m: 50.0
+safety_horizon_s: 900
+num_targets: 15
+pd: 0.85
+pf: 0.03
+ds_mf: 0.80
+ds_me: 0.80
+confirm_th: 0.90
+ds_uncertainty_ceiling: 0.20
+ds_fusion_mode: sum
+ds_aoi_eta: 0.02
+aoi_ewma_end_to_end: true
+evidence_calibration: paper_fixed
+tx_power_w: 0.1
+mac_cca_threshold_dbm: -82.0
+mac_noise_power_w: 4.38957709293155e-13
+enable_tx_power_control: false
+enable_3d_sensing_occlusion: true
+enable_accel_energy: false
+enable_fp_unlatch: true
+obs_pool_mode: semantic
+peer_reward_mode: info_gain
+aoi_reward_mode: exponential
+e_max_j: 180000.0
+w_p2p: 0.0
+lambda_b: 0.0
+
+battery_termination_mode: all_depleted
+
+# V77 parameter sweep (illustrative, NOT calibrated RF material)
+rf_obstacle_model: multi_obstacle
+rf_per_building_loss_db: 20.0
