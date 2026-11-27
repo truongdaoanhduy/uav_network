@@ -1,6 +1,10 @@
-# ACTIVE V88 SCIENTIFIC SCOPE — READ FIRST
+# ACTIVE V93 SCENARIO CANDIDATE — NOT FROZEN
 
-**Active and reproducible scenario:** 1,000 × 1,000 m, 6 UAVs, 15 static targets, 20 × 20 belief grid, fixed 50 m altitude and 900-step horizon. The active source of truth is `research/zhang_xue/configs/scenario_v77_nfz_multi_1km.yaml` together with `scripts/gpu/run_v81_real_rollout.py`; see [`docs/ACTIVE_SCENARIO_V88.md`](docs/ACTIVE_SCENARIO_V88.md).
+**Active candidate:** 1,000 × 1,000 m, 6 UAVs, 15 static targets, 20 × 20 belief grid, fixed 50 m altitude and 900-step horizon. Use `research/zhang_xue/configs/scenario_v91_bayes_1km.yaml` explicitly; see [`docs/ACTIVE_SCENARIO_V93.md`](docs/ACTIVE_SCENARIO_V93.md), [audit](docs/V93_SCENARIO_AUDIT_VI.md) and [measured gates](docs/V93_GATE_STATUS.json). The historical DS comparison is `scenario_v89_static_1km.yaml`; the two inference modes are not reward-matched.
+
+Current scenario-only entry points are `scripts/gpu/v93_mission_audit.py`, `v93_network_microbench.py` and `v92_network_and_peer_probe.py`. No baseline training or tuning is authorized by a passing scenario probe. A failed probe must retain its actual failure status.
+
+Legacy runners/config defaults below do not select the active candidate. `run_v80_real_rollout.py` hardcodes518 encoded inputs; the current schema has553. `run_v81_real_rollout.py` derives its dimension dynamically but its scenario and baseline mode still require explicit selection in the later baseline phase. Existing canonical continuous baselines learn XY with fixed local communication; see [baseline boundary](docs/V93_BASELINE_BOUNDARY.md). V93 does not certify the existing learner implementations.
 
 All experiment descriptions below are historical reference material only; none overrides this active scenario, and no historical GPU notebook defines the current run. New GPU work is on Vast.ai only.
 
