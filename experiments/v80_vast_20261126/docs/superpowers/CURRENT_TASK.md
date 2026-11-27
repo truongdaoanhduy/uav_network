@@ -1,6 +1,7 @@
 # Current task — V93 scenario audit, not frozen
 
 Working branch: experiment/v93-scenario-audit-20261127.
+Verified implementation commit: a571e9ee6972b33d992fbde83ef81cc1bd52b169.
 Parent verified GitHub/Sandbox commit: f0433d51b5de1cf90b5b265221c5e9ad606f47b9 (V91).
 V92 attached package was compared: 331 files identical to V91; three added probes/tests and one changed manifest.
 
@@ -17,3 +18,7 @@ V92 attached package was compared: 331 files identical to V91; three added probe
 - Preserve all failed probe logs and first-terminal snapshots in the delivered evidence package.
 
 Next: resolve the remaining scope-specific validation and coordinated safety limitations using the evidence matrix before tagging SCENARIO_FROZEN.
+
+Verification receipt: CPU502 PASS /23 skipped /103 subtests; CUDA519 PASS /6 skipped.
+E4096x900 environment8/8 gates PASS,78.3916s; sampled device peak2572MiB.
+See docs/V93_GATE_STATUS.json. Passing regressions does not close the scientific OPEN gates.
