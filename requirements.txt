@@ -1,0 +1,20 @@
+# V124 Vast reference: Linux x86_64, Python 3.10 (3.11/3.12 not GPU-validated).
+# CUDA GPU validated on RTX 3060, NVIDIA driver 550.107.02.
+# pip install -r requirements.txt
+# Official PyTorch CUDA 11.8 index is needed for the exact +cu118 build.
+--extra-index-url https://download.pytorch.org/whl/cu118
+
+# Core numerical + policy learner dependencies measured on the passing Vast instance.
+numpy==2.2.6
+torch==2.7.1+cu118
+PyYAML==6.0.4
+
+# CRITICAL: Warp PyPI 1.18.0 defaults to CUDA 13; NVIDIA R550 needs +cu12.
+# Official NVIDIA Warp 1.18.0 CUDA-12 Linux x86_64 release asset.
+warp-lang @ https://github.com/NVIDIA/warp/releases/download/v1.18.0/warp_lang-1.18.0%2Bcu12-py3-none-manylinux_2_28_x86_64.whl
+
+# Real UavNetSim/SimPy comparison + repository regression tests.
+SimPy==4.1.2
+pytest==9.2.0
+setuptools==79.0.1
+tomli==2.5.0 ; python_version < "3.11"
