@@ -1,0 +1,52 @@
+{
+  "schema": "v93-scenario-gates-1",
+  "date": "2026-11-27",
+  "implementation_commit": "a571e9ee6972b33d992fbde83ef81cc1bd52b169",
+  "scenario_frozen": false,
+  "baseline_training_started": false,
+  "algorithm_source_files_unchanged": 30,
+  "cpu_regression": {
+    "passed": 502,
+    "skipped": 23,
+    "subtests_passed": 103
+  },
+  "cuda_regression": {
+    "passed": 519,
+    "skipped": 6
+  },
+  "capacity": {
+    "envs": 4096,
+    "horizon": 900,
+    "gates_passed": 8,
+    "world_transitions": 3686400,
+    "elapsed_sec": 78.3916,
+    "peak_sampled_device_memory_mib": 2572,
+    "scope": "stationary environment only; no learner/replay"
+  },
+  "network_microprofile": {
+    "matched_seeds": 32,
+    "cpu_cuda_event_parity": true,
+    "clear_retries": 6,
+    "hidden_retries": 101,
+    "same_slot_retries": 68,
+    "pdr_all_profiles": 1,
+    "upstream_macro_equivalence": "OPEN"
+  },
+  "peer_contact_fixture": {
+    "control_tp": 0,
+    "peer_enabled_tp": 1,
+    "scope": "one target; controlled disconnected contacts, not physical flight"
+  },
+  "nonoracle_bayes": {
+    "episodes": 48,
+    "full_successes": 14,
+    "terminal_safety_rejections": 14,
+    "scope": "current held scenario; no convergence claim"
+  },
+  "open": [
+    "coordinated safety recovery beyond a necessary one-step guard",
+    "independent upstream macro validation / equivalent common profile",
+    "reward-matched causal DS/Bayes RL ablation",
+    "empirical RF calibration if claiming real-city accuracy"
+  ]
+}

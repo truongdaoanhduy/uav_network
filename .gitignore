@@ -12,3 +12,17 @@ running_log.log
 .env
 key*.txt
 wandb/
+
+# Kaggle/Jupyter notebooks are experiment artifacts, not canonical source.
+# Recreate locally under ignored outputs/; recover legacy revisions from Git history.
+*.ipynb
+.ipynb_checkpoints/
+# No model state, binary research outputs or cache artifacts in source Git.
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.npy
+*.npz
+*.parquet
+*.csv

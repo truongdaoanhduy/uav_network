@@ -1,0 +1,6 @@
+# Canonical scenario is procedural. No external archive is required.
+# Optional third-party data must have kind=download, HTTPS URL and SHA-256.
+sources:
+  - kind: generated
+    id: canonical_7radio
+    scenario_config: research/zhang_xue/configs/scenario_7radio.yaml

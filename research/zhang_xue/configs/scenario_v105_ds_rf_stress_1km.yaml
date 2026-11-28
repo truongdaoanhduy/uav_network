@@ -1,0 +1,51 @@
+# V105 RF-STRESS ABLATION SCENARIO — DS-ONLY, UavNetSim-scale noise (4e-11 W), PEER=ON + Data-Mule
+# Companion to scenario_v103_ds_only_1km.yaml (V105-Base open-RF baseline).
+# Under 4e-11 W noise (R_LOS ~ 249 m), tx_power and PEER data-mule produce strong quantitative effects.
+num_uavs: 6
+grid_w: 20
+comm_action_mode: compact_3
+enable_peer_dissemination: true
+enable_data_mule_forwarding: true
+scale_obstacles_with_map: true
+map_size_m: 1000.0
+uav_alt_m: 50.0
+v_max_mps: 15.0
+a_max_mps2: 5.0
+fov_radius_m: 50.0
+uav_safe_distance_m: 50.0
+safety_horizon_s: 900
+num_targets: 15
+pd: 0.85
+pf: 0.03
+ds_mf: 0.80
+ds_me: 0.80
+confirm_th: 0.90
+ds_uncertainty_ceiling: 0.20
+ds_fusion_mode: sum
+ds_aoi_eta: 0.0
+static_evidence_mode: raw_u16_count
+obs_schema_v2: true
+aoi_ewma_end_to_end: true
+evidence_calibration: paper_fixed
+tx_power_w: 0.1
+mac_cca_threshold_dbm: -82.0
+mac_noise_power_w: 4.0e-11
+enable_tx_power_control: false
+enable_3d_sensing_occlusion: true
+enable_accel_energy: false
+enable_fp_unlatch: true
+enable_tp_unlatch: false
+obs_pool_mode: semantic
+peer_reward_mode: info_gain
+aoi_reward_mode: exponential
+e_max_j: 180000.0
+w_p2p: 0.0
+lambda_b: 0.0
+
+battery_termination_mode: all_depleted
+rf_obstacle_model: multi_obstacle
+rf_per_building_loss_db: 12.0
+
+belief_inference_mode: dempster_shafer
+exploration_reward_mode: first_visit
+shared_coverage_reward: false

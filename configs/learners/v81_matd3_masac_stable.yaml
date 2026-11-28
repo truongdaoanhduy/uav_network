@@ -1,0 +1,29 @@
+# V81 symmetric stability config for MATD3 & MASAC (addresses Dead ReLU & tanh saturation).
+# Grounded in Ball et al. (ICML 2023), Sokar et al. (ICML 2023), Nauman et al. (ICML 2024).
+world:
+  num_uavs: 6
+network:
+  power_control: fixed
+  destination_mode: compact_3
+runtime:
+  num_envs: 4096
+  algorithm: matd3
+  amp_mode: 'off'
+motion_dim: 2
+continuous_dim: 2
+matd3:
+  batch_size: 8192
+  actor_layer_norm: true
+  critic_layer_norm: true
+  activation: silu
+  pre_tanh_reg: 0.001
+  initialization: orthogonal
+  critic_huber_delta: 10.0
+  sync_critic_loss_scale: true
+masac:
+  batch_size: 8192
+  actor_layer_norm: true
+  critic_layer_norm: true
+  activation: silu
+  critic_huber_delta: 10.0
+  sync_critic_loss_scale: true

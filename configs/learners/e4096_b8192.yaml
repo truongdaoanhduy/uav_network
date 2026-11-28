@@ -1,0 +1,16 @@
+# Exact requested target. Functional probes report smaller effective sizes.
+world:
+  num_uavs: 6
+network:
+  power_control: fixed
+  destination_mode: compact_3
+runtime:
+  num_envs: 4096
+  algorithm: matd3
+  amp_mode: 'off'
+motion_dim: 2
+continuous_dim: 2
+matd3:
+  batch_size: 8192
+masac:
+  batch_size: 8192

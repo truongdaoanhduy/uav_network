@@ -1,39 +1,104 @@
 #!/usr/bin/env bash
-# Fetch only UavNetSim runtime folders; synthesize scenarios at env.reset().
+# Single entry point for ALL source packages, data, tests and optional Warp preflight.
 set -euo pipefail
-project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-cd "$project_root"
-python_bin="${PYTHON:-python3}"
-venv_flags=()
-package_spec='.'
-for option in "$@"; do
-  case "$option" in
-    # Kaggle's Python image lacks a working ensurepip; inherit its existing pip.
-    --system-site-packages) venv_flags+=(--system-site-packages --without-pip) ;;
-    --cloud) package_spec='.[cloud]' ;;
-    *) echo 'Usage: bash setup.sh [--system-site-packages] [--cloud]' >&2; exit 2 ;;
+root="$(cd "$(dirname "$0")" && pwd)"
+cd "$root"
+install=false; check_only=false; prepare_data=false; test_all=false; cpu_gate=false; cpu_gate_datamule=false; cpu_gate_v67=false; qa=false
+gpu_gate=false; gpu_packet_gate=false; gpu=false; dry_run=false
+seed=44; episodes=4
+while (( $# )); do
+  case "$1" in
+    --install) install=true ;;
+    --gpu) gpu=true; install=true ;;
+    --check-only) check_only=true ;;
+    --prepare-data) prepare_data=true ;;
+    --test) test_all=true ;;
+    --cpu-gate) cpu_gate=true ;;
+    --cpu-gate-datamule) cpu_gate_datamule=true ;;
+    --cpu-gate-v67) cpu_gate_v67=true ;;
+    --gpu-gate) gpu_gate=true ;;
+    --gpu-packet-gate) gpu_packet_gate=true ;;
+    --qa) qa=true ;;
+    --dry-run) dry_run=true ;;
+    --seed) shift; seed="${1:?missing seed}" ;;
+    --episodes) shift; episodes="${1:?missing episodes}" ;;
+    -h|--help)
+      echo 'Usage: bash setup.sh [--install] [--gpu] [--prepare-data] [--check-only] [--test] [--cpu-gate] [--cpu-gate-datamule] [--cpu-gate-v67] [--gpu-gate] [--gpu-packet-gate] [--qa] [--dry-run] [--seed N] [--episodes N]'
+      exit 0 ;;
+    *) echo "Unknown setup option: $1" >&2; exit 2 ;;
   esac
+  shift
 done
-"$python_bin" -c 'import sys; assert sys.version_info >= (3,11), "Python >=3.11 required"'
-if [[ ! -x .venv/bin/python ]]; then
-  "$python_bin" -m venv "${venv_flags[@]}" .venv
+if ! "$install" && ! "$check_only" && ! "$prepare_data" && ! "$test_all" && ! "$cpu_gate" && ! "$cpu_gate_datamule" && ! "$cpu_gate_v67" && ! "$gpu_gate" && ! "$gpu_packet_gate" && ! "$qa"; then
+  install=true; check_only=true; prepare_data=true
 fi
-.venv/bin/python -m pip --version
-.venv/bin/python -m pip install --upgrade pip
-.venv/bin/python -m pip install -e "$package_spec" -r scripts/requirements-network.txt
-upstream_dir="$project_root/third_party/UavNetSim"
-revision="$(tr -d '\r\n' < scripts/upstream-revision.txt)"
-mkdir -p third_party outputs
-if [[ ! -d "$upstream_dir/.git" ]]; then
-  git init -q "$upstream_dir"
-  git -C "$upstream_dir" remote add origin https://github.com/Zihao-Felix-Zhou/UavNetSim.git
+if "$dry_run"; then
+  echo 'PLAN: algorithm core + seven-radio package install (only when requested), local synthetic data, optional tests and CPU gates.'
+  echo 'PLAN: no external dataset required; optional HTTPS sources require SHA-256; outputs ignored by Git.'
+  echo "PLAN: install=$install gpu=$gpu check=$check_only data=$prepare_data tests=$test_all cpu_gate=$cpu_gate cpu_gate_datamule=$cpu_gate_datamule cpu_gate_v67=$cpu_gate_v67 gpu_gate=$gpu_gate gpu_packet_gate=$gpu_packet_gate qa=$qa seed=$seed episodes=$episodes"
+  exit 0
 fi
-git -C "$upstream_dir" sparse-checkout init --cone
-git -C "$upstream_dir" sparse-checkout set allocation energy entities mac mobility \
-  path_planning phy routing scene simulator telemetry topology utils
-if ! git -C "$upstream_dir" cat-file -e "$revision^{commit}" 2>/dev/null; then
-  git -C "$upstream_dir" fetch --depth=1 --filter=blob:none origin "$revision"
+python_bin="${PYTHON:-python3}"
+if "$install"; then
+  "$python_bin" -m venv "$root/.venv"
+  python_bin="$root/.venv/bin/python"
+  "$python_bin" -m pip install -e '.[dev]'
+  "$python_bin" -m pip install -e './research/zhang_xue'
+  if "$gpu"; then "$python_bin" scripts/maintenance/install_warp_compat.py; fi
+elif [[ -x "$root/.venv/bin/python" ]] && [[ -z "${PYTHON:-}" ]]; then
+  python_bin="$root/.venv/bin/python"
 fi
-git -C "$upstream_dir" checkout --detach "$revision"
-.venv/bin/python -c 'from uav_network.configuration import load_config; from uav_network.communication.upstream import load_upstream; from gymnasium.vector import AutoresetMode; load_upstream(load_config()); assert AutoresetMode.DISABLED; print("UavNetSim and Gymnasium process runtime ready")'
-echo 'Ready. Run: .venv/bin/python -m uav_network --help'
+export PYTHONPATH="$root:$root/research/zhang_xue/src"
+if "$check_only"; then
+  "$python_bin" - <<'PY'
+from uav_network.algorithms.matd3 import MATD3
+from uav_network.algorithms.masac import MASAC
+from uav_network.algorithms.configuration import load_learner_config
+from zhang_xue.environment.core import ZhangXue7NodePacketEnv
+from scripts.data.prepare_data import validate_manifest
+print('Repository imports and setup manifest tools: PASS (not a GPU test)')
+PY
+  "$python_bin" scripts/maintenance/check_project_policy.py --scope full
+fi
+if "$prepare_data"; then
+  "$python_bin" scripts/data/prepare_data.py --seed "$seed" --episodes "$episodes"
+fi
+if "$test_all"; then
+  "$python_bin" -m pytest -q tests/ research/zhang_xue/tests/
+fi
+if "$cpu_gate"; then
+  for algo in matd3 masac; do
+    "$python_bin" research/zhang_xue/scripts/v61_cpu_actor_learning_gate.py \
+      --algorithm "$algo" --seed "$seed" --transitions 4 \
+      --learner-config "configs/learners/${algo}_cpu_gate.yaml" \
+      --scenario-config research/zhang_xue/configs/scenario_7radio.yaml
+  done
+fi
+if "$cpu_gate_datamule"; then
+  for algo in matd3 masac; do
+    "$python_bin" research/zhang_xue/scripts/v61_cpu_actor_learning_gate.py \
+      --algorithm "$algo" --seed "$seed" --transitions 4 \
+      --learner-config "configs/learners/${algo}_cpu_gate.yaml" \
+      --scenario-config research/zhang_xue/configs/scenario_v66_datamule_1km.yaml
+  done
+fi
+if "$cpu_gate_v67"; then
+  for algo in matd3 masac; do
+    "$python_bin" research/zhang_xue/scripts/v61_cpu_actor_learning_gate.py \
+      --algorithm "$algo" --seed "$seed" --transitions 4 \
+      --learner-config "configs/learners/${algo}_cpu_gate.yaml" \
+      --scenario-config research/zhang_xue/configs/scenario_v67_datamule_1km.yaml
+  done
+fi
+if "$gpu_gate"; then
+  # Fail closed until a Q1-Clean 2D + compact-3 GPU runtime is wired and parity tested.
+  # The older v61 7-radio Warp smoke is a different experiment.
+  "$python_bin" scripts/maintenance/q1_gpu_preflight.py
+fi
+
+if "$gpu_packet_gate"; then
+  "$python_bin" scripts/gpu/warp_packet_cuda_gate.py --envs "${WARP_GATE_ENVS:-4}" --device "${WARP_GATE_DEVICE:-cuda:0}"
+fi
+if "$qa"; then
+  "$python_bin" scripts/maintenance/run_qa_bundle.py --seed "$seed"
+fi

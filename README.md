@@ -1,402 +1,247 @@
-# UAV network: tìm kiếm target, pin và truyền report
+# V121 — DS-only scenario audit; see the current evidence decision
 
-Khi tiếp tục công việc W&B/Kaggle hoặc CPU replay, đọc [trạng thái và bước kế tiếp](docs/superpowers/CURRENT_TASK.md).
+Current report: [V121 scenario audit](docs/V121_SCENARIO_AUDIT_VI.md).
+Current task: [maintenance handoff](docs/superpowers/CURRENT_TASK.md).
+Freeze decision: `outputs/v121_scenario_audit/SCENARIO_FREEZE_DECISION.json`.
+Older PASS counts and release headings below are historical.
 
-Mặc định **6 UAV đồng nhất**, map 1000 × 1000 m, 10 target và 8 vật cản tròn.
-Chuyển động XY, camera FOV, pin hữu hạn, lựa chọn relay/GCS và công suất phát.
-Report đi qua **UavNetSim thật**: CSMA/CA, packet, ACK, retry và SINR.
-Profile tùy chọn [XYZ/Bayesian sensing](docs/xyz-sensing.md) thêm điều khiển độ cao,
-belief theo từng UAV và camera phụ thuộc độ cao; visualize vẫn2D.
-Train bằng **Hybrid MASAC hoặc Hybrid MATD3**, với 6 actor riêng và critic tập trung.
+Active candidate YAML: `research/zhang_xue/configs/scenario_v103_ds_only_1km.yaml`.
+Isolated pure-GCS RF: `research/zhang_xue/configs/scenario_v111_ds_rf_stress_no_peer_1km.yaml`.
+V105 also enables PEER/MULE and remains a separate factorial arm.
+CPU and Warp are DS-only. Actors learn continuousXY only; TX0.1W, app-send
+controller and multi-hop routing are fixed mechanisms. No learner training or
+tuning was performed. The V99 sticky script resets episodes; the V121
+uninterrupted gate performs zero resets. Historical scope is retained below.
 
-## Cài đặt và kiểm tra
+---
 
-```bash
-cd /home/aduy/Documents/NCKH/uav_network
-bash setup.sh
-# Nếu máy đã có PyTorch và dependency lớn:
-# bash setup.sh --system-site-packages
-.venv/bin/python -m uav_network hardware
-.venv/bin/python -m unittest discover -s tests -v
-```
+# HISTORICAL V118 CLEAN CANONICAL DS-ONLY SCENARIO CANDIDATE
 
-`setup.sh` tạo venv, cài dependency và tải sparse checkout UavNetSim đã ghim
-commit. Scenario được sinh theo seed; không cần tải dataset target.
-`third_party/`, `.venv/`, `outputs/` và cache được Git bỏ qua.
+**V112 verification entry point:** [V112 scenario audit](docs/V118_FINAL_SCENARIO_VERDICT_AND_PHASE2_ROADMAP_VI.md), [updated 36-item conflict matrix](outputs/v112_validation/04_ALL_CONFLICTS_WITH_V112_STATUS.csv), and [V112 reproduction README](outputs/v112_validation/00_REPRODUCE.md). V112 adds verification scripts/tests and does not change 30 algorithm files or modify the active Base/RF YAML. This is NOT a scenario freeze.
 
-## Cấu trúc và thứ tự đọc
+**Active candidate (DS-only, `first_visit` exploration, NOT SCENARIO_FROZEN):** 1,000 × 1,000 m, 6 UAVs, 15 static targets, 20 × 20 belief grid, fixed 50 m altitude, fixed `tx_power_w = 0.1 W`, and 900-step horizon. Use `research/zhang_xue/configs/scenario_v103_ds_only_1km.yaml` (Base) or `research/zhang_xue/configs/scenario_v105_ds_rf_stress_1km.yaml` (RF-Stress) explicitly. Historical Bayesian configurations are rejected fail-closed by the Warp mission runtime.
 
-| Folder | Chức năng |
-| --- | --- |
-| `configs/` | Default, smoke, smoke song song và workstation |
-| `uav_network/configuration.py` | Dataclass, validate và YAML/CLI overrides |
-| `uav_network/environment/` | World, XY/XYZ safety, pin, camera/Bayes, observation và Gym adapter |
-| `uav_network/communication/` | Report/buffer/TTL, native PHY budget, NLOS và selected routing |
-| `uav_network/algorithms/` | Actor/critic, MASAC, MATD3, tensor replay, checkpoint |
-| `uav_network/experiments/` | Train, evaluate, hardware, benchmark và ảnh quỹ đạo |
-| `uav_network/cloud/` | Đọc key, kiểm tra quota, tạo và theo dõi job Kaggle |
-| `tests/` | Môi trường, packet thật, learner, worker/reset và CUDA |
-| `scripts/` | Dependency mạng và revision upstream |
-| `docs/` | Thiết kế, quá trình thực hiện, bằng chứng và nghiên cứu GPU |
+Current scenario-only entry points are `scripts/gpu/v93_mission_audit.py`, `v93_network_microbench.py`, `v92_network_and_peer_probe.py`, and `scripts/gpu/v99_endurance_sticky_cuda_gate.py`. See [V108 Audit & Freeze Checklist (VI)](docs/V111_CONFLICT_RESOLUTION_AND_PROVENANCE_VI.md). No baseline training or tuning is authorized until all scientific freeze gates pass and `SCENARIO_FROZEN` is signed off. V109 targeted, full pytest, compute-sanitizer, and both 4096×900 CUDA endurance gates passed; upstream packet-level SimPy parity, DS correlation under full mission, S20 causal ablation and reachability remain open. See [V109 forensic audit](outputs/v109_audit/REPORT_VI.md), [18-issue conflict matrix](outputs/v109_audit/CONFLICT_MATRIX.csv) and [reproduction steps](outputs/v109_audit/README_REPRODUCE.md).
 
-Đọc theo thứ tự: `configuration → world → motion/energy → sensing → reports
-→ communication/backend → observations/env → models → masac/matd3 → vector
-→ replay → training`. Mỗi file project không quá 500 dòng.
+Legacy runners/config defaults below do not select the active candidate. `run_v80_real_rollout.py` hardcodes 518 encoded inputs; the current `obs_schema_v2: true` raw observation has **549** dims (encoded to **553** dims by canonical continuous learners). `run_v81_real_rollout.py` derives its dimension dynamically and requires explicit scenario/baseline selection in Phase 2. Existing canonical continuous baselines (`uav_network/algorithms/`, 30/30 files untouched) learn 2D XY with fixed local communication; see [baseline boundary](docs/V93_BASELINE_BOUNDARY.md).
 
-## Action và observation mặc định XY
+All experiment descriptions below are historical reference material only; none overrides this active scenario. New GPU verification runs on Vast.ai `cuda:0`.
 
-| Thành phần action mỗi UAV | Ý nghĩa |
-| --- | --- |
-| `continuous[:,0:2]`, trong `[-1,1]` | Gia tốc X/Y, nhân `world.max_accel_mps2` |
-| `destination`, integer `0..N` | 0: silent; 1..N−1: peer theo ID tăng dần; N: GCS |
-| `continuous[:,2]`, trong `[-1,1]` | Công suất phát, ánh xạ sang min/max watt trong config |
+---
 
-Với 6 UAV, UAV2 có danh sách `[silent, UAV0, UAV1, UAV3, UAV4, UAV5, GCS]`.
-Policy chọn một next hop; không có greedy route thay quyết định của policy.
-Mask cho phép silent, peer còn pin trong range và GCS trong range khi có report.
-Sau khi phát hiện target, observation bước tiếp theo cho phép policy chọn đích.
-Peer đang đầy buffer/đã biết report có thể từ chối; sender giữ custody để thử lại.
+# V73 — Direct 4096-env / batch-8192 capacity diagnostics
 
-Actor nhận vị trí/vận tốc bản thân, GCS tương đối, thời gian, buffer, **pin và
-active**, target đã biết/tuổi report, target/vật cản trong FOV, beacon peer và mask.
-Target ngoài FOV không lộ tọa độ cho actor. Không có belief map.
-Beacon vị trí/pin là control plane lý tưởng; report dùng mạng packet.
-Critic train được thấy mission state đầy đủ. Default observation/state là 95/217.
-
-## Pin và vật cản
-
-Mỗi UAV có 277200 J = 77 Wh, chỉnh bằng `energy.battery_capacity_j`.
-Năng lượng bay một bước:
-
-`(idle_power + hover_power + c_v * ||v_real||² + c_a * ||a_real||²) * dt`.
-
-Vận tốc/gia tốc dùng chuyển động thực tế sau xử lý safety. Nếu không đủ pin
-cho trọn bước, UAV đứng tại chỗ, dùng hết phần pin còn lại và ngừng hoạt động.
-Safety được kiểm tra lại với UAV vừa dừng. Đây là mô hình năng lượng theo bước;
-không mô phỏng động lực học hạ cánh hoặc sạc pin.
-
-Mỗi lần native PHY phát trừ `power_w * frame_bits / bit_rate_bps`, gồm retry,
-frame lỗi và ACK. Frame không đủ pin không được phát. UAV hết pin không bay,
-quan sát, gửi/nhận hoặc giữ vai trò relay mới. GCS dùng nguồn điện riêng.
-Metrics tách năng lượng bay, RF của UAV, RF của GCS và số lần phát bị chặn do pin.
-Hết pin cả swarm kết thúc thất bại; mọi target về GCS kết thúc thành công.
-
-Safety mặc định dùng `world.motion_safety=dynamic_window`: giữ lệnh an toàn,
-kiểm tra cả đường phanh tới khi dừng, giảm tốc/đi vòng tiếp tuyến khi cần.
-Không dùng lực đẩy APF đẩy UAV xa target. Bộ lọc không nhận tọa độ target;
-actor vẫn có FOV/occlusion và action/observation cũ. Exact swept guard được
-giữ cho trạng thái bất khả thi hoặc peer bị pin buộc dừng.
-Chọn `world.motion_safety=reject` để so với cơ chế hủy bước cũ; checkpoint
-thiếu field này tự giữ reject khi evaluate lịch sử.
-
-Console từng episode ghi pin, termination, motion và receiver counts.
-Xem [nghiên cứu và kiểm chứng avoidance](docs/obstacle-avoidance-single-seed.md)
-cho target sát obstacle, giới hạn phương pháp và so sánh checkpoint cùng seed.
-Script `scripts/compare_motion_safety.py` so sánh policy đóng băng;
-`scripts/check_motion_repeatability.py` lặp native smoke hai thuật toán.
-Profile `configs/motion-study.yaml` dùng fresh seed44/100 episode cho follow-up.
-
-Vật cản được chuyển thành building của airspace UavNetSim. Link rõ dùng LOS
-free-space, link bị che dùng NLOS urban nên suy hao và có thể lỗi SINR.
-`network.obstacle_extra_loss_db` thêm loss cho NLOS, default 0 để tránh cộng
-trùng với urban loss. Vật cản áp dụng cho UAV→UAV và UAV→GCS.
-Link NLOS vẫn được policy thử: kết quả phụ thuộc công suất, nhiễu và SINR.
-
-## Chạy từng phần
+The current target is `configs/learners/e4096_b8192.yaml`. There is no required
+environment-count ramp. Small functional tests report their effective dimensions
+separately. The new runner writes flushed phase logs, host RAM, device-wide VRAM
+snapshots and Torch allocation peaks before/after risky work.
 
 ```bash
-# Xem config, chưa train.
-.venv/bin/python -m uav_network config --config configs/default.yaml
-
-# Smoke một env; chỉ kiểm tra luồng/gradient.
-.venv/bin/python -m uav_network train --config configs/smoke.yaml \
-  --algorithm masac --set runtime.output_dir=outputs/masac-smoke
-.venv/bin/python -m uav_network train --config configs/smoke.yaml \
-  --algorithm matd3 --set runtime.output_dir=outputs/matd3-smoke
-
-# 2 env × 6 UAV, có reset từng worker.
-.venv/bin/python -m uav_network train --config configs/smoke-parallel.yaml \
-  --algorithm matd3 --set runtime.output_dir=outputs/matd3-parallel-smoke
-
-.venv/bin/python -m uav_network evaluate \
-  --checkpoint outputs/matd3-parallel-smoke/final.pt --episodes 3
+python scripts/gpu/run_capacity_probe.py --mode functional \
+  --network-device cpu --learner-device cpu --output-dir outputs/functional_matd3
+python scripts/gpu/run_capacity_probe.py --mode capacity --algorithm matd3 \
+  --network-device cuda:0 --learner-device cuda:1 --output-dir outputs/capacity_matd3
 ```
 
-Output folder phải trống. Kết quả gồm resolved config, JSONL từng episode,
-summary, policy checkpoint; evaluate thêm metrics và PNG có pin từng UAV.
-Checkpoint v2 ghi algorithm/config/dimensions, dùng để evaluate. Thêm pin/mask
-đã thay observation: checkpoint v1 cần train lại. Chưa có resume optimizer/replay.
+Capacity mode runs the Warp **radio subsystem** at the exact configured size,
+fills the existing replay using four disclosed real CPU transitions repeated for
+memory commitment, and performs two real learner updates. It cannot establish
+4096 full GPU environments, learning convergence or simulator event parity.
+See [Vietnamese V73 status and reproducible commands](docs/V73_CAPACITY_DIAGNOSTICS_VI.md).
 
-## Chạy trên CPU mạnh + GPU
+Historical V72 release follows. Its account numbering/token observation predates
+the corrected active credential file; current account2 is active after renumbering.
 
-`runtime.num_envs=1` dùng một env. Khi >1, Gymnasium **AsyncVectorEnv + spawn**
-chạy một swarm hoàn chỉnh trong mỗi tiến trình CPU; mỗi process có UavNetSim riêng.
-Một learner ở parent dùng CUDA cho actor/critic/target/Adam và có thể giữ replay
-trên GPU. Sáu actor suy luận từng batch `[num_envs, observation_dim]`; action chỉ
-chuyển về CPU một lần mỗi batch. `step_async` cho CPU mô phỏng trong lúc learner
-cập nhật từ replay trước đó. Batch cuối được cập nhật trước khi lưu checkpoint.
-SimPy/packet simulation vẫn chạy trên CPU; không chuyển thành CUDA env.
+---
 
-`runtime.coalesce_idle_polls=true` mặc định gộp tick kiểm tra queue rỗng trong
-bước hoàn toàn không có traffic/MAC/ACK/PHY đang chờ. Giữ chu kỳ polling và tick
-cuối trước ranh giới bước; khi radio bận hoặc clock/poll có phần lẻ, chạy lịch cũ.
-Sáu actor vẫn có weights, gradient clipping và Adam riêng; kiểm tra finite của
-nhóm gradient một lần trước khi cập nhật bất kỳ actor nào.
-`runtime.fused_optimizers=true` tùy chọn dùng fused Adam trên CUDA, CPU dùng Adam
-thường. Có thể khác rounding với Adam cũ; đo trên đúng GPU trước khi chọn.
-`runtime.vectorize_critics=true` gom sáu critic bằng `torch.func.vmap`; mỗi
-critic vẫn có weights/gradient riêng. Lấy weights hiện tại mỗi forward và truyền
-gradient về leaf gốc, giữ checkpoint/Adam cũ. Chế độ này thay thứ tự phép tính
-ma trận FP32 nên so sánh theo tolerance; repeated-seed được kiểm tra riêng.
-Chọn `compile_models=false` khi bật `vectorize_critics`.
-Không đổi reward, mô phỏng native, batch, replay hay số update để tăng utilization.
+# V72 — Reproducible scenario/packet corrections (Warp CPU verified)
+
+Current audit: [Vietnamese findings and fixes](docs/V72_AUDIT_AND_FIXES_VI.md),
+[primary-source comparison and GPU roadmap](docs/V72_RESEARCH_AND_GPU_PLAN_VI.md),
+[issue register](docs/V72_BUG_STATUS.json).
+
+The uploaded V71 source was independently rerun before editing: 242 pytest tests
+and 64 subtests passed. V72 adds real environment, packet and Warp CPU execution
+regressions. Final results and raw RED/GREEN logs are in `outputs/qa_evidence_v72/`.
 
 ```bash
-# Đo cùng cấu hình, đủ warmup, không train dài.
-PYTHONPATH=. .venv/bin/python scripts/benchmark_acceleration.py \
-  --label optimized --device cuda --output outputs/speed/optimized.json
+bash setup.sh --install
+source .venv/bin/activate
+# Optional Warp kernels, needed for the execution gates:
+python -m pip install warp-lang==1.18.0
+python -m pytest -q tests/ research/zhang_xue/tests/
+python scripts/gpu/warp_packet_cuda_gate.py --device cpu --envs 4
+python scripts/gpu/packet_contract_gate.py --device cpu
+python scripts/maintenance/run_qa_bundle.py --output-dir outputs/new_qa --seed 44
 ```
 
-Driver lặp cùng root seed44 để lấy median, không phải nhiều research seeds;
-pipeline probe dùng deadline384/warmup512 được ghi riêng trong report.
-Nguồn phương pháp: [nghiên cứu CPU/GPU](docs/gpu-throughput-options-20261013.md).
+CUDA/T4 execution, complete CPU–Warp event parity and full GPU RL training remain
+unverified. The matched CPU/Warp fixture proves original evidence reaches GCS,
+not simulator timing fidelity. Generation-only Warp watermarks support EWMA mode
+with strictly increasing source/cell timestamps; violations fail closed. Main
+compact3 peer selection now uses local, unexpired HELLO routes by default.
 
-Profile `configs/motion-study-fast.yaml` bật critic vmap, giữ nguyên các tham số
-khoa học của `motion-study.yaml`; chỉ đổi execution mode, output và tracking tag.
-Trên T4, vmap tăng thêm throughput pipeline ngắn 15,3%/26,0% (MASAC/MATD3) so
-với bản đã tối ưu collector. Bản mặc định tăng 18,8%/37,2% so với snapshot bàn
-giao; đây là hai phép đo riêng. CUDA source kiểm thử có 139/139 tests pass.
-Chi tiết cấu hình, hashes, giới hạn và job:
-[training-acceleration-20261013.md](docs/training-acceleration-20261013.md).
+`run_kaggle_v72_gates.py` runs bounded per-device kernel/packet tests on an already
+configured Kaggle runtime; it performs no login, public upload or training.
+The authorized account2 token was inactive when checked; no GPU job was submitted.
+
+The older release descriptions below are historical, not the current status.
+
+---
+
+# v7.0 — Independent packet-radio audit, RED→GREEN fixes, CUDA fail-closed gates
+
+**Current release:** [full Vietnamese issue audit](docs/V70_INDEPENDENT_AUDIT_VI.md),
+[issue register](docs/V70_BUG_STATUS.json),
+[CUDA/Kaggle validation guide](docs/V70_CUDA_DEPLOYMENT_VI.md).
 
 ```bash
-# Máy có CUDA; với Kaggle dùng profile này trong lệnh launch hiện có.
-.venv/bin/python -m uav_network train --config configs/motion-study-fast.yaml \
-  --algorithm masac --set runtime.output_dir=outputs/motion-study-fast-masac
+bash setup.sh --check-only
+bash setup.sh --qa --seed 44
+python scripts/maintenance/paired_scenario_gate.py
+python scripts/maintenance/network_memory_report.py --output outputs/qa_evidence/memory_estimates.json
+bash setup.sh --gpu-packet-gate   # 3=BLOCKED on CPU; attempts *network-only* CUDA smoke
 ```
 
-Chọn số env theo benchmark trên **đúng máy train**:
+The v7.0 package retains all source, old research revisions and copied original v6.9
+QA artifacts while adding a fresh reproducible `outputs/qa_evidence/` gate log.
+Warp v6.7 radio network has not been integrated into parallel full RL rollout,
+reward, replay, optimizer and evaluation. **No 2×T4 / 4096-env training success
+or CPU-vs-Warp packet-event parity is claimed.**
+
+---
+
+# v6.8 — Full-source + reproducible academic QA logs
+
+**This release includes source code AND raw test artifacts** under `outputs/qa_evidence/` (JUnit XML, command logs, individual exit codes, RED→GREEN evidence, CPU learner smoke, map sweep, environment metadata and GPU blocker report). The former v6.7 ZIP had only source, tests and prose audit; it had no raw QA logs.
 
 ```bash
-.venv/bin/python -m uav_network benchmark --config configs/workstation.yaml \
-  --env-counts 1 2 4 8 16 --steps 128 --learner-updates 20 \
-  --output outputs/workstation-benchmark.json
-
-.venv/bin/python -m uav_network train --config configs/workstation.yaml \
-  --algorithm masac --num-envs 16 --device cuda \
-  --set runtime.output_dir=outputs/workstation-masac
-.venv/bin/python -m uav_network train --config configs/workstation.yaml \
-  --algorithm matd3 --num-envs 16 --device cuda \
-  --set runtime.output_dir=outputs/workstation-matd3
+bash setup.sh --check-only
+bash setup.sh --qa --seed 44
+cat outputs/qa_evidence/SUMMARY.md
 ```
 
-16 env nghĩa là **16 scenario độc lập, mỗi scenario có 6 UAV**, không phải chia
-6 UAV của một scenario thành 16 process. Workstation profile là điểm bắt đầu:
-batch1024, replay200000, warmup8192, 4 update/lần collect. Giảm env nếu quá tải CPU;
-đổi `runtime.replay_device=cpu`/giảm replay khi VRAM không đủ. CPU replay→CUDA dùng
-pinned samples; CUDA replay→CPU dùng copy blocking để CPU đọc dữ liệu đã hoàn tất.
+**What actually passed:** CPU tests and 4-transition MATD3/MASAC smoke. **What did not pass:** complete UavNetSim packet-event parity, Warp data-mule packet step, T4 4096-env throughput/VRAM, and convergence evaluation. `--gpu-gate` intentionally exits 3 (BLOCKED) until real kernels and parity tests exist.
 
-`updates_per_step` là số update cho mỗi **vector collection**, còn `global_step`
-đếm joint transitions: E env đóng góp E transition/lần. Ratio danh nghĩa là
-`updates_per_step * batch_size / num_envs`. Default 1×256/1 và workstation
-4×1024/16 đều là 256; summary ghi ratio thực tế sau warmup.
-Số episode hoàn tất có thể vượt ngân sách tối đa E−1 do nhiều worker kết thúc
-cùng lượt; summary ghi cả số yêu cầu lẫn số thực tế.
+See [v6.8 scientific & code audit](docs/V68_AUDIT_VI.md) and [machine-readable issue register](docs/V68_BUG_STATUS.json). All source is under named folders and the QA artifacts live in `outputs/` to keep Git history clean.
 
-Gradient không hữu hạn bị chặn trước mọi bước Adam. Scalar loss/metrics chạy
-theo log interval, kèm kiểm tra tham số khi lưu. Distribution của policy dùng các tham số đã
-clamp/mask để giảm validation sync trên GPU. Optional `runtime.compile_models=true`
-compile phần MLP, default tắt; benchmark sau warmup và so với eager.
-`runtime.deterministic=false` là lựa chọn tốc độ cần so sánh riêng với baseline.
+---
 
-Trên máy CUDA, chạy thêm:
+# UAV target-search — v6.7 source-code release (CPU validated, GPU BLOCKED)
+
+**Latest scientific corrections:** [v6.7 audit and source-level evidence](docs/V67_PHY_SAFETY_TERMINATION_AUDIT_VI.md).
+**Use:** `bash setup.sh --test`, `bash setup.sh --cpu-gate-v67 --seed 44`.
+**Matched ablations:** `scenario_v67_{datamule,no_peer}_{1km,2km}.yaml` in `research/zhang_xue/configs/`; `battery_termination_mode: all_depleted` distinguishes v6.7 mission semantics from the previous default. CCA governs *MAC sensing* rather than physical packet decode; CPU test cases include power below CCA but SINR above threshold. Do **not** claim UavNetSim event parity, Warp full packet support, CUDA training, or converged-policy gains.
+
+## Previous v6.6 audit retained below for traceability
+
+# UAV target-search research — v6.6 independently audited release (CPU only)
+
+**Current scientific audit:** [docs/V66_INDEPENDENT_SCIENTIFIC_AUDIT_VI.md](docs/V66_INDEPENDENT_SCIENTIFIC_AUDIT_VI.md).
+**Source provenance:** `SOURCE_SHA256_MANIFEST.json` and `research/zhang_xue/SHA256_MANIFEST.json`.
+
+This archive keeps the modularized project-wide MATD3/MASAC core and the v6.5
+**CPU-only** seven-radio / data-mule packet experiment. It preserves the historical
+source and does not claim NVIDIA Warp packet-event parity or full training.
+`research/zhang_xue/configs/scenario_7radio.yaml` is a **historical 6.4 smoke profile**
+(`w_p2p=0.10`, data-mule off), **not** the main v6.6 research baseline.
+
+## Reproducible checks
 
 ```bash
-.venv/bin/python -m unittest discover -s tests -p test_cuda.py -v
+bash setup.sh --dry-run
+bash setup.sh --check-only
+bash setup.sh --prepare-data --seed 44 --episodes 4
+bash setup.sh --test
+bash setup.sh --cpu-gate           # old 6.4 algorithm CPU regression
+bash setup.sh --cpu-gate-datamule  # v6.6 1km data-mule, MATD3 + MASAC 4-transition gates
+bash setup.sh --gpu-gate           # BLOCKED deliberately (exit=3), NOT a T4 result
+python scripts/maintenance/academic_scenario_audit.py --sizes-m 1000 2000 3000
+python scripts/maintenance/verify_source_manifests.py --check
 ```
 
-Các test CUDA báo skip rõ ràng nếu host không có CUDA. Xem kết quả CPU thực tế
-và phạm vi đã kiểm tra trong [verification-v02.md](docs/verification-v02.md).
+## Pre-registered communication ablation profiles
 
-## Full flow bằng GitHub Actions (production hiện tại)
+- `scenario_v66_datamule_1km.yaml` vs `scenario_v66_no_peer_1km.yaml`
+- `scenario_v66_datamule_2km.yaml` vs `scenario_v66_no_peer_2km.yaml`
 
-Dùng `--auto-continue` với một thuật toán và account đã được bật trong
-`KAGGLE_ENABLED_ACCOUNTS`. GitHub Actions theo dõi training, tiếp tục các GPU
-session và chạy CPU evaluation/visualize khi đủ episode, kể cả khi tắt sandbox.
-Không tạo Kaggle CPU `continuation-watch` cho các launch mới.
+Each pair differs **only** in `enable_peer_dissemination`, retains
+`enable_data_mule_forwarding=True` and `w_p2p=0.0`. 2km uses 40x40 cells
+and 60 targets to keep nominal target density fixed (15 per km²). This
+is an ablation specification, **not** a claimed converged/trained comparison.
+Read the audit for other non-invariant geometry/radio confounders.
 
-Xem [hướng dẫn launch và xác nhận có thể tắt sandbox](docs/github-actions-full-flow.md).
-Các ví dụ profile cũ bên dưới không thay cho full flow này.
+`P_tx=0.1 W`, `CCA=-82 dBm`, `noise=4.389577e-13 W`, 22MHz and 2Mbps
+match selected **UavNetSim configuration parameters**, not its complete
+PHY/MAC, SimPy, Sionna RT or routing implementation.
 
-## Kaggle CUDA và W&B online
+`WarpCompressedRadioNetwork` only allocates GPU buffers; it has **no**
+packet-step method. Its 379,848-byte/env estimate omits the CPU data-mule
+4D acknowledgment watermarks (806,400 additional bytes/env at 6/20x20),
+packet kernels, and training temporaries. Full Warp training and zero-shot
+N-UAV generalization remain unverified.
 
-`key.txt` giữ nguyên schema project cũ, đã được chép vào root project mới.
-File này được Git bỏ qua. Cài thêm CLI/SDK bằng:
+---
+
+# UAV search target — independent Zhang-Xue seven-radio scenario
+
+## v6.3 — project-wide folder structure & reproducible CPU gates (2026-11-25)
+
+**Start here:** [V63 independent audit (Vietnamese)](docs/V63_INDEPENDENT_AUDIT_VI.md)
+& [directory/config contract](docs/V63_DIRECTORY_CONTRACT.md).
+
+This version reorganizes MATD3, MASAC, baselines and shared replay/gradient
+code into separate nested packages. It also moves all historical flat research
+implementations under named `zhang_xue/{gpu/kernels,learners,compat}` folders,
+adds strict learner YAML/CLI, one `setup.sh` for ALL packages/data/tests, and a
+working 4-step CPU Actor→RF/XY/route→packet environment→optimizer gate.
 
 ```bash
-bash setup.sh --system-site-packages --cloud
-.venv/bin/python -m uav_network kaggle accounts
-
-# Kiểm tra CUDA và smoke hai thuật toán trước khi train dài.
-.venv/bin/python -m uav_network kaggle launch --stage validate \
-  --account account_07 \
-  --credential-dataset bduy2378/uav-wandb-credential-arch-ablation
-
-# Train 1000 episode mỗi thuật toán; chỉnh bằng --set nếu cần.
-.venv/bin/python -m uav_network kaggle launch --stage train \
-  --account account_07 --required-gpu-hours 22 --timeout-seconds 39600 \
-  --credential-dataset bduy2378/uav-wandb-credential-arch-ablation
-
-.venv/bin/python -m uav_network kaggle status \
-  --manifest outputs/kaggle/<job-folder>/launch.json
-
-# Thiết lập/cập nhật Personal Workspace mặc định với đúng metric.
-.venv/bin/python -m uav_network dashboard --config configs/kaggle.yaml \
-  --run-ids <masac-run-id> <matd3-run-id>
-# Không cần chạy lại khi có run mới: workspace tự lấy các run mới nhất.
-# --run-ids chỉ kiểm tra run và đặt số đường hiển thị; không ghim run.
-# Chỉ thêm --workspace-url <saved-url> khi chủ động muốn sửa một Saved view.
+bash setup.sh --dry-run
+bash setup.sh --check-only
+bash setup.sh --prepare-data --seed 44 --episodes 4
+bash setup.sh --test
+bash setup.sh --cpu-gate
 ```
 
-Launcher kiểm tra quota và dataset credential riêng tư thuộc đúng account;
-source tree phải được commit/push trước vì job ghim chính xác SHA của code.
-Mặc định tự chọn account còn nhiều giờ nhất nếu bỏ `--account`; dataset phải
-thuộc account được chọn. Output ghi URL Kaggle và hai URL W&B riêng.
-W&B dùng entity/project trong `key.txt`, ghi progress, reward, tìm kiếm, delivery,
-pin, safety, packet/delay/throughput, loss và artifact checkpoint định kỳ/cuối.
-W&B cũng theo dõi CPU/GPU/VRAM; tắt bằng `tracking.system_metrics=false` khi cần.
-Chạy local với `--set tracking.enabled=true` cũng dùng key này.
+**Scientific restrictions:** learned TX, EWMA and half-step PHY are tested on
+CPU only. The compressed v6.2 Warp memory layout has **not** been activated;
+actual GPU allocation remains the v6.1 SoA. No full T4 training, production
+W&B/Hugging Face logging or UavNetSim event parity was measured in this ZIP.
 
-Profile Kaggle dùng **2 env CPU cho mỗi learner, batch512 và replay CUDA**.
-Với T4 ×2: MASAC ở GPU0, MATD3 ở GPU1, train độc lập; một GPU thì chạy lần lượt.
-Job dài chạy CUDA regression và benchmark config thật trước khi mở learner;
-Kaggle output giữ `cuda-tests.log`, hardware và benchmark JSON của hai thuật toán.
-Đây là hai thí nghiệm, không phải chia một learner lên hai GPU.
-Kernel private lấy W&B key từ dataset credential riêng tư đã có; toàn bộ
-`key.txt` chỉ giữ ở local. Hỗ trợ policy warm-start với model/target/update counter và lịch sử episode;
-Adam, replay và simulator được khởi tạo lại. Không phải full-state resume. Xem [kaggle-wandb-plan.md](docs/kaggle-wandb-plan.md) cho kiểm chứng.
-Sau khi submit thành công, Kaggle và W&B chạy trên máy chủ; có thể tắt laptop.
-Mỗi learner lưu policy mỗi 10 episode theo profile Kaggle. Một learner lỗi không
-dừng learner còn lại; kết quả train được lưu trước evaluate, kể cả khi evaluate lỗi.
-Personal Workspace mặc định dùng `global_step`, lọc group `uav-network-2d`,
-không ghim run và có 18 biểu đồ. Mặc định hiển thị hai run mới nhất; run train mới
-tự xuất hiện trong bố cục đã lưu, không cần chọn/copy Saved view sau mỗi lần chạy.
-Mỗi lần train online in link Personal Workspace trong console và lưu
-`wandb_workspace_url` trong `wandb_run.json`/kết quả train; summary W&B cũng có
-`workspace_url`. Các lần train dùng cùng W&B entity/project/group trong config.
-Lệnh `dashboard` mặc định cập nhật workspace của người sở hữu API key; chỉ sửa
-Saved view khi truyền `--workspace-url`. Các bố cục được lưu ở W&B nên không cần
-ghi lại chúng ở mỗi lần train.
-Lỗi masked entropy khi alpha > 1 được kiểm tra bằng regression CPU/CUDA;
-zero-probability terms được xóa trước nhân alpha, gradient luôn kiểm tra finite.
-Lịch sử job, URL W&B và số liệu CUDA thực tế:
-[verification-online-training.md](docs/verification-online-training.md).
-Snapshot trước khi sửa lỗi masked entropy:
-[verification-kaggle-wandb.md](docs/verification-kaggle-wandb.md).
 
-## Thuật toán và tài liệu
+This branch contains ONE current research scenario: six UAVs, one separate GCS, 20x20 Dempster–Shafer belief map and packet-level CSMA/CA. It does not reuse the earlier UAV training scenario, its configs or its asynchronous learner.
 
-MASAC dùng Gaussian/tanh cho XY/power và categorical có mask cho next hop.
-Power chỉ tính entropy khi truyền; dùng kỳ vọng chính xác trên đích của actor
-đang cập nhật, sample UAV khác. MATD3 dùng clipped double Q, continuous target
-smoothing, actor/target update trễ và categorical straight-through softmax.
-Gaussian exploration cho continuous, epsilon greedy trên đích hợp lệ.
-Đây là các bản thích nghi cho action lai của mission này.
+## v6.1 — source-correctness gates (2026-11-25)
 
-GPU research so sánh PyTorch, Gymnasium, TorchRL, EnvPool, Sample Factory,
-Isaac Lab và Warp: [gpu-acceleration-research.md](docs/gpu-acceleration-research.md).
-Thiết kế: [design.md](docs/design.md); quá trình: [progress.md](docs/progress.md).
-Lượt smoke chứng minh wiring/gradient, không chứng minh policy đã hội tụ.
+- [Step-by-step v6.1 report](docs/V61_STEP_BY_STEP_QA_REPORT.md)
+- Fixed scientific config validation, removed old hard-veto safety mode and
+  retired obsolete CLI scenario presets.
+- Integrated a source-faithful actor adapter: 514 local observation values +
+  1 preserved distance + 7 route-mask bits = **522 policy inputs** per UAV.
+- CPU gate proves four real environment transitions and one optimizer update
+  each for MATD3 and MASAC, with no global target truth in Actor observations.
+- **No CUDA T4 validation or full 4096-env training is claimed.** Per-reading
+  AoI evidence fusion through the radio stack is not yet complete.
 
-Tham khảo [UavNetSim](https://github.com/Zihao-Felix-Zhou/UavNetSim),
-[DroneWatch](https://github.com/Bussler/DroneWatch), [GPMF](https://github.com/yangmin32/GPMF)
-và [MATD3](https://arxiv.org/abs/1910.01465).
+## Where the active code lives
 
-## Tiếp tục sau giới hạn Kaggle
+- research/zhang_xue/src/zhang_xue/: scenario, belief, mobility, packet network and Warp kernels.
+- research/zhang_xue/configs/scenario_7radio.yaml: canonical research configuration (1000m, 15 targets).
+- research/zhang_xue/configs/cpu_smoke.yaml: small CPU smoke configuration.
+- uav_network/algorithms/: retained MATD3, MASAC and Vanilla baseline mathematics; learner-specific hyperparameters.
+- uav_network/experiments/: generic evaluation statistics and metrics aggregation ONLY.
 
-Job mặc định tối đa 39.600 giây; profile train chủ động dừng sau 36.000 giây
-để còn thời gian lưu/upload/evaluate. Với một GPU, ngân sách chia cho các lượt.
-Mục tiêu episode là tổng tích lũy, không phải số episode thêm.
-Policy upload mỗi 10 episode và chờ artifact commit trước khi tiếp tục.
-Summary local được ghi trước upload cuối; upload lỗi được báo riêng và kết quả giữ lại.
+The historical scenario and run configs were removed from this branch, but their history is preserved in the v5.9 parent commit.
 
-```bash
-python -m uav_network train --config configs/kaggle.yaml   --warm-start outputs/checkpoint-recovery/masac/checkpoint.pt   --set runtime.algorithm=masac --set runtime.episodes=1000   --set runtime.output_dir=outputs/masac-continuation
-python -m uav_network kaggle launch --stage train --account account_07   --required-gpu-hours 10.75 --timeout-seconds 39600   --credential-dataset bduy2378/uav-wandb-credential-arch-ablation   --warm-start-artifact masac=truongdaoanhduy-uit/uav_search_target/uav-network-masac-f8524504-recovered:v0   --warm-start-artifact matd3=truongdaoanhduy-uit/uav_search_target/uav-network-matd3-971920c8-recovered:v0
-```
+## Run CPU regression
 
-Phải refill replay bằng 4.000 transition mới trước khi update; checkpoint cũ
-không chứa Adam/replay nên không thể tái tạo chính xác trajectory trước đó.
-Chi tiết phục hồi: [verification-continuation.md](docs/verification-continuation.md).
+    bash setup.sh --dry-run
+    PYTHONPATH=.:research/zhang_xue/src python -m pytest -q tests/ research/zhang_xue/tests/
+    PYTHONPATH=.:research/zhang_xue/src python research/zhang_xue/scripts/run_scenario.py --config research/zhang_xue/configs/cpu_smoke.yaml --steps 4
 
-## W&B diagnostics
+The CPU gate now connects a 522d Actor and separate route+RF controls to real network actions and a single optimizer update. This is not a full training pipeline or convergence run.
 
-Biểu đồ, cảnh báo từ dữ liệu thực, đánh giá cùng seed và cách đọc lỗi:
-[training-diagnostics.md](docs/training-diagnostics.md). Cấu hình ở tracking.
-Console được capture online; failure.json và failed_batch.pt giúp tái hiện lỗi.
-Các run đang chạy ghim SHA cũ; metric mới áp dụng khi launch source mới.
+Online W&B and Hugging Face persistence from the old scenario are intentionally NOT carried over. They require a new integration only when a matching trainer/evaluator exists. No GPU T4 throughput or CPU–Warp parity is claimed.
 
-## Completed single-seed training audit
-
-The completed motion-study runs and executable failure reproductions are in
-[the training audit](docs/completed-training-audit-20261013.md).
-The mission's observed max_steps deadline is terminal for Bellman updates.
-An external max_train_seconds cutoff remains a separate runner limit.
-
-Fresh configs enable network.rediscovery_recovery and network.ack_uses_data_power.
-After local TTL/buffer loss, a fresh visible target observation can regenerate
-an undelivered report when space becomes available; relaying preserves TTL,
-custody transfer does not generate another copy, and discovery is not rewarded
-twice. The existing report-status feature is remaining TTL (>0), no custody (0),
-or local loss needing a fresh camera observation (-1). Dimensions are unchanged.
-ACK uses the received data frame's selected power, with real PHY battery/RF costs.
-Legacy checkpoints missing these fields retain both original network behaviors.
-Console also warns about intervention, saturation and stalls even with zero hard
-blocks. Kaggle startup gates both CUDA tests and native mission regressions.
-
-Existing policies still need fresh training and same-seed evaluation after these
-fixes. Successful packet tests and finite CUDA updates do not prove convergence
-or energy optimality.
-
-## Train dài và visualize trong phiên CPU riêng
-
-`configs/motion-long.yaml`: 500 episode tổng mỗi thuật toán, tối đa 1000
-step/episode; giữ 2 env/learner và critic vmap của profile fast. Profile 100
-episode cũ vẫn dùng cho đối chiếu. Giới hạn thời gian train 10 giờ có thể dừng
-trước ngân sách episode; summary ghi rõ trạng thái.
-
-```bash
-.venv/bin/python -m uav_network kaggle launch --stage train \
-  --config configs/motion-long.yaml --account account_02 \
-  --required-gpu-hours 22 --timeout-seconds 39600 \
-  --credential-dataset haibro1234/uav-wandb-credential-masac50k-d59860c \
-  --cpu-visualize
-```
-
-GPU train/upload checkpoint W&B → tự submit kernel CPU riêng → PNG, MP4/GIF,
-metrics. Lấy URL CPU trong `cpu-visualization.json` của output job GPU.
-Chế độ này tắt evaluate giữa buổi và không render trong phiên GPU.
-Xem [luồng, cấu hình và số liệu tài nguyên](docs/gpu-cpu-visualization-20261014.md).
-
-Visualize checkpoint trên CPU local:
-
-```bash
-.venv/bin/python -m uav_network evaluate --checkpoint /path/to/final.pt \
-  --episodes 1 --seed 10044 --animate --frame-stride 5 --fps 10 \
-  --video-format auto --output-dir outputs/cpu-preview
-```
-
-## PQL-inspired GPU training
-
-Opt-in profile `configs/motion-pql.yaml` separates the Warp collector, critic
-and policy workers with bounded rate feedback. It preserves MASAC/MATD3 objectives.
-The 4096-env/batch8192 profile passed the exact two-T4 short benchmark;
-convergence remains unverified. See [measured validation](docs/pql-validation-20261014.md).
-See [configuration, benchmarking and resume](docs/pql-training.md).
-
-## Mission metrics and matched GPU comparison
-
-CPU `compare` evaluates two saved policies on the same test scenes and exports
-failure-aware delivery/time/energy/safety metrics with paired scenario intervals.
-See [flow, GPU resource measurement and comparison usage](docs/training-flow-comparison-20261014.md)
-and [primary-paper metric rationale](docs/algorithm-comparison-research-20261014.md).
+Generated maps are seeded and created at reset; no external dataset is required. All outputs, checkpoints and logs belong under Git-ignored outputs/.

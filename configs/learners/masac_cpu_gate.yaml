@@ -1,0 +1,16 @@
+# Default Q1-Clean CPU gate. RF-power control is only an archived ablation.
+world:
+  num_uavs: 6
+continuous_dim: 2
+scenario_id: zhang-xue-v64-q1clean-1km
+network:
+  power_control: fixed
+  destination_mode: compact_3
+runtime:
+  algorithm: masac
+masac:
+  hidden_sizes: [32, 32]
+  batch_size: 4
+  learning_starts: 1
+
+  target_continuous_entropy: -2.0

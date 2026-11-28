@@ -1,0 +1,463 @@
+"""Hybrid MASAC with independent actors and centralized twin soft critics."""
+from copy import deepcopy
+import math
+import os
+
+import numpy as np
+import torch
+from torch import nn
+from torch.distributions import Categorical
+from torch.nn import functional as F
+
+from uav_network.algorithms.core.action_types import Action
+from uav_network.algorithms.core.action_utils import canonical_continuous, joint_action, valid_destinations
+from uav_network.algorithms.core.checkpoints import load_policy, save_policy
+from uav_network.algorithms.core.models import HybridActor, TwinCritic
+from uav_network.algorithms.core.parallel_critics import critic_values
+from uav_network.algorithms.core.critic_chunks import chunked_call, chunked_critic_values
+from uav_network.algorithms.core.precision import MixedPrecision, autocast_update
+from uav_network.algorithms.core.optimization import scalar_metrics, step_optimizer, step_actor_optimizers, tensor_batch, critic_metrics
+from uav_network.algorithms.masac.gradient_probe import MASACGradientProbe
+
+
+def soft_bellman_target(reward, terminated, soft_value, gamma):
+    return reward + gamma * (1 - terminated) * soft_value
+
+
+class MASAC(nn.Module):
+    algorithm = "masac"
+
+    def __init__(self, config, observation_dim, state_dim, device="cpu"):
+        super().__init__()
+        self.config = deepcopy(config)
+        self.config.runtime.algorithm = self.algorithm
+        self.observation_dim, self.state_dim = observation_dim, state_dim
+        self.device = torch.device(device)
+        self.num_uavs = n = config.world.num_uavs
+        self.destinations = k = (3 if config.network.destination_mode == "compact_3" else n + 1)
+        self.continuous_dim = config.continuous_dim
+        self.learn_power = config.network.power_control == "learned"
+        a = config.masac
+        self.share_actor_parameters = a.share_actor_parameters
+        self.share_critic_parameters = a.share_critic_parameters
+        self._factorized_critic_enabled = os.environ.get("UAV_FACTORIZED_CRITIC", "0").lower() in {"1", "true", "yes"}
+        actor_input_dim = observation_dim + n if self.share_actor_parameters else observation_dim
+        actor_count = 1 if self.share_actor_parameters else n
+        critic_count = 1 if self.share_critic_parameters else n
+        self.actors = nn.ModuleList(HybridActor(actor_input_dim, k, a.hidden_sizes, config.continuous_dim,
+                                               layer_norm=a.actor_layer_norm, activation=a.activation) for _ in range(actor_count))
+        self.critics = nn.ModuleList(TwinCritic(state_dim, n, k, a.hidden_sizes, config.continuous_dim,
+                                                layer_norm=a.critic_layer_norm, activation=a.activation) for _ in range(critic_count))
+        self.target_critics = deepcopy(self.critics)
+        self.target_critics.requires_grad_(False)
+        self.log_alpha_continuous = nn.Parameter(torch.full((n,), math.log(a.initial_alpha)))
+        self.log_alpha_discrete = nn.Parameter(torch.full((n,), math.log(a.initial_alpha)))
+        self.to(self.device)
+        adam = dict(lr=a.learning_rate)
+        if config.runtime.fused_optimizers and self.device.type == "cuda":
+            adam["fused"] = True
+        self.actor_optimizers = [torch.optim.Adam(actor.parameters(), **adam) for actor in self.actors]
+        self.critic_optimizer = torch.optim.Adam(self.critics.parameters(), **adam)
+        self.alpha_optimizer = torch.optim.Adam([self.log_alpha_continuous, self.log_alpha_discrete], **adam)
+        self.precision = MixedPrecision(config.runtime.amp_mode, self.device,
+                                        ("critic", "actor", "alpha") if self.algorithm == "masac" else ("critic", "actor"))
+        self.updates = self.actor_updates = 0
+
+    def discrete_entropy_target_ratio(self):
+        a = self.config.masac
+        total = a.target_discrete_entropy_anneal_updates
+        if total <= 0:
+            return float(a.target_discrete_entropy_ratio)
+        if self.actor_updates >= total:
+            return float(a.target_discrete_entropy_final_ratio)
+        fraction = max(self.actor_updates, 0) / total
+        return float(a.target_discrete_entropy_ratio +
+                     fraction * (a.target_discrete_entropy_final_ratio - a.target_discrete_entropy_ratio))
+
+    def _actor_at(self, index):
+        return self.actors[0] if self.share_actor_parameters else self.actors[index]
+
+    def _actor_input(self, observation, index):
+        if not self.share_actor_parameters:
+            return observation
+        if isinstance(index, int):
+            index = torch.full((len(observation),), index, device=observation.device, dtype=torch.long)
+        else:
+            index = torch.as_tensor(index, device=observation.device, dtype=torch.long)
+        identity = F.one_hot(index, num_classes=self.num_uavs).to(observation.dtype)
+        return torch.cat((observation, identity), dim=-1)
+
+    def _sample(self, actor, observation, deterministic=False, agent_index=0):
+        mask = valid_destinations(observation, self.destinations)
+        actor_observation = self._actor_input(observation, agent_index)
+        continuous, parts, probs, logs = actor.sample(actor_observation, deterministic, mask, return_parts=True)
+        # 0*log(0) contributes zero. Clear it before alpha multiplication:
+        # float32.min * alpha>1 overflows, even though the destination has p=0.
+        logs = logs.masked_fill(probs == 0, 0)
+        active = (observation[:, 9] > .5).to(continuous.dtype)
+        continuous = continuous * active[:, None]
+        has_rf_head = self.continuous_dim > self.config.motion_dim
+        if not self.learn_power and has_rf_head:
+            continuous = torch.cat((continuous[:, :-1], continuous[:, -1:] * 0), -1)
+        # No RF head -> include BOTH motor-axis log densities. Historical
+        # RF head -> only include TX entropy when the link is actually used.
+        motor_logp = parts[:, :-1].sum(-1) if has_rf_head else parts.sum(-1)
+        conditional_logp = (motor_logp +
+                            (1 - probs[:, 0]) * parts[:, -1] if self.learn_power
+                            else motor_logp) * active
+        return continuous, conditional_logp, probs, logs
+
+    def _sample_agents(self, observations, deterministic=False):
+        """Sample every UAV policy; shared actors use one B*N forward pass."""
+        if self.share_actor_parameters:
+            b, n = observations.shape[:2]
+            flat = observations.reshape(b * n, -1)
+            indices = torch.arange(n, device=observations.device).expand(b, n).reshape(-1)
+            values = self._sample(self.actors[0], flat, deterministic, indices)
+            return tuple(value.reshape(b, n, *value.shape[1:]) for value in values)
+        values = [self._sample(self.actors[i], observations[:, i], deterministic, i)
+                  for i in range(self.num_uavs)]
+        return tuple(torch.stack([value[j] for value in values], 1) for j in range(4))
+
+    def _joint_sample(self, observations, deterministic=False):
+        if not self.share_actor_parameters:
+            actions, logs, probabilities, log_probabilities, raw_actions = [], [], [], [], []
+            for i, actor in enumerate(self.actors):
+                obs = observations[:, i]
+                continuous, logp, probs, log_probs = self._sample(actor, obs, deterministic, i)
+                destination = (probs.argmax(-1) if deterministic
+                               else Categorical(probs=probs, validate_args=False).sample())
+                actions.append(joint_action(canonical_continuous(continuous, obs, destination, learn_power=self.learn_power),
+                                            destination, self.destinations, learn_power=self.learn_power))
+                logs.append(logp)
+                probabilities.append(probs)
+                log_probabilities.append(log_probs)
+                raw_actions.append(continuous)
+            return tuple(torch.stack(values, 1) for values in
+                         (actions, logs, probabilities, log_probabilities, raw_actions))
+        continuous, logs, probabilities, log_probabilities = self._sample_agents(observations, deterministic)
+        destination = (probabilities.argmax(-1) if deterministic
+                       else Categorical(probs=probabilities, validate_args=False).sample())
+        actions = joint_action(canonical_continuous(continuous, observations, destination, learn_power=self.learn_power),
+                               destination, self.destinations, learn_power=self.learn_power)
+        return actions, logs, probabilities, log_probabilities, continuous
+
+    @torch.no_grad()
+    def act_batch(self, observations, deterministic=False, step=0, *, return_tensors=False):
+        obs = torch.as_tensor(observations, dtype=torch.float32, device=self.device)
+        joint, *_ = self._joint_sample(obs, deterministic)
+        if return_tensors:
+            return Action(joint[..., :self.continuous_dim].contiguous(), joint[..., self.continuous_dim:].argmax(-1))
+        values = joint.cpu().numpy()
+        return Action(values[..., :self.continuous_dim], values[..., self.continuous_dim:].argmax(-1).astype(np.int64))
+
+    def act(self, observations, deterministic=False, step=0):
+        action = self.act_batch(np.asarray(observations)[None], deterministic, step)
+        return Action(action.continuous[0], action.destination[0])
+
+    def _expected_q(self, critic, state, joint, continuous, index):
+        return chunked_call(
+            lambda s, j, a: self._expected_q_full(critic, s, j, a, index),
+            state, joint, continuous, self.config.runtime.critic_chunk_size)
+
+    def _expected_q_full(self, critic, state, joint, continuous, index):
+        if getattr(self, "_factorized_critic_enabled", False):
+            from uav_network.algorithms.core.factorized_candidate import masac_individual_q
+            return masac_individual_q(critic, state, joint, continuous, index)
+        """Enumerate own destination; sample and detach all other agents."""
+        b, k = len(state), self.destinations
+        alternatives = joint.detach()[:, None].expand(-1, k, -1, -1).clone()
+        choices = continuous[:, None].expand(-1, k, -1).clone()
+        if self.continuous_dim > self.config.motion_dim:
+            choices[:, 0, -1] = 0
+        alternatives[:, :, index, :self.continuous_dim] = choices
+        alternatives[:, :, index, self.continuous_dim:] = torch.eye(k, device=self.device, dtype=alternatives.dtype)[None]
+        repeated_state = state[:, None].expand(-1, k, -1).reshape(b * k, -1)
+        q1, q2 = critic(repeated_state, alternatives.reshape(b * k, self.num_uavs, -1))
+        return torch.minimum(q1, q2).reshape(b, k)
+
+    def _expected_q_all(self, critics, state, joint, continuous):
+        return chunked_call(
+            lambda s, j, a: self._expected_q_all_full(critics, s, j, a),
+            state, joint, continuous, self.config.runtime.critic_chunk_size)
+
+    def _expected_q_all_full(self, critics, state, joint, continuous):
+        if getattr(self, "_factorized_critic_enabled", False):
+            from uav_network.algorithms.core.factorized_candidate import masac_individual_q
+            return torch.stack([masac_individual_q(critics[i], state, joint, continuous[:, i], i)
+                                for i in range(self.num_uavs)], dim=1)
+        """Enumerate each critic's own destination, keeping peer actions detached."""
+        b, n, k = len(state), self.num_uavs, self.destinations
+        alternatives = joint.detach()[None, :, None].expand(n, -1, k, -1, -1).clone()
+        choices = continuous.transpose(0, 1)[:, :, None].expand(-1, -1, k, -1).clone()
+        if self.continuous_dim > self.config.motion_dim:
+            choices[:, :, 0, -1] = 0
+        indices = torch.arange(n, device=self.device)
+        alternatives[indices, :, :, indices, :self.continuous_dim] = choices
+        alternatives[indices, :, :, indices, self.continuous_dim:] = torch.eye(k, device=self.device, dtype=alternatives.dtype)
+        repeated_state = state[:, None].expand(-1, k, -1).reshape(b * k, -1)
+        q1, q2 = self._critic_values(critics, repeated_state, alternatives.reshape(n, b * k, n, -1), True, True)
+        return torch.minimum(q1, q2).reshape(b, k, n).transpose(1, 2)
+
+    def _expected_q_shared_all(self, critic, state, joint, continuous, *, observation=None):
+        chunk_size = self.config.runtime.critic_chunk_size
+        # Hybrid control: source-faithful dense Actor Q and sparse valid-route Target Q.
+        # This changes only the numerical path, not network weights or the loss.
+        if (observation is not None and self.config.masac.shared_critic_mode == "valid_routes"
+                and critic is not self.critics[0]):
+            route_mask = valid_destinations(observation, self.destinations)
+            return chunked_call(
+                lambda s, j, a, mask: self._expected_q_shared_valid_routes(critic, s, j, a, mask),
+                state, joint, continuous, chunk_size, route_mask)
+        return chunked_call(
+            lambda s, j, a: self._expected_q_shared_all_full(critic, s, j, a),
+            state, joint, continuous, chunk_size)
+
+    def _expected_q_shared_valid_routes(self, critic, state, joint, continuous, route_mask):
+        """Use the original dense twin critic for the policy's supported routes."""
+        n, b, k = self.num_uavs, len(state), self.destinations
+        agent, row, route = route_mask.transpose(0, 1).nonzero(as_tuple=True)
+        alternatives = joint.detach().index_select(0, row)
+        own = continuous[row, agent]
+        # Silent has zero RF power only when an RF head exists (never zero vy).
+        if self.continuous_dim > self.config.motion_dim:
+            power = own[:, -1:].masked_fill(route[:, None] == 0, 0)
+            cont_part = torch.cat((own[:, :-1], power), dim=-1)
+        else:
+            cont_part = own
+        one_hot = F.one_hot(route, k).to(alternatives.dtype)
+        replacement = torch.cat((cont_part, one_hot), dim=-1).to(alternatives.dtype)
+        alternatives[torch.arange(len(row), device=row.device), agent] = replacement
+        q1, q2 = critic(state.index_select(0, row), alternatives)
+        values = torch.minimum(q1, q2)
+        # Keep the same weighted-sum layout in the actor and target losses.
+        index = (agent * b + row) * k + route
+        padded = values.new_zeros(n * b * k).scatter(0, index, values)
+        return padded.reshape(n, b, k).permute(1, 0, 2).contiguous()
+
+    def _expected_q_shared_all_full(self, critic, state, joint, continuous):
+        if getattr(self, "_factorized_critic_enabled", False):
+            from uav_network.algorithms.core.factorized_candidate import masac_shared_q
+            return masac_shared_q(critic, state, joint, continuous)
+        """Evaluate one team critic for every agent's categorical alternatives."""
+        b, n, k = len(state), self.num_uavs, self.destinations
+        alternatives = joint.detach()[None, :, None].expand(n, -1, k, -1, -1).clone()
+        choices = continuous.transpose(0, 1)[:, :, None].expand(-1, -1, k, -1).clone()
+        if self.continuous_dim > self.config.motion_dim:
+            choices[:, :, 0, -1] = 0
+        indices = torch.arange(n, device=self.device)
+        alternatives[indices, :, :, indices, :self.continuous_dim] = choices
+        alternatives[indices, :, :, indices, self.continuous_dim:] = torch.eye(
+            k, device=self.device, dtype=alternatives.dtype)
+        if self.config.masac.shared_critic_mode == "split":
+            q1, q2 = critic.forward_shared_state(state, alternatives)
+            return torch.minimum(q1, q2).permute(1, 0, 2).contiguous()
+        repeated_state = state[None, :, None].expand(n, -1, k, -1).reshape(n * b * k, -1)
+        q1, q2 = critic(repeated_state, alternatives.reshape(n * b * k, n, -1))
+        return torch.minimum(q1, q2).reshape(n, b, k).permute(1, 0, 2).contiguous()
+
+    def _critic_values(self, *args):
+        return getattr(self, "_compiled_critic_values", critic_values)(*args)
+
+    @autocast_update
+    def update_critic(self, batch, collect_metrics=True):
+        data = tensor_batch(batch, self.device)
+        a = self.config.masac
+        vectorized = self.config.runtime.vectorize_critics
+        alpha_c, alpha_d = self.log_alpha_continuous.exp().detach(), self.log_alpha_discrete.exp().detach()
+        with torch.no_grad():
+            joint, logs, probs, log_probs, continuous = self._joint_sample(data["next_observation"])
+            if self.share_critic_parameters:
+                q = self._expected_q_shared_all(
+                    self.target_critics[0], data["next_state"], joint, continuous,
+                    observation=data["next_observation"])
+                # Each agent's categorical expectation conditions on one
+                # sampled joint action of its peers. Averaging these conditional
+                # estimates is unbiased for E_{joint policy}[Q_team] when the
+                # decentralized agents sample independently. This mean is NOT
+                # an average of the team reward or of per-agent entropy.
+                expected_q = (probs * q).sum(-1).mean(-1)
+                entropy_bonus = -(alpha_d[None, :] * (probs * log_probs).sum(-1)
+                                  + alpha_c[None, :] * logs).sum(-1)
+                target = soft_bellman_target(data["reward"], data["terminated"],
+                                             expected_q + entropy_bonus, a.gamma)
+            else:
+                targets = []
+                qs = (self._expected_q_all(self.target_critics, data["next_state"], joint, continuous)
+                      if vectorized else None)
+                for i, critic in enumerate(self.target_critics):
+                    q = (qs[:, i] if vectorized
+                         else self._expected_q(critic, data["next_state"], joint, continuous[:, i], i))
+                    soft = (probs[:, i] * (q - alpha_d[i] * log_probs[:, i])).sum(-1) - alpha_c[i] * logs[:, i]
+                    targets.append(soft_bellman_target(data["reward"], data["terminated"], soft, a.gamma))
+                target = torch.stack(targets, 1)
+        replay_joint = joint_action(data["continuous"], data["destination"], self.destinations,
+                                    learn_power=self.learn_power)
+        regression = (self.critics[0] if self.share_critic_parameters else
+                      lambda s, j: self._critic_values(self.critics, s, j, vectorized))
+        q1, q2 = chunked_critic_values(regression, data["state"], replay_joint,
+                                       self.config.runtime.critic_chunk_size)
+        if a.critic_huber_delta > 0:
+            critic_loss = 0.5 * (F.huber_loss(q1, target, delta=a.critic_huber_delta)
+                                 + F.huber_loss(q2, target, delta=a.critic_huber_delta))
+        else:
+            critic_loss = 0.5 * (F.mse_loss(q1, target) + F.mse_loss(q2, target))
+        if not self.share_critic_parameters:
+            # Hybrid-MASAC defines one batch-mean critic objective J_Q(theta_i)
+            # per agent. A single optimizer over independent modules must sum
+            # those objectives rather than average once more over agents.
+            critic_loss = critic_loss * len(self.critics)
+        critic_step = (lambda *args: self.precision.step("critic", *args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_optimizer(*args, grad_clip_mode=a.grad_clip_mode))
+        critic_grad = critic_step(critic_loss, self.critic_optimizer, self.critics.parameters(), a.grad_clip_norm, collect_metrics)
+        self.updates += 1
+        # Passive loss collector; original MASAC critic step is unchanged.
+        dense_sink = getattr(self, "_dense_loss_sink", None)
+        if dense_sink is not None:
+            dense_sink.record("critic_loss", critic_loss)
+            dense_sink.record("critic_grad_norm", critic_grad)
+            dense_sink.record("td_error_abs_mean", (q1.detach()-target.detach()).abs().mean())
+        if not collect_metrics:
+            return {}
+        return scalar_metrics({**critic_metrics(q1, q2, target, data),
+                               "critic_grad_norm": critic_grad,
+                               "critic_gradient_clipped": (critic_grad > a.grad_clip_norm).float() * (a.grad_clip_mode != "none"),
+                               "critic_loss": critic_loss})
+
+    @autocast_update
+    def update_actor(self, batch, collect_metrics=True):
+        data, a = tensor_batch(batch, self.device), self.config.masac
+        vectorized = self.config.runtime.vectorize_critics
+        alpha_c, alpha_d = self.log_alpha_continuous.exp().detach(), self.log_alpha_discrete.exp().detach()
+        target_discrete_ratio = self.discrete_entropy_target_ratio()
+        with torch.no_grad():
+            base_joint, *_ = self._joint_sample(data["observation"])
+        self.critics.requires_grad_(False)
+        actor_grads = []
+        actor_losses, entropies_c, entropies_d, targets_c, targets_d = [], [], [], [], []
+        probe = MASACGradientProbe(self.actors, len(data["observation"]),
+                                   self.num_uavs, self.share_actor_parameters, self.config.motion_dim,
+                                   enabled=collect_metrics and not self.precision.enabled)
+        probe_metrics = {}
+        try:
+            probe.__enter__()
+            samples, batched_samples = None, None
+            if vectorized or self.share_critic_parameters or self.share_actor_parameters:
+                if self.share_actor_parameters:
+                    batched_samples = self._sample_agents(data["observation"])
+                    continuous_actions = batched_samples[0]
+                else:
+                    samples = [self._sample(actor, data["observation"][:, i], agent_index=i)
+                               for i, actor in enumerate(self.actors)]
+                    continuous_actions = torch.stack([sample[0] for sample in samples], 1)
+            else:
+                continuous_actions = None
+            if self.share_critic_parameters:
+                qs = self._expected_q_shared_all(
+                    self.critics[0], data["state"], base_joint, continuous_actions,
+                    observation=data["observation"])
+            else:
+                qs = (self._expected_q_all(self.critics, data["state"], base_joint, continuous_actions)
+                      if vectorized else None)
+            for i in range(self.num_uavs):
+                actor = self._actor_at(i)
+                obs = data["observation"][:, i]
+                if batched_samples is not None:
+                    continuous, logp, probs, log_probs = tuple(value[:, i] for value in batched_samples)
+                elif samples is not None:
+                    continuous, logp, probs, log_probs = samples[i]
+                else:
+                    continuous, logp, probs, log_probs = self._sample(actor, obs, agent_index=i)
+                q = (qs[:, i] if qs is not None
+                     else self._expected_q(self.critics[i], data["state"], base_joint, continuous, i))
+                loss = (alpha_c[i] * logp + (probs * (alpha_d[i] * log_probs - q)).sum(-1)).mean()
+                actor_losses.append(loss)
+                entropies_c.append(-logp.detach().mean())
+                entropies_d.append(-(probs.detach() * log_probs.detach()).sum(-1).mean())
+                active = (obs[:, 9] > .5).float()
+                controls = (self.continuous_dim - probs[:, 0].detach() if self.learn_power
+                            else self.continuous_dim - int(self.continuous_dim > self.config.motion_dim))
+                targets_c.append((a.target_continuous_entropy / self.continuous_dim * controls * active).mean())
+                if a.mask_aware_discrete_entropy_target:
+                    choices = valid_destinations(obs, self.destinations).sum(-1).float()
+                    target_d = (target_discrete_ratio * choices.log()).mean()
+                else:
+                    # BenchMARL/TorchRL DiscreteSACLoss receives the fixed
+                    # action-space cardinality even when the actor is masked.
+                    target_d = torch.as_tensor(target_discrete_ratio * math.log(self.destinations),
+                                               device=self.device, dtype=probs.dtype)
+                targets_d.append(target_d)
+            actor_step = (lambda *args: self.precision.step_actors(*args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_actor_optimizers(*args, grad_clip_mode=a.grad_clip_mode))
+            if self.share_actor_parameters:
+                step_losses = [torch.stack(actor_losses).mean()]
+                parameter_groups = [self.actors[0].parameters()]
+            else:
+                step_losses = actor_losses
+                parameter_groups = [actor.parameters() for actor in self.actors]
+            actor_grads = actor_step(step_losses, self.actor_optimizers, parameter_groups,
+                                     a.grad_clip_norm, collect_metrics)
+            actor_losses = [loss.detach() for loss in actor_losses]
+            probe_metrics = probe.metrics()
+        finally:
+            probe.__exit__(None, None, None)
+            self.critics.requires_grad_(True)
+        hc, hd, tc, td = (torch.stack(v) for v in (entropies_c, entropies_d, targets_c, targets_d))
+        before_c, before_d = self.log_alpha_continuous.detach().clone(), self.log_alpha_discrete.detach().clone()
+        # Hybrid-MASAC gives each agent its own J(alpha_i^c) and J(alpha_i^d).
+        # Sum the independent objectives because all per-agent temperatures are
+        # stored in one optimizer; averaging would silently divide every alpha
+        # gradient by the number of agents.
+        if a.temperature_loss == "alpha":
+            # Differentiate the original dual loss through alpha=exp(log_alpha).
+            temperature_c = self.log_alpha_continuous.exp()
+            temperature_d = self.log_alpha_discrete.exp()
+        else:
+            temperature_c = self.log_alpha_continuous
+            temperature_d = self.log_alpha_discrete
+        alpha_loss = (temperature_c * (hc - tc) + temperature_d * (hd - td)).sum()
+        alpha_step = (lambda *args: self.precision.step("alpha", *args, grad_clip_mode=a.grad_clip_mode)) if self.precision.enabled else (lambda *args: step_optimizer(*args, grad_clip_mode=a.grad_clip_mode))
+        alpha_grad = alpha_step(alpha_loss, self.alpha_optimizer,
+                       [self.log_alpha_continuous, self.log_alpha_discrete], a.grad_clip_norm, collect_metrics)
+        with torch.no_grad():
+            available_c = (data["observation"][:, :, 9] > .5).any(0)
+            if a.mask_aware_discrete_entropy_target:
+                available_d = (valid_destinations(data["observation"], self.destinations).sum(-1) > 1).any(0)
+            else:
+                # Source behavior keeps optimizing alpha_d against the fixed
+                # target even if this particular batch/state has one valid action.
+                available_d = torch.ones(self.num_uavs, dtype=torch.bool, device=self.device)
+            self.log_alpha_continuous.copy_(torch.where(available_c, self.log_alpha_continuous, before_c))
+            self.log_alpha_discrete.copy_(torch.where(available_d, self.log_alpha_discrete, before_d))
+        self.actor_updates += 1
+        dense_sink = getattr(self, "_dense_loss_sink", None)
+        if dense_sink is not None:
+            # Actor and temperature objectives come from real completed updates.
+            dense_sink.record("actor_loss", torch.stack(actor_losses).mean())
+            dense_sink.record("actor_grad_norm", torch.stack(actor_grads).mean())
+            dense_sink.record("alpha_loss", alpha_loss)
+        if not collect_metrics:
+            return {}
+        return scalar_metrics({**probe_metrics, "actor_grad_norm": torch.stack(actor_grads).mean(),
+                               "alpha_grad_norm": alpha_grad,
+                               "actor_loss": torch.stack(actor_losses).mean(),
+                               "continuous_entropy": hc.mean(), "discrete_entropy": hd.mean(),
+                               "target_discrete_entropy_ratio": target_discrete_ratio,
+                               "alpha_continuous": self.log_alpha_continuous.exp().mean(),
+                               "alpha_discrete": self.log_alpha_discrete.exp().mean()})
+
+    @torch.no_grad()
+    def update_targets(self):
+        for target_parameter, parameter in zip(self.target_critics.parameters(), self.critics.parameters()):
+            target_parameter.lerp_(parameter, self.config.masac.tau)
+
+    def update(self, batch, collect_metrics=True):
+        critic = self.update_critic(batch, collect_metrics)
+        actor = self.update_actor(batch, collect_metrics)
+        self.update_targets()
+        return {**critic, **actor}
+
+    def save(self, path, progress=None):
+        save_policy(self, path, progress)
+
+    @classmethod
+    def load(cls, path, device="cpu"):
+        return load_policy(path, device, expected_algorithm=cls.algorithm)
