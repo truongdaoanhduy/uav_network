@@ -61,6 +61,14 @@ class EnvConfigV54:
     safety_failure_terminate: bool = True
     battery_termination_mode: str = 'any_depleted'  # legacy | 'all_depleted' team-resilient mission
     aoi_ewma_end_to_end: bool = False       # v6.2: UQ8.8 EWMA effective counts in 8B packet
+    # V124 optional observation-only DS temporal-dependence sensitivity, no learned head.
+    # 0 preserves V123 canonical exactly. 9 is an uncalibrated ablation.
+    sensor_revisit_cooldown_steps: int = 0
+    sensor_rng_mode: str = 'sequential'  # sequential (canonical) | counter_keyed (CPU pilot CRN)
+    enable_gimbal_azimuth_action: bool = False  # V123 CPU-only action research; OFF in canonical YAML
+    gimbal_tilt_deg: float = 25.0             # fixed off-nadir axis tilt; NOT a learned action
+    gimbal_half_fov_deg: float = 25.0         # optical cone half angle; pilot uncalibrated
+    gimbal_max_rate_deg_s: float = 45.0       # servo slew limit, deg/s
     enable_tx_power_control: bool = False   # v6.2: continuous per-UAV TX power [0.05, 0.50] W
     enable_peer_dissemination: bool = True  # controlled research ablation, mask SHARE_PEERS when false
     enable_data_mule_forwarding: bool = False  # v6.5: store-carry-forward multi-origin relay via SHARE_PEERS
@@ -134,9 +142,24 @@ class EnvConfigV54:
             "enable_tp_unlatch", "safety_failure_terminate", "enable_peer_dissemination",
             "enable_data_mule_forwarding", "coalesce_duplicate_queue",
             "scale_obstacles_with_map", "compact3_decentralized_peer_select", "obs_schema_v2",
+            "enable_gimbal_azimuth_action",
         ):
             if type(getattr(self,key)) is not bool:
                 raise ValueError(f"{key} must be a boolean")
+        for field in ("gimbal_tilt_deg", "gimbal_half_fov_deg", "gimbal_max_rate_deg_s"):
+            x = getattr(self, field)
+            if type(x) not in (float, int) or not math.isfinite(x):
+                raise ValueError(f"{field} must be finite")
+        if not (0.0 <= self.gimbal_tilt_deg < 85.0 and
+                0.0 < self.gimbal_half_fov_deg < 85.0 and
+                self.gimbal_tilt_deg + self.gimbal_half_fov_deg < 85.0 and
+                0.0 < self.gimbal_max_rate_deg_s <= 180.0):
+            raise ValueError("Gimbal camera cone and servo slew invalid")
+        if (type(self.sensor_revisit_cooldown_steps) is not int or
+                not 0 <= self.sensor_revisit_cooldown_steps <= self.safety_horizon_s):
+            raise ValueError('sensor_revisit_cooldown_steps must be integer in [0, horizon]')
+        if self.sensor_rng_mode not in ('sequential', 'counter_keyed'):
+            raise ValueError('sensor_rng_mode must be sequential or counter_keyed')
         if type(self.network_substeps) is not int or self.network_substeps not in (1, 2):
             raise ValueError("network_substeps must be either 1 or 2")
         if (type(self.rf_per_building_loss_db) not in (int, float)

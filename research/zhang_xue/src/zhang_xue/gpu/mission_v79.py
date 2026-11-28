@@ -46,6 +46,7 @@ class GPUWorldV79Params:
     ds_me: float = 0.80
     ds_aoi_eta: float = 0.02
     static_raw_count: bool = False
+    sensor_revisit_cooldown_steps: int = 0  # optional DS sensitivity, 0 preserves canonical
     obs_schema_v2: bool = False
     # V103 DS-only: Bayesian log-odds backend removed from active Warp runtime.
     shared_coverage_reward: bool = False
@@ -103,11 +104,21 @@ class GPUWorldV79Params:
             raise ValueError("obs_schema_v2 must be boolean")
         if type(self.static_raw_count) is not bool:
             raise ValueError("static_raw_count must be boolean")
+        if (type(self.sensor_revisit_cooldown_steps) is not int or
+                not 0 <= self.sensor_revisit_cooldown_steps <= self.horizon):
+            raise ValueError('GPU sensor cooldown must lie in [0, horizon]')
         if self.static_raw_count and self.ds_aoi_eta != 0.0:
             raise ValueError("raw uint16 counts cannot be decayed; AoI uses timestamps")
 
     @classmethod
     def from_scenario(cls, scenario, *, envs: int = 4, device: str = "cpu", seed: int = 44, **overrides) -> "GPUWorldV79Params":
+        if getattr(scenario, 'sensor_rng_mode', 'sequential') != 'sequential':
+            raise ValueError('V124 CPU-only keyed RNG has no Warp common-random-number parity')
+        if getattr(scenario, "enable_gimbal_azimuth_action", False):
+            raise ValueError(
+                "V123 fail closed: gimbal azimuth has CPU-only physics; Warp 3-action "
+                "kernel/observation parity and calibrated angle-dependent Pd/Pf are absent"
+            )
         if scenario.num_uavs != 6 or scenario.grid_w != 20 or abs(scenario.map_size_m - 1000.0) > 1e-6:
             raise ValueError("WarpParallelMissionV79 currently supports 6 UAVs on 20x20 (1000m) map")
         if scenario.comm_action_mode != "compact_3":
@@ -162,6 +173,7 @@ class GPUWorldV79Params:
             ds_mf=float(scenario.ds_mf), ds_me=float(scenario.ds_me),
             ds_aoi_eta=eta,
             static_raw_count=(scenario.static_evidence_mode == "raw_u16_count"),
+            sensor_revisit_cooldown_steps=int(scenario.sensor_revisit_cooldown_steps),
             obs_schema_v2=bool(scenario.obs_schema_v2),
             shared_coverage_reward=bool(getattr(scenario, 'shared_coverage_reward', False)),
             exploration_reward_mode=str(getattr(scenario, 'exploration_reward_mode', 'ds_ignorance')),
@@ -378,7 +390,7 @@ class WarpParallelMissionV79:
             n.state, w["positions"], w["truth"], w["episode_step"], w["episode_id"],
             w["battery"], w["unsafe_mask"], w["failed"], self.build_wp, len(self.buildings),
             int(p.seed), float(p.pd), float(p.pf), float(p.ds_aoi_eta),
-            int(p.static_raw_count),
+            int(p.static_raw_count), int(p.sensor_revisit_cooldown_steps),
         ])
         self._launch(_reward_v79, self.envs, [
             n.state, w["truth"], w["team_u_prev"], w["gcs_tp"], w["gcs_tp_active"], w["gcs_tp_drops"],

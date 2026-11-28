@@ -14,7 +14,8 @@ class ZhangXue7NodePacketEnv(_ObservationMixin, _TransitionMixin):
         self.num_cells = self.grid_w * self.grid_w
         self.cell_size_m = float(self.cfg.map_size_m) / float(self.grid_w)
         self.disc_dim = 3 if self.cfg.comm_action_mode == "compact_3" else (self.actor_n + 1)
-        self.obs_dim = 14 + 5 * self.cfg.obs_map_side**2 + (35 if self.cfg.obs_schema_v2 else 0)
+        self.obs_dim = (14 + 5 * self.cfg.obs_map_side**2 + (35 if self.cfg.obs_schema_v2 else 0)
+                        + (2 if self.cfg.enable_gimbal_azimuth_action else 0))
         self.state_dim = self.actor_n * self.obs_dim
         if self.cfg.evidence_calibration == 'sensor_likelihood_ratio':
             self.evidence_mf, self.evidence_me = sensor_likelihood_to_bba(
@@ -26,6 +27,7 @@ class ZhangXue7NodePacketEnv(_ObservationMixin, _TransitionMixin):
         self.buildings, self.blackout_centers, self.blackout_r = scale_canonical_geometry(
             self.cfg.map_size_m, self.grid_w, scale_obstacles=self.cfg.scale_obstacles_with_map,
         )
+        self.sensor_master_seed = int(seed)
         self.rng = np.random.default_rng(seed)
         # PEER=OFF makes store-carry-forward unreachable. Preserve the requested
         # 2x2 ablation in cfg, but use the same effective network and actor
@@ -64,6 +66,7 @@ class ZhangXue7NodePacketEnv(_ObservationMixin, _TransitionMixin):
             obs_schema_v2=self.cfg.obs_schema_v2,
         )
 
+        self.gimbal_azimuth_rad = np.zeros((self.actor_n,), dtype=np.float64)
         self.positions = np.zeros((self.radio_n, 3), dtype=np.float64)
         self.velocities = np.zeros((self.actor_n, 2), dtype=np.float64)
         self.battery_j = np.full(self.actor_n, self.batt_cfg.e_max_j, dtype=np.float64)
@@ -136,11 +139,13 @@ class ZhangXue7NodePacketEnv(_ObservationMixin, _TransitionMixin):
 
     def reset(self, seed: int | None = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         if seed is not None:
+            self.sensor_master_seed = int(seed)
             self.rng = np.random.default_rng(seed)
             self.net.rng = np.random.default_rng(seed + 101)
         self.episode_id += 1
         self.t = 0
         self.positions.fill(0.0)
+        self.gimbal_azimuth_rad.fill(0.0)
         spawn_scale = (self.cfg.map_size_m / 1000.0) if self.cfg.scale_obstacles_with_map else 1.0
         # V105 S10 parity: match Warp's 120m horizontal spacing so 6 UAVs satisfy
         # the two-sided braking margin (d_safe + v_max^2/a_max = 95m; min pair = 123.69m).

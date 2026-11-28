@@ -36,7 +36,7 @@ def test_static_270_visible_samples_and_no_blackout_forgetting(device):
             n.state,w["positions"],w["truth"],w["episode_step"],w["episode_id"],
             w["battery"],w["unsafe_mask"],w["failed"],world.build_wp,len(world.buildings),
             int(params.seed),float(params.pd),float(params.pf),
-            float(params.ds_aoi_eta),int(params.static_raw_count)],device=device)
+            float(params.ds_aoi_eta),int(params.static_raw_count), int(params.sensor_revisit_cooldown_steps)],device=device)
     pos=int(n.data["ledger_pos"].numpy()[0,0,0,cid])
     neg=int(n.data["ledger_neg"].numpy()[0,0,0,cid])
     assert pos+neg == 270, (pos,neg)

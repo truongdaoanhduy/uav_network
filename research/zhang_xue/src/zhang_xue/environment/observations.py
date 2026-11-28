@@ -110,6 +110,10 @@ class _ObservationMixin:
             obs[u, 14:map_end] = self._local_belief_features(u)
             if self.cfg.obs_schema_v2:
                 obs[u, map_end:map_end + 35] = self._hello_peer_features(u)
+            if self.cfg.enable_gimbal_azimuth_action:
+                # CPU-only experiment; explicit 551-dimensional observation ABI.
+                obs[u, -2:] = [math.sin(float(self.gimbal_azimuth_rad[u])),
+                               math.cos(float(self.gimbal_azimuth_rad[u]))]
             if self.cfg.comm_action_mode == "compact_3":
                 if own_radio and own_alive:
                     if self.gcs_id in active_routes and self.net.count_all_dirty_entries_non_oracle(u, self.gcs_id) > 0:

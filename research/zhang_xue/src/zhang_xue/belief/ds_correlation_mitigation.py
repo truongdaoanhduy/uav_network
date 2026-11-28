@@ -24,7 +24,8 @@ def ar1_effective_sample_weight(dt_steps: int | None, rho_hat: float) -> float:
 
     Returns 1.0 on first visit (`dt_steps is None`) or when `rho_hat == 0.0`.
     For `dt >= 1` and `0 < rho_hat < 1`, returns `(1 - rho_hat**dt) / (1 + rho_hat**dt)`,
-    which is the classical Kish/AR(1) effective-sample-size discount factor.
+    which is a heuristic AR(1) effective-sample-size discount for an
+    adjacent repeated observation, NOT an exact calibrated probability model.
     """
     rho = float(rho_hat)
     if not math.isfinite(rho) or not (0.0 <= rho < 1.0):
@@ -67,6 +68,14 @@ class DSCorrelationMitigator:
     ) -> None:
         if mode not in self.VALID_MODES:
             raise ValueError(f"Unknown mode {mode!r}; expected one of {self.VALID_MODES}")
+        if type(num_uavs) is not int or not 1 <= num_uavs <= 8:
+            raise ValueError('num_uavs must be in [1,8] for uint8 origin mask')
+        if type(num_cells) is not int or not 1 <= num_cells <= 65535:
+            raise ValueError('num_cells must be in [1,65535]')
+        if type(cooldown_s) is not int or not 0 <= cooldown_s <= 32767:
+            raise ValueError('cooldown_s must be integer in [0,32767]')
+        if not math.isfinite(float(rho_hat)) or not 0 <= rho_hat < 1:
+            raise ValueError('rho_hat must be finite in [0,1)')
         self.num_uavs = int(num_uavs)
         self.num_cells = int(num_cells)
         self.mode = mode
@@ -83,7 +92,15 @@ class DSCorrelationMitigator:
         u = int(uav_id)
         c = int(cell_id)
         t = int(step_s)
+        if not (0 <= u < self.num_uavs and 0 <= c < self.num_cells):
+            raise ValueError('Invalid UAV or cell ID; negative indexing forbidden')
+        if not 0 <= t <= 32767:
+            raise ValueError('Time must lie in [0,32767] (int16 provenance contract)')
         prev_t = int(self.last_obs_step[u, c])
+        if prev_t >= 0 and t < prev_t:
+            raise ValueError('Out-of-order repeated evidence; refuse time rewind')
+        if prev_t == t:
+            return 0.0  # same origin/cell/tick must not be counted twice
         dt = None if prev_t < 0 else max(0, t - prev_t)
 
         if self.mode == "raw_iid":

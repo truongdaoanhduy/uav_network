@@ -14,7 +14,7 @@ def _sense(world):
         n.state,w["positions"],w["truth"],w["episode_step"],w["episode_id"],
         w["battery"],w["unsafe_mask"],w["failed"],world.build_wp,
         len(world.buildings),int(p.seed),float(p.pd),float(p.pf),
-        float(p.ds_aoi_eta),int(p.static_raw_count)],device=p.device)
+        float(p.ds_aoi_eta),int(p.static_raw_count), int(p.sensor_revisit_cooldown_steps)],device=p.device)
 
 @pytest.mark.parametrize("device",["cpu","cuda:0"])
 def test_target_cell_requires_real_fov_visibility_and_unblocked_ray(device):

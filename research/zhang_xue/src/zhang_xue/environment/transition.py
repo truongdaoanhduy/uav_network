@@ -1,16 +1,12 @@
 from .shared import *
 from .configuration import EnvConfigV54, make_v57_config
 from .aoi_metrics import fixed_horizon_aoi_no_new_deliveries
-
-
 class _TransitionMixin:
-
     def _active_local_routes(self, actor_id: int) -> Dict[int, Tuple[int, int, int, int]]:
         """Read usable HELLO routes without pruning the actor's local table."""
         now_us = self.net.sim_time_us
         return {dst: entry for dst, entry in self.net.routes[actor_id].items()
                 if entry[1] > 0 and entry[3] > now_us}
-
     def _resolve_comm_dest(self, actor_id: int, action_idx: int) -> int:
         if not (0 <= action_idx < self.disc_dim) or not (0 <= actor_id < self.actor_n):
             raise ValueError(f"Invalid comm action {action_idx} for actor {actor_id}")
@@ -53,20 +49,29 @@ class _TransitionMixin:
             return -1
         peer = action_idx - 1
         return peer + 1 if peer >= actor_id else peer
-
     def step(
         self,
         act_vel_cmd: np.ndarray,
         act_comm_disc: np.ndarray,
         tx_power_w: np.ndarray | None = None,
+        gimbal_azimuth_cmd: np.ndarray | None = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, float, bool, bool, Dict[str, float]]:
         c = self.cfg
-        self.net.step_tx_airtime_us.fill(0)
-        self.net.step_new_peer_cells = 0
-        self.net.step_peer_info_gain = 0.0
-        for u in range(self.actor_n):
-            self.net.set_radio_alive(u, bool(self.battery_j[u] > 0.0))
-
+        # Fail before any network/physics state changes on malformed action.
+        if bool(c.enable_gimbal_azimuth_action) != (gimbal_azimuth_cmd is not None):
+            raise ValueError("gimbal_azimuth_cmd required iff enable_gimbal_azimuth_action=True")
+        next_gimbal_azimuth = None
+        if gimbal_azimuth_cmd is not None:
+            requested_az = np.asarray(gimbal_azimuth_cmd, dtype=np.float64)
+            if (requested_az.shape != (self.actor_n,) or
+                    not np.isfinite(requested_az).all() or
+                    np.any(np.abs(requested_az) > 1.0)):
+                raise ValueError("gimbal_azimuth_cmd must be finite normalized [-1,1] per UAV")
+            from ..sensing.gimbal_cone import slew_azimuth
+            next_gimbal_azimuth = slew_azimuth(
+                self.gimbal_azimuth_rad, requested_az * math.pi,
+                math.radians(c.gimbal_max_rate_deg_s) * c.dt_s,
+            )
         act_vel_cmd = np.asarray(act_vel_cmd, dtype=np.float64)
         act_comm_disc = np.asarray(act_comm_disc)
         if act_vel_cmd.shape != (self.actor_n, 2) or not np.isfinite(act_vel_cmd).all():
@@ -77,7 +82,6 @@ class _TransitionMixin:
             raise ValueError("act_comm_disc must contain integers")
         if np.any((act_comm_disc < 0) | (act_comm_disc >= self.disc_dim)):
             raise ValueError(f"act_comm_disc must contain actions in [0, {self.disc_dim - 1}]")
-
         if (tx_power_w is None) == bool(c.enable_tx_power_control):
             raise ValueError("TX power action must match enable_tx_power_control")
         if tx_power_w is not None:
@@ -89,6 +93,14 @@ class _TransitionMixin:
             self.net.set_tx_power_per_uav(tx_p)
         else:
             tx_p = None
+        if next_gimbal_azimuth is not None:
+            self.gimbal_azimuth_rad[:] = next_gimbal_azimuth
+        # Network state changes happen only after action-shape and value checks.
+        self.net.step_tx_airtime_us.fill(0)
+        self.net.step_new_peer_cells = 0
+        self.net.step_peer_info_gain = 0.0
+        for u in range(self.actor_n):
+            self.net.set_radio_alive(u, bool(self.battery_j[u] > 0.0))
         # 1. Enqueue prior-step dirty evidence per actor comm action (strictly non-oracle)
         for u in range(self.actor_n):
             dst = self._resolve_comm_dest(u, int(act_comm_disc[u]))
@@ -103,9 +115,6 @@ class _TransitionMixin:
             if not self.net.run_until_us(target_us):
                 raise RuntimeError("CSMA/CA event cap hit: refusing to advance RL state with stale network time")
         elif c.network_substeps == 2:
-            # Use start and midpoint geometry in two equal radio sub-intervals.
-            # Save/restore the physical state: the authoritative flight update,
-            # safety and energy accounting still happen together below.
             initial_positions = self.positions.copy()
             half_time = self.net.sim_time_us + (target_us - self.net.sim_time_us) // 2
             if not self.net.run_until_us(half_time):
@@ -243,19 +252,10 @@ class _TransitionMixin:
             uav_safe_distance_m=c.uav_safe_distance_m,
         )
         safety_violation = any(safety_violations.values())
-        # One infeasible actor must not suppress sensing for every *other* UAV.
-        # Pairwise violations affect both participants; GCS/team penalties remain global.
         unsafe_sensing_uavs = set(int(u) for u in safety_violations["boundary"])
         unsafe_sensing_uavs.update(int(u) for u, _ in safety_violations["building"])
         for i, j in safety_violations["pairwise"]:
             unsafe_sensing_uavs.update((int(i), int(j)))
-        # V113 P0: CPU previously detected invalid swept motion and still COMMITTED
-        # that motion. Match V80 GPU fail-closed terminal physical commit: preserve
-        # positions, previous velocities, and battery. Network has already advanced.
-        # This is a terminal emergency rollback, not a guaranteed viable-set shield.
-        # Legacy safety_failure_terminate=False permits other UAVs to sense.
-        # That legacy mode is NOT supported by the canonical Warp scenario;
-        # fail-closed physical rollback applies to the active terminal mode.
         if safety_violation and c.safety_failure_terminate:
             unsafe_sensing_uavs.update(range(self.actor_n))
             # V122 C84: parity with Warp _move_v80 (intervention[e] = 0.0 on terminal safety rollback)
@@ -285,15 +285,25 @@ class _TransitionMixin:
             if self.battery_j[u] <= 0.0 or u in unsafe_sensing_uavs:
                 continue
             ux, uy = self.positions[u, 0], self.positions[u, 1]
-            cmin_x = max(0, int((ux - c.fov_radius_m) // self.cell_size_m))
-            cmax_x = min(self.grid_w - 1, int((ux + c.fov_radius_m) // self.cell_size_m))
-            cmin_y = max(0, int((uy - c.fov_radius_m) // self.cell_size_m))
-            cmax_y = min(self.grid_w - 1, int((uy + c.fov_radius_m) // self.cell_size_m))
+            from ..sensing.gimbal_cone import is_cell_in_gimbal_cone, max_ground_radius_m
+            radius_search = (max_ground_radius_m(
+                float(self.positions[u, 2]), c.gimbal_tilt_deg, c.gimbal_half_fov_deg
+            ) if c.enable_gimbal_azimuth_action else c.fov_radius_m)
+            cmin_x = max(0, int((ux - radius_search) // self.cell_size_m))
+            cmax_x = min(self.grid_w - 1, int((ux + radius_search) // self.cell_size_m))
+            cmin_y = max(0, int((uy - radius_search) // self.cell_size_m))
+            cmax_y = min(self.grid_w - 1, int((uy + radius_search) // self.cell_size_m))
             for cy in range(cmin_y, cmax_y + 1):
                 for cx in range(cmin_x, cmax_x + 1):
                     cell_x = (cx + 0.5) * self.cell_size_m
                     cell_y = (cy + 0.5) * self.cell_size_m
-                    if math.hypot(cell_x - ux, cell_y - uy) <= c.fov_radius_m:
+                    visible = (is_cell_in_gimbal_cone(
+                        cell_x - ux, cell_y - uy, float(self.positions[u, 2]),
+                        float(self.gimbal_azimuth_rad[u]),
+                        c.gimbal_tilt_deg, c.gimbal_half_fov_deg,
+                    ) if c.enable_gimbal_azimuth_action
+                        else math.hypot(cell_x - ux, cell_y - uy) <= c.fov_radius_m)
+                    if visible:
                         if c.enable_3d_sensing_occlusion:
                             # C2 fix: skip cells inside building footprint or occluded by 70-80m buildings
                             occluded = False
@@ -309,7 +319,19 @@ class _TransitionMixin:
                             if occluded:
                                 continue
                         cid = cy * self.grid_w + cx
-                        det = bool(self.rng.random() < (c.pd if self.true_targets[cid] else c.pf))
+                        # V124 C85: skip repeated same-origin cell evidence for an
+                        if c.sensor_revisit_cooldown_steps:
+                            last_ts = int(self.net.ledger_gen_ts_s[u, u, cid])
+                            if (last_ts >= 0 and
+                                    t_step_s - last_ts < c.sensor_revisit_cooldown_steps):
+                                continue
+                        if c.sensor_rng_mode == 'counter_keyed':
+                            from ..sensing.keyed_rng import sensor_uniform
+                            draw = sensor_uniform(self.sensor_master_seed, self.episode_id,
+                                                  t_step_s, u, cid)
+                        else:
+                            draw = self.rng.random()
+                        det = bool(draw < (c.pd if self.true_targets[cid] else c.pf))
                         self.net.record_local_observation(u, cid, det, t_step_s)
 
         r_loc_team = 0.0
@@ -471,4 +493,7 @@ class _TransitionMixin:
             "gcs_mean_uncertainty_u": round(gcs_u_sum / float(self.num_cells), 6),
             "gcs_mean_deng_entropy": round(gcs_deng_sum / float(self.num_cells), 6),
         }
+        if c.enable_gimbal_azimuth_action:
+            info["gimbal_pilot_cpu_only"] = True
+            info["gimbal_azimuth_rad"] = self.gimbal_azimuth_rad.tolist()
         return obs, state, mask, float(reward), terminated, truncated, info

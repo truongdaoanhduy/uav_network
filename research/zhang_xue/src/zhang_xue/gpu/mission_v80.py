@@ -71,7 +71,7 @@ class WarpParallelMissionV80(WarpParallelMissionV79):
             n.state, w["positions"], w["truth"], w["episode_step"], w["episode_id"],
             w["battery"], w["unsafe_mask"], w["failed"], self.build_wp, len(self.buildings),
             int(p.seed), float(p.pd), float(p.pf), float(p.ds_aoi_eta),
-            int(p.static_raw_count),
+            int(p.static_raw_count), int(p.sensor_revisit_cooldown_steps),
         ])
         self._launch(_reward_v79, self.envs, [
             n.state, w["truth"], w["team_u_prev"], w["gcs_tp"], w["gcs_tp_active"], w["gcs_tp_drops"],

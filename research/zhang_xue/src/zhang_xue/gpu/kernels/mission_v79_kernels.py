@@ -276,7 +276,7 @@ if HAS_WARP:
         ep_id: wp.array(dtype=wp.int32), battery: wp.array2d(dtype=wp.float32),
         unsafe_mask: wp.array2d(dtype=wp.uint8), failed: wp.array(dtype=wp.uint8),
         b: wp.array2d(dtype=wp.float32), n_b: int, seed: int, pd: float, pf: float, eta: float,
-        static_raw_count: int,
+        static_raw_count: int, cooldown_steps: int,
     ):
         e, u = wp.tid()
         if (failed[e] != wp.uint8(0) or battery[e, u] <= 0.0
@@ -316,6 +316,12 @@ if HAS_WARP:
                 if blocked != 0:
                     continue
                 cid = iy * GRID + ix
+                # Reuse provenance-local last ACCEPTED observation tick. A
+                # suppressed revisit changes neither DS counts nor timestamps.
+                if cooldown_steps > 0:
+                    last_accept = int(net.ledger_gen[e, u, u, cid])
+                    if last_accept >= 0 and t - last_accept < cooldown_steps:
+                        continue
                 q = wp.float32(pd) if truth[e, cid] != wp.uint8(0) else wp.float32(pf)
                 detected = wp.randf(rng) < q
                 if static_raw_count != 0:
